@@ -199,3 +199,57 @@ aside .widget:has(a[href*="product-themes"]),
     height: 100px !important;
   }
 }
+
+/* ============================================================
+   Fix eael-woo-product-carousel - category images grid
+   ============================================================ */
+.elementor-widget-eael-woo-product-carousel .swiper-wrapper,
+.elementor-widget-eael-woo-product-carousel .slick-track {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: 12px !important;
+  transform: none !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+}
+
+.elementor-widget-eael-woo-product-carousel .swiper-slide,
+.elementor-widget-eael-woo-product-carousel .slick-slide {
+  width: auto !important;
+  float: none !important;
+  margin: 0 !important;
+}
+
+.elementor-widget-eael-woo-product-carousel .swiper-slide img,
+.elementor-widget-eael-woo-product-carousel .slick-slide img {
+  width: 100% !important;
+  height: 160px !important;
+  object-fit: cover !important;
+  border-radius: 8px !important;
+}
+
+/* nested-carousel fix */
+.elementor-widget-nested-carousel .swiper-wrapper {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  transform: none !important;
+  width: 100% !important;
+}
+
+.elementor-widget-nested-carousel .swiper-slide {
+  width: auto !important;
+}
+
+@media (max-width: 991px) {
+  .elementor-widget-eael-woo-product-carousel .swiper-wrapper,
+  .elementor-widget-nested-carousel .swiper-wrapper {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .elementor-widget-eael-woo-product-carousel .swiper-wrapper,
+  .elementor-widget-nested-carousel .swiper-wrapper {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
