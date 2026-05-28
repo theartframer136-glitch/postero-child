@@ -1,0 +1,47 @@
+﻿name: Deploy Theme
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Deploy + reset caches
+        run: |
+          set -euo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          THEME="postero-child"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
+          echo "Deploying to: ${TARGET}"
+
+          rsync -avz --delete \
+            --exclude ".git" \
+            --exclude ".github" \
+            --exclude "node_modules" \
+            -e "${SSH} -i ~/.ssh/id_ed25519" \
+            ./ \
+            "${USER}@${HOST}:${TARGET}/"
+
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp litespeed-purge all --allow-root 2>/dev/null || true; \
+             wp cache flush --allow-root 2>/dev/null || true; \
+             echo 'Cache cleared'"
+
+          echo "Deploy complete"
