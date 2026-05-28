@@ -253,3 +253,61 @@ aside .widget:has(a[href*="product-themes"]),
     grid-template-columns: repeat(2, 1fr) !important;
   }
 }
+
+/* ============================================================
+   NUCLEAR FIX - Category images single column issue
+   Target ALL possible wrappers
+   ============================================================ */
+
+/* Fix the postero product categories widget */
+.elementor-widget-postero-product-categories .elementor-categories-item-wrapper,
+.elementor-categories-item-wrapper {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+
+/* Fix slick slider inside categories */
+.elementor-widget-postero-product-categories .slick-list,
+.elementor-widget-postero-product-categories .slick-track {
+  width: 100% !important;
+  display: flex !important;
+  flex-wrap: wrap !important;
+  transform: none !important;
+  position: static !important;
+}
+
+.elementor-widget-postero-product-categories .slick-slide {
+  float: none !important;
+  width: 18% !important;
+  margin: 0 6px !important;
+}
+
+/* Fix product-cat items */
+.elementor-widget-postero-product-categories .product-cat {
+  width: 100% !important;
+  display: block !important;
+}
+
+.elementor-widget-postero-product-categories .category-product-img img {
+  width: 100% !important;
+  height: 140px !important;
+  object-fit: cover !important;
+  border-radius: 8px !important;
+  display: block !important;
+}
+
+/* Tablet */
+@media (max-width: 991px) {
+  .elementor-widget-postero-product-categories .slick-slide {
+    width: 30% !important;
+  }
+}
+
+/* Mobile */
+@media (max-width: 576px) {
+  .elementor-widget-postero-product-categories .slick-slide {
+    width: 45% !important;
+  }
+}
