@@ -95,3 +95,48 @@ add_action('wp_head', function() {
 add_action('wp_enqueue_scripts', function() {
   wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array(), '1.0.0');
 }, 20);
+
+// Override parent theme currency - force USD on all hooks
+remove_all_filters('woocommerce_currency');
+remove_all_filters('woocommerce_currency_symbol');
+add_filter('woocommerce_currency', function() { return 'USD'; }, 999);
+add_filter('woocommerce_currency_symbol', function($symbol, $currency) {
+    return '$';
+}, 999, 2);
+
+// Fix Shop by Collection - category image grid
+add_action('wp_head', function() {
+    echo '<style>
+    /* Category image grid fix */
+    .elementor-widget-postero_product_categories .postero-cats-wrap,
+    .postero-cats-wrap {
+        display: grid !important;
+        grid-template-columns: repeat(5, 1fr) !important;
+        gap: 12px !important;
+        width: 100% !important;
+    }
+    .postero-cats-wrap .cat-item,
+    .elementor-widget-postero_product_categories .cat-item {
+        width: 100% !important;
+        float: none !important;
+        margin: 0 !important;
+    }
+    .postero-cats-wrap .slick-list,
+    .postero-cats-wrap .slick-track {
+        display: grid !important;
+        grid-template-columns: repeat(5, 1fr) !important;
+        width: 100% !important;
+        transform: none !important;
+    }
+    .postero-cats-wrap .slick-slide {
+        float: none !important;
+        width: auto !important;
+    }
+    @media (max-width: 768px) {
+        .postero-cats-wrap,
+        .elementor-widget-postero_product_categories .postero-cats-wrap {
+            grid-template-columns: repeat(3, 1fr) !important;
+        }
+    }
+    </style>';
+}, 999);
