@@ -1,0 +1,100 @@
+﻿/* ============================================================
+   The Art Framer - Child Theme Custom CSS
+   ============================================================ */
+
+/* Shop by Collection - fix grid */
+.prt-collection-section .slick-track { display: flex !important; }
+.prt-collection-section .slick-slide { height: auto !important; display: flex !important; }
+
+/* Product grid - 4 columns desktop */
+body .woocommerce ul.products,
+body .woocommerce-page ul.products {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 20px 16px !important;
+  margin: 0 0 30px !important;
+  padding: 0 !important;
+  list-style: none !important;
+  clear: both !important;
+  float: none !important;
+  width: 100% !important;
+}
+
+body .woocommerce ul.products::before,
+body .woocommerce ul.products::after { display: none !important; }
+
+body .woocommerce ul.products li.product {
+  width: 100% !important;
+  margin: 0 !important;
+  float: none !important;
+  clear: none !important;
+  display: flex !important;
+  flex-direction: column !important;
+  background: #fff !important;
+  border-radius: 8px !important;
+  overflow: hidden !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+
+body .woocommerce ul.products li.product a img {
+  width: 100% !important;
+  height: 220px !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+
+body .woocommerce ul.products li.product .woocommerce-loop-product__title {
+  font-size: 13px !important;
+  padding: 10px 12px 4px !important;
+  margin: 0 !important;
+  flex-grow: 1 !important;
+}
+
+body .woocommerce ul.products li.product .price {
+  padding: 4px 12px 8px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #c0392b !important;
+}
+
+body .woocommerce ul.products li.product .button {
+  display: block !important;
+  width: calc(100% - 24px) !important;
+  margin: auto 12px 12px !important;
+  padding: 9px 8px !important;
+  background: #1a1a1a !important;
+  color: #fff !important;
+  text-align: center !important;
+  border-radius: 4px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase !important;
+  border: none !important;
+  text-decoration: none !important;
+}
+
+body .woocommerce ul.products li.product .button:hover {
+  background: #c0392b !important;
+}
+
+/* Tablet */
+@media (max-width: 991px) {
+  body .woocommerce ul.products {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Mobile */
+@media (max-width: 576px) {
+  body .woocommerce ul.products {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+  }
+  body .woocommerce ul.products li.product a img {
+    height: 160px !important;
+  }
+}
+
+/* Hide themes widget */
+aside .widget:has(a[href*="product-themes"]),
+.widget_postero_product_themes { display: none !important; }
