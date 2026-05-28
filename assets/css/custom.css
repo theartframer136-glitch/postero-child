@@ -98,3 +98,51 @@ body .woocommerce ul.products li.product .button:hover {
 /* Hide themes widget */
 aside .widget:has(a[href*="product-themes"]),
 .widget_postero_product_themes { display: none !important; }
+
+/* Fix Shop by Collection - force horizontal display */
+.prt-collection-section .products,
+.postero-cats-products .products,
+[class*="product-categories"] .products,
+.elementor-widget-postero_product_categories ul.products {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  flex-direction: row !important;
+  gap: 12px !important;
+  width: 100% !important;
+}
+
+.prt-collection-section .products li,
+.postero-cats-products .products li,
+[class*="product-categories"] .products li,
+.elementor-widget-postero_product_categories ul.products li {
+  width: calc(16.66% - 12px) !important;
+  min-width: 100px !important;
+  flex: 0 0 auto !important;
+  float: none !important;
+  margin: 0 !important;
+}
+
+@media (max-width: 991px) {
+  .elementor-widget-postero_product_categories ul.products li {
+    width: calc(25% - 12px) !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .elementor-widget-postero_product_categories ul.products li {
+    width: calc(33.33% - 12px) !important;
+  }
+}
+
+/* Fix slick slider container */
+.slick-slider .slick-list {
+  overflow: hidden !important;
+}
+.slick-track {
+  display: flex !important;
+  align-items: flex-start !important;
+}
+.slick-slide {
+  float: none !important;
+  height: auto !important;
+}
