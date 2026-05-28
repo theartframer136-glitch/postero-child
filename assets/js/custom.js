@@ -1,49 +1,61 @@
 ﻿jQuery(document).ready(function($) {
-  // Wait for slick to initialize then destroy it and convert to grid
-  function fixCategorySlider() {
-    var slider = $('.top-category-slider');
-    if (slider.length === 0) return;
+  
+  // Function to fix category grid whenever content loads
+  function fixCatGrid(container) {
+    if (!container) container = document;
     
-    // If slick is initialized, destroy it
-    if (slider.hasClass('slick-initialized')) {
-      slider.slick('unslick');
-    }
+    // Find the category display area
+    var catDisplay = $(container).find('[class*="cat-display"], [class*="category-display"], [id*="cat-content"], [id*="catContent"], .elementor-widget-postero-product-categories ul, ul.products');
     
-    // Hide nav buttons
-    $('.cat-nav').hide();
-    
-    // Apply grid styles directly
-    slider.css({
-      'display': 'grid',
-      'grid-template-columns': 'repeat(5, 1fr)',
-      'gap': '12px',
-      'width': '100%'
-    });
-    
-    // Fix each slide
-    slider.find('.slick-slide, li, .cat-item, .product-cat').css({
-      'width': '100%',
-      'float': 'none',
-      'margin': '0'
-    });
-    
-    // Fix images
-    slider.find('img').css({
-      'width': '100%',
-      'height': '140px',
-      'object-fit': 'cover',
-      'border-radius': '8px'
+    catDisplay.each(function() {
+      $(this).css({
+        'display': 'grid',
+        'grid-template-columns': 'repeat(5, 1fr)',
+        'gap': '12px',
+        'width': '100%',
+        'list-style': 'none',
+        'padding': '0',
+        'margin': '0'
+      });
+      $(this).find('li, .cat-item, .product-cat').css({
+        'width': '100%',
+        'float': 'none',
+        'margin': '0'
+      });
+      $(this).find('img').css({
+        'width': '100%',
+        'height': '140px',
+        'object-fit': 'cover',
+        'border-radius': '8px'
+      });
     });
   }
-  
-  // Try immediately and after delays
-  fixCategorySlider();
-  setTimeout(fixCategorySlider, 500);
-  setTimeout(fixCategorySlider, 1500);
-  setTimeout(fixCategorySlider, 3000);
-  
-  // Also on window load
-  $(window).on('load', function() {
-    setTimeout(fixCategorySlider, 500);
+
+  // Intercept AJAX calls and fix grid after response
+  $(document).ajaxComplete(function(event, xhr, settings) {
+    setTimeout(function() { fixCatGrid(); }, 100);
   });
+
+  // Fix on button click
+  $(document).on('click', '.top-cat-btn', function() {
+    setTimeout(function() { fixCatGrid(); }, 300);
+    setTimeout(function() { fixCatGrid(); }, 800);
+    setTimeout(function() { fixCatGrid(); }, 1500);
+  });
+
+  // Initial fix
+  fixCatGrid();
+  setTimeout(function() { fixCatGrid(); }, 1000);
+  
+  // Also watch for DOM changes
+  if (window.MutationObserver) {
+    var observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.addedNodes.length > 0) {
+          setTimeout(function() { fixCatGrid(); }, 100);
+        }
+      });
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
 });
