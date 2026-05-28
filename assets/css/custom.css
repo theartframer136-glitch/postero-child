@@ -146,3 +146,56 @@ aside .widget:has(a[href*="product-themes"]),
   float: none !important;
   height: auto !important;
 }
+
+/* ============================================================
+   Shop by Collection - Fix grid layout
+   ============================================================ */
+
+/* Force the d-grid to show 5 columns */
+.elementor-widget-postero-product-categories .d-grid {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: 12px !important;
+  width: 100% !important;
+  transform: none !important;
+}
+
+/* Each category item */
+.elementor-widget-postero-product-categories .elementor-categories-item {
+  width: 100% !important;
+  float: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Category image */
+.elementor-widget-postero-product-categories .category-product-img img {
+  width: 100% !important;
+  height: 140px !important;
+  object-fit: cover !important;
+  border-radius: 8px !important;
+}
+
+/* Category title */
+.elementor-widget-postero-product-categories .cat-title {
+  text-align: center !important;
+  font-size: 12px !important;
+  padding: 6px 4px !important;
+}
+
+/* Tablet - 3 columns */
+@media (max-width: 991px) {
+  .elementor-widget-postero-product-categories .d-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* Mobile - 2 columns */
+@media (max-width: 576px) {
+  .elementor-widget-postero-product-categories .d-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .elementor-widget-postero-product-categories .category-product-img img {
+    height: 100px !important;
+  }
+}
