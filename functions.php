@@ -89,3 +89,9 @@ add_action('wp_head', function() {
     }
     </style>';
 }, 999);
+
+
+// Enqueue custom CSS
+add_action('wp_enqueue_scripts', function() {
+  wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array(), '1.0.0');
+}, 20);
