@@ -311,3 +311,68 @@ aside .widget:has(a[href*="product-themes"]),
     width: 45% !important;
   }
 }
+
+/* ============================================================
+   Fix top-category-container - exact class names
+   ============================================================ */
+
+/* Hide prev/next navigation buttons */
+.cat-nav.prev-btn,
+.cat-nav.next-btn,
+.cat-nav {
+  display: none !important;
+}
+
+/* Force grid on category container */
+.top-category-container {
+  display: grid !important;
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: 12px !important;
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+/* Each category item inside container */
+.top-category-container .product-cat,
+.top-category-container .cat-item,
+.top-category-container li,
+.top-category-container > * {
+  width: 100% !important;
+  float: none !important;
+  margin: 0 !important;
+}
+
+/* Category images */
+.top-category-container img {
+  width: 100% !important;
+  height: 140px !important;
+  object-fit: cover !important;
+  border-radius: 8px !important;
+  display: block !important;
+}
+
+/* Category title */
+.top-category-container .cat-title,
+.top-category-container .woocommerce-loop-category__title {
+  text-align: center !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  padding: 6px 4px !important;
+}
+
+/* Tablet - 3 columns */
+@media (max-width: 991px) {
+  .top-category-container {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* Mobile - 2 columns */
+@media (max-width: 576px) {
+  .top-category-container {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .top-category-container img {
+    height: 100px !important;
+  }
+}
