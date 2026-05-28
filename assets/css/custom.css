@@ -444,3 +444,39 @@ aside .widget:has(a[href*="product-themes"]),
   }
   .top-category-slider img { height: 100px !important; }
 }
+
+/* ============================================================
+   Fix top-category-slider buttons - single row
+   ============================================================ */
+.top-category-slider,
+#topCatSlider {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  gap: 8px !important;
+  padding-bottom: 8px !important;
+  width: 100% !important;
+  scrollbar-width: thin !important;
+}
+
+.top-category-slider .top-cat-btn,
+#topCatSlider .top-cat-btn {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+
+/* Hide prev/next nav */
+.cat-nav { display: none !important; }
+
+/* Scrollbar styling */
+.top-category-slider::-webkit-scrollbar {
+  height: 4px !important;
+}
+.top-category-slider::-webkit-scrollbar-track {
+  background: #f1f1f1 !important;
+}
+.top-category-slider::-webkit-scrollbar-thumb {
+  background: #c9a84c !important;
+  border-radius: 2px !important;
+}
