@@ -1,13 +1,49 @@
 ﻿/* ============================================================
-   The Art Framer - Child Theme CSS
-   Only essential overrides - do NOT break parent theme layout
+   The Art Framer - Child Theme CSS v2
    ============================================================ */
 
-/* Hide themes widget from sidebar */
-aside .widget:has(a[href*="product-themes"]),
+/* Hide themes widget */
 .widget_postero_product_themes { display: none !important; }
 
-/* Product grid - shop page */
+/* Fix category grid - override Elementor inline styles */
+.elementor-widget-postero-product-categories .d-grid[style] {
+  grid-template-columns: repeat(5, 1fr) !important;
+}
+
+.elementor-widget-postero-product-categories .d-grid {
+  grid-template-columns: repeat(5, 1fr) !important;
+  gap: 15px !important;
+}
+
+/* Category item styling */
+.elementor-widget-postero-product-categories .product-cat {
+  border-radius: 8px !important;
+  overflow: hidden !important;
+}
+
+.elementor-widget-postero-product-categories .category-product-img img {
+  height: 160px !important;
+  object-fit: cover !important;
+  width: 100% !important;
+}
+
+/* Tablet */
+@media (max-width: 991px) {
+  .elementor-widget-postero-product-categories .d-grid[style],
+  .elementor-widget-postero-product-categories .d-grid {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* Mobile */
+@media (max-width: 576px) {
+  .elementor-widget-postero-product-categories .d-grid[style],
+  .elementor-widget-postero-product-categories .d-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* Product grid shop page */
 .woocommerce .products.columns-4 {
   display: grid !important;
   grid-template-columns: repeat(4, 1fr) !important;
@@ -17,12 +53,5 @@ aside .widget:has(a[href*="product-themes"]),
 @media (max-width: 991px) {
   .woocommerce .products.columns-4 {
     grid-template-columns: repeat(2, 1fr) !important;
-  }
-}
-
-@media (max-width: 576px) {
-  .woocommerce .products.columns-4 {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 10px !important;
   }
 }
