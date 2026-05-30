@@ -1,49 +1,102 @@
 ﻿/* ============================================================
-   The Art Framer - Child Theme CSS v2
+   The Art Framer - Child Theme CSS
    ============================================================ */
 
 /* Hide themes widget */
 .widget_postero_product_themes { display: none !important; }
 
-/* Fix category grid - override Elementor inline styles */
-.elementor-widget-postero-product-categories .d-grid[style] {
-  grid-template-columns: repeat(5, 1fr) !important;
+/* ---- SHOP BY COLLECTION - sub-cat grid ---- */
+/* Container that holds AJAX-loaded sub-cat items */
+.sub-cat-display,
+.sub-cats-wrapper,
+.subcats-container,
+[id*="sub-cat"],
+[class*="sub-cat-container"],
+[class*="subcat-display"] {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 12px !important;
+  width: 100% !important;
+  padding: 16px 0 !important;
 }
 
-.elementor-widget-postero-product-categories .d-grid {
-  grid-template-columns: repeat(5, 1fr) !important;
-  gap: 15px !important;
+/* Each sub-cat item */
+.sub-cat {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  text-decoration: none !important;
 }
 
-/* Category item styling */
-.elementor-widget-postero-product-categories .product-cat {
-  border-radius: 8px !important;
-  overflow: hidden !important;
-}
-
-.elementor-widget-postero-product-categories .category-product-img img {
-  height: 160px !important;
+/* Sub-cat image - circular */
+.sub-cat img {
+  width: 80px !important;
+  height: 80px !important;
+  border-radius: 50% !important;
   object-fit: cover !important;
+  border: 3px solid #c9a84c !important;
+  transition: transform 0.3s ease !important;
+  display: block !important;
+  margin: 0 auto 6px !important;
+}
+
+.sub-cat:hover img {
+  transform: scale(1.08) !important;
+  border-color: #8b6914 !important;
+}
+
+/* Sub-cat label */
+.sub-cat span {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #333 !important;
+  line-height: 1.3 !important;
+  display: block !important;
+  text-align: center !important;
+}
+
+/* Category buttons - single row with scroll */
+.top-category-slider, #topCatSlider {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  overflow-x: auto !important;
+  gap: 8px !important;
+  padding: 0 0 8px !important;
+  scrollbar-width: none !important;
   width: 100% !important;
 }
 
+.top-category-slider::-webkit-scrollbar { display: none !important; }
+
+.top-category-slider .top-cat-btn,
+#topCatSlider .top-cat-btn {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+}
+
+/* Hide prev/next nav */
+.cat-nav { display: none !important; }
+
 /* Tablet */
 @media (max-width: 991px) {
-  .elementor-widget-postero-product-categories .d-grid[style],
-  .elementor-widget-postero-product-categories .d-grid {
-    grid-template-columns: repeat(3, 1fr) !important;
+  .sub-cat-display, [class*="sub-cat-container"] {
+    grid-template-columns: repeat(5, 1fr) !important;
   }
+  .sub-cat img { width: 65px !important; height: 65px !important; }
 }
 
 /* Mobile */
 @media (max-width: 576px) {
-  .elementor-widget-postero-product-categories .d-grid[style],
-  .elementor-widget-postero-product-categories .d-grid {
-    grid-template-columns: repeat(2, 1fr) !important;
+  .sub-cat-display, [class*="sub-cat-container"] {
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 8px !important;
   }
+  .sub-cat img { width: 55px !important; height: 55px !important; }
 }
 
-/* Product grid shop page */
+/* Product grid - shop page */
 .woocommerce .products.columns-4 {
   display: grid !important;
   grid-template-columns: repeat(4, 1fr) !important;
