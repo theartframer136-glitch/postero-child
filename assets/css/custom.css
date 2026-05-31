@@ -96,6 +96,24 @@
   .sub-cat img { width: 55px !important; height: 55px !important; }
 }
 
+/* Hide broken video containers that return 404 */
+.elementor-background-video-container video[src=""],
+.elementor-background-video-container:empty {
+  display: none !important;
+}
+
+/* Hide compare/swap button on product cards */
+.wooscp-btn,
+.woosc-btn,
+.ti-wishlist-add-to-compare-button,
+[class*="compare-btn"],
+[class*="compare_btn"],
+.yith-woocompare-add-button,
+.compare-button,
+.add_to_compare_button {
+  display: none !important;
+}
+
 /* Product grid - shop page */
 .woocommerce .products.columns-4 {
   display: grid !important;
