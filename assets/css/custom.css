@@ -46,23 +46,27 @@
   padding: 0 !important;
 }
 
-/* ---- Subcategory circles: single horizontal scrollable row ---- */
-#subcategorySlider,
-.subcategory-slider {
+/* ---- Subcategory circles: single horizontal scrollable row ----
+   Confirmed selector: ul.postero-scroll-content > li.cat-item        */
+ul.postero-scroll-content {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
-  gap: 16px !important;
   overflow-x: auto !important;
   overflow-y: visible !important;
+  gap: 16px !important;
   width: 100% !important;
-  padding-bottom: 8px !important;
+  padding: 0 0 8px 0 !important;
+  margin: 0 !important;
+  list-style: none !important;
   scrollbar-width: none !important;
+  /* Override any transform/translate the parent slider JS may apply */
+  transform: none !important;
+  transition: none !important;
 }
-#subcategorySlider::-webkit-scrollbar,
-.subcategory-slider::-webkit-scrollbar { display: none !important; }
+ul.postero-scroll-content::-webkit-scrollbar { display: none !important; }
 
-.subcategory-slider .sub-cat {
+ul.postero-scroll-content > li.cat-item {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -71,9 +75,13 @@
   width: auto !important;
   float: none !important;
   margin: 0 !important;
+  padding: 0 !important;
   cursor: pointer !important;
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
 }
-.subcategory-slider .sub-cat img {
+ul.postero-scroll-content .cat-item img {
   width: 90px !important;
   height: 90px !important;
   border-radius: 50% !important;
@@ -83,13 +91,15 @@
   display: block !important;
   transition: transform 0.3s ease !important;
 }
-.subcategory-slider .sub-cat:hover img { transform: scale(1.08) !important; }
-.subcategory-slider .sub-cat span {
+ul.postero-scroll-content .cat-item:hover img { transform: scale(1.08) !important; }
+ul.postero-scroll-content .cat-item span,
+ul.postero-scroll-content .cat-item a {
   font-size: 12px !important;
   font-weight: 600 !important;
   color: #333 !important;
   line-height: 1.3 !important;
   white-space: nowrap !important;
+  display: block !important;
 }
 
 /* ---- Hide leftover subcategory + product nav arrows ---- */
@@ -190,7 +200,7 @@
    RESPONSIVE
    ============================================================ */
 @media (max-width: 991px) {
-  .subcategory-slider .sub-cat img { width: 70px !important; height: 70px !important; }
+  ul.postero-scroll-content .cat-item img { width: 70px !important; height: 70px !important; }
   #productGrid, .product-slider {
     grid-template-columns: repeat(2, 1fr) !important;
   }
@@ -200,7 +210,7 @@
 }
 
 @media (max-width: 576px) {
-  .subcategory-slider .sub-cat img { width: 60px !important; height: 60px !important; }
+  ul.postero-scroll-content .cat-item img { width: 60px !important; height: 60px !important; }
   #productGrid, .product-slider {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 12px !important;
