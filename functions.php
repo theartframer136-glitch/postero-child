@@ -73,61 +73,115 @@ add_action('wp_head', function() {
     </style>';
 }, 999);
 
-// 9. Inline critical CSS for subcategory row — bypasses file caching
-// Confirmed selectors: ul.postero-scroll-content > li.cat-item
-add_action('wp_head', function() {
-    echo '<style id="artframer-subcat-fix">
-    ul.postero-scroll-content {
-        display: flex !important;
-        flex-direction: row !important;
-        flex-wrap: nowrap !important;
-        overflow-x: auto !important;
-        overflow-y: visible !important;
-        gap: 16px !important;
-        width: 100% !important;
-        padding: 0 0 8px 0 !important;
-        margin: 0 !important;
-        list-style: none !important;
-        scrollbar-width: none !important;
-        transform: none !important;
-        transition: none !important;
-        position: relative !important;
-        height: auto !important;
+// 9. Inject subcategory fix CSS in wp_footer — runs AFTER Elementor body CSS
+add_action('wp_footer', function() { ?>
+<style id="artframer-subcat-fix">
+ul.postero-scroll-content {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    gap: 16px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 0 8px 0 !important;
+    margin: 0 !important;
+    list-style: none !important;
+    scrollbar-width: none !important;
+    transform: none !important;
+    transition: none !important;
+    position: relative !important;
+    height: auto !important;
+    min-height: 0 !important;
+}
+ul.postero-scroll-content::-webkit-scrollbar { display: none !important; }
+ul.postero-scroll-content > li.cat-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 100px !important;
+    float: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    cursor: pointer !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+}
+ul.postero-scroll-content .cat-item img {
+    width: 90px !important;
+    height: 90px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    border: 3px solid #c9a84c !important;
+    margin: 0 auto 8px !important;
+    display: block !important;
+}
+ul.postero-scroll-content .cat-item span,
+ul.postero-scroll-content .cat-item a {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+    color: #333 !important;
+    white-space: nowrap !important;
+    display: block !important;
+}
+</style>
+<script>
+// Force subcategory row — runs after all Elementor JS settles
+(function() {
+    function applyFix() {
+        var ul = document.querySelector('ul.postero-scroll-content');
+        if (!ul) return;
+        var s = ul.style;
+        s.setProperty('display',         'flex',    'important');
+        s.setProperty('flex-direction',  'row',     'important');
+        s.setProperty('flex-wrap',       'nowrap',  'important');
+        s.setProperty('overflow-x',      'auto',    'important');
+        s.setProperty('overflow-y',      'visible', 'important');
+        s.setProperty('gap',             '16px',    'important');
+        s.setProperty('width',           '100%',    'important');
+        s.setProperty('transform',       'none',    'important');
+        s.setProperty('transition',      'none',    'important');
+        s.setProperty('height',          'auto',    'important');
+        s.setProperty('position',        'relative','important');
+
+        var items = ul.querySelectorAll('li.cat-item');
+        items.forEach(function(li) {
+            li.style.setProperty('flex',           '0 0 auto', 'important');
+            li.style.setProperty('position',       'static',   'important');
+            li.style.setProperty('left',           'auto',     'important');
+            li.style.setProperty('top',            'auto',     'important');
+            li.style.setProperty('display',        'flex',     'important');
+            li.style.setProperty('flex-direction', 'column',   'important');
+            li.style.setProperty('align-items',    'center',   'important');
+            li.style.setProperty('width',          'auto',     'important');
+            li.style.setProperty('float',          'none',     'important');
+            li.style.setProperty('transform',      'none',     'important');
+            li.style.setProperty('margin',         '0',        'important');
+        });
+        console.warn('Subcat fix applied — items:', items.length, ul.getAttribute('class'));
     }
-    ul.postero-scroll-content::-webkit-scrollbar { display: none !important; }
-    ul.postero-scroll-content > li.cat-item {
-        display: flex !important;
-        flex-direction: column !important;
-        align-items: center !important;
-        text-align: center !important;
-        flex: 0 0 auto !important;
-        width: auto !important;
-        min-width: 100px !important;
-        float: none !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        cursor: pointer !important;
-        position: static !important;
-        left: auto !important;
-        top: auto !important;
-        transform: none !important;
-    }
-    ul.postero-scroll-content .cat-item img {
-        width: 90px !important;
-        height: 90px !important;
-        border-radius: 50% !important;
-        object-fit: cover !important;
-        border: 3px solid #c9a84c !important;
-        margin: 0 auto 8px !important;
-        display: block !important;
-    }
-    ul.postero-scroll-content .cat-item span,
-    ul.postero-scroll-content .cat-item a {
-        font-size: 12px !important;
-        font-weight: 600 !important;
-        color: #333 !important;
-        white-space: nowrap !important;
-        display: block !important;
-    }
-    </style>';
-}, 9999);
+
+    // Apply repeatedly to beat any delayed JS that resets positions
+    [0, 200, 500, 1000, 2000, 3500].forEach(function(ms) {
+        setTimeout(applyFix, ms);
+    });
+
+    // Also intercept the parent theme slider interval if it runs
+    window.addEventListener('load', function() {
+        setTimeout(applyFix, 100);
+        setTimeout(applyFix, 500);
+        var count = 0;
+        var iv = setInterval(function() {
+            applyFix();
+            if (++count >= 10) clearInterval(iv);
+        }, 300);
+    });
+}());
+</script>
+<?php }, 9999);
