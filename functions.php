@@ -137,6 +137,8 @@ ul.postero-scroll-content .cat-item a {
     function applyFix() {
         var ul = document.querySelector('ul.postero-scroll-content');
         if (!ul) return;
+
+        // Fix the UL itself
         var s = ul.style;
         s.setProperty('display',         'flex',    'important');
         s.setProperty('flex-direction',  'row',     'important');
@@ -150,21 +152,47 @@ ul.postero-scroll-content .cat-item a {
         s.setProperty('height',          'auto',    'important');
         s.setProperty('position',        'relative','important');
 
+        // Fix parent container — remove any overflow:hidden / fixed height that clips rows
+        var parent = ul.parentElement;
+        if (parent) {
+            parent.style.setProperty('overflow',   'visible', 'important');
+            parent.style.setProperty('height',     'auto',    'important');
+            parent.style.setProperty('max-height', 'none',    'important');
+            parent.style.setProperty('clip',       'auto',    'important');
+            parent.style.setProperty('clip-path',  'none',    'important');
+            console.warn('Parent el:', parent.tagName, parent.className,
+                         '| computed overflow:', getComputedStyle(parent).overflow,
+                         '| height:', getComputedStyle(parent).height);
+        }
+
+        // Also fix grandparent
+        var gp = parent && parent.parentElement;
+        if (gp) {
+            gp.style.setProperty('overflow',   'visible', 'important');
+            gp.style.setProperty('height',     'auto',    'important');
+            gp.style.setProperty('max-height', 'none',    'important');
+        }
+
+        // Deduplicate — hide repeated clones (items 22+ are duplicates)
         var items = ul.querySelectorAll('li.cat-item');
-        items.forEach(function(li) {
-            li.style.setProperty('flex',           '0 0 auto', 'important');
-            li.style.setProperty('position',       'static',   'important');
-            li.style.setProperty('left',           'auto',     'important');
-            li.style.setProperty('top',            'auto',     'important');
-            li.style.setProperty('display',        'flex',     'important');
-            li.style.setProperty('flex-direction', 'column',   'important');
-            li.style.setProperty('align-items',    'center',   'important');
-            li.style.setProperty('width',          'auto',     'important');
-            li.style.setProperty('float',          'none',     'important');
-            li.style.setProperty('transform',      'none',     'important');
-            li.style.setProperty('margin',         '0',        'important');
+        items.forEach(function(li, i) {
+            if (i >= 21) {
+                li.style.setProperty('display', 'none', 'important');
+            } else {
+                li.style.setProperty('display',        'flex',     'important');
+                li.style.setProperty('flex',           '0 0 auto', 'important');
+                li.style.setProperty('flex-direction', 'column',   'important');
+                li.style.setProperty('align-items',    'center',   'important');
+                li.style.setProperty('position',       'static',   'important');
+                li.style.setProperty('left',           'auto',     'important');
+                li.style.setProperty('top',            'auto',     'important');
+                li.style.setProperty('width',          'auto',     'important');
+                li.style.setProperty('float',          'none',     'important');
+                li.style.setProperty('transform',      'none',     'important');
+                li.style.setProperty('margin',         '0',        'important');
+            }
         });
-        console.warn('Subcat fix applied — items:', items.length, ul.getAttribute('class'));
+        console.warn('Subcat fix applied — items:', items.length, '| UL computed display:', getComputedStyle(ul).display, '| flex-wrap:', getComputedStyle(ul).flexWrap);
     }
 
     // Apply repeatedly to beat any delayed JS that resets positions
