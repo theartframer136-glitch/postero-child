@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.1.8');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.1.9');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.0.9', true);
 }, 20);
 
@@ -293,29 +293,56 @@ add_action('wp_footer', function() { ?>
         var nextBtn = container.querySelector('.next-prod');
         if (!prevBtn || !nextBtn) return;
 
-        // Set ‹ › symbols on the existing buttons
         prevBtn.innerHTML = '&#8249;';
         nextBtn.innerHTML = '&#8250;';
 
+        var GAP = 16;
         var idx = 0;
+
         function visible() {
             var w = window.innerWidth;
             return w <= 576 ? 1 : w <= 991 ? 3 : 5;
         }
-        function cardW() {
-            var card = ul.querySelector('li.product');
-            if (!card) return 0;
-            var gap = parseFloat(getComputedStyle(ul).gap) || 16;
-            return card.offsetWidth + gap;
+
+        function applyLayout() {
+            var vis = visible();
+            var viewW = sliderDiv.offsetWidth;
+            var cw = Math.floor((viewW - GAP * (vis - 1)) / vis);
+
+            // Force container as flex row
+            container.style.cssText += ';display:flex!important;align-items:center!important;gap:8px!important;width:100%!important;';
+
+            // Force viewport: clip overflow, fill remaining space
+            sliderDiv.style.cssText += ';display:block!important;overflow:hidden!important;flex:1 1 auto!important;min-width:0!important;';
+
+            // Force track: single horizontal row
+            ul.style.cssText += ';display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;gap:' + GAP + 'px!important;margin:0!important;padding:4px 0 12px!important;list-style:none!important;transition:transform 0.4s ease!important;';
+
+            // Force each card width
+            var cards = ul.querySelectorAll('li.product');
+            cards.forEach(function(li) {
+                li.style.cssText += ';flex:0 0 ' + cw + 'px!important;width:' + cw + 'px!important;min-width:' + cw + 'px!important;float:none!important;margin:0!important;';
+            });
+
+            // Style nav buttons
+            [prevBtn, nextBtn].forEach(function(btn) {
+                btn.style.cssText += ';display:flex!important;align-items:center!important;justify-content:center!important;flex-shrink:0!important;width:44px!important;height:44px!important;min-width:44px!important;border-radius:50%!important;background:#c9a84c!important;border:none!important;color:#fff!important;font-size:28px!important;line-height:1!important;cursor:pointer!important;box-shadow:0 2px 8px rgba(0,0,0,.22)!important;padding:0!important;';
+            });
         }
+
         function go(n) {
-            var total = ul.querySelectorAll('li.product').length;
-            idx = Math.max(0, Math.min(n, Math.max(0, total - visible())));
-            ul.style.transform = 'translateX(' + -(idx * cardW()) + 'px)';
+            var cards = ul.querySelectorAll('li.product');
+            var card = cards[0];
+            if (!card) return;
+            var cw = card.offsetWidth + GAP;
+            idx = Math.max(0, Math.min(n, Math.max(0, cards.length - visible())));
+            ul.style.transform = 'translateX(' + -(idx * cw) + 'px)';
         }
+
+        applyLayout();
         prevBtn.addEventListener('click', function() { go(idx - visible()); });
         nextBtn.addEventListener('click', function() { go(idx + visible()); });
-        window.addEventListener('resize', function() { idx = 0; ul.style.transform = 'none'; });
+        window.addEventListener('resize', function() { idx = 0; ul.style.transform = 'none'; applyLayout(); });
     }
 
     function initAll() {
