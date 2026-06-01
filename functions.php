@@ -72,3 +72,53 @@ add_action('wp_head', function() {
     .widget_postero_product_themes { display: none !important; }
     </style>';
 }, 999);
+
+// 9. Subcategory circles fix — injected in wp_footer AFTER all Elementor body CSS
+// The native scroll slider uses CSS only; Elementor body CSS overrides <head> CSS.
+add_action('wp_footer', function() {
+    echo '<style id="artframer-subcat-override">
+/* Force subcategory circles into a single horizontal scroll row.
+   Placed at end of <body> to beat Elementor inline CSS. */
+ul.postero-scroll-content {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    overflow-y: visible !important;
+    gap: 12px !important;
+    width: 100% !important;
+    height: auto !important;
+    padding: 4px 0 8px !important;
+    margin: 0 !important;
+    list-style: none !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+    box-sizing: border-box !important;
+}
+ul.postero-scroll-content::-webkit-scrollbar { display: none !important; }
+ul.postero-scroll-content > li,
+ul.postero-scroll-content > li.cat-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    text-align: center !important;
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 90px !important;
+    float: none !important;
+    clear: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
+}
+/* Also ensure the wrapper div does not clip or constrain */
+div.list-wrapper.postero-scroll,
+.postero-scroll {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
+}
+</style>';
+}, 9999);
