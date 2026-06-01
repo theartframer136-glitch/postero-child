@@ -73,12 +73,9 @@ add_action('wp_head', function() {
     </style>';
 }, 999);
 
-// 9. Subcategory circles fix — injected in wp_footer AFTER all Elementor body CSS
-// The native scroll slider uses CSS only; Elementor body CSS overrides <head> CSS.
-add_action('wp_footer', function() {
-    echo '<style id="artframer-subcat-override">
-/* Force subcategory circles into a single horizontal scroll row.
-   Placed at end of <body> to beat Elementor inline CSS. */
+// 9. Subcategory circles fix — CSS + MutationObserver to override any inline styles
+add_action('wp_footer', function() { ?>
+<style id="artframer-subcat-override">
 ul.postero-scroll-content {
     display: flex !important;
     flex-direction: row !important;
@@ -93,7 +90,6 @@ ul.postero-scroll-content {
     list-style: none !important;
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
-    box-sizing: border-box !important;
 }
 ul.postero-scroll-content::-webkit-scrollbar { display: none !important; }
 ul.postero-scroll-content > li,
@@ -101,24 +97,78 @@ ul.postero-scroll-content > li.cat-item {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    text-align: center !important;
     flex: 0 0 auto !important;
     width: auto !important;
     min-width: 90px !important;
     float: none !important;
-    clear: none !important;
     margin: 0 !important;
     padding: 0 !important;
     position: static !important;
-    left: auto !important;
-    top: auto !important;
 }
-/* Also ensure the wrapper div does not clip or constrain */
 div.list-wrapper.postero-scroll,
 .postero-scroll {
     overflow: visible !important;
     height: auto !important;
     max-height: none !important;
 }
-</style>';
-}, 9999);
+</style>
+<script>
+(function() {
+    function enforceSubcatLayout(ul) {
+        // Force UL layout via setProperty (overrides inline styles)
+        ul.style.setProperty('display',         'flex',    'important');
+        ul.style.setProperty('flex-direction',  'row',     'important');
+        ul.style.setProperty('flex-wrap',       'nowrap',  'important');
+        ul.style.setProperty('overflow-x',      'auto',    'important');
+        ul.style.setProperty('height',          'auto',    'important');
+        ul.style.setProperty('width',           '100%',    'important');
+        // Force items
+        ul.querySelectorAll('li').forEach(function(li) {
+            li.style.setProperty('flex',      '0 0 auto', 'important');
+            li.style.setProperty('position',  'static',   'important');
+            li.style.setProperty('width',     'auto',     'important');
+            li.style.setProperty('display',   'flex',     'important');
+        });
+        // Force parent overflow
+        if (ul.parentElement) {
+            ul.parentElement.style.setProperty('overflow',   'visible', 'important');
+            ul.parentElement.style.setProperty('height',     'auto',    'important');
+        }
+        console.warn('enforceSubcatLayout applied | UL computed display:', getComputedStyle(ul).display, 'flex-wrap:', getComputedStyle(ul).flexWrap, 'overflow-x:', getComputedStyle(ul).overflowX, 'height:', getComputedStyle(ul).height);
+    }
+
+    function init() {
+        var ul = document.querySelector('ul.postero-scroll-content');
+        if (!ul) return;
+
+        // Apply immediately
+        enforceSubcatLayout(ul);
+
+        // Watch for ANY attribute change on the UL and re-enforce
+        var observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(m) {
+                if (m.attributeName === 'style' || m.attributeName === 'class') {
+                    enforceSubcatLayout(ul);
+                }
+            });
+        });
+        observer.observe(ul, { attributes: true });
+
+        // Also watch children
+        var childObserver = new MutationObserver(function() {
+            enforceSubcatLayout(ul);
+        });
+        childObserver.observe(ul, { childList: true, subtree: false });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+    } else {
+        init();
+    }
+    window.addEventListener('load', init);
+    setTimeout(init, 500);
+    setTimeout(init, 1500);
+}());
+</script>
+<?php }, 9999);
