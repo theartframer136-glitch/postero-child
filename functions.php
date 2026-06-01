@@ -8,8 +8,8 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.9');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.0.9', true);
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.3.0');
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.0', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -213,16 +213,17 @@ add_action('wp_footer', function() { ?>
     align-items: center !important;
     gap: 8px !important;
     width: 100% !important;
+    overflow: visible !important;
 }
 .product-container .prod-nav {
-    flex-shrink: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+    flex: 0 0 44px !important;
     width: 44px !important;
     height: 44px !important;
     min-width: 44px !important;
     border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
     background: #c9a84c !important;
     border: none !important;
     color: #fff !important;
@@ -231,19 +232,25 @@ add_action('wp_footer', function() { ?>
     cursor: pointer !important;
     padding: 0 !important;
     box-shadow: 0 2px 8px rgba(0,0,0,.22) !important;
+    z-index: 10 !important;
 }
 .product-container .prod-nav:hover { background: #a8872e !important; }
-.product-container #productGrid,
-.product-container .product-slider {
+/* Viewport: clips to exactly N cards */
+.af-pc-viewport {
     flex: 1 1 auto !important;
     min-width: 0 !important;
     overflow: hidden !important;
+    position: relative !important;
+}
+/* Track: slides left/right */
+.af-pc-track {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     gap: 16px !important;
     padding: 4px 0 12px !important;
-    scroll-behavior: smooth !important;
+    transition: transform 0.4s ease !important;
+    will-change: transform !important;
 }
 </style>
 <script>
@@ -252,44 +259,63 @@ add_action('wp_footer', function() { ?>
 
     function run() {
         var container = document.querySelector('.product-container');
-        if (!container) return;
-        // Reset flag so re-runs always apply layout
-        delete container.dataset.sliderReady;
-        if (container.dataset.sliderReady) return;
+        if (!container || container.dataset.afReady) return;
 
         var grid = container.querySelector('#productGrid') || container.querySelector('.product-slider');
         if (!grid) return;
-        var cards = grid.querySelectorAll('.product-card');
+        var cards = Array.from(grid.querySelectorAll('.product-card'));
         if (!cards.length) return;
-        container.dataset.sliderReady = '1';
+
+        container.dataset.afReady = '1';
+
+        // Build viewport wrapper around grid
+        var viewport = document.createElement('div');
+        viewport.className = 'af-pc-viewport';
+        grid.parentNode.insertBefore(viewport, grid);
+        viewport.appendChild(grid);
+
+        // Mark track
+        grid.classList.add('af-pc-track');
 
         var prevBtn = container.querySelector('.prev-prod');
         var nextBtn = container.querySelector('.next-prod');
         var GAP = 16;
+        var currentIndex = 0;
 
         function visCount() {
             return window.innerWidth <= 576 ? 1 : window.innerWidth <= 991 ? 2 : 4;
         }
 
-        function applyAll() {
+        function cardWidth() {
+            var vw = viewport.getBoundingClientRect().width;
             var vis = visCount();
+            return Math.floor((vw - GAP * (vis - 1)) / vis);
+        }
 
-            // Force container as flex row
+        function applyLayout() {
+            var vis = visCount();
+            var cw = cardWidth();
+
+            // Force container
             sp(container, 'display', 'flex');
             sp(container, 'align-items', 'center');
             sp(container, 'gap', GAP + 'px');
             sp(container, 'width', '100%');
+            sp(container, 'overflow', 'visible');
 
-            // Force grid as flex overflow-hidden viewport
+            // Force viewport
+            sp(viewport, 'flex', '1 1 auto');
+            sp(viewport, 'min-width', '0');
+            sp(viewport, 'overflow', 'hidden');
+
+            // Force track
             sp(grid, 'display', 'flex');
             sp(grid, 'flex-direction', 'row');
             sp(grid, 'flex-wrap', 'nowrap');
-            sp(grid, 'overflow', 'hidden');
-            sp(grid, 'flex', '1 1 auto');
-            sp(grid, 'min-width', '0');
             sp(grid, 'gap', GAP + 'px');
             sp(grid, 'padding', '4px 0 12px');
-            sp(grid, 'scroll-behavior', 'smooth');
+            sp(grid, 'width', 'max-content');
+            sp(grid, 'grid-template-columns', 'unset');
 
             // Style buttons
             [prevBtn, nextBtn].forEach(function(btn) {
@@ -297,7 +323,7 @@ add_action('wp_footer', function() { ?>
                 sp(btn, 'display', 'flex');
                 sp(btn, 'align-items', 'center');
                 sp(btn, 'justify-content', 'center');
-                sp(btn, 'flex-shrink', '0');
+                sp(btn, 'flex', '0 0 44px');
                 sp(btn, 'width', '44px');
                 sp(btn, 'height', '44px');
                 sp(btn, 'min-width', '44px');
@@ -313,36 +339,49 @@ add_action('wp_footer', function() { ?>
             if (prevBtn) prevBtn.innerHTML = '&#8249;';
             if (nextBtn) nextBtn.innerHTML = '&#8250;';
 
-            // Compute card width from window size (most reliable)
-            var totalW = window.innerWidth;
-            // Subtract page padding (approx 60px each side) + 2 buttons (44px each) + gaps
-            var availW = totalW - 120 - 88 - (GAP * 3);
-            var cw = Math.floor((availW - GAP * (vis - 1)) / vis);
-            if (cw < 100) cw = Math.floor((totalW * 0.8) / vis);
-
-            grid.querySelectorAll('.product-card').forEach(function(c) {
+            // Size every card
+            cards.forEach(function(c) {
                 sp(c, 'flex',      '0 0 ' + cw + 'px');
                 sp(c, 'width',     cw + 'px');
                 sp(c, 'min-width', cw + 'px');
+                sp(c, 'max-width', cw + 'px');
                 sp(c, 'float',     'none');
                 sp(c, 'margin',    '0');
             });
-            return cw;
         }
 
-        var cw = applyAll();
-        requestAnimationFrame(applyAll);
+        function slideTo(idx) {
+            var vis = visCount();
+            var max = Math.max(0, cards.length - vis);
+            currentIndex = Math.max(0, Math.min(idx, max));
+            var cw = cardWidth();
+            var offset = currentIndex * (cw + GAP);
+            sp(grid, 'transform', 'translateX(' + (-offset) + 'px)');
+        }
+
+        applyLayout();
+        requestAnimationFrame(applyLayout);
 
         if (prevBtn) prevBtn.addEventListener('click', function() {
-            grid.scrollLeft -= (applyAll() + GAP) * visCount();
+            applyLayout();
+            slideTo(currentIndex - visCount());
         });
         if (nextBtn) nextBtn.addEventListener('click', function() {
-            grid.scrollLeft += (applyAll() + GAP) * visCount();
+            applyLayout();
+            slideTo(currentIndex + visCount());
         });
-        window.addEventListener('resize', function() { grid.scrollLeft = 0; applyAll(); });
+        window.addEventListener('resize', function() {
+            currentIndex = 0;
+            applyLayout();
+            slideTo(0);
+        });
     }
 
-    window.addEventListener('load', function() { run(); setTimeout(run, 600); });
+    window.addEventListener('load', function() {
+        run();
+        setTimeout(run, 600);
+        setTimeout(run, 1500);
+    });
 }());
 </script>
 <?php }, 10000);
