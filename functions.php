@@ -138,10 +138,49 @@ div.list-wrapper.postero-scroll,
     }
 
     function init() {
+        // Target ALL elements with postero-scroll-content class (any tag)
+        var all = document.querySelectorAll('[class*="postero-scroll-content"], [class*="subcategor"], [class*="sub-cat-list"], [class*="scroll-content"]');
+        console.warn('Total scroll-content elements found:', all.length);
+        all.forEach(function(el, i) {
+            var rect = el.getBoundingClientRect();
+            console.warn('Element', i, '| tag:', el.tagName, '| class:', el.className,
+                '| children:', el.children.length,
+                '| visible:', rect.width > 0 && rect.height > 0,
+                '| rect w:', Math.round(rect.width), 'h:', Math.round(rect.height),
+                '| computed display:', getComputedStyle(el).display,
+                '| flex-wrap:', getComputedStyle(el).flexWrap);
+        });
+
+        // Also find the actual visible circles container by looking for li.cat-item parents
+        var catItems = document.querySelectorAll('li.cat-item, .cat-item');
+        if (catItems.length) {
+            var parent = catItems[0].parentElement;
+            console.warn('cat-item parent | tag:', parent.tagName, '| class:', parent.className,
+                '| computed display:', getComputedStyle(parent).display,
+                '| flex-wrap:', getComputedStyle(parent).flexWrap,
+                '| overflow-x:', getComputedStyle(parent).overflowX,
+                '| width:', getComputedStyle(parent).width);
+            // Apply fix to the ACTUAL parent of cat-items
+            parent.style.setProperty('display',        'flex',    'important');
+            parent.style.setProperty('flex-direction', 'row',     'important');
+            parent.style.setProperty('flex-wrap',      'nowrap',  'important');
+            parent.style.setProperty('overflow-x',     'auto',    'important');
+            parent.style.setProperty('height',         'auto',    'important');
+            parent.style.setProperty('width',          '100%',    'important');
+            catItems.forEach(function(li) {
+                li.style.setProperty('flex',      '0 0 auto', 'important');
+                li.style.setProperty('position',  'static',   'important');
+                li.style.setProperty('width',     'auto',     'important');
+                li.style.setProperty('display',   'flex',     'important');
+            });
+            if (parent.parentElement) {
+                parent.parentElement.style.setProperty('overflow', 'visible', 'important');
+                parent.parentElement.style.setProperty('height',   'auto',    'important');
+            }
+        }
+
         var ul = document.querySelector('ul.postero-scroll-content');
         if (!ul) return;
-
-        // Apply immediately
         enforceSubcatLayout(ul);
 
         // Watch for ANY attribute change on the UL and re-enforce
