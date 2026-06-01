@@ -5,25 +5,27 @@ jQuery(document).ready(function($) {
   function initProductSlider() {
     var container = document.querySelector('.product-container');
     if (!container) return;
+    // The scrollable element is the ul.products inside #productGrid
     var grid = container.querySelector('#productGrid, .product-slider');
+    if (!grid) return;
+    var track = grid.querySelector('ul.products') || grid;
     var prevBtn = container.querySelector('.prev-prod');
     var nextBtn = container.querySelector('.next-prod');
-    if (!grid) return;
 
     function getScrollAmount() {
-      var card = grid.querySelector('li, .product-card, article');
-      if (card) return card.offsetWidth + 20;
-      return Math.round(grid.offsetWidth / 4) + 20;
+      var card = track.querySelector('li.product, .product-card, li');
+      if (card) return (card.offsetWidth + 20) * 4;
+      return Math.round(grid.offsetWidth);
     }
 
     if (prevBtn) {
       prevBtn.addEventListener('click', function() {
-        grid.scrollBy({ left: -getScrollAmount() * 4, behavior: 'smooth' });
+        track.scrollBy({ left: -getScrollAmount(), behavior: 'smooth' });
       });
     }
     if (nextBtn) {
       nextBtn.addEventListener('click', function() {
-        grid.scrollBy({ left: getScrollAmount() * 4, behavior: 'smooth' });
+        track.scrollBy({ left: getScrollAmount(), behavior: 'smooth' });
       });
     }
   }

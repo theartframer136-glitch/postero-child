@@ -167,23 +167,39 @@ ul.postero-scroll-content .cat-item a {
   background: #a8872e !important;
 }
 
-/* ---- Product slider: horizontal scroll, show 4 cards ---- */
+/* ---- Product slider wrapper: clips the scroll ---- */
 #productGrid,
 .product-slider {
+  display: block !important;
+  overflow: hidden !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: 0 !important;
+}
+
+/* ---- The WooCommerce ul.products inside the slider ---- */
+#productGrid ul.products,
+.product-slider ul.products {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
   gap: 20px !important;
-  overflow-x: hidden !important;
-  flex: 1 1 auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
   scroll-behavior: smooth !important;
-  width: 0 !important;
-  min-width: 0 !important;
+  /* grid overrides from WooCommerce/theme */
+  grid-template-columns: unset !important;
 }
-#productGrid > *,
-.product-slider > * {
+
+/* ---- Each product card: fixed 25% width ---- */
+#productGrid ul.products li.product,
+.product-slider ul.products li.product {
   flex: 0 0 calc(25% - 15px) !important;
   min-width: 0 !important;
+  width: calc(25% - 15px) !important;
+  float: none !important;
+  margin: 0 !important;
 }
 .product-slider .product-card {
   width: 100% !important;
@@ -269,8 +285,10 @@ ul.postero-scroll-content .cat-item a {
    ============================================================ */
 @media (max-width: 991px) {
   ul.postero-scroll-content .cat-item img { width: 70px !important; height: 70px !important; }
-  #productGrid, .product-slider {
-    grid-template-columns: repeat(2, 1fr) !important;
+  #productGrid ul.products li.product,
+  .product-slider ul.products li.product {
+    flex: 0 0 calc(50% - 10px) !important;
+    width: calc(50% - 10px) !important;
   }
   .woocommerce .products.columns-4 {
     grid-template-columns: repeat(2, 1fr) !important;
@@ -279,9 +297,10 @@ ul.postero-scroll-content .cat-item a {
 
 @media (max-width: 576px) {
   ul.postero-scroll-content .cat-item img { width: 60px !important; height: 60px !important; }
-  #productGrid, .product-slider {
-    grid-template-columns: repeat(2, 1fr) !important;
-    gap: 12px !important;
+  #productGrid ul.products li.product,
+  .product-slider ul.products li.product {
+    flex: 0 0 calc(50% - 6px) !important;
+    width: calc(50% - 6px) !important;
   }
 }
 
