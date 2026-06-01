@@ -295,6 +295,282 @@ ul.postero-scroll-content .cat-item a {
 .product-slider .product-actions .add-cart,
 .product-slider .product-actions .quick-view-btn { flex: 1 1 50% !important; }
 
+
+/* ============================================================
+   PRODUCT CARD — FULL STYLE (matches reference screenshot)
+   Targets both .product-slider and .af-shell-track cards
+   ============================================================ */
+
+/* Card shell */
+.af-shell-track .product-card,
+.product-slider .product-card {
+  background: #fff !important;
+  border: 1px solid #e8e8e8 !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.07) !important;
+  transition: box-shadow 0.2s !important;
+}
+.af-shell-track .product-card:hover,
+.product-slider .product-card:hover {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.13) !important;
+}
+
+/* ── Image wrapper ── */
+.af-shell-track .product-card .product-image,
+.af-shell-track .product-card .image-wrapper,
+.af-shell-track .product-card .woocommerce-loop-product__link,
+.product-slider .product-card .product-image,
+.product-slider .product-card .image-wrapper {
+  position: relative !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  aspect-ratio: 1 / 1 !important;
+  display: block !important;
+}
+
+/* Primary image */
+.af-shell-track .product-card .product-image img,
+.af-shell-track .product-card .image-wrapper img,
+.af-shell-track .product-card .woocommerce-loop-product__link img,
+.product-slider .product-card .product-image img,
+.product-slider .product-card .image-wrapper img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  transition: opacity 0.4s ease !important;
+}
+
+/* Hover / gallery second image */
+.af-shell-track .product-card .hover-img,
+.af-shell-track .product-card .product-image img:nth-child(2),
+.product-slider .product-card .hover-img {
+  position: absolute !important;
+  top: 0 !important; left: 0 !important;
+  width: 100% !important; height: 100% !important;
+  object-fit: cover !important;
+  opacity: 0 !important;
+  transition: opacity 0.4s ease !important;
+  z-index: 2 !important;
+}
+.af-shell-track .product-card:hover .hover-img,
+.af-shell-track .product-card:hover .product-image img:nth-child(2),
+.product-slider .product-card:hover .hover-img { opacity: 1 !important; }
+
+/* ── Sale ribbon — top-left over image ── */
+.af-shell-track .product-card .onsale,
+.af-shell-track .product-card .sale-ribbon,
+.af-shell-track .product-card .woocommerce-badge,
+.product-slider .product-card .onsale,
+.product-slider .product-card .sale-ribbon {
+  position: absolute !important;
+  top: 0 !important; left: 0 !important;
+  z-index: 5 !important;
+  background: #c9a84c !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 4px 10px !important;
+  border-radius: 0 0 8px 0 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.04em !important;
+}
+
+/* ── Wishlist heart — top-right over image ── */
+.af-shell-track .product-card .wishlist-btn,
+.af-shell-track .product-card .yith-wcwl-add-to-wishlist,
+.af-shell-track .product-card .add_to_wishlist,
+.af-shell-track .product-card [class*="wishlist"],
+.product-slider .product-card .wishlist-btn,
+.product-slider .product-card .yith-wcwl-add-to-wishlist,
+.product-slider .product-card .add_to_wishlist,
+.product-slider .product-card [class*="wishlist"] {
+  position: absolute !important;
+  top: 10px !important; right: 10px !important;
+  z-index: 5 !important;
+  background: rgba(255,255,255,0.92) !important;
+  border-radius: 50% !important;
+  width: 34px !important; height: 34px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+  cursor: pointer !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+  padding: 0 !important;
+}
+
+/* ── Product body (below image) ── */
+.af-shell-track .product-card .product-info,
+.af-shell-track .product-card .woocommerce-loop-product__title,
+.af-shell-track .product-card h2,
+.af-shell-track .product-card h3,
+.product-slider .product-card .product-title,
+.product-slider .product-card h2,
+.product-slider .product-card h3 {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  padding: 10px 12px 4px !important;
+  margin: 0 !important;
+  color: #222 !important;
+}
+
+/* ── Stars + count + Digital Download — one line ── */
+.af-shell-track .product-card .star-rating,
+.product-slider .product-card .star-rating {
+  display: inline-flex !important;
+  align-items: center !important;
+  font-size: 12px !important;
+  color: #c9a84c !important;
+  margin: 0 !important;
+  vertical-align: middle !important;
+}
+.af-shell-track .product-card .woocommerce-review-link,
+.product-slider .product-card .woocommerce-review-link {
+  font-size: 11px !important;
+  color: #666 !important;
+  margin-left: 4px !important;
+  vertical-align: middle !important;
+  white-space: nowrap !important;
+}
+/* Wrap rating + download type on one line */
+.af-shell-track .product-card .product-meta-row,
+.af-shell-track .product-card .woocommerce-product-rating,
+.product-slider .product-card .woocommerce-product-rating {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  gap: 6px !important;
+  padding: 2px 12px 4px !important;
+  margin: 0 !important;
+}
+/* Digital Download badge inline */
+.af-shell-track .product-card .product-type-badge,
+.af-shell-track .product-card [class*="download-type"],
+.af-shell-track .product-card .woosb-type,
+.product-slider .product-card .product-type-badge,
+.product-slider .product-card [class*="download-type"] {
+  display: inline-flex !important;
+  align-items: center !important;
+  font-size: 11px !important;
+  color: #555 !important;
+  white-space: nowrap !important;
+  gap: 3px !important;
+}
+
+/* ── Price ── */
+.af-shell-track .product-card .price,
+.af-shell-track .product-card .woocommerce-Price-amount,
+.product-slider .product-card .price {
+  padding: 0 12px 6px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #222 !important;
+  display: block !important;
+}
+.af-shell-track .product-card .price del,
+.product-slider .product-card .price del {
+  color: #999 !important;
+  font-weight: 400 !important;
+  font-size: 12px !important;
+  margin-left: 4px !important;
+}
+
+/* ── Short description ── */
+.af-shell-track .product-card .short-description,
+.af-shell-track .product-card .product-excerpt,
+.product-slider .product-card .short-description {
+  font-size: 12px !important;
+  color: #666 !important;
+  padding: 0 12px 8px !important;
+  margin: 0 !important;
+  line-height: 1.5 !important;
+  flex: 1 1 auto !important;
+}
+
+/* ── Action buttons row — Add to Cart + Quick View same line ── */
+.af-shell-track .product-card .product-actions,
+.af-shell-track .product-card .card-actions,
+.product-slider .product-card .product-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 8px !important;
+  padding: 0 12px 12px !important;
+  margin-top: auto !important;
+}
+
+/* Add to Cart — gold */
+.af-shell-track .product-card .add-cart,
+.af-shell-track .product-card .add_to_cart_button,
+.af-shell-track .product-card a.button,
+.af-shell-track .product-card button.button,
+.product-slider .product-card .add-cart,
+.product-slider .product-card .add_to_cart_button,
+.product-slider .product-card a.button,
+.product-slider .product-card button.button {
+  flex: 1 1 50% !important;
+  background: #c9a84c !important;
+  background-color: #c9a84c !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 10px 8px !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  transition: background 0.2s !important;
+  text-decoration: none !important;
+}
+.af-shell-track .product-card .add-cart:hover,
+.af-shell-track .product-card .add_to_cart_button:hover,
+.af-shell-track .product-card a.button:hover,
+.product-slider .product-card .add-cart:hover,
+.product-slider .product-card a.button:hover {
+  background: #a8872e !important;
+  background-color: #a8872e !important;
+  color: #fff !important;
+}
+
+/* Quick View — dark */
+.af-shell-track .product-card .quick-view-btn,
+.af-shell-track .product-card [class*="quick-view"],
+.af-shell-track .product-card [class*="quickview"],
+.product-slider .product-card .quick-view-btn,
+.product-slider .product-card [class*="quick-view"] {
+  flex: 1 1 50% !important;
+  background: #1a1a1a !important;
+  background-color: #1a1a1a !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 10px 8px !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  transition: background 0.2s !important;
+  text-decoration: none !important;
+}
+.af-shell-track .product-card .quick-view-btn:hover,
+.af-shell-track .product-card [class*="quick-view"]:hover,
+.product-slider .product-card .quick-view-btn:hover { background: #333 !important; }
+
 /* Hide broken video containers */
 .elementor-background-video-container video[src=""],
 .elementor-background-video-container:empty { display: none !important; }
