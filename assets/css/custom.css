@@ -33,6 +33,25 @@
 #topCatSlider .top-cat-btn {
   flex: 0 0 auto !important;
   white-space: nowrap !important;
+  background-color: #fff !important;
+  background: #fff !important;
+  color: #333 !important;
+  border: 1px solid #ddd !important;
+  text-decoration: none !important;
+}
+#topCatSlider .top-cat-btn:hover,
+#topCatSlider .top-cat-btn:focus {
+  background-color: #fff !important;
+  background: #fff !important;
+  color: #333 !important;
+  text-decoration: underline !important;
+}
+#topCatSlider .top-cat-btn.active,
+#topCatSlider .top-cat-btn:active {
+  background-color: #fff !important;
+  background: #fff !important;
+  color: #333 !important;
+  text-decoration: underline !important;
 }
 .cat-nav {
   flex: 0 0 auto !important;
