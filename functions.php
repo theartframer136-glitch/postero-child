@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.8');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.9');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.0.9', true);
 }, 20);
 
@@ -248,76 +248,101 @@ add_action('wp_footer', function() { ?>
 </style>
 <script>
 (function() {
+    function sp(el, p, v) { el.style.setProperty(p, v, 'important'); }
+
     function run() {
         var container = document.querySelector('.product-container');
-        if (!container || container.dataset.sliderReady) return;
+        if (!container) return;
+        // Reset flag so re-runs always apply layout
+        delete container.dataset.sliderReady;
+        if (container.dataset.sliderReady) return;
 
         var grid = container.querySelector('#productGrid') || container.querySelector('.product-slider');
         if (!grid) return;
-
         var cards = grid.querySelectorAll('.product-card');
         if (!cards.length) return;
-
         container.dataset.sliderReady = '1';
 
         var prevBtn = container.querySelector('.prev-prod');
         var nextBtn = container.querySelector('.next-prod');
+        var GAP = 16;
 
         function visCount() {
             return window.innerWidth <= 576 ? 1 : window.innerWidth <= 991 ? 2 : 4;
         }
 
-        function setCardWidths() {
+        function applyAll() {
             var vis = visCount();
-            var gap = 16;
-            // Use container width minus both button widths for accurate viewport size
-            var btnW = (prevBtn ? prevBtn.offsetWidth : 44) + (nextBtn ? nextBtn.offsetWidth : 44) + 16;
-            var w = container.getBoundingClientRect().width - btnW;
-            if (w <= 0) w = 800;
-            var cw = Math.floor((w - gap * (vis - 1)) / vis);
+
+            // Force container as flex row
+            sp(container, 'display', 'flex');
+            sp(container, 'align-items', 'center');
+            sp(container, 'gap', GAP + 'px');
+            sp(container, 'width', '100%');
+
+            // Force grid as flex overflow-hidden viewport
+            sp(grid, 'display', 'flex');
+            sp(grid, 'flex-direction', 'row');
+            sp(grid, 'flex-wrap', 'nowrap');
+            sp(grid, 'overflow', 'hidden');
+            sp(grid, 'flex', '1 1 auto');
+            sp(grid, 'min-width', '0');
+            sp(grid, 'gap', GAP + 'px');
+            sp(grid, 'padding', '4px 0 12px');
+            sp(grid, 'scroll-behavior', 'smooth');
+
+            // Style buttons
+            [prevBtn, nextBtn].forEach(function(btn) {
+                if (!btn) return;
+                sp(btn, 'display', 'flex');
+                sp(btn, 'align-items', 'center');
+                sp(btn, 'justify-content', 'center');
+                sp(btn, 'flex-shrink', '0');
+                sp(btn, 'width', '44px');
+                sp(btn, 'height', '44px');
+                sp(btn, 'min-width', '44px');
+                sp(btn, 'border-radius', '50%');
+                sp(btn, 'background', '#c9a84c');
+                sp(btn, 'border', 'none');
+                sp(btn, 'color', '#fff');
+                sp(btn, 'font-size', '28px');
+                sp(btn, 'cursor', 'pointer');
+                sp(btn, 'padding', '0');
+                sp(btn, 'box-shadow', '0 2px 8px rgba(0,0,0,0.22)');
+            });
+            if (prevBtn) prevBtn.innerHTML = '&#8249;';
+            if (nextBtn) nextBtn.innerHTML = '&#8250;';
+
+            // Compute card width from window size (most reliable)
+            var totalW = window.innerWidth;
+            // Subtract page padding (approx 60px each side) + 2 buttons (44px each) + gaps
+            var availW = totalW - 120 - 88 - (GAP * 3);
+            var cw = Math.floor((availW - GAP * (vis - 1)) / vis);
+            if (cw < 100) cw = Math.floor((totalW * 0.8) / vis);
+
             grid.querySelectorAll('.product-card').forEach(function(c) {
-                c.style.setProperty('flex',      '0 0 ' + cw + 'px', 'important');
-                c.style.setProperty('width',     cw + 'px',           'important');
-                c.style.setProperty('min-width', cw + 'px',           'important');
-                c.style.setProperty('float',     'none',              'important');
-                c.style.setProperty('margin',    '0',                 'important');
+                sp(c, 'flex',      '0 0 ' + cw + 'px');
+                sp(c, 'width',     cw + 'px');
+                sp(c, 'min-width', cw + 'px');
+                sp(c, 'float',     'none');
+                sp(c, 'margin',    '0');
             });
             return cw;
         }
 
-        function slideBy(dir) {
-            var cw = setCardWidths();
-            var amount = (cw + 16) * visCount();
-            grid.scrollLeft += dir * amount;
-        }
+        var cw = applyAll();
+        requestAnimationFrame(applyAll);
 
-        setCardWidths();
-        requestAnimationFrame(setCardWidths);
-
-        if (prevBtn) {
-            prevBtn.innerHTML = '&#8249;';
-            prevBtn.addEventListener('click', function() { slideBy(-1); });
-        }
-        if (nextBtn) {
-            nextBtn.innerHTML = '&#8250;';
-            nextBtn.addEventListener('click', function() { slideBy(1); });
-        }
-
-        window.addEventListener('resize', function() {
-            grid.scrollLeft = 0;
-            setCardWidths();
+        if (prevBtn) prevBtn.addEventListener('click', function() {
+            grid.scrollLeft -= (applyAll() + GAP) * visCount();
         });
+        if (nextBtn) nextBtn.addEventListener('click', function() {
+            grid.scrollLeft += (applyAll() + GAP) * visCount();
+        });
+        window.addEventListener('resize', function() { grid.scrollLeft = 0; applyAll(); });
     }
 
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', run);
-    } else {
-        run();
-    }
-    window.addEventListener('load', function() {
-        run();
-        setTimeout(run, 500);
-    });
+    window.addEventListener('load', function() { run(); setTimeout(run, 600); });
 }());
 </script>
 <?php }, 10000);
