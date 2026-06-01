@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.1.2');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.1.3');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.0.9', true);
 }, 20);
 
@@ -207,19 +207,24 @@ div.list-wrapper.postero-scroll {
 // 10. Product card slider — injected after full page load
 add_action('wp_footer', function() { ?>
 <style>
+/* Outer flex row: [prev] [viewport] [next] */
 .af-slider-wrapper {
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
     width: 100% !important;
 }
-.af-slider-viewport {
+/* The .product-slider div becomes the clipping viewport */
+.af-slider-wrapper .product-slider,
+.af-slider-wrapper #productGrid {
     overflow: hidden !important;
     flex: 1 1 auto !important;
     min-width: 0 !important;
     width: 0 !important;
+    display: block !important;
 }
-.af-slider-viewport ul.products {
+/* ul.products inside becomes the sliding track */
+.af-slider-wrapper ul.products {
     display: flex !important;
     flex-wrap: nowrap !important;
     gap: 16px !important;
@@ -229,14 +234,17 @@ add_action('wp_footer', function() { ?>
     transition: transform 0.4s ease !important;
     will-change: transform !important;
     grid-template-columns: unset !important;
+    width: max-content !important;
 }
-.af-slider-viewport ul.products li.product {
+/* Large: 5 cards */
+.af-slider-wrapper ul.products li.product {
     flex: 0 0 calc(20% - 13px) !important;
     width: calc(20% - 13px) !important;
     min-width: 0 !important;
     float: none !important;
     margin: 0 !important;
 }
+/* Gold nav buttons */
 .af-btn {
     display: flex !important;
     align-items: center !important;
@@ -248,23 +256,24 @@ add_action('wp_footer', function() { ?>
     background: #c9a84c !important;
     border: none !important;
     color: #fff !important;
-    font-size: 26px !important;
+    font-size: 28px !important;
     line-height: 1 !important;
     cursor: pointer !important;
     box-shadow: 0 2px 8px rgba(0,0,0,0.22) !important;
     padding: 0 !important;
     transition: background 0.2s !important;
     z-index: 5 !important;
+    flex-shrink: 0 !important;
 }
 .af-btn:hover { background: #a8872e !important; }
 @media (max-width: 991px) {
-    .af-slider-viewport ul.products li.product {
+    .af-slider-wrapper ul.products li.product {
         flex: 0 0 calc(33.333% - 11px) !important;
         width: calc(33.333% - 11px) !important;
     }
 }
 @media (max-width: 576px) {
-    .af-slider-viewport ul.products li.product {
+    .af-slider-wrapper ul.products li.product {
         flex: 0 0 100% !important;
         width: 100% !important;
     }
@@ -273,31 +282,31 @@ add_action('wp_footer', function() { ?>
 </style>
 <script>
 (function() {
-    function buildSlider(ul) {
-        if (ul.dataset.afDone) return;
-        ul.dataset.afDone = '1';
+    function buildSlider(sliderDiv) {
+        if (sliderDiv.dataset.afDone) return;
+        sliderDiv.dataset.afDone = '1';
 
-        var wrapper  = document.createElement('div');
+        var ul = sliderDiv.querySelector('ul.products');
+        if (!ul || ul.querySelectorAll('li.product').length < 2) return;
+
+        // Create wrapper and insert before sliderDiv
+        var wrapper = document.createElement('div');
         wrapper.className = 'af-slider-wrapper';
-
-        var viewport = document.createElement('div');
-        viewport.className = 'af-slider-viewport';
 
         var prev = document.createElement('button');
         prev.className = 'af-btn af-prev';
-        prev.innerHTML = '‹';
+        prev.innerHTML = '&#8249;';
         prev.setAttribute('aria-label', 'Previous');
 
         var next = document.createElement('button');
         next.className = 'af-btn af-next';
-        next.innerHTML = '›';
+        next.innerHTML = '&#8250;';
         next.setAttribute('aria-label', 'Next');
 
-        ul.parentNode.insertBefore(wrapper, ul);
+        sliderDiv.parentNode.insertBefore(wrapper, sliderDiv);
         wrapper.appendChild(prev);
-        wrapper.appendChild(viewport);
+        wrapper.appendChild(sliderDiv);  // move sliderDiv into wrapper
         wrapper.appendChild(next);
-        viewport.appendChild(ul);
 
         var idx = 0;
         function visible() {
@@ -305,12 +314,15 @@ add_action('wp_footer', function() { ?>
             return w <= 576 ? 1 : w <= 991 ? 3 : 5;
         }
         function cardW() {
-            var c = ul.querySelector('li');
-            return c ? c.offsetWidth + 16 : 0;
+            var card = ul.querySelector('li.product');
+            if (!card) return 0;
+            var gap = parseFloat(getComputedStyle(ul).gap) || 16;
+            return card.offsetWidth + gap;
         }
         function go(n) {
             var total = ul.querySelectorAll('li.product').length;
-            idx = Math.max(0, Math.min(n, total - visible()));
+            var max = Math.max(0, total - visible());
+            idx = Math.max(0, Math.min(n, max));
             ul.style.transform = 'translateX(' + -(idx * cardW()) + 'px)';
         }
         prev.addEventListener('click', function() { go(idx - visible()); });
@@ -319,18 +331,17 @@ add_action('wp_footer', function() { ?>
     }
 
     function initAll() {
-        document.querySelectorAll('ul.products').forEach(function(ul) {
-            // Skip if already inside our wrapper or inside a WooCommerce sidebar
-            if (ul.closest('.af-slider-wrapper') || ul.closest('.widget_products') || ul.closest('.sidebar')) return;
-            if (ul.querySelectorAll('li.product').length < 2) return;
-            buildSlider(ul);
+        // Target .product-slider and #productGrid divs that aren't already wrapped
+        document.querySelectorAll('.product-slider, #productGrid').forEach(function(el) {
+            if (el.closest('.af-slider-wrapper')) return;
+            buildSlider(el);
         });
     }
 
-    // Run at load + short delay to catch Elementor-rendered widgets
     window.addEventListener('load', function() {
         initAll();
-        setTimeout(initAll, 800);
+        setTimeout(initAll, 600);
+        setTimeout(initAll, 1500);
     });
 }());
 </script>
