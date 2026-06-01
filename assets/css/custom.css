@@ -136,19 +136,19 @@ ul.postero-scroll-content .cat-item a {
   display: none !important;
 }
 
-/* ---- Product container: slider with side arrows ---- */
+/* ---- Product container: slider with side nav arrows ---- */
 .product-container {
   position: relative !important;
   display: flex !important;
   align-items: center !important;
-  gap: 0 !important;
+  gap: 8px !important;
   width: 100% !important;
 }
 .product-container .prod-nav {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  flex: 0 0 auto !important;
+  flex: 0 0 44px !important;
   width: 44px !important;
   height: 44px !important;
   min-width: 44px !important;
@@ -156,48 +156,45 @@ ul.postero-scroll-content .cat-item a {
   background: #c9a84c !important;
   border: none !important;
   color: #fff !important;
-  font-size: 18px !important;
+  font-size: 20px !important;
+  line-height: 1 !important;
   cursor: pointer !important;
   z-index: 10 !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.18) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
   transition: background 0.2s !important;
   padding: 0 !important;
 }
-.product-container .prod-nav:hover {
-  background: #a8872e !important;
-}
+.product-container .prod-nav:hover { background: #a8872e !important; }
 
-/* ---- Product slider wrapper: clips the scroll ---- */
+/* ---- Viewport: clips the scrolling track ---- */
 #productGrid,
 .product-slider {
-  display: block !important;
   overflow: hidden !important;
   flex: 1 1 auto !important;
   min-width: 0 !important;
-  width: 0 !important;
 }
 
-/* ---- The WooCommerce ul.products inside the slider ---- */
+/* ---- Scrolling track (WooCommerce ul.products) ---- */
 #productGrid ul.products,
 .product-slider ul.products {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
-  gap: 20px !important;
+  gap: 16px !important;
   margin: 0 !important;
-  padding: 0 !important;
+  padding: 4px 0 8px !important;
   list-style: none !important;
-  scroll-behavior: smooth !important;
-  /* grid overrides from WooCommerce/theme */
+  transition: transform 0.4s ease !important;
+  will-change: transform !important;
   grid-template-columns: unset !important;
 }
 
-/* ---- Each product card: fixed 25% width ---- */
+/* ---- Large: 5 cards ---- */
 #productGrid ul.products li.product,
 .product-slider ul.products li.product {
-  flex: 0 0 calc(25% - 15px) !important;
+  flex: 0 0 calc(20% - 13px) !important;
+  width: calc(20% - 13px) !important;
   min-width: 0 !important;
-  width: calc(25% - 15px) !important;
   float: none !important;
   margin: 0 !important;
 }
@@ -285,10 +282,11 @@ ul.postero-scroll-content .cat-item a {
    ============================================================ */
 @media (max-width: 991px) {
   ul.postero-scroll-content .cat-item img { width: 70px !important; height: 70px !important; }
+  /* Medium: 3 cards */
   #productGrid ul.products li.product,
   .product-slider ul.products li.product {
-    flex: 0 0 calc(50% - 10px) !important;
-    width: calc(50% - 10px) !important;
+    flex: 0 0 calc(33.333% - 11px) !important;
+    width: calc(33.333% - 11px) !important;
   }
   .woocommerce .products.columns-4 {
     grid-template-columns: repeat(2, 1fr) !important;
@@ -297,10 +295,11 @@ ul.postero-scroll-content .cat-item a {
 
 @media (max-width: 576px) {
   ul.postero-scroll-content .cat-item img { width: 60px !important; height: 60px !important; }
+  /* Small: 1 card */
   #productGrid ul.products li.product,
   .product-slider ul.products li.product {
-    flex: 0 0 calc(50% - 6px) !important;
-    width: calc(50% - 6px) !important;
+    flex: 0 0 calc(100%) !important;
+    width: calc(100%) !important;
   }
 }
 
