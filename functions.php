@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.4');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.5');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.0.9', true);
 }, 20);
 
@@ -215,104 +215,105 @@ add_action('wp_footer', function() { ?>
         if (container.dataset.afSlider) return;
         var viewport = container.querySelector('#productGrid, .product-slider');
         if (!viewport) return;
-        var cards = viewport.querySelectorAll('.product-card');
+        var cards = Array.from(viewport.querySelectorAll('.product-card'));
         if (!cards.length) return;
         container.dataset.afSlider = '1';
 
-        // Create inner track div — viewport clips, track slides
-        var innerTrack = document.createElement('div');
-        innerTrack.className = 'af-inner-track';
-        while (viewport.firstChild) { innerTrack.appendChild(viewport.firstChild); }
-        viewport.appendChild(innerTrack);
+        // Wrap cards in inner track so viewport can clip and track can slide
+        var track = document.createElement('div');
+        track.className = 'af-track';
+        cards.forEach(function(c) { track.appendChild(c); });
+        viewport.appendChild(track);
 
         var prevBtn = container.querySelector('.prev-prod');
         var nextBtn = container.querySelector('.next-prod');
         var GAP = 16;
         var idx = 0;
 
-        function visible() {
+        function visCount() {
             var w = window.innerWidth;
             return w <= 576 ? 1 : w <= 991 ? 3 : 5;
         }
 
-        function styleButtons() {
-            [prevBtn, nextBtn].forEach(function(btn) {
-                if (!btn) return;
-                sp(btn, 'display', 'flex');
-                sp(btn, 'align-items', 'center');
-                sp(btn, 'justify-content', 'center');
-                sp(btn, 'flex-shrink', '0');
-                sp(btn, 'width', '44px');
-                sp(btn, 'height', '44px');
-                sp(btn, 'min-width', '44px');
-                sp(btn, 'border-radius', '50%');
-                sp(btn, 'background', '#c9a84c');
-                sp(btn, 'border', 'none');
-                sp(btn, 'color', '#fff');
-                sp(btn, 'font-size', '28px');
-                sp(btn, 'line-height', '1');
-                sp(btn, 'cursor', 'pointer');
-                sp(btn, 'padding', '0');
-                sp(btn, 'box-shadow', '0 2px 8px rgba(0,0,0,0.25)');
-            });
-            if (prevBtn) prevBtn.innerHTML = '&#8249;';
-            if (nextBtn) nextBtn.innerHTML = '&#8250;';
-        }
+        function layout() {
+            var vis = visCount();
+            var allCards = Array.from(track.querySelectorAll('.product-card'));
 
-        function applyLayout() {
-            var vis = visible();
-
-            // Container: flex row
+            // 1. Make container a flex row
             sp(container, 'display', 'flex');
             sp(container, 'align-items', 'center');
             sp(container, 'gap', '8px');
             sp(container, 'width', '100%');
 
-            // Viewport: overflow hidden, fills remaining width
-            sp(viewport, 'overflow', 'hidden');
-            sp(viewport, 'flex', '1 1 auto');
-            sp(viewport, 'min-width', '0');
-            sp(viewport, 'display', 'block');
-            sp(viewport, 'padding', '4px 0 12px');
-
-            // Measure viewport width, calculate card size
-            var viewW = viewport.offsetWidth;
-            var cw = Math.floor((viewW - GAP * (vis - 1)) / vis);
-
-            // Inner track: flex row, no wrap — this is what slides
-            sp(innerTrack, 'display', 'flex');
-            sp(innerTrack, 'flex-direction', 'row');
-            sp(innerTrack, 'flex-wrap', 'nowrap');
-            sp(innerTrack, 'gap', GAP + 'px');
-            sp(innerTrack, 'transition', 'transform 0.4s ease');
-            sp(innerTrack, 'transform', 'translateX(' + -(idx * (cw + GAP)) + 'px)');
-
-            // Each card: fixed width
-            viewport.querySelectorAll('.product-card').forEach(function(card) {
-                sp(card, 'flex', '0 0 ' + cw + 'px');
-                sp(card, 'width', cw + 'px');
-                sp(card, 'min-width', cw + 'px');
-                sp(card, 'float', 'none');
-                sp(card, 'margin', '0');
+            // 2. Style buttons
+            [prevBtn, nextBtn].forEach(function(btn) {
+                if (!btn) return;
+                sp(btn, 'display',         'flex');
+                sp(btn, 'align-items',     'center');
+                sp(btn, 'justify-content', 'center');
+                sp(btn, 'flex-shrink',     '0');
+                sp(btn, 'width',           '44px');
+                sp(btn, 'height',          '44px');
+                sp(btn, 'min-width',       '44px');
+                sp(btn, 'border-radius',   '50%');
+                sp(btn, 'background',      '#c9a84c');
+                sp(btn, 'border',          'none');
+                sp(btn, 'color',           '#fff');
+                sp(btn, 'font-size',       '28px');
+                sp(btn, 'cursor',          'pointer');
+                sp(btn, 'padding',         '0');
+                sp(btn, 'box-shadow',      '0 2px 8px rgba(0,0,0,0.22)');
             });
+            if (prevBtn) prevBtn.innerHTML = '&#8249;';
+            if (nextBtn) nextBtn.innerHTML = '&#8250;';
 
-            styleButtons();
+            // 3. Viewport: clips overflow
+            sp(viewport, 'display',   'block');
+            sp(viewport, 'overflow',  'hidden');
+            sp(viewport, 'flex',      '1 1 auto');
+            sp(viewport, 'min-width', '0');
+            sp(viewport, 'padding',   '4px 0 12px');
+
+            // 4. Measure width now that container is flex
+            var w = viewport.getBoundingClientRect().width;
+            if (!w) w = container.getBoundingClientRect().width - 96;
+            var cw = Math.floor((w - GAP * (vis - 1)) / vis);
+
+            // 5. Track: flex row, slides
+            sp(track, 'display',         'flex');
+            sp(track, 'flex-direction',  'row');
+            sp(track, 'flex-wrap',       'nowrap');
+            sp(track, 'gap',             GAP + 'px');
+            sp(track, 'transition',      'transform 0.4s ease');
+            sp(track, 'transform',       'translateX(' + -(idx * (cw + GAP)) + 'px)');
+
+            // 6. Each card: fixed width
+            allCards.forEach(function(c) {
+                sp(c, 'flex',      '0 0 ' + cw + 'px');
+                sp(c, 'width',     cw + 'px');
+                sp(c, 'min-width', cw + 'px');
+                sp(c, 'margin',    '0');
+                sp(c, 'float',     'none');
+            });
         }
 
         function go(n) {
-            var allCards = viewport.querySelectorAll('.product-card');
-            var vis = visible();
-            var viewW = viewport.offsetWidth;
-            var cw = Math.floor((viewW - GAP * (vis - 1)) / vis);
+            var vis = visCount();
+            var allCards = track.querySelectorAll('.product-card');
+            var w = viewport.getBoundingClientRect().width;
+            var cw = Math.floor((w - GAP * (vis - 1)) / vis);
             idx = Math.max(0, Math.min(n, allCards.length - vis));
-            sp(innerTrack, 'transform', 'translateX(' + -(idx * (cw + GAP)) + 'px)');
-            sp(innerTrack, 'transition', 'transform 0.4s ease');
+            sp(track, 'transform', 'translateX(' + -(idx * (cw + GAP)) + 'px)');
+            sp(track, 'transition', 'transform 0.4s ease');
         }
 
-        applyLayout();
-        if (prevBtn) prevBtn.addEventListener('click', function() { go(idx - visible()); });
-        if (nextBtn) nextBtn.addEventListener('click', function() { go(idx + visible()); });
-        window.addEventListener('resize', function() { idx = 0; applyLayout(); });
+        layout();
+        // Re-layout after paint to get accurate widths
+        requestAnimationFrame(function() { layout(); });
+
+        if (prevBtn) prevBtn.addEventListener('click', function() { go(idx - visCount()); });
+        if (nextBtn) nextBtn.addEventListener('click', function() { go(idx + visCount()); });
+        window.addEventListener('resize', function() { idx = 0; layout(); });
     }
 
     function initAll() {
@@ -321,8 +322,8 @@ add_action('wp_footer', function() { ?>
 
     window.addEventListener('load', function() {
         initAll();
-        setTimeout(initAll, 500);
-        setTimeout(initAll, 1500);
+        requestAnimationFrame(function() { initAll(); });
+        setTimeout(initAll, 800);
     });
 }());
 </script>
