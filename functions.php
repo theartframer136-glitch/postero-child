@@ -73,10 +73,11 @@ add_action('wp_head', function() {
     </style>';
 }, 999);
 
-// 9. Subcategory circles fix — CSS + MutationObserver to override any inline styles
+// 9. Subcategory circles fix
 add_action('wp_footer', function() { ?>
 <style id="artframer-subcat-override">
-ul.postero-scroll-content {
+ul.postero-scroll-content,
+.postero-scroll-content {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
@@ -85,119 +86,146 @@ ul.postero-scroll-content {
     gap: 12px !important;
     width: 100% !important;
     height: auto !important;
+    max-height: none !important;
     padding: 4px 0 8px !important;
     margin: 0 !important;
     list-style: none !important;
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
+    transform: none !important;
+    transition: none !important;
+    position: static !important;
+    left: auto !important;
+    top: auto !important;
 }
-ul.postero-scroll-content::-webkit-scrollbar { display: none !important; }
+ul.postero-scroll-content::-webkit-scrollbar,
+.postero-scroll-content::-webkit-scrollbar { display: none !important; }
 ul.postero-scroll-content > li,
-ul.postero-scroll-content > li.cat-item {
+ul.postero-scroll-content > li.cat-item,
+.postero-scroll-content > li,
+.postero-scroll-content > li.cat-item {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
     flex: 0 0 auto !important;
     width: auto !important;
-    min-width: 90px !important;
+    min-width: 80px !important;
     float: none !important;
     margin: 0 !important;
     padding: 0 !important;
     position: static !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
 }
 div.list-wrapper.postero-scroll,
-.postero-scroll {
+.postero-scroll,
+.subcategory-section,
+.widget_product_categories .list-wrapper {
     overflow: visible !important;
     height: auto !important;
     max-height: none !important;
+    transform: none !important;
+    position: static !important;
 }
 </style>
 <script>
 (function() {
-    function enforceSubcatLayout(ul) {
-        // Force UL layout via setProperty (overrides inline styles)
-        ul.style.setProperty('display',         'flex',    'important');
-        ul.style.setProperty('flex-direction',  'row',     'important');
-        ul.style.setProperty('flex-wrap',       'nowrap',  'important');
-        ul.style.setProperty('overflow-x',      'auto',    'important');
-        ul.style.setProperty('height',          'auto',    'important');
-        ul.style.setProperty('width',           '100%',    'important');
-        // Force items
-        ul.querySelectorAll('li').forEach(function(li) {
-            li.style.setProperty('flex',      '0 0 auto', 'important');
-            li.style.setProperty('position',  'static',   'important');
-            li.style.setProperty('width',     'auto',     'important');
-            li.style.setProperty('display',   'flex',     'important');
+    var _fixed = false;
+
+    function deepLog(el, label) {
+        var cs = getComputedStyle(el);
+        var r = el.getBoundingClientRect();
+        console.warn('[ArtFramer] ' + label,
+            '| tag:', el.tagName,
+            '| id:', el.id || '-',
+            '| class:', el.className,
+            '| children:', el.children.length,
+            '| rect:', Math.round(r.width) + 'x' + Math.round(r.height),
+            '| display:', cs.display,
+            '| flex-wrap:', cs.flexWrap,
+            '| overflow-x:', cs.overflowX,
+            '| height:', cs.height,
+            '| position:', cs.position,
+            '| transform:', cs.transform
+        );
+    }
+
+    function fixEl(el) {
+        el.style.setProperty('display',         'flex',    'important');
+        el.style.setProperty('flex-direction',  'row',     'important');
+        el.style.setProperty('flex-wrap',       'nowrap',  'important');
+        el.style.setProperty('overflow-x',      'auto',    'important');
+        el.style.setProperty('height',          'auto',    'important');
+        el.style.setProperty('max-height',      'none',    'important');
+        el.style.setProperty('width',           '100%',    'important');
+        el.style.setProperty('position',        'static',  'important');
+        el.style.setProperty('transform',       'none',    'important');
+        el.style.setProperty('top',             'auto',    'important');
+        el.style.setProperty('left',            'auto',    'important');
+        Array.from(el.children).forEach(function(li) {
+            li.style.setProperty('flex',        '0 0 auto', 'important');
+            li.style.setProperty('position',    'static',   'important');
+            li.style.setProperty('width',       'auto',     'important');
+            li.style.setProperty('display',     'flex',     'important');
+            li.style.setProperty('transform',   'none',     'important');
+            li.style.setProperty('top',         'auto',     'important');
+            li.style.setProperty('left',        'auto',     'important');
         });
-        // Force parent overflow
-        if (ul.parentElement) {
-            ul.parentElement.style.setProperty('overflow',   'visible', 'important');
-            ul.parentElement.style.setProperty('height',     'auto',    'important');
+        if (el.parentElement) {
+            el.parentElement.style.setProperty('overflow',   'visible', 'important');
+            el.parentElement.style.setProperty('height',     'auto',    'important');
+            el.parentElement.style.setProperty('max-height', 'none',    'important');
+            el.parentElement.style.setProperty('transform',  'none',    'important');
         }
-        console.warn('enforceSubcatLayout applied | UL computed display:', getComputedStyle(ul).display, 'flex-wrap:', getComputedStyle(ul).flexWrap, 'overflow-x:', getComputedStyle(ul).overflowX, 'height:', getComputedStyle(ul).height);
+        if (el.parentElement && el.parentElement.parentElement) {
+            el.parentElement.parentElement.style.setProperty('overflow',   'visible', 'important');
+            el.parentElement.parentElement.style.setProperty('height',     'auto',    'important');
+            el.parentElement.parentElement.style.setProperty('transform',  'none',    'important');
+        }
+    }
+
+    function findAndFix() {
+        // Strategy 1: find by cat-item parent
+        var catItems = document.querySelectorAll('li.cat-item');
+        if (catItems.length) {
+            var parent = catItems[0].parentElement;
+            deepLog(parent, 'cat-item PARENT');
+            deepLog(parent.parentElement, 'cat-item GRANDPARENT');
+            if (parent.parentElement) deepLog(parent.parentElement.parentElement || parent.parentElement, 'cat-item GREAT-GRANDPARENT');
+            fixEl(parent);
+            _fixed = true;
+        }
+
+        // Strategy 2: by class selector
+        var ul = document.querySelector('ul.postero-scroll-content, .postero-scroll-content');
+        if (ul) {
+            deepLog(ul, 'postero-scroll-content');
+            fixEl(ul);
+        }
+
+        // Log ALL elements with "scroll" or "subcat" in class
+        document.querySelectorAll('[class*="scroll"], [class*="subcat"], [class*="sub-cat"]').forEach(function(el, i) {
+            if (i < 10) deepLog(el, 'scroll/subcat[' + i + ']');
+        });
     }
 
     function init() {
-        // Target ALL elements with postero-scroll-content class (any tag)
-        var all = document.querySelectorAll('[class*="postero-scroll-content"], [class*="subcategor"], [class*="sub-cat-list"], [class*="scroll-content"]');
-        console.warn('Total scroll-content elements found:', all.length);
-        all.forEach(function(el, i) {
-            var rect = el.getBoundingClientRect();
-            console.warn('Element', i, '| tag:', el.tagName, '| class:', el.className,
-                '| children:', el.children.length,
-                '| visible:', rect.width > 0 && rect.height > 0,
-                '| rect w:', Math.round(rect.width), 'h:', Math.round(rect.height),
-                '| computed display:', getComputedStyle(el).display,
-                '| flex-wrap:', getComputedStyle(el).flexWrap);
+        findAndFix();
+
+        // Re-run after any DOM mutation (catches slider JS re-positioning items)
+        var mo = new MutationObserver(function() {
+            findAndFix();
         });
+        mo.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['style', 'class'] });
 
-        // Also find the actual visible circles container by looking for li.cat-item parents
-        var catItems = document.querySelectorAll('li.cat-item, .cat-item');
-        if (catItems.length) {
-            var parent = catItems[0].parentElement;
-            console.warn('cat-item parent | tag:', parent.tagName, '| class:', parent.className,
-                '| computed display:', getComputedStyle(parent).display,
-                '| flex-wrap:', getComputedStyle(parent).flexWrap,
-                '| overflow-x:', getComputedStyle(parent).overflowX,
-                '| width:', getComputedStyle(parent).width);
-            // Apply fix to the ACTUAL parent of cat-items
-            parent.style.setProperty('display',        'flex',    'important');
-            parent.style.setProperty('flex-direction', 'row',     'important');
-            parent.style.setProperty('flex-wrap',      'nowrap',  'important');
-            parent.style.setProperty('overflow-x',     'auto',    'important');
-            parent.style.setProperty('height',         'auto',    'important');
-            parent.style.setProperty('width',          '100%',    'important');
-            catItems.forEach(function(li) {
-                li.style.setProperty('flex',      '0 0 auto', 'important');
-                li.style.setProperty('position',  'static',   'important');
-                li.style.setProperty('width',     'auto',     'important');
-                li.style.setProperty('display',   'flex',     'important');
-            });
-            if (parent.parentElement) {
-                parent.parentElement.style.setProperty('overflow', 'visible', 'important');
-                parent.parentElement.style.setProperty('height',   'auto',    'important');
-            }
-        }
-
-        var ul = document.querySelector('ul.postero-scroll-content');
-        if (!ul) return;
-        enforceSubcatLayout(ul);
-
-        // Watch for ANY attribute change on the UL and re-enforce
-        var observer = new MutationObserver(function(mutations) {
-            mutations.forEach(function(m) {
-                if (m.attributeName === 'style' || m.attributeName === 'class') {
-                    enforceSubcatLayout(ul);
-                }
-            });
-        });
-        observer.observe(ul, { attributes: true });
-
-        // Also watch children
-        var childObserver = new MutationObserver(function() {
-            enforceSubcatLayout(ul);
-        });
-        childObserver.observe(ul, { childList: true, subtree: false });
+        // Belt-and-suspenders: poll for 5 seconds after load
+        var ticks = 0;
+        var iv = setInterval(function() {
+            findAndFix();
+            ticks++;
+            if (ticks >= 10) clearInterval(iv);
+        }, 500);
     }
 
     if (document.readyState === 'loading') {
@@ -205,9 +233,7 @@ div.list-wrapper.postero-scroll,
     } else {
         init();
     }
-    window.addEventListener('load', init);
-    setTimeout(init, 500);
-    setTimeout(init, 1500);
+    window.addEventListener('load', function() { setTimeout(findAndFix, 100); });
 }());
 </script>
 <?php }, 9999);
