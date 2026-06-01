@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.3.1');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.0', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.1', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -283,7 +283,7 @@ add_action('wp_footer', function() { ?>
         var currentIndex = 0;
 
         function visCount() {
-            return window.innerWidth <= 576 ? 1 : window.innerWidth <= 991 ? 2 : 4;
+            return window.innerWidth <= 600 ? 1 : window.innerWidth <= 768 ? 2 : 4;
         }
 
         function cardWidth() {
