@@ -194,9 +194,12 @@ ul.postero-scroll-content .cat-item a {
 /* ---- Viewport: clips the scrolling track ---- */
 #productGrid,
 .product-slider {
+  display: block !important;
   overflow: hidden !important;
   flex: 1 1 auto !important;
   min-width: 0 !important;
+  grid-template-columns: unset !important;
+  width: auto !important;
 }
 
 /* ---- Scrolling track (WooCommerce ul.products) ---- */
