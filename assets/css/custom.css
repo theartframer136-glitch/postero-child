@@ -342,6 +342,41 @@ ul.postero-scroll-content .cat-item a {
 
 
 /* ============================================================
+   ADD TO CART BUTTON — gold style (matches second screenshot)
+   ============================================================ */
+.product-card .add-cart,
+.product-card .add_to_cart_button,
+.product-card a.button,
+.product-card button.button,
+.product-card .woocommerce-loop-product__link + a,
+.product-slider .product-card .add-cart,
+.product-slider .product-card .add_to_cart_button,
+.product-slider .product-card a.button,
+.af-pc-track .product-card a.button,
+.af-pc-track .product-card .add_to_cart_button,
+.af-pc-track .product-card .add-cart {
+  background: #c9a84c !important;
+  background-color: #c9a84c !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  transition: background 0.2s !important;
+}
+.product-card .add-cart:hover,
+.product-card .add_to_cart_button:hover,
+.product-card a.button:hover,
+.product-card button.button:hover,
+.product-slider .product-card a.button:hover,
+.af-pc-track .product-card a.button:hover,
+.af-pc-track .product-card .add_to_cart_button:hover,
+.af-pc-track .product-card .add-cart:hover {
+  background: #a8872e !important;
+  background-color: #a8872e !important;
+  color: #fff !important;
+}
+
+/* ============================================================
    SHOP PAGE PRODUCT GRID
    ============================================================ */
 .woocommerce .products.columns-4 {
