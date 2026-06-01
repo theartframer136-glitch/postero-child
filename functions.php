@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.2');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.3');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.0.9', true);
 }, 20);
 
@@ -204,98 +204,23 @@ div.list-wrapper.postero-scroll {
 </script>
 <?php }, 9999);
 
-// 10. Product card slider — wires up .product-container with existing prev/next buttons
+
+// 10. Product card slider
 add_action('wp_footer', function() { ?>
-<style>
-/* .product-container is already flex with prev/next buttons */
-.product-container {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    width: 100% !important;
-}
-/* Style the existing prod-nav buttons as gold circles */
-.product-container .prod-nav {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    flex-shrink: 0 !important;
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px !important;
-    border-radius: 50% !important;
-    background: #c9a84c !important;
-    border: none !important;
-    color: #fff !important;
-    font-size: 28px !important;
-    line-height: 1 !important;
-    cursor: pointer !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.22) !important;
-    padding: 0 !important;
-    transition: background 0.2s !important;
-}
-.product-container .prod-nav:hover { background: #a8872e !important; }
-/* #productGrid/.product-slider is the clipping viewport */
-.product-container .product-slider,
-.product-container #productGrid {
-    overflow: hidden !important;
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-    display: block !important;
-    grid-template-columns: unset !important;
-}
-/* ul.products is the sliding track */
-.product-container ul.products {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    gap: 16px !important;
-    margin: 0 !important;
-    padding: 4px 2px 12px !important;
-    list-style: none !important;
-    transition: transform 0.4s ease !important;
-    will-change: transform !important;
-    grid-template-columns: unset !important;
-}
-/* 5 cards on large */
-.product-container ul.products li.product {
-    flex: 0 0 calc(20% - 13px) !important;
-    width: calc(20% - 13px) !important;
-    min-width: 0 !important;
-    float: none !important;
-    margin: 0 !important;
-}
-@media (max-width: 991px) {
-    .product-container ul.products li.product {
-        flex: 0 0 calc(33.333% - 11px) !important;
-        width: calc(33.333% - 11px) !important;
-    }
-}
-@media (max-width: 576px) {
-    .product-container ul.products li.product {
-        flex: 0 0 100% !important;
-        width: 100% !important;
-    }
-    .product-container .prod-nav { width: 36px !important; height: 36px !important; font-size: 20px !important; }
-}
-</style>
 <script>
 (function() {
+    function sp(el, prop, val) { el.style.setProperty(prop, val, 'important'); }
+
     function initSlider(container) {
-        if (container.dataset.afDone2) return;
-        var sliderDiv = container.querySelector('.product-slider, #productGrid');
-        if (!sliderDiv) return;
-        var ul = sliderDiv.querySelector('ul.products');
-        if (!ul || ul.querySelectorAll('li.product').length < 2) return;
-        container.dataset.afDone2 = '1';
+        if (container.dataset.afSlider) return;
+        var track = container.querySelector('#productGrid, .product-slider');
+        if (!track) return;
+        var cards = track.querySelectorAll('.product-card');
+        if (!cards.length) return;
+        container.dataset.afSlider = '1';
 
         var prevBtn = container.querySelector('.prev-prod');
         var nextBtn = container.querySelector('.next-prod');
-        if (!prevBtn || !nextBtn) return;
-
-        prevBtn.innerHTML = '&#8249;';
-        nextBtn.innerHTML = '&#8250;';
-
         var GAP = 16;
         var idx = 0;
 
@@ -304,51 +229,34 @@ add_action('wp_footer', function() { ?>
             return w <= 576 ? 1 : w <= 991 ? 3 : 5;
         }
 
-        function sp(el, prop, val) {
-            el.style.setProperty(prop, val, 'important');
-        }
-
         function applyLayout() {
             var vis = visible();
-
-            // Container: flex row FIRST so sliderDiv gets width
             sp(container, 'display', 'flex');
             sp(container, 'align-items', 'center');
             sp(container, 'gap', '8px');
             sp(container, 'width', '100%');
 
-            // Measure AFTER setting container flex
-            var viewW = container.offsetWidth - 100; // subtract ~two button widths
+            sp(track, 'display', 'flex');
+            sp(track, 'flex-direction', 'row');
+            sp(track, 'flex-wrap', 'nowrap');
+            sp(track, 'overflow', 'hidden');
+            sp(track, 'flex', '1 1 auto');
+            sp(track, 'min-width', '0');
+            sp(track, 'gap', GAP + 'px');
+            sp(track, 'padding', '4px 0 12px');
+
+            var viewW = track.offsetWidth || (container.offsetWidth - 100);
             var cw = Math.floor((viewW - GAP * (vis - 1)) / vis);
-
-            // Viewport: block, clip overflow
-            sp(sliderDiv, 'display', 'block');
-            sp(sliderDiv, 'overflow', 'hidden');
-            sp(sliderDiv, 'flex', '1 1 auto');
-            sp(sliderDiv, 'min-width', '0');
-
-            // Track: horizontal flex
-            sp(ul, 'display', 'flex');
-            sp(ul, 'flex-direction', 'row');
-            sp(ul, 'flex-wrap', 'nowrap');
-            sp(ul, 'gap', GAP + 'px');
-            sp(ul, 'margin', '0');
-            sp(ul, 'padding', '4px 0 12px');
-            sp(ul, 'list-style', 'none');
-            sp(ul, 'transition', 'transform 0.4s ease');
-            sp(ul, 'grid-template-columns', 'unset');
-
-            // Each card: fixed width
-            ul.querySelectorAll('li.product').forEach(function(li) {
-                sp(li, 'flex', '0 0 ' + cw + 'px');
-                sp(li, 'width', cw + 'px');
-                sp(li, 'min-width', cw + 'px');
-                sp(li, 'float', 'none');
-                sp(li, 'margin', '0');
+            cards = track.querySelectorAll('.product-card');
+            cards.forEach(function(card) {
+                sp(card, 'flex', '0 0 ' + cw + 'px');
+                sp(card, 'width', cw + 'px');
+                sp(card, 'min-width', cw + 'px');
+                sp(card, 'float', 'none');
             });
 
-            // Nav buttons
             [prevBtn, nextBtn].forEach(function(btn) {
+                if (!btn) return;
                 sp(btn, 'display', 'flex');
                 sp(btn, 'align-items', 'center');
                 sp(btn, 'justify-content', 'center');
@@ -364,22 +272,25 @@ add_action('wp_footer', function() { ?>
                 sp(btn, 'line-height', '1');
                 sp(btn, 'cursor', 'pointer');
                 sp(btn, 'padding', '0');
+                sp(btn, 'box-shadow', '0 2px 8px rgba(0,0,0,0.25)');
             });
+            if (prevBtn) prevBtn.innerHTML = '&#8249;';
+            if (nextBtn) nextBtn.innerHTML = '&#8250;';
         }
 
         function go(n) {
-            var cards = ul.querySelectorAll('li.product');
-            var card = cards[0];
-            if (!card) return;
-            var cw = card.offsetWidth + GAP;
-            idx = Math.max(0, Math.min(n, Math.max(0, cards.length - visible())));
-            ul.style.transform = 'translateX(' + -(idx * cw) + 'px)';
+            cards = track.querySelectorAll('.product-card');
+            var cw = (cards[0] ? cards[0].offsetWidth : 200) + GAP;
+            idx = Math.max(0, Math.min(n, cards.length - visible()));
+            sp(track, 'transform', 'translateX(' + -(idx * cw) + 'px)');
+            sp(track, 'transition', 'transform 0.4s ease');
+            sp(track, 'overflow', 'hidden');
         }
 
         applyLayout();
-        prevBtn.addEventListener('click', function() { go(idx - visible()); });
-        nextBtn.addEventListener('click', function() { go(idx + visible()); });
-        window.addEventListener('resize', function() { idx = 0; ul.style.transform = 'none'; applyLayout(); });
+        if (prevBtn) prevBtn.addEventListener('click', function() { go(idx - visible()); });
+        if (nextBtn) nextBtn.addEventListener('click', function() { go(idx + visible()); });
+        window.addEventListener('resize', function() { idx = 0; sp(track, 'transform', 'translateX(0)'); applyLayout(); });
     }
 
     function initAll() {
@@ -388,7 +299,7 @@ add_action('wp_footer', function() { ?>
 
     window.addEventListener('load', function() {
         initAll();
-        setTimeout(initAll, 600);
+        setTimeout(initAll, 500);
         setTimeout(initAll, 1500);
     });
 }());
