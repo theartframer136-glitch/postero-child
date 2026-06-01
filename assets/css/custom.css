@@ -114,12 +114,12 @@ ul.postero-scroll-content .cat-item img,
 #subcategorySlider .cat-item img,
 .subcategory-slider .cat-item img,
 li.cat-item img {
-  width: 68px !important;
-  height: 68px !important;
-  max-width: 68px !important;
-  max-height: 68px !important;
-  min-width: 68px !important;
-  min-height: 68px !important;
+  width: 52px !important;
+  height: 52px !important;
+  max-width: 52px !important;
+  max-height: 52px !important;
+  min-width: 52px !important;
+  min-height: 52px !important;
   border-radius: 50% !important;
   object-fit: cover !important;
   border: 3px solid #c9a84c !important;
