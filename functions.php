@@ -76,7 +76,7 @@ add_action('wp_head', function() {
 // 9. Inject subcategory fix CSS in wp_footer — runs AFTER Elementor body CSS
 add_action('wp_footer', function() { ?>
 <style id="artframer-subcat-fix">
-ul.postero-scroll-content {
+ul.artframer-subcat-row {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
@@ -95,8 +95,8 @@ ul.postero-scroll-content {
     height: auto !important;
     min-height: 0 !important;
 }
-ul.postero-scroll-content::-webkit-scrollbar { display: none !important; }
-ul.postero-scroll-content > li.cat-item {
+ul.artframer-subcat-row::-webkit-scrollbar { display: none !important; }
+ul.artframer-subcat-row > li.cat-item {
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
@@ -113,7 +113,7 @@ ul.postero-scroll-content > li.cat-item {
     top: auto !important;
     transform: none !important;
 }
-ul.postero-scroll-content .cat-item img {
+ul.artframer-subcat-row .cat-item img {
     width: 90px !important;
     height: 90px !important;
     border-radius: 50% !important;
@@ -122,8 +122,8 @@ ul.postero-scroll-content .cat-item img {
     margin: 0 auto 8px !important;
     display: block !important;
 }
-ul.postero-scroll-content .cat-item span,
-ul.postero-scroll-content .cat-item a {
+ul.artframer-subcat-row .cat-item span,
+ul.artframer-subcat-row .cat-item a {
     font-size: 12px !important;
     font-weight: 600 !important;
     color: #333 !important;
@@ -144,7 +144,8 @@ ul.postero-scroll-content .cat-item a {
         // Build a brand-new UL with only the first 21 unique items
         var newUl = document.createElement('ul');
         newUl.dataset.artframerFixed = '1';
-        newUl.className = ul.className;
+        // Give the new UL a different class so the parent slider JS ignores it
+        newUl.className = 'artframer-subcat-row';
 
         var count = 0;
         for (var i = 0; i < allItems.length && count < 21; i++) {
