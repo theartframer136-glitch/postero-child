@@ -76,156 +76,118 @@ add_action('wp_head', function() {
 // 9. Subcategory circles fix
 add_action('wp_footer', function() { ?>
 <style id="artframer-subcat-override">
-ul.postero-scroll-content,
-.postero-scroll-content {
+/* Target the actual subcategory slider container */
+#subcategorySlider,
+.subcategory-slider {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     overflow-x: auto !important;
     overflow-y: visible !important;
-    gap: 12px !important;
+    gap: 16px !important;
     width: 100% !important;
     height: auto !important;
     max-height: none !important;
     padding: 4px 0 8px !important;
-    margin: 0 !important;
-    list-style: none !important;
     scrollbar-width: none !important;
     -ms-overflow-style: none !important;
-    transform: none !important;
-    transition: none !important;
-    position: static !important;
-    left: auto !important;
-    top: auto !important;
+    grid-template-columns: unset !important;
+    grid-template-rows: unset !important;
 }
-ul.postero-scroll-content::-webkit-scrollbar,
-.postero-scroll-content::-webkit-scrollbar { display: none !important; }
-ul.postero-scroll-content > li,
-ul.postero-scroll-content > li.cat-item,
-.postero-scroll-content > li,
-.postero-scroll-content > li.cat-item {
+#subcategorySlider::-webkit-scrollbar,
+.subcategory-slider::-webkit-scrollbar { display: none !important; }
+#subcategorySlider > *,
+.subcategory-slider > * {
+    flex: 0 0 auto !important;
+    width: auto !important;
     display: flex !important;
     flex-direction: column !important;
     align-items: center !important;
-    flex: 0 0 auto !important;
-    width: auto !important;
-    min-width: 80px !important;
-    float: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
     position: static !important;
-    left: auto !important;
-    top: auto !important;
     transform: none !important;
 }
-div.list-wrapper.postero-scroll,
-.postero-scroll,
-.subcategory-section,
-.widget_product_categories .list-wrapper {
+#subcategoryContainer,
+.subcategory-container {
     overflow: visible !important;
     height: auto !important;
     max-height: none !important;
+    width: 100% !important;
+}
+/* Also fix the UL-based version */
+ul.postero-scroll-content {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    height: auto !important;
+    max-height: none !important;
     transform: none !important;
+    scrollbar-width: none !important;
+}
+ul.postero-scroll-content > li.cat-item {
+    flex: 0 0 auto !important;
     position: static !important;
+    transform: none !important;
+    width: auto !important;
+}
+div.list-wrapper.postero-scroll {
+    overflow: visible !important;
+    height: auto !important;
+    max-height: none !important;
 }
 </style>
 <script>
 (function() {
-    var _fixed = false;
-
-    function deepLog(el, label) {
-        var cs = getComputedStyle(el);
-        var r = el.getBoundingClientRect();
-        console.warn('[ArtFramer] ' + label,
-            '| tag:', el.tagName,
-            '| id:', el.id || '-',
-            '| class:', el.className,
-            '| children:', el.children.length,
-            '| rect:', Math.round(r.width) + 'x' + Math.round(r.height),
-            '| display:', cs.display,
-            '| flex-wrap:', cs.flexWrap,
-            '| overflow-x:', cs.overflowX,
-            '| height:', cs.height,
-            '| position:', cs.position,
-            '| transform:', cs.transform
-        );
-    }
+    var _busy = false;
 
     function fixEl(el) {
-        el.style.setProperty('display',         'flex',    'important');
-        el.style.setProperty('flex-direction',  'row',     'important');
-        el.style.setProperty('flex-wrap',       'nowrap',  'important');
-        el.style.setProperty('overflow-x',      'auto',    'important');
-        el.style.setProperty('height',          'auto',    'important');
-        el.style.setProperty('max-height',      'none',    'important');
-        el.style.setProperty('width',           '100%',    'important');
-        el.style.setProperty('position',        'static',  'important');
-        el.style.setProperty('transform',       'none',    'important');
-        el.style.setProperty('top',             'auto',    'important');
-        el.style.setProperty('left',            'auto',    'important');
-        Array.from(el.children).forEach(function(li) {
-            li.style.setProperty('flex',        '0 0 auto', 'important');
-            li.style.setProperty('position',    'static',   'important');
-            li.style.setProperty('width',       'auto',     'important');
-            li.style.setProperty('display',     'flex',     'important');
-            li.style.setProperty('transform',   'none',     'important');
-            li.style.setProperty('top',         'auto',     'important');
-            li.style.setProperty('left',        'auto',     'important');
+        if (!el) return;
+        _busy = true;
+        el.style.setProperty('display',               'flex',    'important');
+        el.style.setProperty('flex-direction',        'row',     'important');
+        el.style.setProperty('flex-wrap',             'nowrap',  'important');
+        el.style.setProperty('overflow-x',            'auto',    'important');
+        el.style.setProperty('height',                'auto',    'important');
+        el.style.setProperty('max-height',            'none',    'important');
+        el.style.setProperty('width',                 '100%',    'important');
+        el.style.setProperty('grid-template-columns', 'unset',   'important');
+        el.style.setProperty('grid-template-rows',    'unset',   'important');
+        Array.from(el.children).forEach(function(child) {
+            child.style.setProperty('flex',      '0 0 auto', 'important');
+            child.style.setProperty('position',  'static',   'important');
+            child.style.setProperty('width',     'auto',     'important');
+            child.style.setProperty('transform', 'none',     'important');
         });
         if (el.parentElement) {
             el.parentElement.style.setProperty('overflow',   'visible', 'important');
             el.parentElement.style.setProperty('height',     'auto',    'important');
             el.parentElement.style.setProperty('max-height', 'none',    'important');
-            el.parentElement.style.setProperty('transform',  'none',    'important');
         }
-        if (el.parentElement && el.parentElement.parentElement) {
-            el.parentElement.parentElement.style.setProperty('overflow',   'visible', 'important');
-            el.parentElement.parentElement.style.setProperty('height',     'auto',    'important');
-            el.parentElement.parentElement.style.setProperty('transform',  'none',    'important');
-        }
-    }
-
-    function findAndFix() {
-        // Strategy 1: find by cat-item parent
-        var catItems = document.querySelectorAll('li.cat-item');
-        if (catItems.length) {
-            var parent = catItems[0].parentElement;
-            deepLog(parent, 'cat-item PARENT');
-            deepLog(parent.parentElement, 'cat-item GRANDPARENT');
-            if (parent.parentElement) deepLog(parent.parentElement.parentElement || parent.parentElement, 'cat-item GREAT-GRANDPARENT');
-            fixEl(parent);
-            _fixed = true;
-        }
-
-        // Strategy 2: by class selector
-        var ul = document.querySelector('ul.postero-scroll-content, .postero-scroll-content');
-        if (ul) {
-            deepLog(ul, 'postero-scroll-content');
-            fixEl(ul);
-        }
-
-        // Log ALL elements with "scroll" or "subcat" in class
-        document.querySelectorAll('[class*="scroll"], [class*="subcat"], [class*="sub-cat"]').forEach(function(el, i) {
-            if (i < 10) deepLog(el, 'scroll/subcat[' + i + ']');
-        });
+        setTimeout(function() { _busy = false; }, 50);
     }
 
     function init() {
-        findAndFix();
+        // Primary target: #subcategorySlider (confirmed display:grid, the actual circles container)
+        var slider = document.getElementById('subcategorySlider');
+        if (slider) fixEl(slider);
 
-        // Re-run after any DOM mutation (catches slider JS re-positioning items)
-        var mo = new MutationObserver(function() {
-            findAndFix();
+        // Fallback: UL with cat-items
+        var catItems = document.querySelectorAll('li.cat-item');
+        if (catItems.length && catItems[0].parentElement) {
+            fixEl(catItems[0].parentElement);
+        }
+
+        // MutationObserver — skip re-entry while we are mid-fix
+        var mo = new MutationObserver(function(mutations) {
+            if (_busy) return;
+            var relevant = mutations.some(function(m) {
+                return m.target === slider || (slider && slider.contains(m.target));
+            });
+            if (relevant) fixEl(slider);
         });
-        mo.observe(document.body, { attributes: true, subtree: true, attributeFilter: ['style', 'class'] });
-
-        // Belt-and-suspenders: poll for 5 seconds after load
-        var ticks = 0;
-        var iv = setInterval(function() {
-            findAndFix();
-            ticks++;
-            if (ticks >= 10) clearInterval(iv);
-        }, 500);
+        if (slider) {
+            mo.observe(slider, { attributes: true, attributeFilter: ['style', 'class'] });
+        }
     }
 
     if (document.readyState === 'loading') {
@@ -233,7 +195,11 @@ div.list-wrapper.postero-scroll,
     } else {
         init();
     }
-    window.addEventListener('load', function() { setTimeout(findAndFix, 100); });
+    window.addEventListener('load', function() {
+        init();
+        setTimeout(init, 300);
+        setTimeout(init, 1000);
+    });
 }());
 </script>
 <?php }, 9999);
