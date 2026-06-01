@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.3.4');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.2', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.3', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -338,12 +338,19 @@ add_action('wp_footer', function() { ?>
 
         function cardWidth() {
             var vw = vp.getBoundingClientRect().width;
+            // Fallback: derive from window if vp hasn't laid out yet
+            if (!vw || vw < 50) {
+                var btnW = 44 * 2 + 8 * 2; // 2 buttons + gaps
+                var pagepad = 60;           // approx page side padding
+                vw = window.innerWidth - btnW - pagepad * 2;
+            }
             var vis = visCount();
             return Math.floor((vw - GAP * (vis - 1)) / vis);
         }
 
         function sizeCards() {
             var cw = cardWidth();
+            if (cw < 80) return; // bail if layout not ready
             cards.forEach(function(c) {
                 sp(c, 'flex',      '0 0 ' + cw + 'px');
                 sp(c, 'width',     cw + 'px');
@@ -361,8 +368,11 @@ add_action('wp_footer', function() { ?>
             sp(track, 'transform', 'translateX(' + (-(currentIndex * (cw + GAP))) + 'px)');
         }
 
+        // Run sizing in multiple passes to catch slow layouts
         sizeCards();
-        requestAnimationFrame(sizeCards);
+        requestAnimationFrame(function() { sizeCards(); slideTo(0); });
+        setTimeout(function() { sizeCards(); slideTo(0); }, 300);
+        setTimeout(function() { sizeCards(); slideTo(0); }, 800);
 
         btnPrev.addEventListener('click', function() {
             sizeCards();
@@ -379,6 +389,11 @@ add_action('wp_footer', function() { ?>
         });
     }
 
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', run);
+    } else {
+        run();
+    }
     window.addEventListener('load', function() {
         run();
         setTimeout(run, 600);
