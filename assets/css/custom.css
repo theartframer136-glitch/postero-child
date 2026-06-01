@@ -113,6 +113,7 @@ ul.postero-scroll-content > li.cat-item {
 ul.postero-scroll-content .cat-item img,
 #subcategorySlider .cat-item img,
 .subcategory-slider .cat-item img,
+.subcategory-slider .sub-cat img,
 li.cat-item img {
   width: 52px !important;
   height: 52px !important;
@@ -309,7 +310,8 @@ ul.postero-scroll-content .cat-item a {
 @media (max-width: 991px) {
   ul.postero-scroll-content .cat-item img,
   #subcategorySlider .cat-item img,
-  li.cat-item img { width: 56px !important; height: 56px !important; max-width: 56px !important; max-height: 56px !important; }
+  .subcategory-slider .sub-cat img,
+  li.cat-item img { width: 44px !important; height: 44px !important; max-width: 44px !important; max-height: 44px !important; }
   /* Medium: 3 cards */
   #productGrid ul.products li.product,
   .product-slider ul.products li.product,
@@ -325,7 +327,8 @@ ul.postero-scroll-content .cat-item a {
 @media (max-width: 576px) {
   ul.postero-scroll-content .cat-item img,
   #subcategorySlider .cat-item img,
-  li.cat-item img { width: 50px !important; height: 50px !important; max-width: 50px !important; max-height: 50px !important; }
+  .subcategory-slider .sub-cat img,
+  li.cat-item img { width: 40px !important; height: 40px !important; max-width: 40px !important; max-height: 40px !important; }
   /* Small: 1 card */
   #productGrid ul.products li.product,
   .product-slider ul.products li.product,
