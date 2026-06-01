@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.3.1');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.1', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.2', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -208,14 +208,16 @@ div.list-wrapper.postero-scroll {
 // 10. Product card slider
 add_action('wp_footer', function() { ?>
 <style>
-.product-container {
+/* Our fully-owned slider shell — parent theme never touches these classes */
+.af-shell {
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
     width: 100% !important;
     overflow: visible !important;
+    box-sizing: border-box !important;
 }
-.product-container .prod-nav {
+.af-shell-btn {
     flex: 0 0 44px !important;
     width: 44px !important;
     height: 44px !important;
@@ -231,26 +233,42 @@ add_action('wp_footer', function() { ?>
     line-height: 1 !important;
     cursor: pointer !important;
     padding: 0 !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,.22) !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25) !important;
     z-index: 10 !important;
+    flex-shrink: 0 !important;
 }
-.product-container .prod-nav:hover { background: #a8872e !important; }
-/* Viewport: clips to exactly N cards */
-.af-pc-viewport {
+.af-shell-btn:hover { background: #a8872e !important; }
+.af-shell-vp {
     flex: 1 1 auto !important;
     min-width: 0 !important;
     overflow: hidden !important;
     position: relative !important;
 }
-/* Track: slides left/right */
-.af-pc-track {
+.af-shell-track {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
     gap: 16px !important;
     padding: 4px 0 12px !important;
+    margin: 0 !important;
+    list-style: none !important;
     transition: transform 0.4s ease !important;
     will-change: transform !important;
+    width: max-content !important;
+    grid-template-columns: unset !important;
+}
+.af-shell-track .product-card {
+    flex-shrink: 0 !important;
+    float: none !important;
+    margin: 0 !important;
+}
+/* Hide the original grid once we've taken its cards */
+.af-grid-hidden {
+    display: none !important;
+}
+/* Keep the outer product-container invisible to layout */
+.product-container {
+    display: block !important;
 }
 </style>
 <script>
@@ -259,26 +277,58 @@ add_action('wp_footer', function() { ?>
 
     function run() {
         var container = document.querySelector('.product-container');
-        if (!container || container.dataset.afReady) return;
+        if (!container || container.dataset.afDone) return;
 
+        // Find the original grid
         var grid = container.querySelector('#productGrid') || container.querySelector('.product-slider');
         if (!grid) return;
+
         var cards = Array.from(grid.querySelectorAll('.product-card'));
         if (!cards.length) return;
 
-        container.dataset.afReady = '1';
+        container.dataset.afDone = '1';
 
-        // Build viewport wrapper around grid
-        var viewport = document.createElement('div');
-        viewport.className = 'af-pc-viewport';
-        grid.parentNode.insertBefore(viewport, grid);
-        viewport.appendChild(grid);
-
-        // Mark track
-        grid.classList.add('af-pc-track');
-
+        // Find the prev/next buttons (they live inside .product-container)
         var prevBtn = container.querySelector('.prev-prod');
         var nextBtn = container.querySelector('.next-prod');
+
+        // ── Build our own slider shell ──────────────────────────────
+        var shell = document.createElement('div');
+        shell.className = 'af-shell';
+
+        var btnPrev = document.createElement('button');
+        btnPrev.className = 'af-shell-btn';
+        btnPrev.innerHTML = '&#8249;';
+        btnPrev.setAttribute('aria-label', 'Previous');
+
+        var btnNext = document.createElement('button');
+        btnNext.className = 'af-shell-btn';
+        btnNext.innerHTML = '&#8250;';
+        btnNext.setAttribute('aria-label', 'Next');
+
+        var vp = document.createElement('div');
+        vp.className = 'af-shell-vp';
+
+        var track = document.createElement('div');
+        track.className = 'af-shell-track';
+
+        // Move every product-card from the original grid into our track
+        cards.forEach(function(c) { track.appendChild(c); });
+
+        vp.appendChild(track);
+        shell.appendChild(btnPrev);
+        shell.appendChild(vp);
+        shell.appendChild(btnNext);
+
+        // Insert shell after the original grid, then hide the grid
+        grid.parentNode.insertBefore(shell, grid.nextSibling);
+        grid.classList.add('af-grid-hidden');
+
+        // Also hide original nav buttons if present
+        if (prevBtn) sp(prevBtn, 'display', 'none');
+        if (nextBtn) sp(nextBtn, 'display', 'none');
+
+        // ── Slider logic ────────────────────────────────────────────
         var GAP = 16;
         var currentIndex = 0;
 
@@ -287,67 +337,20 @@ add_action('wp_footer', function() { ?>
         }
 
         function cardWidth() {
-            var vw = viewport.getBoundingClientRect().width;
+            var vw = vp.getBoundingClientRect().width;
             var vis = visCount();
             return Math.floor((vw - GAP * (vis - 1)) / vis);
         }
 
-        function applyLayout() {
-            var vis = visCount();
+        function sizeCards() {
             var cw = cardWidth();
-
-            // Force container
-            sp(container, 'display', 'flex');
-            sp(container, 'align-items', 'center');
-            sp(container, 'gap', GAP + 'px');
-            sp(container, 'width', '100%');
-            sp(container, 'overflow', 'visible');
-
-            // Force viewport
-            sp(viewport, 'flex', '1 1 auto');
-            sp(viewport, 'min-width', '0');
-            sp(viewport, 'overflow', 'hidden');
-
-            // Force track
-            sp(grid, 'display', 'flex');
-            sp(grid, 'flex-direction', 'row');
-            sp(grid, 'flex-wrap', 'nowrap');
-            sp(grid, 'gap', GAP + 'px');
-            sp(grid, 'padding', '4px 0 12px');
-            sp(grid, 'width', 'max-content');
-            sp(grid, 'grid-template-columns', 'unset');
-
-            // Style buttons
-            [prevBtn, nextBtn].forEach(function(btn) {
-                if (!btn) return;
-                sp(btn, 'display', 'flex');
-                sp(btn, 'align-items', 'center');
-                sp(btn, 'justify-content', 'center');
-                sp(btn, 'flex', '0 0 44px');
-                sp(btn, 'width', '44px');
-                sp(btn, 'height', '44px');
-                sp(btn, 'min-width', '44px');
-                sp(btn, 'border-radius', '50%');
-                sp(btn, 'background', '#c9a84c');
-                sp(btn, 'border', 'none');
-                sp(btn, 'color', '#fff');
-                sp(btn, 'font-size', '28px');
-                sp(btn, 'cursor', 'pointer');
-                sp(btn, 'padding', '0');
-                sp(btn, 'box-shadow', '0 2px 8px rgba(0,0,0,0.22)');
-            });
-            if (prevBtn) prevBtn.innerHTML = '&#8249;';
-            if (nextBtn) nextBtn.innerHTML = '&#8250;';
-
-            // Size every card
             cards.forEach(function(c) {
                 sp(c, 'flex',      '0 0 ' + cw + 'px');
                 sp(c, 'width',     cw + 'px');
                 sp(c, 'min-width', cw + 'px');
                 sp(c, 'max-width', cw + 'px');
-                sp(c, 'float',     'none');
-                sp(c, 'margin',    '0');
             });
+            return cw;
         }
 
         function slideTo(idx) {
@@ -355,24 +358,23 @@ add_action('wp_footer', function() { ?>
             var max = Math.max(0, cards.length - vis);
             currentIndex = Math.max(0, Math.min(idx, max));
             var cw = cardWidth();
-            var offset = currentIndex * (cw + GAP);
-            sp(grid, 'transform', 'translateX(' + (-offset) + 'px)');
+            sp(track, 'transform', 'translateX(' + (-(currentIndex * (cw + GAP))) + 'px)');
         }
 
-        applyLayout();
-        requestAnimationFrame(applyLayout);
+        sizeCards();
+        requestAnimationFrame(sizeCards);
 
-        if (prevBtn) prevBtn.addEventListener('click', function() {
-            applyLayout();
+        btnPrev.addEventListener('click', function() {
+            sizeCards();
             slideTo(currentIndex - visCount());
         });
-        if (nextBtn) nextBtn.addEventListener('click', function() {
-            applyLayout();
+        btnNext.addEventListener('click', function() {
+            sizeCards();
             slideTo(currentIndex + visCount());
         });
         window.addEventListener('resize', function() {
             currentIndex = 0;
-            applyLayout();
+            sizeCards();
             slideTo(0);
         });
     }
