@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.3');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.4');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.0.9', true);
 }, 20);
 
@@ -213,11 +213,17 @@ add_action('wp_footer', function() { ?>
 
     function initSlider(container) {
         if (container.dataset.afSlider) return;
-        var track = container.querySelector('#productGrid, .product-slider');
-        if (!track) return;
-        var cards = track.querySelectorAll('.product-card');
+        var viewport = container.querySelector('#productGrid, .product-slider');
+        if (!viewport) return;
+        var cards = viewport.querySelectorAll('.product-card');
         if (!cards.length) return;
         container.dataset.afSlider = '1';
+
+        // Create inner track div — viewport clips, track slides
+        var innerTrack = document.createElement('div');
+        innerTrack.className = 'af-inner-track';
+        while (viewport.firstChild) { innerTrack.appendChild(viewport.firstChild); }
+        viewport.appendChild(innerTrack);
 
         var prevBtn = container.querySelector('.prev-prod');
         var nextBtn = container.querySelector('.next-prod');
@@ -229,32 +235,7 @@ add_action('wp_footer', function() { ?>
             return w <= 576 ? 1 : w <= 991 ? 3 : 5;
         }
 
-        function applyLayout() {
-            var vis = visible();
-            sp(container, 'display', 'flex');
-            sp(container, 'align-items', 'center');
-            sp(container, 'gap', '8px');
-            sp(container, 'width', '100%');
-
-            sp(track, 'display', 'flex');
-            sp(track, 'flex-direction', 'row');
-            sp(track, 'flex-wrap', 'nowrap');
-            sp(track, 'overflow', 'hidden');
-            sp(track, 'flex', '1 1 auto');
-            sp(track, 'min-width', '0');
-            sp(track, 'gap', GAP + 'px');
-            sp(track, 'padding', '4px 0 12px');
-
-            var viewW = track.offsetWidth || (container.offsetWidth - 100);
-            var cw = Math.floor((viewW - GAP * (vis - 1)) / vis);
-            cards = track.querySelectorAll('.product-card');
-            cards.forEach(function(card) {
-                sp(card, 'flex', '0 0 ' + cw + 'px');
-                sp(card, 'width', cw + 'px');
-                sp(card, 'min-width', cw + 'px');
-                sp(card, 'float', 'none');
-            });
-
+        function styleButtons() {
             [prevBtn, nextBtn].forEach(function(btn) {
                 if (!btn) return;
                 sp(btn, 'display', 'flex');
@@ -278,19 +259,60 @@ add_action('wp_footer', function() { ?>
             if (nextBtn) nextBtn.innerHTML = '&#8250;';
         }
 
+        function applyLayout() {
+            var vis = visible();
+
+            // Container: flex row
+            sp(container, 'display', 'flex');
+            sp(container, 'align-items', 'center');
+            sp(container, 'gap', '8px');
+            sp(container, 'width', '100%');
+
+            // Viewport: overflow hidden, fills remaining width
+            sp(viewport, 'overflow', 'hidden');
+            sp(viewport, 'flex', '1 1 auto');
+            sp(viewport, 'min-width', '0');
+            sp(viewport, 'display', 'block');
+            sp(viewport, 'padding', '4px 0 12px');
+
+            // Measure viewport width, calculate card size
+            var viewW = viewport.offsetWidth;
+            var cw = Math.floor((viewW - GAP * (vis - 1)) / vis);
+
+            // Inner track: flex row, no wrap — this is what slides
+            sp(innerTrack, 'display', 'flex');
+            sp(innerTrack, 'flex-direction', 'row');
+            sp(innerTrack, 'flex-wrap', 'nowrap');
+            sp(innerTrack, 'gap', GAP + 'px');
+            sp(innerTrack, 'transition', 'transform 0.4s ease');
+            sp(innerTrack, 'transform', 'translateX(' + -(idx * (cw + GAP)) + 'px)');
+
+            // Each card: fixed width
+            viewport.querySelectorAll('.product-card').forEach(function(card) {
+                sp(card, 'flex', '0 0 ' + cw + 'px');
+                sp(card, 'width', cw + 'px');
+                sp(card, 'min-width', cw + 'px');
+                sp(card, 'float', 'none');
+                sp(card, 'margin', '0');
+            });
+
+            styleButtons();
+        }
+
         function go(n) {
-            cards = track.querySelectorAll('.product-card');
-            var cw = (cards[0] ? cards[0].offsetWidth : 200) + GAP;
-            idx = Math.max(0, Math.min(n, cards.length - visible()));
-            sp(track, 'transform', 'translateX(' + -(idx * cw) + 'px)');
-            sp(track, 'transition', 'transform 0.4s ease');
-            sp(track, 'overflow', 'hidden');
+            var allCards = viewport.querySelectorAll('.product-card');
+            var vis = visible();
+            var viewW = viewport.offsetWidth;
+            var cw = Math.floor((viewW - GAP * (vis - 1)) / vis);
+            idx = Math.max(0, Math.min(n, allCards.length - vis));
+            sp(innerTrack, 'transform', 'translateX(' + -(idx * (cw + GAP)) + 'px)');
+            sp(innerTrack, 'transition', 'transform 0.4s ease');
         }
 
         applyLayout();
         if (prevBtn) prevBtn.addEventListener('click', function() { go(idx - visible()); });
         if (nextBtn) nextBtn.addEventListener('click', function() { go(idx + visible()); });
-        window.addEventListener('resize', function() { idx = 0; sp(track, 'transform', 'translateX(0)'); applyLayout(); });
+        window.addEventListener('resize', function() { idx = 0; applyLayout(); });
     }
 
     function initAll() {
