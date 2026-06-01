@@ -136,63 +136,63 @@ ul.postero-scroll-content .cat-item a {
 (function() {
     function applyFix() {
         var ul = document.querySelector('ul.postero-scroll-content');
-        if (!ul) return;
+        if (!ul || ul.dataset.artframerFixed) return;
 
-        // Fix the UL itself
-        var s = ul.style;
-        s.setProperty('display',         'flex',    'important');
-        s.setProperty('flex-direction',  'row',     'important');
-        s.setProperty('flex-wrap',       'nowrap',  'important');
-        s.setProperty('overflow-x',      'auto',    'important');
-        s.setProperty('overflow-y',      'visible', 'important');
-        s.setProperty('gap',             '16px',    'important');
-        s.setProperty('width',           '100%',    'important');
-        s.setProperty('transform',       'none',    'important');
-        s.setProperty('transition',      'none',    'important');
-        s.setProperty('height',          'auto',    'important');
-        s.setProperty('position',        'relative','important');
+        var items = ul.querySelectorAll('li.cat-item');
+        if (items.length < 3) return; // not loaded yet
 
-        // Fix parent container — remove any overflow:hidden / fixed height that clips rows
-        var parent = ul.parentElement;
+        // Clone the UL — this strips ALL slider event listeners
+        var clone = ul.cloneNode(true);
+        clone.dataset.artframerFixed = '1';
+
+        // Keep only first 21 unique items, remove tripled clones
+        var cloneItems = clone.querySelectorAll('li.cat-item');
+        for (var i = 0; i < cloneItems.length; i++) {
+            if (i >= 21) {
+                clone.removeChild(cloneItems[i]);
+            } else {
+                // Strip any inline positioning the slider set
+                var li = cloneItems[i];
+                li.removeAttribute('style');
+                li.style.setProperty('display',        'flex',     'important');
+                li.style.setProperty('flex-direction', 'column',   'important');
+                li.style.setProperty('align-items',    'center',   'important');
+                li.style.setProperty('flex',           '0 0 auto', 'important');
+                li.style.setProperty('position',       'static',   'important');
+                li.style.setProperty('width',          'auto',     'important');
+                li.style.setProperty('min-width',      '100px',    'important');
+                li.style.setProperty('float',          'none',     'important');
+                li.style.setProperty('margin',         '0',        'important');
+                li.style.setProperty('transform',      'none',     'important');
+            }
+        }
+
+        // Apply flex row to the clone
+        clone.removeAttribute('style');
+        clone.style.setProperty('display',         'flex',    'important');
+        clone.style.setProperty('flex-direction',  'row',     'important');
+        clone.style.setProperty('flex-wrap',       'nowrap',  'important');
+        clone.style.setProperty('overflow-x',      'auto',    'important');
+        clone.style.setProperty('overflow-y',      'visible', 'important');
+        clone.style.setProperty('gap',             '16px',    'important');
+        clone.style.setProperty('width',           '100%',    'important');
+        clone.style.setProperty('height',          'auto',    'important');
+        clone.style.setProperty('position',        'static',  'important');
+        clone.style.setProperty('transform',       'none',    'important');
+        clone.style.setProperty('scrollbar-width', 'none',    'important');
+
+        // Swap the original with our clean clone
+        ul.parentNode.replaceChild(clone, ul);
+
+        // Also fix the wrapper's overflow
+        var parent = clone.parentElement;
         if (parent) {
             parent.style.setProperty('overflow',   'visible', 'important');
             parent.style.setProperty('height',     'auto',    'important');
             parent.style.setProperty('max-height', 'none',    'important');
-            parent.style.setProperty('clip',       'auto',    'important');
-            parent.style.setProperty('clip-path',  'none',    'important');
-            console.warn('Parent el:', parent.tagName, parent.className,
-                         '| computed overflow:', getComputedStyle(parent).overflow,
-                         '| height:', getComputedStyle(parent).height);
         }
 
-        // Also fix grandparent
-        var gp = parent && parent.parentElement;
-        if (gp) {
-            gp.style.setProperty('overflow',   'visible', 'important');
-            gp.style.setProperty('height',     'auto',    'important');
-            gp.style.setProperty('max-height', 'none',    'important');
-        }
-
-        // Deduplicate — hide repeated clones (items 22+ are duplicates)
-        var items = ul.querySelectorAll('li.cat-item');
-        items.forEach(function(li, i) {
-            if (i >= 21) {
-                li.style.setProperty('display', 'none', 'important');
-            } else {
-                li.style.setProperty('display',        'flex',     'important');
-                li.style.setProperty('flex',           '0 0 auto', 'important');
-                li.style.setProperty('flex-direction', 'column',   'important');
-                li.style.setProperty('align-items',    'center',   'important');
-                li.style.setProperty('position',       'static',   'important');
-                li.style.setProperty('left',           'auto',     'important');
-                li.style.setProperty('top',            'auto',     'important');
-                li.style.setProperty('width',          'auto',     'important');
-                li.style.setProperty('float',          'none',     'important');
-                li.style.setProperty('transform',      'none',     'important');
-                li.style.setProperty('margin',         '0',        'important');
-            }
-        });
-        console.warn('Subcat fix applied — items:', items.length, '| UL computed display:', getComputedStyle(ul).display, '| flex-wrap:', getComputedStyle(ul).flexWrap);
+        console.warn('Subcat carousel replaced with clean flex row — 21 items.');
     }
 
     // Apply repeatedly to beat any delayed JS that resets positions
