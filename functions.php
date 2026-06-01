@@ -138,61 +138,65 @@ ul.postero-scroll-content .cat-item a {
         var ul = document.querySelector('ul.postero-scroll-content');
         if (!ul || ul.dataset.artframerFixed) return;
 
-        var items = ul.querySelectorAll('li.cat-item');
-        if (items.length < 3) return; // not loaded yet
+        var allItems = ul.querySelectorAll('li.cat-item');
+        if (allItems.length < 3) return;
 
-        // Clone the UL — this strips ALL slider event listeners
-        var clone = ul.cloneNode(true);
-        clone.dataset.artframerFixed = '1';
+        // Build a brand-new UL with only the first 21 unique items
+        var newUl = document.createElement('ul');
+        newUl.dataset.artframerFixed = '1';
+        newUl.className = ul.className;
 
-        // Keep only first 21 unique items, remove tripled clones
-        var cloneItems = clone.querySelectorAll('li.cat-item');
-        for (var i = 0; i < cloneItems.length; i++) {
-            if (i >= 21) {
-                clone.removeChild(cloneItems[i]);
-            } else {
-                // Strip any inline positioning the slider set
-                var li = cloneItems[i];
-                li.removeAttribute('style');
-                li.style.setProperty('display',        'flex',     'important');
-                li.style.setProperty('flex-direction', 'column',   'important');
-                li.style.setProperty('align-items',    'center',   'important');
-                li.style.setProperty('flex',           '0 0 auto', 'important');
-                li.style.setProperty('position',       'static',   'important');
-                li.style.setProperty('width',          'auto',     'important');
-                li.style.setProperty('min-width',      '100px',    'important');
-                li.style.setProperty('float',          'none',     'important');
-                li.style.setProperty('margin',         '0',        'important');
-                li.style.setProperty('transform',      'none',     'important');
-            }
+        var count = 0;
+        for (var i = 0; i < allItems.length && count < 21; i++) {
+            var liClone = allItems[i].cloneNode(true);
+            // Strip all inline styles the slider applied
+            liClone.removeAttribute('style');
+            liClone.style.setProperty('display',        'flex',     'important');
+            liClone.style.setProperty('flex-direction', 'column',   'important');
+            liClone.style.setProperty('align-items',    'center',   'important');
+            liClone.style.setProperty('flex',           '0 0 auto', 'important');
+            liClone.style.setProperty('position',       'static',   'important');
+            liClone.style.setProperty('width',          'auto',     'important');
+            liClone.style.setProperty('min-width',      '100px',    'important');
+            liClone.style.setProperty('float',          'none',     'important');
+            liClone.style.setProperty('margin',         '0',        'important');
+            liClone.style.setProperty('transform',      'none',     'important');
+            liClone.style.setProperty('left',           'auto',     'important');
+            liClone.style.setProperty('top',            'auto',     'important');
+            newUl.appendChild(liClone);
+            count++;
         }
 
-        // Apply flex row to the clone
-        clone.removeAttribute('style');
-        clone.style.setProperty('display',         'flex',    'important');
-        clone.style.setProperty('flex-direction',  'row',     'important');
-        clone.style.setProperty('flex-wrap',       'nowrap',  'important');
-        clone.style.setProperty('overflow-x',      'auto',    'important');
-        clone.style.setProperty('overflow-y',      'visible', 'important');
-        clone.style.setProperty('gap',             '16px',    'important');
-        clone.style.setProperty('width',           '100%',    'important');
-        clone.style.setProperty('height',          'auto',    'important');
-        clone.style.setProperty('position',        'static',  'important');
-        clone.style.setProperty('transform',       'none',    'important');
-        clone.style.setProperty('scrollbar-width', 'none',    'important');
+        // Style the new UL as a single scrollable flex row
+        newUl.style.setProperty('display',         'flex',    'important');
+        newUl.style.setProperty('flex-direction',  'row',     'important');
+        newUl.style.setProperty('flex-wrap',       'nowrap',  'important');
+        newUl.style.setProperty('overflow-x',      'auto',    'important');
+        newUl.style.setProperty('overflow-y',      'visible', 'important');
+        newUl.style.setProperty('gap',             '16px',    'important');
+        newUl.style.setProperty('width',           '100%',    'important');
+        newUl.style.setProperty('height',          'auto',    'important');
+        newUl.style.setProperty('position',        'static',  'important');
+        newUl.style.setProperty('transform',       'none',    'important');
+        newUl.style.setProperty('list-style',      'none',    'important');
+        newUl.style.setProperty('padding',         '0 0 8px 0','important');
+        newUl.style.setProperty('margin',          '0',       'important');
+        newUl.style.setProperty('scrollbar-width', 'none',    'important');
 
-        // Swap the original with our clean clone
-        ul.parentNode.replaceChild(clone, ul);
+        // Hide the old slider UL and insert our clean one before it
+        ul.style.setProperty('display', 'none', 'important');
+        ul.dataset.artframerFixed = '1'; // prevent re-entry
+        ul.parentNode.insertBefore(newUl, ul);
 
-        // Also fix the wrapper's overflow
-        var parent = clone.parentElement;
+        // Fix parent overflow
+        var parent = newUl.parentElement;
         if (parent) {
             parent.style.setProperty('overflow',   'visible', 'important');
             parent.style.setProperty('height',     'auto',    'important');
             parent.style.setProperty('max-height', 'none',    'important');
         }
 
-        console.warn('Subcat carousel replaced with clean flex row — 21 items.');
+        console.warn('Subcat: new flex UL inserted with', count, 'items.');
     }
 
     // Apply repeatedly to beat any delayed JS that resets positions
