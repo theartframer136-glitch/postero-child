@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.6');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.7');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.0.9', true);
 }, 20);
 
@@ -270,8 +270,10 @@ add_action('wp_footer', function() { ?>
         function setCardWidths() {
             var vis = visCount();
             var gap = 16;
-            var w = grid.getBoundingClientRect().width;
-            if (!w) w = container.getBoundingClientRect().width - 100;
+            // Use container width minus both button widths for accurate viewport size
+            var btnW = (prevBtn ? prevBtn.offsetWidth : 44) + (nextBtn ? nextBtn.offsetWidth : 44) + 16;
+            var w = container.getBoundingClientRect().width - btnW;
+            if (w <= 0) w = 800;
             var cw = Math.floor((w - gap * (vis - 1)) / vis);
             grid.querySelectorAll('.product-card').forEach(function(c) {
                 c.style.setProperty('flex',      '0 0 ' + cw + 'px', 'important');
