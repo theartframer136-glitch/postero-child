@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.1');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.2');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.0.9', true);
 }, 20);
 
@@ -282,12 +282,12 @@ add_action('wp_footer', function() { ?>
 <script>
 (function() {
     function initSlider(container) {
-        if (container.dataset.afDone) return;
+        if (container.dataset.afDone2) return;
         var sliderDiv = container.querySelector('.product-slider, #productGrid');
         if (!sliderDiv) return;
         var ul = sliderDiv.querySelector('ul.products');
         if (!ul || ul.querySelectorAll('li.product').length < 2) return;
-        container.dataset.afDone = '1';
+        container.dataset.afDone2 = '1';
 
         var prevBtn = container.querySelector('.prev-prod');
         var nextBtn = container.querySelector('.next-prod');
@@ -310,14 +310,16 @@ add_action('wp_footer', function() { ?>
 
         function applyLayout() {
             var vis = visible();
-            var viewW = sliderDiv.offsetWidth;
-            var cw = Math.floor((viewW - GAP * (vis - 1)) / vis);
 
-            // Container: flex row
+            // Container: flex row FIRST so sliderDiv gets width
             sp(container, 'display', 'flex');
             sp(container, 'align-items', 'center');
             sp(container, 'gap', '8px');
             sp(container, 'width', '100%');
+
+            // Measure AFTER setting container flex
+            var viewW = container.offsetWidth - 100; // subtract ~two button widths
+            var cw = Math.floor((viewW - GAP * (vis - 1)) / vis);
 
             // Viewport: block, clip overflow
             sp(sliderDiv, 'display', 'block');
