@@ -131,20 +131,59 @@ ul.postero-scroll-content .cat-item a {
   display: block !important;
 }
 
-/* ---- Hide leftover subcategory + product nav arrows ---- */
-.subcategory-container .sub-nav,
-.product-container .prod-nav {
+/* ---- Hide leftover subcategory nav arrows only ---- */
+.subcategory-container .sub-nav {
   display: none !important;
 }
 
-/* ---- Product cards: 4 per row + hover image swap ---- */
+/* ---- Product container: slider with side arrows ---- */
+.product-container {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 0 !important;
+  width: 100% !important;
+}
+.product-container .prod-nav {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  border-radius: 50% !important;
+  background: #c9a84c !important;
+  border: none !important;
+  color: #fff !important;
+  font-size: 18px !important;
+  cursor: pointer !important;
+  z-index: 10 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.18) !important;
+  transition: background 0.2s !important;
+  padding: 0 !important;
+}
+.product-container .prod-nav:hover {
+  background: #a8872e !important;
+}
+
+/* ---- Product slider: horizontal scroll, show 4 cards ---- */
 #productGrid,
 .product-slider {
-  display: grid !important;
-  grid-template-columns: repeat(4, 1fr) !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
   gap: 20px !important;
-  width: 100% !important;
-  overflow: visible !important;
+  overflow-x: hidden !important;
+  flex: 1 1 auto !important;
+  scroll-behavior: smooth !important;
+  width: 0 !important;
+  min-width: 0 !important;
+}
+#productGrid > *,
+.product-slider > * {
+  flex: 0 0 calc(25% - 15px) !important;
+  min-width: 0 !important;
 }
 .product-slider .product-card {
   width: 100% !important;

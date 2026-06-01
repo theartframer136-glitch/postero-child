@@ -1,28 +1,34 @@
 // Custom JS - The Art Framer Child Theme
 jQuery(document).ready(function($) {
-  console.warn('Art Framer child theme loaded');
 
-  // ---- DIAGNOSTIC: Find Postero slider init code in inline scripts ----
-  document.querySelectorAll('script:not([src])').forEach(function(s) {
-    var t = s.textContent;
-    if (t.includes('postero-scroll') || t.includes('cat-item') || t.includes('scroll-content') || t.includes('subcategor')) {
-      console.warn('SLIDER SCRIPT FOUND:', t.substring(0, 600));
-    }
-  });
+  // ---- Product card slider navigation ----
+  function initProductSlider() {
+    var container = document.querySelector('.product-container');
+    if (!container) return;
+    var grid = container.querySelector('#productGrid, .product-slider');
+    var prevBtn = container.querySelector('.prev-prod');
+    var nextBtn = container.querySelector('.next-prod');
+    if (!grid) return;
 
-  // Log all jQuery plugin names that contain "scroll", "slider", "carousel"
-  Object.keys($.fn).forEach(function(k) {
-    if (/scroll|slider|carousel|postero/i.test(k)) {
-      console.warn('jQuery plugin:', k);
+    function getScrollAmount() {
+      var card = grid.querySelector('li, .product-card, article');
+      if (card) return card.offsetWidth + 20;
+      return Math.round(grid.offsetWidth / 4) + 20;
     }
-  });
 
-  // Log all global window vars matching postero/scroll/slider
-  Object.keys(window).forEach(function(k) {
-    if (/postero|Postero|scroll_|slider_/i.test(k)) {
-      console.warn('Global var:', k, typeof window[k]);
+    if (prevBtn) {
+      prevBtn.addEventListener('click', function() {
+        grid.scrollBy({ left: -getScrollAmount() * 4, behavior: 'smooth' });
+      });
     }
-  });
+    if (nextBtn) {
+      nextBtn.addEventListener('click', function() {
+        grid.scrollBy({ left: getScrollAmount() * 4, behavior: 'smooth' });
+      });
+    }
+  }
+
+  initProductSlider();
 
   // ---- Suppress 404 errors from missing video files ----
   window.addEventListener('error', function(e) {
