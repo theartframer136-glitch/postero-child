@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.0');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.1');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.0.9', true);
 }, 20);
 
@@ -304,29 +304,64 @@ add_action('wp_footer', function() { ?>
             return w <= 576 ? 1 : w <= 991 ? 3 : 5;
         }
 
+        function sp(el, prop, val) {
+            el.style.setProperty(prop, val, 'important');
+        }
+
         function applyLayout() {
             var vis = visible();
             var viewW = sliderDiv.offsetWidth;
             var cw = Math.floor((viewW - GAP * (vis - 1)) / vis);
 
-            // Force container as flex row
-            container.style.cssText += ';display:flex!important;align-items:center!important;gap:8px!important;width:100%!important;';
+            // Container: flex row
+            sp(container, 'display', 'flex');
+            sp(container, 'align-items', 'center');
+            sp(container, 'gap', '8px');
+            sp(container, 'width', '100%');
 
-            // Force viewport: clip overflow, fill remaining space
-            sliderDiv.style.cssText += ';display:block!important;overflow:hidden!important;flex:1 1 auto!important;min-width:0!important;';
+            // Viewport: block, clip overflow
+            sp(sliderDiv, 'display', 'block');
+            sp(sliderDiv, 'overflow', 'hidden');
+            sp(sliderDiv, 'flex', '1 1 auto');
+            sp(sliderDiv, 'min-width', '0');
 
-            // Force track: single horizontal row
-            ul.style.cssText += ';display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;gap:' + GAP + 'px!important;margin:0!important;padding:4px 0 12px!important;list-style:none!important;transition:transform 0.4s ease!important;';
+            // Track: horizontal flex
+            sp(ul, 'display', 'flex');
+            sp(ul, 'flex-direction', 'row');
+            sp(ul, 'flex-wrap', 'nowrap');
+            sp(ul, 'gap', GAP + 'px');
+            sp(ul, 'margin', '0');
+            sp(ul, 'padding', '4px 0 12px');
+            sp(ul, 'list-style', 'none');
+            sp(ul, 'transition', 'transform 0.4s ease');
+            sp(ul, 'grid-template-columns', 'unset');
 
-            // Force each card width
-            var cards = ul.querySelectorAll('li.product');
-            cards.forEach(function(li) {
-                li.style.cssText += ';flex:0 0 ' + cw + 'px!important;width:' + cw + 'px!important;min-width:' + cw + 'px!important;float:none!important;margin:0!important;';
+            // Each card: fixed width
+            ul.querySelectorAll('li.product').forEach(function(li) {
+                sp(li, 'flex', '0 0 ' + cw + 'px');
+                sp(li, 'width', cw + 'px');
+                sp(li, 'min-width', cw + 'px');
+                sp(li, 'float', 'none');
+                sp(li, 'margin', '0');
             });
 
-            // Style nav buttons
+            // Nav buttons
             [prevBtn, nextBtn].forEach(function(btn) {
-                btn.style.cssText += ';display:flex!important;align-items:center!important;justify-content:center!important;flex-shrink:0!important;width:44px!important;height:44px!important;min-width:44px!important;border-radius:50%!important;background:#c9a84c!important;border:none!important;color:#fff!important;font-size:28px!important;line-height:1!important;cursor:pointer!important;box-shadow:0 2px 8px rgba(0,0,0,.22)!important;padding:0!important;';
+                sp(btn, 'display', 'flex');
+                sp(btn, 'align-items', 'center');
+                sp(btn, 'justify-content', 'center');
+                sp(btn, 'flex-shrink', '0');
+                sp(btn, 'width', '44px');
+                sp(btn, 'height', '44px');
+                sp(btn, 'min-width', '44px');
+                sp(btn, 'border-radius', '50%');
+                sp(btn, 'background', '#c9a84c');
+                sp(btn, 'border', 'none');
+                sp(btn, 'color', '#fff');
+                sp(btn, 'font-size', '28px');
+                sp(btn, 'line-height', '1');
+                sp(btn, 'cursor', 'pointer');
+                sp(btn, 'padding', '0');
             });
         }
 

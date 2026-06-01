@@ -198,7 +198,6 @@ ul.postero-scroll-content .cat-item a {
   overflow: hidden !important;
   flex: 1 1 auto !important;
   min-width: 0 !important;
-  grid-template-columns: unset !important;
   width: auto !important;
 }
 
