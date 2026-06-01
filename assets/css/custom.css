@@ -136,15 +136,9 @@ ul.postero-scroll-content .cat-item a {
   display: none !important;
 }
 
-/* ---- Product container: slider with side nav arrows ---- */
-.product-container {
-  position: relative !important;
-  display: flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  width: 100% !important;
-}
-.product-container .prod-nav {
+/* ---- Shared nav button style (both .prod-nav and .af-nav) ---- */
+.product-container .prod-nav,
+.af-nav {
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -156,7 +150,7 @@ ul.postero-scroll-content .cat-item a {
   background: #c9a84c !important;
   border: none !important;
   color: #fff !important;
-  font-size: 20px !important;
+  font-size: 28px !important;
   line-height: 1 !important;
   cursor: pointer !important;
   z-index: 10 !important;
@@ -164,7 +158,30 @@ ul.postero-scroll-content .cat-item a {
   transition: background 0.2s !important;
   padding: 0 !important;
 }
-.product-container .prod-nav:hover { background: #a8872e !important; }
+.product-container .prod-nav:hover,
+.af-nav:hover { background: #a8872e !important; }
+
+/* ---- Dynamically injected wrapper ---- */
+.af-slider-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+.af-slider-viewport {
+  overflow: hidden !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+/* ---- Product container: slider with side nav arrows ---- */
+.product-container {
+  position: relative !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
 
 /* ---- Viewport: clips the scrolling track ---- */
 #productGrid,
@@ -176,7 +193,8 @@ ul.postero-scroll-content .cat-item a {
 
 /* ---- Scrolling track (WooCommerce ul.products) ---- */
 #productGrid ul.products,
-.product-slider ul.products {
+.product-slider ul.products,
+.af-slider-viewport ul.products {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
@@ -191,7 +209,8 @@ ul.postero-scroll-content .cat-item a {
 
 /* ---- Large: 5 cards ---- */
 #productGrid ul.products li.product,
-.product-slider ul.products li.product {
+.product-slider ul.products li.product,
+.af-slider-viewport ul.products li.product {
   flex: 0 0 calc(20% - 13px) !important;
   width: calc(20% - 13px) !important;
   min-width: 0 !important;
@@ -284,7 +303,8 @@ ul.postero-scroll-content .cat-item a {
   ul.postero-scroll-content .cat-item img { width: 70px !important; height: 70px !important; }
   /* Medium: 3 cards */
   #productGrid ul.products li.product,
-  .product-slider ul.products li.product {
+  .product-slider ul.products li.product,
+  .af-slider-viewport ul.products li.product {
     flex: 0 0 calc(33.333% - 11px) !important;
     width: calc(33.333% - 11px) !important;
   }
@@ -297,9 +317,10 @@ ul.postero-scroll-content .cat-item a {
   ul.postero-scroll-content .cat-item img { width: 60px !important; height: 60px !important; }
   /* Small: 1 card */
   #productGrid ul.products li.product,
-  .product-slider ul.products li.product {
-    flex: 0 0 calc(100%) !important;
-    width: calc(100%) !important;
+  .product-slider ul.products li.product,
+  .af-slider-viewport ul.products li.product {
+    flex: 0 0 100% !important;
+    width: 100% !important;
   }
 }
 
