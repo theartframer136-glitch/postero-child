@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.5');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.2.6');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.0.9', true);
 }, 20);
 
@@ -207,123 +207,114 @@ div.list-wrapper.postero-scroll {
 
 // 10. Product card slider
 add_action('wp_footer', function() { ?>
+<style>
+.product-container {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    width: 100% !important;
+}
+.product-container .prod-nav {
+    flex-shrink: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    border-radius: 50% !important;
+    background: #c9a84c !important;
+    border: none !important;
+    color: #fff !important;
+    font-size: 28px !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.22) !important;
+}
+.product-container .prod-nav:hover { background: #a8872e !important; }
+.product-container #productGrid,
+.product-container .product-slider {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 16px !important;
+    padding: 4px 0 12px !important;
+    scroll-behavior: smooth !important;
+}
+</style>
 <script>
 (function() {
-    function sp(el, prop, val) { el.style.setProperty(prop, val, 'important'); }
+    function run() {
+        var container = document.querySelector('.product-container');
+        if (!container || container.dataset.sliderReady) return;
 
-    function initSlider(container) {
-        if (container.dataset.afSlider) return;
-        var viewport = container.querySelector('#productGrid, .product-slider');
-        if (!viewport) return;
-        var cards = Array.from(viewport.querySelectorAll('.product-card'));
+        var grid = container.querySelector('#productGrid') || container.querySelector('.product-slider');
+        if (!grid) return;
+
+        var cards = grid.querySelectorAll('.product-card');
         if (!cards.length) return;
-        container.dataset.afSlider = '1';
 
-        // Wrap cards in inner track so viewport can clip and track can slide
-        var track = document.createElement('div');
-        track.className = 'af-track';
-        cards.forEach(function(c) { track.appendChild(c); });
-        viewport.appendChild(track);
+        container.dataset.sliderReady = '1';
 
         var prevBtn = container.querySelector('.prev-prod');
         var nextBtn = container.querySelector('.next-prod');
-        var GAP = 16;
-        var idx = 0;
 
         function visCount() {
-            var w = window.innerWidth;
-            return w <= 576 ? 1 : w <= 991 ? 3 : 5;
+            return window.innerWidth <= 576 ? 1 : window.innerWidth <= 991 ? 3 : 5;
         }
 
-        function layout() {
+        function setCardWidths() {
             var vis = visCount();
-            var allCards = Array.from(track.querySelectorAll('.product-card'));
-
-            // 1. Make container a flex row
-            sp(container, 'display', 'flex');
-            sp(container, 'align-items', 'center');
-            sp(container, 'gap', '8px');
-            sp(container, 'width', '100%');
-
-            // 2. Style buttons
-            [prevBtn, nextBtn].forEach(function(btn) {
-                if (!btn) return;
-                sp(btn, 'display',         'flex');
-                sp(btn, 'align-items',     'center');
-                sp(btn, 'justify-content', 'center');
-                sp(btn, 'flex-shrink',     '0');
-                sp(btn, 'width',           '44px');
-                sp(btn, 'height',          '44px');
-                sp(btn, 'min-width',       '44px');
-                sp(btn, 'border-radius',   '50%');
-                sp(btn, 'background',      '#c9a84c');
-                sp(btn, 'border',          'none');
-                sp(btn, 'color',           '#fff');
-                sp(btn, 'font-size',       '28px');
-                sp(btn, 'cursor',          'pointer');
-                sp(btn, 'padding',         '0');
-                sp(btn, 'box-shadow',      '0 2px 8px rgba(0,0,0,0.22)');
+            var gap = 16;
+            var w = grid.getBoundingClientRect().width;
+            if (!w) w = container.getBoundingClientRect().width - 100;
+            var cw = Math.floor((w - gap * (vis - 1)) / vis);
+            grid.querySelectorAll('.product-card').forEach(function(c) {
+                c.style.setProperty('flex',      '0 0 ' + cw + 'px', 'important');
+                c.style.setProperty('width',     cw + 'px',           'important');
+                c.style.setProperty('min-width', cw + 'px',           'important');
+                c.style.setProperty('float',     'none',              'important');
+                c.style.setProperty('margin',    '0',                 'important');
             });
-            if (prevBtn) prevBtn.innerHTML = '&#8249;';
-            if (nextBtn) nextBtn.innerHTML = '&#8250;';
-
-            // 3. Viewport: clips overflow
-            sp(viewport, 'display',   'block');
-            sp(viewport, 'overflow',  'hidden');
-            sp(viewport, 'flex',      '1 1 auto');
-            sp(viewport, 'min-width', '0');
-            sp(viewport, 'padding',   '4px 0 12px');
-
-            // 4. Measure width now that container is flex
-            var w = viewport.getBoundingClientRect().width;
-            if (!w) w = container.getBoundingClientRect().width - 96;
-            var cw = Math.floor((w - GAP * (vis - 1)) / vis);
-
-            // 5. Track: flex row, slides
-            sp(track, 'display',         'flex');
-            sp(track, 'flex-direction',  'row');
-            sp(track, 'flex-wrap',       'nowrap');
-            sp(track, 'gap',             GAP + 'px');
-            sp(track, 'transition',      'transform 0.4s ease');
-            sp(track, 'transform',       'translateX(' + -(idx * (cw + GAP)) + 'px)');
-
-            // 6. Each card: fixed width
-            allCards.forEach(function(c) {
-                sp(c, 'flex',      '0 0 ' + cw + 'px');
-                sp(c, 'width',     cw + 'px');
-                sp(c, 'min-width', cw + 'px');
-                sp(c, 'margin',    '0');
-                sp(c, 'float',     'none');
-            });
+            return cw;
         }
 
-        function go(n) {
-            var vis = visCount();
-            var allCards = track.querySelectorAll('.product-card');
-            var w = viewport.getBoundingClientRect().width;
-            var cw = Math.floor((w - GAP * (vis - 1)) / vis);
-            idx = Math.max(0, Math.min(n, allCards.length - vis));
-            sp(track, 'transform', 'translateX(' + -(idx * (cw + GAP)) + 'px)');
-            sp(track, 'transition', 'transform 0.4s ease');
+        function slideBy(dir) {
+            var cw = setCardWidths();
+            var amount = (cw + 16) * visCount();
+            grid.scrollLeft += dir * amount;
         }
 
-        layout();
-        // Re-layout after paint to get accurate widths
-        requestAnimationFrame(function() { layout(); });
+        setCardWidths();
+        requestAnimationFrame(setCardWidths);
 
-        if (prevBtn) prevBtn.addEventListener('click', function() { go(idx - visCount()); });
-        if (nextBtn) nextBtn.addEventListener('click', function() { go(idx + visCount()); });
-        window.addEventListener('resize', function() { idx = 0; layout(); });
+        if (prevBtn) {
+            prevBtn.innerHTML = '&#8249;';
+            prevBtn.addEventListener('click', function() { slideBy(-1); });
+        }
+        if (nextBtn) {
+            nextBtn.innerHTML = '&#8250;';
+            nextBtn.addEventListener('click', function() { slideBy(1); });
+        }
+
+        window.addEventListener('resize', function() {
+            grid.scrollLeft = 0;
+            setCardWidths();
+        });
     }
 
-    function initAll() {
-        document.querySelectorAll('.product-container').forEach(initSlider);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', run);
+    } else {
+        run();
     }
-
     window.addEventListener('load', function() {
-        initAll();
-        requestAnimationFrame(function() { initAll(); });
-        setTimeout(initAll, 800);
+        run();
+        setTimeout(run, 500);
     });
 }());
 </script>
