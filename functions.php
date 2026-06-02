@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.3.4');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.8', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.9', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -367,30 +367,31 @@ add_action('wp_footer', function() { ?>
         var _building = false;
         var mo = new MutationObserver(function(mutations) {
             if (_building) return;
-            var relevant = mutations.some(function(m) {
-                if (m.type === 'childList') {
-                    return Array.from(m.addedNodes).some(function(n) {
-                        return n.nodeType === 1 && (
-                            (n.classList && n.classList.contains('product-card')) ||
-                            (n.querySelectorAll && n.querySelectorAll('.product-card').length > 0)
-                        );
-                    });
-                }
-                if (m.type === 'attributes') {
-                    return m.target.classList && m.target.classList.contains('product-card');
-                }
-                return false;
+            // Only trigger when product-cards are ADDED (not removed, not attribute changes)
+            var hasAddedCards = mutations.some(function(m) {
+                if (m.type !== 'childList' || !m.addedNodes.length) return false;
+                return Array.from(m.addedNodes).some(function(n) {
+                    return n.nodeType === 1 && (
+                        (n.classList && n.classList.contains('product-card')) ||
+                        (n.querySelectorAll && n.querySelectorAll('.product-card').length > 0)
+                    );
+                });
             });
-            if (!relevant) return;
+            if (!hasAddedCards) return;
             clearTimeout(rebuildTimer);
+            // 500ms debounce — wait for all AJAX cards to finish inserting
             rebuildTimer = setTimeout(function() {
+                if (_building) return;
+                var newCards = Array.from(grid.querySelectorAll('.product-card'));
+                if (!newCards.length) return; // grid not ready yet, skip
                 _building = true;
                 buildSlider(container, grid);
-                setTimeout(function() { _building = false; }, 300);
-            }, 200);
+                setTimeout(function() { _building = false; }, 400);
+            }, 500);
         });
 
-        mo.observe(grid, { childList: true, subtree: true, attributes: true, attributeFilter: ['style','class'] });
+        // Watch only childList (card additions/removals), not attribute changes
+        mo.observe(grid, { childList: true, subtree: true });
     }
 
     if (document.readyState === 'loading') {
