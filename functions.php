@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.4.0');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.3', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.4', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -419,19 +419,18 @@ add_action('wp_footer', function() { ?>
 // 11. Products In Motion — circular video slider
 add_action('wp_footer', function() { ?>
 <style>
-/* ── Wrapper that holds the circular slider ── */
+/* Shell */
 .af-vid-shell {
     display: flex !important;
     align-items: center !important;
-    gap: 12px !important;
+    gap: 16px !important;
     width: 100% !important;
     box-sizing: border-box !important;
-    margin: 12px 0 !important;
+    padding: 16px 0 !important;
 }
 .af-vid-btn {
     flex: 0 0 44px !important;
-    width: 44px !important;
-    height: 44px !important;
+    width: 44px !important; height: 44px !important;
     border-radius: 50% !important;
     background: #c9a84c !important;
     border: none !important;
@@ -443,9 +442,7 @@ add_action('wp_footer', function() { ?>
     align-items: center !important;
     justify-content: center !important;
     box-shadow: 0 2px 8px rgba(0,0,0,.25) !important;
-    flex-shrink: 0 !important;
     padding: 0 !important;
-    z-index: 2 !important;
 }
 .af-vid-btn:hover { background: #a8872e !important; }
 .af-vid-vp {
@@ -457,262 +454,220 @@ add_action('wp_footer', function() { ?>
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    gap: 20px !important;
+    gap: 24px !important;
+    align-items: center !important;
     transition: transform 0.4s ease !important;
     will-change: transform !important;
-    align-items: center !important;
+    padding: 8px 0 !important;
 }
-/* Each circle item */
-.af-vid-item {
-    flex: 0 0 auto !important;
+/* Each circle: wraps the Elementor widget */
+.af-vid-circle {
+    flex: 0 0 200px !important;
     width: 200px !important;
     height: 200px !important;
     border-radius: 50% !important;
     overflow: hidden !important;
-    position: relative !important;
-    cursor: pointer !important;
     border: 3px solid #c9a84c !important;
     box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important;
-    background: #000 !important;
+    background: #111 !important;
     transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+    cursor: pointer !important;
+    position: relative !important;
 }
-.af-vid-item:hover {
+.af-vid-circle:hover {
     transform: scale(1.06) !important;
-    box-shadow: 0 8px 28px rgba(0,0,0,0.28) !important;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.3) !important;
 }
-/* Thumbnail image fills the circle */
-.af-vid-item img,
-.af-vid-item .af-vid-thumb {
+/* Make the thumbnail image fill the circle */
+.af-vid-circle img {
     width: 100% !important;
     height: 100% !important;
     object-fit: cover !important;
     display: block !important;
-    border-radius: 50% !important;
 }
-/* Play button overlay */
-.af-vid-play {
+/* Play icon overlay */
+.af-vid-circle .af-play-icon {
     position: absolute !important;
     inset: 0 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    background: rgba(0,0,0,0.25) !important;
-    border-radius: 50% !important;
+    background: rgba(0,0,0,0.22) !important;
     pointer-events: none !important;
 }
-.af-vid-play svg {
-    width: 48px !important;
-    height: 48px !important;
-    fill: rgba(255,255,255,0.9) !important;
-    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)) !important;
+.af-vid-circle .af-play-icon svg {
+    width: 52px !important; height: 52px !important;
+    fill: rgba(255,255,255,0.92) !important;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,.5)) !important;
 }
-/* Lightbox overlay for playing video */
-.af-vid-lightbox {
+/* Lightbox */
+.af-vid-lb {
     position: fixed !important;
     inset: 0 !important;
-    background: rgba(0,0,0,0.85) !important;
+    background: rgba(0,0,0,0.88) !important;
     z-index: 99999 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
 }
-.af-vid-lightbox iframe {
-    width: 80vw !important;
-    height: 45vw !important;
-    max-width: 960px !important;
-    max-height: 540px !important;
+.af-vid-lb iframe {
+    width: min(80vw, 960px) !important;
+    height: min(45vw, 540px) !important;
     border: none !important;
     border-radius: 8px !important;
 }
-.af-vid-lightbox-close {
+.af-vid-lb-x {
     position: absolute !important;
-    top: 20px !important;
-    right: 28px !important;
+    top: 16px !important; right: 24px !important;
     color: #fff !important;
-    font-size: 40px !important;
+    font-size: 44px !important;
     cursor: pointer !important;
-    line-height: 1 !important;
     background: none !important;
     border: none !important;
-    z-index: 100000 !important;
+    line-height: 1 !important;
 }
-/* Hide the original ugly video list */
-.af-vid-source-hidden {
-    display: none !important;
-}
+/* Hide original video grid once we've built the circular slider */
+.af-vid-original-hidden { display: none !important; }
 @media (max-width: 768px) {
-    .af-vid-item { width: 140px !important; height: 140px !important; }
+    .af-vid-circle { flex: 0 0 140px !important; width: 140px !important; height: 140px !important; }
 }
 @media (max-width: 480px) {
-    .af-vid-item { width: 110px !important; height: 110px !important; }
+    .af-vid-circle { flex: 0 0 110px !important; width: 110px !important; height: 110px !important; }
 }
 </style>
 <script>
 (function() {
-    function ytId(url) {
-        if (!url) return null;
-        var m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|watch\?v=|shorts\/|playlist\?.*v=))([A-Za-z0-9_-]{11})/);
+    var SIZES = { lg: 200, md: 140, sm: 110 };
+    var GAP = 24;
+
+    function ytId(str) {
+        if (!str) return null;
+        var m = str.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
         return m ? m[1] : null;
     }
 
-    function buildMotionSlider() {
-        // Find the "Products In Motion" section
-        var motionSection = null;
-        document.querySelectorAll('h2,h3,h4,.elementor-heading-title,[class*="heading"]').forEach(function(h) {
-            if (/products?\s+in\s+mot/i.test(h.textContent) && !motionSection) {
-                // Walk up to find the section container
+    function findSection() {
+        var found = null;
+        document.querySelectorAll('h2,h3,h4,.elementor-heading-title').forEach(function(h) {
+            if (!found && /products?\s+in\s+mot/i.test(h.textContent.trim())) {
                 var el = h;
-                for (var i = 0; i < 8; i++) {
-                    if (!el.parentElement) break;
+                for (var i = 0; i < 10; i++) {
                     el = el.parentElement;
-                    if (el.matches('.elementor-section, .e-container, .elementor-top-section')) {
-                        motionSection = el; break;
-                    }
+                    if (!el) break;
+                    if (/elementor-section|e-container|elementor-top-section/.test(el.className)) { found = el; break; }
                 }
-                if (!motionSection) motionSection = h.closest('.elementor-widget-wrap') || h.parentElement;
+                if (!found) found = h.closest('.elementor-widget-wrap') || h.parentElement;
             }
         });
-        if (!motionSection || motionSection.dataset.afMotionDone) return;
+        return found;
+    }
 
-        // Collect video IDs from every possible source in this section
-        var seen = {};
-        var videos = []; // [{id, widgetEl}]
+    function buildSlider() {
+        var sec = findSection();
+        if (!sec || sec.dataset.afVidDone) return;
 
-        // 1. Elementor video widget: data-settings JSON has youtube_url
-        motionSection.querySelectorAll('[data-settings]').forEach(function(el) {
-            try {
-                var s = JSON.parse(el.getAttribute('data-settings') || '{}');
-                var url = s.youtube_url || s.vimeo_url || s.video_url || '';
-                var vid = ytId(url);
-                if (vid && !seen[vid]) { seen[vid] = 1; videos.push({ id: vid, widgetEl: el.closest('.elementor-widget') || el }); }
-            } catch(e) {}
+        // Collect every Elementor video widget in this section
+        var widgets = Array.from(sec.querySelectorAll('.elementor-widget-video'));
+
+        // Also grab youtube_playlist widgets
+        sec.querySelectorAll('.elementor-widget-youtube').forEach(function(w) {
+            if (!widgets.includes(w)) widgets.push(w);
         });
 
-        // 2. iframes already rendered
-        motionSection.querySelectorAll('iframe[src*="youtube"], iframe[src*="youtu"]').forEach(function(iframe) {
-            var vid = ytId(iframe.src);
-            if (vid && !seen[vid]) { seen[vid] = 1; videos.push({ id: vid, widgetEl: iframe.closest('.elementor-widget') || iframe }); }
-        });
-
-        // 3. data-src lazy iframes
-        motionSection.querySelectorAll('iframe[data-src*="youtube"]').forEach(function(iframe) {
-            var vid = ytId(iframe.getAttribute('data-src'));
-            if (vid && !seen[vid]) { seen[vid] = 1; videos.push({ id: vid, widgetEl: iframe.closest('.elementor-widget') || iframe }); }
-        });
-
-        // 4. playlist embeds (the full playlist iframe src)
-        motionSection.querySelectorAll('iframe[src*="playlist"]').forEach(function(iframe) {
-            // Extract all v= params from the src
-            var src = iframe.src || '';
-            var vids = src.match(/[?&]v=([A-Za-z0-9_-]{11})/g) || [];
-            vids.forEach(function(m) {
-                var vid = m.replace(/[?&]v=/, '');
-                if (vid && !seen[vid]) { seen[vid] = 1; videos.push({ id: vid, widgetEl: iframe.closest('.elementor-widget') || iframe }); }
-            });
-        });
-
-        if (!videos.length) {
-            // Last resort: grab ALL iframes in section and use their thumb
-            motionSection.querySelectorAll('iframe').forEach(function(iframe) {
-                var src = iframe.src || iframe.getAttribute('data-src') || '';
-                var vid = ytId(src);
-                if (vid && !seen[vid]) { seen[vid] = 1; videos.push({ id: vid, widgetEl: iframe.closest('.elementor-widget') || iframe }); }
+        // Fallback: any widget containing an iframe with youtube
+        if (!widgets.length) {
+            sec.querySelectorAll('.elementor-widget').forEach(function(w) {
+                if (w.querySelector('iframe[src*="youtu"], iframe[data-src*="youtu"]') || w.querySelector('[data-settings*="youtube"]')) {
+                    widgets.push(w);
+                }
             });
         }
 
-        if (!videos.length) return;
-        motionSection.dataset.afMotionDone = '1';
+        if (!widgets.length) return;
+        sec.dataset.afVidDone = '1';
 
-        // Collect unique widget elements to hide
-        var widgetsToHide = [];
-        var widgetSet = new Set();
-        videos.forEach(function(v) {
-            if (v.widgetEl && !widgetSet.has(v.widgetEl)) {
-                widgetSet.add(v.widgetEl);
-                widgetsToHide.push(v.widgetEl);
+        // For each widget, extract the YouTube ID for the thumbnail
+        var videoData = widgets.map(function(w) {
+            var id = null;
+            // from iframe src
+            var iframe = w.querySelector('iframe');
+            if (iframe) id = ytId(iframe.src || iframe.getAttribute('data-src') || '');
+            // from data-settings
+            if (!id) {
+                w.querySelectorAll('[data-settings]').forEach(function(el) {
+                    if (id) return;
+                    try { var s = JSON.parse(el.getAttribute('data-settings')); id = ytId(s.youtube_url || s.url || ''); } catch(e){}
+                });
             }
+            return { widget: w, id: id };
         });
 
-        // Build circular slider
-        var GAP = 20;
+        // Build shell
         var shell  = document.createElement('div'); shell.className = 'af-vid-shell';
         var btnP   = document.createElement('button'); btnP.className = 'af-vid-btn'; btnP.innerHTML = '&#8249;'; btnP.setAttribute('aria-label','Prev');
         var btnN   = document.createElement('button'); btnN.className = 'af-vid-btn'; btnN.innerHTML = '&#8250;'; btnN.setAttribute('aria-label','Next');
         var vp     = document.createElement('div'); vp.className = 'af-vid-vp';
         var track  = document.createElement('div'); track.className = 'af-vid-track';
 
-        var items = videos.map(function(v) {
-            var item = document.createElement('div');
-            item.className = 'af-vid-item';
+        var circles = videoData.map(function(v) {
+            var circle = document.createElement('div');
+            circle.className = 'af-vid-circle';
 
-            var img = document.createElement('img');
-            img.src = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg';
-            img.alt = '';
+            if (v.id) {
+                var img = document.createElement('img');
+                img.src = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg';
+                img.alt = '';
+                circle.appendChild(img);
+            }
 
-            var play = document.createElement('div');
-            play.className = 'af-vid-play';
-            play.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+            var icon = document.createElement('div');
+            icon.className = 'af-play-icon';
+            icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+            circle.appendChild(icon);
 
-            item.appendChild(img);
-            item.appendChild(play);
-
-            item.addEventListener('click', function() {
-                var lb = document.createElement('div');
-                lb.className = 'af-vid-lightbox';
-                var close = document.createElement('button');
-                close.className = 'af-vid-lightbox-close';
-                close.innerHTML = '&times;';
+            // Click → lightbox with autoplay
+            circle.addEventListener('click', function() {
+                if (!v.id) return;
+                var lb = document.createElement('div'); lb.className = 'af-vid-lb';
+                var x  = document.createElement('button'); x.className = 'af-vid-lb-x'; x.innerHTML = '&times;';
                 var fr = document.createElement('iframe');
                 fr.src = 'https://www.youtube.com/embed/' + v.id + '?autoplay=1&rel=0';
-                fr.allow = 'autoplay; encrypted-media';
+                fr.allow = 'autoplay; fullscreen; encrypted-media';
                 fr.allowFullscreen = true;
-                lb.appendChild(close);
-                lb.appendChild(fr);
+                lb.appendChild(x); lb.appendChild(fr);
                 document.body.appendChild(lb);
-                close.onclick = function() { document.body.removeChild(lb); };
-                lb.onclick = function(e) { if (e.target === lb) document.body.removeChild(lb); };
+                function close() { try { document.body.removeChild(lb); } catch(e){} }
+                x.onclick = close;
+                lb.onclick = function(e) { if (e.target === lb) close(); };
             });
 
-            track.appendChild(item);
-            return item;
+            track.appendChild(circle);
+            return circle;
         });
 
         vp.appendChild(track);
-        shell.appendChild(btnP);
-        shell.appendChild(vp);
-        shell.appendChild(btnN);
+        shell.appendChild(btnP); shell.appendChild(vp); shell.appendChild(btnN);
 
-        // Insert before first widget
-        var anchor = widgetsToHide[0];
-        if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(shell, anchor);
-        else motionSection.appendChild(shell);
-
-        // Hide original widgets
-        widgetsToHide.forEach(function(w) { w.classList.add('af-vid-source-hidden'); });
+        // Insert shell before first widget, then hide all widgets
+        widgets[0].parentNode.insertBefore(shell, widgets[0]);
+        widgets.forEach(function(w) { w.classList.add('af-vid-original-hidden'); });
 
         // Slider logic
         var idx = 0;
-        var ITEM_W = 200;
-        function visCount() {
-            var vpW = vp.getBoundingClientRect().width || 800;
-            return Math.max(1, Math.floor((vpW + GAP) / (ITEM_W + GAP)));
+        function iw() { return window.innerWidth <= 480 ? SIZES.sm : window.innerWidth <= 768 ? SIZES.md : SIZES.lg; }
+        function vis() { var vpW = vp.getBoundingClientRect().width || 800; return Math.max(1, Math.floor((vpW + GAP) / (iw() + GAP))); }
+        function go(n) {
+            var v = vis(), max = Math.max(0, circles.length - v);
+            idx = Math.max(0, Math.min(n, max));
+            track.style.setProperty('transform','translateX('+( -(idx*(iw()+GAP)) )+'px)','important');
         }
-        function go(newIdx) {
-            var vis = visCount();
-            var max = Math.max(0, items.length - vis);
-            idx = Math.max(0, Math.min(newIdx, max));
-            track.style.setProperty('transform', 'translateX(' + (-(idx * (ITEM_W + GAP))) + 'px)', 'important');
-        }
-        btnP.addEventListener('click', function() { go(idx - visCount()); });
-        btnN.addEventListener('click', function() { go(idx + visCount()); });
-        window.addEventListener('resize', function() { idx = 0; go(0); });
-        setTimeout(function() { go(0); }, 150);
+        btnP.onclick = function() { go(idx - vis()); };
+        btnN.onclick = function() { go(idx + vis()); };
+        window.addEventListener('resize', function() { idx=0; go(0); });
+        setTimeout(function(){ go(0); }, 200);
     }
 
-    window.addEventListener('load', function() {
-        buildMotionSlider();
-        setTimeout(buildMotionSlider, 1000);
-    });
+    window.addEventListener('load', function() { buildSlider(); setTimeout(buildSlider, 1000); });
 }());
 </script>
 <?php }, 10001);
