@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.3.4');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.5', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.6', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -275,8 +275,12 @@ add_action('wp_footer', function() { ?>
         btnN.className   = 'af-shell-btn';  btnN.innerHTML = '&#8250;'; btnN.setAttribute('aria-label','Next');
         track.className  = 'af-shell-track';
 
-        // Re-fetch cards (fresh list)
-        var freshCards = Array.from(grid.querySelectorAll('.product-card'));
+        // Re-fetch cards — only VISIBLE ones (filters out other-category hidden cards)
+        var freshCards = Array.from(grid.querySelectorAll('.product-card')).filter(function(c) {
+            return c.offsetParent !== null &&
+                   getComputedStyle(c).display !== 'none' &&
+                   getComputedStyle(c).visibility !== 'hidden';
+        });
         freshCards.forEach(function(c) { track.appendChild(c); });
         vp.appendChild(track);
         shell.appendChild(btnP);
@@ -367,27 +371,35 @@ add_action('wp_footer', function() { ?>
         // Initial build
         buildSlider(container, grid);
 
-        // Watch for AJAX card replacements
+        // Watch for AJAX loads and show/hide category switches
         var rebuildTimer = null;
+        var _building = false;
         var mo = new MutationObserver(function(mutations) {
-            var hasNewCards = mutations.some(function(m) {
-                return Array.from(m.addedNodes).some(function(n) {
-                    return n.nodeType === 1 && (
-                        n.classList && n.classList.contains('product-card') ||
-                        (n.querySelectorAll && n.querySelectorAll('.product-card').length > 0)
-                    );
-                });
+            if (_building) return;
+            var relevant = mutations.some(function(m) {
+                if (m.type === 'childList') {
+                    return Array.from(m.addedNodes).some(function(n) {
+                        return n.nodeType === 1 && (
+                            (n.classList && n.classList.contains('product-card')) ||
+                            (n.querySelectorAll && n.querySelectorAll('.product-card').length > 0)
+                        );
+                    });
+                }
+                if (m.type === 'attributes') {
+                    return m.target.classList && m.target.classList.contains('product-card');
+                }
+                return false;
             });
-            if (!hasNewCards) return;
+            if (!relevant) return;
             clearTimeout(rebuildTimer);
             rebuildTimer = setTimeout(function() {
+                _building = true;
                 buildSlider(container, grid);
-            }, 150);
+                setTimeout(function() { _building = false; }, 300);
+            }, 200);
         });
 
-        mo.observe(grid, { childList: true, subtree: true });
-        // Also observe the container for #productGrid being swapped out
-        mo.observe(container, { childList: true, subtree: false });
+        mo.observe(grid, { childList: true, subtree: true, attributes: true, attributeFilter: ['style','class'] });
     }
 
     if (document.readyState === 'loading') {
