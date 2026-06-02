@@ -12,9 +12,42 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.5', true);
 }, 20);
 
-// 2. Force USD as default currency
-add_filter('woocommerce_currency', function() { return 'USD'; }, 999);
-add_filter('woocommerce_currency_symbol', function($symbol, $currency) { return '$'; }, 999, 2);
+// 2. Force USD as default currency — override currency switcher plugins
+add_filter('woocommerce_currency', function() { return 'USD'; }, 9999);
+add_filter('woocommerce_currency_symbol', function($symbol, $currency) { return '$'; }, 9999, 2);
+
+// Clear any cookie/session currency set by switcher plugins (WOOCS, WPML, Aelia, etc.)
+add_action('init', function() {
+    // WOOCS
+    if (isset($_COOKIE['woocs_session_currency']) && $_COOKIE['woocs_session_currency'] !== 'USD') {
+        setcookie('woocs_session_currency', 'USD', time() + 86400 * 30, COOKIEPATH, COOKIE_DOMAIN);
+        $_COOKIE['woocs_session_currency'] = 'USD';
+    }
+    // WooCommerce Multilingual (WPML)
+    if (defined('WCML_VERSION')) {
+        add_filter('wcml_client_currency', function() { return 'USD'; }, 9999);
+    }
+    // WooCommerce Currency Switcher (recobell / alg)
+    if (isset($_SESSION['alg_currency'])) { $_SESSION['alg_currency'] = 'USD'; }
+    // Force WC session currency
+    add_filter('woocommerce_session_handler', function($handler) { return $handler; }, 9999);
+}, 1);
+
+// Override any currency stored in WC session
+add_action('woocommerce_init', function() {
+    if (!WC()->session) return;
+    $sess_cur = WC()->session->get('currency');
+    if ($sess_cur && $sess_cur !== 'USD') {
+        WC()->session->set('currency', 'USD');
+    }
+}, 9999);
+
+// Force price HTML to always use $ symbol regardless of plugin output
+add_filter('woocommerce_price_format', function() { return '%1$s%2$s'; }, 9999);
+add_filter('woocommerce_price_args', function($args) {
+    $args['currency'] = 'USD';
+    return $args;
+}, 9999);
 
 // 3. Enable WooCommerce registration
 add_action('init', function() {
