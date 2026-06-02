@@ -510,22 +510,48 @@ ul.postero-scroll-content .cat-item a {
   gap: 3px !important;
 }
 
-/* ── Price ── */
+/* ── Price — all on one line ── */
 .af-shell-track .product-card .price,
-.af-shell-track .product-card .woocommerce-Price-amount,
-.product-slider .product-card .price {
+.product-slider .product-card .price,
+.woocommerce .products .product-card .price,
+.price-section {
   padding: 0 12px 6px !important;
   font-size: 14px !important;
   font-weight: 700 !important;
   color: #222 !important;
-  display: block !important;
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: baseline !important;
+  gap: 4px !important;
 }
+/* Sale price (active/current) */
+.af-shell-track .product-card .price ins,
+.product-slider .product-card .price ins,
+.woocommerce .products .product-card .price ins {
+  text-decoration: none !important;
+  font-weight: 700 !important;
+  color: #222 !important;
+  order: 1 !important;
+}
+/* Strike-through original price */
 .af-shell-track .product-card .price del,
-.product-slider .product-card .price del {
+.product-slider .product-card .price del,
+.woocommerce .products .product-card .price del {
   color: #999 !important;
   font-weight: 400 !important;
   font-size: 12px !important;
-  margin-left: 4px !important;
+  order: 2 !important;
+}
+/* Discount badge e.g. (40% off) */
+.af-shell-track .product-card .price .discount-percentage,
+.product-slider .product-card .price .discount-percentage,
+.woocommerce .products .product-card .price .discount-percentage,
+.price-section .discount-percentage {
+  font-size: 11px !important;
+  color: #c9a84c !important;
+  font-weight: 600 !important;
+  order: 3 !important;
 }
 
 /* ── Short description ── */
