@@ -82,6 +82,34 @@ jQuery(document).ready(function($) {
 
   initProductSliders();
 
+  // ---- Force USD currency on every page load ----
+  (function forceCurrencyUSD() {
+    // Set all known currency switcher cookies to USD
+    var cookieOpts = '; path=/; max-age=' + (86400 * 365);
+    document.cookie = 'woocs_session_currency=USD' + cookieOpts;
+    document.cookie = 'wmc_current_currency=USD' + cookieOpts;
+    document.cookie = 'currency=USD' + cookieOpts;
+
+    // After DOM ready, click "USD" option in any currency switcher widget
+    function switchToUSD() {
+      // Try WOOCS / common switcher dropdowns
+      document.querySelectorAll('.woocs_selector select, .currency-switcher select, select.currency-switcher, [name="currency"]').forEach(function(sel) {
+        if (sel.value !== 'USD') { sel.value = 'USD'; sel.dispatchEvent(new Event('change', {bubbles:true})); }
+      });
+      // Try anchor/li based switchers (look for element containing "USD" text)
+      document.querySelectorAll('.woocs_selector a, .currency-switcher a, .wmc-currency-list a').forEach(function(a) {
+        if (/\bUSD\b/.test(a.textContent)) a.click();
+      });
+      // Hide INR option text in the switcher display label
+      document.querySelectorAll('.woocs_selector .woocommerce-currency-switcher-form select option').forEach(function(opt){
+        if (opt.value === 'USD') opt.selected = true;
+      });
+    }
+    switchToUSD();
+    setTimeout(switchToUSD, 500);
+    setTimeout(switchToUSD, 1500);
+  })();
+
   // ---- Suppress 404 errors from missing video files ----
   window.addEventListener('error', function(e) {
     if (e.target && (e.target.tagName === 'VIDEO' || e.target.tagName === 'SOURCE')) {
