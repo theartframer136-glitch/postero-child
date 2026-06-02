@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.3.4');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.0', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.1', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -295,21 +295,16 @@ add_action('wp_footer', function() { ?>
             return window.innerWidth <= 600 ? 1 : window.innerWidth <= 768 ? 2 : 4;
         }
 
-        function layout() {
-            var totalW = shell.getBoundingClientRect().width || (window.innerWidth - 32);
-            var vpW    = totalW - BTN * 2 - GAP * 2;
-            if (vpW < 60) vpW = window.innerWidth - BTN * 2 - GAP * 2 - 40;
-            // Use actual card count if fewer cards than visible slots
-            var v      = Math.min(vis(), freshCards.length || 1);
-            var cw     = Math.floor((vpW - GAP * (v - 1)) / v);
-            if (cw < 60) return 0;
-
+        // Step 1: set shell/vp/btn structure so vp gets its natural flex width
+        function applyShellLayout() {
             sp(shell, 'display',     'flex');
             sp(shell, 'align-items', 'center');
             sp(shell, 'gap',         GAP + 'px');
             sp(shell, 'width',       '100%');
+            sp(shell, 'box-sizing',  'border-box');
 
             [btnP, btnN].forEach(function(b) {
+                sp(b, 'flex',            '0 0 ' + BTN + 'px');
                 sp(b, 'width',           BTN + 'px');
                 sp(b, 'height',          BTN + 'px');
                 sp(b, 'display',         'flex');
@@ -317,15 +312,24 @@ add_action('wp_footer', function() { ?>
                 sp(b, 'justify-content', 'center');
             });
 
-            sp(vp, 'width',    vpW + 'px');
-            sp(vp, 'overflow', 'hidden');
-            sp(vp, 'flex',     '0 0 ' + vpW + 'px');
+            // Let vp grow naturally to fill remaining width
+            sp(vp, 'flex',      '1 1 auto');
+            sp(vp, 'min-width', '0');
+            sp(vp, 'overflow',  'hidden');
 
             sp(track, 'display',        'flex');
             sp(track, 'flex-direction', 'row');
             sp(track, 'flex-wrap',      'nowrap');
             sp(track, 'gap',            GAP + 'px');
+        }
 
+        // Step 2: measure vp actual width, then size cards
+        function sizeCards() {
+            var vpW = vp.getBoundingClientRect().width;
+            if (!vpW || vpW < 60) return 0;
+            var v  = Math.min(vis(), freshCards.length || 1);
+            var cw = Math.floor((vpW - GAP * (v - 1)) / v);
+            if (cw < 60) return 0;
             freshCards.forEach(function(c) {
                 sp(c, 'flex',      '0 0 ' + cw + 'px');
                 sp(c, 'width',     cw + 'px');
@@ -339,14 +343,19 @@ add_action('wp_footer', function() { ?>
             var v   = Math.min(vis(), freshCards.length || 1);
             var max = Math.max(0, freshCards.length - v);
             idx     = Math.max(0, Math.min(newIdx, max));
-            var cw  = layout() || 200;
+            var cw  = sizeCards() || 200;
             sp(track, 'transform', 'translateX(' + (-(idx * (cw + GAP))) + 'px)');
         }
 
-        layout();
-        requestAnimationFrame(layout);
-        setTimeout(function() { go(0); }, 200);
-        setTimeout(function() { go(0); }, 800);
+        applyShellLayout();
+        // Measure after browser has done flex layout (two rAF passes)
+        requestAnimationFrame(function() {
+            requestAnimationFrame(function() {
+                go(0);
+            });
+        });
+        setTimeout(function() { go(0); }, 300);
+        setTimeout(function() { go(0); }, 900);
 
         btnP.addEventListener('click', function() { go(idx - vis()); });
         btnN.addEventListener('click', function() { go(idx + vis()); });
