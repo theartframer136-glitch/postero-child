@@ -185,7 +185,6 @@ ul.postero-scroll-content .cat-item a {
 /* ---- Product container: slider with side nav arrows ---- */
 .product-container {
   position: relative !important;
-  display: flex !important;
   align-items: center !important;
   gap: 8px !important;
   width: 100% !important;
