@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.3.4');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.6', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.7', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -247,22 +247,17 @@ add_action('wp_footer', function() { ?>
     var activeShell = null; // track current shell so we can tear it down
 
     function buildSlider(container, grid) {
-        var cards = Array.from(grid.querySelectorAll('.product-card'));
-        if (!cards.length) return;
-
-        // Tear down any previous shell
+        // Tear down previous shell — discard old cards entirely (don't return to grid)
+        // The theme has already loaded new category cards into #productGrid while shell was active
         if (activeShell && activeShell.parentNode) {
-            // Return cards to grid before removing shell
-            var track = activeShell.querySelector('.af-shell-track');
-            if (track) Array.from(track.querySelectorAll('.product-card')).forEach(function(c) { grid.appendChild(c); });
             activeShell.parentNode.removeChild(activeShell);
             activeShell = null;
         }
         grid.classList.remove('af-grid-hidden');
 
-        /* ── Build shell ─────────────────────────────────── */
-        var GAP = 12;
-        var BTN = 44;
+        // Only grab cards currently in the grid (freshly loaded by the theme)
+        var freshCards = Array.from(grid.querySelectorAll('.product-card'));
+        if (!freshCards.length) return;
 
         var shell  = document.createElement('div');
         var btnP   = document.createElement('button');
@@ -275,12 +270,6 @@ add_action('wp_footer', function() { ?>
         btnN.className   = 'af-shell-btn';  btnN.innerHTML = '&#8250;'; btnN.setAttribute('aria-label','Next');
         track.className  = 'af-shell-track';
 
-        // Re-fetch cards — only VISIBLE ones (filters out other-category hidden cards)
-        var freshCards = Array.from(grid.querySelectorAll('.product-card')).filter(function(c) {
-            return c.offsetParent !== null &&
-                   getComputedStyle(c).display !== 'none' &&
-                   getComputedStyle(c).visibility !== 'hidden';
-        });
         freshCards.forEach(function(c) { track.appendChild(c); });
         vp.appendChild(track);
         shell.appendChild(btnP);
