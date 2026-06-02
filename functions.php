@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.3.4');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.4', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.5', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -244,17 +244,21 @@ add_action('wp_footer', function() { ?>
 (function() {
     function sp(el, p, v) { el.style.setProperty(p, v, 'important'); }
 
-    function run() {
-        var container = document.querySelector('.product-container');
-        if (!container || container.dataset.afDone) return;
+    var activeShell = null; // track current shell so we can tear it down
 
-        var grid = container.querySelector('#productGrid') || container.querySelector('.product-slider');
-        if (!grid) return;
-
+    function buildSlider(container, grid) {
         var cards = Array.from(grid.querySelectorAll('.product-card'));
         if (!cards.length) return;
 
-        container.dataset.afDone = '1';
+        // Tear down any previous shell
+        if (activeShell && activeShell.parentNode) {
+            // Return cards to grid before removing shell
+            var track = activeShell.querySelector('.af-shell-track');
+            if (track) Array.from(track.querySelectorAll('.product-card')).forEach(function(c) { grid.appendChild(c); });
+            activeShell.parentNode.removeChild(activeShell);
+            activeShell = null;
+        }
+        grid.classList.remove('af-grid-hidden');
 
         /* ── Build shell ─────────────────────────────────── */
         var GAP = 12;
@@ -271,17 +275,19 @@ add_action('wp_footer', function() { ?>
         btnN.className   = 'af-shell-btn';  btnN.innerHTML = '&#8250;'; btnN.setAttribute('aria-label','Next');
         track.className  = 'af-shell-track';
 
-        cards.forEach(function(c) { track.appendChild(c); });
+        // Re-fetch cards (fresh list)
+        var freshCards = Array.from(grid.querySelectorAll('.product-card'));
+        freshCards.forEach(function(c) { track.appendChild(c); });
         vp.appendChild(track);
         shell.appendChild(btnP);
         shell.appendChild(vp);
         shell.appendChild(btnN);
 
-        // Place shell right before the original grid's parent or after grid
         grid.parentNode.insertBefore(shell, grid.nextSibling);
         grid.classList.add('af-grid-hidden');
+        activeShell = shell;
 
-        // Hide original nav buttons from the widget
+        // Hide original widget nav buttons
         var ob = container.querySelector('.prev-prod');
         var nb = container.querySelector('.next-prod');
         if (ob) sp(ob, 'display', 'none');
@@ -297,50 +303,45 @@ add_action('wp_footer', function() { ?>
         function layout() {
             var totalW = shell.getBoundingClientRect().width || (window.innerWidth - 32);
             var vpW    = totalW - BTN * 2 - GAP * 2;
+            if (vpW < 60) vpW = window.innerWidth - BTN * 2 - GAP * 2 - 40;
             var v      = vis();
             var cw     = Math.floor((vpW - GAP * (v - 1)) / v);
-            if (cw < 60) return;
+            if (cw < 60) return 0;
 
-            /* shell */
-            sp(shell, 'display',      'flex');
-            sp(shell, 'align-items',  'center');
-            sp(shell, 'gap',          GAP + 'px');
-            sp(shell, 'width',        '100%');
+            sp(shell, 'display',     'flex');
+            sp(shell, 'align-items', 'center');
+            sp(shell, 'gap',         GAP + 'px');
+            sp(shell, 'width',       '100%');
 
-            /* buttons */
             [btnP, btnN].forEach(function(b) {
-                sp(b, 'width',   BTN + 'px');
-                sp(b, 'height',  BTN + 'px');
-                sp(b, 'display', 'flex');
-                sp(b, 'align-items', 'center');
+                sp(b, 'width',           BTN + 'px');
+                sp(b, 'height',          BTN + 'px');
+                sp(b, 'display',         'flex');
+                sp(b, 'align-items',     'center');
                 sp(b, 'justify-content', 'center');
             });
 
-            /* viewport — explicit pixel width = the clip boundary */
             sp(vp, 'width',    vpW + 'px');
             sp(vp, 'overflow', 'hidden');
             sp(vp, 'flex',     '0 0 ' + vpW + 'px');
 
-            /* track — full natural width, slides via transform */
-            sp(track, 'display',         'flex');
-            sp(track, 'flex-direction',  'row');
-            sp(track, 'flex-wrap',       'nowrap');
-            sp(track, 'gap',             GAP + 'px');
+            sp(track, 'display',        'flex');
+            sp(track, 'flex-direction', 'row');
+            sp(track, 'flex-wrap',      'nowrap');
+            sp(track, 'gap',            GAP + 'px');
 
-            /* cards — fixed pixel width */
-            cards.forEach(function(c) {
+            freshCards.forEach(function(c) {
                 sp(c, 'flex',      '0 0 ' + cw + 'px');
                 sp(c, 'width',     cw + 'px');
                 sp(c, 'min-width', cw + 'px');
                 sp(c, 'max-width', cw + 'px');
             });
-
             return cw;
         }
 
         function go(newIdx) {
             var v   = vis();
-            var max = Math.max(0, cards.length - v);
+            var max = Math.max(0, freshCards.length - v);
             idx     = Math.max(0, Math.min(newIdx, max));
             var cw  = layout() || 200;
             sp(track, 'transform', 'translateX(' + (-(idx * (cw + GAP))) + 'px)');
@@ -356,10 +357,46 @@ add_action('wp_footer', function() { ?>
         window.addEventListener('resize', function() { idx = 0; go(0); });
     }
 
+    function init() {
+        var container = document.querySelector('.product-container');
+        if (!container) return;
+
+        var grid = container.querySelector('#productGrid') || container.querySelector('.product-slider');
+        if (!grid) return;
+
+        // Initial build
+        buildSlider(container, grid);
+
+        // Watch for AJAX card replacements
+        var rebuildTimer = null;
+        var mo = new MutationObserver(function(mutations) {
+            var hasNewCards = mutations.some(function(m) {
+                return Array.from(m.addedNodes).some(function(n) {
+                    return n.nodeType === 1 && (
+                        n.classList && n.classList.contains('product-card') ||
+                        (n.querySelectorAll && n.querySelectorAll('.product-card').length > 0)
+                    );
+                });
+            });
+            if (!hasNewCards) return;
+            clearTimeout(rebuildTimer);
+            rebuildTimer = setTimeout(function() {
+                buildSlider(container, grid);
+            }, 150);
+        });
+
+        mo.observe(grid, { childList: true, subtree: true });
+        // Also observe the container for #productGrid being swapped out
+        mo.observe(container, { childList: true, subtree: false });
+    }
+
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', run);
-    } else { run(); }
-    window.addEventListener('load', function() { run(); setTimeout(run, 500); setTimeout(run, 1200); });
+        document.addEventListener('DOMContentLoaded', init);
+    } else { init(); }
+    window.addEventListener('load', function() {
+        init();
+        setTimeout(init, 500);
+    });
 }());
 </script>
 <?php }, 10000);
