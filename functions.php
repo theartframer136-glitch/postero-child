@@ -485,6 +485,18 @@ add_action('wp_footer', function() { ?>
     object-fit: cover !important;
     display: block !important;
 }
+/* Autoplay iframe fills and scales inside circle */
+.af-vid-embed-wrap {
+    position: absolute !important;
+    inset: -20px !important;
+    pointer-events: none !important;
+}
+.af-vid-embed-wrap iframe {
+    width: 100% !important;
+    height: 100% !important;
+    border: none !important;
+    display: block !important;
+}
 /* Play icon overlay */
 .af-vid-circle .af-play-icon {
     position: absolute !important;
@@ -542,8 +554,46 @@ add_action('wp_footer', function() { ?>
 
     function ytId(str) {
         if (!str) return null;
-        var m = str.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
+        var m = str.match(/(?:v=|youtu\.be\/|\/embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
         return m ? m[1] : null;
+    }
+
+    // Deep search for YouTube ID in any element's subtree
+    function extractId(el) {
+        var id = null;
+        // 1. All data-settings attributes
+        el.querySelectorAll('[data-settings]').forEach(function(e) {
+            if (id) return;
+            try { var s = JSON.parse(e.getAttribute('data-settings')||'{}'); id = ytId(s.youtube_url||s.url||''); } catch(x){}
+        });
+        if (id) return id;
+        // 2. data-settings on element itself
+        try { var s2 = JSON.parse(el.getAttribute('data-settings')||'{}'); id = ytId(s2.youtube_url||s2.url||''); } catch(x){}
+        if (id) return id;
+        // 3. iframes (src or data-lazy-src or data-src)
+        el.querySelectorAll('iframe').forEach(function(f) {
+            if (id) return;
+            id = ytId(f.src||f.getAttribute('data-lazy-src')||f.getAttribute('data-src')||'');
+        });
+        if (id) return id;
+        // 4. Any anchor href with youtu
+        el.querySelectorAll('a[href]').forEach(function(a) {
+            if (id) return; if (/youtu/i.test(a.href)) id = ytId(a.href);
+        });
+        if (id) return id;
+        // 5. Any data-url / data-video-url / data-video attributes
+        ['data-url','data-video-url','data-video','data-src'].forEach(function(attr) {
+            if (!id) id = ytId(el.getAttribute(attr)||'');
+        });
+        if (id) return id;
+        // 6. Scan every element's every attribute for a YouTube URL
+        el.querySelectorAll('*').forEach(function(e) {
+            if (id) return;
+            Array.from(e.attributes).forEach(function(a) {
+                if (!id && /youtu/i.test(a.value)) id = ytId(a.value);
+            });
+        });
+        return id;
     }
 
     function findSection() {
@@ -728,31 +778,8 @@ add_action('wp_footer', function() { ?>
         container.dataset.afVidDone = '1';
 
         var videoData = items.map(function(item) {
-            var id = null;
-            // iframe src
-            var iframe = item.querySelector('iframe');
-            if (iframe) id = ytId(iframe.src || iframe.getAttribute('data-src') || '');
-            // data-settings
-            if (!id) {
-                item.querySelectorAll('[data-settings]').forEach(function(el) {
-                    if (id) return;
-                    try { var s = JSON.parse(el.getAttribute('data-settings')||'{}'); id = ytId(s.youtube_url||s.url||''); } catch(e){}
-                });
-            }
-            // anchor href
-            if (!id) {
-                var a = item.querySelector('a[href*="youtu"]');
-                if (a) id = ytId(a.href);
-            }
-            // data-url / data-video-url attributes
-            if (!id) id = ytId(item.getAttribute('data-url')||item.getAttribute('data-video-url')||'');
-            return { item: item, id: id };
-        }).filter(function(v){ return v.id; });
-
-        if (!videoData.length) {
-            // No IDs found — still wrap items as circles without thumbnails
-            videoData = items.map(function(item){ return { item: item, id: null }; });
-        }
+            return { item: item, id: extractId(item) };
+        });
 
         // Build shell
         var shell = document.createElement('div'); shell.className = 'af-vid-shell';
@@ -763,28 +790,39 @@ add_action('wp_footer', function() { ?>
 
         var circles = videoData.map(function(v) {
             var circle = document.createElement('div'); circle.className = 'af-vid-circle';
+
             if (v.id) {
-                var img = document.createElement('img');
-                img.src = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg';
-                img.alt = ''; circle.appendChild(img);
-            } else {
-                // Clone the original item content into the circle
-                circle.appendChild(v.item.cloneNode(true));
-            }
-            var icon = document.createElement('div'); icon.className = 'af-play-icon';
-            icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-            circle.appendChild(icon);
-            circle.addEventListener('click', function() {
-                if (!v.id) return;
-                var lb = document.createElement('div'); lb.className = 'af-vid-lb';
-                var x  = document.createElement('button'); x.className = 'af-vid-lb-x'; x.innerHTML = '&times;';
+                // Embed autoplay muted iframe directly inside the circle
+                var wrap = document.createElement('div'); wrap.className = 'af-vid-embed-wrap';
                 var fr = document.createElement('iframe');
-                fr.src = 'https://www.youtube.com/embed/' + v.id + '?autoplay=1&rel=0';
-                fr.allow = 'autoplay; fullscreen; encrypted-media'; fr.allowFullscreen = true;
-                lb.appendChild(x); lb.appendChild(fr); document.body.appendChild(lb);
-                function close() { try { document.body.removeChild(lb); } catch(e){} }
-                x.onclick = close; lb.onclick = function(e){ if(e.target===lb) close(); };
-            });
+                fr.src = 'https://www.youtube.com/embed/' + v.id +
+                    '?autoplay=1&mute=1&loop=1&playlist=' + v.id +
+                    '&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1';
+                fr.allow = 'autoplay; encrypted-media';
+                fr.allowFullscreen = false;
+                fr.setAttribute('loading', 'lazy');
+                wrap.appendChild(fr);
+                circle.appendChild(wrap);
+
+                // Click → fullscreen lightbox with sound
+                circle.addEventListener('click', function() {
+                    var lb = document.createElement('div'); lb.className = 'af-vid-lb';
+                    var x  = document.createElement('button'); x.className = 'af-vid-lb-x'; x.innerHTML = '&times;';
+                    var lbfr = document.createElement('iframe');
+                    lbfr.src = 'https://www.youtube.com/embed/' + v.id + '?autoplay=1&rel=0';
+                    lbfr.allow = 'autoplay; fullscreen; encrypted-media'; lbfr.allowFullscreen = true;
+                    lb.appendChild(x); lb.appendChild(lbfr); document.body.appendChild(lb);
+                    function close() { try { document.body.removeChild(lb); } catch(e){} }
+                    x.onclick = close; lb.onclick = function(e){ if(e.target===lb) close(); };
+                });
+            } else {
+                // No ID found — show play icon placeholder
+                circle.style.background = '#333';
+                var icon = document.createElement('div'); icon.className = 'af-play-icon';
+                icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+                circle.appendChild(icon);
+            }
+
             track.appendChild(circle); return circle;
         });
 
