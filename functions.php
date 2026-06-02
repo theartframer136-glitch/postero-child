@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.4.0');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.1', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.2', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -414,3 +414,294 @@ add_action('wp_footer', function() { ?>
 }());
 </script>
 <?php }, 10000);
+
+
+// 11. Products In Motion — circular video slider
+add_action('wp_footer', function() { ?>
+<style>
+/* ── Wrapper that holds the circular slider ── */
+.af-vid-shell {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    margin: 12px 0 !important;
+}
+.af-vid-btn {
+    flex: 0 0 44px !important;
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 50% !important;
+    background: #c9a84c !important;
+    border: none !important;
+    color: #fff !important;
+    font-size: 28px !important;
+    line-height: 1 !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-shadow: 0 2px 8px rgba(0,0,0,.25) !important;
+    flex-shrink: 0 !important;
+    padding: 0 !important;
+    z-index: 2 !important;
+}
+.af-vid-btn:hover { background: #a8872e !important; }
+.af-vid-vp {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+}
+.af-vid-track {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 20px !important;
+    transition: transform 0.4s ease !important;
+    will-change: transform !important;
+    align-items: center !important;
+}
+/* Each circle item */
+.af-vid-item {
+    flex: 0 0 auto !important;
+    width: 200px !important;
+    height: 200px !important;
+    border-radius: 50% !important;
+    overflow: hidden !important;
+    position: relative !important;
+    cursor: pointer !important;
+    border: 3px solid #c9a84c !important;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important;
+    background: #000 !important;
+    transition: transform 0.3s ease, box-shadow 0.3s ease !important;
+}
+.af-vid-item:hover {
+    transform: scale(1.06) !important;
+    box-shadow: 0 8px 28px rgba(0,0,0,0.28) !important;
+}
+/* Thumbnail image fills the circle */
+.af-vid-item img,
+.af-vid-item .af-vid-thumb {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    display: block !important;
+    border-radius: 50% !important;
+}
+/* Play button overlay */
+.af-vid-play {
+    position: absolute !important;
+    inset: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(0,0,0,0.25) !important;
+    border-radius: 50% !important;
+    pointer-events: none !important;
+}
+.af-vid-play svg {
+    width: 48px !important;
+    height: 48px !important;
+    fill: rgba(255,255,255,0.9) !important;
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)) !important;
+}
+/* Lightbox overlay for playing video */
+.af-vid-lightbox {
+    position: fixed !important;
+    inset: 0 !important;
+    background: rgba(0,0,0,0.85) !important;
+    z-index: 99999 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+.af-vid-lightbox iframe {
+    width: 80vw !important;
+    height: 45vw !important;
+    max-width: 960px !important;
+    max-height: 540px !important;
+    border: none !important;
+    border-radius: 8px !important;
+}
+.af-vid-lightbox-close {
+    position: absolute !important;
+    top: 20px !important;
+    right: 28px !important;
+    color: #fff !important;
+    font-size: 40px !important;
+    cursor: pointer !important;
+    line-height: 1 !important;
+    background: none !important;
+    border: none !important;
+    z-index: 100000 !important;
+}
+/* Hide the original ugly video list */
+.af-vid-source-hidden {
+    display: none !important;
+}
+@media (max-width: 768px) {
+    .af-vid-item { width: 140px !important; height: 140px !important; }
+}
+@media (max-width: 480px) {
+    .af-vid-item { width: 110px !important; height: 110px !important; }
+}
+</style>
+<script>
+(function() {
+    // Extract YouTube video ID from various URL formats
+    function ytId(url) {
+        if (!url) return null;
+        var m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|watch\?v=|shorts\/))([A-Za-z0-9_-]{11})/);
+        return m ? m[1] : null;
+    }
+
+    function buildMotionSlider() {
+        // Find the "Products In Motion" section — look for heading text
+        var headings = document.querySelectorAll('h2, h3, h4, .elementor-heading-title');
+        var motionSection = null;
+        headings.forEach(function(h) {
+            if (/products?\s+in\s+motion/i.test(h.textContent)) {
+                motionSection = h.closest('.elementor-section, .elementor-widget-wrap, section, .elementor-container') || h.parentElement;
+            }
+        });
+        if (!motionSection) return;
+        if (motionSection.dataset.afMotionDone) return;
+        motionSection.dataset.afMotionDone = '1';
+
+        // Collect all YouTube iframes and links in this section
+        var videos = [];
+
+        // From iframes
+        motionSection.querySelectorAll('iframe').forEach(function(iframe) {
+            var vid = ytId(iframe.src || iframe.getAttribute('data-src') || '');
+            if (vid) videos.push({ id: vid, el: iframe });
+        });
+
+        // From elementor video widgets (data-src or src on inner iframes)
+        motionSection.querySelectorAll('[data-src]').forEach(function(el) {
+            var vid = ytId(el.getAttribute('data-src') || '');
+            if (vid && !videos.find(function(v) { return v.id === vid; })) {
+                videos.push({ id: vid, el: el });
+            }
+        });
+
+        // From YouTube playlist or link elements
+        motionSection.querySelectorAll('a[href*="youtube"], a[href*="youtu.be"]').forEach(function(a) {
+            var vid = ytId(a.href);
+            if (vid && !videos.find(function(v) { return v.id === vid; })) {
+                videos.push({ id: vid, el: a });
+            }
+        });
+
+        if (!videos.length) return;
+
+        // Find the container to insert slider before/after the video list
+        // Hide original video elements' parent widget containers
+        var widgetsToHide = new Set();
+        videos.forEach(function(v) {
+            var widget = v.el.closest('.elementor-widget, .elementor-element');
+            if (widget) widgetsToHide.add(widget);
+        });
+
+        // Build the circular slider shell
+        var GAP = 20;
+        var shell = document.createElement('div');
+        shell.className = 'af-vid-shell';
+
+        var btnP = document.createElement('button');
+        btnP.className = 'af-vid-btn'; btnP.innerHTML = '&#8249;'; btnP.setAttribute('aria-label','Prev');
+
+        var btnN = document.createElement('button');
+        btnN.className = 'af-vid-btn'; btnN.innerHTML = '&#8250;'; btnN.setAttribute('aria-label','Next');
+
+        var vp = document.createElement('div');
+        vp.className = 'af-vid-vp';
+
+        var track = document.createElement('div');
+        track.className = 'af-vid-track';
+
+        // Build circle items
+        var items = videos.map(function(v) {
+            var item = document.createElement('div');
+            item.className = 'af-vid-item';
+
+            // Use YouTube thumbnail as background
+            var img = document.createElement('img');
+            img.src = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg';
+            img.alt = '';
+            img.className = 'af-vid-thumb';
+
+            // Play button overlay
+            var play = document.createElement('div');
+            play.className = 'af-vid-play';
+            play.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+
+            item.appendChild(img);
+            item.appendChild(play);
+
+            // Click → lightbox
+            item.addEventListener('click', function() {
+                var lb = document.createElement('div');
+                lb.className = 'af-vid-lightbox';
+                var close = document.createElement('button');
+                close.className = 'af-vid-lightbox-close';
+                close.innerHTML = '&times;';
+                var iframe = document.createElement('iframe');
+                iframe.src = 'https://www.youtube.com/embed/' + v.id + '?autoplay=1&rel=0';
+                iframe.allow = 'autoplay; encrypted-media';
+                iframe.allowFullscreen = true;
+                lb.appendChild(close);
+                lb.appendChild(iframe);
+                document.body.appendChild(lb);
+                close.addEventListener('click', function() { document.body.removeChild(lb); });
+                lb.addEventListener('click', function(e) { if (e.target === lb) document.body.removeChild(lb); });
+            });
+
+            track.appendChild(item);
+            return item;
+        });
+
+        vp.appendChild(track);
+        shell.appendChild(btnP);
+        shell.appendChild(vp);
+        shell.appendChild(btnN);
+
+        // Insert shell right before the first hidden widget
+        var firstWidget = Array.from(widgetsToHide)[0];
+        if (firstWidget && firstWidget.parentNode) {
+            firstWidget.parentNode.insertBefore(shell, firstWidget);
+        } else {
+            motionSection.appendChild(shell);
+        }
+
+        // Hide original widgets
+        widgetsToHide.forEach(function(w) { w.classList.add('af-vid-source-hidden'); });
+
+        // Slider logic
+        var idx = 0;
+        function visCount() {
+            var vpW = vp.getBoundingClientRect().width;
+            if (!vpW) return 3;
+            return Math.max(1, Math.floor((vpW + GAP) / (200 + GAP)));
+        }
+        function go(newIdx) {
+            var vis = visCount();
+            var max = Math.max(0, items.length - vis);
+            idx = Math.max(0, Math.min(newIdx, max));
+            var itemW = items[0] ? items[0].getBoundingClientRect().width || 200 : 200;
+            track.style.setProperty('transform', 'translateX(' + (-(idx * (itemW + GAP))) + 'px)', 'important');
+        }
+        btnP.addEventListener('click', function() { go(idx - visCount()); });
+        btnN.addEventListener('click', function() { go(idx + visCount()); });
+        window.addEventListener('resize', function() { idx = 0; go(0); });
+        setTimeout(function() { go(0); }, 100);
+    }
+
+    window.addEventListener('load', function() {
+        buildMotionSlider();
+        setTimeout(buildMotionSlider, 800);
+    });
+}());
+</script>
+<?php }, 10001);
