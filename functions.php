@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.3.4');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.9', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.0', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -299,7 +299,8 @@ add_action('wp_footer', function() { ?>
             var totalW = shell.getBoundingClientRect().width || (window.innerWidth - 32);
             var vpW    = totalW - BTN * 2 - GAP * 2;
             if (vpW < 60) vpW = window.innerWidth - BTN * 2 - GAP * 2 - 40;
-            var v      = vis();
+            // Use actual card count if fewer cards than visible slots
+            var v      = Math.min(vis(), freshCards.length || 1);
             var cw     = Math.floor((vpW - GAP * (v - 1)) / v);
             if (cw < 60) return 0;
 
@@ -335,7 +336,7 @@ add_action('wp_footer', function() { ?>
         }
 
         function go(newIdx) {
-            var v   = vis();
+            var v   = Math.min(vis(), freshCards.length || 1);
             var max = Math.max(0, freshCards.length - v);
             idx     = Math.max(0, Math.min(newIdx, max));
             var cw  = layout() || 200;
