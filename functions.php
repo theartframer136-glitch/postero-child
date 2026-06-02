@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.4.0');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.4', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.5', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -548,16 +548,32 @@ add_action('wp_footer', function() { ?>
 
     function findSection() {
         var found = null;
+
+        // Strategy 1: match heading text (handles typos like "Motation")
         document.querySelectorAll('h2,h3,h4,.elementor-heading-title').forEach(function(h) {
-            if (!found && /products?\s+in\s+mot/i.test(h.textContent.trim())) {
+            if (!found && /product.*mot/i.test(h.textContent.trim())) {
                 var el = h;
-                for (var i = 0; i < 10; i++) {
+                for (var i = 0; i < 12; i++) {
                     el = el.parentElement;
                     if (!el) break;
                     if (/elementor-section|e-container|elementor-top-section/.test(el.className)) { found = el; break; }
                 }
-                if (!found) found = h.closest('.elementor-widget-wrap') || h.parentElement;
+                if (!found) found = h.closest('[class*="elementor-section"],[class*="e-container"]') || h.parentElement;
             }
+        });
+        if (found) return found;
+
+        // Strategy 2: find the elementor-widget-wrap that has the most video widgets
+        var best = null, bestCount = 0;
+        document.querySelectorAll('.elementor-widget-wrap').forEach(function(wrap) {
+            var count = wrap.querySelectorAll('.elementor-widget-video').length;
+            if (count > bestCount) { bestCount = count; best = wrap; }
+        });
+        if (bestCount >= 2) return best;
+
+        // Strategy 3: find any section containing 2+ iframes
+        document.querySelectorAll('.elementor-section, .e-container').forEach(function(sec) {
+            if (!found && sec.querySelectorAll('iframe').length >= 2) found = sec;
         });
         return found;
     }
@@ -574,12 +590,16 @@ add_action('wp_footer', function() { ?>
             if (!widgets.includes(w)) widgets.push(w);
         });
 
-        // Fallback: any widget containing an iframe with youtube
+        // Fallback 1: any widget with an iframe
         if (!widgets.length) {
             sec.querySelectorAll('.elementor-widget').forEach(function(w) {
-                if (w.querySelector('iframe[src*="youtu"], iframe[data-src*="youtu"]') || w.querySelector('[data-settings*="youtube"]')) {
-                    widgets.push(w);
-                }
+                if (w.querySelector('iframe')) widgets.push(w);
+            });
+        }
+        // Fallback 2: just grab every iframe directly
+        if (!widgets.length) {
+            sec.querySelectorAll('iframe').forEach(function(iframe) {
+                widgets.push(iframe.closest('.elementor-widget') || iframe.parentElement || iframe);
             });
         }
 
@@ -589,17 +609,34 @@ add_action('wp_footer', function() { ?>
         // For each widget, extract the YouTube ID for the thumbnail
         var videoData = widgets.map(function(w) {
             var id = null;
-            // from iframe src
-            var iframe = w.querySelector('iframe');
-            if (iframe) id = ytId(iframe.src || iframe.getAttribute('data-src') || '');
-            // from data-settings
-            if (!id) {
+            var src = '';
+
+            // from iframe
+            var iframe = w.querySelector ? w.querySelector('iframe') : (w.tagName === 'IFRAME' ? w : null);
+            if (iframe) src = iframe.src || iframe.getAttribute('data-src') || '';
+            if (src) id = ytId(src);
+
+            // from data-settings JSON
+            if (!id && w.querySelectorAll) {
                 w.querySelectorAll('[data-settings]').forEach(function(el) {
                     if (id) return;
-                    try { var s = JSON.parse(el.getAttribute('data-settings')); id = ytId(s.youtube_url || s.url || ''); } catch(e){}
+                    try { var s = JSON.parse(el.getAttribute('data-settings') || '{}'); id = ytId(s.youtube_url || s.url || ''); } catch(e){}
                 });
             }
-            return { widget: w, id: id };
+
+            // from data-settings on self
+            if (!id && w.getAttribute) {
+                try { var s2 = JSON.parse(w.getAttribute('data-settings') || '{}'); id = ytId(s2.youtube_url || s2.url || ''); } catch(e){}
+            }
+
+            return { widget: w, id: id, src: src };
+        });
+
+        // Remove duplicates (same widget matched twice)
+        var seen2 = new Set();
+        videoData = videoData.filter(function(v) {
+            if (seen2.has(v.widget)) return false;
+            seen2.add(v.widget); return true;
         });
 
         // Build shell
