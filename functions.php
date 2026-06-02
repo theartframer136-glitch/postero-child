@@ -485,18 +485,6 @@ add_action('wp_footer', function() { ?>
     object-fit: cover !important;
     display: block !important;
 }
-/* Autoplay iframe fills and scales inside circle */
-.af-vid-embed-wrap {
-    position: absolute !important;
-    inset: -20px !important;
-    pointer-events: none !important;
-}
-.af-vid-embed-wrap iframe {
-    width: 100% !important;
-    height: 100% !important;
-    border: none !important;
-    display: block !important;
-}
 /* Play icon overlay */
 .af-vid-circle .af-play-icon {
     position: absolute !important;
@@ -792,19 +780,20 @@ add_action('wp_footer', function() { ?>
             var circle = document.createElement('div'); circle.className = 'af-vid-circle';
 
             if (v.id) {
-                // Embed autoplay muted iframe directly inside the circle
-                var wrap = document.createElement('div'); wrap.className = 'af-vid-embed-wrap';
-                var fr = document.createElement('iframe');
-                fr.src = 'https://www.youtube.com/embed/' + v.id +
-                    '?autoplay=1&mute=1&loop=1&playlist=' + v.id +
-                    '&controls=0&showinfo=0&rel=0&modestbranding=1&playsinline=1';
-                fr.allow = 'autoplay; encrypted-media';
-                fr.allowFullscreen = false;
-                fr.setAttribute('loading', 'lazy');
-                wrap.appendChild(fr);
-                circle.appendChild(wrap);
+                // YouTube thumbnail as background image
+                var img = document.createElement('img');
+                img.src = 'https://img.youtube.com/vi/' + v.id + '/maxresdefault.jpg';
+                img.alt = '';
+                // Fall back to hqdefault if maxres not available
+                img.onerror = function(){ this.src = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg'; this.onerror=null; };
+                circle.appendChild(img);
 
-                // Click → fullscreen lightbox with sound
+                // Play icon overlay
+                var icon = document.createElement('div'); icon.className = 'af-play-icon';
+                icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+                circle.appendChild(icon);
+
+                // Click → fullscreen lightbox with autoplay + sound
                 circle.addEventListener('click', function() {
                     var lb = document.createElement('div'); lb.className = 'af-vid-lb';
                     var x  = document.createElement('button'); x.className = 'af-vid-lb-x'; x.innerHTML = '&times;';
@@ -816,11 +805,11 @@ add_action('wp_footer', function() { ?>
                     x.onclick = close; lb.onclick = function(e){ if(e.target===lb) close(); };
                 });
             } else {
-                // No ID found — show play icon placeholder
-                circle.style.background = '#333';
-                var icon = document.createElement('div'); icon.className = 'af-play-icon';
-                icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-                circle.appendChild(icon);
+                // No ID found — dark circle with play icon
+                circle.style.background = '#222';
+                var icon2 = document.createElement('div'); icon2.className = 'af-play-icon';
+                icon2.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+                circle.appendChild(icon2);
             }
 
             track.appendChild(circle); return circle;
