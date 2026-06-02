@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.4.0');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.2', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.3', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -549,90 +549,106 @@ add_action('wp_footer', function() { ?>
 </style>
 <script>
 (function() {
-    // Extract YouTube video ID from various URL formats
     function ytId(url) {
         if (!url) return null;
-        var m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|watch\?v=|shorts\/))([A-Za-z0-9_-]{11})/);
+        var m = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|watch\?v=|shorts\/|playlist\?.*v=))([A-Za-z0-9_-]{11})/);
         return m ? m[1] : null;
     }
 
     function buildMotionSlider() {
-        // Find the "Products In Motion" section — look for heading text
-        var headings = document.querySelectorAll('h2, h3, h4, .elementor-heading-title');
+        // Find the "Products In Motion" section
         var motionSection = null;
-        headings.forEach(function(h) {
-            if (/products?\s+in\s+motion/i.test(h.textContent)) {
-                motionSection = h.closest('.elementor-section, .elementor-widget-wrap, section, .elementor-container') || h.parentElement;
+        document.querySelectorAll('h2,h3,h4,.elementor-heading-title,[class*="heading"]').forEach(function(h) {
+            if (/products?\s+in\s+mot/i.test(h.textContent) && !motionSection) {
+                // Walk up to find the section container
+                var el = h;
+                for (var i = 0; i < 8; i++) {
+                    if (!el.parentElement) break;
+                    el = el.parentElement;
+                    if (el.matches('.elementor-section, .e-container, .elementor-top-section')) {
+                        motionSection = el; break;
+                    }
+                }
+                if (!motionSection) motionSection = h.closest('.elementor-widget-wrap') || h.parentElement;
             }
         });
-        if (!motionSection) return;
-        if (motionSection.dataset.afMotionDone) return;
-        motionSection.dataset.afMotionDone = '1';
+        if (!motionSection || motionSection.dataset.afMotionDone) return;
 
-        // Collect all YouTube iframes and links in this section
-        var videos = [];
+        // Collect video IDs from every possible source in this section
+        var seen = {};
+        var videos = []; // [{id, widgetEl}]
 
-        // From iframes
-        motionSection.querySelectorAll('iframe').forEach(function(iframe) {
-            var vid = ytId(iframe.src || iframe.getAttribute('data-src') || '');
-            if (vid) videos.push({ id: vid, el: iframe });
+        // 1. Elementor video widget: data-settings JSON has youtube_url
+        motionSection.querySelectorAll('[data-settings]').forEach(function(el) {
+            try {
+                var s = JSON.parse(el.getAttribute('data-settings') || '{}');
+                var url = s.youtube_url || s.vimeo_url || s.video_url || '';
+                var vid = ytId(url);
+                if (vid && !seen[vid]) { seen[vid] = 1; videos.push({ id: vid, widgetEl: el.closest('.elementor-widget') || el }); }
+            } catch(e) {}
         });
 
-        // From elementor video widgets (data-src or src on inner iframes)
-        motionSection.querySelectorAll('[data-src]').forEach(function(el) {
-            var vid = ytId(el.getAttribute('data-src') || '');
-            if (vid && !videos.find(function(v) { return v.id === vid; })) {
-                videos.push({ id: vid, el: el });
-            }
+        // 2. iframes already rendered
+        motionSection.querySelectorAll('iframe[src*="youtube"], iframe[src*="youtu"]').forEach(function(iframe) {
+            var vid = ytId(iframe.src);
+            if (vid && !seen[vid]) { seen[vid] = 1; videos.push({ id: vid, widgetEl: iframe.closest('.elementor-widget') || iframe }); }
         });
 
-        // From YouTube playlist or link elements
-        motionSection.querySelectorAll('a[href*="youtube"], a[href*="youtu.be"]').forEach(function(a) {
-            var vid = ytId(a.href);
-            if (vid && !videos.find(function(v) { return v.id === vid; })) {
-                videos.push({ id: vid, el: a });
-            }
+        // 3. data-src lazy iframes
+        motionSection.querySelectorAll('iframe[data-src*="youtube"]').forEach(function(iframe) {
+            var vid = ytId(iframe.getAttribute('data-src'));
+            if (vid && !seen[vid]) { seen[vid] = 1; videos.push({ id: vid, widgetEl: iframe.closest('.elementor-widget') || iframe }); }
         });
+
+        // 4. playlist embeds (the full playlist iframe src)
+        motionSection.querySelectorAll('iframe[src*="playlist"]').forEach(function(iframe) {
+            // Extract all v= params from the src
+            var src = iframe.src || '';
+            var vids = src.match(/[?&]v=([A-Za-z0-9_-]{11})/g) || [];
+            vids.forEach(function(m) {
+                var vid = m.replace(/[?&]v=/, '');
+                if (vid && !seen[vid]) { seen[vid] = 1; videos.push({ id: vid, widgetEl: iframe.closest('.elementor-widget') || iframe }); }
+            });
+        });
+
+        if (!videos.length) {
+            // Last resort: grab ALL iframes in section and use their thumb
+            motionSection.querySelectorAll('iframe').forEach(function(iframe) {
+                var src = iframe.src || iframe.getAttribute('data-src') || '';
+                var vid = ytId(src);
+                if (vid && !seen[vid]) { seen[vid] = 1; videos.push({ id: vid, widgetEl: iframe.closest('.elementor-widget') || iframe }); }
+            });
+        }
 
         if (!videos.length) return;
+        motionSection.dataset.afMotionDone = '1';
 
-        // Find the container to insert slider before/after the video list
-        // Hide original video elements' parent widget containers
-        var widgetsToHide = new Set();
+        // Collect unique widget elements to hide
+        var widgetsToHide = [];
+        var widgetSet = new Set();
         videos.forEach(function(v) {
-            var widget = v.el.closest('.elementor-widget, .elementor-element');
-            if (widget) widgetsToHide.add(widget);
+            if (v.widgetEl && !widgetSet.has(v.widgetEl)) {
+                widgetSet.add(v.widgetEl);
+                widgetsToHide.push(v.widgetEl);
+            }
         });
 
-        // Build the circular slider shell
+        // Build circular slider
         var GAP = 20;
-        var shell = document.createElement('div');
-        shell.className = 'af-vid-shell';
+        var shell  = document.createElement('div'); shell.className = 'af-vid-shell';
+        var btnP   = document.createElement('button'); btnP.className = 'af-vid-btn'; btnP.innerHTML = '&#8249;'; btnP.setAttribute('aria-label','Prev');
+        var btnN   = document.createElement('button'); btnN.className = 'af-vid-btn'; btnN.innerHTML = '&#8250;'; btnN.setAttribute('aria-label','Next');
+        var vp     = document.createElement('div'); vp.className = 'af-vid-vp';
+        var track  = document.createElement('div'); track.className = 'af-vid-track';
 
-        var btnP = document.createElement('button');
-        btnP.className = 'af-vid-btn'; btnP.innerHTML = '&#8249;'; btnP.setAttribute('aria-label','Prev');
-
-        var btnN = document.createElement('button');
-        btnN.className = 'af-vid-btn'; btnN.innerHTML = '&#8250;'; btnN.setAttribute('aria-label','Next');
-
-        var vp = document.createElement('div');
-        vp.className = 'af-vid-vp';
-
-        var track = document.createElement('div');
-        track.className = 'af-vid-track';
-
-        // Build circle items
         var items = videos.map(function(v) {
             var item = document.createElement('div');
             item.className = 'af-vid-item';
 
-            // Use YouTube thumbnail as background
             var img = document.createElement('img');
             img.src = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg';
             img.alt = '';
-            img.className = 'af-vid-thumb';
 
-            // Play button overlay
             var play = document.createElement('div');
             play.className = 'af-vid-play';
             play.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
@@ -640,22 +656,21 @@ add_action('wp_footer', function() { ?>
             item.appendChild(img);
             item.appendChild(play);
 
-            // Click → lightbox
             item.addEventListener('click', function() {
                 var lb = document.createElement('div');
                 lb.className = 'af-vid-lightbox';
                 var close = document.createElement('button');
                 close.className = 'af-vid-lightbox-close';
                 close.innerHTML = '&times;';
-                var iframe = document.createElement('iframe');
-                iframe.src = 'https://www.youtube.com/embed/' + v.id + '?autoplay=1&rel=0';
-                iframe.allow = 'autoplay; encrypted-media';
-                iframe.allowFullscreen = true;
+                var fr = document.createElement('iframe');
+                fr.src = 'https://www.youtube.com/embed/' + v.id + '?autoplay=1&rel=0';
+                fr.allow = 'autoplay; encrypted-media';
+                fr.allowFullscreen = true;
                 lb.appendChild(close);
-                lb.appendChild(iframe);
+                lb.appendChild(fr);
                 document.body.appendChild(lb);
-                close.addEventListener('click', function() { document.body.removeChild(lb); });
-                lb.addEventListener('click', function(e) { if (e.target === lb) document.body.removeChild(lb); });
+                close.onclick = function() { document.body.removeChild(lb); };
+                lb.onclick = function(e) { if (e.target === lb) document.body.removeChild(lb); };
             });
 
             track.appendChild(item);
@@ -667,40 +682,36 @@ add_action('wp_footer', function() { ?>
         shell.appendChild(vp);
         shell.appendChild(btnN);
 
-        // Insert shell right before the first hidden widget
-        var firstWidget = Array.from(widgetsToHide)[0];
-        if (firstWidget && firstWidget.parentNode) {
-            firstWidget.parentNode.insertBefore(shell, firstWidget);
-        } else {
-            motionSection.appendChild(shell);
-        }
+        // Insert before first widget
+        var anchor = widgetsToHide[0];
+        if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(shell, anchor);
+        else motionSection.appendChild(shell);
 
         // Hide original widgets
         widgetsToHide.forEach(function(w) { w.classList.add('af-vid-source-hidden'); });
 
         // Slider logic
         var idx = 0;
+        var ITEM_W = 200;
         function visCount() {
-            var vpW = vp.getBoundingClientRect().width;
-            if (!vpW) return 3;
-            return Math.max(1, Math.floor((vpW + GAP) / (200 + GAP)));
+            var vpW = vp.getBoundingClientRect().width || 800;
+            return Math.max(1, Math.floor((vpW + GAP) / (ITEM_W + GAP)));
         }
         function go(newIdx) {
             var vis = visCount();
             var max = Math.max(0, items.length - vis);
             idx = Math.max(0, Math.min(newIdx, max));
-            var itemW = items[0] ? items[0].getBoundingClientRect().width || 200 : 200;
-            track.style.setProperty('transform', 'translateX(' + (-(idx * (itemW + GAP))) + 'px)', 'important');
+            track.style.setProperty('transform', 'translateX(' + (-(idx * (ITEM_W + GAP))) + 'px)', 'important');
         }
         btnP.addEventListener('click', function() { go(idx - visCount()); });
         btnN.addEventListener('click', function() { go(idx + visCount()); });
         window.addEventListener('resize', function() { idx = 0; go(0); });
-        setTimeout(function() { go(0); }, 100);
+        setTimeout(function() { go(0); }, 150);
     }
 
     window.addEventListener('load', function() {
         buildMotionSlider();
-        setTimeout(buildMotionSlider, 800);
+        setTimeout(buildMotionSlider, 1000);
     });
 }());
 </script>
