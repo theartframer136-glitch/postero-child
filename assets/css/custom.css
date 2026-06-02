@@ -3,6 +3,33 @@
    theartframer.us
    ============================================================ */
 
+/* ============================================================
+   GLOBAL PRICE — one line: $sale  ~~original~~  (X% off)
+   ============================================================ */
+.woocommerce .price,
+.woocommerce-page .price,
+.price-section {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: baseline !important;
+  gap: 5px !important;
+}
+.woocommerce .price ins,
+.woocommerce-page .price ins {
+  display: inline !important;
+  text-decoration: none !important;
+  font-weight: 700 !important;
+  color: #111 !important;
+}
+.woocommerce .price del,
+.woocommerce-page .price del {
+  display: inline !important;
+  color: #999 !important;
+  font-weight: 400 !important;
+  font-size: 0.9em !important;
+}
+
 /* Hide themes widget from sidebar */
 .widget_postero_product_themes { display: none !important; }
 

@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.4.1');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.4.2');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.6', true);
 }, 20);
 
@@ -42,10 +42,12 @@ add_action('woocommerce_init', function() {
     }
 }, 9999);
 
-// Force price HTML to always use $ symbol regardless of plugin output
+// Force USD, symbol before number, no space
 add_filter('woocommerce_price_format', function() { return '%1$s%2$s'; }, 9999);
+add_filter('woocommerce_currency_pos', function() { return 'left'; }, 9999);
 add_filter('woocommerce_price_args', function($args) {
     $args['currency'] = 'USD';
+    $args['currency_pos'] = 'left';
     return $args;
 }, 9999);
 
