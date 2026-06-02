@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.3.4');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.3', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.1.4', true);
 }, 20);
 
 // 2. Force USD as default currency
@@ -208,24 +208,10 @@ div.list-wrapper.postero-scroll {
 // 10. Product card slider
 add_action('wp_footer', function() { ?>
 <style>
-/* Our fully-owned slider shell — parent theme never touches these classes */
-.af-shell {
-    display: flex !important;
-    align-items: center !important;
-    gap: 8px !important;
-    width: 100% !important;
-    overflow: visible !important;
-    box-sizing: border-box !important;
-}
+.af-shell { box-sizing: border-box; }
 .af-shell-btn {
-    flex: 0 0 44px !important;
-    width: 44px !important;
-    height: 44px !important;
-    min-width: 44px !important;
+    flex-shrink: 0 !important;
     border-radius: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
     background: #c9a84c !important;
     border: none !important;
     color: #fff !important;
@@ -234,42 +220,25 @@ add_action('wp_footer', function() { ?>
     cursor: pointer !important;
     padding: 0 !important;
     box-shadow: 0 2px 8px rgba(0,0,0,.25) !important;
-    z-index: 10 !important;
-    flex-shrink: 0 !important;
 }
 .af-shell-btn:hover { background: #a8872e !important; }
-.af-shell-vp {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
-    position: relative !important;
-}
 .af-shell-track {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
-    gap: 16px !important;
-    padding: 4px 0 12px !important;
     margin: 0 !important;
+    padding: 4px 0 12px !important;
     list-style: none !important;
     transition: transform 0.4s ease !important;
     will-change: transform !important;
-    width: max-content !important;
-    grid-template-columns: unset !important;
 }
 .af-shell-track .product-card {
     flex-shrink: 0 !important;
     float: none !important;
     margin: 0 !important;
+    box-sizing: border-box !important;
 }
-/* Hide the original grid once we've taken its cards */
-.af-grid-hidden {
-    display: none !important;
-}
-/* Keep the outer product-container invisible to layout */
-.product-container {
-    display: block !important;
-}
+.af-grid-hidden { display: none !important; }
 </style>
 <script>
 (function() {
@@ -279,7 +248,6 @@ add_action('wp_footer', function() { ?>
         var container = document.querySelector('.product-container');
         if (!container || container.dataset.afDone) return;
 
-        // Find the original grid
         var grid = container.querySelector('#productGrid') || container.querySelector('.product-slider');
         if (!grid) return;
 
@@ -288,117 +256,110 @@ add_action('wp_footer', function() { ?>
 
         container.dataset.afDone = '1';
 
-        // Find the prev/next buttons (they live inside .product-container)
-        var prevBtn = container.querySelector('.prev-prod');
-        var nextBtn = container.querySelector('.next-prod');
+        /* ── Build shell ─────────────────────────────────── */
+        var GAP = 12;
+        var BTN = 44;
 
-        // ── Build our own slider shell ──────────────────────────────
-        var shell = document.createElement('div');
-        shell.className = 'af-shell';
+        var shell  = document.createElement('div');
+        var btnP   = document.createElement('button');
+        var vp     = document.createElement('div');
+        var track  = document.createElement('div');
+        var btnN   = document.createElement('button');
 
-        var btnPrev = document.createElement('button');
-        btnPrev.className = 'af-shell-btn';
-        btnPrev.innerHTML = '&#8249;';
-        btnPrev.setAttribute('aria-label', 'Previous');
+        shell.className  = 'af-shell';
+        btnP.className   = 'af-shell-btn';  btnP.innerHTML = '&#8249;'; btnP.setAttribute('aria-label','Prev');
+        btnN.className   = 'af-shell-btn';  btnN.innerHTML = '&#8250;'; btnN.setAttribute('aria-label','Next');
+        track.className  = 'af-shell-track';
 
-        var btnNext = document.createElement('button');
-        btnNext.className = 'af-shell-btn';
-        btnNext.innerHTML = '&#8250;';
-        btnNext.setAttribute('aria-label', 'Next');
-
-        var vp = document.createElement('div');
-        vp.className = 'af-shell-vp';
-
-        var track = document.createElement('div');
-        track.className = 'af-shell-track';
-
-        // Move every product-card from the original grid into our track
         cards.forEach(function(c) { track.appendChild(c); });
-
         vp.appendChild(track);
-        shell.appendChild(btnPrev);
+        shell.appendChild(btnP);
         shell.appendChild(vp);
-        shell.appendChild(btnNext);
+        shell.appendChild(btnN);
 
-        // Insert shell after the original grid, then hide the grid
+        // Place shell right before the original grid's parent or after grid
         grid.parentNode.insertBefore(shell, grid.nextSibling);
         grid.classList.add('af-grid-hidden');
 
-        // Also hide original nav buttons if present
-        if (prevBtn) sp(prevBtn, 'display', 'none');
-        if (nextBtn) sp(nextBtn, 'display', 'none');
+        // Hide original nav buttons from the widget
+        var ob = container.querySelector('.prev-prod');
+        var nb = container.querySelector('.next-prod');
+        if (ob) sp(ob, 'display', 'none');
+        if (nb) sp(nb, 'display', 'none');
 
-        // ── Slider logic ────────────────────────────────────────────
-        var GAP = 16;
-        var currentIndex = 0;
+        /* ── Layout engine ───────────────────────────────── */
+        var idx = 0;
 
-        function visCount() {
+        function vis() {
             return window.innerWidth <= 600 ? 1 : window.innerWidth <= 768 ? 2 : 4;
         }
 
-        function cardWidth() {
-            var vw = vp.getBoundingClientRect().width;
-            // Fallback: derive from window if vp hasn't laid out yet
-            if (!vw || vw < 50) {
-                var btnW = 44 * 2 + 8 * 2; // 2 buttons + gaps
-                var pagepad = 60;           // approx page side padding
-                vw = window.innerWidth - btnW - pagepad * 2;
-            }
-            var vis = visCount();
-            return Math.floor((vw - GAP * (vis - 1)) / vis);
-        }
+        function layout() {
+            var totalW = shell.getBoundingClientRect().width || (window.innerWidth - 32);
+            var vpW    = totalW - BTN * 2 - GAP * 2;
+            var v      = vis();
+            var cw     = Math.floor((vpW - GAP * (v - 1)) / v);
+            if (cw < 60) return;
 
-        function sizeCards() {
-            var cw = cardWidth();
-            if (cw < 80) return; // bail if layout not ready
+            /* shell */
+            sp(shell, 'display',      'flex');
+            sp(shell, 'align-items',  'center');
+            sp(shell, 'gap',          GAP + 'px');
+            sp(shell, 'width',        '100%');
+
+            /* buttons */
+            [btnP, btnN].forEach(function(b) {
+                sp(b, 'width',   BTN + 'px');
+                sp(b, 'height',  BTN + 'px');
+                sp(b, 'display', 'flex');
+                sp(b, 'align-items', 'center');
+                sp(b, 'justify-content', 'center');
+            });
+
+            /* viewport — explicit pixel width = the clip boundary */
+            sp(vp, 'width',    vpW + 'px');
+            sp(vp, 'overflow', 'hidden');
+            sp(vp, 'flex',     '0 0 ' + vpW + 'px');
+
+            /* track — full natural width, slides via transform */
+            sp(track, 'display',         'flex');
+            sp(track, 'flex-direction',  'row');
+            sp(track, 'flex-wrap',       'nowrap');
+            sp(track, 'gap',             GAP + 'px');
+
+            /* cards — fixed pixel width */
             cards.forEach(function(c) {
                 sp(c, 'flex',      '0 0 ' + cw + 'px');
                 sp(c, 'width',     cw + 'px');
                 sp(c, 'min-width', cw + 'px');
                 sp(c, 'max-width', cw + 'px');
             });
+
             return cw;
         }
 
-        function slideTo(idx) {
-            var vis = visCount();
-            var max = Math.max(0, cards.length - vis);
-            currentIndex = Math.max(0, Math.min(idx, max));
-            var cw = cardWidth();
-            sp(track, 'transform', 'translateX(' + (-(currentIndex * (cw + GAP))) + 'px)');
+        function go(newIdx) {
+            var v   = vis();
+            var max = Math.max(0, cards.length - v);
+            idx     = Math.max(0, Math.min(newIdx, max));
+            var cw  = layout() || 200;
+            sp(track, 'transform', 'translateX(' + (-(idx * (cw + GAP))) + 'px)');
         }
 
-        // Run sizing in multiple passes to catch slow layouts
-        sizeCards();
-        requestAnimationFrame(function() { sizeCards(); slideTo(0); });
-        setTimeout(function() { sizeCards(); slideTo(0); }, 300);
-        setTimeout(function() { sizeCards(); slideTo(0); }, 800);
+        layout();
+        requestAnimationFrame(layout);
+        setTimeout(function() { go(0); }, 200);
+        setTimeout(function() { go(0); }, 800);
 
-        btnPrev.addEventListener('click', function() {
-            sizeCards();
-            slideTo(currentIndex - visCount());
-        });
-        btnNext.addEventListener('click', function() {
-            sizeCards();
-            slideTo(currentIndex + visCount());
-        });
-        window.addEventListener('resize', function() {
-            currentIndex = 0;
-            sizeCards();
-            slideTo(0);
-        });
+        btnP.addEventListener('click', function() { go(idx - vis()); });
+        btnN.addEventListener('click', function() { go(idx + vis()); });
+        window.addEventListener('resize', function() { idx = 0; go(0); });
     }
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', run);
-    } else {
-        run();
-    }
-    window.addEventListener('load', function() {
-        run();
-        setTimeout(run, 600);
-        setTimeout(run, 1500);
-    });
+    } else { run(); }
+    window.addEventListener('load', function() { run(); setTimeout(run, 500); setTimeout(run, 1200); });
 }());
 </script>
 <?php }, 10000);
