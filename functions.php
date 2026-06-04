@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.4.5');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.4.6');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
 }, 20);
 
@@ -312,20 +312,48 @@ add_action('wp_footer', function() { ?>
 
         freshCards.forEach(function(c) {
             track.appendChild(c);
-            // Force the card to be position:relative anchor
             c.style.setProperty('position', 'relative', 'important');
-            // Find and reposition wishlist button absolutely over the image
-            var wishlist = c.querySelector('.yith-wcwl-add-to-wishlist');
-            if (!wishlist) return;
-            wishlist.style.setProperty('position', 'absolute', 'important');
-            wishlist.style.setProperty('top', '12px', 'important');
-            wishlist.style.setProperty('right', '12px', 'important');
-            wishlist.style.setProperty('left', 'auto', 'important');
-            wishlist.style.setProperty('bottom', 'auto', 'important');
-            wishlist.style.setProperty('z-index', '10', 'important');
-            wishlist.style.setProperty('margin', '0', 'important');
-            // Move it to be a direct child of card so it anchors to card top-right
-            if (wishlist.parentElement !== c) c.appendChild(wishlist);
+
+            // Hide the original YITH wishlist widget (keep it in DOM for functionality)
+            var yith = c.querySelector('.yith-wcwl-add-to-wishlist');
+            if (yith) {
+                yith.style.setProperty('position', 'absolute', 'important');
+                yith.style.setProperty('opacity', '0', 'important');
+                yith.style.setProperty('pointer-events', 'none', 'important');
+                yith.style.setProperty('top', '0', 'important');
+                yith.style.setProperty('left', '0', 'important');
+                yith.style.setProperty('width', '1px', 'important');
+                yith.style.setProperty('height', '1px', 'important');
+            }
+
+            // Create our own heart button, absolutely over the image top-right
+            var heart = document.createElement('button');
+            heart.className = 'af-wishlist-btn';
+            heart.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+            heart.setAttribute('aria-label', 'Add to wishlist');
+            heart.style.cssText = [
+                'position:absolute','top:12px','right:12px','z-index:20',
+                'width:36px','height:36px','border-radius:50%',
+                'background:rgba(255,255,255,0.92)','border:none','cursor:pointer',
+                'display:flex','align-items:center','justify-content:center',
+                'box-shadow:0 2px 8px rgba(0,0,0,0.22)','padding:0','margin:0',
+                'color:#555','transition:color 0.2s,background 0.2s'
+            ].join('!important;') + '!important';
+            heart.querySelector('svg').style.cssText = 'width:18px!important;height:18px!important;display:block!important';
+            heart.addEventListener('mouseenter', function(){ this.style.setProperty('color','#c9a84c','important'); });
+            heart.addEventListener('mouseleave', function(){ this.style.setProperty('color','#555','important'); });
+            heart.addEventListener('click', function(e) {
+                e.preventDefault(); e.stopPropagation();
+                // Click the real YITH button
+                var realBtn = c.querySelector('.add_to_wishlist, .yith-wcwl-add-button a, .yith-wcwl-add-to-wishlist a');
+                if (realBtn) realBtn.click();
+                // Toggle filled heart
+                var filled = this.dataset.wishlisted === '1';
+                this.dataset.wishlisted = filled ? '0' : '1';
+                this.querySelector('svg').setAttribute('fill', filled ? 'none' : '#c9a84c');
+                this.style.setProperty('color', filled ? '#555' : '#c9a84c', 'important');
+            });
+            c.appendChild(heart);
         });
         vp.appendChild(track);
         shell.appendChild(btnP);
