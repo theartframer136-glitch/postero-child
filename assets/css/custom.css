@@ -488,7 +488,15 @@ ul.postero-scroll-content .cat-item a {
   color: #222 !important;
 }
 
-/* ── Stars + count + Digital Download — one line ── */
+/* ── Stars rating: 12px left padding on large screens ── */
+@media (min-width: 769px) {
+  .af-shell-track .product-card .woocommerce-product-rating,
+  .af-shell-track .product-card .product-meta-row,
+  .product-slider .product-card .woocommerce-product-rating,
+  .product-slider .product-card .product-meta-row {
+    padding-left: 12px !important;
+  }
+}
 .af-shell-track .product-card .star-rating,
 .product-slider .product-card .star-rating {
   display: inline-flex !important;
