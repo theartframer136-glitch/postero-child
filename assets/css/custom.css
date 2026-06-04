@@ -436,9 +436,17 @@ ul.postero-scroll-content .cat-item a {
   overflow: visible !important;
   position: relative !important;
 }
-/* Outer wishlist wrapper — top-right corner over the image */
+/* Hide original YITH button — replaced by our custom .af-wishlist-btn */
 .af-shell-track .product-card .yith-wcwl-add-to-wishlist,
 .product-slider .product-card .yith-wcwl-add-to-wishlist {
+  display: none !important;
+}
+/* Our custom heart button — already positioned via inline JS */
+.af-wishlist-btn svg { pointer-events: none; }
+
+/* (keep rule below only as fallback) */
+.af-shell-track .product-card .yith-wcwl-add-to-wishlist.keep,
+.product-slider .product-card .yith-wcwl-add-to-wishlist.keep {
   position: absolute !important;
   top: 12px !important;
   right: 12px !important;

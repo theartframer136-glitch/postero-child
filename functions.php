@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.4.6');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.4.7');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
 }, 20);
 
@@ -314,17 +314,9 @@ add_action('wp_footer', function() { ?>
             track.appendChild(c);
             c.style.setProperty('position', 'relative', 'important');
 
-            // Hide the original YITH wishlist widget (keep it in DOM for functionality)
+            // Completely hide the original YITH wishlist widget — our custom button triggers it
             var yith = c.querySelector('.yith-wcwl-add-to-wishlist');
-            if (yith) {
-                yith.style.setProperty('position', 'absolute', 'important');
-                yith.style.setProperty('opacity', '0', 'important');
-                yith.style.setProperty('pointer-events', 'none', 'important');
-                yith.style.setProperty('top', '0', 'important');
-                yith.style.setProperty('left', '0', 'important');
-                yith.style.setProperty('width', '1px', 'important');
-                yith.style.setProperty('height', '1px', 'important');
-            }
+            if (yith) yith.style.setProperty('display', 'none', 'important');
 
             // Create our own heart button, absolutely over the image top-right
             var heart = document.createElement('button');
