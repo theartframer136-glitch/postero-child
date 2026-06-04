@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.4.3');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.4.4');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
 }, 20);
 
@@ -312,11 +312,19 @@ add_action('wp_footer', function() { ?>
 
         freshCards.forEach(function(c) {
             track.appendChild(c);
-            // Move wishlist button into the image area so it overlays the image
-            var imgWrap = c.querySelector('.product-image, .image-wrapper, .woocommerce-LoopProduct-link, a:first-child');
+            // Move wishlist into the image wrapper so absolute top-right positions over the image
             var wishlist = c.querySelector('.yith-wcwl-add-to-wishlist');
-            if (imgWrap && wishlist && !imgWrap.contains(wishlist)) {
+            if (!wishlist) return;
+            // Find the image container — try several selectors in priority order
+            var imgWrap = c.querySelector('.product-image-wrapper')
+                       || c.querySelector('.woocommerce-LoopProduct-link')
+                       || c.querySelector('.product-image')
+                       || c.querySelector('.image-wrapper')
+                       || c.querySelector('a img')?.closest('a')
+                       || c.querySelector('img')?.parentElement;
+            if (imgWrap && !imgWrap.contains(wishlist)) {
                 imgWrap.style.setProperty('position', 'relative', 'important');
+                imgWrap.style.setProperty('overflow', 'visible', 'important');
                 imgWrap.appendChild(wishlist);
             }
         });
