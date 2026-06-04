@@ -795,20 +795,10 @@ add_action('wp_footer', function() { ?>
             icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
             circle.appendChild(icon);
 
-            // Click → lightbox with autoplay
+            // Click → open YouTube directly (embedding may be restricted)
             circle.addEventListener('click', function() {
                 if (!v.id) return;
-                var lb = document.createElement('div'); lb.className = 'af-vid-lb';
-                var x  = document.createElement('button'); x.className = 'af-vid-lb-x'; x.innerHTML = '&times;';
-                var fr = document.createElement('iframe');
-                fr.src = 'https://www.youtube.com/embed/' + v.id + '?autoplay=1&rel=0';
-                fr.allow = 'autoplay; fullscreen; encrypted-media';
-                fr.allowFullscreen = true;
-                lb.appendChild(x); lb.appendChild(fr);
-                document.body.appendChild(lb);
-                function close() { try { document.body.removeChild(lb); } catch(e){} }
-                x.onclick = close;
-                lb.onclick = function(e) { if (e.target === lb) close(); };
+                window.open('https://www.youtube.com/watch?v=' + v.id, '_blank');
             });
 
             track.appendChild(circle);
@@ -875,30 +865,21 @@ add_action('wp_footer', function() { ?>
             var circle = document.createElement('div'); circle.className = 'af-vid-circle';
 
             if (v.id) {
-                // Autoplay muted iframe — scaled up so controls bar is clipped outside the circle
-                var fr = document.createElement('iframe');
-                fr.src = 'https://www.youtube.com/embed/' + v.id +
-                         '?autoplay=1&mute=1&loop=1&playlist=' + v.id +
-                         '&rel=0&modestbranding=1&playsinline=1&enablejsapi=0';
-                fr.allow = 'autoplay; encrypted-media';
-                fr.setAttribute('frameborder', '0');
-                fr.setAttribute('loading', 'lazy');
-                fr.className = 'af-vid-inline';
-                circle.appendChild(fr);
+                // YouTube thumbnail — always works even when embedding is disabled
+                var img = document.createElement('img');
+                img.src = 'https://img.youtube.com/vi/' + v.id + '/maxresdefault.jpg';
+                img.alt = '';
+                img.onerror = function(){ this.src = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg'; this.onerror = null; };
+                circle.appendChild(img);
 
-                // Transparent click overlay so click still works despite iframe
-                var overlay = document.createElement('div'); overlay.className = 'af-vid-overlay';
-                circle.appendChild(overlay);
+                // Play icon overlay
+                var icon = document.createElement('div'); icon.className = 'af-play-icon';
+                icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+                circle.appendChild(icon);
 
-                overlay.addEventListener('click', function() {
-                    var lb = document.createElement('div'); lb.className = 'af-vid-lb';
-                    var x  = document.createElement('button'); x.className = 'af-vid-lb-x'; x.innerHTML = '&times;';
-                    var lbfr = document.createElement('iframe');
-                    lbfr.src = 'https://www.youtube.com/embed/' + v.id + '?autoplay=1&rel=0';
-                    lbfr.allow = 'autoplay; fullscreen; encrypted-media'; lbfr.allowFullscreen = true;
-                    lb.appendChild(x); lb.appendChild(lbfr); document.body.appendChild(lb);
-                    function close() { try { document.body.removeChild(lb); } catch(e){} }
-                    x.onclick = close; lb.onclick = function(e){ if(e.target===lb) close(); };
+                // Click → open YouTube directly (bypasses embedding restrictions)
+                circle.addEventListener('click', function() {
+                    window.open('https://www.youtube.com/watch?v=' + v.id, '_blank');
                 });
             } else {
                 circle.style.background = '#222';
