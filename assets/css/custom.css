@@ -436,74 +436,24 @@ ul.postero-scroll-content .cat-item a {
   overflow: visible !important;
   position: relative !important;
 }
-/* Hide original YITH button — replaced by our custom .af-wishlist-btn */
+/* Hide ALL wishlist elements inside slider cards — only our .af-wishlist-btn stays */
 .af-shell-track .product-card .yith-wcwl-add-to-wishlist,
-.product-slider .product-card .yith-wcwl-add-to-wishlist {
-  display: none !important;
-}
-/* Our custom heart button — already positioned via inline JS */
-.af-wishlist-btn svg { pointer-events: none; }
-
-/* (keep rule below only as fallback) */
-.af-shell-track .product-card .yith-wcwl-add-to-wishlist.keep,
-.product-slider .product-card .yith-wcwl-add-to-wishlist.keep {
-  position: absolute !important;
-  top: 12px !important;
-  right: 12px !important;
-  left: auto !important;
-  bottom: auto !important;
-  z-index: 10 !important;
-  width: auto !important;
-  height: auto !important;
-  background: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  transform: none !important;
-}
-/* Inner add-button wrapper */
 .af-shell-track .product-card .yith-wcwl-add-button,
-.product-slider .product-card .yith-wcwl-add-button {
-  display: block !important;
-  width: auto !important;
-  height: auto !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-/* The actual link/button — circle with heart */
 .af-shell-track .product-card .add_to_wishlist,
 .af-shell-track .product-card .wishlist-btn,
+.af-shell-track .product-card [class*="wishlist"]:not(.af-wishlist-btn),
+.product-slider .product-card .yith-wcwl-add-to-wishlist,
+.product-slider .product-card .yith-wcwl-add-button,
 .product-slider .product-card .add_to_wishlist,
-.product-slider .product-card .wishlist-btn {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 34px !important;
-  height: 34px !important;
-  min-width: 34px !important;
-  background: rgba(255,255,255,0.92) !important;
-  border-radius: 50% !important;
-  border: none !important;
-  cursor: pointer !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.22) !important;
-  padding: 0 !important;
-  margin: 0 !important;
-  text-decoration: none !important;
-  color: #555 !important;
-  font-size: 16px !important;
-  line-height: 1 !important;
-  transition: background 0.2s, color 0.2s !important;
-}
-.af-shell-track .product-card .add_to_wishlist:hover,
-.product-slider .product-card .add_to_wishlist:hover {
-  background: #fff !important;
-  color: #c9a84c !important;
-}
-/* Hide text labels inside the wishlist link */
-.af-shell-track .product-card .add_to_wishlist .yith-wcwl-wishlistaddedbrowse,
-.af-shell-track .product-card .add_to_wishlist span:not([class*="icon"]):not([class*="fa"]),
-.product-slider .product-card .add_to_wishlist span:not([class*="icon"]):not([class*="fa"]) {
+.product-slider .product-card .wishlist-btn,
+.product-slider .product-card [class*="wishlist"]:not(.af-wishlist-btn) {
   display: none !important;
 }
+/* Our custom heart overlay button — keep visible */
+.af-wishlist-btn {
+  display: flex !important;
+}
+.af-wishlist-btn svg { pointer-events: none; }
 
 /* ── Product body (below image) ── */
 .af-shell-track .product-card .product-info,
