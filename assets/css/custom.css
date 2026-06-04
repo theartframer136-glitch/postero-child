@@ -421,13 +421,28 @@ ul.postero-scroll-content .cat-item a {
 }
 
 /* ── Wishlist heart — top-right over image ── */
-/* Outer wrapper: just position it, no size */
+/* Ensure card is relative so absolute children anchor to it */
+.af-shell-track .product-card,
+.product-slider .product-card {
+  position: relative !important;
+}
+/* Image wrapper must not clip the wishlist button */
+.af-shell-track .product-card .product-image,
+.af-shell-track .product-card .image-wrapper,
+.af-shell-track .product-card .woocommerce-LoopProduct-link,
+.product-slider .product-card .product-image,
+.product-slider .product-card .image-wrapper,
+.product-slider .product-card .woocommerce-LoopProduct-link {
+  overflow: visible !important;
+  position: relative !important;
+}
+/* Outer wishlist wrapper */
 .af-shell-track .product-card .yith-wcwl-add-to-wishlist,
 .product-slider .product-card .yith-wcwl-add-to-wishlist {
   position: absolute !important;
   top: 10px !important;
   right: 10px !important;
-  z-index: 5 !important;
+  z-index: 10 !important;
   width: auto !important;
   height: auto !important;
   background: none !important;
@@ -443,7 +458,7 @@ ul.postero-scroll-content .cat-item a {
   padding: 0 !important;
   margin: 0 !important;
 }
-/* The actual link/button — style this as the circle */
+/* The actual link/button — circle with heart */
 .af-shell-track .product-card .add_to_wishlist,
 .af-shell-track .product-card .wishlist-btn,
 .product-slider .product-card .add_to_wishlist,
@@ -458,20 +473,21 @@ ul.postero-scroll-content .cat-item a {
   border-radius: 50% !important;
   border: none !important;
   cursor: pointer !important;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.18) !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.22) !important;
   padding: 0 !important;
   margin: 0 !important;
   text-decoration: none !important;
-  color: #222 !important;
-  font-size: 15px !important;
+  color: #555 !important;
+  font-size: 16px !important;
   line-height: 1 !important;
+  transition: background 0.2s, color 0.2s !important;
 }
 .af-shell-track .product-card .add_to_wishlist:hover,
 .product-slider .product-card .add_to_wishlist:hover {
   background: #fff !important;
   color: #c9a84c !important;
 }
-/* Hide any text label inside the wishlist link */
+/* Hide text labels inside the wishlist link */
 .af-shell-track .product-card .add_to_wishlist .yith-wcwl-wishlistaddedbrowse,
 .af-shell-track .product-card .add_to_wishlist span:not([class*="icon"]):not([class*="fa"]),
 .product-slider .product-card .add_to_wishlist span:not([class*="icon"]):not([class*="fa"]) {
