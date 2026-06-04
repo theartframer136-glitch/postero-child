@@ -518,6 +518,25 @@ add_action('wp_footer', function() { ?>
     transform: scale(1.06) !important;
     box-shadow: 0 8px 28px rgba(0,0,0,0.3) !important;
 }
+/* Autoplay iframe inside circle — scaled up to hide controls bar */
+.af-vid-inline {
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 300% !important;
+    height: 300% !important;
+    transform: translate(-50%, -45%) !important;
+    border: none !important;
+    pointer-events: none !important;
+}
+/* Transparent overlay to capture clicks over the iframe */
+.af-vid-overlay {
+    position: absolute !important;
+    inset: 0 !important;
+    cursor: pointer !important;
+    z-index: 2 !important;
+    background: transparent !important;
+}
 /* Make the thumbnail image fill the circle */
 .af-vid-circle img {
     width: 100% !important;
@@ -820,21 +839,22 @@ add_action('wp_footer', function() { ?>
             var circle = document.createElement('div'); circle.className = 'af-vid-circle';
 
             if (v.id) {
-                // YouTube thumbnail as background image
-                var img = document.createElement('img');
-                img.src = 'https://img.youtube.com/vi/' + v.id + '/maxresdefault.jpg';
-                img.alt = '';
-                // Fall back to hqdefault if maxres not available
-                img.onerror = function(){ this.src = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg'; this.onerror=null; };
-                circle.appendChild(img);
+                // Autoplay muted iframe — scaled up so controls bar is clipped outside the circle
+                var fr = document.createElement('iframe');
+                fr.src = 'https://www.youtube.com/embed/' + v.id +
+                         '?autoplay=1&mute=1&loop=1&playlist=' + v.id +
+                         '&rel=0&modestbranding=1&playsinline=1&enablejsapi=0';
+                fr.allow = 'autoplay; encrypted-media';
+                fr.setAttribute('frameborder', '0');
+                fr.setAttribute('loading', 'lazy');
+                fr.className = 'af-vid-inline';
+                circle.appendChild(fr);
 
-                // Play icon overlay
-                var icon = document.createElement('div'); icon.className = 'af-play-icon';
-                icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-                circle.appendChild(icon);
+                // Transparent click overlay so click still works despite iframe
+                var overlay = document.createElement('div'); overlay.className = 'af-vid-overlay';
+                circle.appendChild(overlay);
 
-                // Click → fullscreen lightbox with autoplay + sound
-                circle.addEventListener('click', function() {
+                overlay.addEventListener('click', function() {
                     var lb = document.createElement('div'); lb.className = 'af-vid-lb';
                     var x  = document.createElement('button'); x.className = 'af-vid-lb-x'; x.innerHTML = '&times;';
                     var lbfr = document.createElement('iframe');
@@ -845,7 +865,6 @@ add_action('wp_footer', function() { ?>
                     x.onclick = close; lb.onclick = function(e){ if(e.target===lb) close(); };
                 });
             } else {
-                // No ID found — dark circle with play icon
                 circle.style.background = '#222';
                 var icon2 = document.createElement('div'); icon2.className = 'af-play-icon';
                 icon2.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
