@@ -1,9 +1,10 @@
 // Custom JS - The Art Framer Child Theme
 jQuery(document).ready(function($) {
 
-  // ---- Universal product card slider ----
-  // Works on any ul.products, whether or not .product-container exists
+  // ---- Universal product card slider (homepage only) ----
+  // Only runs on the front page — shop/category pages stay as normal grids
   function initProductSliders() {
+    if (!document.body.classList.contains('home')) return;
     document.querySelectorAll('ul.products').forEach(function(track) {
       // Skip if already initialized
       if (track.dataset.sliderInit) return;
