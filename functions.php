@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.4.2');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.6', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.7', true);
 }, 20);
 
 // 2. Force USD as default currency — override currency switcher plugins
@@ -50,6 +50,11 @@ add_filter('woocommerce_price_args', function($args) {
     $args['currency_pos'] = 'left';
     return $args;
 }, 9999);
+
+// WMC (Woo Multi Currency) — force USD as default
+add_filter('wmc_get_price', function($price, $currency) { return $price; }, 9999, 2);
+add_filter('wmc_current_currency', function() { return 'USD'; }, 9999);
+add_filter('wmc_frontend_display_currency', function() { return 'USD'; }, 9999);
 
 // 3. Enable WooCommerce registration
 add_action('init', function() {

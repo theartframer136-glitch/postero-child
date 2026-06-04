@@ -84,30 +84,56 @@ jQuery(document).ready(function($) {
 
   // ---- Force USD currency on every page load ----
   (function forceCurrencyUSD() {
-    // Set all known currency switcher cookies to USD
+    // 1. Set all known currency cookies
     var cookieOpts = '; path=/; max-age=' + (86400 * 365);
     document.cookie = 'woocs_session_currency=USD' + cookieOpts;
     document.cookie = 'wmc_current_currency=USD' + cookieOpts;
+    document.cookie = 'wmc-currency=USD' + cookieOpts;
     document.cookie = 'currency=USD' + cookieOpts;
+    document.cookie = 'chosen_currency=USD' + cookieOpts;
 
-    // After DOM ready, click "USD" option in any currency switcher widget
     function switchToUSD() {
-      // Try WOOCS / common switcher dropdowns
-      document.querySelectorAll('.woocs_selector select, .currency-switcher select, select.currency-switcher, [name="currency"]').forEach(function(sel) {
-        if (sel.value !== 'USD') { sel.value = 'USD'; sel.dispatchEvent(new Event('change', {bubbles:true})); }
+      // 2. WOOCS JS API
+      if (window.WOOCS && typeof WOOCS.set_currency === 'function') {
+        WOOCS.set_currency('USD'); return;
+      }
+      // 3. WMC (Woo Multi Currency) JS API
+      if (window.wmc_object && typeof wmc_object.switch_currency === 'function') {
+        wmc_object.switch_currency('USD'); return;
+      }
+      // 4. Any <select> with currency options anywhere on page
+      document.querySelectorAll('select').forEach(function(sel) {
+        Array.from(sel.options).forEach(function(opt) {
+          if (opt.value === 'USD' || opt.text.trim() === 'USD') {
+            if (sel.value !== opt.value) {
+              sel.value = opt.value;
+              sel.dispatchEvent(new Event('change', {bubbles: true}));
+            }
+          }
+        });
       });
-      // Try anchor/li based switchers (look for element containing "USD" text)
-      document.querySelectorAll('.woocs_selector a, .currency-switcher a, .wmc-currency-list a').forEach(function(a) {
-        if (/\bUSD\b/.test(a.textContent)) a.click();
+      // 5. Click any link/button/li whose text is exactly "USD" or "$ USD"
+      document.querySelectorAll('a, button, li, span').forEach(function(el) {
+        if (/^\$?\s*USD\s*$/.test(el.textContent.trim())) {
+          el.click();
+        }
       });
-      // Hide INR option text in the switcher display label
-      document.querySelectorAll('.woocs_selector .woocommerce-currency-switcher-form select option').forEach(function(opt){
-        if (opt.value === 'USD') opt.selected = true;
+      // 6. Look for the visible switcher label showing INR and force-replace text
+      document.querySelectorAll('*').forEach(function(el) {
+        if (el.children.length === 0 && el.textContent.trim() === 'INR') {
+          el.textContent = 'USD';
+        }
+        if (el.children.length === 0 && el.textContent.trim() === '₹ INR') {
+          el.textContent = '$ USD';
+        }
       });
     }
+
+    // Run immediately, then after plugin JS loads
     switchToUSD();
-    setTimeout(switchToUSD, 500);
-    setTimeout(switchToUSD, 1500);
+    setTimeout(switchToUSD, 300);
+    setTimeout(switchToUSD, 800);
+    setTimeout(switchToUSD, 2000);
   })();
 
   // ---- Suppress 404 errors from missing video files ----
