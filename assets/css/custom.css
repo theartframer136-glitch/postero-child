@@ -455,6 +455,23 @@ ul.postero-scroll-content .cat-item a {
 }
 .af-wishlist-btn svg { pointer-events: none; }
 
+/* ── Uniform left alignment for ALL card content ── */
+.af-shell-track .product-card > *:not(.af-wishlist-btn):not(.onsale):not(.sale-ribbon),
+.product-slider .product-card > *:not(.af-wishlist-btn):not(.onsale):not(.sale-ribbon) {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  box-sizing: border-box !important;
+  text-align: left !important;
+}
+/* Buttons row: flex but same left padding */
+.af-shell-track .product-card .product-actions,
+.product-slider .product-card .product-actions,
+.af-shell-track .product-card .card-actions {
+  display: flex !important;
+  gap: 8px !important;
+  padding: 8px 12px 12px !important;
+}
+
 /* ── Product body (below image) ── */
 .af-shell-track .product-card .product-info,
 .af-shell-track .product-card .woocommerce-loop-product__title,
