@@ -9,28 +9,28 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.4.2');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.7', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.8', true);
 }, 20);
 
 // 2. Force USD as default currency — override currency switcher plugins
 add_filter('woocommerce_currency', function() { return 'USD'; }, 9999);
 add_filter('woocommerce_currency_symbol', function($symbol, $currency) { return '$'; }, 9999, 2);
 
-// Clear any cookie/session currency set by switcher plugins (WOOCS, WPML, Aelia, etc.)
+// Set all currency cookies to USD server-side before any plugin reads them
 add_action('init', function() {
-    // WOOCS
-    if (isset($_COOKIE['woocs_session_currency']) && $_COOKIE['woocs_session_currency'] !== 'USD') {
-        setcookie('woocs_session_currency', 'USD', time() + 86400 * 30, COOKIEPATH, COOKIE_DOMAIN);
-        $_COOKIE['woocs_session_currency'] = 'USD';
+    $exp  = time() + 86400 * 365;
+    $path = COOKIEPATH ?: '/';
+    $host = COOKIE_DOMAIN ?: '';
+    foreach (['woocs_session_currency','wmc_current_currency','wmc-currency','currency','chosen_currency'] as $name) {
+        if (!isset($_COOKIE[$name]) || $_COOKIE[$name] !== 'USD') {
+            setcookie($name, 'USD', $exp, $path, $host);
+            $_COOKIE[$name] = 'USD';
+        }
     }
-    // WooCommerce Multilingual (WPML)
+    // WPML / WCML
     if (defined('WCML_VERSION')) {
         add_filter('wcml_client_currency', function() { return 'USD'; }, 9999);
     }
-    // WooCommerce Currency Switcher (recobell / alg)
-    if (isset($_SESSION['alg_currency'])) { $_SESSION['alg_currency'] = 'USD'; }
-    // Force WC session currency
-    add_filter('woocommerce_session_handler', function($handler) { return $handler; }, 9999);
 }, 1);
 
 // Override any currency stored in WC session
