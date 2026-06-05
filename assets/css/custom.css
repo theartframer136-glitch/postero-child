@@ -624,7 +624,10 @@ ul.postero-scroll-content .cat-item a {
 .product-slider .product-card .add-cart,
 .product-slider .product-card .add_to_cart_button,
 .product-slider .product-card a.button,
-.product-slider .product-card button.button {
+.product-slider .product-card button.button,
+.product-card .add_to_cart_button,
+.product-card a.button,
+.product-card button.button {
   flex: 1 1 50% !important;
   background: #c9a84c !important;
   background-color: #c9a84c !important;
