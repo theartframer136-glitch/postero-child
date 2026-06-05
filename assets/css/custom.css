@@ -657,16 +657,40 @@ ul.postero-scroll-content .cat-item a {
   color: #fff !important;
 }
 
-/* Quick View — dark */
+/* Quick View — dark, centered, equal width */
 .af-shell-track .product-card .quick-view-btn,
 .af-shell-track .product-card [class*="quick-view"],
 .af-shell-track .product-card [class*="quickview"],
 .product-slider .product-card .quick-view-btn,
-.product-slider .product-card [class*="quick-view"] {
+.product-slider .product-card [class*="quick-view"],
+.product-card .quick-view-btn,
+.product-card [class*="quick-view"],
+.product-card [class*="quickview"] {
   flex: 1 1 50% !important;
   background: #1a1a1a !important;
   background-color: #1a1a1a !important;
   color: #fff !important;
+  border: none !important;
+  border-radius: 6px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 10px 8px !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  white-space: nowrap !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  transition: background 0.2s !important;
+  text-decoration: none !important;
+  min-width: 0 !important;
+}
+.af-shell-track .product-card .quick-view-btn:hover,
+.af-shell-track .product-card [class*="quick-view"]:hover,
+.product-slider .product-card .quick-view-btn:hover,
+.product-card .quick-view-btn:hover,
+.product-card [class*="quick-view"]:hover { background: #333 !important; }
   border: none !important;
   border-radius: 6px !important;
   font-size: 13px !important;
