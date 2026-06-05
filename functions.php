@@ -766,26 +766,24 @@ add_action('wp_footer', function() { ?>
             circle.className = 'af-vid-circle';
 
             if (v.id) {
-                var fr2 = document.createElement('iframe');
-                fr2.src = 'https://www.youtube-nocookie.com/embed/' + v.id + '?autoplay=1&mute=1&loop=1&playlist=' + v.id + '&rel=0&playsinline=1';
-                fr2.allow = 'autoplay; encrypted-media';
-                fr2.setAttribute('frameborder','0');
-                fr2.style.cssText = 'position:absolute;top:50%;left:50%;width:300%;height:300%;transform:translate(-50%,-46%);border:none;pointer-events:none;';
-                circle.appendChild(fr2);
-                var th2 = document.createElement('img');
-                th2.src = 'https://img.youtube.com/vi/' + v.id + '/maxresdefault.jpg';
-                th2.alt = '';
-                th2.onerror = function(){ this.src='https://img.youtube.com/vi/'+v.id+'/hqdefault.jpg'; this.onerror=null; };
-                th2.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;';
-                circle.appendChild(th2);
+                var img2 = document.createElement('img');
+                img2.src = 'https://img.youtube.com/vi/' + v.id + '/maxresdefault.jpg';
+                img2.alt = '';
+                img2.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
+                img2.onerror = function(){ this.src='https://img.youtube.com/vi/'+v.id+'/hqdefault.jpg'; this.onerror=null; };
+                circle.appendChild(img2);
                 var ic2 = document.createElement('div'); ic2.className = 'af-play-icon';
                 ic2.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-                ic2.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:3;';
                 circle.appendChild(ic2);
-                var ov2 = document.createElement('div');
-                ov2.style.cssText = 'position:absolute;inset:0;z-index:4;cursor:pointer;';
-                ov2.addEventListener('click', function(){ window.open('https://www.youtube.com/watch?v='+v.id,'_blank'); });
-                circle.appendChild(ov2);
+                circle.addEventListener('click', function() {
+                    img2.style.display='none'; ic2.style.display='none';
+                    var fr2 = document.createElement('iframe');
+                    fr2.src = 'https://www.youtube-nocookie.com/embed/'+v.id+'?autoplay=1&mute=0&rel=0&playsinline=1';
+                    fr2.allow = 'autoplay; fullscreen; encrypted-media';
+                    fr2.allowFullscreen = true;
+                    fr2.style.cssText = 'position:absolute;top:50%;left:50%;width:300%;height:300%;transform:translate(-50%,-46%);border:none;';
+                    circle.appendChild(fr2);
+                });
             } else {
                 var icon = document.createElement('div'); icon.className = 'af-play-icon';
                 icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
@@ -856,44 +854,30 @@ add_action('wp_footer', function() { ?>
             var circle = document.createElement('div'); circle.className = 'af-vid-circle';
 
             if (v.id) {
-                // Try autoplay iframe first; if YouTube blocks it, show thumbnail fallback
-                var fr = document.createElement('iframe');
-                fr.src = 'https://www.youtube-nocookie.com/embed/' + v.id + '?autoplay=1&mute=1&loop=1&playlist=' + v.id + '&rel=0&playsinline=1';
-                fr.allow = 'autoplay; encrypted-media';
-                fr.setAttribute('frameborder', '0');
-                fr.style.cssText = 'position:absolute;top:50%;left:50%;width:300%;height:300%;transform:translate(-50%,-46%);border:none;pointer-events:none;';
-                circle.appendChild(fr);
+                // Show thumbnail — always works regardless of embedding settings
+                var img = document.createElement('img');
+                img.src = 'https://img.youtube.com/vi/' + v.id + '/maxresdefault.jpg';
+                img.alt = '';
+                img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
+                img.onerror = function(){ this.src='https://img.youtube.com/vi/'+v.id+'/hqdefault.jpg'; this.onerror=null; };
+                circle.appendChild(img);
 
-                // Fallback thumbnail shown if iframe fails (embedding blocked)
-                var thumb = document.createElement('img');
-                thumb.className = 'af-vid-thumb';
-                thumb.src = 'https://img.youtube.com/vi/' + v.id + '/maxresdefault.jpg';
-                thumb.alt = '';
-                thumb.onerror = function(){ this.src = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg'; this.onerror=null; };
-                thumb.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;';
-                circle.appendChild(thumb);
-
-                // If iframe sends error message (embedding blocked), show thumbnail instead
-                window.addEventListener('message', function(e) {
-                    try {
-                        var d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-                        if (d && (d.event === 'onError' || d.info === 150 || d.info === 101)) {
-                            fr.style.display = 'none';
-                            thumb.style.display = 'block';
-                        }
-                    } catch(x){}
-                });
-
+                // Gold play icon overlay
                 var icon = document.createElement('div'); icon.className = 'af-play-icon';
                 icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-                icon.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:3;';
                 circle.appendChild(icon);
 
-                // Overlay to capture click
-                var ov = document.createElement('div');
-                ov.style.cssText = 'position:absolute;inset:0;z-index:4;cursor:pointer;';
-                ov.addEventListener('click', function(){ window.open('https://www.youtube.com/watch?v='+v.id,'_blank'); });
-                circle.appendChild(ov);
+                // Click: swap thumbnail for autoplay iframe
+                circle.addEventListener('click', function() {
+                    img.style.display = 'none';
+                    icon.style.display = 'none';
+                    var fr = document.createElement('iframe');
+                    fr.src = 'https://www.youtube-nocookie.com/embed/' + v.id + '?autoplay=1&mute=0&rel=0&playsinline=1';
+                    fr.allow = 'autoplay; fullscreen; encrypted-media';
+                    fr.allowFullscreen = true;
+                    fr.style.cssText = 'position:absolute;top:50%;left:50%;width:300%;height:300%;transform:translate(-50%,-46%);border:none;';
+                    circle.appendChild(fr);
+                });
             } else {
                 circle.style.background = '#222';
                 var icon2 = document.createElement('div'); icon2.className = 'af-play-icon';
