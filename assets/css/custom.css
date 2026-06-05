@@ -598,12 +598,22 @@ ul.postero-scroll-content .cat-item a {
 /* ── Action buttons row — Add to Cart + Quick View same line ── */
 .af-shell-track .product-card .product-actions,
 .af-shell-track .product-card .card-actions,
-.product-slider .product-card .product-actions {
+.product-slider .product-card .product-actions,
+.product-card .product-actions,
+.product-card .card-actions {
   display: flex !important;
   flex-direction: row !important;
+  flex-wrap: nowrap !important;
   gap: 8px !important;
   padding: 0 12px 12px !important;
   margin-top: auto !important;
+}
+
+/* Each button takes equal width in the row */
+.product-card .product-actions > *,
+.product-card .card-actions > * {
+  flex: 1 1 50% !important;
+  min-width: 0 !important;
 }
 
 /* Add to Cart — gold */
