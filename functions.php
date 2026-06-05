@@ -784,23 +784,20 @@ add_action('wp_footer', function() { ?>
             circle.className = 'af-vid-circle';
 
             if (v.id) {
-                var fr2 = document.createElement('iframe');
-                fr2.src = 'https://www.youtube-nocookie.com/embed/' + v.id +
-                          '?autoplay=1&mute=1&loop=1&playlist=' + v.id +
-                          '&rel=0&playsinline=1&modestbranding=1';
-                fr2.allow = 'autoplay; encrypted-media; picture-in-picture';
-                fr2.setAttribute('frameborder', '0');
-                fr2.setAttribute('loading', 'lazy');
-                fr2.className = 'af-vid-inline';
-                circle.appendChild(fr2);
-                var ov2 = document.createElement('div'); ov2.className = 'af-vid-overlay';
-                circle.appendChild(ov2);
-                ov2.addEventListener('click', function() {
+                var img2 = document.createElement('img');
+                img2.src = 'https://img.youtube.com/vi/' + v.id + '/maxresdefault.jpg';
+                img2.alt = '';
+                img2.onerror = function(){ this.src = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg'; this.onerror = null; };
+                circle.appendChild(img2);
+                var icon = document.createElement('div'); icon.className = 'af-play-icon';
+                icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+                circle.appendChild(icon);
+                circle.style.cursor = 'pointer';
+                circle.addEventListener('click', function() {
                     window.open('https://www.youtube.com/watch?v=' + v.id, '_blank');
                 });
             } else {
-                var icon = document.createElement('div');
-                icon.className = 'af-play-icon';
+                var icon = document.createElement('div'); icon.className = 'af-play-icon';
                 icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
                 circle.appendChild(icon);
             }
@@ -869,21 +866,16 @@ add_action('wp_footer', function() { ?>
             var circle = document.createElement('div'); circle.className = 'af-vid-circle';
 
             if (v.id) {
-                // Autoplay muted iframe using nocookie domain (no controls=0, avoids "unavailable")
-                var fr = document.createElement('iframe');
-                fr.src = 'https://www.youtube-nocookie.com/embed/' + v.id +
-                         '?autoplay=1&mute=1&loop=1&playlist=' + v.id +
-                         '&rel=0&playsinline=1&modestbranding=1';
-                fr.allow = 'autoplay; encrypted-media; picture-in-picture';
-                fr.setAttribute('frameborder', '0');
-                fr.setAttribute('loading', 'lazy');
-                fr.className = 'af-vid-inline';
-                circle.appendChild(fr);
-
-                // Transparent overlay to capture clicks over iframe
-                var overlay = document.createElement('div'); overlay.className = 'af-vid-overlay';
-                circle.appendChild(overlay);
-                overlay.addEventListener('click', function() {
+                var img = document.createElement('img');
+                img.src = 'https://img.youtube.com/vi/' + v.id + '/maxresdefault.jpg';
+                img.alt = '';
+                img.onerror = function(){ this.src = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg'; this.onerror = null; };
+                circle.appendChild(img);
+                var icon = document.createElement('div'); icon.className = 'af-play-icon';
+                icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+                circle.appendChild(icon);
+                circle.style.cursor = 'pointer';
+                circle.addEventListener('click', function() {
                     window.open('https://www.youtube.com/watch?v=' + v.id, '_blank');
                 });
             } else {
