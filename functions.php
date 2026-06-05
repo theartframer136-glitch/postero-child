@@ -554,25 +554,7 @@ add_action('wp_footer', function() { ?>
     transform: scale(1.06) !important;
     box-shadow: 0 8px 28px rgba(0,0,0,0.3) !important;
 }
-/* Autoplay iframe inside circle — scaled up to hide controls bar */
-.af-vid-inline {
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    width: 300% !important;
-    height: 300% !important;
-    transform: translate(-50%, -45%) !important;
-    border: none !important;
-    pointer-events: none !important;
-}
-/* Transparent overlay to capture clicks over the iframe */
-.af-vid-overlay {
-    position: absolute !important;
-    inset: 0 !important;
-    cursor: pointer !important;
-    z-index: 2 !important;
-    background: transparent !important;
-}
+
 /* Make the thumbnail image fill the circle */
 .af-vid-circle img {
     width: 100% !important;
@@ -909,4 +891,4 @@ add_action('wp_footer', function() { ?>
     window.addEventListener('load', function() { tryBuild(); setTimeout(tryBuild, 1000); });
 }());
 </script>
-<?php }, 10001);
+<?php }, 10002);
