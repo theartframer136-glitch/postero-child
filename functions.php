@@ -10,6 +10,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.5.3');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
+    wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
 
 // 2. Force USD as default currency — override currency switcher plugins
@@ -63,6 +64,57 @@ add_action('init', function() {
     update_option('woocommerce_registration_generate_password', 'yes');
     update_option('woocommerce_registration_generate_username', 'no');
 });
+
+// 4. AJAX proxy: fetch YouTube playlist/channel RSS — no API key needed
+add_action('wp_ajax_af_yt_feed',        'af_yt_feed_handler');
+add_action('wp_ajax_nopriv_af_yt_feed', 'af_yt_feed_handler');
+function af_yt_feed_handler() {
+    $list_id    = sanitize_text_field($_GET['list']    ?? '');
+    $channel_id = sanitize_text_field($_GET['channel'] ?? '');
+
+    if ($list_id) {
+        $url = 'https://www.youtube.com/feeds/videos.xml?playlist_id=' . $list_id;
+    } elseif ($channel_id) {
+        $url = 'https://www.youtube.com/feeds/videos.xml?channel_id=' . $channel_id;
+    } else {
+        wp_send_json_error('no id'); return;
+    }
+
+    $cached = get_transient('af_yt_' . ($list_id ?: $channel_id));
+    if ($cached) { wp_send_json_success($cached); return; }
+
+    $resp = wp_remote_get($url, ['timeout' => 10]);
+    if (is_wp_error($resp)) { wp_send_json_error($resp->get_error_message()); return; }
+
+    $xml = simplexml_load_string(wp_remote_retrieve_body($resp));
+    if (!$xml) { wp_send_json_error('bad xml'); return; }
+
+    $xml->registerXPathNamespace('yt', 'http://www.youtube.com/xml/schemas/2015');
+    $xml->registerXPathNamespace('media', 'http://search.yahoo.com/mrss/');
+
+    $videos = [];
+    foreach ($xml->entry as $entry) {
+        $yt    = $entry->children('http://www.youtube.com/xml/schemas/2015');
+        $media = $entry->children('http://search.yahoo.com/mrss/');
+        $vid   = (string)($yt->videoId ?? '');
+        if (!$vid) {
+            // fallback: parse from <id> tag like yt:video:VIDEOID
+            preg_match('/video:([A-Za-z0-9_-]{11})/', (string)$entry->id, $m);
+            $vid = $m[1] ?? '';
+        }
+        if ($vid) {
+            $videos[] = [
+                'id'    => $vid,
+                'title' => (string)($entry->title ?? $media->group->title ?? ''),
+                'thumb' => 'https://img.youtube.com/vi/' . $vid . '/hqdefault.jpg',
+            ];
+        }
+    }
+
+    set_transient('af_yt_' . ($list_id ?: $channel_id), $videos, 6 * HOUR_IN_SECONDS);
+    wp_send_json_success($videos);
+}
+
 
 // 4. Fix Login and Register page URLs
 add_filter('login_url', function() { return home_url('/my-account/'); });
@@ -816,22 +868,120 @@ add_action('wp_footer', function() { ?>
         setTimeout(function(){ go(0); }, 200);
     }
 
+    // Extract playlist or channel ID from any element's attributes/data-settings
+    function extractPlaylistOrChannel() {
+        var listId = null, chanId = null;
+        document.querySelectorAll('[data-settings],[data-widget_type]').forEach(function(el) {
+            if (listId || chanId) return;
+            var raw = el.getAttribute('data-settings') || '';
+            try {
+                var s = JSON.parse(raw);
+                var url = s.youtube_url || s.url || s.link || '';
+                var lm = url.match(/[?&]list=([A-Za-z0-9_-]+)/);
+                if (lm) { listId = lm[1]; return; }
+                var cm = url.match(/channel\/([A-Za-z0-9_-]+)/);
+                if (cm) { chanId = cm[1]; }
+            } catch(x){}
+            // Also scan raw attribute value
+            var lm2 = raw.match(/list=([A-Za-z0-9_-]{10,})/);
+            if (!listId && lm2) listId = lm2[1];
+        });
+        // Also scan all attribute values on the page
+        if (!listId && !chanId) {
+            document.querySelectorAll('*').forEach(function(el) {
+                if (listId || chanId) return;
+                Array.from(el.attributes).forEach(function(a) {
+                    if (listId || chanId) return;
+                    var lm = a.value.match(/[?&]list=([A-Za-z0-9_-]{10,})/);
+                    if (lm) { listId = lm[1]; return; }
+                    var cm = a.value.match(/youtube\.com\/channel\/([A-Za-z0-9_-]+)/);
+                    if (cm) chanId = cm[1];
+                });
+            });
+        }
+        return { listId: listId, chanId: chanId };
+    }
+
+    function fetchAndBuild(anchor) {
+        if (anchor.dataset.afVidDone) return;
+        var ids = extractPlaylistOrChannel();
+        if (!ids.listId && !ids.chanId) { buildSlider(); return; }
+
+        anchor.dataset.afVidDone = '1';
+        var params = ids.listId ? 'list=' + ids.listId : 'channel=' + ids.chanId;
+        var ajaxUrl = (typeof af_ajax !== 'undefined' ? af_ajax.url : '/wp-admin/admin-ajax.php')
+                    + '?action=af_yt_feed&' + params;
+
+        fetch(ajaxUrl)
+            .then(function(r){ return r.json(); })
+            .then(function(data) {
+                if (!data.success || !data.data.length) return;
+                buildFromVideoList(anchor, data.data);
+            })
+            .catch(function(){ buildSlider(); });
+    }
+
+    function buildFromVideoList(anchor, videos) {
+        var shell = document.createElement('div'); shell.className = 'af-vid-shell';
+        var btnP  = document.createElement('button'); btnP.className = 'af-vid-btn'; btnP.innerHTML = '&#8249;'; btnP.setAttribute('aria-label','Prev');
+        var btnN  = document.createElement('button'); btnN.className = 'af-vid-btn'; btnN.innerHTML = '&#8250;'; btnN.setAttribute('aria-label','Next');
+        var vp    = document.createElement('div'); vp.className = 'af-vid-vp';
+        var track = document.createElement('div'); track.className = 'af-vid-track';
+
+        var circles = videos.map(function(v) {
+            var circle = document.createElement('div'); circle.className = 'af-vid-circle';
+            var img = document.createElement('img');
+            img.src = v.thumb || ('https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg');
+            img.alt = v.title || '';
+            img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
+            img.onerror = function(){ this.src='https://img.youtube.com/vi/'+v.id+'/hqdefault.jpg'; this.onerror=null; };
+            circle.appendChild(img);
+            var icon = document.createElement('div'); icon.className = 'af-play-icon';
+            icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+            circle.appendChild(icon);
+            circle.style.cursor = 'pointer';
+            circle.addEventListener('click', function() {
+                img.style.display='none'; icon.style.display='none';
+                var fr = document.createElement('iframe');
+                fr.src = 'https://www.youtube-nocookie.com/embed/'+v.id+'?autoplay=1&rel=0&playsinline=1';
+                fr.allow = 'autoplay; fullscreen; encrypted-media'; fr.allowFullscreen = true;
+                fr.style.cssText = 'position:absolute;top:50%;left:50%;width:300%;height:300%;transform:translate(-50%,-46%);border:none;';
+                circle.appendChild(fr);
+            });
+            track.appendChild(circle); return circle;
+        });
+
+        vp.appendChild(track);
+        shell.appendChild(btnP); shell.appendChild(vp); shell.appendChild(btnN);
+        anchor.insertAdjacentElement('afterend', shell);
+        anchor.classList.add('af-vid-original-hidden');
+
+        var idx = 0;
+        function iw2() { return window.innerWidth<=480?SIZES.sm:window.innerWidth<=768?SIZES.md:SIZES.lg; }
+        function vis2() { var vpW=vp.getBoundingClientRect().width||800; return Math.max(1,Math.floor((vpW+GAP)/(iw2()+GAP))); }
+        function go2(n) {
+            var v2=vis2(), max=Math.max(0,circles.length-v2);
+            idx=Math.max(0,Math.min(n,max));
+            track.style.setProperty('transform','translateX('+(-(idx*(iw2()+GAP)))+'px)','important');
+        }
+        btnP.onclick=function(){go2(idx-vis2());}; btnN.onclick=function(){go2(idx+vis2());};
+        window.addEventListener('resize',function(){idx=0;go2(0);});
+        setTimeout(function(){go2(0);},200);
+    }
+
     function tryBuild() {
-        // Primary: page uses .circle-gallery-slider with .circle-item / .video-circle
-        var gallerySlider = document.querySelector('.circle-gallery-slider');
-        if (gallerySlider) {
-            var items = Array.from(gallerySlider.querySelectorAll('.circle-item, .video-circle'));
-            if (items.length >= 2) { buildFromItems(gallerySlider, items); return; }
-        }
+        // Find anchor container on page
+        var anchor = document.querySelector('.circle-gallery-slider')
+                  || document.querySelector('.video-circle')?.parentElement
+                  || (function(){
+                        var s=null;
+                        document.querySelectorAll('.elementor-section,.e-container').forEach(function(el){
+                            if(!s && el.querySelectorAll('.elementor-widget-video').length>=2) s=el;
+                        });
+                        return s;
+                     })();
 
-        // Fallback: any .video-circle elements on the page
-        var loose = Array.from(document.querySelectorAll('.video-circle'));
-        if (loose.length >= 2) {
-            var wrap = loose[0].parentElement;
-            buildFromItems(wrap, loose); return;
-        }
-
-        // Last resort: original detection
+        if (anchor) { fetchAndBuild(anchor); return; }
         buildSlider();
     }
 
