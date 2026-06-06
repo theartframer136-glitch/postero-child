@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.5.3');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.5.4');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1139,3 +1139,85 @@ add_action('wp_footer', function() { ?>
 }());
 </script>
 <?php }, 10002);
+
+/* ============================================================
+   Section 12: Feature Icons Bar with slide-up overlays
+   ============================================================ */
+add_action('wp_footer', function() { ?>
+<div class="af-feat-overlay" id="afFeatOverlay"></div>
+<div class="af-feat-sheet" id="afFeatSheet">
+  <div class="af-feat-sheet-handle"></div>
+  <button class="af-feat-sheet-close" id="afFeatClose">&times;</button>
+  <h3 id="afFeatTitle"></h3>
+  <div id="afFeatBody"></div>
+</div>
+<script>
+(function(){
+  var features = [
+    {
+      label: 'Free Shipping',
+      icon: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>',
+      title: '🚚 Free Shipping Available!',
+      body: '<p>Enjoy fast, safe, and reliable delivery with guaranteed on-time service.</p><h4>📍 Shipping Available In:</h4><ul><li>New Jersey</li><li>Pennsylvania</li><li>Philadelphia</li></ul><h4>🎁 Free Delivery In:</h4><ul><li>Delaware</li><li>Pennsylvania</li><li>Maryland</li><li>New Jersey &amp; nearby areas</li></ul>'
+    },
+    {
+      label: 'High Resolution',
+      icon: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zm-5-7h-2V8h-2v4H8v2h2v4h2v-4h2v-2z"/></svg>',
+      title: '🖨️ High Resolution Printing',
+      body: '<p>We use professional-grade printing technology to deliver crisp, vibrant, museum-quality prints.</p><h4>✅ Features:</h4><ul><li>Up to 1200 DPI resolution</li><li>Fade-resistant inks</li><li>True-to-life color accuracy</li><li>UV protective coating available</li></ul>'
+    },
+    {
+      label: 'Premium Frames',
+      icon: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 2H4c-1.1 0-2 .9-2 2v16c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 18H4V4h16v16zM6 6h12v12H6z"/></svg>',
+      title: '🛡️ Premium Frames',
+      body: '<p>Handcrafted frames built to last — because great art deserves a great frame.</p><h4>✅ Frame Options:</h4><ul><li>Solid wood &amp; metal frames</li><li>Custom sizing available</li><li>Floater frames for canvas</li><li>Gallery-wrap ready</li></ul><h4>🎨 Styles:</h4><ul><li>Modern, Classic, Rustic, Minimalist</li></ul>'
+    },
+    {
+      label: 'Secure Payment',
+      icon: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>',
+      title: '🔒 Secure Payment',
+      body: '<p>Your payment information is always safe with our encrypted checkout.</p><h4>✅ We Accept:</h4><ul><li>Visa, MasterCard, AMEX</li><li>PayPal</li><li>Google Pay &amp; Apple Pay</li><li>Bank Transfer</li></ul><h4>🔐 Security:</h4><ul><li>256-bit SSL encryption</li><li>PCI DSS compliant</li><li>No card data stored</li></ul>'
+    }
+  ];
+
+  // Build bar into any element with class af-features-bar, or inject after hero
+  function buildBar() {
+    var bars = document.querySelectorAll('.af-features-bar');
+    if (!bars.length) return; // only render if placeholder exists in page
+    bars.forEach(function(bar) {
+      if (bar.dataset.afBuilt) return;
+      bar.dataset.afBuilt = '1';
+      features.forEach(function(f, i) {
+        var item = document.createElement('div');
+        item.className = 'af-feature-item';
+        item.innerHTML = '<div class="af-feature-icon">' + f.icon + '</div><div class="af-feature-label">' + f.label + '</div>';
+        item.addEventListener('click', function() { openSheet(i); });
+        bar.appendChild(item);
+      });
+    });
+  }
+
+  var overlay = document.getElementById('afFeatOverlay');
+  var sheet   = document.getElementById('afFeatSheet');
+  var closeBtn= document.getElementById('afFeatClose');
+  var titleEl = document.getElementById('afFeatTitle');
+  var bodyEl  = document.getElementById('afFeatBody');
+
+  function openSheet(i) {
+    titleEl.innerHTML = features[i].title;
+    bodyEl.innerHTML  = features[i].body;
+    overlay.classList.add('active');
+    requestAnimationFrame(function(){ sheet.classList.add('open'); });
+  }
+  function closeSheet() {
+    sheet.classList.remove('open');
+    setTimeout(function(){ overlay.classList.remove('active'); }, 350);
+  }
+  if (closeBtn) closeBtn.addEventListener('click', closeSheet);
+  if (overlay)  overlay.addEventListener('click', closeSheet);
+
+  document.addEventListener('DOMContentLoaded', buildBar);
+  window.addEventListener('load', buildBar);
+}());
+</script>
+<?php }, 10003);
