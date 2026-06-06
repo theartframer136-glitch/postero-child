@@ -729,15 +729,30 @@ ul.postero-scroll-content .cat-item a {
   #subcategorySlider .cat-item img,
   .subcategory-slider .sub-cat img,
   li.cat-item img { width: 44px !important; height: 44px !important; max-width: 44px !important; max-height: 44px !important; }
-  /* Medium: 3 cards */
-  #productGrid ul.products li.product,
-  .product-slider ul.products li.product,
-  .af-slider-viewport ul.products li.product {
-    flex: 0 0 calc(33.333% - 11px) !important;
-    width: calc(33.333% - 11px) !important;
-  }
   .woocommerce .products.columns-4 {
     grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Product slider — 2 cards on tablet */
+  .af-shell { gap: 8px !important; padding: 0 !important; }
+  .af-shell-btn { flex: 0 0 32px !important; width: 32px !important; height: 32px !important; font-size: 20px !important; }
+  .af-shell-track .product-card { min-width: 0 !important; }
+
+  /* Buttons stack gracefully */
+  .product-card .product-actions,
+  .product-card .card-actions {
+    gap: 6px !important;
+    padding: 0 8px 10px !important;
+  }
+  .product-card .add_to_cart_button,
+  .product-card a.button,
+  .product-card button.button,
+  .product-card .quick-view-btn,
+  .product-card [class*="quick-view"] {
+    font-size: 11px !important;
+    padding: 8px 4px !important;
   }
 }
 
@@ -746,13 +761,34 @@ ul.postero-scroll-content .cat-item a {
   #subcategorySlider .cat-item img,
   .subcategory-slider .sub-cat img,
   li.cat-item img { width: 40px !important; height: 40px !important; max-width: 40px !important; max-height: 40px !important; }
-  /* Small: 1 card */
-  #productGrid ul.products li.product,
-  .product-slider ul.products li.product,
-  .af-slider-viewport ul.products li.product {
-    flex: 0 0 100% !important;
-    width: 100% !important;
+
+  /* Product slider — 1 card on mobile */
+  .af-shell-btn { flex: 0 0 28px !important; width: 28px !important; height: 28px !important; font-size: 18px !important; }
+
+  /* Price on one line, smaller */
+  .woocommerce .price,
+  .price-section { font-size: 12px !important; gap: 3px !important; }
+
+  /* Buttons */
+  .product-card .add_to_cart_button,
+  .product-card a.button,
+  .product-card button.button,
+  .product-card .quick-view-btn,
+  .product-card [class*="quick-view"] {
+    font-size: 10px !important;
+    padding: 7px 3px !important;
   }
+
+  /* Video circles smaller */
+  .af-vid-circle { flex: 0 0 110px !important; width: 110px !important; height: 110px !important; }
+  .af-vid-btn { flex: 0 0 30px !important; width: 30px !important; height: 30px !important; font-size: 18px !important; }
+
+  /* Prevent horizontal overflow */
+  .af-shell, .af-vid-shell { max-width: 100vw !important; overflow: hidden !important; }
+  body { overflow-x: hidden !important; }
+
+  /* Top category buttons scroll properly */
+  #topCatSlider .top-cat-btn { font-size: 11px !important; padding: 5px 3px !important; }
 }
 
 
