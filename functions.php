@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.5.4');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.5.5');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1140,6 +1140,11 @@ add_action('wp_footer', function() { ?>
 </script>
 <?php }, 10002);
 
+// Shortcode: [af_features] — place in any Elementor HTML widget
+add_shortcode('af_features', function() {
+    return '<div class="af-features-bar"></div>';
+});
+
 /* ============================================================
    Section 12: Feature Icons Bar with slide-up overlays
    ============================================================ */
@@ -1180,10 +1185,20 @@ add_action('wp_footer', function() { ?>
     }
   ];
 
-  // Build bar into any element with class af-features-bar, or inject after hero
   function buildBar() {
-    var bars = document.querySelectorAll('.af-features-bar');
-    if (!bars.length) return; // only render if placeholder exists in page
+    // Use existing .af-features-bar placeholders, or auto-inject on homepage
+    var bars = Array.from(document.querySelectorAll('.af-features-bar'));
+    if (!bars.length) {
+      // Auto-inject: find a good anchor (after first elementor section or after header)
+      var anchor = document.querySelector('.elementor-section, .e-container, main, #content, .site-content');
+      if (!anchor) return;
+      var bar = document.createElement('div');
+      bar.className = 'af-features-bar';
+      // Insert before the first elementor section's parent, or as first child of main
+      var parent = anchor.parentElement || document.body;
+      parent.insertBefore(bar, anchor);
+      bars = [bar];
+    }
     bars.forEach(function(bar) {
       if (bar.dataset.afBuilt) return;
       bar.dataset.afBuilt = '1';
