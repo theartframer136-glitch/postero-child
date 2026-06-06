@@ -969,10 +969,38 @@ add_action('wp_footer', function() { ?>
         setTimeout(function(){go2(0);},200);
     }
 
+    // Collect all individual YouTube video IDs already in the DOM
+    function collectDomVideoIds() {
+        var ids = [], seen = {};
+        document.querySelectorAll('[data-settings]').forEach(function(el) {
+            try {
+                var s = JSON.parse(el.getAttribute('data-settings') || '{}');
+                var url = s.youtube_url || s.url || s.link || '';
+                var id = ytId(url);
+                if (id && !seen[id]) { seen[id] = 1; ids.push(id); }
+            } catch(x){}
+        });
+        // Also scan iframes
+        document.querySelectorAll('iframe').forEach(function(f) {
+            var id = ytId(f.src || f.getAttribute('data-lazy-src') || '');
+            if (id && !seen[id]) { seen[id] = 1; ids.push(id); }
+        });
+        // Scan all attributes for youtube URLs
+        document.querySelectorAll('.circle-gallery-slider *,[class*="video-circle"] *,.elementor-widget-video *').forEach(function(el) {
+            Array.from(el.attributes).forEach(function(a) {
+                if (/youtu/i.test(a.value)) {
+                    var id = ytId(a.value);
+                    if (id && !seen[id]) { seen[id] = 1; ids.push(id); }
+                }
+            });
+        });
+        return ids;
+    }
+
     function tryBuild() {
         // Find anchor container on page
         var anchor = document.querySelector('.circle-gallery-slider')
-                  || document.querySelector('.video-circle')?.parentElement
+                  || (document.querySelector('.video-circle') && document.querySelector('.video-circle').parentElement)
                   || (function(){
                         var s=null;
                         document.querySelectorAll('.elementor-section,.e-container').forEach(function(el){
@@ -981,8 +1009,52 @@ add_action('wp_footer', function() { ?>
                         return s;
                      })();
 
-        if (anchor) { fetchAndBuild(anchor); return; }
-        buildSlider();
+        if (!anchor || anchor.dataset.afVidDone) return;
+
+        // First collect IDs already in the DOM
+        var domIds = collectDomVideoIds();
+
+        // Try to find a playlist/channel ID for RSS
+        var ids = extractPlaylistOrChannel();
+
+        if (ids.listId || ids.chanId) {
+            // Fetch RSS feed and merge with DOM ids
+            anchor.dataset.afVidDone = '1';
+            var params = ids.listId ? 'list=' + ids.listId : 'channel=' + ids.chanId;
+            var ajaxUrl = (typeof af_ajax !== 'undefined' ? af_ajax.url : '/wp-admin/admin-ajax.php')
+                        + '?action=af_yt_feed&' + params;
+
+            fetch(ajaxUrl)
+                .then(function(r){ return r.json(); })
+                .then(function(data) {
+                    var videos = (data.success && data.data.length) ? data.data : [];
+                    // Add any DOM ids not in RSS results
+                    var rssIds = videos.map(function(v){ return v.id; });
+                    domIds.forEach(function(id) {
+                        if (rssIds.indexOf(id) === -1) {
+                            videos.push({ id: id, title: '', thumb: 'https://img.youtube.com/vi/' + id + '/hqdefault.jpg' });
+                        }
+                    });
+                    if (videos.length) buildFromVideoList(anchor, videos);
+                    else buildSlider();
+                })
+                .catch(function() {
+                    // RSS failed — use DOM ids only
+                    if (domIds.length) {
+                        buildFromVideoList(anchor, domIds.map(function(id){
+                            return { id: id, title: '', thumb: 'https://img.youtube.com/vi/'+id+'/hqdefault.jpg' };
+                        }));
+                    } else { buildSlider(); }
+                });
+        } else if (domIds.length) {
+            // No playlist found — use individual DOM video IDs directly
+            anchor.dataset.afVidDone = '1';
+            buildFromVideoList(anchor, domIds.map(function(id){
+                return { id: id, title: '', thumb: 'https://img.youtube.com/vi/'+id+'/hqdefault.jpg' };
+            }));
+        } else {
+            buildSlider();
+        }
     }
 
     function buildFromItems(container, items) {
