@@ -931,26 +931,61 @@ add_action('wp_footer', function() { ?>
         var vp    = document.createElement('div'); vp.className = 'af-vid-vp';
         var track = document.createElement('div'); track.className = 'af-vid-track';
 
+        // Listen for YouTube postMessage errors (150/101 = embedding disabled)
+        window.addEventListener('message', function(e) {
+            try {
+                var d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+                if (d && d.event === 'onError' && (d.info === 150 || d.info === 101 || d.info === 2)) {
+                    // Find which iframe sent it and show its thumbnail instead
+                    document.querySelectorAll('.af-vid-circle iframe').forEach(function(fr) {
+                        try { if (fr.contentWindow === e.source) {
+                            fr.style.display = 'none';
+                            var th = fr.parentElement.querySelector('.af-vid-thumb');
+                            var ic = fr.parentElement.querySelector('.af-play-icon');
+                            if (th) th.style.display = 'block';
+                            if (ic) ic.style.display = 'flex';
+                        }} catch(x){}
+                    });
+                }
+            } catch(x){}
+        });
+
         var circles = videos.map(function(v) {
             var circle = document.createElement('div'); circle.className = 'af-vid-circle';
+
+            // Autoplay muted iframe — loads immediately
+            var fr = document.createElement('iframe');
+            fr.src = 'https://www.youtube-nocookie.com/embed/' + v.id
+                   + '?autoplay=1&mute=1&loop=1&playlist=' + v.id
+                   + '&rel=0&playsinline=1&enablejsapi=1&origin=' + encodeURIComponent(location.origin);
+            fr.allow = 'autoplay; encrypted-media';
+            fr.setAttribute('frameborder','0');
+            fr.style.cssText = 'position:absolute;top:50%;left:50%;width:300%;height:300%;transform:translate(-50%,-46%);border:none;pointer-events:none;z-index:1;';
+            circle.appendChild(fr);
+
+            // Fallback thumbnail (shown if embedding is blocked)
             var img = document.createElement('img');
+            img.className = 'af-vid-thumb';
             img.src = v.thumb || ('https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg');
             img.alt = v.title || '';
-            img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
+            img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2;';
             img.onerror = function(){ this.src='https://img.youtube.com/vi/'+v.id+'/hqdefault.jpg'; this.onerror=null; };
             circle.appendChild(img);
+
+            // Play icon (shown over thumbnail)
             var icon = document.createElement('div'); icon.className = 'af-play-icon';
             icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+            icon.style.cssText = 'display:none;z-index:3;position:relative;';
             circle.appendChild(icon);
-            circle.style.cursor = 'pointer';
-            circle.addEventListener('click', function() {
-                img.style.display='none'; icon.style.display='none';
-                var fr = document.createElement('iframe');
-                fr.src = 'https://www.youtube-nocookie.com/embed/'+v.id+'?autoplay=1&rel=0&playsinline=1';
-                fr.allow = 'autoplay; fullscreen; encrypted-media'; fr.allowFullscreen = true;
-                fr.style.cssText = 'position:absolute;top:50%;left:50%;width:300%;height:300%;transform:translate(-50%,-46%);border:none;';
-                circle.appendChild(fr);
+
+            // Click overlay — opens full video with sound
+            var ov = document.createElement('div');
+            ov.style.cssText = 'position:absolute;inset:0;z-index:10;cursor:pointer;';
+            ov.addEventListener('click', function() {
+                window.open('https://www.youtube.com/watch?v=' + v.id, '_blank');
             });
+            circle.appendChild(ov);
+
             track.appendChild(circle); return circle;
         });
 
