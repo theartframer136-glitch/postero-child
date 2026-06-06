@@ -65,6 +65,9 @@ add_action('init', function() {
     update_option('woocommerce_registration_generate_username', 'no');
 });
 
+// Clear cached YouTube feed on activation (force fresh fetch after deploys)
+delete_transient('af_yt_UC_GX4vXRQrN4GsvSfgmZxYw');
+
 // 4. AJAX proxy: fetch YouTube playlist/channel RSS — no API key needed
 add_action('wp_ajax_af_yt_feed',        'af_yt_feed_handler');
 add_action('wp_ajax_nopriv_af_yt_feed', 'af_yt_feed_handler');
@@ -111,7 +114,7 @@ function af_yt_feed_handler() {
         }
     }
 
-    set_transient('af_yt_' . ($list_id ?: $channel_id), $videos, 6 * HOUR_IN_SECONDS);
+    set_transient('af_yt_' . ($list_id ?: $channel_id), $videos, 2 * HOUR_IN_SECONDS);
     wp_send_json_success($videos);
 }
 
@@ -998,63 +1001,32 @@ add_action('wp_footer', function() { ?>
     }
 
     function tryBuild() {
-        // Find anchor container on page
         var anchor = document.querySelector('.circle-gallery-slider')
                   || (document.querySelector('.video-circle') && document.querySelector('.video-circle').parentElement)
                   || (function(){
                         var s=null;
                         document.querySelectorAll('.elementor-section,.e-container').forEach(function(el){
-                            if(!s && el.querySelectorAll('.elementor-widget-video').length>=2) s=el;
+                            if(!s && el.querySelectorAll('.elementor-widget-video').length>=1) s=el;
                         });
                         return s;
-                     })();
+                     })()
+                  || document.querySelector('.elementor-widget-video');
 
         if (!anchor || anchor.dataset.afVidDone) return;
+        anchor.dataset.afVidDone = '1';
 
-        // First collect IDs already in the DOM
-        var domIds = collectDomVideoIds();
+        // Always fetch from hardcoded channel — guaranteed to get all videos
+        var ajaxUrl = (typeof af_ajax !== 'undefined' ? af_ajax.url : '/wp-admin/admin-ajax.php')
+                    + '?action=af_yt_feed&channel=UC_GX4vXRQrN4GsvSfgmZxYw';
 
-        // Try to find a playlist/channel ID for RSS
-        var ids = extractPlaylistOrChannel();
-
-        if (ids.listId || ids.chanId) {
-            // Fetch RSS feed and merge with DOM ids
-            anchor.dataset.afVidDone = '1';
-            var params = ids.listId ? 'list=' + ids.listId : 'channel=' + ids.chanId;
-            var ajaxUrl = (typeof af_ajax !== 'undefined' ? af_ajax.url : '/wp-admin/admin-ajax.php')
-                        + '?action=af_yt_feed&' + params;
-
-            fetch(ajaxUrl)
-                .then(function(r){ return r.json(); })
-                .then(function(data) {
-                    var videos = (data.success && data.data.length) ? data.data : [];
-                    // Add any DOM ids not in RSS results
-                    var rssIds = videos.map(function(v){ return v.id; });
-                    domIds.forEach(function(id) {
-                        if (rssIds.indexOf(id) === -1) {
-                            videos.push({ id: id, title: '', thumb: 'https://img.youtube.com/vi/' + id + '/hqdefault.jpg' });
-                        }
-                    });
-                    if (videos.length) buildFromVideoList(anchor, videos);
-                    else buildSlider();
-                })
-                .catch(function() {
-                    // RSS failed — use DOM ids only
-                    if (domIds.length) {
-                        buildFromVideoList(anchor, domIds.map(function(id){
-                            return { id: id, title: '', thumb: 'https://img.youtube.com/vi/'+id+'/hqdefault.jpg' };
-                        }));
-                    } else { buildSlider(); }
-                });
-        } else if (domIds.length) {
-            // No playlist found — use individual DOM video IDs directly
-            anchor.dataset.afVidDone = '1';
-            buildFromVideoList(anchor, domIds.map(function(id){
-                return { id: id, title: '', thumb: 'https://img.youtube.com/vi/'+id+'/hqdefault.jpg' };
-            }));
-        } else {
-            buildSlider();
-        }
+        fetch(ajaxUrl)
+            .then(function(r){ return r.json(); })
+            .then(function(data) {
+                if (data.success && data.data.length) {
+                    buildFromVideoList(anchor, data.data);
+                }
+            })
+            .catch(function(){ });
     }
 
     function buildFromItems(container, items) {
