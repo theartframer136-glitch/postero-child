@@ -839,47 +839,90 @@ ul.postero-scroll-content .cat-item a {
 /* ============================================================
    FEATURE ICONS — slide-up overlay on click
    ============================================================ */
-.af-features-bar {
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  gap: 40px;
-  padding: 30px 20px;
-  flex-wrap: wrap;
+
+/* High-specificity selectors to beat Elementor on all screen sizes */
+html body .af-features-bar,
+html body .elementor .af-features-bar,
+html body .elementor-widget-shortcode .af-features-bar {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: space-evenly !important;
+  align-items: flex-start !important;
+  gap: 30px !important;
+  padding: 30px 20px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
 }
-.af-feature-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  cursor: pointer;
-  width: 100px;
+
+html body .af-features-bar .af-feature-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 10px !important;
+  cursor: pointer !important;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: 110px !important;
 }
-.af-feature-icon {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  background: #c9a84c;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: transform 0.2s, box-shadow 0.2s;
+
+html body .af-features-bar .af-feature-icon {
+  width: 70px !important;
+  height: 70px !important;
+  min-width: 70px !important;
+  border-radius: 50% !important;
+  background: #c9a84c !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+  transition: transform 0.2s, box-shadow 0.2s !important;
 }
-.af-feature-item:hover .af-feature-icon {
-  transform: scale(1.08);
-  box-shadow: 0 6px 20px rgba(201,168,76,0.4);
+
+html body .af-features-bar .af-feature-item:hover .af-feature-icon {
+  transform: scale(1.08) !important;
+  box-shadow: 0 6px 20px rgba(201,168,76,0.4) !important;
 }
-.af-feature-icon svg {
-  width: 32px;
-  height: 32px;
-  fill: #fff;
+
+html body .af-features-bar .af-feature-icon svg {
+  width: 32px !important;
+  height: 32px !important;
+  fill: #fff !important;
 }
-.af-feature-label {
-  font-size: 13px;
-  font-weight: 600;
-  color: #222;
-  text-align: center;
-  line-height: 1.3;
+
+html body .af-features-bar .af-feature-label {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: #222 !important;
+  text-align: center !important;
+  line-height: 1.3 !important;
+}
+
+/* Mobile — same layout, smaller sizes */
+@media (max-width: 576px) {
+  html body .af-features-bar,
+  html body .elementor .af-features-bar,
+  html body .elementor-widget-shortcode .af-features-bar {
+    gap: 8px !important;
+    padding: 20px 8px !important;
+    justify-content: space-evenly !important;
+  }
+  html body .af-features-bar .af-feature-item {
+    max-width: 80px !important;
+    gap: 6px !important;
+  }
+  html body .af-features-bar .af-feature-icon {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+  }
+  html body .af-features-bar .af-feature-icon svg {
+    width: 24px !important;
+    height: 24px !important;
+  }
+  html body .af-features-bar .af-feature-label {
+    font-size: 11px !important;
+  }
 }
 
 /* Overlay backdrop */
@@ -954,35 +997,3 @@ ul.postero-scroll-content .cat-item a {
   margin-bottom: 4px;
 }
 
-@media (max-width: 576px) {
-  .af-features-bar {
-    display: flex !important;
-    flex-wrap: nowrap !important;
-    flex-direction: row !important;
-    justify-content: space-evenly !important;
-    align-items: center !important;
-    gap: 4px !important;
-    padding: 16px 4px !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-  }
-  .af-feature-item {
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    flex: 1 1 0 !important;
-    width: auto !important;
-    max-width: 80px !important;
-    min-width: 0 !important;
-    gap: 6px !important;
-  }
-  .af-feature-icon {
-    width: 48px !important;
-    height: 48px !important;
-    min-width: 48px !important;
-    min-height: 48px !important;
-    flex-shrink: 0 !important;
-  }
-  .af-feature-icon svg { width: 22px !important; height: 22px !important; }
-  .af-feature-label { font-size: 10px !important; text-align: center !important; }
-}
