@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.0');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.1');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1401,74 +1401,83 @@ add_action('wp_footer', function() { ?>
 <?php }, 10003);
 
 /* ============================================================
-   Hero Slider mobile fix — find Swiper instance via element
-   ID 0971963 (seen in devtools), patch params, force widths,
-   and watch with MutationObserver for re-sets.
+   Hero Slider mobile fix — the parent column of the slider
+   widget is too narrow; walk up the DOM and widen all ancestors,
+   then patch the Swiper instance and force slide widths.
    ============================================================ */
 add_action('wp_footer', function() { ?>
 <script>
 (function(){
   if (window.innerWidth > 768) return;
-  var vw = window.innerWidth;
-  var SLIDE_SEL = '.elementor-element-0971963 .swiper-slide, .elementor-widget-slides .swiper-slide';
 
-  function forceSlideWidths() {
-    document.querySelectorAll(SLIDE_SEL).forEach(function(s) {
-      s.style.setProperty('width', vw + 'px', 'important');
-      s.style.setProperty('min-width', vw + 'px', 'important');
-      s.style.setProperty('max-width', vw + 'px', 'important');
-      s.style.setProperty('height', '420px', 'important');
-      s.style.setProperty('flex-shrink', '0', 'important');
-    });
-  }
+  function doFix() {
+    var vw = window.innerWidth;
+    var widget = document.querySelector('.elementor-element-0971963');
+    if (!widget) return;
 
-  function patchSwiper(el) {
-    // Swiper instance stored on the container element
-    var sw = el && el.swiper;
-    if (!sw) return;
-    sw.params.slidesPerView = 1;
-    sw.params.spaceBetween = 0;
-    sw.params.centeredSlides = false;
-    if (sw.originalParams) {
-      sw.originalParams.slidesPerView = 1;
-      sw.originalParams.spaceBetween = 0;
-      sw.originalParams.centeredSlides = false;
-    }
-    // Fix container width first so Swiper measures correctly
-    el.style.setProperty('width', vw + 'px', 'important');
-    sw.update();
-    forceSlideWidths();
-  }
-
-  function findAndPatch() {
-    // Walk up from swiper-slide to find the Swiper container
-    var slide = document.querySelector(SLIDE_SEL);
-    if (!slide) return;
-    var el = slide.parentElement; // swiper-wrapper / track
-    while (el) {
-      if (el.swiper) { patchSwiper(el); break; }
+    // 1. Walk UP the DOM from the widget and force every ancestor to full width
+    var el = widget;
+    while (el && el !== document.body) {
+      el.style.setProperty('width', '100%', 'important');
+      el.style.setProperty('max-width', '100%', 'important');
+      el.style.setProperty('min-width', '0', 'important');
+      el.style.setProperty('flex-shrink', '0', 'important');
       el = el.parentElement;
     }
-    forceSlideWidths();
-  }
 
-  var _observer;
-  function watchSlides() {
-    if (_observer) return;
-    var slides = document.querySelectorAll(SLIDE_SEL);
-    if (!slides.length) return;
-    _observer = new MutationObserver(function() { forceSlideWidths(); });
-    slides.forEach(function(s) {
-      _observer.observe(s, { attributes: true, attributeFilter: ['style'] });
+    // 2. Find the Swiper container (walk from slide upward, find .swiper property)
+    var slide = widget.querySelector('.swiper-slide');
+    if (slide) {
+      var node = slide.parentElement;
+      while (node && node !== document.body) {
+        if (node.swiper) {
+          var sw = node.swiper;
+          node.style.setProperty('width', vw + 'px', 'important');
+          sw.params.slidesPerView = 1;
+          sw.params.spaceBetween = 0;
+          sw.params.centeredSlides = false;
+          if (sw.originalParams) {
+            sw.originalParams.slidesPerView = 1;
+            sw.originalParams.spaceBetween = 0;
+            sw.originalParams.centeredSlides = false;
+          }
+          sw.update();
+          break;
+        }
+        node = node.parentElement;
+      }
+    }
+
+    // 3. Force every slide to exactly viewport width
+    widget.querySelectorAll('.swiper-slide').forEach(function(s) {
+      s.style.setProperty('width', vw + 'px', 'important');
+      s.style.setProperty('min-width', vw + 'px', 'important');
+      s.style.setProperty('flex-shrink', '0', 'important');
     });
+
+    // 4. MutationObserver — catch Swiper re-setting slide widths
+    if (!widget._sliderFixed) {
+      widget._sliderFixed = true;
+      var obs = new MutationObserver(function() {
+        var vw2 = window.innerWidth;
+        widget.querySelectorAll('.swiper-slide').forEach(function(s) {
+          var cur = parseInt(s.style.width);
+          if (cur && cur !== vw2) {
+            s.style.setProperty('width', vw2 + 'px', 'important');
+            s.style.setProperty('min-width', vw2 + 'px', 'important');
+          }
+        });
+      });
+      widget.querySelectorAll('.swiper-slide').forEach(function(s) {
+        obs.observe(s, { attributes: true, attributeFilter: ['style'] });
+      });
+    }
   }
 
-  function run() { findAndPatch(); watchSlides(); }
-
-  window.addEventListener('load', run);
-  setTimeout(run, 600);
-  setTimeout(run, 1500);
-  setTimeout(run, 3000);
+  window.addEventListener('load', doFix);
+  setTimeout(doFix, 500);
+  setTimeout(doFix, 1500);
+  setTimeout(doFix, 3000);
 }());
 </script>
 <?php }, 10004);
