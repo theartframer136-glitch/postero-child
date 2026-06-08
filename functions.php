@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.2');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.3');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1330,17 +1330,10 @@ add_action('wp_footer', function() { ?>
   }
 
   function findFeaturesSec() {
-    // Try custom class first
     var sec = document.querySelector('.features-section');
     if (sec) return sec;
-    // Try direct data-id (from dev tools: mobile features section)
     sec = document.querySelector('[data-id="810fb7a"]');
     if (sec) return sec;
-    // Fallback: mobile-only e-con containing 3+ icon widgets
-    var candidates = document.querySelectorAll('.e-con-full.e-con:not(.elementor-hidden-mobile):not(.elementor-hidden-mobile_extra)');
-    for (var i = 0; i < candidates.length; i++) {
-      if (candidates[i].querySelectorAll('.elementor-widget-icon, .elementor-icon').length >= 3) return candidates[i];
-    }
     return null;
   }
 
