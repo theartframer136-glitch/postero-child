@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.5.9');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.6.0');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -17,8 +17,21 @@ add_action('wp_enqueue_scripts', function() {
 add_filter('woocommerce_currency', function() { return 'USD'; }, 9999);
 add_filter('woocommerce_currency_symbol', function($symbol, $currency) { return '$'; }, 9999, 2);
 
-// Set all currency cookies to USD server-side before any plugin reads them
+// Force WMC plugin's own stored default to USD (fixes navbar showing INR)
 add_action('init', function() {
+    // Fix WMC plugin database default
+    $wmc_options = get_option('wmc_options', []);
+    if (!empty($wmc_options) && ($wmc_options['default_currency'] ?? '') !== 'USD') {
+        $wmc_options['default_currency'] = 'USD';
+        update_option('wmc_options', $wmc_options);
+    }
+    // Fix WOOCS plugin database default
+    $woocs_def = get_option('woocs_default_currency', '');
+    if ($woocs_def && $woocs_def !== 'USD') {
+        update_option('woocs_default_currency', 'USD');
+    }
+
+    // Set all currency cookies to USD
     $exp  = time() + 86400 * 365;
     $path = COOKIEPATH ?: '/';
     $host = COOKIE_DOMAIN ?: '';
@@ -56,6 +69,47 @@ add_filter('woocommerce_price_args', function($args) {
 add_filter('wmc_get_price', function($price, $currency) { return $price; }, 9999, 2);
 add_filter('wmc_current_currency', function() { return 'USD'; }, 9999);
 add_filter('wmc_frontend_display_currency', function() { return 'USD'; }, 9999);
+
+// Immediately fix navbar currency display before page renders
+add_action('wp_head', function() { ?>
+<script>
+(function(){
+  // Set cookies immediately — before any plugin JS reads them
+  var opts = '; path=/; max-age=' + (86400 * 365);
+  document.cookie = 'woocs_session_currency=USD' + opts;
+  document.cookie = 'wmc_current_currency=USD' + opts;
+  document.cookie = 'wmc-currency=USD' + opts;
+  document.cookie = 'currency=USD' + opts;
+  document.cookie = 'chosen_currency=USD' + opts;
+
+  // As soon as DOM is available, rewrite any INR text in the currency switcher
+  function fixNavCurrency() {
+    document.querySelectorAll(
+      '.currency-switcher, .wmc-currency-wrapper, .woocs_form_currency_select, ' +
+      '[class*="currency-switch"], [class*="currency_switch"], .wccs_curr_switcher, ' +
+      '.wmc-switcher, [class*="woocs"], [id*="woocs"], [class*="wmc-cur"]'
+    ).forEach(function(el) {
+      if (el.innerHTML.indexOf('INR') !== -1 || el.innerHTML.indexOf('₹') !== -1) {
+        el.innerHTML = el.innerHTML.replace(/₹\s*/g, '$ ').replace(/INR/g, 'USD');
+      }
+    });
+    // Also fix selected option in any select dropdowns
+    document.querySelectorAll('select[name*="currency"], select[id*="currency"], select[class*="currency"]').forEach(function(sel) {
+      Array.from(sel.options).forEach(function(opt) {
+        if (opt.value === 'USD' || opt.text.indexOf('USD') !== -1) {
+          sel.value = opt.value;
+          opt.selected = true;
+        }
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', fixNavCurrency);
+  window.addEventListener('load', fixNavCurrency);
+  // Run once immediately in case DOM is already ready
+  if (document.readyState !== 'loading') fixNavCurrency();
+})();
+</script>
+<?php }, 1);
 
 // 3. Enable WooCommerce registration
 add_action('init', function() {
