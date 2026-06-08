@@ -841,10 +841,18 @@ ul.postero-scroll-content .cat-item a {
    Only targets .af-features-bar / .features-section (our custom HTML, not Elementor desktop section)
    ============================================================ */
 
-/* Works on all screen sizes — the Elementor desktop section uses its own widgets */
-.elementor-widget-shortcode .af-features-bar,
-.elementor-widget-html .af-features-bar,
-.features-section .af-features-bar,
+/* Override Elementor --flex-direction CSS variable on any container holding our bar */
+.features-section,
+.features-section > .e-con-inner,
+.features-section .e-con-inner {
+  --flex-direction: row !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  justify-content: space-evenly !important;
+}
+
+/* The bar itself */
 .af-features-bar {
   display: flex !important;
   flex-direction: row !important;
