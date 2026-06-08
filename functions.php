@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.6.1');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.6.2');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -91,25 +91,22 @@ add_action('wp_head', function() { ?>
   document.cookie = 'currency=USD' + opts;
   document.cookie = 'chosen_currency=USD' + opts;
 
-  // As soon as DOM is available, rewrite any INR text in the currency switcher
+  // Select USD in dropdowns without removing other options
   function fixNavCurrency() {
-    document.querySelectorAll(
-      '.currency-switcher, .wmc-currency-wrapper, .woocs_form_currency_select, ' +
-      '[class*="currency-switch"], [class*="currency_switch"], .wccs_curr_switcher, ' +
-      '.wmc-switcher, [class*="woocs"], [id*="woocs"], [class*="wmc-cur"]'
-    ).forEach(function(el) {
-      if (el.innerHTML.indexOf('INR') !== -1 || el.innerHTML.indexOf('₹') !== -1) {
-        el.innerHTML = el.innerHTML.replace(/₹\s*/g, '$ ').replace(/INR/g, 'USD');
-      }
-    });
-    // Also fix selected option in any select dropdowns
+    // Fix <select> dropdowns — just change selected value, keep all options intact
     document.querySelectorAll('select[name*="currency"], select[id*="currency"], select[class*="currency"]').forEach(function(sel) {
-      Array.from(sel.options).forEach(function(opt) {
-        if (opt.value === 'USD' || opt.text.indexOf('USD') !== -1) {
-          sel.value = opt.value;
-          opt.selected = true;
-        }
-      });
+      var usdOpt = Array.from(sel.options).find(function(o) { return o.value === 'USD' || o.text.indexOf('USD') !== -1; });
+      if (usdOpt) { sel.value = usdOpt.value; usdOpt.selected = true; }
+    });
+    // Fix the visible label/button text (not inside <select>) — replace only the display label
+    document.querySelectorAll(
+      '.currency-switcher > span, .wmc-currency-wrapper > span, ' +
+      '[class*="woocs"] .selected-currency, [class*="woocs"] > span, ' +
+      '.wmc-switcher .current, [class*="wmc-cur"] .current'
+    ).forEach(function(el) {
+      if (el.children.length === 0 && (el.textContent.indexOf('INR') !== -1 || el.textContent.indexOf('₹') !== -1)) {
+        el.textContent = el.textContent.replace(/₹\s*/g, '$ ').replace(/INR/g, 'USD');
+      }
     });
   }
   document.addEventListener('DOMContentLoaded', fixNavCurrency);
