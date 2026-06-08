@@ -793,23 +793,43 @@ ul.postero-scroll-content .cat-item a {
 
 /* ============================================================
    HERO SLIDER — mobile fix
-   Elementor slides widget collapses height on mobile; force
-   a proper minimum height and make the background image cover.
+   Swiper JS calculates slide width from container; force the
+   entire widget stack to 100vw so Swiper gets the right number.
    ============================================================ */
 @media (max-width: 768px) {
-  .elementor-slides-wrapper,
+  /* Force the widget and all its ancestors in the section to full width */
+  .elementor-widget-slides,
+  .elementor-widget-slides > .elementor-widget-container,
+  .elementor-widget-slides .ae-swiper-wrapper,
   .elementor-widget-slides .swiper-container,
-  .elementor-widget-slides .swiper {
+  .elementor-widget-slides .swiper,
+  .elementor-slides-wrapper {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 420px !important;
+    height: 420px !important;
+    overflow: hidden !important;
+  }
+
+  /* Force each swiper slide to full container width */
+  .elementor-widget-slides .swiper-wrapper,
+  .elementor-slides-wrapper .swiper-wrapper,
+  .ae-swiper-wrapper.elementor-slides {
+    width: 100% !important;
+    height: 420px !important;
+  }
+  .elementor-widget-slides .swiper-slide,
+  .elementor-slides-wrapper .swiper-slide {
+    width: 100% !important;
+    min-width: 100% !important;
+    max-width: 100% !important;
     min-height: 420px !important;
     height: 420px !important;
   }
-  .elementor-slides-wrapper .swiper-slide,
-  .elementor-widget-slides .swiper-slide {
-    min-height: 420px !important;
-    height: 420px !important;
-  }
-  .elementor-slides-wrapper .swiper-slide-bg,
-  .elementor-widget-slides .swiper-slide-bg {
+
+  /* Slide background image — cover, centered */
+  .elementor-widget-slides .swiper-slide-bg,
+  .elementor-slides-wrapper .swiper-slide-bg {
     background-size: cover !important;
     background-position: center center !important;
     width: 100% !important;
@@ -817,17 +837,21 @@ ul.postero-scroll-content .cat-item a {
     position: absolute !important;
     inset: 0 !important;
   }
-  .elementor-slides-wrapper .swiper-slide-inner,
-  .elementor-widget-slides .swiper-slide-inner {
+
+  /* Slide inner content */
+  .elementor-widget-slides .swiper-slide-inner,
+  .elementor-slides-wrapper .swiper-slide-inner {
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 420px !important;
     position: relative !important;
     z-index: 2 !important;
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    height: 100% !important;
-    min-height: 420px !important;
   }
-  /* Prev/next arrows */
+
+  /* Prev/next arrows always visible */
   .elementor-widget-slides .elementor-swiper-button {
     display: flex !important;
   }

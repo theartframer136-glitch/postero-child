@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.7.7');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.7.8');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1399,3 +1399,34 @@ add_action('wp_footer', function() { ?>
 }());
 </script>
 <?php }, 10003);
+
+/* ============================================================
+   Hero Slider mobile fix — force slides to 100% width after
+   Swiper JS sets inline style="width: Xpx" on each slide
+   ============================================================ */
+add_action('wp_footer', function() { ?>
+<script>
+(function(){
+  if (window.innerWidth > 768) return;
+  function fixHeroSlider() {
+    var slides = document.querySelectorAll('.elementor-widget-slides .swiper-slide, .elementor-slides-wrapper .swiper-slide');
+    if (!slides.length) return;
+    var vw = window.innerWidth + 'px';
+    slides.forEach(function(s) {
+      s.style.setProperty('width', vw, 'important');
+      s.style.setProperty('min-width', vw, 'important');
+    });
+    // Also fix the wrapper
+    var wrappers = document.querySelectorAll('.elementor-widget-slides .swiper-wrapper, .ae-swiper-wrapper.elementor-slides');
+    wrappers.forEach(function(w) {
+      w.style.setProperty('height', '420px', 'important');
+    });
+  }
+  document.addEventListener('DOMContentLoaded', fixHeroSlider);
+  window.addEventListener('load', fixHeroSlider);
+  // Retry after Swiper reinitializes
+  setTimeout(fixHeroSlider, 500);
+  setTimeout(fixHeroSlider, 1500);
+}());
+</script>
+<?php }, 10004);
