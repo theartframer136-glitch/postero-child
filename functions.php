@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.7.8');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.7.9');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1401,32 +1401,83 @@ add_action('wp_footer', function() { ?>
 <?php }, 10003);
 
 /* ============================================================
-   Hero Slider mobile fix — force slides to 100% width after
-   Swiper JS sets inline style="width: Xpx" on each slide
+   Hero Slider mobile fix — intercept Swiper instance and fix
+   slidesPerView so each slide is exactly 100% viewport width
    ============================================================ */
 add_action('wp_footer', function() { ?>
 <script>
 (function(){
   if (window.innerWidth > 768) return;
-  function fixHeroSlider() {
-    var slides = document.querySelectorAll('.elementor-widget-slides .swiper-slide, .elementor-slides-wrapper .swiper-slide');
-    if (!slides.length) return;
-    var vw = window.innerWidth + 'px';
-    slides.forEach(function(s) {
-      s.style.setProperty('width', vw, 'important');
-      s.style.setProperty('min-width', vw, 'important');
-    });
-    // Also fix the wrapper
-    var wrappers = document.querySelectorAll('.elementor-widget-slides .swiper-wrapper, .ae-swiper-wrapper.elementor-slides');
-    wrappers.forEach(function(w) {
-      w.style.setProperty('height', '420px', 'important');
+  var vw = window.innerWidth;
+
+  function patchSwiperInstance(container) {
+    var sw = container.swiper;
+    if (!sw) return false;
+    // Patch Swiper config so each slide = full container width
+    sw.params.slidesPerView = 1;
+    sw.params.spaceBetween = 0;
+    sw.params.centeredSlides = false;
+    if (sw.originalParams) {
+      sw.originalParams.slidesPerView = 1;
+      sw.originalParams.spaceBetween = 0;
+    }
+    sw.update();
+    return true;
+  }
+
+  function forceSlideWidths() {
+    document.querySelectorAll(
+      '.elementor-widget-slides .swiper-slide, .elementor-slides-wrapper .swiper-slide'
+    ).forEach(function(s) {
+      s.style.setProperty('width', vw + 'px', 'important');
+      s.style.setProperty('min-width', vw + 'px', 'important');
+      s.style.setProperty('max-width', vw + 'px', 'important');
     });
   }
-  document.addEventListener('DOMContentLoaded', fixHeroSlider);
-  window.addEventListener('load', fixHeroSlider);
-  // Retry after Swiper reinitializes
-  setTimeout(fixHeroSlider, 500);
-  setTimeout(fixHeroSlider, 1500);
+
+  function fixHeroSlider() {
+    // Try to find the Swiper container (parent of .swiper-wrapper)
+    var wrappers = document.querySelectorAll(
+      '.elementor-widget-slides .swiper-wrapper, [class*="swiper-wrapper"].elementor-slides'
+    );
+    var patched = false;
+    wrappers.forEach(function(wrapper) {
+      var container = wrapper.parentElement;
+      if (container && patchSwiperInstance(container)) patched = true;
+    });
+    // Always force widths as fallback
+    forceSlideWidths();
+    return patched;
+  }
+
+  // Watch for Swiper re-setting inline width on slides (MutationObserver)
+  function watchSlides() {
+    var observer = new MutationObserver(function(mutations) {
+      var needsFix = false;
+      mutations.forEach(function(m) {
+        if (m.type === 'attributes' && m.attributeName === 'style') {
+          var el = m.target;
+          if (el.classList.contains('swiper-slide')) {
+            var w = parseInt(el.style.width);
+            if (w && w !== vw) needsFix = true;
+          }
+        }
+      });
+      if (needsFix) forceSlideWidths();
+    });
+    document.querySelectorAll(
+      '.elementor-widget-slides .swiper-slide, .elementor-slides-wrapper .swiper-slide'
+    ).forEach(function(s) {
+      observer.observe(s, { attributes: true, attributeFilter: ['style'] });
+    });
+  }
+
+  window.addEventListener('load', function() {
+    fixHeroSlider();
+    watchSlides();
+  });
+  setTimeout(function() { fixHeroSlider(); watchSlides(); }, 800);
+  setTimeout(function() { fixHeroSlider(); watchSlides(); }, 2000);
 }());
 </script>
 <?php }, 10004);
