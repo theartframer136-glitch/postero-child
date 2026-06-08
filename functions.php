@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.6.0');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.6.1');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -16,6 +16,15 @@ add_action('wp_enqueue_scripts', function() {
 // 2. Force USD as default currency — override currency switcher plugins
 add_filter('woocommerce_currency', function() { return 'USD'; }, 9999);
 add_filter('woocommerce_currency_symbol', function($symbol, $currency) { return '$'; }, 9999, 2);
+
+// Redirect any ?currency=INR (or any non-USD) URL to ?currency=USD
+add_action('template_redirect', function() {
+    if (isset($_GET['currency']) && $_GET['currency'] !== 'USD') {
+        $url = add_query_arg('currency', 'USD', remove_query_arg('currency'));
+        wp_redirect($url, 302);
+        exit;
+    }
+});
 
 // Force WMC plugin's own stored default to USD (fixes navbar showing INR)
 add_action('init', function() {
