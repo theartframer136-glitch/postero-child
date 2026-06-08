@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.7.0');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.7.1');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1295,6 +1295,66 @@ add_action('wp_footer', function() { ?>
 
   document.addEventListener('DOMContentLoaded', buildBar);
   window.addEventListener('load', buildBar);
+}());
+</script>
+<script>
+(function(){
+  function fixFeaturesSection() {
+    var sec = document.querySelector('.features-section');
+    if (!sec) return;
+
+    // Force the inner container to row
+    var inner = sec.querySelector('.e-con-inner') || sec;
+    inner.style.setProperty('flex-direction', 'row', 'important');
+    inner.style.setProperty('flex-wrap', 'nowrap', 'important');
+    inner.style.setProperty('justify-content', 'space-evenly', 'important');
+    inner.style.setProperty('align-items', 'flex-start', 'important');
+    inner.style.setProperty('gap', '6px', 'important');
+    inner.style.setProperty('--flex-direction', 'row', 'important');
+
+    // Style each child item
+    var items = inner.children;
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      item.style.setProperty('flex', '1 1 0', 'important');
+      item.style.setProperty('min-width', '0', 'important');
+      item.style.setProperty('max-width', '90px', 'important');
+      item.style.setProperty('text-align', 'center', 'important');
+
+      // Gold circle on icon wrapper
+      var iconEl = item.querySelector('.elementor-icon, .elementor-icon-wrapper, i, svg');
+      if (iconEl) {
+        var wrap = iconEl.closest('.elementor-icon-wrapper') || iconEl.closest('.elementor-widget-container') || iconEl.parentElement;
+        wrap.style.setProperty('width', '56px', 'important');
+        wrap.style.setProperty('height', '56px', 'important');
+        wrap.style.setProperty('border-radius', '50%', 'important');
+        wrap.style.setProperty('background', '#c9a84c', 'important');
+        wrap.style.setProperty('display', 'flex', 'important');
+        wrap.style.setProperty('align-items', 'center', 'important');
+        wrap.style.setProperty('justify-content', 'center', 'important');
+        wrap.style.setProperty('margin', '0 auto 6px', 'important');
+        // White icon
+        iconEl.style.setProperty('color', '#fff', 'important');
+        iconEl.style.setProperty('fill', '#fff', 'important');
+        iconEl.style.setProperty('font-size', '24px', 'important');
+        iconEl.style.setProperty('width', '24px', 'important');
+        iconEl.style.setProperty('height', '24px', 'important');
+      }
+
+      // Label text
+      var label = item.querySelector('h1,h2,h3,h4,h5,h6,p,.elementor-icon-box-title,.elementor-heading-title');
+      if (label) {
+        label.style.setProperty('font-size', '11px', 'important');
+        label.style.setProperty('font-weight', '600', 'important');
+        label.style.setProperty('color', '#222', 'important');
+        label.style.setProperty('text-align', 'center', 'important');
+        label.style.setProperty('line-height', '1.3', 'important');
+        label.style.setProperty('margin', '0', 'important');
+      }
+    }
+  }
+  document.addEventListener('DOMContentLoaded', fixFeaturesSection);
+  window.addEventListener('load', fixFeaturesSection);
 }());
 </script>
 <?php }, 10003);
