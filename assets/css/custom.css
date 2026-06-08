@@ -840,6 +840,63 @@ ul.postero-scroll-content .cat-item a {
    FEATURE ICONS — mobile .features-section (Elementor) + .af-features-bar (shortcode)
    ============================================================ */
 
+/* Target mobile features section by Elementor data-id */
+.elementor-element-810fb7a > .e-con-inner,
+.elementor-element-810fb7a .e-con-inner,
+.features-section > .e-con-inner,
+.features-section .e-con-inner {
+  --flex-direction: row !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: space-evenly !important;
+  align-items: flex-start !important;
+  gap: 4px !important;
+}
+
+.elementor-element-810fb7a .elementor-element,
+.features-section .elementor-element {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: 90px !important;
+  text-align: center !important;
+}
+
+.elementor-element-810fb7a .elementor-icon,
+.features-section .elementor-icon {
+  width: 56px !important;
+  height: 56px !important;
+  min-width: 56px !important;
+  border-radius: 50% !important;
+  background: #c9a84c !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 auto 6px !important;
+}
+
+.elementor-element-810fb7a .elementor-icon i,
+.elementor-element-810fb7a .elementor-icon svg,
+.features-section .elementor-icon i,
+.features-section .elementor-icon svg {
+  color: #fff !important;
+  fill: #fff !important;
+  font-size: 24px !important;
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.elementor-element-810fb7a .elementor-icon-box-title,
+.elementor-element-810fb7a .elementor-heading-title,
+.features-section .elementor-icon-box-title,
+.features-section .elementor-heading-title {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #222 !important;
+  text-align: center !important;
+  line-height: 1.3 !important;
+  margin: 0 !important;
+}
+
 /* 1. Force the Elementor features-section container into a ROW */
 .features-section.e-con,
 .features-section .e-con-inner,
