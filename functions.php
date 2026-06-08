@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.6.4');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.6.5');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1251,19 +1251,49 @@ add_action('wp_footer', function() { ?>
     }
   ];
 
+  var isMob = window.innerWidth <= 576;
   function buildBar() {
     var bars = document.querySelectorAll('.af-features-bar');
     if (!bars.length) return;
     bars.forEach(function(bar) {
       if (bar.dataset.afBuilt) return;
       bar.dataset.afBuilt = '1';
-      // Force horizontal layout inline so Elementor can't override it
-      bar.style.cssText = 'display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;justify-content:space-evenly!important;align-items:center!important;width:100%!important;box-sizing:border-box!important;';
+      // Walk up and fix any Elementor parent that may be stacking children
+      var p = bar.parentElement;
+      for (var n = 0; n < 5 && p; n++, p = p.parentElement) {
+        var ps = window.getComputedStyle(p);
+        if (ps.flexDirection === 'column') { p.style.setProperty('flex-direction','row','important'); }
+        if (ps.display === 'flex' && ps.flexWrap === 'wrap') { p.style.setProperty('flex-wrap','nowrap','important'); }
+      }
+      // Force bar layout fully inline
+      var iconSz  = isMob ? '52px'  : '70px';
+      var svgSz   = isMob ? '24px'  : '32px';
+      var labelFs = isMob ? '11px'  : '13px';
+      var gap     = isMob ? '6px'   : '10px';
+      bar.setAttribute('style',
+        'display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;' +
+        'justify-content:space-evenly!important;align-items:flex-start!important;' +
+        'width:100%!important;box-sizing:border-box!important;padding:20px 8px!important;gap:4px!important;');
       features.forEach(function(f, i) {
         var item = document.createElement('div');
-        item.className = 'af-feature-item';
-        item.style.cssText = 'display:flex!important;flex-direction:column!important;align-items:center!important;flex:1 1 0!important;min-width:0!important;';
-        item.innerHTML = '<div class="af-feature-icon">' + f.icon + '</div><div class="af-feature-label">' + f.label + '</div>';
+        item.setAttribute('style',
+          'display:flex!important;flex-direction:column!important;align-items:center!important;' +
+          'flex:1 1 0!important;min-width:0!important;gap:' + gap + '!important;cursor:pointer!important;');
+        // Icon circle
+        var iconDiv = document.createElement('div');
+        iconDiv.setAttribute('style',
+          'width:' + iconSz + '!important;height:' + iconSz + '!important;min-width:' + iconSz + '!important;' +
+          'border-radius:50%!important;background:#c9a84c!important;' +
+          'display:flex!important;align-items:center!important;justify-content:center!important;flex-shrink:0!important;');
+        iconDiv.innerHTML = f.icon.replace('<svg ', '<svg style="width:' + svgSz + ';height:' + svgSz + ';fill:#fff;" ');
+        // Label
+        var label = document.createElement('div');
+        label.setAttribute('style',
+          'font-size:' + labelFs + '!important;font-weight:600!important;color:#222!important;' +
+          'text-align:center!important;line-height:1.3!important;');
+        label.textContent = f.label;
+        item.appendChild(iconDiv);
+        item.appendChild(label);
         item.addEventListener('click', function() { openSheet(i); });
         bar.appendChild(item);
       });
