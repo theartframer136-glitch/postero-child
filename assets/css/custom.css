@@ -791,6 +791,48 @@ ul.postero-scroll-content .cat-item a {
   #topCatSlider .top-cat-btn { font-size: 11px !important; padding: 5px 3px !important; }
 }
 
+/* ============================================================
+   HERO SLIDER — mobile fix
+   Elementor slides widget collapses height on mobile; force
+   a proper minimum height and make the background image cover.
+   ============================================================ */
+@media (max-width: 768px) {
+  .elementor-slides-wrapper,
+  .elementor-widget-slides .swiper-container,
+  .elementor-widget-slides .swiper {
+    min-height: 420px !important;
+    height: 420px !important;
+  }
+  .elementor-slides-wrapper .swiper-slide,
+  .elementor-widget-slides .swiper-slide {
+    min-height: 420px !important;
+    height: 420px !important;
+  }
+  .elementor-slides-wrapper .swiper-slide-bg,
+  .elementor-widget-slides .swiper-slide-bg {
+    background-size: cover !important;
+    background-position: center center !important;
+    width: 100% !important;
+    height: 100% !important;
+    position: absolute !important;
+    inset: 0 !important;
+  }
+  .elementor-slides-wrapper .swiper-slide-inner,
+  .elementor-widget-slides .swiper-slide-inner {
+    position: relative !important;
+    z-index: 2 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+    min-height: 420px !important;
+  }
+  /* Prev/next arrows */
+  .elementor-widget-slides .elementor-swiper-button {
+    display: flex !important;
+  }
+}
+
 
 /* ============================================================
    ADD TO CART BUTTON — gold style (matches second screenshot)
