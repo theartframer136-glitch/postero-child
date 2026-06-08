@@ -955,9 +955,15 @@ ul.postero-scroll-content .cat-item a {
 }
 
 @media (max-width: 576px) {
-  .af-features-bar { gap: 20px; padding: 20px 10px; }
-  .af-feature-item { width: 75px; }
-  .af-feature-icon { width: 56px; height: 56px; }
-  .af-feature-icon svg { width: 26px; height: 26px; }
-  .af-feature-label { font-size: 11px; }
+  .af-features-bar {
+    flex-wrap: nowrap !important;
+    flex-direction: row !important;
+    justify-content: space-evenly !important;
+    gap: 8px !important;
+    padding: 16px 6px !important;
+  }
+  .af-feature-item { width: auto !important; flex: 1 1 0 !important; max-width: 90px !important; }
+  .af-feature-icon { width: 50px !important; height: 50px !important; }
+  .af-feature-icon svg { width: 22px !important; height: 22px !important; }
+  .af-feature-label { font-size: 10px !important; }
 }
