@@ -184,6 +184,45 @@ add_filter('login_url', function() { return home_url('/my-account/'); });
 add_filter('register_url', function() { return home_url('/my-account/?action=register'); });
 add_filter('logout_url', function() { return home_url('/my-account/'); });
 
+// 5a. Force Elementor footer template to show on all pages (not just home)
+add_action('init', function() {
+    if (!class_exists('\Elementor\Plugin')) return;
+    $done = get_option('af_footer_condition_fixed', false);
+    if ($done) return;
+
+    $footers = get_posts([
+        'post_type'      => 'elementor_library',
+        'posts_per_page' => -1,
+        'meta_query'     => [[
+            'key'   => '_elementor_template_type',
+            'value' => 'footer',
+        ]],
+    ]);
+
+    foreach ($footers as $footer) {
+        $conditions = get_post_meta($footer->ID, '_elementor_conditions', true);
+        if (!is_array($conditions)) $conditions = [];
+        // Check if "entire site" condition already exists
+        $has_global = in_array('include/general//', $conditions, true);
+        if (!$has_global) {
+            // Replace any narrow conditions with "entire site"
+            $new_conditions = ['include/general//'];
+            // Keep any explicit exclude conditions
+            foreach ($conditions as $c) {
+                if (strpos($c, 'exclude') === 0) $new_conditions[] = $c;
+            }
+            update_post_meta($footer->ID, '_elementor_conditions', $new_conditions);
+        }
+    }
+
+    // Clear Elementor conditions cache so the change takes effect immediately
+    delete_option('elementor_pro_theme_builder_conditions');
+    if (class_exists('\ElementorPro\Modules\ThemeBuilder\Classes\Conditions_Manager')) {
+        delete_transient('elementor_pro_conditions_cache');
+    }
+    update_option('af_footer_condition_fixed', true);
+}, 20);
+
 // 5. Fix footer demo links
 add_filter('wp_nav_menu_items', function($items, $args) {
     $items = str_replace('demo2wpopal.b-cdn.net/postero', 'theartframer.us', $items);
