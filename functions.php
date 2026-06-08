@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.7.4');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.7.5');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1143,36 +1143,45 @@ add_action('wp_footer', function() { ?>
             var circle = document.createElement('div'); circle.className = 'af-vid-circle';
 
             if (v.id) {
-                // Use background-image — background-size:cover fills circle perfectly, no black bars
+                // Autoplay iframe — muted, looped, no controls, covers circle
+                var fr = document.createElement('iframe');
+                fr.src = 'https://www.youtube-nocookie.com/embed/' + v.id
+                       + '?autoplay=1&mute=1&loop=1&playlist=' + v.id
+                       + '&controls=0&rel=0&playsinline=1&enablejsapi=1'
+                       + '&origin=' + encodeURIComponent(location.origin);
+                fr.allow = 'autoplay; encrypted-media; fullscreen';
+                fr.setAttribute('allowfullscreen', '');
+                // Scale up iframe to fill circle and crop black bars
+                fr.style.cssText = 'position:absolute;top:50%;left:50%;'
+                    + 'width:200%;height:200%;'
+                    + 'transform:translate(-50%,-50%) scale(1.0);'
+                    + 'border:none;pointer-events:none;z-index:1;';
+                circle.appendChild(fr);
+
+                // Thumbnail fallback (shown if iframe blocked, hidden once iframe loads)
                 var thumbHq  = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg';
                 var thumbMax = 'https://img.youtube.com/vi/' + v.id + '/maxresdefault.jpg';
-                circle.style.cssText += 'background-image:url(' + thumbMax + ');background-size:cover;background-position:center center;';
-                // Fallback: if maxres 404s, swap to hqdefault via a probe image
-                var probe = new Image();
-                probe.onload = function() {
-                    if (probe.naturalWidth < 100) {
-                        circle.style.backgroundImage = 'url(' + thumbHq + ')';
-                    }
-                };
-                probe.onerror = function() { circle.style.backgroundImage = 'url(' + thumbHq + ')'; };
-                probe.src = thumbMax;
+                var img = document.createElement('img');
+                img.src = thumbMax;
+                img.onerror = function(){ this.src = thumbHq; this.onerror = null; };
+                img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;'
+                    + 'object-fit:cover;object-position:center;z-index:2;'
+                    + 'transform:scale(1.35);transform-origin:center center;'
+                    + 'transition:opacity 0.5s;';
+                circle.appendChild(img);
 
-                // Gold play icon overlay
-                var icon = document.createElement('div'); icon.className = 'af-play-icon';
-                icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-                circle.appendChild(icon);
-
-                // Click: hide bg + play icon, show autoplay iframe
-                circle.addEventListener('click', function() {
-                    circle.style.backgroundImage = 'none';
-                    icon.style.display = 'none';
-                    var fr = document.createElement('iframe');
-                    fr.src = 'https://www.youtube-nocookie.com/embed/' + v.id + '?autoplay=1&mute=0&rel=0&playsinline=1';
-                    fr.allow = 'autoplay; fullscreen; encrypted-media';
-                    fr.allowFullscreen = true;
-                    fr.style.cssText = 'position:absolute;top:50%;left:50%;width:300%;height:300%;transform:translate(-50%,-46%);border:none;';
-                    circle.appendChild(fr);
+                // Hide thumbnail once iframe has loaded/started
+                fr.addEventListener('load', function() {
+                    setTimeout(function() { img.style.opacity = '0'; }, 2000);
                 });
+
+                // Click overlay — open YouTube on tap
+                var ov = document.createElement('div');
+                ov.style.cssText = 'position:absolute;inset:0;z-index:10;cursor:pointer;';
+                ov.addEventListener('click', function() {
+                    window.open('https://www.youtube.com/watch?v=' + v.id, '_blank');
+                });
+                circle.appendChild(ov);
             } else {
                 circle.style.background = '#222';
                 var icon2 = document.createElement('div'); icon2.className = 'af-play-icon';
