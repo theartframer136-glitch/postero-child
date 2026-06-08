@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.7.9');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.0');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1401,83 +1401,74 @@ add_action('wp_footer', function() { ?>
 <?php }, 10003);
 
 /* ============================================================
-   Hero Slider mobile fix — intercept Swiper instance and fix
-   slidesPerView so each slide is exactly 100% viewport width
+   Hero Slider mobile fix — find Swiper instance via element
+   ID 0971963 (seen in devtools), patch params, force widths,
+   and watch with MutationObserver for re-sets.
    ============================================================ */
 add_action('wp_footer', function() { ?>
 <script>
 (function(){
   if (window.innerWidth > 768) return;
   var vw = window.innerWidth;
+  var SLIDE_SEL = '.elementor-element-0971963 .swiper-slide, .elementor-widget-slides .swiper-slide';
 
-  function patchSwiperInstance(container) {
-    var sw = container.swiper;
-    if (!sw) return false;
-    // Patch Swiper config so each slide = full container width
+  function forceSlideWidths() {
+    document.querySelectorAll(SLIDE_SEL).forEach(function(s) {
+      s.style.setProperty('width', vw + 'px', 'important');
+      s.style.setProperty('min-width', vw + 'px', 'important');
+      s.style.setProperty('max-width', vw + 'px', 'important');
+      s.style.setProperty('height', '420px', 'important');
+      s.style.setProperty('flex-shrink', '0', 'important');
+    });
+  }
+
+  function patchSwiper(el) {
+    // Swiper instance stored on the container element
+    var sw = el && el.swiper;
+    if (!sw) return;
     sw.params.slidesPerView = 1;
     sw.params.spaceBetween = 0;
     sw.params.centeredSlides = false;
     if (sw.originalParams) {
       sw.originalParams.slidesPerView = 1;
       sw.originalParams.spaceBetween = 0;
+      sw.originalParams.centeredSlides = false;
     }
+    // Fix container width first so Swiper measures correctly
+    el.style.setProperty('width', vw + 'px', 'important');
     sw.update();
-    return true;
-  }
-
-  function forceSlideWidths() {
-    document.querySelectorAll(
-      '.elementor-widget-slides .swiper-slide, .elementor-slides-wrapper .swiper-slide'
-    ).forEach(function(s) {
-      s.style.setProperty('width', vw + 'px', 'important');
-      s.style.setProperty('min-width', vw + 'px', 'important');
-      s.style.setProperty('max-width', vw + 'px', 'important');
-    });
-  }
-
-  function fixHeroSlider() {
-    // Try to find the Swiper container (parent of .swiper-wrapper)
-    var wrappers = document.querySelectorAll(
-      '.elementor-widget-slides .swiper-wrapper, [class*="swiper-wrapper"].elementor-slides'
-    );
-    var patched = false;
-    wrappers.forEach(function(wrapper) {
-      var container = wrapper.parentElement;
-      if (container && patchSwiperInstance(container)) patched = true;
-    });
-    // Always force widths as fallback
     forceSlideWidths();
-    return patched;
   }
 
-  // Watch for Swiper re-setting inline width on slides (MutationObserver)
+  function findAndPatch() {
+    // Walk up from swiper-slide to find the Swiper container
+    var slide = document.querySelector(SLIDE_SEL);
+    if (!slide) return;
+    var el = slide.parentElement; // swiper-wrapper / track
+    while (el) {
+      if (el.swiper) { patchSwiper(el); break; }
+      el = el.parentElement;
+    }
+    forceSlideWidths();
+  }
+
+  var _observer;
   function watchSlides() {
-    var observer = new MutationObserver(function(mutations) {
-      var needsFix = false;
-      mutations.forEach(function(m) {
-        if (m.type === 'attributes' && m.attributeName === 'style') {
-          var el = m.target;
-          if (el.classList.contains('swiper-slide')) {
-            var w = parseInt(el.style.width);
-            if (w && w !== vw) needsFix = true;
-          }
-        }
-      });
-      if (needsFix) forceSlideWidths();
-    });
-    document.querySelectorAll(
-      '.elementor-widget-slides .swiper-slide, .elementor-slides-wrapper .swiper-slide'
-    ).forEach(function(s) {
-      observer.observe(s, { attributes: true, attributeFilter: ['style'] });
+    if (_observer) return;
+    var slides = document.querySelectorAll(SLIDE_SEL);
+    if (!slides.length) return;
+    _observer = new MutationObserver(function() { forceSlideWidths(); });
+    slides.forEach(function(s) {
+      _observer.observe(s, { attributes: true, attributeFilter: ['style'] });
     });
   }
 
-  window.addEventListener('load', function() {
-    fixHeroSlider();
-    watchSlides();
-  });
-  setTimeout(function() { fixHeroSlider(); watchSlides(); }, 800);
-  setTimeout(function() { fixHeroSlider(); watchSlides(); }, 2000);
+  function run() { findAndPatch(); watchSlides(); }
+
+  window.addEventListener('load', run);
+  setTimeout(run, 600);
+  setTimeout(run, 1500);
+  setTimeout(run, 3000);
 }());
 </script>
 <?php }, 10004);

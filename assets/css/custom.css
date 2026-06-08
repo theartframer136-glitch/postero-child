@@ -793,67 +793,67 @@ ul.postero-scroll-content .cat-item a {
 
 /* ============================================================
    HERO SLIDER — mobile fix
-   Swiper JS calculates slide width from container; force the
-   entire widget stack to 100vw so Swiper gets the right number.
+   Target the exact Elementor element ID (0971963) visible in
+   devtools. Use !important to override Swiper's inline widths.
    ============================================================ */
 @media (max-width: 768px) {
-  /* Force the widget and all its ancestors in the section to full width */
-  .elementor-widget-slides,
-  .elementor-widget-slides > .elementor-widget-container,
-  .elementor-widget-slides .ae-swiper-wrapper,
-  .elementor-widget-slides .swiper-container,
-  .elementor-widget-slides .swiper,
-  .elementor-slides-wrapper {
+  /* Full-width container stack */
+  .elementor-element-0971963,
+  .elementor-element-0971963 > .elementor-widget-container,
+  .elementor-element-0971963 .elementor-slides-wrapper,
+  .elementor-element-0971963 [class*="swiper-container"],
+  .elementor-element-0971963 [class*="swiper"]:not([class*="swiper-slide"]):not([class*="swiper-button"]):not([class*="swiper-pagination"]) {
     width: 100% !important;
     max-width: 100% !important;
-    min-height: 420px !important;
-    height: 420px !important;
     overflow: hidden !important;
   }
 
-  /* Force each swiper slide to full container width */
-  .elementor-widget-slides .swiper-wrapper,
-  .elementor-slides-wrapper .swiper-wrapper,
-  .ae-swiper-wrapper.elementor-slides {
-    width: 100% !important;
+  /* Force every slide to exactly viewport width — overrides Swiper inline style */
+  .elementor-element-0971963 .swiper-slide {
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
     height: 420px !important;
-  }
-  .elementor-widget-slides .swiper-slide,
-  .elementor-slides-wrapper .swiper-slide {
-    width: 100% !important;
-    min-width: 100% !important;
-    max-width: 100% !important;
     min-height: 420px !important;
-    height: 420px !important;
+    flex-shrink: 0 !important;
   }
 
-  /* Slide background image — cover, centered */
-  .elementor-widget-slides .swiper-slide-bg,
-  .elementor-slides-wrapper .swiper-slide-bg {
-    background-size: cover !important;
-    background-position: center center !important;
-    width: 100% !important;
-    height: 100% !important;
+  /* Slide background — cover the full slide */
+  .elementor-element-0971963 .swiper-slide-bg {
     position: absolute !important;
     inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background-size: cover !important;
+    background-position: center center !important;
   }
 
-  /* Slide inner content */
-  .elementor-widget-slides .swiper-slide-inner,
-  .elementor-slides-wrapper .swiper-slide-inner {
+  /* Slide inner text area */
+  .elementor-element-0971963 .swiper-slide-inner {
     width: 100% !important;
     height: 100% !important;
     min-height: 420px !important;
     position: relative !important;
     z-index: 2 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
   }
 
-  /* Prev/next arrows always visible */
+  /* Swiper track height */
+  .elementor-element-0971963 [class*="swiper-wrapper"],
+  .elementor-element-0971963 .elementor-slides {
+    height: 420px !important;
+  }
+
+  /* Prev/next arrows */
+  .elementor-element-0971963 .elementor-swiper-button,
   .elementor-widget-slides .elementor-swiper-button {
     display: flex !important;
+  }
+
+  /* Fallback for any other slides widget if ID differs */
+  .elementor-widget-slides .swiper-slide {
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
   }
 }
 
