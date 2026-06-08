@@ -956,14 +956,33 @@ ul.postero-scroll-content .cat-item a {
 
 @media (max-width: 576px) {
   .af-features-bar {
+    display: flex !important;
     flex-wrap: nowrap !important;
     flex-direction: row !important;
     justify-content: space-evenly !important;
-    gap: 8px !important;
-    padding: 16px 6px !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding: 16px 4px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
-  .af-feature-item { width: auto !important; flex: 1 1 0 !important; max-width: 90px !important; }
-  .af-feature-icon { width: 50px !important; height: 50px !important; }
+  .af-feature-item {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    flex: 1 1 0 !important;
+    width: auto !important;
+    max-width: 80px !important;
+    min-width: 0 !important;
+    gap: 6px !important;
+  }
+  .af-feature-icon {
+    width: 48px !important;
+    height: 48px !important;
+    min-width: 48px !important;
+    min-height: 48px !important;
+    flex-shrink: 0 !important;
+  }
   .af-feature-icon svg { width: 22px !important; height: 22px !important; }
-  .af-feature-label { font-size: 10px !important; }
+  .af-feature-label { font-size: 10px !important; text-align: center !important; }
 }

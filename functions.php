@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.6.3');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.6.4');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1257,9 +1257,12 @@ add_action('wp_footer', function() { ?>
     bars.forEach(function(bar) {
       if (bar.dataset.afBuilt) return;
       bar.dataset.afBuilt = '1';
+      // Force horizontal layout inline so Elementor can't override it
+      bar.style.cssText = 'display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;justify-content:space-evenly!important;align-items:center!important;width:100%!important;box-sizing:border-box!important;';
       features.forEach(function(f, i) {
         var item = document.createElement('div');
         item.className = 'af-feature-item';
+        item.style.cssText = 'display:flex!important;flex-direction:column!important;align-items:center!important;flex:1 1 0!important;min-width:0!important;';
         item.innerHTML = '<div class="af-feature-icon">' + f.icon + '</div><div class="af-feature-label">' + f.label + '</div>';
         item.addEventListener('click', function() { openSheet(i); });
         bar.appendChild(item);
