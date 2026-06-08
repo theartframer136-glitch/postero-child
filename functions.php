@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.5.8');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.5.9');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1083,22 +1083,28 @@ add_action('wp_footer', function() { ?>
             var circle = document.createElement('div'); circle.className = 'af-vid-circle';
 
             if (v.id) {
-                // Show thumbnail — always works regardless of embedding settings
-                var img = document.createElement('img');
-                img.src = 'https://img.youtube.com/vi/' + v.id + '/maxresdefault.jpg';
-                img.alt = '';
-                img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transform:scale(1.35);transform-origin:center center;';
-                img.onerror = function(){ this.src='https://img.youtube.com/vi/'+v.id+'/hqdefault.jpg'; this.onerror=null; };
-                circle.appendChild(img);
+                // Use background-image — background-size:cover fills circle perfectly, no black bars
+                var thumbHq  = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg';
+                var thumbMax = 'https://img.youtube.com/vi/' + v.id + '/maxresdefault.jpg';
+                circle.style.cssText += 'background-image:url(' + thumbMax + ');background-size:cover;background-position:center center;';
+                // Fallback: if maxres 404s, swap to hqdefault via a probe image
+                var probe = new Image();
+                probe.onload = function() {
+                    if (probe.naturalWidth < 100) {
+                        circle.style.backgroundImage = 'url(' + thumbHq + ')';
+                    }
+                };
+                probe.onerror = function() { circle.style.backgroundImage = 'url(' + thumbHq + ')'; };
+                probe.src = thumbMax;
 
                 // Gold play icon overlay
                 var icon = document.createElement('div'); icon.className = 'af-play-icon';
                 icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
                 circle.appendChild(icon);
 
-                // Click: swap thumbnail for autoplay iframe
+                // Click: hide bg + play icon, show autoplay iframe
                 circle.addEventListener('click', function() {
-                    img.style.display = 'none';
+                    circle.style.backgroundImage = 'none';
                     icon.style.display = 'none';
                     var fr = document.createElement('iframe');
                     fr.src = 'https://www.youtube-nocookie.com/embed/' + v.id + '?autoplay=1&mute=0&rel=0&playsinline=1';
