@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.7.1');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.7.2');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1299,60 +1299,64 @@ add_action('wp_footer', function() { ?>
 </script>
 <script>
 (function(){
+  function styleIcon(iconEl) {
+    // Walk up to find the best wrapper to turn into a gold circle
+    var wrap = iconEl.closest('.elementor-icon') || iconEl.parentElement;
+    wrap.style.setProperty('width', '56px', 'important');
+    wrap.style.setProperty('height', '56px', 'important');
+    wrap.style.setProperty('min-width', '56px', 'important');
+    wrap.style.setProperty('border-radius', '50%', 'important');
+    wrap.style.setProperty('background', '#c9a84c', 'important');
+    wrap.style.setProperty('display', 'flex', 'important');
+    wrap.style.setProperty('align-items', 'center', 'important');
+    wrap.style.setProperty('justify-content', 'center', 'important');
+    wrap.style.setProperty('margin', '0 auto 6px', 'important');
+    wrap.style.setProperty('flex-shrink', '0', 'important');
+    iconEl.style.setProperty('color', '#fff', 'important');
+    iconEl.style.setProperty('fill', '#fff', 'important');
+    iconEl.style.setProperty('font-size', '24px', 'important');
+    iconEl.style.setProperty('width', '24px', 'important');
+    iconEl.style.setProperty('height', '24px', 'important');
+    iconEl.style.setProperty('line-height', '1', 'important');
+  }
+
   function fixFeaturesSection() {
     var sec = document.querySelector('.features-section');
-    if (!sec) return;
+    if (!sec || sec.dataset.fsFixed) return;
+    sec.dataset.fsFixed = '1';
 
-    // Force the inner container to row
-    var inner = sec.querySelector('.e-con-inner') || sec;
-    inner.style.setProperty('flex-direction', 'row', 'important');
-    inner.style.setProperty('flex-wrap', 'nowrap', 'important');
-    inner.style.setProperty('justify-content', 'space-evenly', 'important');
-    inner.style.setProperty('align-items', 'flex-start', 'important');
-    inner.style.setProperty('gap', '6px', 'important');
-    inner.style.setProperty('--flex-direction', 'row', 'important');
+    // Find ALL icon widgets inside the section
+    var iconEls = sec.querySelectorAll('.elementor-icon i, .elementor-icon svg');
+    iconEls.forEach(function(iconEl) { styleIcon(iconEl); });
 
-    // Style each child item
-    var items = inner.children;
-    for (var i = 0; i < items.length; i++) {
-      var item = items[i];
+    // Find ALL label texts
+    sec.querySelectorAll('.elementor-icon-box-title, .elementor-heading-title, .elementor-widget-container > p').forEach(function(label) {
+      label.style.setProperty('font-size', '11px', 'important');
+      label.style.setProperty('font-weight', '600', 'important');
+      label.style.setProperty('color', '#222', 'important');
+      label.style.setProperty('text-align', 'center', 'important');
+      label.style.setProperty('line-height', '1.3', 'important');
+      label.style.setProperty('margin', '0', 'important');
+    });
+
+    // Force EVERY .e-con-inner and .e-con inside features-section to row
+    sec.querySelectorAll('.e-con-inner, .e-con').forEach(function(el) {
+      el.style.setProperty('flex-direction', 'row', 'important');
+      el.style.setProperty('flex-wrap', 'nowrap', 'important');
+      el.style.setProperty('justify-content', 'space-evenly', 'important');
+      el.style.setProperty('align-items', 'flex-start', 'important');
+      el.style.setProperty('gap', '4px', 'important');
+    });
+
+    // Style each direct elementor widget as a flex column item
+    sec.querySelectorAll('.elementor-element').forEach(function(item) {
       item.style.setProperty('flex', '1 1 0', 'important');
       item.style.setProperty('min-width', '0', 'important');
       item.style.setProperty('max-width', '90px', 'important');
       item.style.setProperty('text-align', 'center', 'important');
-
-      // Gold circle on icon wrapper
-      var iconEl = item.querySelector('.elementor-icon, .elementor-icon-wrapper, i, svg');
-      if (iconEl) {
-        var wrap = iconEl.closest('.elementor-icon-wrapper') || iconEl.closest('.elementor-widget-container') || iconEl.parentElement;
-        wrap.style.setProperty('width', '56px', 'important');
-        wrap.style.setProperty('height', '56px', 'important');
-        wrap.style.setProperty('border-radius', '50%', 'important');
-        wrap.style.setProperty('background', '#c9a84c', 'important');
-        wrap.style.setProperty('display', 'flex', 'important');
-        wrap.style.setProperty('align-items', 'center', 'important');
-        wrap.style.setProperty('justify-content', 'center', 'important');
-        wrap.style.setProperty('margin', '0 auto 6px', 'important');
-        // White icon
-        iconEl.style.setProperty('color', '#fff', 'important');
-        iconEl.style.setProperty('fill', '#fff', 'important');
-        iconEl.style.setProperty('font-size', '24px', 'important');
-        iconEl.style.setProperty('width', '24px', 'important');
-        iconEl.style.setProperty('height', '24px', 'important');
-      }
-
-      // Label text
-      var label = item.querySelector('h1,h2,h3,h4,h5,h6,p,.elementor-icon-box-title,.elementor-heading-title');
-      if (label) {
-        label.style.setProperty('font-size', '11px', 'important');
-        label.style.setProperty('font-weight', '600', 'important');
-        label.style.setProperty('color', '#222', 'important');
-        label.style.setProperty('text-align', 'center', 'important');
-        label.style.setProperty('line-height', '1.3', 'important');
-        label.style.setProperty('margin', '0', 'important');
-      }
-    }
+    });
   }
+
   document.addEventListener('DOMContentLoaded', fixFeaturesSection);
   window.addEventListener('load', fixFeaturesSection);
 }());
