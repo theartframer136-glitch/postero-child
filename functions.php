@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.1');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.2');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1415,13 +1415,20 @@ add_action('wp_footer', function() { ?>
     var widget = document.querySelector('.elementor-element-0971963');
     if (!widget) return;
 
-    // 1. Walk UP the DOM from the widget and force every ancestor to full width
-    var el = widget;
+    // 1. Full-bleed escape: pull widget to 100vw regardless of parent column width
+    widget.style.setProperty('width', '100vw', 'important');
+    widget.style.setProperty('max-width', '100vw', 'important');
+    widget.style.setProperty('margin-left', 'calc(50% - 50vw)', 'important');
+    widget.style.setProperty('position', 'relative', 'important');
+    // Also widen all ancestors so overflow:hidden doesn't clip
+    var el = widget.parentElement;
     while (el && el !== document.body) {
-      el.style.setProperty('width', '100%', 'important');
-      el.style.setProperty('max-width', '100%', 'important');
-      el.style.setProperty('min-width', '0', 'important');
-      el.style.setProperty('flex-shrink', '0', 'important');
+      var ow = el.offsetWidth;
+      if (ow < vw) {
+        el.style.setProperty('width', '100%', 'important');
+        el.style.setProperty('max-width', '100%', 'important');
+        el.style.setProperty('overflow', 'visible', 'important');
+      }
       el = el.parentElement;
     }
 

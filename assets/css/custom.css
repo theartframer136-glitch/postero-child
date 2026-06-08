@@ -793,22 +793,27 @@ ul.postero-scroll-content .cat-item a {
 
 /* ============================================================
    HERO SLIDER — mobile fix
-   Target the exact Elementor element ID (0971963) visible in
-   devtools. Use !important to override Swiper's inline widths.
+   Use full-bleed technique: margin-left + 100vw width to
+   escape any narrow parent column, no matter its width.
    ============================================================ */
 @media (max-width: 768px) {
-  /* Full-width container stack */
-  .elementor-element-0971963,
+  /* Full-bleed escape from any narrow parent column */
+  .elementor-element-0971963 {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: calc(50% - 50vw) !important;
+    position: relative !important;
+    left: 0 !important;
+  }
   .elementor-element-0971963 > .elementor-widget-container,
   .elementor-element-0971963 .elementor-slides-wrapper,
   .elementor-element-0971963 [class*="swiper-container"],
   .elementor-element-0971963 [class*="swiper"]:not([class*="swiper-slide"]):not([class*="swiper-button"]):not([class*="swiper-pagination"]) {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: hidden !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
   }
 
-  /* Force every slide to exactly viewport width — overrides Swiper inline style */
+  /* Force every slide to exactly viewport width */
   .elementor-element-0971963 .swiper-slide {
     width: 100vw !important;
     min-width: 100vw !important;
@@ -828,7 +833,7 @@ ul.postero-scroll-content .cat-item a {
     background-position: center center !important;
   }
 
-  /* Slide inner text area */
+  /* Slide inner text */
   .elementor-element-0971963 .swiper-slide-inner {
     width: 100% !important;
     height: 100% !important;
@@ -837,7 +842,7 @@ ul.postero-scroll-content .cat-item a {
     z-index: 2 !important;
   }
 
-  /* Swiper track height */
+  /* Swiper track */
   .elementor-element-0971963 [class*="swiper-wrapper"],
   .elementor-element-0971963 .elementor-slides {
     height: 420px !important;
