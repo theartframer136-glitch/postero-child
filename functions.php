@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.7.5');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.7.6');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1020,7 +1020,7 @@ add_action('wp_footer', function() { ?>
                    + '&rel=0&playsinline=1&enablejsapi=1&origin=' + encodeURIComponent(location.origin);
             fr.allow = 'autoplay; encrypted-media';
             fr.setAttribute('frameborder','0');
-            fr.style.cssText = 'position:absolute;top:50%;left:50%;width:300%;height:300%;transform:translate(-50%,-46%);border:none;pointer-events:none;z-index:1;';
+            fr.style.cssText = 'position:absolute;top:50%;left:50%;width:300%;height:300%;transform:translate(-50%,-50%);border:none;pointer-events:none;z-index:1;';
             circle.appendChild(fr);
 
             // Fallback thumbnail (shown if embedding is blocked)
@@ -1364,7 +1364,9 @@ add_action('wp_footer', function() { ?>
     });
 
     // Force EVERY .e-con-inner and .e-con inside features-section to row
+    // Must use setProperty('--flex-direction') because Elementor sets it as inline var()
     sec.querySelectorAll('.e-con-inner, .e-con').forEach(function(el) {
+      el.style.setProperty('--flex-direction', 'row', 'important');
       el.style.setProperty('flex-direction', 'row', 'important');
       el.style.setProperty('flex-wrap', 'nowrap', 'important');
       el.style.setProperty('justify-content', 'space-evenly', 'important');
@@ -1381,8 +1383,19 @@ add_action('wp_footer', function() { ?>
     });
   }
 
-  document.addEventListener('DOMContentLoaded', fixFeaturesSection);
-  window.addEventListener('load', fixFeaturesSection);
+  // Poll until Elementor lazy-loads the section (up to ~10 seconds)
+  var _fsAttempts = 0;
+  function _fsPoll() {
+    _fsAttempts++;
+    fixFeaturesSection();
+    var found = document.querySelector('[data-id="810fb7a"]') || document.querySelector('.features-section');
+    var fixed = found && found.dataset.fsFixed;
+    if (!fixed && _fsAttempts < 50) {
+      setTimeout(_fsPoll, 200);
+    }
+  }
+  document.addEventListener('DOMContentLoaded', _fsPoll);
+  window.addEventListener('load', _fsPoll);
 }());
 </script>
 <?php }, 10003);
