@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.6.7');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.6.8');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1252,7 +1252,8 @@ add_action('wp_footer', function() { ?>
   ];
 
   function buildBar() {
-    var bars = document.querySelectorAll('.af-features-bar');
+    // Support both .af-features-bar and .features-section as container
+    var bars = document.querySelectorAll('.af-features-bar, .features-section');
     if (!bars.length) return;
     bars.forEach(function(bar) {
       if (bar.dataset.afBuilt) return;
