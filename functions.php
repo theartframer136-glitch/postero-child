@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.3');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.4');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1135,32 +1135,45 @@ add_action('wp_footer', function() { ?>
     }
 
     function tryBuild() {
+        // Find the section that contains the Elementor video widgets
         var anchor = document.querySelector('.circle-gallery-slider')
                   || (document.querySelector('.video-circle') && document.querySelector('.video-circle').parentElement)
                   || (function(){
-                        var s=null;
-                        document.querySelectorAll('.elementor-section,.e-container').forEach(function(el){
-                            if(!s && el.querySelectorAll('.elementor-widget-video').length>=1) s=el;
+                        var s = null;
+                        // Include .e-con (Elementor 3.x containers) as well as older selectors
+                        document.querySelectorAll('.elementor-section,.e-container,.e-con').forEach(function(el){
+                            if (!s && el.querySelectorAll('.elementor-widget-video').length >= 1) s = el;
                         });
                         return s;
                      })()
-                  || document.querySelector('.elementor-widget-video');
+                  || document.querySelector('.elementor-widget-video,.elementor-widget-video-playlist');
 
         if (!anchor || anchor.dataset.afVidDone) return;
         anchor.dataset.afVidDone = '1';
 
-        // Always fetch from hardcoded channel — guaranteed to get all videos
         var ajaxUrl = (typeof af_ajax !== 'undefined' ? af_ajax.url : '/wp-admin/admin-ajax.php')
                     + '?action=af_yt_feed&channel=UC_GX4vXRQrN4GsvSfgmZxYw';
 
-        fetch(ajaxUrl)
-            .then(function(r){ return r.json(); })
-            .then(function(data) {
-                if (data.success && data.data.length) {
-                    buildFromVideoList(anchor, data.data);
-                }
-            })
-            .catch(function(){ });
+        function doFetch(attempt) {
+            fetch(ajaxUrl)
+                .then(function(r){ return r.json(); })
+                .then(function(data) {
+                    if (data.success && data.data.length) {
+                        buildFromVideoList(anchor, data.data);
+                    } else if (attempt < 3) {
+                        // Retry on empty response (transient may not be set yet)
+                        delete anchor.dataset.afVidDone;
+                        setTimeout(function(){ tryBuild(); }, 2000);
+                    }
+                })
+                .catch(function(){
+                    if (attempt < 3) {
+                        delete anchor.dataset.afVidDone;
+                        setTimeout(function(){ tryBuild(); }, 2000);
+                    }
+                });
+        }
+        doFetch(1);
     }
 
     function buildFromItems(container, items) {
