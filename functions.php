@@ -534,18 +534,19 @@ add_action('wp_footer', function() { ?>
             }
 
             // ── Rating / meta row ──
-            var rating = c.querySelector('.woocommerce-product-rating,.product-meta-row');
+            var rating = c.querySelector('.woocommerce-product-rating,.product-meta-row,.rating');
             if (rating) {
-                sp(rating,'display',     'flex');
-                sp(rating,'align-items', 'center');
-                sp(rating,'flex-wrap',   'wrap');
-                sp(rating,'gap',         '4px');
-                sp(rating,'margin',      '0 0 4px');
-                sp(rating,'padding',     '0');
-                sp(rating,'line-height', '1.4');
+                sp(rating,'display',      'flex');
+                sp(rating,'align-items',  'center');
+                sp(rating,'flex-wrap',    'wrap');
+                sp(rating,'gap',          '4px');
+                sp(rating,'margin',       '0 0 4px');
+                sp(rating,'padding',      '0');
+                sp(rating,'padding-left', '0');
+                sp(rating,'line-height',  '1.4');
             }
             var stars = c.querySelector('.star-rating');
-            if (stars) { sp(stars,'color','#c9a84c'); sp(stars,'font-size','13px'); sp(stars,'margin','0'); }
+            if (stars) { sp(stars,'color','#c9a84c'); sp(stars,'font-size','13px'); sp(stars,'margin','0'); sp(stars,'padding','0'); }
             var revLink = c.querySelector('.woocommerce-review-link');
             if (revLink) { sp(revLink,'font-size','12px'); sp(revLink,'color','#555'); }
 
@@ -901,12 +902,13 @@ html body .product-card .product-title {
 
 /* meta row */
 html body .product-card .woocommerce-product-rating,
-html body .product-card .product-meta-row {
+html body .product-card .product-meta-row,
+html body .product-card .rating {
   display:flex !important; align-items:center !important;
   flex-wrap:wrap !important; gap:5px !important;
-  margin:0 0 5px !important; padding:0 !important;
+  margin:0 0 5px !important; padding:0 !important; padding-left:0 !important;
 }
-html body .product-card .star-rating { font-size:12px !important; color:#c9a84c !important; }
+html body .product-card .star-rating { font-size:12px !important; color:#c9a84c !important; margin:0 !important; padding:0 !important; }
 html body .product-card .woocommerce-review-link { font-size:11px !important; color:#666 !important; }
 
 /* price */
