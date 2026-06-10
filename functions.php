@@ -653,691 +653,327 @@ add_action('wp_footer', function() { ?>
 <?php }, 10000);
 
 
-// 11. Products In Motion — circular video slider
-// PHP fetches YouTube RSS server-side and injects IDs directly into the page
+// 11. Products In Motion — circular video slider (PHP-rendered, no JS dependency)
 add_action('wp_footer', function() {
     if (!is_front_page()) return;
+
+    // Fetch video IDs from YouTube RSS, cached 1 hour
     $channel = 'UC_GX4vXRQrN4GsvSfgmZxYw';
-    // Force refresh if transient holds empty array (previous failed fetch)
-    $cached = get_transient('af_yt_ids_' . $channel);
-    if ($cached !== false && !empty($cached)) {
-        echo '<script>window.afVideoIds=' . json_encode($cached) . ';</script>';
-        return;
-    }
-    delete_transient('af_yt_ids_' . $channel);
-    $url  = 'https://www.youtube.com/feeds/videos.xml?channel_id=' . $channel;
-    $resp = wp_remote_get($url, ['timeout' => 8, 'sslverify' => false]);
-    $ids  = [];
-    if (!is_wp_error($resp)) {
-        $xml = @simplexml_load_string(wp_remote_retrieve_body($resp));
-        if ($xml) {
-            foreach ($xml->entry as $entry) {
-                preg_match('/video:([A-Za-z0-9_-]{11})/', (string)$entry->id, $m);
-                if (!empty($m[1])) $ids[] = $m[1];
-            }
-        }
-    }
-    // If RSS blocked, fall back to Elementor page meta
-    if (empty($ids) && is_front_page()) {
-        $data = get_post_meta(get_the_ID(), '_elementor_data', true);
-        if ($data) {
-            $stack = json_decode($data, true) ?: [];
-            while ($stack) {
-                $el = array_shift($stack);
-                $type = $el['widgetType'] ?? '';
-                if ($type === 'video') {
-                    $u = $el['settings']['youtube_url'] ?? '';
-                    if (preg_match('/(?:v=|embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})/', $u, $m)) $ids[] = $m[1];
-                } elseif (in_array($type, ['video-playlist','playlist'])) {
-                    foreach (($el['settings']['tabs'] ?? []) as $tab) {
-                        $u = $tab['youtube_url'] ?? $tab['url'] ?? '';
-                        if (preg_match('/(?:v=|embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})/', $u, $m)) $ids[] = $m[1];
-                    }
+    $ids = get_transient('af_yt_ids2_' . $channel);
+    if (empty($ids)) {
+        delete_transient('af_yt_ids2_' . $channel);
+        $ids = [];
+        $resp = wp_remote_get(
+            'https://www.youtube.com/feeds/videos.xml?channel_id=' . $channel,
+            ['timeout' => 8, 'sslverify' => false]
+        );
+        if (!is_wp_error($resp)) {
+            $xml = @simplexml_load_string(wp_remote_retrieve_body($resp));
+            if ($xml) {
+                foreach ($xml->entry as $entry) {
+                    preg_match('/video:([A-Za-z0-9_-]{11})/', (string)$entry->id, $m);
+                    if (!empty($m[1])) $ids[] = $m[1];
                 }
-                if (!empty($el['elements'])) $stack = array_merge($stack, $el['elements']);
             }
         }
+        // Fallback: read IDs from Elementor page meta
+        if (empty($ids)) {
+            $raw = get_post_meta(get_the_ID(), '_elementor_data', true);
+            if ($raw) {
+                $stack = json_decode($raw, true) ?: [];
+                while ($stack) {
+                    $el = array_shift($stack);
+                    $type = $el['widgetType'] ?? '';
+                    if ($type === 'video') {
+                        $u = $el['settings']['youtube_url'] ?? '';
+                        if (preg_match('/(?:v=|embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})/', $u, $m)) $ids[] = $m[1];
+                    } elseif (in_array($type, ['video-playlist', 'playlist'])) {
+                        foreach (($el['settings']['tabs'] ?? []) as $tab) {
+                            $u = $tab['youtube_url'] ?? $tab['url'] ?? '';
+                            if (preg_match('/(?:v=|embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})/', $u, $m)) $ids[] = $m[1];
+                        }
+                    }
+                    if (!empty($el['elements'])) $stack = array_merge($stack, $el['elements']);
+                }
+            }
+        }
+        $ids = array_values(array_unique($ids));
+        if (!empty($ids)) set_transient('af_yt_ids2_' . $channel, $ids, HOUR_IN_SECONDS);
     }
-    $ids = array_values(array_unique($ids));
-    set_transient('af_yt_ids_' . $channel, $ids, HOUR_IN_SECONDS);
-    if (!empty($ids)) echo '<script>window.afVideoIds=' . json_encode($ids) . ';</script>';
-}, 9);
-add_action('wp_footer', function() {
-    if (!is_front_page()) return;
+
+    // Nothing to show
+    if (empty($ids)) return;
     ?>
 <style>
-/* Shell */
-.af-vid-shell {
-    display: flex !important;
-    align-items: center !important;
-    gap: 16px !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    padding: 16px 0 !important;
+/* ── Products In Motion circular slider ── */
+.af-pim-wrap {
+    width:100%;
+    padding:0 0 32px;
+    box-sizing:border-box;
+    overflow:hidden;
 }
-.af-vid-btn {
-    flex: 0 0 44px !important;
-    width: 44px !important; height: 44px !important;
-    border-radius: 50% !important;
-    background: #c9a84c !important;
-    border: none !important;
-    color: #fff !important;
-    font-size: 28px !important;
-    line-height: 1 !important;
-    cursor: pointer !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,.25) !important;
-    padding: 0 !important;
+.af-pim-row {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    width:100%;
 }
-.af-vid-btn:hover { background: #a8872e !important; }
-.af-vid-vp {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
+.af-pim-btn {
+    flex:0 0 44px;
+    width:44px; height:44px;
+    border-radius:50%;
+    background:#c9a84c;
+    border:none;
+    color:#fff;
+    font-size:30px;
+    line-height:1;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    box-shadow:0 2px 8px rgba(0,0,0,.3);
+    padding:0;
+    flex-shrink:0;
 }
-.af-vid-track {
-    display: flex !important;
-    flex-direction: row !important;
-    flex-wrap: nowrap !important;
-    gap: 24px !important;
-    align-items: center !important;
-    transition: transform 0.4s ease !important;
-    will-change: transform !important;
-    padding: 8px 0 !important;
+.af-pim-btn:hover { background:#a8872e; }
+.af-pim-vp {
+    flex:1 1 auto;
+    min-width:0;
+    overflow:hidden;
 }
-/* Each circle: wraps the Elementor widget */
-.af-vid-circle {
-    flex: 0 0 200px !important;
-    width: 200px !important;
-    height: 200px !important;
-    border-radius: 50% !important;
-    overflow: hidden !important;
-    border: 3px solid #c9a84c !important;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.18) !important;
-    background: #111 !important;
-    transition: transform 0.3s ease, box-shadow 0.3s ease !important;
-    cursor: pointer !important;
-    position: relative !important;
+.af-pim-track {
+    display:flex;
+    flex-direction:row;
+    flex-wrap:nowrap;
+    gap:24px;
+    align-items:center;
+    transition:transform .42s cubic-bezier(.4,0,.2,1);
+    will-change:transform;
+    padding:12px 0;
 }
-.af-vid-circle:hover {
-    transform: scale(1.06) !important;
-    box-shadow: 0 8px 28px rgba(0,0,0,0.3) !important;
+.af-pim-circle {
+    flex:0 0 200px;
+    width:200px; height:200px;
+    border-radius:50%;
+    overflow:hidden;
+    border:3px solid #c9a84c;
+    box-shadow:0 4px 18px rgba(0,0,0,.22);
+    background:#111;
+    position:relative;
+    cursor:pointer;
+    transition:transform .28s ease, box-shadow .28s ease;
 }
-
-/* Make the thumbnail image fill the circle */
-.af-vid-circle img {
-    width: 100% !important;
-    height: 100% !important;
-    object-fit: cover !important;
-    display: block !important;
+.af-pim-circle:hover {
+    transform:scale(1.07);
+    box-shadow:0 8px 30px rgba(0,0,0,.35);
 }
-/* Play icon overlay */
-.af-vid-circle .af-play-icon {
-    position: absolute !important;
-    inset: 0 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    background: rgba(0,0,0,0.22) !important;
-    pointer-events: none !important;
+.af-pim-circle iframe {
+    position:absolute;
+    top:50%; left:50%;
+    width:340%; height:340%;
+    transform:translate(-50%,-50%);
+    border:none;
+    pointer-events:none;
+    z-index:1;
 }
-.af-vid-circle .af-play-icon svg {
-    width: 52px !important; height: 52px !important;
-    fill: rgba(255,255,255,0.92) !important;
-    filter: drop-shadow(0 2px 6px rgba(0,0,0,.5)) !important;
+.af-pim-thumb {
+    position:absolute;
+    inset:0;
+    width:100%; height:100%;
+    object-fit:cover;
+    object-position:center;
+    z-index:2;
+    transition:opacity .6s;
+}
+.af-pim-play {
+    position:absolute;
+    inset:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    z-index:3;
+    pointer-events:none;
+}
+.af-pim-play svg {
+    width:54px; height:54px;
+    fill:rgba(255,255,255,.9);
+    filter:drop-shadow(0 2px 6px rgba(0,0,0,.6));
+}
+.af-pim-overlay {
+    position:absolute;
+    inset:0;
+    z-index:10;
+    cursor:pointer;
 }
 /* Lightbox */
-.af-vid-lb {
-    position: fixed !important;
-    inset: 0 !important;
-    background: rgba(0,0,0,0.88) !important;
-    z-index: 99999 !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+.af-pim-lb {
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.9);
+    z-index:999999;
+    align-items:center;
+    justify-content:center;
 }
-.af-vid-lb iframe {
-    width: min(80vw, 960px) !important;
-    height: min(45vw, 540px) !important;
-    border: none !important;
-    border-radius: 8px !important;
+.af-pim-lb.open { display:flex; }
+.af-pim-lb iframe {
+    width:min(88vw,960px);
+    height:min(49.5vw,540px);
+    border:none;
+    border-radius:10px;
 }
-.af-vid-lb-x {
-    position: absolute !important;
-    top: 16px !important; right: 24px !important;
-    color: #fff !important;
-    font-size: 44px !important;
-    cursor: pointer !important;
-    background: none !important;
-    border: none !important;
-    line-height: 1 !important;
+.af-pim-lb-x {
+    position:absolute;
+    top:18px; right:26px;
+    color:#fff;
+    font-size:46px;
+    line-height:1;
+    cursor:pointer;
+    background:none;
+    border:none;
+    padding:0;
 }
-/* Hide original video grid once we've built the circular slider */
-.af-vid-original-hidden { display: none !important; }
-@media (max-width: 768px) {
-    .af-vid-circle { flex: 0 0 140px !important; width: 140px !important; height: 140px !important; }
+@media(max-width:768px){
+    .af-pim-circle { flex:0 0 140px; width:140px; height:140px; }
 }
-@media (max-width: 480px) {
-    .af-vid-circle { flex: 0 0 110px !important; width: 110px !important; height: 110px !important; }
+@media(max-width:480px){
+    .af-pim-circle { flex:0 0 110px; width:110px; height:110px; }
+    .af-pim-btn { flex:0 0 34px; width:34px; height:34px; font-size:22px; }
 }
-/* Hide original Elementor video/playlist widgets on home page immediately */
+/* Hide the original Elementor video/playlist widgets on this page */
 .elementor-widget-video-playlist,
-.elementor-widget-video { display: none !important; }
+.elementor-widget-video { display:none !important; }
 </style>
+
+<?php
+    // Build circle HTML for each video ID
+    $circles_html = '';
+    foreach ($ids as $vid) {
+        $vid = esc_attr($vid);
+        $thumb_hq  = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
+        $thumb_max = "https://img.youtube.com/vi/{$vid}/maxresdefault.jpg";
+        $embed     = "https://www.youtube-nocookie.com/embed/{$vid}?autoplay=1&mute=1&loop=1&playlist={$vid}&controls=0&rel=0&playsinline=1";
+        $circles_html .= "
+<div class=\"af-pim-circle\" data-vid=\"{$vid}\">
+  <iframe src=\"{$embed}\" allow=\"autoplay; encrypted-media\" frameborder=\"0\" loading=\"lazy\"></iframe>
+  <img class=\"af-pim-thumb\" src=\"{$thumb_max}\" onerror=\"this.src='{$thumb_hq}';this.onerror=null\" alt=\"\">
+  <div class=\"af-pim-play\"><svg viewBox=\"0 0 24 24\"><path d=\"M8 5v14l11-7z\"/></svg></div>
+  <div class=\"af-pim-overlay\"></div>
+</div>";
+    }
+?>
+<div class="af-pim-wrap" id="afPimWrap">
+  <div class="af-pim-row">
+    <button class="af-pim-btn" id="afPimPrev" aria-label="Previous">&#8249;</button>
+    <div class="af-pim-vp" id="afPimVp">
+      <div class="af-pim-track" id="afPimTrack">
+        <?php echo $circles_html; ?>
+      </div>
+    </div>
+    <button class="af-pim-btn" id="afPimNext" aria-label="Next">&#8250;</button>
+  </div>
+</div>
+
+<!-- Lightbox -->
+<div class="af-pim-lb" id="afPimLb">
+  <button class="af-pim-lb-x" id="afPimLbX">&times;</button>
+  <iframe id="afPimLbFrame" src="" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>
+</div>
+
 <script>
-(function() {
-    var SIZES = { lg: 200, md: 140, sm: 110 };
-    var GAP = 24;
+(function(){
+    var track  = document.getElementById('afPimTrack');
+    var vp     = document.getElementById('afPimVp');
+    var lb     = document.getElementById('afPimLb');
+    var lbFr   = document.getElementById('afPimLbFrame');
+    var lbX    = document.getElementById('afPimLbX');
+    var circles = Array.from(document.querySelectorAll('#afPimTrack .af-pim-circle'));
+    var idx = 0, GAP = 24;
 
-    function ytId(str) {
-        if (!str) return null;
-        var m = str.match(/(?:v=|youtu\.be\/|\/embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
-        return m ? m[1] : null;
+    function cw() {
+        return window.innerWidth <= 480 ? 110 : window.innerWidth <= 768 ? 140 : 200;
+    }
+    function vis() {
+        var vpW = vp.getBoundingClientRect().width || 800;
+        return Math.max(1, Math.floor((vpW + GAP) / (cw() + GAP)));
+    }
+    function go(n) {
+        var max = Math.max(0, circles.length - vis());
+        idx = Math.max(0, Math.min(n, max));
+        track.style.transform = 'translateX(' + (-(idx * (cw() + GAP))) + 'px)';
     }
 
-    // Deep search for YouTube ID in any element's subtree
-    function extractId(el) {
-        var id = null;
-        // 1. All data-settings attributes
-        el.querySelectorAll('[data-settings]').forEach(function(e) {
-            if (id) return;
-            try { var s = JSON.parse(e.getAttribute('data-settings')||'{}'); id = ytId(s.youtube_url||s.url||''); } catch(x){}
-        });
-        if (id) return id;
-        // 2. data-settings on element itself
-        try { var s2 = JSON.parse(el.getAttribute('data-settings')||'{}'); id = ytId(s2.youtube_url||s2.url||''); } catch(x){}
-        if (id) return id;
-        // 3. iframes (src or data-lazy-src or data-src)
-        el.querySelectorAll('iframe').forEach(function(f) {
-            if (id) return;
-            id = ytId(f.src||f.getAttribute('data-lazy-src')||f.getAttribute('data-src')||'');
-        });
-        if (id) return id;
-        // 4. Any anchor href with youtu
-        el.querySelectorAll('a[href]').forEach(function(a) {
-            if (id) return; if (/youtu/i.test(a.href)) id = ytId(a.href);
-        });
-        if (id) return id;
-        // 5. Any data-url / data-video-url / data-video attributes
-        ['data-url','data-video-url','data-video','data-src'].forEach(function(attr) {
-            if (!id) id = ytId(el.getAttribute(attr)||'');
-        });
-        if (id) return id;
-        // 6. Scan every element's every attribute for a YouTube URL
-        el.querySelectorAll('*').forEach(function(e) {
-            if (id) return;
-            Array.from(e.attributes).forEach(function(a) {
-                if (!id && /youtu/i.test(a.value)) id = ytId(a.value);
+    document.getElementById('afPimPrev').onclick = function(){ go(idx - vis()); };
+    document.getElementById('afPimNext').onclick = function(){ go(idx + vis()); };
+    window.addEventListener('resize', function(){ idx = 0; go(0); });
+
+    // After iframe loads, fade out the thumbnail overlay
+    circles.forEach(function(c) {
+        var fr = c.querySelector('iframe');
+        var th = c.querySelector('.af-pim-thumb');
+        var pl = c.querySelector('.af-pim-play');
+        if (fr && th) {
+            fr.addEventListener('load', function(){
+                setTimeout(function(){ th.style.opacity = '0'; if(pl) pl.style.opacity='0'; }, 1800);
             });
-        });
-        return id;
+        }
+        // Click: open lightbox with sound
+        var ov = c.querySelector('.af-pim-overlay');
+        if (ov) {
+            ov.addEventListener('click', function(){
+                var vid = c.getAttribute('data-vid');
+                lbFr.src = 'https://www.youtube-nocookie.com/embed/' + vid
+                    + '?autoplay=1&rel=0&playsinline=1';
+                lb.classList.add('open');
+            });
+        }
+    });
+
+    function closeLb() {
+        lb.classList.remove('open');
+        lbFr.src = '';
     }
+    lbX.onclick = closeLb;
+    lb.addEventListener('click', function(e){ if (e.target === lb) closeLb(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeLb(); });
 
-    function findSection() {
-        var found = null;
+    go(0);
 
-        // Strategy 1: match heading text (handles typos like "Motation")
+    // Move the slider to sit right after the "Products In Motion" section heading
+    function placeSlider() {
+        var wrap = document.getElementById('afPimWrap');
+        if (!wrap || wrap.dataset.placed) return;
+
+        // Find the Elementor section that contains the "Products In Motion" heading
+        var target = null;
         document.querySelectorAll('h2,h3,h4,.elementor-heading-title').forEach(function(h) {
-            if (!found && /product.*mot/i.test(h.textContent.trim())) {
+            if (target) return;
+            if (/product.*mot/i.test(h.textContent)) {
+                // Walk up to the top-level Elementor section
                 var el = h;
-                for (var i = 0; i < 12; i++) {
+                for (var i = 0; i < 15; i++) {
                     el = el.parentElement;
                     if (!el) break;
-                    if (/elementor-section|e-container|elementor-top-section/.test(el.className)) { found = el; break; }
+                    if (/elementor-section|e-container/.test(el.className || '')) {
+                        target = el;
+                    }
                 }
-                if (!found) found = h.closest('[class*="elementor-section"],[class*="e-container"]') || h.parentElement;
             }
         });
-        if (found) return found;
 
-        // Strategy 2: find the elementor-widget-wrap that has the most video widgets
-        var best = null, bestCount = 0;
-        document.querySelectorAll('.elementor-widget-wrap').forEach(function(wrap) {
-            var count = wrap.querySelectorAll('.elementor-widget-video').length;
-            if (count > bestCount) { bestCount = count; best = wrap; }
-        });
-        if (bestCount >= 2) return best;
-
-        // Strategy 3: find any section containing 2+ iframes
-        document.querySelectorAll('.elementor-section, .e-container').forEach(function(sec) {
-            if (!found && sec.querySelectorAll('iframe').length >= 2) found = sec;
-        });
-        return found;
-    }
-
-    function buildSlider() {
-        var sec = findSection();
-        if (!sec || sec.dataset.afVidDone) return;
-
-        // Collect every Elementor video widget in this section
-        var widgets = Array.from(sec.querySelectorAll('.elementor-widget-video'));
-
-        // Also grab youtube_playlist widgets
-        sec.querySelectorAll('.elementor-widget-youtube').forEach(function(w) {
-            if (!widgets.includes(w)) widgets.push(w);
-        });
-
-        // Fallback 1: any widget with an iframe
-        if (!widgets.length) {
-            sec.querySelectorAll('.elementor-widget').forEach(function(w) {
-                if (w.querySelector('iframe')) widgets.push(w);
+        if (target) {
+            wrap.dataset.placed = '1';
+            // Hide the original Elementor video widgets inside this section
+            target.querySelectorAll('.elementor-widget-video-playlist,.elementor-widget-video').forEach(function(w){
+                w.style.setProperty('display','none','important');
             });
+            // Insert our slider after the section's inner content (before next sibling)
+            target.insertAdjacentElement('afterend', wrap);
         }
-        // Fallback 2: just grab every iframe directly
-        if (!widgets.length) {
-            sec.querySelectorAll('iframe').forEach(function(iframe) {
-                widgets.push(iframe.closest('.elementor-widget') || iframe.parentElement || iframe);
-            });
-        }
-
-        if (!widgets.length) return;
-        sec.dataset.afVidDone = '1';
-
-        // For each widget, extract the YouTube ID for the thumbnail
-        var videoData = widgets.map(function(w) {
-            var id = null;
-            var src = '';
-
-            // from iframe
-            var iframe = w.querySelector ? w.querySelector('iframe') : (w.tagName === 'IFRAME' ? w : null);
-            if (iframe) src = iframe.src || iframe.getAttribute('data-src') || '';
-            if (src) id = ytId(src);
-
-            // from data-settings JSON
-            if (!id && w.querySelectorAll) {
-                w.querySelectorAll('[data-settings]').forEach(function(el) {
-                    if (id) return;
-                    try { var s = JSON.parse(el.getAttribute('data-settings') || '{}'); id = ytId(s.youtube_url || s.url || ''); } catch(e){}
-                });
-            }
-
-            // from data-settings on self
-            if (!id && w.getAttribute) {
-                try { var s2 = JSON.parse(w.getAttribute('data-settings') || '{}'); id = ytId(s2.youtube_url || s2.url || ''); } catch(e){}
-            }
-
-            return { widget: w, id: id, src: src };
-        });
-
-        // Remove duplicates (same widget matched twice)
-        var seen2 = new Set();
-        videoData = videoData.filter(function(v) {
-            if (seen2.has(v.widget)) return false;
-            seen2.add(v.widget); return true;
-        });
-
-        // Build shell
-        var shell  = document.createElement('div'); shell.className = 'af-vid-shell';
-        var btnP   = document.createElement('button'); btnP.className = 'af-vid-btn'; btnP.innerHTML = '&#8249;'; btnP.setAttribute('aria-label','Prev');
-        var btnN   = document.createElement('button'); btnN.className = 'af-vid-btn'; btnN.innerHTML = '&#8250;'; btnN.setAttribute('aria-label','Next');
-        var vp     = document.createElement('div'); vp.className = 'af-vid-vp';
-        var track  = document.createElement('div'); track.className = 'af-vid-track';
-
-        var circles = videoData.map(function(v) {
-            var circle = document.createElement('div');
-            circle.className = 'af-vid-circle';
-
-            if (v.id) {
-                var img2 = document.createElement('img');
-                img2.src = 'https://img.youtube.com/vi/' + v.id + '/maxresdefault.jpg';
-                img2.alt = '';
-                img2.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;';
-                img2.onerror = function(){ this.src='https://img.youtube.com/vi/'+v.id+'/hqdefault.jpg'; this.onerror=null; };
-                circle.appendChild(img2);
-                var ic2 = document.createElement('div'); ic2.className = 'af-play-icon';
-                ic2.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-                circle.appendChild(ic2);
-                circle.addEventListener('click', function() {
-                    img2.style.display='none'; ic2.style.display='none';
-                    var fr2 = document.createElement('iframe');
-                    fr2.src = 'https://www.youtube-nocookie.com/embed/'+v.id+'?autoplay=1&mute=0&rel=0&playsinline=1';
-                    fr2.allow = 'autoplay; fullscreen; encrypted-media';
-                    fr2.allowFullscreen = true;
-                    fr2.style.cssText = 'position:absolute;top:50%;left:50%;width:300%;height:300%;transform:translate(-50%,-46%);border:none;';
-                    circle.appendChild(fr2);
-                });
-            } else {
-                var icon = document.createElement('div'); icon.className = 'af-play-icon';
-                icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-                circle.appendChild(icon);
-            }
-
-            track.appendChild(circle);
-            return circle;
-        });
-
-        vp.appendChild(track);
-        shell.appendChild(btnP); shell.appendChild(vp); shell.appendChild(btnN);
-
-        // Insert shell before first widget, then hide all widgets
-        widgets[0].parentNode.insertBefore(shell, widgets[0]);
-        widgets.forEach(function(w) { w.classList.add('af-vid-original-hidden'); });
-
-        // Slider logic
-        var idx = 0;
-        function iw() { return window.innerWidth <= 480 ? SIZES.sm : window.innerWidth <= 768 ? SIZES.md : SIZES.lg; }
-        function vis() { var vpW = vp.getBoundingClientRect().width || 800; return Math.max(1, Math.floor((vpW + GAP) / (iw() + GAP))); }
-        function go(n) {
-            var v = vis(), max = Math.max(0, circles.length - v);
-            idx = Math.max(0, Math.min(n, max));
-            track.style.setProperty('transform','translateX('+( -(idx*(iw()+GAP)) )+'px)','important');
-        }
-        btnP.onclick = function() { go(idx - vis()); };
-        btnN.onclick = function() { go(idx + vis()); };
-        window.addEventListener('resize', function() { idx=0; go(0); });
-        setTimeout(function(){ go(0); }, 200);
     }
-
-    // Extract playlist or channel ID from any element's attributes/data-settings
-    function extractPlaylistOrChannel() {
-        var listId = null, chanId = null;
-        document.querySelectorAll('[data-settings],[data-widget_type]').forEach(function(el) {
-            if (listId || chanId) return;
-            var raw = el.getAttribute('data-settings') || '';
-            try {
-                var s = JSON.parse(raw);
-                var url = s.youtube_url || s.url || s.link || '';
-                var lm = url.match(/[?&]list=([A-Za-z0-9_-]+)/);
-                if (lm) { listId = lm[1]; return; }
-                var cm = url.match(/channel\/([A-Za-z0-9_-]+)/);
-                if (cm) { chanId = cm[1]; }
-            } catch(x){}
-            // Also scan raw attribute value
-            var lm2 = raw.match(/list=([A-Za-z0-9_-]{10,})/);
-            if (!listId && lm2) listId = lm2[1];
-        });
-        // Also scan all attribute values on the page
-        if (!listId && !chanId) {
-            document.querySelectorAll('*').forEach(function(el) {
-                if (listId || chanId) return;
-                Array.from(el.attributes).forEach(function(a) {
-                    if (listId || chanId) return;
-                    var lm = a.value.match(/[?&]list=([A-Za-z0-9_-]{10,})/);
-                    if (lm) { listId = lm[1]; return; }
-                    var cm = a.value.match(/youtube\.com\/channel\/([A-Za-z0-9_-]+)/);
-                    if (cm) chanId = cm[1];
-                });
-            });
-        }
-        return { listId: listId, chanId: chanId };
-    }
-
-    function fetchAndBuild(anchor) {
-        if (anchor.dataset.afVidDone) return;
-        var ids = extractPlaylistOrChannel();
-        if (!ids.listId && !ids.chanId) { buildSlider(); return; }
-
-        anchor.dataset.afVidDone = '1';
-        var params = ids.listId ? 'list=' + ids.listId : 'channel=' + ids.chanId;
-        var ajaxUrl = (typeof af_ajax !== 'undefined' ? af_ajax.url : '/wp-admin/admin-ajax.php')
-                    + '?action=af_yt_feed&' + params;
-
-        fetch(ajaxUrl)
-            .then(function(r){ return r.json(); })
-            .then(function(data) {
-                if (!data.success || !data.data.length) return;
-                buildFromVideoList(anchor, data.data);
-            })
-            .catch(function(){ buildSlider(); });
-    }
-
-    function buildFromVideoList(anchor, videos) {
-        var shell = document.createElement('div'); shell.className = 'af-vid-shell';
-        var btnP  = document.createElement('button'); btnP.className = 'af-vid-btn'; btnP.innerHTML = '&#8249;'; btnP.setAttribute('aria-label','Prev');
-        var btnN  = document.createElement('button'); btnN.className = 'af-vid-btn'; btnN.innerHTML = '&#8250;'; btnN.setAttribute('aria-label','Next');
-        var vp    = document.createElement('div'); vp.className = 'af-vid-vp';
-        var track = document.createElement('div'); track.className = 'af-vid-track';
-
-        // Listen for YouTube postMessage errors (150/101 = embedding disabled)
-        window.addEventListener('message', function(e) {
-            try {
-                var d = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-                if (d && d.event === 'onError' && (d.info === 150 || d.info === 101 || d.info === 2)) {
-                    // Find which iframe sent it and show its thumbnail instead
-                    document.querySelectorAll('.af-vid-circle iframe').forEach(function(fr) {
-                        try { if (fr.contentWindow === e.source) {
-                            fr.style.display = 'none';
-                            var th = fr.parentElement.querySelector('.af-vid-thumb');
-                            var ic = fr.parentElement.querySelector('.af-play-icon');
-                            if (th) th.style.display = 'block';
-                            if (ic) ic.style.display = 'flex';
-                        }} catch(x){}
-                    });
-                }
-            } catch(x){}
-        });
-
-        var circles = videos.map(function(v) {
-            var circle = document.createElement('div'); circle.className = 'af-vid-circle';
-
-            // Autoplay muted iframe — loads immediately
-            var fr = document.createElement('iframe');
-            fr.src = 'https://www.youtube-nocookie.com/embed/' + v.id
-                   + '?autoplay=1&mute=1&loop=1&playlist=' + v.id
-                   + '&rel=0&playsinline=1&enablejsapi=1&origin=' + encodeURIComponent(location.origin);
-            fr.allow = 'autoplay; encrypted-media';
-            fr.setAttribute('frameborder','0');
-            fr.style.cssText = 'position:absolute;top:50%;left:50%;width:300%;height:300%;transform:translate(-50%,-50%);border:none;pointer-events:none;z-index:1;';
-            circle.appendChild(fr);
-
-            // Fallback thumbnail (shown if embedding is blocked)
-            var img = document.createElement('img');
-            img.className = 'af-vid-thumb';
-            img.src = v.thumb || ('https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg');
-            img.alt = v.title || '';
-            img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:2;';
-            img.onerror = function(){ this.src='https://img.youtube.com/vi/'+v.id+'/hqdefault.jpg'; this.onerror=null; };
-            circle.appendChild(img);
-
-            // Play icon (shown over thumbnail)
-            var icon = document.createElement('div'); icon.className = 'af-play-icon';
-            icon.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-            icon.style.cssText = 'display:none;z-index:3;position:relative;';
-            circle.appendChild(icon);
-
-            // Click overlay — opens full video with sound
-            var ov = document.createElement('div');
-            ov.style.cssText = 'position:absolute;inset:0;z-index:10;cursor:pointer;';
-            ov.addEventListener('click', function() {
-                window.open('https://www.youtube.com/watch?v=' + v.id, '_blank');
-            });
-            circle.appendChild(ov);
-
-            track.appendChild(circle); return circle;
-        });
-
-        vp.appendChild(track);
-        shell.appendChild(btnP); shell.appendChild(vp); shell.appendChild(btnN);
-        anchor.insertAdjacentElement('afterend', shell);
-        anchor.classList.add('af-vid-original-hidden');
-
-        var idx = 0;
-        function iw2() { return window.innerWidth<=480?SIZES.sm:window.innerWidth<=768?SIZES.md:SIZES.lg; }
-        function vis2() { var vpW=vp.getBoundingClientRect().width||800; return Math.max(1,Math.floor((vpW+GAP)/(iw2()+GAP))); }
-        function go2(n) {
-            var v2=vis2(), max=Math.max(0,circles.length-v2);
-            idx=Math.max(0,Math.min(n,max));
-            track.style.setProperty('transform','translateX('+(-(idx*(iw2()+GAP)))+'px)','important');
-        }
-        btnP.onclick=function(){go2(idx-vis2());}; btnN.onclick=function(){go2(idx+vis2());};
-        window.addEventListener('resize',function(){idx=0;go2(0);});
-        setTimeout(function(){go2(0);},200);
-    }
-
-    // Collect all individual YouTube video IDs already in the DOM
-    function collectDomVideoIds() {
-        var ids = [], seen = {};
-        document.querySelectorAll('[data-settings]').forEach(function(el) {
-            try {
-                var s = JSON.parse(el.getAttribute('data-settings') || '{}');
-                var url = s.youtube_url || s.url || s.link || '';
-                var id = ytId(url);
-                if (id && !seen[id]) { seen[id] = 1; ids.push(id); }
-            } catch(x){}
-        });
-        // Also scan iframes
-        document.querySelectorAll('iframe').forEach(function(f) {
-            var id = ytId(f.src || f.getAttribute('data-lazy-src') || '');
-            if (id && !seen[id]) { seen[id] = 1; ids.push(id); }
-        });
-        // Scan all attributes for youtube URLs
-        document.querySelectorAll('.circle-gallery-slider *,[class*="video-circle"] *,.elementor-widget-video *').forEach(function(el) {
-            Array.from(el.attributes).forEach(function(a) {
-                if (/youtu/i.test(a.value)) {
-                    var id = ytId(a.value);
-                    if (id && !seen[id]) { seen[id] = 1; ids.push(id); }
-                }
-            });
-        });
-        return ids;
-    }
-
-    function tryBuild() {
-        if (document.querySelector('.af-vid-shell')) return;
-
-        // Use PHP-injected IDs (server-side YouTube RSS fetch)
-        var ids = window.afVideoIds || [];
-
-        // DOM fallback: scan all anchor links and iframes for YouTube IDs
-        if (!ids.length) {
-            var seen = {};
-            document.querySelectorAll('a[href*="youtube.com/watch"]').forEach(function(a) {
-                var m = a.href.match(/v=([A-Za-z0-9_-]{11})/);
-                if (m && !seen[m[1]]) { seen[m[1]]=1; ids.push(m[1]); }
-            });
-            document.querySelectorAll('iframe[src*="youtube"]').forEach(function(f) {
-                var m = (f.src||'').match(/embed\/([A-Za-z0-9_-]{11})/);
-                if (m && !seen[m[1]]) { seen[m[1]]=1; ids.push(m[1]); }
-            });
-            document.querySelectorAll('[data-settings]').forEach(function(el) {
-                try {
-                    var s = JSON.parse(el.getAttribute('data-settings')||'{}');
-                    [s.youtube_url,s.url].concat((s.tabs||[]).map(function(t){return t.youtube_url||t.url||'';}))
-                    .forEach(function(u){
-                        if (!u) return;
-                        var m = u.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-                        if (m && !seen[m[1]]) { seen[m[1]]=1; ids.push(m[1]); }
-                    });
-                } catch(e){}
-            });
-        }
-
-        // Find anchor: use the first playlist/video widget directly
-        var anchor = document.querySelector('.elementor-widget-video-playlist, .elementor-widget-video');
-        if (!anchor) return;
-        if (anchor.dataset.afVidDone) return;
-        anchor.dataset.afVidDone = '1';
-
-        if (ids.length) {
-            var videos = ids.map(function(id) {
-                return { id: id, title: '', thumb: 'https://img.youtube.com/vi/' + id + '/hqdefault.jpg' };
-            });
-            buildFromVideoList(anchor, videos);
-            // Hide ALL playlist/video widgets
-            document.querySelectorAll('.elementor-widget-video-playlist, .elementor-widget-video').forEach(function(w) {
-                w.style.setProperty('display', 'none', 'important');
-            });
-            return;
-        }
-
-        // Last resort: AJAX
-        var ajaxUrl = (typeof af_ajax !== 'undefined' ? af_ajax.url : '/wp-admin/admin-ajax.php')
-                    + '?action=af_yt_feed&channel=UC_GX4vXRQrN4GsvSfgmZxYw';
-        fetch(ajaxUrl)
-            .then(function(r){ return r.json(); })
-            .then(function(d){ if (d.success && d.data.length) buildFromVideoList(anchor, d.data); })
-            .catch(function(){});
-    }
-
-    function buildFromItems(container, items) {
-        if (container.dataset.afVidDone) return;
-        container.dataset.afVidDone = '1';
-
-        var videoData = items.map(function(item) {
-            return { item: item, id: extractId(item) };
-        });
-
-        // Build shell
-        var shell = document.createElement('div'); shell.className = 'af-vid-shell';
-        var btnP  = document.createElement('button'); btnP.className = 'af-vid-btn'; btnP.innerHTML = '&#8249;'; btnP.setAttribute('aria-label','Prev');
-        var btnN  = document.createElement('button'); btnN.className = 'af-vid-btn'; btnN.innerHTML = '&#8250;'; btnN.setAttribute('aria-label','Next');
-        var vp    = document.createElement('div'); vp.className = 'af-vid-vp';
-        var track = document.createElement('div'); track.className = 'af-vid-track';
-
-        var circles = videoData.map(function(v) {
-            var circle = document.createElement('div'); circle.className = 'af-vid-circle';
-
-            if (v.id) {
-                // Autoplay iframe — muted, looped, no controls, covers circle
-                var fr = document.createElement('iframe');
-                fr.src = 'https://www.youtube-nocookie.com/embed/' + v.id
-                       + '?autoplay=1&mute=1&loop=1&playlist=' + v.id
-                       + '&controls=0&rel=0&playsinline=1&enablejsapi=1'
-                       + '&origin=' + encodeURIComponent(location.origin);
-                fr.allow = 'autoplay; encrypted-media; fullscreen';
-                fr.setAttribute('allowfullscreen', '');
-                // Scale up iframe to fill circle and crop black bars
-                fr.style.cssText = 'position:absolute;top:50%;left:50%;'
-                    + 'width:200%;height:200%;'
-                    + 'transform:translate(-50%,-50%) scale(1.0);'
-                    + 'border:none;pointer-events:none;z-index:1;';
-                circle.appendChild(fr);
-
-                // Thumbnail fallback (shown if iframe blocked, hidden once iframe loads)
-                var thumbHq  = 'https://img.youtube.com/vi/' + v.id + '/hqdefault.jpg';
-                var thumbMax = 'https://img.youtube.com/vi/' + v.id + '/maxresdefault.jpg';
-                var img = document.createElement('img');
-                img.src = thumbMax;
-                img.onerror = function(){ this.src = thumbHq; this.onerror = null; };
-                img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;'
-                    + 'object-fit:cover;object-position:center;z-index:2;'
-                    + 'transform:scale(1.35);transform-origin:center center;'
-                    + 'transition:opacity 0.5s;';
-                circle.appendChild(img);
-
-                // Hide thumbnail once iframe has loaded/started
-                fr.addEventListener('load', function() {
-                    setTimeout(function() { img.style.opacity = '0'; }, 2000);
-                });
-
-                // Click overlay — open YouTube on tap
-                var ov = document.createElement('div');
-                ov.style.cssText = 'position:absolute;inset:0;z-index:10;cursor:pointer;';
-                ov.addEventListener('click', function() {
-                    window.open('https://www.youtube.com/watch?v=' + v.id, '_blank');
-                });
-                circle.appendChild(ov);
-            } else {
-                circle.style.background = '#222';
-                var icon2 = document.createElement('div'); icon2.className = 'af-play-icon';
-                icon2.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
-                circle.appendChild(icon2);
-            }
-
-            track.appendChild(circle); return circle;
-        });
-
-        vp.appendChild(track);
-        shell.appendChild(btnP); shell.appendChild(vp); shell.appendChild(btnN);
-        container.insertAdjacentElement('afterend', shell);
-        container.classList.add('af-vid-original-hidden');
-
-        var idx = 0;
-        function iw() { return window.innerWidth<=480?SIZES.sm:window.innerWidth<=768?SIZES.md:SIZES.lg; }
-        function vis() { var vpW=vp.getBoundingClientRect().width||800; return Math.max(1,Math.floor((vpW+GAP)/(iw()+GAP))); }
-        function go(n) {
-            var v=vis(), max=Math.max(0,circles.length-v);
-            idx=Math.max(0,Math.min(n,max));
-            track.style.setProperty('transform','translateX('+(-(idx*(iw()+GAP)))+'px)','important');
-        }
-        btnP.onclick=function(){go(idx-vis());}; btnN.onclick=function(){go(idx+vis());};
-        window.addEventListener('resize',function(){idx=0;go(0);});
-        setTimeout(function(){go(0);},200);
-    }
-
-    window.addEventListener('load', function() { tryBuild(); setTimeout(tryBuild, 1000); });
+    document.addEventListener('DOMContentLoaded', placeSlider);
+    window.addEventListener('load', placeSlider);
+    setTimeout(placeSlider, 800);
 }());
 </script>
 <?php }, 10002);
