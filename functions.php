@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.8');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.9');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -125,8 +125,9 @@ add_action('init', function() {
     update_option('woocommerce_registration_generate_username', 'no');
 });
 
-// Clear cached YouTube feed on activation (force fresh fetch after deploys)
+// Clear cached YouTube feeds on deploys
 delete_transient('af_yt_UC_GX4vXRQrN4GsvSfgmZxYw');
+delete_transient('af_yt_ids_UC_GX4vXRQrN4GsvSfgmZxYw');
 
 // 4. AJAX proxy: fetch YouTube playlist/channel RSS — no API key needed
 add_action('wp_ajax_af_yt_feed',        'af_yt_feed_handler');
@@ -647,52 +648,50 @@ add_action('wp_footer', function() { ?>
 
 
 // 11. Products In Motion — circular video slider
-// PHP pre-extracts YouTube video IDs from Elementor page data (handles both video and video-playlist widgets)
+// PHP fetches YouTube RSS server-side and injects IDs directly into the page
 add_action('wp_footer', function() {
-    if (!is_front_page() && !is_home()) return;
-    $post_id = get_the_ID();
-    $data    = get_post_meta($post_id, '_elementor_data', true);
-    $ids     = [];
-
-    function af_extract_yt_id($url) {
-        if (!$url) return '';
-        preg_match('/(?:v=|embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})/', $url, $m);
-        return $m[1] ?? '';
+    $channel = 'UC_GX4vXRQrN4GsvSfgmZxYw';
+    $cached  = get_transient('af_yt_ids_' . $channel);
+    if ($cached !== false) {
+        echo '<script>window.afVideoIds=' . json_encode($cached) . ';</script>';
+        return;
     }
-
-    if ($data) {
-        $elements = json_decode($data, true);
-        if ($elements) {
-            $stack = $elements;
-            while (!empty($stack)) {
-                $el = array_shift($stack);
-                $type = $el['widgetType'] ?? '';
-
-                if ($type === 'video') {
-                    // Regular video widget
-                    $url = $el['settings']['youtube_url'] ?? $el['settings']['url'] ?? '';
-                    $id  = af_extract_yt_id($url);
-                    if ($id && !in_array($id, $ids)) $ids[] = $id;
-
-                } elseif ($type === 'video-playlist' || $type === 'playlist') {
-                    // Video playlist widget — each tab has its own URL
-                    $tabs = $el['settings']['tabs'] ?? [];
-                    foreach ($tabs as $tab) {
-                        $url = $tab['youtube_url'] ?? $tab['url'] ?? $tab['link'] ?? '';
-                        $id  = af_extract_yt_id($url);
-                        if ($id && !in_array($id, $ids)) $ids[] = $id;
-                    }
-                }
-
-                if (!empty($el['elements'])) {
-                    $stack = array_merge($stack, $el['elements']);
-                }
+    $url  = 'https://www.youtube.com/feeds/videos.xml?channel_id=' . $channel;
+    $resp = wp_remote_get($url, ['timeout' => 8, 'sslverify' => false]);
+    $ids  = [];
+    if (!is_wp_error($resp)) {
+        $xml = @simplexml_load_string(wp_remote_retrieve_body($resp));
+        if ($xml) {
+            foreach ($xml->entry as $entry) {
+                preg_match('/video:([A-Za-z0-9_-]{11})/', (string)$entry->id, $m);
+                if (!empty($m[1])) $ids[] = $m[1];
             }
         }
     }
-    if (!empty($ids)) {
-        echo '<script>window.afVideoIds = ' . json_encode(array_values($ids)) . ';</script>';
+    // If RSS blocked, fall back to Elementor page meta
+    if (empty($ids) && is_front_page()) {
+        $data = get_post_meta(get_the_ID(), '_elementor_data', true);
+        if ($data) {
+            $stack = json_decode($data, true) ?: [];
+            while ($stack) {
+                $el = array_shift($stack);
+                $type = $el['widgetType'] ?? '';
+                if ($type === 'video') {
+                    $u = $el['settings']['youtube_url'] ?? '';
+                    if (preg_match('/(?:v=|embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})/', $u, $m)) $ids[] = $m[1];
+                } elseif (in_array($type, ['video-playlist','playlist'])) {
+                    foreach (($el['settings']['tabs'] ?? []) as $tab) {
+                        $u = $tab['youtube_url'] ?? $tab['url'] ?? '';
+                        if (preg_match('/(?:v=|embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})/', $u, $m)) $ids[] = $m[1];
+                    }
+                }
+                if (!empty($el['elements'])) $stack = array_merge($stack, $el['elements']);
+            }
+        }
     }
+    $ids = array_values(array_unique($ids));
+    set_transient('af_yt_ids_' . $channel, $ids, HOUR_IN_SECONDS);
+    if (!empty($ids)) echo '<script>window.afVideoIds=' . json_encode($ids) . ';</script>';
 }, 9);
 add_action('wp_footer', function() { ?>
 <style>
@@ -812,6 +811,9 @@ add_action('wp_footer', function() { ?>
 @media (max-width: 480px) {
     .af-vid-circle { flex: 0 0 110px !important; width: 110px !important; height: 110px !important; }
 }
+/* Hide original Elementor video/playlist widgets on home page immediately */
+body.home .elementor-widget-video-playlist,
+body.home .elementor-widget-video { display: none !important; }
 </style>
 <script>
 (function() {
@@ -1181,93 +1183,60 @@ add_action('wp_footer', function() { ?>
         return ids;
     }
 
-    function extractYtId(src) {
-        if (!src) return null;
-        var m = src.match(/(?:embed\/|v=|v\/|youtu\.be\/)([A-Za-z0-9_-]{11})/);
-        return m ? m[1] : null;
-    }
-
-    function getIdsFromContainer(container) {
-        var ids = [], seen = {};
-        // From iframes (src or data-src)
-        // iframes
-        container.querySelectorAll('iframe').forEach(function(fr) {
-            var id = extractYtId(fr.src || fr.getAttribute('data-src') || fr.getAttribute('data-lazy-src') || '');
-            if (id && !seen[id]) { seen[id]=1; ids.push(id); }
-        });
-        // Elementor data-settings JSON (regular video widget + playlist tabs)
-        container.querySelectorAll('[data-settings]').forEach(function(el) {
-            try {
-                var s = JSON.parse(el.getAttribute('data-settings') || '{}');
-                // Regular video
-                var url = s.youtube_url || s.url || s.link || '';
-                var id = extractYtId(url);
-                if (id && !seen[id]) { seen[id]=1; ids.push(id); }
-                // Playlist tabs array
-                var tabs = s.tabs || [];
-                tabs.forEach(function(tab) {
-                    var turl = tab.youtube_url || tab.url || tab.link || '';
-                    var tid = extractYtId(turl);
-                    if (tid && !seen[tid]) { seen[tid]=1; ids.push(tid); }
-                });
-            } catch(e){}
-        });
-        // Anchor links with youtube.com/watch?v= (title links in playlist widget)
-        container.querySelectorAll('a[href*="youtube.com/watch"]').forEach(function(a) {
-            var id = extractYtId(a.href || '');
-            if (id && !seen[id]) { seen[id]=1; ids.push(id); }
-        });
-        return ids;
-    }
-
     function tryBuild() {
-        if (document.querySelector('.af-vid-shell')) return; // already built
+        if (document.querySelector('.af-vid-shell')) return;
 
-        var widgets = document.querySelectorAll('.elementor-widget-video, .elementor-widget-video-playlist, .elementor-widget-playlist');
-        if (!widgets.length) return;
+        // Use PHP-injected IDs (server-side YouTube RSS fetch)
+        var ids = window.afVideoIds || [];
 
-        // Find the outermost section that contains ALL the video widgets
-        var anchor = null;
-        // Walk up from first widget to find section/container holding all of them
-        var el = widgets[0];
-        while (el && el !== document.body) {
-            if (el.querySelectorAll('.elementor-widget-video').length >= widgets.length) {
-                anchor = el;
-            }
-            el = el.parentElement;
+        // DOM fallback: scan all anchor links and iframes for YouTube IDs
+        if (!ids.length) {
+            var seen = {};
+            document.querySelectorAll('a[href*="youtube.com/watch"]').forEach(function(a) {
+                var m = a.href.match(/v=([A-Za-z0-9_-]{11})/);
+                if (m && !seen[m[1]]) { seen[m[1]]=1; ids.push(m[1]); }
+            });
+            document.querySelectorAll('iframe[src*="youtube"]').forEach(function(f) {
+                var m = (f.src||'').match(/embed\/([A-Za-z0-9_-]{11})/);
+                if (m && !seen[m[1]]) { seen[m[1]]=1; ids.push(m[1]); }
+            });
+            document.querySelectorAll('[data-settings]').forEach(function(el) {
+                try {
+                    var s = JSON.parse(el.getAttribute('data-settings')||'{}');
+                    [s.youtube_url,s.url].concat((s.tabs||[]).map(function(t){return t.youtube_url||t.url||'';}))
+                    .forEach(function(u){
+                        if (!u) return;
+                        var m = u.match(/(?:v=|youtu\.be\/)([A-Za-z0-9_-]{11})/);
+                        if (m && !seen[m[1]]) { seen[m[1]]=1; ids.push(m[1]); }
+                    });
+                } catch(e){}
+            });
         }
-        // If anchor is too broad (body/main), use closest section instead
-        if (!anchor || anchor === document.body || anchor.tagName === 'MAIN') {
-            anchor = widgets[0].closest('.elementor-section, .e-con, .e-container') || widgets[0].parentElement;
-        }
 
-        if (!anchor || anchor.dataset.afVidDone) return;
+        // Find anchor: use the first playlist/video widget directly
+        var anchor = document.querySelector('.elementor-widget-video-playlist, .elementor-widget-video');
+        if (!anchor) return;
+        if (anchor.dataset.afVidDone) return;
         anchor.dataset.afVidDone = '1';
 
-        // Use PHP-preloaded IDs (from DB) first, then DOM parsing as fallback
-        var ids = (window.afVideoIds && window.afVideoIds.length)
-                    ? window.afVideoIds
-                    : getIdsFromContainer(document.body);
-
-        function buildWith(videoIds) {
-            var videos = videoIds.map(function(id) {
+        if (ids.length) {
+            var videos = ids.map(function(id) {
                 return { id: id, title: '', thumb: 'https://img.youtube.com/vi/' + id + '/hqdefault.jpg' };
             });
             buildFromVideoList(anchor, videos);
-            // Force-hide every Elementor video widget on the page
-            document.querySelectorAll('.elementor-widget-video, .elementor-widget-video-playlist, .elementor-widget-playlist').forEach(function(w) {
+            // Hide ALL playlist/video widgets
+            document.querySelectorAll('.elementor-widget-video-playlist, .elementor-widget-video').forEach(function(w) {
                 w.style.setProperty('display', 'none', 'important');
             });
+            return;
         }
 
-        if (ids.length) { buildWith(ids); return; }
-
-        // Last resort: AJAX RSS feed
+        // Last resort: AJAX
         var ajaxUrl = (typeof af_ajax !== 'undefined' ? af_ajax.url : '/wp-admin/admin-ajax.php')
                     + '?action=af_yt_feed&channel=UC_GX4vXRQrN4GsvSfgmZxYw';
         fetch(ajaxUrl)
             .then(function(r){ return r.json(); })
-            .then(function(data) { if (data.success && data.data.length) buildFromVideoList(anchor, data.data); })
+            .then(function(d){ if (d.success && d.data.length) buildFromVideoList(anchor, d.data); })
             .catch(function(){});
     }
 
