@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.5');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.6');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1140,45 +1140,65 @@ add_action('wp_footer', function() { ?>
         return m ? m[1] : null;
     }
 
+    function getIdsFromContainer(container) {
+        var ids = [], seen = {};
+        // From iframes (src or data-src)
+        container.querySelectorAll('iframe').forEach(function(fr) {
+            var id = extractYtId(fr.src || fr.getAttribute('data-src') || fr.getAttribute('data-lazy-src') || '');
+            if (id && !seen[id]) { seen[id]=1; ids.push(id); }
+        });
+        // From Elementor data-settings JSON (covers lazy-loaded videos)
+        container.querySelectorAll('[data-settings]').forEach(function(el) {
+            try {
+                var s = JSON.parse(el.getAttribute('data-settings') || '{}');
+                var url = s.youtube_url || s.url || s.link || '';
+                var id = extractYtId(url);
+                if (id && !seen[id]) { seen[id]=1; ids.push(id); }
+            } catch(e){}
+        });
+        return ids;
+    }
+
     function tryBuild() {
-        // Find the section containing Elementor video widgets
-        var anchor = document.querySelector('.circle-gallery-slider');
-        if (!anchor) {
-            document.querySelectorAll('.elementor-section,.e-container,.e-con,.elementor-widget-wrap').forEach(function(el) {
-                if (!anchor && el.querySelectorAll('.elementor-widget-video').length >= 1) anchor = el;
-            });
+        if (document.querySelector('.af-vid-shell')) return; // already built
+
+        var widgets = document.querySelectorAll('.elementor-widget-video');
+        if (!widgets.length) return;
+
+        // Find the outermost section that contains ALL the video widgets
+        var anchor = null;
+        // Walk up from first widget to find section/container holding all of them
+        var el = widgets[0];
+        while (el && el !== document.body) {
+            if (el.querySelectorAll('.elementor-widget-video').length >= widgets.length) {
+                anchor = el;
+            }
+            el = el.parentElement;
         }
-        if (!anchor) anchor = document.querySelector('.elementor-widget-video');
+        // If anchor is too broad (body/main), use closest section instead
+        if (!anchor || anchor === document.body || anchor.tagName === 'MAIN') {
+            anchor = widgets[0].closest('.elementor-section, .e-con, .e-container') || widgets[0].parentElement;
+        }
+
         if (!anchor || anchor.dataset.afVidDone) return;
         anchor.dataset.afVidDone = '1';
 
-        // Extract video IDs directly from existing YouTube iframes on the page
-        // Works even if AJAX/RSS fails — uses whatever is already embedded
-        var ids = [];
-        var seen = {};
-        anchor.querySelectorAll('iframe[src*="youtube"], iframe[data-src*="youtube"], [data-lazy-src*="youtube"]').forEach(function(el) {
-            var id = extractYtId(el.src || el.getAttribute('data-src') || el.getAttribute('data-lazy-src') || '');
-            if (id && !seen[id]) { seen[id] = 1; ids.push(id); }
-        });
-        // Also check Elementor's data attributes for lazy-loaded videos
-        anchor.querySelectorAll('[data-settings]').forEach(function(el) {
-            try {
-                var s = JSON.parse(el.getAttribute('data-settings') || '{}');
-                var url = s.youtube_url || s.url || '';
-                var id = extractYtId(url);
-                if (id && !seen[id]) { seen[id] = 1; ids.push(id); }
-            } catch(e){}
-        });
+        // Collect video IDs from the whole page (not just anchor, in case lazy-load)
+        var ids = getIdsFromContainer(document.body);
 
         if (ids.length) {
             var videos = ids.map(function(id) {
                 return { id: id, title: '', thumb: 'https://img.youtube.com/vi/' + id + '/hqdefault.jpg' };
             });
             buildFromVideoList(anchor, videos);
+            // Also hide any remaining visible video widgets outside anchor
+            document.querySelectorAll('.elementor-widget-video').forEach(function(w) {
+                w.style.setProperty('display', 'none', 'important');
+            });
             return;
         }
 
-        // Fallback: try AJAX RSS feed
+        // Fallback: AJAX RSS feed
         var ajaxUrl = (typeof af_ajax !== 'undefined' ? af_ajax.url : '/wp-admin/admin-ajax.php')
                     + '?action=af_yt_feed&channel=UC_GX4vXRQrN4GsvSfgmZxYw';
         fetch(ajaxUrl)
