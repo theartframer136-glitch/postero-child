@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.7');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.8');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -647,24 +647,43 @@ add_action('wp_footer', function() { ?>
 
 
 // 11. Products In Motion — circular video slider
-// PHP pre-extracts YouTube video IDs from Elementor page data so JS never needs to parse the DOM
+// PHP pre-extracts YouTube video IDs from Elementor page data (handles both video and video-playlist widgets)
 add_action('wp_footer', function() {
     if (!is_front_page() && !is_home()) return;
     $post_id = get_the_ID();
     $data    = get_post_meta($post_id, '_elementor_data', true);
     $ids     = [];
+
+    function af_extract_yt_id($url) {
+        if (!$url) return '';
+        preg_match('/(?:v=|embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})/', $url, $m);
+        return $m[1] ?? '';
+    }
+
     if ($data) {
         $elements = json_decode($data, true);
         if ($elements) {
             $stack = $elements;
             while (!empty($stack)) {
                 $el = array_shift($stack);
-                if (isset($el['widgetType']) && $el['widgetType'] === 'video') {
-                    $url = $el['settings']['youtube_url'] ?? '';
-                    if ($url && preg_match('/(?:v=|embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})/', $url, $m)) {
-                        if (!in_array($m[1], $ids)) $ids[] = $m[1];
+                $type = $el['widgetType'] ?? '';
+
+                if ($type === 'video') {
+                    // Regular video widget
+                    $url = $el['settings']['youtube_url'] ?? $el['settings']['url'] ?? '';
+                    $id  = af_extract_yt_id($url);
+                    if ($id && !in_array($id, $ids)) $ids[] = $id;
+
+                } elseif ($type === 'video-playlist' || $type === 'playlist') {
+                    // Video playlist widget — each tab has its own URL
+                    $tabs = $el['settings']['tabs'] ?? [];
+                    foreach ($tabs as $tab) {
+                        $url = $tab['youtube_url'] ?? $tab['url'] ?? $tab['link'] ?? '';
+                        $id  = af_extract_yt_id($url);
+                        if ($id && !in_array($id, $ids)) $ids[] = $id;
                     }
                 }
+
                 if (!empty($el['elements'])) {
                     $stack = array_merge($stack, $el['elements']);
                 }
@@ -674,7 +693,7 @@ add_action('wp_footer', function() {
     if (!empty($ids)) {
         echo '<script>window.afVideoIds = ' . json_encode(array_values($ids)) . ';</script>';
     }
-}, 9); // Run before the circle-builder JS at priority 10002
+}, 9);
 add_action('wp_footer', function() { ?>
 <style>
 /* Shell */
@@ -1171,18 +1190,32 @@ add_action('wp_footer', function() { ?>
     function getIdsFromContainer(container) {
         var ids = [], seen = {};
         // From iframes (src or data-src)
+        // iframes
         container.querySelectorAll('iframe').forEach(function(fr) {
             var id = extractYtId(fr.src || fr.getAttribute('data-src') || fr.getAttribute('data-lazy-src') || '');
             if (id && !seen[id]) { seen[id]=1; ids.push(id); }
         });
-        // From Elementor data-settings JSON (covers lazy-loaded videos)
+        // Elementor data-settings JSON (regular video widget + playlist tabs)
         container.querySelectorAll('[data-settings]').forEach(function(el) {
             try {
                 var s = JSON.parse(el.getAttribute('data-settings') || '{}');
+                // Regular video
                 var url = s.youtube_url || s.url || s.link || '';
                 var id = extractYtId(url);
                 if (id && !seen[id]) { seen[id]=1; ids.push(id); }
+                // Playlist tabs array
+                var tabs = s.tabs || [];
+                tabs.forEach(function(tab) {
+                    var turl = tab.youtube_url || tab.url || tab.link || '';
+                    var tid = extractYtId(turl);
+                    if (tid && !seen[tid]) { seen[tid]=1; ids.push(tid); }
+                });
             } catch(e){}
+        });
+        // Anchor links with youtube.com/watch?v= (title links in playlist widget)
+        container.querySelectorAll('a[href*="youtube.com/watch"]').forEach(function(a) {
+            var id = extractYtId(a.href || '');
+            if (id && !seen[id]) { seen[id]=1; ids.push(id); }
         });
         return ids;
     }
@@ -1190,7 +1223,7 @@ add_action('wp_footer', function() { ?>
     function tryBuild() {
         if (document.querySelector('.af-vid-shell')) return; // already built
 
-        var widgets = document.querySelectorAll('.elementor-widget-video');
+        var widgets = document.querySelectorAll('.elementor-widget-video, .elementor-widget-video-playlist, .elementor-widget-playlist');
         if (!widgets.length) return;
 
         // Find the outermost section that contains ALL the video widgets
@@ -1222,7 +1255,7 @@ add_action('wp_footer', function() { ?>
             });
             buildFromVideoList(anchor, videos);
             // Force-hide every Elementor video widget on the page
-            document.querySelectorAll('.elementor-widget-video').forEach(function(w) {
+            document.querySelectorAll('.elementor-widget-video, .elementor-widget-video-playlist, .elementor-widget-playlist').forEach(function(w) {
                 w.style.setProperty('display', 'none', 'important');
             });
         }
