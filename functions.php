@@ -471,134 +471,148 @@ add_action('wp_footer', function() { ?>
         btnN.className   = 'af-shell-btn';  btnN.innerHTML = '&#8250;'; btnN.setAttribute('aria-label','Next');
         track.className  = 'af-shell-track';
 
-        function styleCard(c) {
-            // Card shell
-            var cs = c.style;
-            cs.setProperty('background',     '#fff',                    'important');
-            cs.setProperty('border',         '1px solid #e8e8e8',       'important');
-            cs.setProperty('border-radius',  '12px',                    'important');
-            cs.setProperty('overflow',       'hidden',                   'important');
-            cs.setProperty('display',        'flex',                    'important');
-            cs.setProperty('flex-direction', 'column',                  'important');
-            cs.setProperty('position',       'relative',                'important');
-            cs.setProperty('box-shadow',     '0 3px 14px rgba(0,0,0,.09)', 'important');
-            cs.setProperty('transition',     'box-shadow .25s,transform .25s', 'important');
+        function sp(el, p, v) { el.style.setProperty(p, v, 'important'); }
 
-            // Image wrapper
-            var img = c.querySelector('.product-image, .image-wrapper, .woocommerce-loop-product__link');
-            if (img) {
-                img.style.setProperty('display',        'block',   'important');
-                img.style.setProperty('width',          '100%',    'important');
-                img.style.setProperty('overflow',       'hidden',  'important');
-                img.style.setProperty('position',       'relative','important');
-                img.style.setProperty('aspect-ratio',   '4/3',     'important');
-                img.style.setProperty('background',     '#f4f4f4', 'important');
-                img.style.setProperty('flex-shrink',    '0',       'important');
-                var mainImg = img.querySelector('img:first-child');
-                if (mainImg) {
-                    mainImg.style.setProperty('width',       '100%',         'important');
-                    mainImg.style.setProperty('height',      '100%',         'important');
-                    mainImg.style.setProperty('object-fit',  'cover',        'important');
-                    mainImg.style.setProperty('display',     'block',        'important');
-                }
+        function styleCard(c) {
+            // ── Card shell ──
+            sp(c,'background',    '#fff');
+            sp(c,'border',        '1px solid #e8e8e8');
+            sp(c,'border-radius', '12px');
+            sp(c,'overflow',      'hidden');
+            sp(c,'display',       'flex');
+            sp(c,'flex-direction','column');
+            sp(c,'position',      'relative');
+            sp(c,'box-shadow',    '0 2px 12px rgba(0,0,0,.10)');
+            sp(c,'margin',        '0');
+
+            // ── Image wrapper — use padding-bottom hack for reliable 4:3 ──
+            var imgWrap = c.querySelector('.product-image, .image-wrapper, .woocommerce-loop-product__link');
+            if (imgWrap) {
+                sp(imgWrap,'display',     'block');
+                sp(imgWrap,'position',    'relative');
+                sp(imgWrap,'width',       '100%');
+                sp(imgWrap,'height',      '0');
+                sp(imgWrap,'padding-bottom','75%'); // 4:3 ratio
+                sp(imgWrap,'overflow',    'hidden');
+                sp(imgWrap,'flex-shrink', '0');
+                sp(imgWrap,'background',  '#f0f0f0');
+                // All imgs inside become absolutely positioned to fill
+                imgWrap.querySelectorAll('img').forEach(function(i){
+                    sp(i,'position',   'absolute');
+                    sp(i,'inset',      '0');
+                    sp(i,'width',      '100%');
+                    sp(i,'height',     '100%');
+                    sp(i,'object-fit', 'cover');
+                    sp(i,'display',    'block');
+                });
             }
 
-            // product-info wrapper
+            // ── product-info wrapper ──
             var info = c.querySelector('.product-info');
             if (info) {
-                info.style.setProperty('display',         'flex',           'important');
-                info.style.setProperty('flex-direction',  'column',         'important');
-                info.style.setProperty('flex',            '1 1 auto',       'important');
-                info.style.setProperty('padding',         '12px 14px 0',    'important');
+                sp(info,'display',        'flex');
+                sp(info,'flex-direction', 'column');
+                sp(info,'flex',           '1 1 auto');
+                sp(info,'padding',        '14px 14px 0');
+                sp(info,'margin',         '0');
             }
 
-            // Title
+            // ── Title ──
             var title = c.querySelector('h2,h3,.product-title,.woocommerce-loop-product__title');
             if (title) {
-                title.style.setProperty('font-size',      '13.5px',         'important');
-                title.style.setProperty('font-weight',    '700',            'important');
-                title.style.setProperty('line-height',    '1.45',           'important');
-                title.style.setProperty('color',          '#1a1a1a',        'important');
-                title.style.setProperty('margin',         '0 0 6px',        'important');
-                title.style.setProperty('padding',        '0',              'important');
-                title.style.setProperty('display',        '-webkit-box',    'important');
-                title.style.setProperty('-webkit-line-clamp', '3',          'important');
-                title.style.setProperty('-webkit-box-orient', 'vertical',   'important');
-                title.style.setProperty('overflow',       'hidden',         'important');
-                title.style.setProperty('min-height',     'calc(1.45em * 3)', 'important');
+                sp(title,'font-size',             '13.5px');
+                sp(title,'font-weight',           '700');
+                sp(title,'line-height',           '1.45');
+                sp(title,'color',                 '#1a1a1a');
+                sp(title,'margin',                '0 0 8px');
+                sp(title,'padding',               '0');
+                sp(title,'display',               '-webkit-box');
+                sp(title,'-webkit-line-clamp',    '3');
+                sp(title,'-webkit-box-orient',    'vertical');
+                sp(title,'overflow',              'hidden');
+                sp(title,'min-height',            'calc(1.45em * 3)');
             }
 
-            // Rating row
-            var rating = c.querySelector('.woocommerce-product-rating, .product-meta-row');
+            // ── Rating / meta row ──
+            var rating = c.querySelector('.woocommerce-product-rating,.product-meta-row');
             if (rating) {
-                rating.style.setProperty('display',     'flex',            'important');
-                rating.style.setProperty('align-items', 'center',          'important');
-                rating.style.setProperty('flex-wrap',   'wrap',            'important');
-                rating.style.setProperty('gap',         '5px',             'important');
-                rating.style.setProperty('margin',      '0 0 4px',         'important');
-                rating.style.setProperty('padding',     '0',               'important');
+                sp(rating,'display',     'flex');
+                sp(rating,'align-items', 'center');
+                sp(rating,'flex-wrap',   'wrap');
+                sp(rating,'gap',         '4px');
+                sp(rating,'margin',      '0 0 4px');
+                sp(rating,'padding',     '0');
+                sp(rating,'line-height', '1.4');
             }
+            var stars = c.querySelector('.star-rating');
+            if (stars) { sp(stars,'color','#c9a84c'); sp(stars,'font-size','13px'); sp(stars,'margin','0'); }
+            var revLink = c.querySelector('.woocommerce-review-link');
+            if (revLink) { sp(revLink,'font-size','12px'); sp(revLink,'color','#555'); }
 
-            // Price
-            var price = c.querySelector('.price, .price-section');
+            // ── Price ──
+            var price = c.querySelector('.price,.price-section');
             if (price) {
-                price.style.setProperty('display',     'flex',             'important');
-                price.style.setProperty('flex-wrap',   'wrap',             'important');
-                price.style.setProperty('align-items', 'baseline',         'important');
-                price.style.setProperty('gap',         '4px',              'important');
-                price.style.setProperty('font-size',   '14px',             'important');
-                price.style.setProperty('font-weight', '700',              'important');
-                price.style.setProperty('color',       '#1a1a1a',          'important');
-                price.style.setProperty('margin',      '0 0 6px',          'important');
-                price.style.setProperty('padding',     '0',                'important');
+                sp(price,'display',     'flex');
+                sp(price,'flex-wrap',   'wrap');
+                sp(price,'align-items', 'baseline');
+                sp(price,'gap',         '5px');
+                sp(price,'font-size',   '14px');
+                sp(price,'font-weight', '700');
+                sp(price,'color',       '#1a1a1a');
+                sp(price,'margin',      '0 0 8px');
+                sp(price,'padding',     '0');
             }
+            var ins = c.querySelector('.price ins, .price-section ins');
+            if (ins) { sp(ins,'text-decoration','none'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); }
+            var del = c.querySelector('.price del, .price-section del');
+            if (del) { sp(del,'color','#999'); sp(del,'font-weight','400'); sp(del,'font-size','12px'); }
 
-            // Description
-            var desc = c.querySelector('p.desc, .desc');
+            // ── Description ──
+            var desc = c.querySelector('p.desc,.desc');
             if (desc) {
-                desc.style.setProperty('font-size',    '13px',             'important');
-                desc.style.setProperty('color',        '#666',             'important');
-                desc.style.setProperty('line-height',  '1.55',             'important');
-                desc.style.setProperty('margin',       '0 0 10px',         'important');
-                desc.style.setProperty('padding',      '0',                'important');
-                desc.style.setProperty('display',      '-webkit-box',      'important');
-                desc.style.setProperty('-webkit-line-clamp', '2',          'important');
-                desc.style.setProperty('-webkit-box-orient', 'vertical',   'important');
-                desc.style.setProperty('overflow',     'hidden',           'important');
-                desc.style.setProperty('min-height',   'calc(1.55em * 2)', 'important');
-                desc.style.setProperty('flex',         '1 1 auto',         'important');
+                sp(desc,'font-size',          '13px');
+                sp(desc,'color',              '#555');
+                sp(desc,'line-height',        '1.55');
+                sp(desc,'margin',             '0 0 12px');
+                sp(desc,'padding',            '0');
+                sp(desc,'display',            '-webkit-box');
+                sp(desc,'-webkit-line-clamp', '2');
+                sp(desc,'-webkit-box-orient', 'vertical');
+                sp(desc,'overflow',           'hidden');
+                sp(desc,'min-height',         'calc(1.55em * 2)');
+                sp(desc,'flex',               '1 1 auto');
             }
 
-            // Buttons row
-            var actions = c.querySelector('.product-actions, .card-actions');
+            // ── Buttons row ──
+            var actions = c.querySelector('.product-actions,.card-actions');
             if (actions) {
-                actions.style.setProperty('display',     'flex',           'important');
-                actions.style.setProperty('gap',         '8px',            'important');
-                actions.style.setProperty('padding',     '0 14px 14px',    'important');
-                actions.style.setProperty('margin-top',  'auto',           'important');
+                sp(actions,'display',    'flex');
+                sp(actions,'gap',        '8px');
+                sp(actions,'padding',    '0 14px 14px');
+                sp(actions,'margin-top', 'auto');
                 Array.from(actions.children).forEach(function(btn) {
-                    btn.style.setProperty('flex',            '1 1 50%',      'important');
-                    btn.style.setProperty('min-width',       '0',            'important');
-                    btn.style.setProperty('border',          'none',         'important');
-                    btn.style.setProperty('border-radius',   '7px',          'important');
-                    btn.style.setProperty('font-size',       '13px',         'important');
-                    btn.style.setProperty('font-weight',     '600',          'important');
-                    btn.style.setProperty('padding',         '10px 6px',     'important');
-                    btn.style.setProperty('cursor',          'pointer',      'important');
-                    btn.style.setProperty('display',         'flex',         'important');
-                    btn.style.setProperty('align-items',     'center',       'important');
-                    btn.style.setProperty('justify-content', 'center',       'important');
-                    btn.style.setProperty('gap',             '5px',          'important');
-                    btn.style.setProperty('white-space',     'nowrap',       'important');
-                    btn.style.setProperty('text-decoration', 'none',         'important');
-                    // Gold for Add to Cart, dark for Quick View
-                    var cls = (btn.className || '') + ' ' + (btn.getAttribute('data-widget_type') || '');
+                    sp(btn,'flex',           '1 1 50%');
+                    sp(btn,'min-width',      '0');
+                    sp(btn,'border',         'none');
+                    sp(btn,'border-radius',  '7px');
+                    sp(btn,'font-size',      '13px');
+                    sp(btn,'font-weight',    '600');
+                    sp(btn,'padding',        '11px 6px');
+                    sp(btn,'cursor',         'pointer');
+                    sp(btn,'display',        'flex');
+                    sp(btn,'align-items',    'center');
+                    sp(btn,'justify-content','center');
+                    sp(btn,'gap',            '5px');
+                    sp(btn,'white-space',    'nowrap');
+                    sp(btn,'text-decoration','none');
+                    sp(btn,'line-height',    '1');
+                    var cls = btn.className || '';
                     if (/add.cart|add_to_cart/i.test(cls)) {
-                        btn.style.setProperty('background', '#c9a84c', 'important');
-                        btn.style.setProperty('color',      '#fff',     'important');
+                        sp(btn,'background','#c9a84c');
+                        sp(btn,'color','#fff');
                     } else {
-                        btn.style.setProperty('background', '#1a1a1a', 'important');
-                        btn.style.setProperty('color',      '#fff',     'important');
+                        sp(btn,'background','#1a1a1a');
+                        sp(btn,'color','#fff');
                     }
                 });
             }
