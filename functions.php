@@ -843,10 +843,10 @@ add_action('wp_footer', function() {
 /* Hide original Elementor video/playlist widgets */
 .elementor-widget-video-playlist,
 .elementor-widget-video,
-[data-widget_type="video-playlist"],
-[data-widget_type="video"],
-[data-widget_type="video"] .elementor-widget-container,
-[data-widget_type="video-playlist"] .elementor-widget-container { display:none !important; }
+[data-widget_type^="video-playlist"],
+[data-widget_type^="video"],
+[data-widget_type^="video-playlist"] .elementor-widget-container,
+[data-widget_type^="video"] .elementor-widget-container { display:none !important; }
 </style>
 
 <?php
@@ -969,9 +969,10 @@ add_action('wp_footer', function() {
         wrap.dataset.placed = '1';
 
         // Hide every widget in this section that is NOT a heading or text widget
+        // data-widget_type values are like "video-playlist.default" — use startsWith logic
         section.querySelectorAll('.elementor-widget').forEach(function(w) {
             var type = w.getAttribute('data-widget_type') || '';
-            if (/^heading\b|^text-editor\b|^text\b/.test(type)) return;
+            if (/^(heading|text-editor|text)\b/.test(type)) return;
             w.style.setProperty('display', 'none', 'important');
         });
 
