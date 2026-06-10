@@ -843,8 +843,10 @@ add_action('wp_footer', function() {
 /* Hide original Elementor video/playlist widgets */
 .elementor-widget-video-playlist,
 .elementor-widget-video,
-.elementor-widget-video-playlist .elementor-widget-container,
-.elementor-widget-video .elementor-widget-container { display:none !important; }
+[data-widget_type="video-playlist"],
+[data-widget_type="video"],
+[data-widget_type="video"] .elementor-widget-container,
+[data-widget_type="video-playlist"] .elementor-widget-container { display:none !important; }
 </style>
 
 <?php
@@ -966,21 +968,33 @@ add_action('wp_footer', function() {
 
         wrap.dataset.placed = '1';
 
-        // Hide every child element in this section EXCEPT heading/text widgets
+        // Hide every widget in this section that is NOT a heading or text widget
         section.querySelectorAll('.elementor-widget').forEach(function(w) {
             var type = w.getAttribute('data-widget_type') || '';
-            // Keep heading and text-editor widgets visible
-            if (/heading|text-editor|text/.test(type)) return;
+            if (/^heading\b|^text-editor\b|^text\b/.test(type)) return;
             w.style.setProperty('display', 'none', 'important');
         });
 
-        // Also hide by iframe presence (catches unlabelled widgets)
-        section.querySelectorAll('iframe').forEach(function(fr) {
-            var parent = fr.closest('.elementor-widget') || fr.parentElement;
-            if (parent) parent.style.setProperty('display', 'none', 'important');
+        // Nuclear fallback: hide every elementor-widget-wrap that contains an iframe
+        section.querySelectorAll('.elementor-widget-wrap').forEach(function(wrap_el) {
+            if (wrap_el.querySelector('iframe')) {
+                Array.from(wrap_el.children).forEach(function(child) {
+                    if (!child.querySelector('h1,h2,h3,h4,h5,h6,.elementor-heading-title,.elementor-text-editor')) {
+                        child.style.setProperty('display', 'none', 'important');
+                    }
+                });
+            }
         });
 
-        // Insert slider inside the section, after the last text widget
+        // Hide by column/container if it holds only video widgets
+        section.querySelectorAll('.elementor-column, .e-con').forEach(function(col) {
+            var hasHeading = col.querySelector('h1,h2,h3,h4,.elementor-heading-title');
+            var hasVideo   = col.querySelector('iframe, .elementor-widget-video, .elementor-widget-video-playlist');
+            if (hasVideo && !hasHeading) {
+                col.style.setProperty('display', 'none', 'important');
+            }
+        });
+
         section.appendChild(wrap);
     }
 
