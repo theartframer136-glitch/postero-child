@@ -667,13 +667,19 @@ add_action('wp_footer', function() { ?>
         shell.appendChild(vp);
         shell.appendChild(btnN);
 
-        // Re-apply rating padding fix after WooCommerce JS may have re-set it
-        setTimeout(function() {
+        // Watch every rating row — if WooCommerce JS re-sets padding-left, instantly clear it
+        function zeroRatingPadding() {
             track.querySelectorAll('.rating,.woocommerce-product-rating,.product-meta-row').forEach(function(r) {
                 r.style.setProperty('padding',      '0', 'important');
                 r.style.setProperty('padding-left', '0', 'important');
             });
-        }, 300);
+        }
+        zeroRatingPadding();
+        [200, 600, 1200].forEach(function(d){ setTimeout(zeroRatingPadding, d); });
+        var ratingMo = new MutationObserver(zeroRatingPadding);
+        track.querySelectorAll('.rating,.woocommerce-product-rating,.product-meta-row').forEach(function(r) {
+            ratingMo.observe(r, { attributes: true, attributeFilter: ['style'] });
+        });
 
         grid.parentNode.insertBefore(shell, grid.nextSibling);
         grid.classList.add('af-grid-hidden');
