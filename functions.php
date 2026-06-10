@@ -471,9 +471,142 @@ add_action('wp_footer', function() { ?>
         btnN.className   = 'af-shell-btn';  btnN.innerHTML = '&#8250;'; btnN.setAttribute('aria-label','Next');
         track.className  = 'af-shell-track';
 
+        function styleCard(c) {
+            // Card shell
+            var cs = c.style;
+            cs.setProperty('background',     '#fff',                    'important');
+            cs.setProperty('border',         '1px solid #e8e8e8',       'important');
+            cs.setProperty('border-radius',  '12px',                    'important');
+            cs.setProperty('overflow',       'hidden',                   'important');
+            cs.setProperty('display',        'flex',                    'important');
+            cs.setProperty('flex-direction', 'column',                  'important');
+            cs.setProperty('position',       'relative',                'important');
+            cs.setProperty('box-shadow',     '0 3px 14px rgba(0,0,0,.09)', 'important');
+            cs.setProperty('transition',     'box-shadow .25s,transform .25s', 'important');
+
+            // Image wrapper
+            var img = c.querySelector('.product-image, .image-wrapper, .woocommerce-loop-product__link');
+            if (img) {
+                img.style.setProperty('display',        'block',   'important');
+                img.style.setProperty('width',          '100%',    'important');
+                img.style.setProperty('overflow',       'hidden',  'important');
+                img.style.setProperty('position',       'relative','important');
+                img.style.setProperty('aspect-ratio',   '4/3',     'important');
+                img.style.setProperty('background',     '#f4f4f4', 'important');
+                img.style.setProperty('flex-shrink',    '0',       'important');
+                var mainImg = img.querySelector('img:first-child');
+                if (mainImg) {
+                    mainImg.style.setProperty('width',       '100%',         'important');
+                    mainImg.style.setProperty('height',      '100%',         'important');
+                    mainImg.style.setProperty('object-fit',  'cover',        'important');
+                    mainImg.style.setProperty('display',     'block',        'important');
+                }
+            }
+
+            // product-info wrapper
+            var info = c.querySelector('.product-info');
+            if (info) {
+                info.style.setProperty('display',         'flex',           'important');
+                info.style.setProperty('flex-direction',  'column',         'important');
+                info.style.setProperty('flex',            '1 1 auto',       'important');
+                info.style.setProperty('padding',         '12px 14px 0',    'important');
+            }
+
+            // Title
+            var title = c.querySelector('h2,h3,.product-title,.woocommerce-loop-product__title');
+            if (title) {
+                title.style.setProperty('font-size',      '13.5px',         'important');
+                title.style.setProperty('font-weight',    '700',            'important');
+                title.style.setProperty('line-height',    '1.45',           'important');
+                title.style.setProperty('color',          '#1a1a1a',        'important');
+                title.style.setProperty('margin',         '0 0 6px',        'important');
+                title.style.setProperty('padding',        '0',              'important');
+                title.style.setProperty('display',        '-webkit-box',    'important');
+                title.style.setProperty('-webkit-line-clamp', '3',          'important');
+                title.style.setProperty('-webkit-box-orient', 'vertical',   'important');
+                title.style.setProperty('overflow',       'hidden',         'important');
+                title.style.setProperty('min-height',     'calc(1.45em * 3)', 'important');
+            }
+
+            // Rating row
+            var rating = c.querySelector('.woocommerce-product-rating, .product-meta-row');
+            if (rating) {
+                rating.style.setProperty('display',     'flex',            'important');
+                rating.style.setProperty('align-items', 'center',          'important');
+                rating.style.setProperty('flex-wrap',   'wrap',            'important');
+                rating.style.setProperty('gap',         '5px',             'important');
+                rating.style.setProperty('margin',      '0 0 4px',         'important');
+                rating.style.setProperty('padding',     '0',               'important');
+            }
+
+            // Price
+            var price = c.querySelector('.price, .price-section');
+            if (price) {
+                price.style.setProperty('display',     'flex',             'important');
+                price.style.setProperty('flex-wrap',   'wrap',             'important');
+                price.style.setProperty('align-items', 'baseline',         'important');
+                price.style.setProperty('gap',         '4px',              'important');
+                price.style.setProperty('font-size',   '14px',             'important');
+                price.style.setProperty('font-weight', '700',              'important');
+                price.style.setProperty('color',       '#1a1a1a',          'important');
+                price.style.setProperty('margin',      '0 0 6px',          'important');
+                price.style.setProperty('padding',     '0',                'important');
+            }
+
+            // Description
+            var desc = c.querySelector('p.desc, .desc');
+            if (desc) {
+                desc.style.setProperty('font-size',    '13px',             'important');
+                desc.style.setProperty('color',        '#666',             'important');
+                desc.style.setProperty('line-height',  '1.55',             'important');
+                desc.style.setProperty('margin',       '0 0 10px',         'important');
+                desc.style.setProperty('padding',      '0',                'important');
+                desc.style.setProperty('display',      '-webkit-box',      'important');
+                desc.style.setProperty('-webkit-line-clamp', '2',          'important');
+                desc.style.setProperty('-webkit-box-orient', 'vertical',   'important');
+                desc.style.setProperty('overflow',     'hidden',           'important');
+                desc.style.setProperty('min-height',   'calc(1.55em * 2)', 'important');
+                desc.style.setProperty('flex',         '1 1 auto',         'important');
+            }
+
+            // Buttons row
+            var actions = c.querySelector('.product-actions, .card-actions');
+            if (actions) {
+                actions.style.setProperty('display',     'flex',           'important');
+                actions.style.setProperty('gap',         '8px',            'important');
+                actions.style.setProperty('padding',     '0 14px 14px',    'important');
+                actions.style.setProperty('margin-top',  'auto',           'important');
+                Array.from(actions.children).forEach(function(btn) {
+                    btn.style.setProperty('flex',            '1 1 50%',      'important');
+                    btn.style.setProperty('min-width',       '0',            'important');
+                    btn.style.setProperty('border',          'none',         'important');
+                    btn.style.setProperty('border-radius',   '7px',          'important');
+                    btn.style.setProperty('font-size',       '13px',         'important');
+                    btn.style.setProperty('font-weight',     '600',          'important');
+                    btn.style.setProperty('padding',         '10px 6px',     'important');
+                    btn.style.setProperty('cursor',          'pointer',      'important');
+                    btn.style.setProperty('display',         'flex',         'important');
+                    btn.style.setProperty('align-items',     'center',       'important');
+                    btn.style.setProperty('justify-content', 'center',       'important');
+                    btn.style.setProperty('gap',             '5px',          'important');
+                    btn.style.setProperty('white-space',     'nowrap',       'important');
+                    btn.style.setProperty('text-decoration', 'none',         'important');
+                    // Gold for Add to Cart, dark for Quick View
+                    var cls = (btn.className || '') + ' ' + (btn.getAttribute('data-widget_type') || '');
+                    if (/add.cart|add_to_cart/i.test(cls)) {
+                        btn.style.setProperty('background', '#c9a84c', 'important');
+                        btn.style.setProperty('color',      '#fff',     'important');
+                    } else {
+                        btn.style.setProperty('background', '#1a1a1a', 'important');
+                        btn.style.setProperty('color',      '#fff',     'important');
+                    }
+                });
+            }
+        }
+
         freshCards.forEach(function(c) {
             track.appendChild(c);
-            c.style.setProperty('position', 'relative', 'important');
+            styleCard(c);
 
             // Completely hide the original YITH wishlist widget — our custom button triggers it
             var yith = c.querySelector('.yith-wcwl-add-to-wishlist');
