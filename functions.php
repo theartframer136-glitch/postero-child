@@ -652,6 +652,173 @@ add_action('wp_footer', function() { ?>
 </script>
 <?php }, 10000);
 
+// Product card override — injected late in <head> to beat all theme/plugin CSS
+add_action('wp_head', function() { ?>
+<style id="af-card-override">
+html body .product-card,
+html body .af-shell-track .product-card,
+html body .product-slider .product-card {
+  background:#fff !important;
+  border:1px solid #e8e8e8 !important;
+  border-radius:12px !important;
+  overflow:hidden !important;
+  display:flex !important;
+  flex-direction:column !important;
+  position:relative !important;
+  box-shadow:0 3px 14px rgba(0,0,0,.09) !important;
+  transition:box-shadow .25s,transform .25s !important;
+}
+html body .product-card:hover,
+html body .af-shell-track .product-card:hover,
+html body .product-slider .product-card:hover {
+  box-shadow:0 8px 28px rgba(0,0,0,.15) !important;
+  transform:translateY(-3px) !important;
+}
+
+/* image */
+html body .product-card .product-image,
+html body .product-card .image-wrapper,
+html body .product-card .woocommerce-loop-product__link {
+  display:block !important;
+  width:100% !important;
+  aspect-ratio:4/3 !important;
+  overflow:hidden !important;
+  position:relative !important;
+  background:#f4f4f4 !important;
+  border-radius:0 !important;
+  flex-shrink:0 !important;
+}
+html body .product-card .product-image img,
+html body .product-card .image-wrapper img,
+html body .product-card .woocommerce-loop-product__link img {
+  width:100% !important; height:100% !important;
+  object-fit:cover !important; display:block !important;
+  transition:transform .4s !important;
+}
+html body .product-card:hover .product-image img,
+html body .product-card:hover .image-wrapper img { transform:scale(1.05) !important; }
+
+/* SALE ribbon */
+html body .product-card .onsale,
+html body .product-card .sale-ribbon {
+  position:absolute !important;
+  top:20px !important; left:-26px !important;
+  z-index:10 !important;
+  background:#c9a84c !important; color:#fff !important;
+  font-size:11px !important; font-weight:800 !important;
+  padding:5px 38px !important;
+  text-transform:uppercase !important; letter-spacing:.08em !important;
+  transform:rotate(-45deg) !important;
+  box-shadow:0 2px 6px rgba(0,0,0,.22) !important;
+  min-width:110px !important; text-align:center !important;
+  line-height:1.4 !important; border-radius:0 !important; margin:0 !important;
+}
+
+/* wishlist */
+html body .product-card .af-wishlist-btn {
+  position:absolute !important;
+  top:10px !important; right:10px !important;
+  z-index:20 !important;
+  width:36px !important; height:36px !important;
+  border-radius:50% !important;
+  background:rgba(255,255,255,.95) !important;
+  border:none !important; cursor:pointer !important;
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  box-shadow:0 1px 5px rgba(0,0,0,.18) !important; padding:0 !important;
+}
+
+/* content area */
+html body .product-card .product-info {
+  display:flex !important; flex-direction:column !important;
+  flex:1 1 auto !important; padding:12px 14px 0 !important;
+}
+
+/* title */
+html body .product-card h2,
+html body .product-card h3,
+html body .product-card .woocommerce-loop-product__title,
+html body .product-card .product-title {
+  font-size:13.5px !important; font-weight:700 !important;
+  line-height:1.45 !important; color:#1a1a1a !important;
+  margin:0 0 6px !important; padding:0 !important;
+  display:-webkit-box !important;
+  -webkit-line-clamp:3 !important; -webkit-box-orient:vertical !important;
+  overflow:hidden !important; min-height:calc(1.45em * 3) !important;
+}
+
+/* meta row */
+html body .product-card .woocommerce-product-rating,
+html body .product-card .product-meta-row {
+  display:flex !important; align-items:center !important;
+  flex-wrap:wrap !important; gap:5px !important;
+  margin:0 0 5px !important; padding:0 !important;
+}
+html body .product-card .star-rating { font-size:12px !important; color:#c9a84c !important; }
+html body .product-card .woocommerce-review-link { font-size:11px !important; color:#666 !important; }
+
+/* price */
+html body .product-card .price,
+html body .product-card .price-section {
+  display:flex !important; flex-wrap:wrap !important;
+  align-items:baseline !important; gap:4px !important;
+  font-size:14px !important; font-weight:700 !important; color:#1a1a1a !important;
+  margin:0 0 6px !important; padding:0 !important;
+}
+html body .product-card .price ins { text-decoration:none !important; font-weight:700 !important; color:#1a1a1a !important; }
+html body .product-card .price del { color:#999 !important; font-weight:400 !important; font-size:12px !important; }
+html body .product-card .discount-percentage { font-size:12px !important; color:#888 !important; }
+
+/* description */
+html body .product-card p.desc,
+html body .product-card .desc {
+  font-size:13px !important; color:#666 !important; line-height:1.55 !important;
+  margin:0 0 10px !important; padding:0 !important;
+  display:-webkit-box !important;
+  -webkit-line-clamp:2 !important; -webkit-box-orient:vertical !important;
+  overflow:hidden !important; min-height:calc(1.55em * 2) !important;
+  flex:1 1 auto !important;
+}
+
+/* buttons */
+html body .product-card .product-actions,
+html body .product-card .card-actions {
+  display:flex !important; gap:8px !important;
+  padding:0 14px 14px !important; margin-top:auto !important;
+}
+html body .product-card .product-actions > * { flex:1 1 50% !important; min-width:0 !important; }
+
+/* Add to Cart */
+html body .product-card .add-cart,
+html body .product-card .add_to_cart_button,
+html body .product-card a.button,
+html body .product-card button.button {
+  background:#c9a84c !important; color:#fff !important;
+  border:none !important; border-radius:7px !important;
+  font-size:13px !important; font-weight:600 !important; padding:10px 6px !important;
+  cursor:pointer !important; text-decoration:none !important;
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  gap:5px !important; transition:background .2s !important; white-space:nowrap !important;
+  flex:1 1 50% !important;
+}
+html body .product-card .add-cart:hover,
+html body .product-card .add_to_cart_button:hover { background:#a8872e !important; }
+
+/* Quick View */
+html body .product-card .quick-view-btn,
+html body .product-card [class*="quick-view"],
+html body .product-card [class*="quickview"] {
+  background:#1a1a1a !important; color:#fff !important;
+  border:none !important; border-radius:7px !important;
+  font-size:13px !important; font-weight:600 !important; padding:10px 6px !important;
+  cursor:pointer !important; text-decoration:none !important;
+  display:flex !important; align-items:center !important; justify-content:center !important;
+  gap:5px !important; transition:background .2s !important; white-space:nowrap !important;
+  flex:1 1 50% !important; min-width:0 !important;
+}
+html body .product-card .quick-view-btn:hover,
+html body .product-card [class*="quick-view"]:hover { background:#333 !important; }
+</style>
+<?php }, 99);
 
 // 11. Products In Motion — circular video slider (PHP-rendered, no JS dependency)
 add_action('wp_footer', function() {
