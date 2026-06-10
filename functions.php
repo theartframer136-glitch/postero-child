@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.6');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.7');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -647,6 +647,34 @@ add_action('wp_footer', function() { ?>
 
 
 // 11. Products In Motion — circular video slider
+// PHP pre-extracts YouTube video IDs from Elementor page data so JS never needs to parse the DOM
+add_action('wp_footer', function() {
+    if (!is_front_page() && !is_home()) return;
+    $post_id = get_the_ID();
+    $data    = get_post_meta($post_id, '_elementor_data', true);
+    $ids     = [];
+    if ($data) {
+        $elements = json_decode($data, true);
+        if ($elements) {
+            $stack = $elements;
+            while (!empty($stack)) {
+                $el = array_shift($stack);
+                if (isset($el['widgetType']) && $el['widgetType'] === 'video') {
+                    $url = $el['settings']['youtube_url'] ?? '';
+                    if ($url && preg_match('/(?:v=|embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})/', $url, $m)) {
+                        if (!in_array($m[1], $ids)) $ids[] = $m[1];
+                    }
+                }
+                if (!empty($el['elements'])) {
+                    $stack = array_merge($stack, $el['elements']);
+                }
+            }
+        }
+    }
+    if (!empty($ids)) {
+        echo '<script>window.afVideoIds = ' . json_encode(array_values($ids)) . ';</script>';
+    }
+}, 9); // Run before the circle-builder JS at priority 10002
 add_action('wp_footer', function() { ?>
 <style>
 /* Shell */
@@ -1183,29 +1211,30 @@ add_action('wp_footer', function() { ?>
         if (!anchor || anchor.dataset.afVidDone) return;
         anchor.dataset.afVidDone = '1';
 
-        // Collect video IDs from the whole page (not just anchor, in case lazy-load)
-        var ids = getIdsFromContainer(document.body);
+        // Use PHP-preloaded IDs (from DB) first, then DOM parsing as fallback
+        var ids = (window.afVideoIds && window.afVideoIds.length)
+                    ? window.afVideoIds
+                    : getIdsFromContainer(document.body);
 
-        if (ids.length) {
-            var videos = ids.map(function(id) {
+        function buildWith(videoIds) {
+            var videos = videoIds.map(function(id) {
                 return { id: id, title: '', thumb: 'https://img.youtube.com/vi/' + id + '/hqdefault.jpg' };
             });
             buildFromVideoList(anchor, videos);
-            // Also hide any remaining visible video widgets outside anchor
+            // Force-hide every Elementor video widget on the page
             document.querySelectorAll('.elementor-widget-video').forEach(function(w) {
                 w.style.setProperty('display', 'none', 'important');
             });
-            return;
         }
 
-        // Fallback: AJAX RSS feed
+        if (ids.length) { buildWith(ids); return; }
+
+        // Last resort: AJAX RSS feed
         var ajaxUrl = (typeof af_ajax !== 'undefined' ? af_ajax.url : '/wp-admin/admin-ajax.php')
                     + '?action=af_yt_feed&channel=UC_GX4vXRQrN4GsvSfgmZxYw';
         fetch(ajaxUrl)
             .then(function(r){ return r.json(); })
-            .then(function(data) {
-                if (data.success && data.data.length) buildFromVideoList(anchor, data.data);
-            })
+            .then(function(data) { if (data.success && data.data.length) buildFromVideoList(anchor, data.data); })
             .catch(function(){});
     }
 
