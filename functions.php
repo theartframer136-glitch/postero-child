@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.8.9');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '1.9.0');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -184,6 +184,12 @@ function af_yt_feed_handler() {
 add_filter('login_url', function() { return home_url('/my-account/'); });
 add_filter('register_url', function() { return home_url('/my-account/?action=register'); });
 add_filter('logout_url', function() { return home_url('/my-account/'); });
+
+// Add body class for front page (works for both static and blog front page)
+add_filter('body_class', function($classes) {
+    if (is_front_page()) $classes[] = 'af-front-page';
+    return $classes;
+});
 
 // 5a. Force Elementor footer template to show on all pages (not just home)
 add_action('init', function() {
@@ -812,8 +818,8 @@ add_action('wp_footer', function() { ?>
     .af-vid-circle { flex: 0 0 110px !important; width: 110px !important; height: 110px !important; }
 }
 /* Hide original Elementor video/playlist widgets on home page immediately */
-body.home .elementor-widget-video-playlist,
-body.home .elementor-widget-video { display: none !important; }
+body.af-front-page .elementor-widget-video-playlist,
+body.af-front-page .elementor-widget-video { display: none !important; }
 </style>
 <script>
 (function() {
