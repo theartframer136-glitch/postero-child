@@ -322,60 +322,66 @@ ul.postero-scroll-content .cat-item a {
 
 
 /* ============================================================
-   PRODUCT CARD — FULL STYLE (matches reference screenshot)
-   Targets both .product-slider and .af-shell-track cards
+   PRODUCT CARD — pixel-perfect match to reference screenshot
    ============================================================ */
 
-/* Card shell */
+/* ── Card shell ── */
 .af-shell-track .product-card,
-.product-slider .product-card {
+.product-slider .product-card,
+.woocommerce ul.products li.product {
   background: #fff !important;
-  border: 1px solid #e8e8e8 !important;
-  border-radius: 10px !important;
+  border: 1px solid #ececec !important;
+  border-radius: 12px !important;
   overflow: hidden !important;
   display: flex !important;
   flex-direction: column !important;
   position: relative !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.07) !important;
-  transition: box-shadow 0.2s !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
+  transition: box-shadow 0.25s, transform 0.25s !important;
 }
 .af-shell-track .product-card:hover,
-.product-slider .product-card:hover {
-  box-shadow: 0 6px 24px rgba(0,0,0,0.13) !important;
+.product-slider .product-card:hover,
+.woocommerce ul.products li.product:hover {
+  box-shadow: 0 8px 28px rgba(0,0,0,0.14) !important;
+  transform: translateY(-2px) !important;
 }
 
-/* ── Image wrapper ── */
+/* ── Image area ── */
 .af-shell-track .product-card .product-image,
 .af-shell-track .product-card .image-wrapper,
 .af-shell-track .product-card .woocommerce-loop-product__link,
 .product-slider .product-card .product-image,
-.product-slider .product-card .image-wrapper {
+.product-slider .product-card .image-wrapper,
+.woocommerce ul.products li.product .woocommerce-loop-product__link {
   position: relative !important;
   width: 100% !important;
+  aspect-ratio: 4 / 3 !important;
   overflow: hidden !important;
-  aspect-ratio: 1 / 1 !important;
   display: block !important;
+  background: #f5f5f5 !important;
 }
-
-/* Primary image */
 .af-shell-track .product-card .product-image img,
 .af-shell-track .product-card .image-wrapper img,
 .af-shell-track .product-card .woocommerce-loop-product__link img,
 .product-slider .product-card .product-image img,
-.product-slider .product-card .image-wrapper img {
+.product-slider .product-card .image-wrapper img,
+.woocommerce ul.products li.product .woocommerce-loop-product__link img {
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
   display: block !important;
-  transition: opacity 0.4s ease !important;
+  transition: transform 0.4s ease !important;
+}
+.af-shell-track .product-card:hover .product-image img,
+.product-slider .product-card:hover .product-image img {
+  transform: scale(1.04) !important;
 }
 
-/* Hover / gallery second image */
+/* Hover second image */
 .af-shell-track .product-card .hover-img,
-.af-shell-track .product-card .product-image img:nth-child(2),
 .product-slider .product-card .hover-img {
   position: absolute !important;
-  top: 0 !important; left: 0 !important;
+  inset: 0 !important;
   width: 100% !important; height: 100% !important;
   object-fit: cover !important;
   opacity: 0 !important;
@@ -383,138 +389,91 @@ ul.postero-scroll-content .cat-item a {
   z-index: 2 !important;
 }
 .af-shell-track .product-card:hover .hover-img,
-.af-shell-track .product-card:hover .product-image img:nth-child(2),
 .product-slider .product-card:hover .hover-img { opacity: 1 !important; }
 
-/* ── Sale ribbon — diagonal corner banner top-left ── */
-.af-shell-track .product-card .product-image,
-.af-shell-track .product-card .image-wrapper,
-.product-slider .product-card .product-image,
-.product-slider .product-card .image-wrapper {
-  overflow: hidden !important;
-}
+/* ── SALE ribbon — diagonal top-left ── */
 .af-shell-track .product-card .onsale,
 .af-shell-track .product-card .sale-ribbon,
-.af-shell-track .product-card .woocommerce-badge,
 .product-slider .product-card .onsale,
-.product-slider .product-card .sale-ribbon {
+.product-slider .product-card .sale-ribbon,
+.woocommerce ul.products li.product .onsale {
   position: absolute !important;
-  top: 18px !important;
-  left: -28px !important;
-  z-index: 5 !important;
+  top: 22px !important;
+  left: -26px !important;
+  z-index: 10 !important;
   background: #c9a84c !important;
   color: #fff !important;
-  font-size: 12px !important;
-  font-weight: 700 !important;
-  padding: 5px 36px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  padding: 5px 38px !important;
   text-transform: uppercase !important;
-  letter-spacing: 0.06em !important;
+  letter-spacing: 0.08em !important;
   transform: rotate(-45deg) !important;
-  transform-origin: center !important;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.18) !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
   border-radius: 0 !important;
-  width: auto !important;
-  height: auto !important;
   line-height: 1.4 !important;
+  min-width: 110px !important;
   text-align: center !important;
-  min-width: 100px !important;
+  margin: 0 !important;
 }
 
-/* ── Wishlist heart — top-right over image ── */
-/* Ensure card is relative so absolute children anchor to it */
-.af-shell-track .product-card,
-.product-slider .product-card {
-  position: relative !important;
-}
-/* Image wrapper must not clip the wishlist button */
-.af-shell-track .product-card .product-image,
-.af-shell-track .product-card .image-wrapper,
-.af-shell-track .product-card .woocommerce-LoopProduct-link,
-.product-slider .product-card .product-image,
-.product-slider .product-card .image-wrapper,
-.product-slider .product-card .woocommerce-LoopProduct-link {
-  overflow: visible !important;
-  position: relative !important;
-}
-/* Hide ALL wishlist elements inside slider cards — only our .af-wishlist-btn stays */
-.af-shell-track .product-card .yith-wcwl-add-to-wishlist,
-.af-shell-track .product-card .yith-wcwl-add-button,
-.af-shell-track .product-card .add_to_wishlist,
-.af-shell-track .product-card .wishlist-btn,
-.af-shell-track .product-card [class*="wishlist"]:not(.af-wishlist-btn),
-.product-slider .product-card .yith-wcwl-add-to-wishlist,
-.product-slider .product-card .yith-wcwl-add-button,
-.product-slider .product-card .add_to_wishlist,
-.product-slider .product-card .wishlist-btn,
-.product-slider .product-card [class*="wishlist"]:not(.af-wishlist-btn) {
-  display: none !important;
-}
-/* Our custom heart overlay button — keep visible */
-.af-wishlist-btn {
+/* ── Wishlist heart — white circle top-right ── */
+.af-wishlist-btn,
+.af-shell-track .product-card .af-wishlist-btn,
+.product-slider .product-card .af-wishlist-btn {
+  position: absolute !important;
+  top: 10px !important;
+  right: 10px !important;
+  z-index: 20 !important;
+  width: 36px !important; height: 36px !important;
+  border-radius: 50% !important;
+  background: rgba(255,255,255,0.95) !important;
+  border: none !important;
   display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.18) !important;
+  padding: 0 !important;
 }
 .af-wishlist-btn svg { pointer-events: none; }
 
-/* ── Uniform left alignment for ALL card content ── */
-.af-shell-track .product-card > *:not(.af-wishlist-btn):not(.onsale):not(.sale-ribbon),
-.product-slider .product-card > *:not(.af-wishlist-btn):not(.onsale):not(.sale-ribbon) {
-  padding-left: 12px !important;
-  padding-right: 12px !important;
-  box-sizing: border-box !important;
-  text-align: left !important;
-}
-/* Buttons row: flex but same left padding */
-.af-shell-track .product-card .product-actions,
-.product-slider .product-card .product-actions,
-.af-shell-track .product-card .card-actions {
+/* Hide duplicate wishlist plugins */
+.af-shell-track .product-card [class*="wishlist"]:not(.af-wishlist-btn),
+.product-slider .product-card [class*="wishlist"]:not(.af-wishlist-btn),
+.woocommerce ul.products li.product .yith-wcwl-add-to-wishlist { display: none !important; }
+
+/* ── Content body ── */
+.af-shell-track .product-card .product-info,
+.product-slider .product-card .product-info {
   display: flex !important;
-  gap: 8px !important;
-  padding: 8px 12px 12px !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  padding: 12px 14px 0 !important;
 }
 
-/* ── Product body (below image) ── */
-.af-shell-track .product-card .product-info,
+/* ── Title — 3 lines max ── */
 .af-shell-track .product-card .woocommerce-loop-product__title,
 .af-shell-track .product-card h2,
 .af-shell-track .product-card h3,
 .product-slider .product-card .product-title,
 .product-slider .product-card h2,
-.product-slider .product-card h3 {
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  line-height: 1.4 !important;
-  padding: 10px 12px 4px !important;
-  margin: 0 !important;
-  color: #222 !important;
+.product-slider .product-card h3,
+.woocommerce ul.products li.product .woocommerce-loop-product__title {
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.45 !important;
+  color: #1a1a1a !important;
+  margin: 0 0 6px !important;
+  padding: 0 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 3 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  min-height: calc(1.45em * 3) !important;
 }
 
-/* ── Stars rating: 12px left padding on large screens ── */
-@media (min-width: 769px) {
-  .af-shell-track .product-card .woocommerce-product-rating,
-  .af-shell-track .product-card .product-meta-row,
-  .product-slider .product-card .woocommerce-product-rating,
-  .product-slider .product-card .product-meta-row {
-    padding-left: 12px !important;
-  }
-}
-.af-shell-track .product-card .star-rating,
-.product-slider .product-card .star-rating {
-  display: inline-flex !important;
-  align-items: center !important;
-  font-size: 12px !important;
-  color: #c9a84c !important;
-  margin: 0 !important;
-  vertical-align: middle !important;
-}
-.af-shell-track .product-card .woocommerce-review-link,
-.product-slider .product-card .woocommerce-review-link {
-  font-size: 11px !important;
-  color: #666 !important;
-  margin-left: 4px !important;
-  vertical-align: middle !important;
-  white-space: nowrap !important;
-}
-/* Wrap rating + download type on one line */
+/* ── Meta row: stars + Digital Download ── */
 .af-shell-track .product-card .product-meta-row,
 .af-shell-track .product-card .woocommerce-product-rating,
 .product-slider .product-card .woocommerce-product-rating {
@@ -522,96 +481,100 @@ ul.postero-scroll-content .cat-item a {
   align-items: center !important;
   flex-wrap: wrap !important;
   gap: 6px !important;
-  padding: 2px 12px 4px !important;
+  margin: 0 0 5px !important;
+  padding: 0 !important;
+}
+.af-shell-track .product-card .star-rating,
+.product-slider .product-card .star-rating {
+  font-size: 12px !important;
+  color: #c9a84c !important;
   margin: 0 !important;
 }
-/* Digital Download badge inline */
+.af-shell-track .product-card .woocommerce-review-link,
+.product-slider .product-card .woocommerce-review-link {
+  font-size: 11px !important;
+  color: #666 !important;
+  margin-left: 2px !important;
+}
 .af-shell-track .product-card .product-type-badge,
 .af-shell-track .product-card [class*="download-type"],
-.af-shell-track .product-card .woosb-type,
-.product-slider .product-card .product-type-badge,
-.product-slider .product-card [class*="download-type"] {
-  display: inline-flex !important;
-  align-items: center !important;
+.product-slider .product-card .product-type-badge {
   font-size: 11px !important;
   color: #555 !important;
-  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
   gap: 3px !important;
 }
 
-/* ── Price — all on one line ── */
+/* ── Price — sale bold, original struck, discount inline ── */
 .af-shell-track .product-card .price,
+.af-shell-track .product-card .price-section,
 .product-slider .product-card .price,
-.woocommerce .products .product-card .price,
-.price-section {
-  padding: 0 12px 6px !important;
-  font-size: 14px !important;
-  font-weight: 700 !important;
-  color: #222 !important;
+.product-slider .product-card .price-section,
+.woocommerce ul.products li.product .price {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: wrap !important;
   align-items: baseline !important;
   gap: 4px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #1a1a1a !important;
+  margin: 0 0 6px !important;
+  padding: 0 !important;
 }
-/* Sale price (active/current) */
 .af-shell-track .product-card .price ins,
 .product-slider .product-card .price ins,
-.woocommerce .products .product-card .price ins {
+.woocommerce ul.products li.product .price ins {
   text-decoration: none !important;
   font-weight: 700 !important;
-  color: #222 !important;
-  order: 1 !important;
+  color: #1a1a1a !important;
 }
-/* Strike-through original price */
 .af-shell-track .product-card .price del,
 .product-slider .product-card .price del,
-.woocommerce .products .product-card .price del {
+.woocommerce ul.products li.product .price del {
   color: #999 !important;
   font-weight: 400 !important;
   font-size: 12px !important;
-  order: 2 !important;
 }
-/* Discount badge e.g. (40% off) */
-.af-shell-track .product-card .price .discount-percentage,
-.product-slider .product-card .price .discount-percentage,
-.woocommerce .products .product-card .price .discount-percentage,
-.price-section .discount-percentage {
-  font-size: 11px !important;
-  color: #c9a84c !important;
-  font-weight: 600 !important;
-  order: 3 !important;
+.af-shell-track .product-card .discount-percentage,
+.product-slider .product-card .discount-percentage {
+  font-size: 12px !important;
+  color: #888 !important;
+  font-weight: 500 !important;
 }
 
-/* ── Short description ── */
-.af-shell-track .product-card .short-description,
-.af-shell-track .product-card .product-excerpt,
-.product-slider .product-card .short-description {
-  font-size: 12px !important;
+/* ── Description (p.desc) — 2 lines ── */
+.af-shell-track .product-card p.desc,
+.af-shell-track .product-card .desc,
+.product-slider .product-card p.desc,
+.product-slider .product-card .desc {
+  font-size: 13px !important;
   color: #666 !important;
-  padding: 0 12px 8px !important;
-  margin: 0 !important;
-  line-height: 1.5 !important;
+  line-height: 1.55 !important;
+  margin: 0 0 10px !important;
+  padding: 0 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  min-height: calc(1.55em * 2) !important;
   flex: 1 1 auto !important;
 }
 
-/* ── Action buttons row — Add to Cart + Quick View same line ── */
+/* ── Buttons row ── */
 .af-shell-track .product-card .product-actions,
 .af-shell-track .product-card .card-actions,
 .product-slider .product-card .product-actions,
-.product-card .product-actions,
-.product-card .card-actions {
+.product-card .product-actions {
   display: flex !important;
   flex-direction: row !important;
-  flex-wrap: nowrap !important;
   gap: 8px !important;
-  padding: 0 12px 12px !important;
+  padding: 0 14px 14px !important;
   margin-top: auto !important;
 }
-
-/* Each button takes equal width in the row */
-.product-card .product-actions > *,
-.product-card .card-actions > * {
+.af-shell-track .product-card .product-actions > *,
+.product-slider .product-card .product-actions > * {
   flex: 1 1 50% !important;
   min-width: 0 !important;
 }
@@ -624,95 +587,66 @@ ul.postero-scroll-content .cat-item a {
 .product-slider .product-card .add-cart,
 .product-slider .product-card .add_to_cart_button,
 .product-slider .product-card a.button,
-.product-slider .product-card button.button,
 .product-card .add_to_cart_button,
-.product-card a.button,
-.product-card button.button {
+.product-card a.button {
   flex: 1 1 50% !important;
   background: #c9a84c !important;
-  background-color: #c9a84c !important;
   color: #fff !important;
   border: none !important;
-  border-radius: 6px !important;
+  border-radius: 7px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
-  padding: 10px 8px !important;
+  padding: 10px 6px !important;
   text-align: center !important;
   cursor: pointer !important;
-  white-space: nowrap !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 5px !important;
   transition: background 0.2s !important;
   text-decoration: none !important;
+  white-space: nowrap !important;
 }
 .af-shell-track .product-card .add-cart:hover,
 .af-shell-track .product-card .add_to_cart_button:hover,
-.af-shell-track .product-card a.button:hover,
 .product-slider .product-card .add-cart:hover,
-.product-slider .product-card a.button:hover {
-  background: #a8872e !important;
-  background-color: #a8872e !important;
-  color: #fff !important;
-}
+.product-card .add_to_cart_button:hover { background: #a8872e !important; }
 
-/* Quick View — dark, centered, equal width */
+/* Quick View — dark */
 .af-shell-track .product-card .quick-view-btn,
 .af-shell-track .product-card [class*="quick-view"],
 .af-shell-track .product-card [class*="quickview"],
 .product-slider .product-card .quick-view-btn,
 .product-slider .product-card [class*="quick-view"],
 .product-card .quick-view-btn,
-.product-card [class*="quick-view"],
-.product-card [class*="quickview"] {
+.product-card [class*="quick-view"] {
   flex: 1 1 50% !important;
   background: #1a1a1a !important;
-  background-color: #1a1a1a !important;
   color: #fff !important;
   border: none !important;
-  border-radius: 6px !important;
+  border-radius: 7px !important;
   font-size: 13px !important;
   font-weight: 600 !important;
-  padding: 10px 8px !important;
+  padding: 10px 6px !important;
   text-align: center !important;
   cursor: pointer !important;
-  white-space: nowrap !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
   gap: 5px !important;
   transition: background 0.2s !important;
   text-decoration: none !important;
+  white-space: nowrap !important;
   min-width: 0 !important;
 }
 .af-shell-track .product-card .quick-view-btn:hover,
-.af-shell-track .product-card [class*="quick-view"]:hover,
 .product-slider .product-card .quick-view-btn:hover,
-.product-card .quick-view-btn:hover,
-.product-card [class*="quick-view"]:hover { background: #333 !important; }
-  border: none !important;
-  border-radius: 6px !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  padding: 10px 8px !important;
-  text-align: center !important;
-  cursor: pointer !important;
-  white-space: nowrap !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 5px !important;
-  transition: background 0.2s !important;
-  text-decoration: none !important;
-}
-.af-shell-track .product-card .quick-view-btn:hover,
-.af-shell-track .product-card [class*="quick-view"]:hover,
-.product-slider .product-card .quick-view-btn:hover { background: #333 !important; }
+.product-card .quick-view-btn:hover { background: #333 !important; }
 
-/* Hide broken video containers */
+/* ── Hide broken video containers ── */
 .elementor-background-video-container video[src=""],
 .elementor-background-video-container:empty { display: none !important; }
+
 
 /* Hide compare/swap button on product cards */
 .wooscp-btn, .woosc-btn, .ti-wishlist-add-to-compare-button,
