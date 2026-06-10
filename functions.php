@@ -656,12 +656,15 @@ add_action('wp_footer', function() { ?>
 // 11. Products In Motion — circular video slider
 // PHP fetches YouTube RSS server-side and injects IDs directly into the page
 add_action('wp_footer', function() {
+    if (!is_front_page()) return;
     $channel = 'UC_GX4vXRQrN4GsvSfgmZxYw';
-    $cached  = get_transient('af_yt_ids_' . $channel);
-    if ($cached !== false) {
+    // Force refresh if transient holds empty array (previous failed fetch)
+    $cached = get_transient('af_yt_ids_' . $channel);
+    if ($cached !== false && !empty($cached)) {
         echo '<script>window.afVideoIds=' . json_encode($cached) . ';</script>';
         return;
     }
+    delete_transient('af_yt_ids_' . $channel);
     $url  = 'https://www.youtube.com/feeds/videos.xml?channel_id=' . $channel;
     $resp = wp_remote_get($url, ['timeout' => 8, 'sslverify' => false]);
     $ids  = [];
@@ -699,7 +702,9 @@ add_action('wp_footer', function() {
     set_transient('af_yt_ids_' . $channel, $ids, HOUR_IN_SECONDS);
     if (!empty($ids)) echo '<script>window.afVideoIds=' . json_encode($ids) . ';</script>';
 }, 9);
-add_action('wp_footer', function() { ?>
+add_action('wp_footer', function() {
+    if (!is_front_page()) return;
+    ?>
 <style>
 /* Shell */
 .af-vid-shell {
@@ -818,8 +823,8 @@ add_action('wp_footer', function() { ?>
     .af-vid-circle { flex: 0 0 110px !important; width: 110px !important; height: 110px !important; }
 }
 /* Hide original Elementor video/playlist widgets on home page immediately */
-body.af-front-page .elementor-widget-video-playlist,
-body.af-front-page .elementor-widget-video { display: none !important; }
+.elementor-widget-video-playlist,
+.elementor-widget-video { display: none !important; }
 </style>
 <script>
 (function() {
