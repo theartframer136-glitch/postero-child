@@ -667,6 +667,14 @@ add_action('wp_footer', function() { ?>
         shell.appendChild(vp);
         shell.appendChild(btnN);
 
+        // Re-apply rating padding fix after WooCommerce JS may have re-set it
+        setTimeout(function() {
+            track.querySelectorAll('.rating,.woocommerce-product-rating,.product-meta-row').forEach(function(r) {
+                r.style.setProperty('padding',      '0', 'important');
+                r.style.setProperty('padding-left', '0', 'important');
+            });
+        }, 300);
+
         grid.parentNode.insertBefore(shell, grid.nextSibling);
         grid.classList.add('af-grid-hidden');
         activeShell = shell;
