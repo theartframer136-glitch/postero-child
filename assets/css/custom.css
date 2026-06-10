@@ -355,7 +355,8 @@ ul.postero-scroll-content .cat-item a {
 .woocommerce ul.products li.product .woocommerce-loop-product__link {
   position: relative !important;
   width: 100% !important;
-  aspect-ratio: 4 / 3 !important;
+  height: 0 !important;
+  padding-bottom: 75% !important; /* 4:3 ratio, reliable when theme sets explicit height */
   overflow: hidden !important;
   display: block !important;
   background: #f5f5f5 !important;
@@ -366,6 +367,8 @@ ul.postero-scroll-content .cat-item a {
 .product-slider .product-card .product-image img,
 .product-slider .product-card .image-wrapper img,
 .woocommerce ul.products li.product .woocommerce-loop-product__link img {
+  position: absolute !important;
+  inset: 0 !important;
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
@@ -373,13 +376,16 @@ ul.postero-scroll-content .cat-item a {
   transition: transform 0.4s ease !important;
 }
 .af-shell-track .product-card:hover .product-image img,
-.product-slider .product-card:hover .product-image img {
+.product-slider .product-card:hover .product-image img,
+.woocommerce ul.products li.product:hover .woocommerce-loop-product__link img:first-child {
   transform: scale(1.04) !important;
 }
 
-/* Hover second image */
+/* Hover second image — covers ALL product loops */
 .af-shell-track .product-card .hover-img,
-.product-slider .product-card .hover-img {
+.product-slider .product-card .hover-img,
+.woocommerce ul.products li.product .woocommerce-loop-product__link img + img,
+.woocommerce ul.products li.product .woocommerce-loop-product__link .secondary-image {
   position: absolute !important;
   inset: 0 !important;
   width: 100% !important; height: 100% !important;
@@ -389,7 +395,9 @@ ul.postero-scroll-content .cat-item a {
   z-index: 2 !important;
 }
 .af-shell-track .product-card:hover .hover-img,
-.product-slider .product-card:hover .hover-img { opacity: 1 !important; }
+.product-slider .product-card:hover .hover-img,
+.woocommerce ul.products li.product:hover .woocommerce-loop-product__link img + img,
+.woocommerce ul.products li.product:hover .woocommerce-loop-product__link .secondary-image { opacity: 1 !important; }
 
 /* ── SALE ribbon — diagonal top-left ── */
 .af-shell-track .product-card .onsale,
