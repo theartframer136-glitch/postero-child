@@ -1191,3 +1191,55 @@ ul.postero-scroll-content .cat-item a {
 .woocommerce-page ul.products li.product .price {
   margin-top: auto !important;
 }
+
+/* ============================================================
+   Product card: uniform title + description height
+   All cards match the last-card reference layout
+   ============================================================ */
+
+/* Title — clamp to exactly 2 lines */
+.af-shell-track .product-card .woocommerce-loop-product__title,
+.af-shell-track .product-card h2.woocommerce-loop-product__title,
+.af-shell-track .product-card h3,
+.product-slider .product-card .product-title,
+.product-slider .product-card h3,
+.woocommerce ul.products li.product .woocommerce-loop-product__title {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  min-height: calc(1.4em * 2) !important;
+  line-height: 1.4 !important;
+}
+
+/* Description (p.desc) — clamp to exactly 2 lines */
+.af-shell-track .product-card p.desc,
+.product-slider .product-card p.desc,
+.af-shell-track .product-card .desc,
+.product-slider .product-card .desc {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  min-height: calc(1.6em * 2) !important;
+  line-height: 1.6 !important;
+  font-size: 13px !important;
+  padding-left: 14px !important;
+  padding-right: 12px !important;
+  margin: 4px 0 8px !important;
+  color: #444 !important;
+}
+
+/* Push price & buttons to the bottom so all cards align vertically */
+.af-shell-track .product-card .product-info,
+.product-slider .product-card .product-info {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.af-shell-track .product-card .price,
+.af-shell-track .product-card .price-section,
+.product-slider .product-card .price,
+.product-slider .product-card .price-section {
+  margin-top: auto !important;
+}
