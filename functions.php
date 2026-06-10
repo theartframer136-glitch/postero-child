@@ -987,6 +987,35 @@ html body .product-card [class*="quickview"] {
 }
 html body .product-card .quick-view-btn:hover,
 html body .product-card [class*="quick-view"]:hover { background:#333 !important; }
+
+/* ── WooCommerce loop: image container + hover secondary image ── */
+html body .woocommerce ul.products li.product .woocommerce-loop-product__link,
+html body .woocommerce-page ul.products li.product .woocommerce-loop-product__link {
+  position:relative !important; display:block !important;
+  width:100% !important; height:0 !important; padding-bottom:75% !important;
+  overflow:hidden !important; background:#f5f5f5 !important;
+}
+html body .woocommerce ul.products li.product .woocommerce-loop-product__link img,
+html body .woocommerce-page ul.products li.product .woocommerce-loop-product__link img {
+  position:absolute !important; inset:0 !important;
+  width:100% !important; height:100% !important;
+  object-fit:cover !important; display:block !important;
+}
+/* Second image (gallery hover) — hidden by default, shown on hover */
+html body .woocommerce ul.products li.product .woocommerce-loop-product__link img:nth-child(2),
+html body .woocommerce ul.products li.product .woocommerce-loop-product__link img + img,
+html body .woocommerce ul.products li.product .woocommerce-loop-product__link .secondary-image,
+html body .woocommerce-page ul.products li.product .woocommerce-loop-product__link img:nth-child(2),
+html body .woocommerce-page ul.products li.product .woocommerce-loop-product__link img + img {
+  opacity:0 !important; transition:opacity .4s ease !important; z-index:2 !important;
+}
+html body .woocommerce ul.products li.product:hover .woocommerce-loop-product__link img:nth-child(2),
+html body .woocommerce ul.products li.product:hover .woocommerce-loop-product__link img + img,
+html body .woocommerce ul.products li.product:hover .woocommerce-loop-product__link .secondary-image,
+html body .woocommerce-page ul.products li.product:hover .woocommerce-loop-product__link img:nth-child(2),
+html body .woocommerce-page ul.products li.product:hover .woocommerce-loop-product__link img + img {
+  opacity:1 !important;
+}
 </style>
 <?php }, 99);
 
