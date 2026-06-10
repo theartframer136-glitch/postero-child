@@ -565,7 +565,13 @@ add_action('wp_footer', function() { ?>
             var ins = c.querySelector('.price ins, .price-section ins');
             if (ins) { sp(ins,'text-decoration','none'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); }
             var del = c.querySelector('.price del, .price-section del');
-            if (del) { sp(del,'color','#999'); sp(del,'font-weight','400'); sp(del,'font-size','12px'); }
+            if (del) {
+                sp(del,'color','#999'); sp(del,'font-weight','400'); sp(del,'font-size','12px');
+                sp(del,'text-decoration','line-through');
+                // Also style the inner amount span in case theme resets it
+                var delAmt = del.querySelector('.woocommerce-Price-amount');
+                if (delAmt) { sp(delAmt,'color','#999'); sp(delAmt,'text-decoration','none'); }
+            }
 
             // ── Description ──
             var desc = c.querySelector('p.desc,.desc');
@@ -912,7 +918,8 @@ html body .product-card .price-section {
   margin:0 0 6px !important; padding:0 !important;
 }
 html body .product-card .price ins { text-decoration:none !important; font-weight:700 !important; color:#1a1a1a !important; }
-html body .product-card .price del { color:#999 !important; font-weight:400 !important; font-size:12px !important; }
+html body .product-card .price del { color:#999 !important; font-weight:400 !important; font-size:12px !important; text-decoration:line-through !important; }
+html body .product-card .price del .woocommerce-Price-amount { color:#999 !important; }
 html body .product-card .discount-percentage { font-size:12px !important; color:#888 !important; }
 
 /* description */
