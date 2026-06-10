@@ -840,9 +840,11 @@ add_action('wp_footer', function() {
     .af-pim-circle { flex:0 0 110px; width:110px; height:110px; }
     .af-pim-btn { flex:0 0 34px; width:34px; height:34px; font-size:22px; }
 }
-/* Hide the original Elementor video/playlist widgets on this page */
+/* Hide original Elementor video/playlist widgets */
 .elementor-widget-video-playlist,
-.elementor-widget-video { display:none !important; }
+.elementor-widget-video,
+.elementor-widget-video-playlist .elementor-widget-container,
+.elementor-widget-video .elementor-widget-container { display:none !important; }
 </style>
 
 <?php
@@ -939,41 +941,53 @@ add_action('wp_footer', function() {
 
     go(0);
 
-    // Move the slider to sit right after the "Products In Motion" section heading
+    // Find the "Products In Motion" section, hide its video content, inject our slider inside it
     function placeSlider() {
         var wrap = document.getElementById('afPimWrap');
         if (!wrap || wrap.dataset.placed) return;
 
-        // Find the Elementor section that contains the "Products In Motion" heading
-        var target = null;
+        // Find the heading
+        var heading = null;
         document.querySelectorAll('h2,h3,h4,.elementor-heading-title').forEach(function(h) {
-            if (target) return;
-            if (/product.*mot/i.test(h.textContent)) {
-                // Walk up to the top-level Elementor section
-                var el = h;
-                for (var i = 0; i < 15; i++) {
-                    el = el.parentElement;
-                    if (!el) break;
-                    if (/elementor-section|e-container/.test(el.className || '')) {
-                        target = el;
-                    }
-                }
-            }
+            if (!heading && /product.*mot/i.test(h.textContent)) heading = h;
+        });
+        if (!heading) return;
+
+        // Walk up to the outermost Elementor section containing this heading
+        var section = null;
+        var el = heading;
+        for (var i = 0; i < 20; i++) {
+            el = el.parentElement;
+            if (!el || el === document.body) break;
+            if (/elementor-top-section|elementor-section-wrap/.test(el.className || '')) { section = el; break; }
+            if (/elementor-section/.test(el.className || '')) section = el;
+        }
+        if (!section) section = heading.parentElement;
+
+        wrap.dataset.placed = '1';
+
+        // Hide every child element in this section EXCEPT heading/text widgets
+        section.querySelectorAll('.elementor-widget').forEach(function(w) {
+            var type = w.getAttribute('data-widget_type') || '';
+            // Keep heading and text-editor widgets visible
+            if (/heading|text-editor|text/.test(type)) return;
+            w.style.setProperty('display', 'none', 'important');
         });
 
-        if (target) {
-            wrap.dataset.placed = '1';
-            // Hide the original Elementor video widgets inside this section
-            target.querySelectorAll('.elementor-widget-video-playlist,.elementor-widget-video').forEach(function(w){
-                w.style.setProperty('display','none','important');
-            });
-            // Insert our slider after the section's inner content (before next sibling)
-            target.insertAdjacentElement('afterend', wrap);
-        }
+        // Also hide by iframe presence (catches unlabelled widgets)
+        section.querySelectorAll('iframe').forEach(function(fr) {
+            var parent = fr.closest('.elementor-widget') || fr.parentElement;
+            if (parent) parent.style.setProperty('display', 'none', 'important');
+        });
+
+        // Insert slider inside the section, after the last text widget
+        section.appendChild(wrap);
     }
+
     document.addEventListener('DOMContentLoaded', placeSlider);
     window.addEventListener('load', placeSlider);
-    setTimeout(placeSlider, 800);
+    setTimeout(placeSlider, 500);
+    setTimeout(placeSlider, 1500);
 }());
 </script>
 <?php }, 10002);
