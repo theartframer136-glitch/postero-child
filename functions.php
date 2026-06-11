@@ -1019,42 +1019,79 @@ html body .woocommerce-page ul.products li.product:hover .woocommerce-loop-produ
 </style>
 <?php }, 99);
 
-// Mobile hero slider width fix — Swiper JS sets inline px widths; reset after init
+// Mobile hero slider width fix — force Swiper to recalculate using correct 100vw container
 add_action('wp_footer', function() { ?>
 <script>
 (function() {
   if (window.innerWidth > 768) return;
   function sp(el, p, v) { el.style.setProperty(p, v, 'important'); }
-  function fixSlides() {
-    // Fix each slide width
-    document.querySelectorAll('.elementor-widget-slides .swiper-slide').forEach(function(s) {
-      sp(s,'width','100vw'); sp(s,'min-width','100vw'); sp(s,'max-width','100vw');
-      sp(s,'flex-shrink','0'); sp(s,'box-sizing','border-box');
-    });
-    // Fix background cover
-    document.querySelectorAll('.elementor-widget-slides .swiper-slide-bg').forEach(function(bg) {
-      sp(bg,'position','absolute'); sp(bg,'top','0'); sp(bg,'left','0');
-      sp(bg,'width','100%'); sp(bg,'height','100%');
-      sp(bg,'background-size','cover'); sp(bg,'background-position','center center');
-    });
-    // Strip padding from widget container and its parents up 3 levels
+
+  function fixContainers() {
     document.querySelectorAll('.elementor-widget-slides').forEach(function(w) {
-      sp(w,'width','100vw'); sp(w,'max-width','100vw'); sp(w,'padding','0'); sp(w,'margin','0');
+      sp(w, 'width',     '100vw'); sp(w, 'max-width', '100vw');
+      sp(w, 'padding',   '0');     sp(w, 'margin',    '0');
+      sp(w, 'overflow',  'hidden');
+      // Walk parents and strip horizontal padding/max-width up to 5 levels
       var el = w.parentElement;
-      for (var i = 0; i < 3 && el && !el.matches('body,main'); i++) {
-        sp(el,'padding-left','0'); sp(el,'padding-right','0');
-        sp(el,'max-width','100vw'); sp(el,'overflow','hidden');
+      for (var i = 0; i < 5 && el && el.tagName !== 'BODY'; i++) {
+        sp(el, 'padding-left',  '0'); sp(el, 'padding-right', '0');
+        sp(el, 'max-width',     '100vw'); sp(el, 'overflow', 'hidden');
         el = el.parentElement;
       }
     });
-    // Fix swiper container width
-    document.querySelectorAll('.elementor-widget-slides .elementor-slides-wrapper, .elementor-widget-slides [class*="swiper-container"]').forEach(function(c) {
-      sp(c,'width','100vw'); sp(c,'max-width','100vw'); sp(c,'overflow','hidden');
+    document.querySelectorAll(
+      '.elementor-widget-slides .elementor-slides-wrapper,' +
+      '.elementor-widget-slides .swiper,' +
+      '.elementor-widget-slides .swiper-container'
+    ).forEach(function(c) {
+      sp(c, 'width', '100vw'); sp(c, 'max-width', '100vw'); sp(c, 'overflow', 'hidden');
     });
   }
-  // Run immediately, then again after Elementor/Swiper init
-  [0, 200, 600, 1200, 2000].forEach(function(d) { setTimeout(fixSlides, d); });
-  window.addEventListener('resize', fixSlides);
+
+  function fixSwiperAPI() {
+    // Tell Swiper to recalculate sizes using the (now correct) container width
+    var swiperEls = document.querySelectorAll(
+      '.elementor-widget-slides .swiper,' +
+      '.elementor-widget-slides .swiper-container,' +
+      '.elementor-widget-slides .elementor-slides-wrapper'
+    );
+    swiperEls.forEach(function(el) {
+      var swiper = el.swiper;
+      if (swiper && typeof swiper.update === 'function') {
+        swiper.params.width  = null; // clear fixed width so it recalculates
+        swiper.params.height = null;
+        swiper.update();
+      }
+    });
+  }
+
+  function fixSlideInlineWidths() {
+    document.querySelectorAll('.elementor-widget-slides .swiper-slide').forEach(function(s) {
+      sp(s, 'width',      '100vw'); sp(s, 'min-width', '100vw');
+      sp(s, 'max-width',  '100vw'); sp(s, 'flex-shrink', '0');
+      sp(s, 'box-sizing', 'border-box');
+    });
+    document.querySelectorAll('.elementor-widget-slides .swiper-slide-bg').forEach(function(bg) {
+      sp(bg, 'position',            'absolute');
+      sp(bg, 'top',                 '0'); sp(bg, 'left', '0');
+      sp(bg, 'width',               '100%'); sp(bg, 'height', '100%');
+      sp(bg, 'background-size',     'cover');
+      sp(bg, 'background-position', 'center center');
+    });
+    document.querySelectorAll('.elementor-widget-slides .swiper-slide-inner').forEach(function(inner) {
+      sp(inner, 'width',      '100%'); sp(inner, 'max-width', '100%');
+      sp(inner, 'box-sizing', 'border-box'); sp(inner, 'overflow', 'hidden');
+    });
+  }
+
+  function fullFix() {
+    fixContainers();
+    fixSwiperAPI();
+    fixSlideInlineWidths();
+  }
+
+  [0, 300, 700, 1400, 2500].forEach(function(d) { setTimeout(fullFix, d); });
+  window.addEventListener('resize', fullFix);
 }());
 </script>
 <?php }, 5);

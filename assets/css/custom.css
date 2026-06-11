@@ -814,6 +814,16 @@ ul.postero-scroll-content .cat-item a {
     background-position: center center !important;
   }
 
+  /* Override Elementor Pro's forced 30px padding on slide-inner */
+  .elementor-slides .swiper-slide-inner,
+  .elementor-widget-slides .swiper-slide-inner {
+    padding: 16px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
   /* Arrows */
   .elementor-widget-slides .elementor-swiper-button { display: flex !important; }
 }
