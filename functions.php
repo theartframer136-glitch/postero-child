@@ -1067,20 +1067,25 @@ add_action('wp_footer', function() { ?>
 
   function fixSlideInlineWidths() {
     document.querySelectorAll('.elementor-widget-slides .swiper-slide').forEach(function(s) {
-      sp(s, 'width',      '100vw'); sp(s, 'min-width', '100vw');
-      sp(s, 'max-width',  '100vw'); sp(s, 'flex-shrink', '0');
-      sp(s, 'box-sizing', 'border-box');
+      sp(s, 'width',      '100vw'); sp(s, 'min-width',  '100vw');
+      sp(s, 'max-width',  '100vw'); sp(s, 'flex-shrink','0');
+      sp(s, 'min-height', '420px'); sp(s, 'position',   'relative');
+      sp(s, 'overflow',   'hidden'); sp(s, 'box-sizing', 'border-box');
     });
     document.querySelectorAll('.elementor-widget-slides .swiper-slide-bg').forEach(function(bg) {
       sp(bg, 'position',            'absolute');
-      sp(bg, 'top',                 '0'); sp(bg, 'left', '0');
-      sp(bg, 'width',               '100%'); sp(bg, 'height', '100%');
+      sp(bg, 'top',    '0'); sp(bg, 'left',   '0');
+      sp(bg, 'right',  '0'); sp(bg, 'bottom', '0');
+      sp(bg, 'width',  '100%'); sp(bg, 'height', '100%');
+      sp(bg, 'min-height',          '420px');
       sp(bg, 'background-size',     'cover');
       sp(bg, 'background-position', 'center center');
+      sp(bg, 'z-index',             '0');
     });
     document.querySelectorAll('.elementor-widget-slides .swiper-slide-inner').forEach(function(inner) {
-      sp(inner, 'width',      '100%'); sp(inner, 'max-width', '100%');
-      sp(inner, 'box-sizing', 'border-box'); sp(inner, 'overflow', 'hidden');
+      sp(inner, 'position',   'relative'); sp(inner, 'z-index',     '1');
+      sp(inner, 'width',      '100%');     sp(inner, 'max-width',   '100%');
+      sp(inner, 'min-height', '420px');    sp(inner, 'box-sizing',  'border-box');
     });
   }
 
