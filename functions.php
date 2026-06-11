@@ -511,26 +511,19 @@ add_action('wp_footer', function() { ?>
                 });
             }
 
-            // ── product-info: flex column, grows to push buttons to bottom ──
+            // ── product-info: consistent container padding ──
             var info = c.querySelector('.product-info');
             if (info) {
                 sp(info,'display',        'flex');
                 sp(info,'flex-direction', 'column');
                 sp(info,'flex',           '1 1 auto');
-                sp(info,'padding',        '0');
-                sp(info,'padding-left',   '0');
-                sp(info,'padding-right',  '0');
-                sp(info,'padding-top',    '0');
-                sp(info,'padding-bottom', '0');
+                sp(info,'padding',        '12px 14px 0');
                 sp(info,'margin',         '0');
                 sp(info,'min-height',     '0');
-                // Nuclear: zero padding on every descendant except buttons
-                info.querySelectorAll('*').forEach(function(el) {
-                    var tag = el.tagName.toLowerCase();
-                    if (tag !== 'button' && tag !== 'a') {
-                        sp(el,'padding-left',  '0');
-                        sp(el,'padding-right', '0');
-                    }
+                // Zero individual element padding so container is the only source of spacing
+                info.querySelectorAll('.product-title,.rating,.rating-count,.price-section,.desc,.woocommerce-loop-product__title,.woocommerce-product-rating,.price,h2,h3').forEach(function(el) {
+                    sp(el,'padding-left',  '0');
+                    sp(el,'padding-right', '0');
                 });
             }
 
@@ -636,7 +629,7 @@ add_action('wp_footer', function() { ?>
             if (actions) {
                 sp(actions,'display',     'flex');
                 sp(actions,'gap',         '8px');
-                sp(actions,'padding',     '0 14px 14px');
+                sp(actions,'padding',     '0 0 14px');
                 sp(actions,'margin-top',  '0');
                 sp(actions,'flex-shrink', '0');
                 Array.from(actions.children).forEach(function(btn) {
@@ -1118,18 +1111,26 @@ html body .swiper-slide-bg {
   }
 }
 
-/* ── Zero-padding override: beats any cached custom.css rule ── */
-html body .product-card .product-info,
+/* ── Card content spacing ── */
+html body .product-card .product-info {
+  padding: 12px 14px 0 !important;
+}
 html body .product-card .product-title,
+html body .product-card h2,
+html body .product-card h3,
+html body .product-card .woocommerce-loop-product__title,
 html body .product-card .rating,
 html body .product-card .rating-count,
+html body .product-card .woocommerce-product-rating,
 html body .product-card .price-section,
+html body .product-card .price,
 html body .product-card .desc {
-  padding: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 html body .product-card .product-actions,
 html body .product-card .card-actions {
-  padding: 0 14px 14px !important;
+  padding: 0 0 14px !important;
 }
 </style>
 <?php }, 99);
