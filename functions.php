@@ -575,25 +575,26 @@ add_action('wp_footer', function() { ?>
             if (price) {
                 sp(price,'display',     'flex');
                 sp(price,'flex-wrap',   'wrap');
-                sp(price,'align-items', 'baseline');
-                sp(price,'gap',         '4px');
+                sp(price,'align-items', 'center');
+                sp(price,'gap',         '6px');
                 sp(price,'font-size',   '14px');
                 sp(price,'font-weight', '700');
                 sp(price,'color',       '#1a1a1a');
-                sp(price,'margin',      '0 0 8px');
+                sp(price,'margin',      '0 0 6px');
                 sp(price,'padding',     '0');
-                sp(price,'height',      '22px');
-                sp(price,'overflow',    'hidden');
+                sp(price,'min-height',  '22px');
+                sp(price,'overflow',    'visible');
                 sp(price,'flex-shrink', '0');
+                sp(price,'flex-wrap',   'wrap');
             }
             var ins = c.querySelector('.price-section ins, .price ins');
-            if (ins) { sp(ins,'text-decoration','none'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); }
+            if (ins) { sp(ins,'text-decoration','none'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); sp(ins,'font-size','15px'); }
             var del = c.querySelector('.price-section del, .price del');
             if (del) {
-                sp(del,'color','#999'); sp(del,'font-weight','400'); sp(del,'font-size','12px');
+                sp(del,'color','#999'); sp(del,'font-weight','400'); sp(del,'font-size','13px');
                 sp(del,'text-decoration','line-through');
                 del.querySelectorAll('*').forEach(function(el){
-                    sp(el,'color','#999'); sp(el,'text-decoration','line-through');
+                    sp(el,'color','#999'); sp(el,'text-decoration','line-through'); sp(el,'font-size','13px');
                 });
             }
 
@@ -1131,6 +1132,22 @@ html body .product-card .desc {
 html body .product-card .product-actions,
 html body .product-card .card-actions {
   padding: 0 0 14px !important;
+}
+html body .product-card .price-section del,
+html body .product-card .price del,
+html body .product-card .price-section del *,
+html body .product-card .price del * {
+  color: #999 !important;
+  text-decoration: line-through !important;
+  font-size: 13px !important;
+  font-weight: 400 !important;
+}
+html body .product-card .price-section ins,
+html body .product-card .price ins {
+  text-decoration: none !important;
+  font-weight: 700 !important;
+  color: #1a1a1a !important;
+  font-size: 15px !important;
 }
 </style>
 <?php }, 99);
