@@ -739,91 +739,83 @@ ul.postero-scroll-content .cat-item a {
    escape any narrow parent column, no matter its width.
    ============================================================ */
 @media (max-width: 768px) {
-  /* Full-bleed escape from any narrow parent column */
-  .elementor-element-0971963 {
-    width: 100vw !important;
-    max-width: 100vw !important;
-    margin-left: calc(50% - 50vw) !important;
-    position: relative !important;
-    left: 0 !important;
-  }
-  .elementor-element-0971963 > .elementor-widget-container,
-  .elementor-element-0971963 .elementor-slides-wrapper,
-  .elementor-element-0971963 [class*="swiper-container"],
-  .elementor-element-0971963 [class*="swiper"]:not([class*="swiper-slide"]):not([class*="swiper-button"]):not([class*="swiper-pagination"]) {
-    width: 100vw !important;
-    max-width: 100vw !important;
-  }
 
-  /* Force every slide to exactly viewport width */
-  .elementor-element-0971963 .swiper-slide {
-    width: 100vw !important;
-    min-width: 100vw !important;
-    max-width: 100vw !important;
-    height: 420px !important;
-    min-height: 420px !important;
-    flex-shrink: 0 !important;
-  }
-
-  /* Slide background — cover the full slide */
-  .elementor-element-0971963 .swiper-slide-bg {
-    position: absolute !important;
-    inset: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    background-size: cover !important;
-    background-position: center center !important;
-  }
-
-  /* Slide inner text */
-  .elementor-element-0971963 .swiper-slide-inner {
-    width: 100% !important;
-    height: 100% !important;
-    min-height: 420px !important;
-    position: relative !important;
-    z-index: 2 !important;
-  }
-
-  /* Swiper track */
-  .elementor-element-0971963 [class*="swiper-wrapper"],
-  .elementor-element-0971963 .elementor-slides {
-    height: 420px !important;
-  }
-
-  /* Prev/next arrows */
-  .elementor-element-0971963 .elementor-swiper-button,
-  .elementor-widget-slides .elementor-swiper-button {
-    display: flex !important;
-  }
-
-  /* ── Generic fix: ALL Elementor slides widgets on mobile ──
-     Swiper JS sets inline width in px; !important in stylesheet beats it */
+  /* ── Step 1: strip padding/max-width from the section + container wrapping any slider ── */
   .elementor-widget-slides,
-  .elementor-widget-slides > .elementor-widget-container,
+  .elementor-widget-slides > .elementor-widget-container {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Parent section / e-con that wraps the slides widget — remove horizontal padding */
+  .elementor-widget-slides,
+  .elementor-widget-slides ~ *,
+  .elementor-element:has(> .elementor-widget-container > .elementor-widget-slides) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* ── Step 2: Swiper container and track ── */
   .elementor-widget-slides .elementor-slides-wrapper,
   .elementor-widget-slides [class*="swiper"]:not([class*="swiper-slide"]):not([class*="swiper-button"]):not([class*="swiper-pagination"]) {
-    width: 100% !important;
-    max-width: 100% !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
     overflow: hidden !important;
   }
+
+  /* ── Step 3: Each slide — override Swiper's inline px width ── */
   .elementor-widget-slides .swiper-slide {
     width: 100vw !important;
     min-width: 100vw !important;
     max-width: 100vw !important;
     flex-shrink: 0 !important;
+    box-sizing: border-box !important;
   }
+
+  /* ── Step 4: Background image — fills entire slide ── */
   .elementor-widget-slides .swiper-slide-bg {
     position: absolute !important;
-    inset: 0 !important;
+    top: 0 !important; left: 0 !important;
     width: 100% !important;
     height: 100% !important;
     background-size: cover !important;
     background-position: center center !important;
   }
+
+  /* ── Step 5: Inner content — full width, no overflow ── */
   .elementor-widget-slides .swiper-slide-inner {
     width: 100% !important;
+    max-width: 100% !important;
     box-sizing: border-box !important;
+    overflow: hidden !important;
   }
+
+  /* ── Old ID-based rules (kept for backward compat) ── */
+  .elementor-element-0971963 {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+  .elementor-element-0971963 .swiper-slide {
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+  }
+  .elementor-element-0971963 .swiper-slide-bg {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important; height: 100% !important;
+    background-size: cover !important;
+    background-position: center center !important;
+  }
+
+  /* Arrows */
+  .elementor-widget-slides .elementor-swiper-button { display: flex !important; }
 }
 
 
