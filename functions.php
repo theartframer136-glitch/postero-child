@@ -539,7 +539,7 @@ add_action('wp_footer', function() { ?>
                 sp(title,'flex-shrink',        '0');
             }
 
-            // ── Rating row: fixed height regardless of star presence ──
+            // ── Rating row: fixed height, aligned with title/price/desc ──
             var rating = c.querySelector('.woocommerce-product-rating,.product-meta-row,.rating');
             if (rating) {
                 sp(rating,'display',     'flex');
@@ -547,9 +547,9 @@ add_action('wp_footer', function() { ?>
                 sp(rating,'flex-wrap',   'nowrap');
                 sp(rating,'gap',         '4px');
                 sp(rating,'margin',      '0 0 4px');
-                sp(rating,'padding',     '0px 12px 0px');
+                sp(rating,'padding',     '0');       // same left edge as title
                 sp(rating,'line-height', '1.4');
-                sp(rating,'height',      '22px');  // fixed row height
+                sp(rating,'height',      '22px');
                 sp(rating,'overflow',    'hidden');
                 sp(rating,'flex-shrink', '0');
             }
@@ -829,7 +829,7 @@ add_action('wp_footer', function() { ?>
         // Watch every rating row — if WooCommerce JS re-sets padding-left, instantly clear it
         function zeroRatingPadding() {
             track.querySelectorAll('.rating,.woocommerce-product-rating,.product-meta-row').forEach(function(r) {
-                r.style.setProperty('padding', '0px 12px 0px', 'important');
+                r.style.setProperty('padding', '0', 'important');
             });
         }
         zeroRatingPadding();
@@ -1078,7 +1078,7 @@ html body .product-card .product-meta-row,
 html body .product-card .rating {
   display:flex !important; align-items:center !important;
   flex-wrap:wrap !important; gap:5px !important;
-  margin:0 0 5px !important; padding:0px 12px 0px !important;
+  margin:0 0 5px !important; padding:0 !important;
 }
 html body .product-card .star-rating { font-size:12px !important; color:#c9a84c !important; margin:0 !important; padding:0 !important; }
 html body .product-card .woocommerce-review-link { font-size:11px !important; color:#666 !important; }
@@ -1092,8 +1092,9 @@ html body .product-card .price-section {
   margin:0 0 6px !important; padding:0 !important;
 }
 html body .product-card .price ins { text-decoration:none !important; font-weight:700 !important; color:#1a1a1a !important; }
-html body .product-card .price del { color:#999 !important; font-weight:400 !important; font-size:12px !important; text-decoration:line-through !important; }
-html body .product-card .price del .woocommerce-Price-amount { color:#999 !important; }
+html body .product-card .price del,
+html body .product-card .price del * { color:#999 !important; font-weight:400 !important; font-size:12px !important; }
+html body .product-card .price del { text-decoration:line-through !important; }
 html body .product-card .discount-percentage { font-size:12px !important; color:#888 !important; }
 
 /* description */
