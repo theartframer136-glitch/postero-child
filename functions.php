@@ -512,7 +512,7 @@ add_action('wp_footer', function() { ?>
             }
 
             // ── product-info: flex column, grows to push buttons to bottom ──
-            var info = c.querySelector('.product-info, .product-details, .card-body, .woocommerce-product-info');
+            var info = c.querySelector('.product-info');
             if (info) {
                 sp(info,'display',        'flex');
                 sp(info,'flex-direction', 'column');
@@ -523,7 +523,7 @@ add_action('wp_footer', function() { ?>
             }
 
             // ── Title: exactly 3-line height so all cards align below ──
-            var title = c.querySelector('h2,h3,.product-title,.woocommerce-loop-product__title,.card-title');
+            var title = c.querySelector('.product-title');
             if (title) {
                 sp(title,'font-size',          '13.5px');
                 sp(title,'font-weight',        '700');
@@ -535,31 +535,38 @@ add_action('wp_footer', function() { ?>
                 sp(title,'-webkit-line-clamp', '3');
                 sp(title,'-webkit-box-orient', 'vertical');
                 sp(title,'overflow',           'hidden');
-                sp(title,'height',             'calc(1.45em * 3)');  // fixed height, not min
+                sp(title,'height',             'calc(1.45em * 3)');
                 sp(title,'flex-shrink',        '0');
             }
 
-            // ── Rating row: fixed height, aligned with title/price/desc ──
-            var rating = c.querySelector('.woocommerce-product-rating,.product-meta-row,.rating');
+            // ── Rating row ──
+            var rating = c.querySelector('.rating');
             if (rating) {
                 sp(rating,'display',     'flex');
                 sp(rating,'align-items', 'center');
                 sp(rating,'flex-wrap',   'nowrap');
                 sp(rating,'gap',         '4px');
                 sp(rating,'margin',      '0 0 4px');
-                sp(rating,'padding',     '0');       // same left edge as title
+                sp(rating,'padding',     '0');
                 sp(rating,'line-height', '1.4');
                 sp(rating,'height',      '22px');
                 sp(rating,'overflow',    'hidden');
                 sp(rating,'flex-shrink', '0');
             }
+            var ratingCount = c.querySelector('.rating-count');
+            if (ratingCount) {
+                sp(ratingCount,'font-size',   '12px');
+                sp(ratingCount,'color',       '#555');
+                sp(ratingCount,'margin',      '0');
+                sp(ratingCount,'padding',     '0');
+                sp(ratingCount,'white-space', 'nowrap');
+                sp(ratingCount,'flex-shrink', '0');
+            }
             var stars = c.querySelector('.star-rating');
-            if (stars) { sp(stars,'color','#c9a84c'); sp(stars,'font-size','12px'); sp(stars,'margin','0'); sp(stars,'flex-shrink','0'); }
-            var revLink = c.querySelector('.woocommerce-review-link');
-            if (revLink) { sp(revLink,'font-size','12px'); sp(revLink,'color','#555'); sp(revLink,'white-space','nowrap'); }
+            if (stars) { sp(stars,'color','#c9a84c'); sp(stars,'font-size','12px'); sp(stars,'margin','0'); sp(stars,'padding','0'); sp(stars,'flex-shrink','0'); }
 
-            // ── Price: fixed height, single line ──
-            var price = c.querySelector('.price,.price-section,.product-price,.woocommerce-Price-amount');
+            // ── Price ──
+            var price = c.querySelector('.price-section');
             if (price) {
                 sp(price,'display',     'flex');
                 sp(price,'flex-wrap',   'wrap');
@@ -574,20 +581,19 @@ add_action('wp_footer', function() { ?>
                 sp(price,'overflow',    'hidden');
                 sp(price,'flex-shrink', '0');
             }
-            var ins = c.querySelector('.price ins, .price-section ins');
+            var ins = c.querySelector('.price-section ins');
             if (ins) { sp(ins,'text-decoration','none'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); }
-            var del = c.querySelector('.price del, .price-section del, del');
+            var del = c.querySelector('.price-section del');
             if (del) {
                 sp(del,'color','#999'); sp(del,'font-weight','400'); sp(del,'font-size','12px');
                 sp(del,'text-decoration','line-through');
-                // Force every child to also carry the strikethrough colour
                 del.querySelectorAll('*').forEach(function(el){
                     sp(el,'color','#999'); sp(el,'text-decoration','line-through');
                 });
             }
 
-            // ── Description: exactly 2-line height, flex grows to absorb space ──
-            var desc = c.querySelector('p.desc,.desc,.product-excerpt,.short-description,p:not(.price)');
+            // ── Description: 2-line clamp ──
+            var desc = c.querySelector('.desc');
             if (desc) {
                 sp(desc,'font-size',          '13px');
                 sp(desc,'color',              '#555');
@@ -598,7 +604,7 @@ add_action('wp_footer', function() { ?>
                 sp(desc,'-webkit-line-clamp', '2');
                 sp(desc,'-webkit-box-orient', 'vertical');
                 sp(desc,'overflow',           'hidden');
-                sp(desc,'height',             'calc(1.55em * 2)');  // fixed, not min
+                sp(desc,'height',             'calc(1.55em * 2)');
                 sp(desc,'flex',               '0 0 auto');
             }
 
@@ -1102,17 +1108,10 @@ html body .swiper-slide-bg {
 
 /* ── Zero-padding override: beats any cached custom.css rule ── */
 html body .product-card .product-info,
-html body .af-shell-track .product-card .product-info,
-html body .product-slider .product-card .product-info,
-html body .product-card h2,
-html body .product-card h3,
 html body .product-card .product-title,
-html body .product-card .woocommerce-loop-product__title,
-html body .product-card .woocommerce-product-rating,
-html body .product-card .product-meta-row,
-html body .product-card .price,
+html body .product-card .rating,
+html body .product-card .rating-count,
 html body .product-card .price-section,
-html body .product-card p.desc,
 html body .product-card .desc {
   padding: 0 !important;
 }

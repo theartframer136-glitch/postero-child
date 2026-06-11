@@ -453,21 +453,19 @@ ul.postero-scroll-content .cat-item a {
 
 /* ── Content body ── */
 .af-shell-track .product-card .product-info,
-.product-slider .product-card .product-info {
+.product-slider .product-card .product-info,
+.woocommerce ul.products li.product .product-info {
   display: flex !important;
   flex-direction: column !important;
   flex: 1 1 auto !important;
   padding: 0 !important;
+  margin: 0 !important;
 }
 
 /* ── Title — 3 lines max ── */
-.af-shell-track .product-card .woocommerce-loop-product__title,
-.af-shell-track .product-card h2,
-.af-shell-track .product-card h3,
+.af-shell-track .product-card .product-title,
 .product-slider .product-card .product-title,
-.product-slider .product-card h2,
-.product-slider .product-card h3,
-.woocommerce ul.products li.product .woocommerce-loop-product__title {
+.woocommerce ul.products li.product .product-title {
   font-size: 13.5px !important;
   font-weight: 700 !important;
   line-height: 1.45 !important;
@@ -481,47 +479,41 @@ ul.postero-scroll-content .cat-item a {
   min-height: calc(1.45em * 3) !important;
 }
 
-/* ── Meta row: stars + Digital Download ── */
-.af-shell-track .product-card .product-meta-row,
-.af-shell-track .product-card .woocommerce-product-rating,
-.product-slider .product-card .woocommerce-product-rating {
+/* ── Rating row ── */
+.af-shell-track .product-card .rating,
+.product-slider .product-card .rating,
+.woocommerce ul.products li.product .rating {
   display: flex !important;
   align-items: center !important;
-  flex-wrap: wrap !important;
-  gap: 6px !important;
-  margin: 0 0 5px !important;
+  flex-wrap: nowrap !important;
+  gap: 4px !important;
+  margin: 0 0 4px !important;
   padding: 0 !important;
+  height: 22px !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+}
+.af-shell-track .product-card .rating-count,
+.product-slider .product-card .rating-count {
+  font-size: 12px !important;
+  color: #555 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  white-space: nowrap !important;
 }
 .af-shell-track .product-card .star-rating,
 .product-slider .product-card .star-rating {
   font-size: 12px !important;
   color: #c9a84c !important;
   margin: 0 !important;
-}
-.af-shell-track .product-card .woocommerce-review-link,
-.product-slider .product-card .woocommerce-review-link {
-  font-size: 11px !important;
-  color: #666 !important;
-  margin-left: 2px !important;
-}
-.af-shell-track .product-card .product-type-badge,
-.af-shell-track .product-card [class*="download-type"],
-.product-slider .product-card .product-type-badge {
-  font-size: 11px !important;
-  color: #555 !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 3px !important;
+  padding: 0 !important;
 }
 
-/* ── Price — sale bold, original struck, discount inline ── */
-.af-shell-track .product-card .price,
+/* ── Price ── */
 .af-shell-track .product-card .price-section,
-.product-slider .product-card .price,
 .product-slider .product-card .price-section,
-.woocommerce ul.products li.product .price {
+.woocommerce ul.products li.product .price-section {
   display: flex !important;
-  flex-direction: row !important;
   flex-wrap: wrap !important;
   align-items: baseline !important;
   gap: 4px !important;
@@ -530,35 +522,32 @@ ul.postero-scroll-content .cat-item a {
   color: #1a1a1a !important;
   margin: 0 0 6px !important;
   padding: 0 !important;
+  height: 22px !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
 }
-.af-shell-track .product-card .price ins,
-.product-slider .product-card .price ins,
-.woocommerce ul.products li.product .price ins {
+.af-shell-track .product-card .price-section ins,
+.product-slider .product-card .price-section ins {
   text-decoration: none !important;
   font-weight: 700 !important;
   color: #1a1a1a !important;
 }
-.af-shell-track .product-card .price del,
-.product-slider .product-card .price del,
-.woocommerce ul.products li.product .price del {
+.af-shell-track .product-card .price-section del,
+.af-shell-track .product-card .price-section del *,
+.product-slider .product-card .price-section del,
+.product-slider .product-card .price-section del * {
   color: #999 !important;
   font-weight: 400 !important;
   font-size: 12px !important;
-}
-.af-shell-track .product-card .discount-percentage,
-.product-slider .product-card .discount-percentage {
-  font-size: 12px !important;
-  color: #888 !important;
-  font-weight: 500 !important;
+  text-decoration: line-through !important;
 }
 
-/* ── Description (p.desc) — 2 lines ── */
-.af-shell-track .product-card p.desc,
+/* ── Description — 2 lines ── */
 .af-shell-track .product-card .desc,
-.product-slider .product-card p.desc,
-.product-slider .product-card .desc {
+.product-slider .product-card .desc,
+.woocommerce ul.products li.product .desc {
   font-size: 13px !important;
-  color: #666 !important;
+  color: #555 !important;
   line-height: 1.55 !important;
   margin: 0 0 10px !important;
   padding: 0 !important;
@@ -566,8 +555,8 @@ ul.postero-scroll-content .cat-item a {
   -webkit-line-clamp: 2 !important;
   -webkit-box-orient: vertical !important;
   overflow: hidden !important;
-  min-height: calc(1.55em * 2) !important;
-  flex: 1 1 auto !important;
+  height: calc(1.55em * 2) !important;
+  flex: 0 0 auto !important;
 }
 
 /* ── Buttons row ── */
