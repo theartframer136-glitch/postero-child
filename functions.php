@@ -524,10 +524,13 @@ add_action('wp_footer', function() { ?>
                 sp(info,'padding-bottom', '0');
                 sp(info,'margin',         '0');
                 sp(info,'min-height',     '0');
-                // Zero out padding on every direct child regardless of class
-                Array.from(info.children).forEach(function(child) {
-                    sp(child,'padding-left',  '0');
-                    sp(child,'padding-right', '0');
+                // Nuclear: zero padding on every descendant except buttons
+                info.querySelectorAll('*').forEach(function(el) {
+                    var tag = el.tagName.toLowerCase();
+                    if (tag !== 'button' && tag !== 'a') {
+                        sp(el,'padding-left',  '0');
+                        sp(el,'padding-right', '0');
+                    }
                 });
             }
 
