@@ -517,7 +517,7 @@ add_action('wp_footer', function() { ?>
                 sp(info,'display',        'flex');
                 sp(info,'flex-direction', 'column');
                 sp(info,'flex',           '1 1 auto');
-                sp(info,'padding',        '14px 14px 0');
+                sp(info,'padding',        '0');
                 sp(info,'margin',         '0');
                 sp(info,'min-height',     '0');
             }
@@ -675,7 +675,7 @@ add_action('wp_footer', function() { ?>
                 sp(info,'display',        'flex');
                 sp(info,'flex-direction', 'column');
                 sp(info,'flex',           '1 1 auto');
-                sp(info,'padding',        '14px 14px 0');
+                sp(info,'padding',        '0');
                 sp(info,'margin',         '0');
             }
 
@@ -1064,7 +1064,7 @@ html body .product-card .af-wishlist-btn {
 /* content area */
 html body .product-card .product-info {
   display:flex !important; flex-direction:column !important;
-  flex:1 1 auto !important; padding:12px 14px 0 !important;
+  flex:1 1 auto !important; padding:0 !important;
 }
 
 /* title */
