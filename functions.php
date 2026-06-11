@@ -1016,6 +1016,52 @@ html body .woocommerce-page ul.products li.product:hover .woocommerce-loop-produ
 html body .woocommerce-page ul.products li.product:hover .woocommerce-loop-product__link img + img {
   opacity:1 !important;
 }
+
+/* ── Mobile hero slider — broadest possible selectors ── */
+@media (max-width: 768px) {
+  /* Every Swiper slide on mobile gets full viewport width */
+  html body .elementor-slides .swiper-slide,
+  html body .elementor-slides-wrapper .swiper-slide,
+  html body [class*="elementor-widget"] .swiper-slide {
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+    min-height: 420px !important;
+    position: relative !important;
+    overflow: hidden !important;
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+  }
+  /* Slide containers — strip any fixed width */
+  html body .elementor-slides-wrapper,
+  html body .elementor-slides,
+  html body [class*="elementor-widget"] .elementor-slides-wrapper {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow: hidden !important;
+  }
+  /* Background image — absolutely fill the slide */
+  html body .elementor-slides .swiper-slide-bg,
+  html body [class*="elementor-widget"] .swiper-slide-bg {
+    position: absolute !important;
+    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 420px !important;
+    background-size: cover !important;
+    background-position: center center !important;
+    z-index: 0 !important;
+  }
+  /* Inner content on top of background */
+  html body .elementor-slides .swiper-slide-inner,
+  html body [class*="elementor-widget"] .swiper-slide-inner {
+    position: relative !important;
+    z-index: 1 !important;
+    width: 100% !important;
+    min-height: 420px !important;
+    box-sizing: border-box !important;
+  }
+}
 </style>
 <?php }, 99);
 
@@ -1051,9 +1097,9 @@ add_action('wp_footer', function() { ?>
   function fixSwiperAPI() {
     // Tell Swiper to recalculate sizes using the (now correct) container width
     var swiperEls = document.querySelectorAll(
+      '.elementor-slides-wrapper,' +
       '.elementor-widget-slides .swiper,' +
-      '.elementor-widget-slides .swiper-container,' +
-      '.elementor-widget-slides .elementor-slides-wrapper'
+      '.elementor-widget-slides .swiper-container'
     );
     swiperEls.forEach(function(el) {
       var swiper = el.swiper;
@@ -1066,13 +1112,13 @@ add_action('wp_footer', function() { ?>
   }
 
   function fixSlideInlineWidths() {
-    document.querySelectorAll('.elementor-widget-slides .swiper-slide').forEach(function(s) {
+    document.querySelectorAll('.elementor-slides .swiper-slide, .elementor-widget-slides .swiper-slide').forEach(function(s) {
       sp(s, 'width',      '100vw'); sp(s, 'min-width',  '100vw');
       sp(s, 'max-width',  '100vw'); sp(s, 'flex-shrink','0');
       sp(s, 'min-height', '420px'); sp(s, 'position',   'relative');
       sp(s, 'overflow',   'hidden'); sp(s, 'box-sizing', 'border-box');
     });
-    document.querySelectorAll('.elementor-widget-slides .swiper-slide-bg').forEach(function(bg) {
+    document.querySelectorAll('.elementor-slides .swiper-slide-bg, .elementor-widget-slides .swiper-slide-bg').forEach(function(bg) {
       sp(bg, 'position',            'absolute');
       sp(bg, 'top',    '0'); sp(bg, 'left',   '0');
       sp(bg, 'right',  '0'); sp(bg, 'bottom', '0');
@@ -1082,7 +1128,7 @@ add_action('wp_footer', function() { ?>
       sp(bg, 'background-position', 'center center');
       sp(bg, 'z-index',             '0');
     });
-    document.querySelectorAll('.elementor-widget-slides .swiper-slide-inner').forEach(function(inner) {
+    document.querySelectorAll('.elementor-slides .swiper-slide-inner, .elementor-widget-slides .swiper-slide-inner').forEach(function(inner) {
       sp(inner, 'position',   'relative'); sp(inner, 'z-index',     '1');
       sp(inner, 'width',      '100%');     sp(inner, 'max-width',   '100%');
       sp(inner, 'min-height', '420px');    sp(inner, 'box-sizing',  'border-box');
