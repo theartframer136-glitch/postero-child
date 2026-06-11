@@ -512,7 +512,7 @@ add_action('wp_footer', function() { ?>
             }
 
             // ── product-info: flex column, grows to push buttons to bottom ──
-            var info = c.querySelector('.product-info');
+            var info = c.querySelector('.product-info, .product-details, .card-body, .woocommerce-product-info');
             if (info) {
                 sp(info,'display',        'flex');
                 sp(info,'flex-direction', 'column');
@@ -523,7 +523,7 @@ add_action('wp_footer', function() { ?>
             }
 
             // ── Title: exactly 3-line height so all cards align below ──
-            var title = c.querySelector('h2,h3,.product-title,.woocommerce-loop-product__title');
+            var title = c.querySelector('h2,h3,.product-title,.woocommerce-loop-product__title,.card-title');
             if (title) {
                 sp(title,'font-size',          '13.5px');
                 sp(title,'font-weight',        '700');
@@ -559,7 +559,7 @@ add_action('wp_footer', function() { ?>
             if (revLink) { sp(revLink,'font-size','12px'); sp(revLink,'color','#555'); sp(revLink,'white-space','nowrap'); }
 
             // ── Price: fixed height, single line ──
-            var price = c.querySelector('.price,.price-section');
+            var price = c.querySelector('.price,.price-section,.product-price,.woocommerce-Price-amount');
             if (price) {
                 sp(price,'display',     'flex');
                 sp(price,'flex-wrap',   'wrap');
@@ -576,16 +576,18 @@ add_action('wp_footer', function() { ?>
             }
             var ins = c.querySelector('.price ins, .price-section ins');
             if (ins) { sp(ins,'text-decoration','none'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); }
-            var del = c.querySelector('.price del, .price-section del');
+            var del = c.querySelector('.price del, .price-section del, del');
             if (del) {
                 sp(del,'color','#999'); sp(del,'font-weight','400'); sp(del,'font-size','12px');
                 sp(del,'text-decoration','line-through');
-                var delAmt = del.querySelector('.woocommerce-Price-amount');
-                if (delAmt) { sp(delAmt,'color','#999'); sp(delAmt,'text-decoration','none'); }
+                // Force every child to also carry the strikethrough colour
+                del.querySelectorAll('*').forEach(function(el){
+                    sp(el,'color','#999'); sp(el,'text-decoration','line-through');
+                });
             }
 
             // ── Description: exactly 2-line height, flex grows to absorb space ──
-            var desc = c.querySelector('p.desc,.desc');
+            var desc = c.querySelector('p.desc,.desc,.product-excerpt,.short-description,p:not(.price)');
             if (desc) {
                 sp(desc,'font-size',          '13px');
                 sp(desc,'color',              '#555');
@@ -612,7 +614,7 @@ add_action('wp_footer', function() { ?>
             sp(spacer,'flex','1 1 auto');
 
             // ── Buttons row: always at bottom ──
-            var actions = c.querySelector('.product-actions,.card-actions');
+            var actions = c.querySelector('.product-actions,.card-actions,.add-to-cart-wrap,.buttons-wrap,.product-buttons');
             if (actions) {
                 sp(actions,'display',     'flex');
                 sp(actions,'gap',         '8px');
@@ -782,6 +784,12 @@ add_action('wp_footer', function() { ?>
                     }
                 });
             }
+        }
+
+        // Log first card structure once to console so we can verify selectors
+        if (freshCards.length && !window._afCardLogged) {
+            window._afCardLogged = true;
+            console.log('[AF] product-card HTML:', freshCards[0].outerHTML.substring(0, 2000));
         }
 
         freshCards.forEach(function(c) {
