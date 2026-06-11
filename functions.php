@@ -1152,91 +1152,90 @@ html body .product-card .price ins {
 </style>
 <?php }, 99);
 
-// Features bar: force horizontal row on mobile regardless of Elementor data-id
+// Features bar: disable swiper, force 4-column grid on mobile
 add_action('wp_footer', function() { ?>
 <script>
 (function() {
   if (window.innerWidth > 600) return;
+  var sp = function(el, p, v) { el.style.setProperty(p, v, 'important'); };
+
   function fixFeaturesBar() {
-    // Find the container that holds the icon boxes (Free Shipping etc.)
-    // Strategy: find all icon-box wrappers, get their common parent, force it to row
-    var iconBoxes = document.querySelectorAll('.elementor-icon-box-wrapper');
-    if (!iconBoxes.length) {
-      // fallback: look for icon elements near each other
-      iconBoxes = document.querySelectorAll('.elementor-icon-box-icon, .elementor-icon');
+    // Find a swiper-wrapper that contains features text
+    var allWrappers = document.querySelectorAll('.swiper-wrapper');
+    var featWrapper = null;
+    allWrappers.forEach(function(w) {
+      if (!featWrapper && w.textContent.indexOf('Free Shipping') !== -1) {
+        featWrapper = w;
+      }
+    });
+    if (!featWrapper) return;
+
+    // Disable swiper transform & show all slides as a 4-col row
+    sp(featWrapper,'transform','none');
+    sp(featWrapper,'display','flex');
+    sp(featWrapper,'flex-direction','row');
+    sp(featWrapper,'flex-wrap','nowrap');
+    sp(featWrapper,'width','100%');
+    sp(featWrapper,'height','auto');
+
+    // Also hide swiper nav/pagination inside this slider's parent
+    var swiperEl = featWrapper.closest('.swiper,.elementor-slides-wrapper,.elementor-widget-slides');
+    if (swiperEl) {
+      sp(swiperEl,'overflow','visible');
+      sp(swiperEl,'width','100%');
+      var nav = swiperEl.querySelectorAll('.swiper-button-next,.swiper-button-prev,.swiper-pagination');
+      nav.forEach(function(n){ sp(n,'display','none'); });
     }
-    if (!iconBoxes.length) return;
 
-    // Group by common parent — find a parent that has 3+ icon box children
-    var candidates = [];
-    iconBoxes.forEach(function(box) {
-      var p = box.parentElement;
-      while (p && p !== document.body) {
-        if (!candidates.includes(p)) candidates.push(p);
-        p = p.parentElement;
-      }
-    });
-    var container = null;
-    candidates.forEach(function(el) {
-      var count = el.querySelectorAll('.elementor-icon-box-wrapper, .elementor-icon-box-icon').length;
-      if (count >= 3 && !container) container = el;
-    });
-    if (!container) return;
+    var slides = featWrapper.querySelectorAll('.swiper-slide');
+    slides.forEach(function(slide) {
+      sp(slide,'width','25%');
+      sp(slide,'min-width','0');
+      sp(slide,'flex','1 1 0');
+      sp(slide,'display','flex');
+      sp(slide,'flex-direction','column');
+      sp(slide,'align-items','center');
+      sp(slide,'text-align','center');
+      sp(slide,'padding','8px 4px');
+      sp(slide,'height','auto');
 
-    var sp = function(el, p, v) { el.style.setProperty(p, v, 'important'); };
+      // Inner containers
+      ['swiper-slide-inner','swiper-slide-contents','elementor-widget-container'].forEach(function(cls) {
+        var el = slide.querySelector('.'+cls);
+        if (el) {
+          sp(el,'display','flex'); sp(el,'flex-direction','column');
+          sp(el,'align-items','center'); sp(el,'text-align','center');
+          sp(el,'width','100%'); sp(el,'padding','0');
+        }
+      });
 
-    // Force the container and its immediate children into a horizontal row
-    sp(container,'display','flex');
-    sp(container,'flex-direction','row');
-    sp(container,'flex-wrap','nowrap');
-    sp(container,'justify-content','space-evenly');
-    sp(container,'align-items','flex-start');
-    sp(container,'gap','4px');
-    sp(container,'width','100%');
-
-    Array.from(container.children).forEach(function(child) {
-      sp(child,'flex','1 1 0');
-      sp(child,'min-width','0');
-      sp(child,'max-width','25%');
-      sp(child,'text-align','center');
-      sp(child,'display','flex');
-      sp(child,'flex-direction','column');
-      sp(child,'align-items','center');
-      // Also fix inner layout
-      var inner = child.querySelector('.e-con-inner, .elementor-widget-container');
-      if (inner) {
-        sp(inner,'display','flex');
-        sp(inner,'flex-direction','column');
-        sp(inner,'align-items','center');
-        sp(inner,'text-align','center');
-      }
-      // Gold circle on icon
-      var icon = child.querySelector('.elementor-icon, .elementor-icon-box-icon');
+      // Icon element — wrap in gold circle
+      var icon = slide.querySelector('i[class*="fa"],i[class*="eicon"],svg,.elementor-icon,img');
       if (icon) {
-        sp(icon,'width','52px'); sp(icon,'height','52px'); sp(icon,'min-width','52px');
-        sp(icon,'border-radius','50%'); sp(icon,'background','#c9a84c');
-        sp(icon,'display','flex'); sp(icon,'align-items','center');
-        sp(icon,'justify-content','center'); sp(icon,'margin','0 auto 6px');
-        var svg = icon.querySelector('i,svg');
-        if (svg) { sp(svg,'color','#fff'); sp(svg,'fill','#fff'); sp(svg,'font-size','22px'); sp(svg,'width','22px'); sp(svg,'height','22px'); }
+        var wrap = icon.closest('.elementor-icon') || icon.parentElement;
+        sp(wrap,'width','52px'); sp(wrap,'height','52px'); sp(wrap,'min-width','52px');
+        sp(wrap,'border-radius','50%'); sp(wrap,'background','#c9a84c');
+        sp(wrap,'display','flex'); sp(wrap,'align-items','center');
+        sp(wrap,'justify-content','center'); sp(wrap,'margin','0 auto 6px');
+        sp(icon,'color','#fff'); sp(icon,'fill','#fff');
+        sp(icon,'font-size','22px'); sp(icon,'width','22px'); sp(icon,'height','22px');
       }
-      // Label text
-      var label = child.querySelector('.elementor-icon-box-title,.elementor-heading-title,h3,h4,p');
+
+      // Text label
+      var label = slide.querySelector('h1,h2,h3,h4,h5,p,span.elementor-heading-title,.elementor-icon-box-title');
       if (label) {
-        sp(label,'font-size','10px'); sp(label,'font-weight','600');
+        sp(label,'font-size','10px'); sp(label,'font-weight','700');
         sp(label,'color','#222'); sp(label,'text-align','center');
-        sp(label,'line-height','1.3'); sp(label,'margin','0');
-        sp(label,'word-break','break-word');
+        sp(label,'line-height','1.3'); sp(label,'margin','0'); sp(label,'padding','0');
       }
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', fixFeaturesBar);
-  } else {
-    fixFeaturesBar();
-  }
-  setTimeout(fixFeaturesBar, 800);
+  // Run at DOMContentLoaded, after load, and after Swiper has a chance to init
+  document.addEventListener('DOMContentLoaded', fixFeaturesBar);
+  window.addEventListener('load', fixFeaturesBar);
+  setTimeout(fixFeaturesBar, 500);
+  setTimeout(fixFeaturesBar, 1500);
 })();
 </script>
 <?php }, 5);
