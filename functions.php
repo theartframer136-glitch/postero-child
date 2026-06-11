@@ -1019,6 +1019,33 @@ html body .woocommerce-page ul.products li.product:hover .woocommerce-loop-produ
 </style>
 <?php }, 99);
 
+// Mobile hero slider width fix — Swiper JS sets inline px widths; reset after init
+add_action('wp_footer', function() { ?>
+<script>
+(function() {
+  if (window.innerWidth > 768) return;
+  function fixSlides() {
+    document.querySelectorAll('.elementor-widget-slides .swiper-slide').forEach(function(s) {
+      s.style.setProperty('width',     '100vw', 'important');
+      s.style.setProperty('min-width', '100vw', 'important');
+      s.style.setProperty('max-width', '100vw', 'important');
+    });
+    document.querySelectorAll('.elementor-widget-slides .swiper-slide-bg').forEach(function(bg) {
+      bg.style.setProperty('position',          'absolute',      'important');
+      bg.style.setProperty('inset',             '0',             'important');
+      bg.style.setProperty('width',             '100%',          'important');
+      bg.style.setProperty('height',            '100%',          'important');
+      bg.style.setProperty('background-size',   'cover',         'important');
+      bg.style.setProperty('background-position','center center','important');
+    });
+  }
+  // Run immediately, then again after Elementor/Swiper init
+  [0, 300, 800, 1500].forEach(function(d) { setTimeout(fixSlides, d); });
+  window.addEventListener('resize', fixSlides);
+}());
+</script>
+<?php }, 5);
+
 // 11. Products In Motion — circular video slider (PHP-rendered, no JS dependency)
 add_action('wp_footer', function() {
     if (!is_front_page()) return;

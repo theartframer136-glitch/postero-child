@@ -796,11 +796,33 @@ ul.postero-scroll-content .cat-item a {
     display: flex !important;
   }
 
-  /* Fallback for any other slides widget if ID differs */
+  /* ── Generic fix: ALL Elementor slides widgets on mobile ──
+     Swiper JS sets inline width in px; !important in stylesheet beats it */
+  .elementor-widget-slides,
+  .elementor-widget-slides > .elementor-widget-container,
+  .elementor-widget-slides .elementor-slides-wrapper,
+  .elementor-widget-slides [class*="swiper"]:not([class*="swiper-slide"]):not([class*="swiper-button"]):not([class*="swiper-pagination"]) {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
   .elementor-widget-slides .swiper-slide {
     width: 100vw !important;
     min-width: 100vw !important;
     max-width: 100vw !important;
+    flex-shrink: 0 !important;
+  }
+  .elementor-widget-slides .swiper-slide-bg {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    background-size: cover !important;
+    background-position: center center !important;
+  }
+  .elementor-widget-slides .swiper-slide-inner {
+    width: 100% !important;
+    box-sizing: border-box !important;
   }
 }
 
