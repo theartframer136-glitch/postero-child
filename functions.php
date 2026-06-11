@@ -1152,6 +1152,95 @@ html body .product-card .price ins {
 </style>
 <?php }, 99);
 
+// Features bar: force horizontal row on mobile regardless of Elementor data-id
+add_action('wp_footer', function() { ?>
+<script>
+(function() {
+  if (window.innerWidth > 600) return;
+  function fixFeaturesBar() {
+    // Find the container that holds the icon boxes (Free Shipping etc.)
+    // Strategy: find all icon-box wrappers, get their common parent, force it to row
+    var iconBoxes = document.querySelectorAll('.elementor-icon-box-wrapper');
+    if (!iconBoxes.length) {
+      // fallback: look for icon elements near each other
+      iconBoxes = document.querySelectorAll('.elementor-icon-box-icon, .elementor-icon');
+    }
+    if (!iconBoxes.length) return;
+
+    // Group by common parent — find a parent that has 3+ icon box children
+    var candidates = [];
+    iconBoxes.forEach(function(box) {
+      var p = box.parentElement;
+      while (p && p !== document.body) {
+        if (!candidates.includes(p)) candidates.push(p);
+        p = p.parentElement;
+      }
+    });
+    var container = null;
+    candidates.forEach(function(el) {
+      var count = el.querySelectorAll('.elementor-icon-box-wrapper, .elementor-icon-box-icon').length;
+      if (count >= 3 && !container) container = el;
+    });
+    if (!container) return;
+
+    var sp = function(el, p, v) { el.style.setProperty(p, v, 'important'); };
+
+    // Force the container and its immediate children into a horizontal row
+    sp(container,'display','flex');
+    sp(container,'flex-direction','row');
+    sp(container,'flex-wrap','nowrap');
+    sp(container,'justify-content','space-evenly');
+    sp(container,'align-items','flex-start');
+    sp(container,'gap','4px');
+    sp(container,'width','100%');
+
+    Array.from(container.children).forEach(function(child) {
+      sp(child,'flex','1 1 0');
+      sp(child,'min-width','0');
+      sp(child,'max-width','25%');
+      sp(child,'text-align','center');
+      sp(child,'display','flex');
+      sp(child,'flex-direction','column');
+      sp(child,'align-items','center');
+      // Also fix inner layout
+      var inner = child.querySelector('.e-con-inner, .elementor-widget-container');
+      if (inner) {
+        sp(inner,'display','flex');
+        sp(inner,'flex-direction','column');
+        sp(inner,'align-items','center');
+        sp(inner,'text-align','center');
+      }
+      // Gold circle on icon
+      var icon = child.querySelector('.elementor-icon, .elementor-icon-box-icon');
+      if (icon) {
+        sp(icon,'width','52px'); sp(icon,'height','52px'); sp(icon,'min-width','52px');
+        sp(icon,'border-radius','50%'); sp(icon,'background','#c9a84c');
+        sp(icon,'display','flex'); sp(icon,'align-items','center');
+        sp(icon,'justify-content','center'); sp(icon,'margin','0 auto 6px');
+        var svg = icon.querySelector('i,svg');
+        if (svg) { sp(svg,'color','#fff'); sp(svg,'fill','#fff'); sp(svg,'font-size','22px'); sp(svg,'width','22px'); sp(svg,'height','22px'); }
+      }
+      // Label text
+      var label = child.querySelector('.elementor-icon-box-title,.elementor-heading-title,h3,h4,p');
+      if (label) {
+        sp(label,'font-size','10px'); sp(label,'font-weight','600');
+        sp(label,'color','#222'); sp(label,'text-align','center');
+        sp(label,'line-height','1.3'); sp(label,'margin','0');
+        sp(label,'word-break','break-word');
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', fixFeaturesBar);
+  } else {
+    fixFeaturesBar();
+  }
+  setTimeout(fixFeaturesBar, 800);
+})();
+</script>
+<?php }, 5);
+
 // Mobile hero slider width fix — force Swiper to recalculate using correct 100vw container
 add_action('wp_footer', function() { ?>
 <script>
