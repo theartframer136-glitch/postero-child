@@ -457,7 +457,7 @@ ul.postero-scroll-content .cat-item a {
   display: flex !important;
   flex-direction: column !important;
   flex: 1 1 auto !important;
-  padding: 12px 14px 0 !important;
+  padding: 0 !important;
 }
 
 /* ── Title — 3 lines max ── */
