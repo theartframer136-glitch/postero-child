@@ -518,12 +518,21 @@ add_action('wp_footer', function() { ?>
                 sp(info,'flex-direction', 'column');
                 sp(info,'flex',           '1 1 auto');
                 sp(info,'padding',        '0');
+                sp(info,'padding-left',   '0');
+                sp(info,'padding-right',  '0');
+                sp(info,'padding-top',    '0');
+                sp(info,'padding-bottom', '0');
                 sp(info,'margin',         '0');
                 sp(info,'min-height',     '0');
+                // Zero out padding on every direct child regardless of class
+                Array.from(info.children).forEach(function(child) {
+                    sp(child,'padding-left',  '0');
+                    sp(child,'padding-right', '0');
+                });
             }
 
             // ── Title: exactly 3-line height so all cards align below ──
-            var title = c.querySelector('.product-title');
+            var title = c.querySelector('.product-title, h2, h3, .woocommerce-loop-product__title');
             if (title) {
                 sp(title,'font-size',          '13.5px');
                 sp(title,'font-weight',        '700');
@@ -540,7 +549,7 @@ add_action('wp_footer', function() { ?>
             }
 
             // ── Rating row ──
-            var rating = c.querySelector('.rating');
+            var rating = c.querySelector('.rating, .woocommerce-product-rating, .product-meta-row');
             if (rating) {
                 sp(rating,'display',     'flex');
                 sp(rating,'align-items', 'center');
@@ -566,7 +575,7 @@ add_action('wp_footer', function() { ?>
             if (stars) { sp(stars,'color','#c9a84c'); sp(stars,'font-size','12px'); sp(stars,'margin','0'); sp(stars,'padding','0'); sp(stars,'flex-shrink','0'); }
 
             // ── Price ──
-            var price = c.querySelector('.price-section');
+            var price = c.querySelector('.price-section, .price, .product-price');
             if (price) {
                 sp(price,'display',     'flex');
                 sp(price,'flex-wrap',   'wrap');
@@ -581,9 +590,9 @@ add_action('wp_footer', function() { ?>
                 sp(price,'overflow',    'hidden');
                 sp(price,'flex-shrink', '0');
             }
-            var ins = c.querySelector('.price-section ins');
+            var ins = c.querySelector('.price-section ins, .price ins');
             if (ins) { sp(ins,'text-decoration','none'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); }
-            var del = c.querySelector('.price-section del');
+            var del = c.querySelector('.price-section del, .price del');
             if (del) {
                 sp(del,'color','#999'); sp(del,'font-weight','400'); sp(del,'font-size','12px');
                 sp(del,'text-decoration','line-through');
@@ -593,7 +602,7 @@ add_action('wp_footer', function() { ?>
             }
 
             // ── Description: 2-line clamp ──
-            var desc = c.querySelector('.desc');
+            var desc = c.querySelector('.desc, p.desc, .product-excerpt, .short-description');
             if (desc) {
                 sp(desc,'font-size',          '13px');
                 sp(desc,'color',              '#555');
