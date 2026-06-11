@@ -1172,6 +1172,35 @@ add_action('wp_footer', function() { ?>
 
   [0, 300, 700, 1400, 2500].forEach(function(d) { setTimeout(fullFix, d); });
   window.addEventListener('resize', fullFix);
+
+  // MutationObserver: lock slide width to 100vw regardless of when Swiper rewrites it
+  // Swiper uses setProperty('width', Xpx, 'important') which beats stylesheet !important,
+  // but our observer fires immediately after and resets it.
+  function attachSlideLock() {
+    var _locking = false;
+    var mo = new MutationObserver(function(muts) {
+      if (_locking) return;
+      _locking = true;
+      muts.forEach(function(m) {
+        var s = m.target;
+        if (s.classList && s.classList.contains('swiper-slide')) {
+          s.style.setProperty('width',      '100vw', 'important');
+          s.style.setProperty('min-width',  '100vw', 'important');
+          s.style.setProperty('max-width',  '100vw', 'important');
+          s.style.setProperty('min-height', '420px', 'important');
+          s.style.setProperty('position',   'relative', 'important');
+          s.style.setProperty('overflow',   'hidden', 'important');
+        }
+      });
+      _locking = false;
+    });
+    document.querySelectorAll('.elementor-slides .swiper-slide, .elementor-widget-slides .swiper-slide').forEach(function(s) {
+      mo.observe(s, { attributes: true, attributeFilter: ['style'] });
+    });
+  }
+  // Attach after Swiper has likely created the slides
+  setTimeout(attachSlideLock, 500);
+  setTimeout(attachSlideLock, 1500);
 }());
 </script>
 <?php }, 5);
