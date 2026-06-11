@@ -1099,6 +1099,27 @@ html body .swiper-slide-bg {
     box-sizing: border-box !important;
   }
 }
+
+/* ── Zero-padding override: beats any cached custom.css rule ── */
+html body .product-card .product-info,
+html body .af-shell-track .product-card .product-info,
+html body .product-slider .product-card .product-info,
+html body .product-card h2,
+html body .product-card h3,
+html body .product-card .product-title,
+html body .product-card .woocommerce-loop-product__title,
+html body .product-card .woocommerce-product-rating,
+html body .product-card .product-meta-row,
+html body .product-card .price,
+html body .product-card .price-section,
+html body .product-card p.desc,
+html body .product-card .desc {
+  padding: 0 !important;
+}
+html body .product-card .product-actions,
+html body .product-card .card-actions {
+  padding: 0 14px 14px !important;
+}
 </style>
 <?php }, 99);
 
