@@ -1017,6 +1017,14 @@ html body .woocommerce-page ul.products li.product:hover .woocommerce-loop-produ
   opacity:1 !important;
 }
 
+/* ── Override Elementor lazy-load that clears background-image on e-con children ── */
+/* JS adds .e-lazyloaded to ancestors; this ensures slide-bg is shown when it has a bg */
+html body .e-lazyloaded .swiper-slide-bg,
+html body .swiper-slide-bg {
+  background-size: cover !important;
+  background-position: center center !important;
+}
+
 /* ── Mobile hero slider — broadest possible selectors ── */
 @media (max-width: 768px) {
   /* Every Swiper slide on mobile gets full viewport width */
@@ -1073,20 +1081,41 @@ add_action('wp_footer', function() { ?>
   function sp(el, p, v) { el.style.setProperty(p, v, 'important'); }
 
   function fixContainers() {
-    document.querySelectorAll('.elementor-widget-slides').forEach(function(w) {
-      sp(w, 'width',     '100vw'); sp(w, 'max-width', '100vw');
-      sp(w, 'padding',   '0');     sp(w, 'margin',    '0');
-      sp(w, 'overflow',  'hidden');
-      // Walk parents and strip horizontal padding/max-width up to 5 levels
+    // Fix Elementor lazy-load: mark all e-con ancestors of any slider as loaded
+    // so the rule `.e-con:nth-of-type(n+3):not(.e-lazyloaded) * { background-image:none!important }` stops firing
+    document.querySelectorAll('.elementor-slides, .elementor-slides-wrapper, .elementor-widget-slides').forEach(function(el) {
+      var node = el.parentElement;
+      while (node && node !== document.body) {
+        if (node.classList) {
+          node.classList.add('e-lazyloaded');
+          node.classList.remove('e-lazyloading');
+        }
+        node = node.parentElement;
+      }
+    });
+
+    // Also force background-image via inline important on every slide-bg
+    // (reads the CSS variable or computed inline style set by Elementor)
+    document.querySelectorAll('.swiper-slide-bg').forEach(function(bg) {
+      var inlineBg = bg.getAttribute('style') || '';
+      var match = inlineBg.match(/background-image\s*:\s*(url\([^)]+\))/i);
+      if (match) {
+        bg.style.setProperty('background-image', match[1], 'important');
+      }
+    });
+
+    document.querySelectorAll('.elementor-widget-slides, .elementor-slides-wrapper').forEach(function(w) {
+      sp(w, 'width', '100vw'); sp(w, 'max-width', '100vw');
+      sp(w, 'padding', '0');   sp(w, 'margin', '0'); sp(w, 'overflow', 'hidden');
       var el = w.parentElement;
       for (var i = 0; i < 5 && el && el.tagName !== 'BODY'; i++) {
-        sp(el, 'padding-left',  '0'); sp(el, 'padding-right', '0');
-        sp(el, 'max-width',     '100vw'); sp(el, 'overflow', 'hidden');
+        sp(el, 'padding-left', '0'); sp(el, 'padding-right', '0');
+        sp(el, 'max-width', '100vw'); sp(el, 'overflow', 'hidden');
         el = el.parentElement;
       }
     });
     document.querySelectorAll(
-      '.elementor-widget-slides .elementor-slides-wrapper,' +
+      '.elementor-slides-wrapper,' +
       '.elementor-widget-slides .swiper,' +
       '.elementor-widget-slides .swiper-container'
     ).forEach(function(c) {
