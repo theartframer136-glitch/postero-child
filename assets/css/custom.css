@@ -665,6 +665,74 @@ ul.postero-scroll-content .cat-item a {
   }
 }
 
+/* ── Features bar: force horizontal row on all mobile sizes ── */
+@media (max-width: 480px) {
+  .features-section,
+  .features-section.e-con,
+  .elementor-element-810fb7a {
+    --flex-direction: row !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+  }
+  .features-section > .e-con-inner,
+  .features-section .e-con-inner,
+  .elementor-element-810fb7a > .e-con-inner,
+  .elementor-element-810fb7a .e-con-inner {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-evenly !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+  .features-section .e-con-inner > .elementor-element,
+  .features-section .e-con-inner > .e-con,
+  .elementor-element-810fb7a .e-con-inner > .elementor-element {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 25% !important;
+    text-align: center !important;
+    align-items: center !important;
+    --flex-direction: column !important;
+    flex-direction: column !important;
+  }
+  .features-section .elementor-icon,
+  .elementor-element-810fb7a .elementor-icon {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    border-radius: 50% !important;
+    background: #c9a84c !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto 6px !important;
+  }
+  .features-section .elementor-icon i,
+  .features-section .elementor-icon svg,
+  .elementor-element-810fb7a .elementor-icon i,
+  .elementor-element-810fb7a .elementor-icon svg {
+    color: #fff !important;
+    fill: #fff !important;
+    font-size: 22px !important;
+    width: 22px !important;
+    height: 22px !important;
+  }
+  .features-section .elementor-icon-box-title,
+  .features-section .elementor-heading-title,
+  .elementor-element-810fb7a .elementor-icon-box-title,
+  .elementor-element-810fb7a .elementor-heading-title {
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    color: #222 !important;
+    text-align: center !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    word-break: break-word !important;
+  }
+}
+
 @media (max-width: 768px) {
   /* Product slider — 2 cards on tablet */
   .af-shell { gap: 8px !important; padding: 0 !important; }
