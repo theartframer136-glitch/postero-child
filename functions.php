@@ -427,11 +427,15 @@ add_action('wp_footer', function() { ?>
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
+    align-items: stretch !important;  /* all cards same height */
     margin: 0 !important;
     padding: 4px 0 12px !important;
     list-style: none !important;
     transition: transform 0.4s ease !important;
     will-change: transform !important;
+}
+.af-shell-track .product-card {
+    height: 100% !important;  /* fill the stretched row */
 }
 .af-shell-track .product-card {
     flex-shrink: 0 !important;
@@ -474,16 +478,172 @@ add_action('wp_footer', function() { ?>
         function sp(el, p, v) { el.style.setProperty(p, v, 'important'); }
 
         function styleCard(c) {
-            // ── Card shell ──
+            // ── Card shell: flex column, full height so all cards in a row stretch equally ──
             sp(c,'background',    '#fff');
             sp(c,'border',        '1px solid #e8e8e8');
             sp(c,'border-radius', '12px');
             sp(c,'overflow',      'hidden');
             sp(c,'display',       'flex');
             sp(c,'flex-direction','column');
+            sp(c,'height',        '100%');   // stretch to fill track cell
             sp(c,'position',      'relative');
             sp(c,'box-shadow',    '0 2px 12px rgba(0,0,0,.10)');
             sp(c,'margin',        '0');
+
+            // ── Image wrapper — padding-bottom 75% = reliable 4:3 for every card ──
+            var imgWrap = c.querySelector('.product-image, .image-wrapper, .woocommerce-loop-product__link');
+            if (imgWrap) {
+                sp(imgWrap,'display',        'block');
+                sp(imgWrap,'position',       'relative');
+                sp(imgWrap,'width',          '100%');
+                sp(imgWrap,'height',         '0');
+                sp(imgWrap,'padding-bottom', '75%');
+                sp(imgWrap,'overflow',       'hidden');
+                sp(imgWrap,'flex-shrink',    '0');
+                sp(imgWrap,'background',     '#f0f0f0');
+                imgWrap.querySelectorAll('img').forEach(function(i){
+                    sp(i,'position',   'absolute');
+                    sp(i,'inset',      '0');
+                    sp(i,'width',      '100%');
+                    sp(i,'height',     '100%');
+                    sp(i,'object-fit', 'cover');
+                    sp(i,'display',    'block');
+                });
+            }
+
+            // ── product-info: flex column, grows to push buttons to bottom ──
+            var info = c.querySelector('.product-info');
+            if (info) {
+                sp(info,'display',        'flex');
+                sp(info,'flex-direction', 'column');
+                sp(info,'flex',           '1 1 auto');
+                sp(info,'padding',        '14px 14px 0');
+                sp(info,'margin',         '0');
+                sp(info,'min-height',     '0');
+            }
+
+            // ── Title: exactly 3-line height so all cards align below ──
+            var title = c.querySelector('h2,h3,.product-title,.woocommerce-loop-product__title');
+            if (title) {
+                sp(title,'font-size',          '13.5px');
+                sp(title,'font-weight',        '700');
+                sp(title,'line-height',        '1.45');
+                sp(title,'color',              '#1a1a1a');
+                sp(title,'margin',             '0 0 8px');
+                sp(title,'padding',            '0');
+                sp(title,'display',            '-webkit-box');
+                sp(title,'-webkit-line-clamp', '3');
+                sp(title,'-webkit-box-orient', 'vertical');
+                sp(title,'overflow',           'hidden');
+                sp(title,'height',             'calc(1.45em * 3)');  // fixed height, not min
+                sp(title,'flex-shrink',        '0');
+            }
+
+            // ── Rating row: fixed height regardless of star presence ──
+            var rating = c.querySelector('.woocommerce-product-rating,.product-meta-row,.rating');
+            if (rating) {
+                sp(rating,'display',     'flex');
+                sp(rating,'align-items', 'center');
+                sp(rating,'flex-wrap',   'nowrap');
+                sp(rating,'gap',         '4px');
+                sp(rating,'margin',      '0 0 4px');
+                sp(rating,'padding',     '0px 12px 0px');
+                sp(rating,'line-height', '1.4');
+                sp(rating,'height',      '22px');  // fixed row height
+                sp(rating,'overflow',    'hidden');
+                sp(rating,'flex-shrink', '0');
+            }
+            var stars = c.querySelector('.star-rating');
+            if (stars) { sp(stars,'color','#c9a84c'); sp(stars,'font-size','12px'); sp(stars,'margin','0'); sp(stars,'flex-shrink','0'); }
+            var revLink = c.querySelector('.woocommerce-review-link');
+            if (revLink) { sp(revLink,'font-size','12px'); sp(revLink,'color','#555'); sp(revLink,'white-space','nowrap'); }
+
+            // ── Price: fixed height, single line ──
+            var price = c.querySelector('.price,.price-section');
+            if (price) {
+                sp(price,'display',     'flex');
+                sp(price,'flex-wrap',   'wrap');
+                sp(price,'align-items', 'baseline');
+                sp(price,'gap',         '4px');
+                sp(price,'font-size',   '14px');
+                sp(price,'font-weight', '700');
+                sp(price,'color',       '#1a1a1a');
+                sp(price,'margin',      '0 0 8px');
+                sp(price,'padding',     '0');
+                sp(price,'height',      '22px');
+                sp(price,'overflow',    'hidden');
+                sp(price,'flex-shrink', '0');
+            }
+            var ins = c.querySelector('.price ins, .price-section ins');
+            if (ins) { sp(ins,'text-decoration','none'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); }
+            var del = c.querySelector('.price del, .price-section del');
+            if (del) {
+                sp(del,'color','#999'); sp(del,'font-weight','400'); sp(del,'font-size','12px');
+                sp(del,'text-decoration','line-through');
+                var delAmt = del.querySelector('.woocommerce-Price-amount');
+                if (delAmt) { sp(delAmt,'color','#999'); sp(delAmt,'text-decoration','none'); }
+            }
+
+            // ── Description: exactly 2-line height, flex grows to absorb space ──
+            var desc = c.querySelector('p.desc,.desc');
+            if (desc) {
+                sp(desc,'font-size',          '13px');
+                sp(desc,'color',              '#555');
+                sp(desc,'line-height',        '1.55');
+                sp(desc,'margin',             '0 0 12px');
+                sp(desc,'padding',            '0');
+                sp(desc,'display',            '-webkit-box');
+                sp(desc,'-webkit-line-clamp', '2');
+                sp(desc,'-webkit-box-orient', 'vertical');
+                sp(desc,'overflow',           'hidden');
+                sp(desc,'height',             'calc(1.55em * 2)');  // fixed, not min
+                sp(desc,'flex',               '0 0 auto');
+            }
+
+            // ── Spacer: fills remaining space to push buttons to bottom ──
+            var spacer = c.querySelector('.product-spacer');
+            if (!spacer) {
+                spacer = document.createElement('div');
+                spacer.className = 'product-spacer';
+                var actionsEl = c.querySelector('.product-actions,.card-actions');
+                if (actionsEl && actionsEl.parentNode) actionsEl.parentNode.insertBefore(spacer, actionsEl);
+                else if (info) info.appendChild(spacer);
+            }
+            sp(spacer,'flex','1 1 auto');
+
+            // ── Buttons row: always at bottom ──
+            var actions = c.querySelector('.product-actions,.card-actions');
+            if (actions) {
+                sp(actions,'display',     'flex');
+                sp(actions,'gap',         '8px');
+                sp(actions,'padding',     '0 14px 14px');
+                sp(actions,'margin-top',  '0');
+                sp(actions,'flex-shrink', '0');
+                Array.from(actions.children).forEach(function(btn) {
+                    sp(btn,'flex',            '1 1 50%');
+                    sp(btn,'min-width',       '0');
+                    sp(btn,'border',          'none');
+                    sp(btn,'border-radius',   '7px');
+                    sp(btn,'font-size',       '13px');
+                    sp(btn,'font-weight',     '600');
+                    sp(btn,'padding',         '11px 6px');
+                    sp(btn,'cursor',          'pointer');
+                    sp(btn,'display',         'flex');
+                    sp(btn,'align-items',     'center');
+                    sp(btn,'justify-content', 'center');
+                    sp(btn,'gap',             '5px');
+                    sp(btn,'white-space',     'nowrap');
+                    sp(btn,'text-decoration', 'none');
+                    sp(btn,'line-height',     '1');
+                    var cls = btn.className || '';
+                    if (/add.cart|add_to_cart/i.test(cls)) {
+                        sp(btn,'background','#c9a84c'); sp(btn,'color','#fff');
+                    } else {
+                        sp(btn,'background','#1a1a1a'); sp(btn,'color','#fff');
+                    }
+                });
+            }
+        }
 
             // ── Image wrapper — use padding-bottom hack for reliable 4:3 ──
             var imgWrap = c.querySelector('.product-image, .image-wrapper, .woocommerce-loop-product__link');
