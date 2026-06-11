@@ -541,8 +541,7 @@ add_action('wp_footer', function() { ?>
                 sp(rating,'flex-wrap',    'wrap');
                 sp(rating,'gap',          '4px');
                 sp(rating,'margin',       '0 0 4px');
-                sp(rating,'padding',      '0');
-                sp(rating,'padding-left', '0');
+                sp(rating,'padding',      '0px 12px 0px');
                 sp(rating,'line-height',  '1.4');
             }
             var stars = c.querySelector('.star-rating');
@@ -670,8 +669,7 @@ add_action('wp_footer', function() { ?>
         // Watch every rating row — if WooCommerce JS re-sets padding-left, instantly clear it
         function zeroRatingPadding() {
             track.querySelectorAll('.rating,.woocommerce-product-rating,.product-meta-row').forEach(function(r) {
-                r.style.setProperty('padding',      '0', 'important');
-                r.style.setProperty('padding-left', '0', 'important');
+                r.style.setProperty('padding', '0px 12px 0px', 'important');
             });
         }
         zeroRatingPadding();
@@ -920,7 +918,7 @@ html body .product-card .product-meta-row,
 html body .product-card .rating {
   display:flex !important; align-items:center !important;
   flex-wrap:wrap !important; gap:5px !important;
-  margin:0 0 5px !important; padding:0 !important; padding-left:0 !important;
+  margin:0 0 5px !important; padding:0px 12px 0px !important;
 }
 html body .product-card .star-rating { font-size:12px !important; color:#c9a84c !important; margin:0 !important; padding:0 !important; }
 html body .product-card .woocommerce-review-link { font-size:11px !important; color:#666 !important; }
