@@ -1419,6 +1419,41 @@ add_action('wp_head', function() { ?>
     word-break: break-word !important;
     hyphens: auto !important;
   }
+
+  /* Google review cards — equal height, no overflow cut-off */
+  .eapps-google-reviews-list-item,
+  .eapps-google-reviews-list .eapps-google-reviews-list-item,
+  [class*="google-reviews"] [class*="list-item"],
+  [class*="review-card"],
+  [class*="ReviewItem"],
+  [class*="review_item"] {
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .eapps-google-reviews-list-item-body,
+  [class*="google-reviews"] [class*="body"],
+  [class*="ReviewBody"],
+  [class*="review_body"] {
+    overflow: visible !important;
+    max-height: none !important;
+    -webkit-line-clamp: unset !important;
+    display: block !important;
+    flex: 1 1 auto !important;
+  }
+  .eapps-google-reviews-list-item-text,
+  [class*="google-reviews"] [class*="text"],
+  [class*="ReviewText"],
+  [class*="review_text"] {
+    overflow: visible !important;
+    white-space: normal !important;
+    text-overflow: unset !important;
+    -webkit-line-clamp: unset !important;
+    display: block !important;
+  }
 }
 </style>
 <script>
