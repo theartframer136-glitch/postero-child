@@ -1172,7 +1172,17 @@ html body .product-card .price ins {
 [id$="-data"].popup-data,
 div.popup-data,
 #shipping-data, #resolution-data, #frames-data, #payment-data,
-#shipping.popup-data, #resolution.popup-data, #frames.popup-data, #payment.popup-data {
+#shipping.popup-data, #resolution.popup-data, #frames.popup-data, #payment.popup-data,
+/* Hide ALL content inside feature-box except icon wrapper and title — popup content must not show inline */
+.feature-box > *:not(.feature-icon):not(.feature-title):not(h3):not(h4),
+.feature-box > ul,
+.feature-box > p,
+.feature-box > div:not(.feature-icon),
+/* Also hide the af-feat-sheet content divs rendered inside the feature section */
+.features-section .af-feat-sheet,
+.features-container ~ div:not(#afFeatOverlay):not(#afFeatSheet),
+/* Hide any div with popup data class anywhere on the page */
+[class*="popup-data"], [id*="popup-data"] {
   display: none !important;
 }
 
@@ -2178,6 +2188,30 @@ add_action('wp_footer', function() { ?>
   }
   document.addEventListener('DOMContentLoaded', _fsPoll);
   window.addEventListener('load', _fsPoll);
+}());
+</script>
+<script>
+// Hide inline popup content inside .feature-box — should only show in overlay sheet
+(function(){
+  function hideFeatureBoxPopupContent() {
+    document.querySelectorAll('.feature-box').forEach(function(box) {
+      Array.from(box.children).forEach(function(child) {
+        var cls = child.className || '';
+        var tag = child.tagName || '';
+        // Keep only the icon wrapper and title; hide everything else
+        if (!cls.match(/feature-icon|feature-title/) && !tag.match(/^(H3|H4)$/)) {
+          child.style.setProperty('display', 'none', 'important');
+        }
+      });
+    });
+    // Also hide any .popup-data divs anywhere on page
+    document.querySelectorAll('.popup-data, [class*="popup-data"], [id*="popup-data"]').forEach(function(el) {
+      el.style.setProperty('display', 'none', 'important');
+    });
+  }
+  document.addEventListener('DOMContentLoaded', hideFeatureBoxPopupContent);
+  window.addEventListener('load', hideFeatureBoxPopupContent);
+  setTimeout(hideFeatureBoxPopupContent, 500);
 }());
 </script>
 <?php }, 10003);
