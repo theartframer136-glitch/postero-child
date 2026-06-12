@@ -1480,9 +1480,13 @@ add_action('wp_footer', function() { ?>
     var slides = [];
     var mo = new MutationObserver(function(muts) {
       mo.disconnect();
+      var changed = false;
       muts.forEach(function(m) {
         var s = m.target;
         if (s.classList && s.classList.contains('swiper-slide')) {
+          // Skip if already set to 100vw — prevents re-firing on our own mutation
+          if (s.style.width === '100vw') return;
+          changed = true;
           s.style.setProperty('width',      '100vw', 'important');
           s.style.setProperty('min-width',  '100vw', 'important');
           s.style.setProperty('max-width',  '100vw', 'important');
@@ -2107,25 +2111,9 @@ add_action('wp_footer', function() { ?>
       s.style.setProperty('min-width', vw + 'px', 'important');
       s.style.setProperty('flex-shrink', '0', 'important');
     });
-
-    // 4. MutationObserver — catch Swiper re-setting slide widths
-    if (!widget._sliderFixed) {
-      widget._sliderFixed = true;
-      var obsSlides = Array.from(widget.querySelectorAll('.swiper-slide'));
-      var obs = new MutationObserver(function() {
-        obs.disconnect();
-        var vw2 = window.innerWidth;
-        obsSlides.forEach(function(s) {
-          var cur = parseInt(s.style.width);
-          if (cur && cur !== vw2) {
-            s.style.setProperty('width', vw2 + 'px', 'important');
-            s.style.setProperty('min-width', vw2 + 'px', 'important');
-          }
-        });
-        obsSlides.forEach(function(s) { obs.observe(s, { attributes: true, attributeFilter: ['style'] }); });
-      });
-      obsSlides.forEach(function(s) { obs.observe(s, { attributes: true, attributeFilter: ['style'] }); });
-    }
+    // Note: attachSlideLock (above) already watches these slides via MutationObserver.
+    // Do NOT add a second observer here — parseInt('100vw')=100 causes an infinite loop
+    // between two observers watching the same slides.
   }
 
   window.addEventListener('load', doFix);
