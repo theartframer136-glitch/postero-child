@@ -1285,73 +1285,74 @@ html body .product-card .price ins {
     if (document.body.classList.contains('logged-in')) return;
     var header = document.querySelector('header, .site-header, .postero-header');
     if (!header) return;
+    if (header.dataset.mobileAccFixed) return;
 
-    // Find the account link container (.my-account or similar)
-    var accountWrap = header.querySelector('.my-account, .account, [class*="account-icon"], [class*="nav-account"]');
-    if (!accountWrap) return;
-    if (accountWrap.dataset.mobileFixed) return;
-    accountWrap.dataset.mobileFixed = '1';
-
-    // Find the dropdown UL inside it
-    var dropdown = accountWrap.querySelector('ul');
-    if (!dropdown) return;
-
-    // Hide dropdown by default — show on click
-    dropdown.style.setProperty('display', 'none', 'important');
-    dropdown.style.setProperty('position', 'absolute', 'important');
-    dropdown.style.setProperty('top', '100%', 'important');
-    dropdown.style.setProperty('left', '50%', 'important');
-    dropdown.style.setProperty('transform', 'translateX(-50%)', 'important');
-    dropdown.style.setProperty('background', '#fff', 'important');
-    dropdown.style.setProperty('border', '1px solid #ddd', 'important');
-    dropdown.style.setProperty('border-radius', '8px', 'important');
-    dropdown.style.setProperty('box-shadow', '0 4px 16px rgba(0,0,0,0.15)', 'important');
-    dropdown.style.setProperty('z-index', '9999', 'important');
-    dropdown.style.setProperty('min-width', '130px', 'important');
-    dropdown.style.setProperty('padding', '6px 0', 'important');
-    dropdown.style.setProperty('list-style', 'none', 'important');
-    dropdown.style.setProperty('margin', '0', 'important');
-
-    // Style each item inside dropdown
-    dropdown.querySelectorAll('li').forEach(function(li) {
-      li.style.setProperty('display', 'block', 'important');
-      li.style.setProperty('padding', '0', 'important');
+    // Find Sign Up and Login nav items — they show as inline nav links
+    var signUpEl = null, loginEl = null;
+    header.querySelectorAll('a').forEach(function(a) {
+      var t = a.textContent.trim();
+      if (!signUpEl && /^sign\s*up$/i.test(t)) signUpEl = a;
+      if (!loginEl  && /^login$/i.test(t))      loginEl  = a;
     });
-    dropdown.querySelectorAll('a').forEach(function(a) {
-      a.style.setProperty('display', 'block', 'important');
-      a.style.setProperty('padding', '10px 18px', 'important');
-      a.style.setProperty('font-size', '14px', 'important');
-      a.style.setProperty('font-weight', '600', 'important');
-      a.style.setProperty('color', '#222', 'important');
-      a.style.setProperty('text-decoration', 'none', 'important');
-      a.style.setProperty('white-space', 'nowrap', 'important');
+    if (!signUpEl && !loginEl) return; // already logged in or not found
+    header.dataset.mobileAccFixed = '1';
+
+    // Find the user icon element (the nearest common ancestor or the icon before Sign Up)
+    var userIcon = null;
+    header.querySelectorAll('a').forEach(function(a) {
+      if (a === signUpEl || a === loginEl) return;
+      if (a.querySelector('svg, i, img') || a.classList.contains('account') || /account|user|person/i.test(a.className + ' ' + (a.getAttribute('href') || ''))) {
+        userIcon = a;
+      }
     });
 
-    // Make account wrap position:relative so dropdown positions correctly
-    accountWrap.style.setProperty('position', 'relative', 'important');
+    // Hide Sign Up and Login from the inline nav
+    if (signUpEl) signUpEl.closest('li') ? signUpEl.closest('li').style.setProperty('display','none','important') : signUpEl.style.setProperty('display','none','important');
+    if (loginEl)  loginEl.closest('li')  ? loginEl.closest('li').style.setProperty('display','none','important')  : loginEl.style.setProperty('display','none','important');
 
-    // Toggle dropdown on tap of the account icon/link
-    var trigger = accountWrap.querySelector('a') || accountWrap;
+    // Build a dropdown anchored to the user icon (or insert after it)
+    var anchor = userIcon ? (userIcon.closest('li') || userIcon) : null;
+    if (!anchor) {
+      // Fallback: create anchor at end of header icons area
+      anchor = header.querySelector('.header-icons, .nav-icons, .site-header-right') || header;
+    }
+    anchor.style.setProperty('position', 'relative', 'important');
+
+    // Create dropdown panel
+    var panel = document.createElement('div');
+    panel.id = 'af-mobile-acc-dropdown';
+    panel.innerHTML =
+      (signUpEl ? '<a href="' + signUpEl.href + '">Sign Up</a>' : '') +
+      (loginEl  ? '<a href="' + loginEl.href  + '">Login</a>'   : '');
+    panel.style.cssText = [
+      'display:none','position:absolute','top:calc(100% + 6px)','right:0',
+      'background:#fff','border:1px solid #e0e0e0','border-radius:10px',
+      'box-shadow:0 6px 20px rgba(0,0,0,0.15)','z-index:99999',
+      'min-width:130px','padding:6px 0','list-style:none','margin:0'
+    ].join(';');
+    panel.querySelectorAll('a').forEach(function(a) {
+      a.style.cssText = 'display:block;padding:11px 20px;font-size:14px;font-weight:600;color:#222;text-decoration:none;white-space:nowrap;';
+    });
+    anchor.appendChild(panel);
+
+    // Toggle on user icon tap
+    var trigger = userIcon || anchor;
     var open = false;
     trigger.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
       open = !open;
-      dropdown.style.setProperty('display', open ? 'block' : 'none', 'important');
+      panel.style.display = open ? 'block' : 'none';
     });
-
-    // Close when tapping outside
+    // Close on outside tap
     document.addEventListener('click', function(e) {
-      if (!accountWrap.contains(e.target)) {
-        open = false;
-        dropdown.style.setProperty('display', 'none', 'important');
-      }
+      if (!anchor.contains(e.target)) { open = false; panel.style.display = 'none'; }
     });
   }
 
   document.addEventListener('DOMContentLoaded', fixMobileHeader);
   window.addEventListener('load', fixMobileHeader);
-  setTimeout(fixMobileHeader, 300);
+  setTimeout(fixMobileHeader, 400);
 }());
 </script>
 <?php }, 99);
