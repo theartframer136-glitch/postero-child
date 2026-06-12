@@ -1152,7 +1152,7 @@ html body .product-card .price ins {
 </style>
 <?php }, 99);
 
-// Features bar: disable swiper, force 4-column grid on mobile
+// Features bar: force inline on mobile
 add_action('wp_footer', function() { ?>
 <script>
 (function() {
@@ -1160,82 +1160,91 @@ add_action('wp_footer', function() { ?>
   var sp = function(el, p, v) { el.style.setProperty(p, v, 'important'); };
 
   function fixFeaturesBar() {
-    // Find a swiper-wrapper that contains features text
-    var allWrappers = document.querySelectorAll('.swiper-wrapper');
-    var featWrapper = null;
-    allWrappers.forEach(function(w) {
-      if (!featWrapper && w.textContent.indexOf('Free Shipping') !== -1) {
-        featWrapper = w;
+    // Find the element containing "Free Shipping" text
+    var freeShip = null;
+    document.querySelectorAll('*').forEach(function(el) {
+      if (!freeShip && el.children.length === 0 && el.textContent.trim() === 'Free Shipping') {
+        freeShip = el;
       }
     });
-    if (!featWrapper) return;
+    if (!freeShip) return;
 
-    // Disable swiper transform & show all slides as a 4-col row
-    sp(featWrapper,'transform','none');
-    sp(featWrapper,'display','flex');
-    sp(featWrapper,'flex-direction','row');
-    sp(featWrapper,'flex-wrap','nowrap');
-    sp(featWrapper,'width','100%');
-    sp(featWrapper,'height','auto');
-
-    // Also hide swiper nav/pagination inside this slider's parent
-    var swiperEl = featWrapper.closest('.swiper,.elementor-slides-wrapper,.elementor-widget-slides');
-    if (swiperEl) {
-      sp(swiperEl,'overflow','visible');
-      sp(swiperEl,'width','100%');
-      var nav = swiperEl.querySelectorAll('.swiper-button-next,.swiper-button-prev,.swiper-pagination');
-      nav.forEach(function(n){ sp(n,'display','none'); });
+    // Walk up to find a container that holds all 4 feature items
+    var container = freeShip.parentElement;
+    while (container && container !== document.body) {
+      var txt = container.textContent;
+      if (txt.indexOf('High Resolution') !== -1 &&
+          txt.indexOf('Premium Frames') !== -1 &&
+          txt.indexOf('Secure Payment') !== -1) {
+        // Check if direct children roughly equal the features
+        if (container.children.length >= 3) break;
+      }
+      container = container.parentElement;
     }
+    if (!container || container === document.body) return;
 
-    var slides = featWrapper.querySelectorAll('.swiper-slide');
-    slides.forEach(function(slide) {
-      sp(slide,'width','25%');
-      sp(slide,'min-width','0');
-      sp(slide,'flex','1 1 0');
-      sp(slide,'display','flex');
-      sp(slide,'flex-direction','column');
-      sp(slide,'align-items','center');
-      sp(slide,'text-align','center');
-      sp(slide,'padding','8px 4px');
-      sp(slide,'height','auto');
+    // Force container to horizontal flex row
+    sp(container,'display','flex');
+    sp(container,'flex-direction','row');
+    sp(container,'flex-wrap','nowrap');
+    sp(container,'justify-content','space-around');
+    sp(container,'align-items','flex-start');
+    sp(container,'width','100%');
+    sp(container,'transform','none');
+    sp(container,'height','auto');
 
-      // Inner containers
-      ['swiper-slide-inner','swiper-slide-contents','elementor-widget-container'].forEach(function(cls) {
-        var el = slide.querySelector('.'+cls);
-        if (el) {
-          sp(el,'display','flex'); sp(el,'flex-direction','column');
-          sp(el,'align-items','center'); sp(el,'text-align','center');
-          sp(el,'width','100%'); sp(el,'padding','0');
+    // Each child item = one feature column
+    Array.from(container.children).forEach(function(item) {
+      sp(item,'flex','1 1 0');
+      sp(item,'min-width','0');
+      sp(item,'max-width','25%');
+      sp(item,'display','flex');
+      sp(item,'flex-direction','column');
+      sp(item,'align-items','center');
+      sp(item,'text-align','center');
+      sp(item,'padding','6px 2px');
+      sp(item,'width','auto');
+      sp(item,'height','auto');
+
+      // Drill into any inner wrappers
+      item.querySelectorAll('div,span').forEach(function(d) {
+        if (d.children.length > 1 || d.querySelector('i,svg,img')) {
+          sp(d,'display','flex'); sp(d,'flex-direction','column');
+          sp(d,'align-items','center'); sp(d,'text-align','center');
+          sp(d,'padding','0'); sp(d,'width','100%');
         }
       });
 
-      // Icon element — wrap in gold circle
-      var icon = slide.querySelector('i[class*="fa"],i[class*="eicon"],svg,.elementor-icon,img');
+      // Gold circle around icon
+      var icon = item.querySelector('i,svg,img');
       if (icon) {
-        var wrap = icon.closest('.elementor-icon') || icon.parentElement;
-        sp(wrap,'width','52px'); sp(wrap,'height','52px'); sp(wrap,'min-width','52px');
-        sp(wrap,'border-radius','50%'); sp(wrap,'background','#c9a84c');
-        sp(wrap,'display','flex'); sp(wrap,'align-items','center');
-        sp(wrap,'justify-content','center'); sp(wrap,'margin','0 auto 6px');
+        var iconWrap = icon.parentElement;
+        sp(iconWrap,'width','52px'); sp(iconWrap,'height','52px');
+        sp(iconWrap,'border-radius','50%'); sp(iconWrap,'background','#c9a84c');
+        sp(iconWrap,'display','flex'); sp(iconWrap,'align-items','center');
+        sp(iconWrap,'justify-content','center'); sp(iconWrap,'margin','0 auto 5px');
+        sp(iconWrap,'flex-shrink','0');
         sp(icon,'color','#fff'); sp(icon,'fill','#fff');
-        sp(icon,'font-size','22px'); sp(icon,'width','22px'); sp(icon,'height','22px');
+        sp(icon,'font-size','20px'); sp(icon,'width','20px'); sp(icon,'height','20px');
       }
 
-      // Text label
-      var label = slide.querySelector('h1,h2,h3,h4,h5,p,span.elementor-heading-title,.elementor-icon-box-title');
-      if (label) {
-        sp(label,'font-size','10px'); sp(label,'font-weight','700');
-        sp(label,'color','#222'); sp(label,'text-align','center');
-        sp(label,'line-height','1.3'); sp(label,'margin','0'); sp(label,'padding','0');
-      }
+      // Label — smallest readable size
+      var texts = item.querySelectorAll('h1,h2,h3,h4,h5,h6,p,span');
+      texts.forEach(function(t) {
+        if (t.children.length === 0 && t.textContent.trim().length > 1) {
+          sp(t,'font-size','10px'); sp(t,'font-weight','700');
+          sp(t,'color','#222'); sp(t,'text-align','center');
+          sp(t,'line-height','1.3'); sp(t,'margin','0'); sp(t,'padding','0');
+          sp(t,'display','block');
+        }
+      });
     });
   }
 
-  // Run at DOMContentLoaded, after load, and after Swiper has a chance to init
   document.addEventListener('DOMContentLoaded', fixFeaturesBar);
   window.addEventListener('load', fixFeaturesBar);
-  setTimeout(fixFeaturesBar, 500);
-  setTimeout(fixFeaturesBar, 1500);
+  setTimeout(fixFeaturesBar, 600);
+  setTimeout(fixFeaturesBar, 1800);
 })();
 </script>
 <?php }, 5);
