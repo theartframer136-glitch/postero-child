@@ -1183,6 +1183,17 @@ add_action('wp_footer', function() { ?>
     }
     if (!container || container === document.body) return;
 
+    // Override Elementor CSS custom properties (flex-direction: var(--flex-direction))
+    sp(container,'--flex-direction','row');
+    sp(container,'--flex-wrap','nowrap');
+    sp(container,'--justify-content','space-around');
+    sp(container,'--align-items','flex-start');
+    // Also override parent section's custom properties
+    if (container.parentElement) {
+      sp(container.parentElement,'--flex-direction','row');
+      sp(container.parentElement,'--flex-wrap','nowrap');
+    }
+
     // Force container to horizontal flex row
     sp(container,'display','flex');
     sp(container,'flex-direction','row');
