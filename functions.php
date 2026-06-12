@@ -1167,6 +1167,39 @@ html body .product-card .price ins {
   font-size: 15px !important;
 }
 
+/* ── "Shop by Collection" title + VIEW MORE button — mobile inline layout ── */
+@media (max-width: 600px) {
+  /* Find the row that contains both the title and the button */
+  .product-container .e-con-inner,
+  .product-container > .e-con,
+  .elementor-widget-container:has(.view-more-btn),
+  /* Target the Elementor container holding the title + button pair */
+  .product-container .e-con > .e-con-inner,
+  .product-container .elementor-container > .elementor-row,
+  .product-container .elementor-row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+  }
+  /* Title: left side, bigger on mobile */
+  .product-container .elementor-heading-title,
+  .product-container h2.elementor-heading-title,
+  .product-container h3.elementor-heading-title {
+    font-size: 20px !important;
+    white-space: nowrap !important;
+    flex-shrink: 0 !important;
+  }
+  /* Button: right side */
+  .product-container .elementor-button-wrapper,
+  .product-container .elementor-widget-button {
+    flex-shrink: 0 !important;
+    margin-left: auto !important;
+  }
+}
+
 /* Hide popup data elements that render as static page content — only show in overlay */
 .popup-data,
 [class*="popup-data"],
@@ -1287,6 +1320,49 @@ html body .product-card .price ins {
   }
 }
 </style>
+<script>
+(function(){
+  if (window.innerWidth > 600) return;
+  // Fix "Shop by Collection" title + VIEW MORE button inline on mobile
+  function fixShopCollectionRow() {
+    // Find the heading with "Shop" + "Collection" text
+    var heading = null;
+    document.querySelectorAll('h1,h2,h3,h4,.elementor-heading-title').forEach(function(h) {
+      if (!heading && /shop/i.test(h.textContent) && /collection/i.test(h.textContent)) heading = h;
+    });
+    if (!heading) return;
+    // Find VIEW MORE button nearby
+    var btn = null;
+    document.querySelectorAll('a,button').forEach(function(b) {
+      if (!btn && /view\s*more/i.test(b.textContent)) btn = b;
+    });
+    if (!btn) return;
+    // Find their common ancestor row container
+    var row = heading.closest('.e-con, .elementor-container, .elementor-row, section');
+    if (!row) return;
+    if (row.dataset.shopRowFixed) return;
+    row.dataset.shopRowFixed = '1';
+    var sp = function(el,p,v){ el.style.setProperty(p,v,'important'); };
+    sp(row,'display','flex');
+    sp(row,'flex-direction','row');
+    sp(row,'align-items','center');
+    sp(row,'justify-content','space-between');
+    sp(row,'flex-wrap','nowrap');
+    sp(row,'width','100%');
+    // Title: bigger font
+    sp(heading,'font-size','20px');
+    sp(heading,'white-space','nowrap');
+    sp(heading,'flex-shrink','0');
+    // Button wrapper: push to right
+    var btnWrap = btn.closest('.elementor-widget,.e-con') || btn.parentElement;
+    sp(btnWrap,'flex-shrink','0');
+    sp(btnWrap,'margin-left','auto');
+  }
+  document.addEventListener('DOMContentLoaded', fixShopCollectionRow);
+  window.addEventListener('load', fixShopCollectionRow);
+  setTimeout(fixShopCollectionRow, 400);
+}());
+</script>
 <script>
 (function(){
   if (window.innerWidth > 600) return;
