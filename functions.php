@@ -1711,6 +1711,10 @@ add_action('wp_footer', function() {
 [data-widget_type^="video"],
 [data-widget_type^="video-playlist"] .elementor-widget-container,
 [data-widget_type^="video"] .elementor-widget-container { display:none !important; }
+/* Hide Veo / plain-iframe video grid columns that appear below the circular slider */
+.elementor-widget-html iframe:not(.af-pim-circle iframe),
+.elementor-widget-html .veo-player,
+.elementor-widget-html video { display:none !important; }
 </style>
 
 <?php
@@ -1857,6 +1861,25 @@ add_action('wp_footer', function() {
             var hasVideo   = col.querySelector('iframe, .elementor-widget-video, .elementor-widget-video-playlist');
             if (hasVideo && !hasHeading) {
                 col.style.setProperty('display', 'none', 'important');
+            }
+        });
+
+        // Hide any sibling Elementor sections that contain a video grid (the flat duplicate)
+        // These are sections AFTER the "Products In Motion" heading but NOT containing afPimWrap
+        var allSections = Array.from(document.querySelectorAll('.elementor-section, .e-con[data-element_type="section"]'));
+        allSections.forEach(function(sec) {
+            if (sec === section) return; // skip the section we already handled
+            if (sec.contains(wrap)) return; // skip if it already has our slider
+            var hasVideo = sec.querySelector('iframe, .elementor-widget-video, .elementor-widget-video-playlist, [data-widget_type^="video"]');
+            var hasHeading = sec.querySelector('h1,h2,h3,h4,.elementor-heading-title');
+            var hasProductsMotion = hasHeading && /product.*mot/i.test(sec.textContent);
+            // Only hide sections that have video content but are NOT the products-in-motion section
+            if (hasVideo && !hasProductsMotion) {
+                // Double-check: section is near (after) our main section in the DOM
+                var pos = section.compareDocumentPosition(sec);
+                if (pos & Node.DOCUMENT_POSITION_FOLLOWING) {
+                    sec.style.setProperty('display', 'none', 'important');
+                }
             }
         });
 
