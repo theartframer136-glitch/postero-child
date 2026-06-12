@@ -1167,6 +1167,15 @@ html body .product-card .price ins {
   font-size: 15px !important;
 }
 
+/* Hide feature popup data containers that render as visible page content */
+.popup-data,
+[id$="-data"].popup-data,
+div.popup-data,
+#shipping-data, #resolution-data, #frames-data, #payment-data,
+#shipping.popup-data, #resolution.popup-data, #frames.popup-data, #payment.popup-data {
+  display: none !important;
+}
+
 /* ── Mobile header fix (≤600px, guest/before-login only) ── */
 @media (max-width: 600px) {
   /* Hide account link text — show icon only */
