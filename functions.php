@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.1');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.2');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1160,11 +1160,22 @@ add_action('wp_footer', function() { ?>
   var sp = function(el, p, v) { el.style.setProperty(p, v, 'important'); };
 
   function fixFeaturesBar() {
-    // Target collection-header directly (class visible in devtools)
-    var section = document.querySelector('.collection-header');
-    var container = section ? (section.querySelector('.e-con-inner') || section) : null;
+    // First try: custom HTML widget structure .features-container > .feature-box
+    var container = document.querySelector('.features-container');
 
-    // Fallback: walk up from "Free Shipping" text node
+    // Second try: Elementor structure inside .features-section
+    if (!container) {
+      var section = document.querySelector('.features-section');
+      container = section ? (section.querySelector('.e-con-inner') || section) : null;
+    }
+
+    // Third try: .collection-header
+    if (!container) {
+      var ch = document.querySelector('.collection-header');
+      container = ch ? (ch.querySelector('.e-con-inner') || ch) : null;
+    }
+
+    // Last resort: walk up from "Free Shipping" text node
     if (!container) {
       var all = document.querySelectorAll('*');
       var freeShip = null;

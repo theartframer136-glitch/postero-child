@@ -1109,6 +1109,63 @@ ul.postero-scroll-content .cat-item a {
   margin: 6px 0 0 !important;
 }
 
+/* ── Custom HTML features widget: .features-container > .feature-box ── */
+@media (max-width: 600px) {
+  .features-container {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-around !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    gap: 4px !important;
+    padding: 12px 4px !important;
+    box-sizing: border-box !important;
+  }
+  .feature-box {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 25% !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    gap: 6px !important;
+  }
+  .feature-box .feature-icon,
+  .feature-box img,
+  .feature-box svg,
+  .feature-box i {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    border-radius: 50% !important;
+    background: #c9a84c !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto !important;
+    font-size: 22px !important;
+    color: #fff !important;
+    fill: #fff !important;
+  }
+  .feature-box .feature-title,
+  .feature-box p,
+  .feature-box span,
+  .feature-box h3,
+  .feature-box h4 {
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    color: #222 !important;
+    text-align: center !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    word-break: break-word !important;
+  }
+}
+
 /* 5. Our shortcode bar (.af-features-bar) — same style */
 .af-features-bar {
   display: flex !important;
