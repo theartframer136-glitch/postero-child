@@ -1470,7 +1470,7 @@ add_action('wp_footer', function() { ?>
     fixSlideInlineWidths();
   }
 
-  [0, 300, 700, 1400, 2500].forEach(function(d) { setTimeout(fullFix, d); });
+  [300, 900, 2000].forEach(function(d) { setTimeout(fullFix, d); });
   window.addEventListener('resize', fullFix);
 
   // MutationObserver: lock slide width to 100vw regardless of when Swiper rewrites it
@@ -1494,11 +1494,21 @@ add_action('wp_footer', function() { ?>
       slides.forEach(function(s) { mo.observe(s, { attributes: true, attributeFilter: ['style'] }); });
     });
     slides = Array.from(document.querySelectorAll('.elementor-slides .swiper-slide, .elementor-widget-slides .swiper-slide'));
+    if (!slides.length) return; // nothing to lock
     slides.forEach(function(s) { mo.observe(s, { attributes: true, attributeFilter: ['style'] }); });
   }
-  // Attach after Swiper has likely created the slides
-  setTimeout(attachSlideLock, 500);
-  setTimeout(attachSlideLock, 1500);
+  // Attach once — two calls created two observers on same slides causing mutual infinite loop
+  var _slideLockAttached = false;
+  function tryAttachSlideLock() {
+    if (_slideLockAttached) return;
+    var sl = document.querySelectorAll('.elementor-slides .swiper-slide, .elementor-widget-slides .swiper-slide');
+    if (!sl.length) return; // slides not ready yet
+    _slideLockAttached = true;
+    attachSlideLock();
+  }
+  setTimeout(tryAttachSlideLock, 500);
+  setTimeout(tryAttachSlideLock, 1500);
+  setTimeout(tryAttachSlideLock, 3000);
 }());
 </script>
 <?php }, 5);
