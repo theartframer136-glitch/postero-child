@@ -1239,6 +1239,20 @@ add_action('wp_footer', function() { ?>
         }
       });
     });
+
+    // Wire click on each item to open the popup
+    var labelMap = ['Free Shipping','High Resolution','Premium Frames','Secure Payment'];
+    Array.from(container.children).forEach(function(item) {
+      var txt = item.textContent.trim();
+      var idx = -1;
+      labelMap.forEach(function(l, i) { if (txt.indexOf(l) !== -1) idx = i; });
+      if (idx >= 0) {
+        sp(item,'cursor','pointer');
+        item.addEventListener('click', function() {
+          if (window.afOpenSheet) window.afOpenSheet(idx);
+        });
+      }
+    });
   }
 
   document.addEventListener('DOMContentLoaded', fixFeaturesBar);
@@ -1815,6 +1829,7 @@ add_action('wp_footer', function() { ?>
     overlay.classList.add('active');
     requestAnimationFrame(function(){ sheet.classList.add('open'); });
   }
+  window.afOpenSheet = openSheet;
   function closeSheet() {
     sheet.classList.remove('open');
     setTimeout(function(){ overlay.classList.remove('active'); }, 350);
