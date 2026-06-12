@@ -1167,22 +1167,11 @@ html body .product-card .price ins {
   font-size: 15px !important;
 }
 
-/* Hide feature popup data containers that render as visible page content */
+/* Hide popup data elements that render as static page content — only show in overlay */
 .popup-data,
-[id$="-data"].popup-data,
-div.popup-data,
-#shipping-data, #resolution-data, #frames-data, #payment-data,
-#shipping.popup-data, #resolution.popup-data, #frames.popup-data, #payment.popup-data,
-/* Hide ALL content inside feature-box except icon wrapper and title — popup content must not show inline */
-.feature-box > *:not(.feature-icon):not(.feature-title):not(h3):not(h4),
-.feature-box > ul,
-.feature-box > p,
-.feature-box > div:not(.feature-icon),
-/* Also hide the af-feat-sheet content divs rendered inside the feature section */
-.features-section .af-feat-sheet,
-.features-container ~ div:not(#afFeatOverlay):not(#afFeatSheet),
-/* Hide any div with popup data class anywhere on the page */
-[class*="popup-data"], [id*="popup-data"] {
+[class*="popup-data"],
+[id*="popup-data"],
+#shipping-data, #resolution-data, #frames-data, #payment-data {
   display: none !important;
 }
 
@@ -2193,25 +2182,39 @@ add_action('wp_footer', function() { ?>
 <script>
 // Hide inline popup content inside .feature-box — should only show in overlay sheet
 (function(){
-  function hideFeatureBoxPopupContent() {
-    document.querySelectorAll('.feature-box').forEach(function(box) {
-      Array.from(box.children).forEach(function(child) {
-        var cls = child.className || '';
-        var tag = child.tagName || '';
-        // Keep only the icon wrapper and title; hide everything else
-        if (!cls.match(/feature-icon|feature-title/) && !tag.match(/^(H3|H4)$/)) {
-          child.style.setProperty('display', 'none', 'important');
-        }
-      });
-    });
-    // Also hide any .popup-data divs anywhere on page
+  function hideStaticPopupContent() {
+    // 1. Hide .popup-data elements (Elementor HTML widgets with popup content)
     document.querySelectorAll('.popup-data, [class*="popup-data"], [id*="popup-data"]').forEach(function(el) {
       el.style.setProperty('display', 'none', 'important');
     });
+
+    // 2. Hide any Elementor section/column that comes AFTER the features-container
+    //    AND contains a close button (×) or has popup-style content — but NOT our #afFeatSheet
+    var featContainer = document.querySelector('.features-container, .features-section');
+    if (featContainer) {
+      // Walk sibling elements after the features section and hide those with popup content
+      var parent = featContainer.closest('.elementor-section, .e-con, section') || featContainer.parentElement;
+      if (parent && parent.parentElement) {
+        var siblings = Array.from(parent.parentElement.children);
+        var found = false;
+        siblings.forEach(function(sib) {
+          if (sib === parent) { found = true; return; }
+          if (!found) return;
+          // Skip our own overlay elements
+          if (sib.id === 'afFeatOverlay' || sib.id === 'afFeatSheet') return;
+          // If sibling has content matching popup style (close btn + heading + list), hide it
+          var hasClose = sib.querySelector('[class*="close"], button') && sib.querySelector('h3,h4');
+          var hasList  = sib.querySelector('ul li');
+          if (hasClose || (hasList && sib.querySelector('h3,h4'))) {
+            sib.style.setProperty('display', 'none', 'important');
+          }
+        });
+      }
+    }
   }
-  document.addEventListener('DOMContentLoaded', hideFeatureBoxPopupContent);
-  window.addEventListener('load', hideFeatureBoxPopupContent);
-  setTimeout(hideFeatureBoxPopupContent, 500);
+  document.addEventListener('DOMContentLoaded', hideStaticPopupContent);
+  window.addEventListener('load', hideStaticPopupContent);
+  setTimeout(hideStaticPopupContent, 500);
 }());
 </script>
 <?php }, 10003);
