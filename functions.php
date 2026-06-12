@@ -1167,6 +1167,57 @@ html body .product-card .price ins {
   font-size: 15px !important;
 }
 
+/* ── Mobile header fix (≤600px, guest/before-login only) ── */
+@media (max-width: 600px) {
+  /* Hide account link text — show icon only */
+  .header-nav .my-account a span,
+  .header-nav .woocommerce-MyAccount-navigation a,
+  .site-header .my-account > a > span,
+  .site-header .account-link > span,
+  .site-header [class*="account"] > a > span,
+  .site-header [class*="account"] a .label,
+  .site-header .nav-account span:not(.icon),
+  .postero-header .account a span,
+  .postero-header .my-account a span,
+  header .my-account a > span,
+  header .account > a > span,
+  /* The dropdown list (Sign Up / Login items) hidden on mobile */
+  .site-header .my-account ul,
+  .site-header .account ul,
+  header .nav-menu .my-account > ul,
+  header .nav-menu .account > ul,
+  .site-header .account-dropdown,
+  .postero-header .my-account .sub-menu,
+  /* Postero theme specific */
+  .header-icons .account-icon span,
+  .header-icons .my-account span,
+  .header-icon-user span,
+  .user-account-nav span,
+  nav .my-account > a > span,
+  .woocommerce-account-icon span { display: none !important; }
+
+  /* Keep the user icon itself visible */
+  .site-header .my-account > a,
+  .site-header .account > a,
+  header .my-account > a,
+  .postero-header .my-account > a,
+  .header-icons .account-icon > a {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* Ensure header items sit in a clean row */
+  .site-header .header-inner,
+  .postero-header .header-inner,
+  header .header-inner {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
+    gap: 0 !important;
+  }
+}
+
 /* ── Features bar: horizontal row on mobile ── */
 @media (max-width: 600px) {
   .features-container {
@@ -1225,6 +1276,31 @@ html body .product-card .price ins {
   }
 }
 </style>
+<script>
+(function(){
+  if (window.innerWidth > 600) return;
+  if (document.body && document.body.classList.contains('logged-in')) return;
+  function fixMobileHeader() {
+    if (document.body.classList.contains('logged-in')) return;
+    var header = document.querySelector('header, .site-header, .postero-header');
+    if (!header) return;
+    // Hide "Sign Up" and "Login" text links (show user icon only)
+    header.querySelectorAll('a, li').forEach(function(el) {
+      var txt = el.textContent.trim();
+      if ((txt === 'Sign Up' || txt === 'Login' || txt === 'Sign up') && el.tagName !== 'NAV') {
+        el.style.setProperty('display', 'none', 'important');
+      }
+    });
+    // Hide dropdown UL inside account area
+    header.querySelectorAll('.my-account ul, .account ul, [class*="account"] > ul').forEach(function(ul) {
+      ul.style.setProperty('display', 'none', 'important');
+    });
+  }
+  document.addEventListener('DOMContentLoaded', fixMobileHeader);
+  window.addEventListener('load', fixMobileHeader);
+  setTimeout(fixMobileHeader, 300);
+}());
+</script>
 <?php }, 99);
 
 // Features bar: force inline on mobile
