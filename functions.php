@@ -1168,15 +1168,15 @@ html body .product-card .price ins {
 }
 
 /* ── "Shop by Collection" title font sizes ── */
-.product-container .elementor-heading-title,
-.product-container h2.elementor-heading-title,
-.product-container h3.elementor-heading-title {
+html body .product-container .elementor-heading-title,
+html body .product-container h2.elementor-heading-title,
+html body .product-container h3.elementor-heading-title {
   font-size: 35px !important;
 }
 @media (max-width: 600px) {
-  .product-container .elementor-heading-title,
-  .product-container h2.elementor-heading-title,
-  .product-container h3.elementor-heading-title {
+  html body .product-container .elementor-heading-title,
+  html body .product-container h2.elementor-heading-title,
+  html body .product-container h3.elementor-heading-title {
     font-size: 20px !important;
   }
 }
@@ -1368,11 +1368,13 @@ html body .product-card .price ins {
     sp(row,'padding-right','12px');
     // Title: bigger font, take available space
     sp(heading,'font-size','20px');
+    sp(heading,'line-height','1.3');
     sp(heading,'white-space','normal');
     sp(heading,'flex','1 1 auto');
     sp(heading,'min-width','0');
     sp(heading,'padding-left','0');
     sp(heading,'margin-left','0');
+    sp(heading,'max-width','none');
     // Button wrapper: push to right
     var btnWrap = btn.closest('.elementor-widget,.e-con') || btn.parentElement;
     sp(btnWrap,'flex-shrink','0');
