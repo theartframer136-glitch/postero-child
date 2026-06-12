@@ -1260,6 +1260,23 @@ add_action('wp_footer', function() { ?>
       }
     }
     if (!container || container === document.body) return;
+    var alreadyFixed = container.dataset.afFixed === '1';
+    container.dataset.afFixed = '1';
+    if (alreadyFixed) {
+      // Only re-wire clicks on any newly added items, skip style work
+      var popupMap2 = { 'shipping': 0, 'resolution': 1, 'frames': 2, 'payment': 3 };
+      var labelMap2 = ['Free Shipping','High Resolution','Premium Frames','Secure Payment'];
+      Array.from(container.children).forEach(function(item) {
+        if (item.dataset.afClick) return;
+        item.dataset.afClick = '1';
+        var idx = -1;
+        var dp = item.getAttribute('data-popup');
+        if (dp && popupMap2[dp] !== undefined) idx = popupMap2[dp];
+        if (idx === -1) { var txt2 = item.textContent.trim(); labelMap2.forEach(function(l,i){ if(txt2.indexOf(l)!==-1) idx=i; }); }
+        if (idx >= 0) { item.style.cursor='pointer'; item.addEventListener('click', function(){ if(window.afOpenSheet) window.afOpenSheet(idx); }); }
+      });
+      return;
+    }
 
     // Override Elementor CSS custom properties (flex-direction: var(--flex-direction))
     sp(container,'--flex-direction','row');
@@ -1329,12 +1346,21 @@ add_action('wp_footer', function() { ?>
       });
     });
 
-    // Wire click on each item to open the popup
+    // Wire click on each item to open the popup — only once per item
+    var popupMap = { 'shipping': 0, 'resolution': 1, 'frames': 2, 'payment': 3 };
     var labelMap = ['Free Shipping','High Resolution','Premium Frames','Secure Payment'];
     Array.from(container.children).forEach(function(item) {
-      var txt = item.textContent.trim();
+      if (item.dataset.afClick) return; // already wired
+      item.dataset.afClick = '1';
       var idx = -1;
-      labelMap.forEach(function(l, i) { if (txt.indexOf(l) !== -1) idx = i; });
+      // Try data-popup attribute first (e.g. data-popup="shipping")
+      var dp = item.getAttribute('data-popup');
+      if (dp && popupMap[dp] !== undefined) idx = popupMap[dp];
+      // Fallback: match label text
+      if (idx === -1) {
+        var txt = item.textContent.trim();
+        labelMap.forEach(function(l, i) { if (txt.indexOf(l) !== -1) idx = i; });
+      }
       if (idx >= 0) {
         sp(item,'cursor','pointer');
         item.addEventListener('click', function() {
