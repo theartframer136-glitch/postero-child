@@ -1171,7 +1171,10 @@ html body .product-card .price ins {
 .popup-data,
 [class*="popup-data"],
 [id*="popup-data"],
-#shipping-data, #resolution-data, #frames-data, #payment-data {
+#shipping-data, #resolution-data, #frames-data, #payment-data,
+/* Hide the Elementor bottom-popup widget — replaced by our custom overlay */
+#bottomPopup, .bottom-popup, .bottom-popup.active,
+#popupOverlay, .popup-overlay {
   display: none !important;
 }
 
