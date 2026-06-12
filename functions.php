@@ -1149,6 +1149,64 @@ html body .product-card .price ins {
   color: #1a1a1a !important;
   font-size: 15px !important;
 }
+
+/* ── Features bar: horizontal row on mobile ── */
+@media (max-width: 600px) {
+  .features-container {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-around !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    padding: 10px 2px !important;
+    box-sizing: border-box !important;
+    gap: 0 !important;
+  }
+  .feature-box {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 25% !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    padding: 0 2px !important;
+    gap: 0 !important;
+  }
+  .feature-box .feature-icon {
+    width: 50px !important;
+    height: 50px !important;
+    min-width: 50px !important;
+    border-radius: 50% !important;
+    background: #c9a84c !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto 5px !important;
+  }
+  .feature-box .feature-icon i,
+  .feature-box .feature-icon svg,
+  .feature-box .feature-icon img {
+    font-size: 20px !important;
+    color: #fff !important;
+    fill: #fff !important;
+    width: 22px !important;
+    height: 22px !important;
+  }
+  .feature-box .feature-title {
+    font-size: 9px !important;
+    font-weight: 700 !important;
+    color: #222 !important;
+    line-height: 1.2 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    word-break: break-word !important;
+    hyphens: auto !important;
+  }
+}
 </style>
 <?php }, 99);
 
