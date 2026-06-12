@@ -1224,58 +1224,144 @@ html body .product-container h3.elementor-heading-title {
   display: none !important;
 }
 
-/* ── Mobile header fix (≤600px, guest/before-login only) ── */
+/* ── Mobile header: hide Sign Up / Login from inline nav, show as dropdown ── */
+/* Applied immediately in <head> so items are hidden before paint */
 @media (max-width: 600px) {
-  /* Hide account link text — show icon only */
-  .header-nav .my-account a span,
-  .header-nav .woocommerce-MyAccount-navigation a,
-  .site-header .my-account > a > span,
-  .site-header .account-link > span,
-  .site-header [class*="account"] > a > span,
-  .site-header [class*="account"] a .label,
-  .site-header .nav-account span:not(.icon),
-  .postero-header .account a span,
-  .postero-header .my-account a span,
-  header .my-account a > span,
-  header .account > a > span,
-  /* The dropdown list (Sign Up / Login items) hidden on mobile */
-  .site-header .my-account ul,
-  .site-header .account ul,
-  header .nav-menu .my-account > ul,
-  header .nav-menu .account > ul,
-  .site-header .account-dropdown,
-  .postero-header .my-account .sub-menu,
-  /* Postero theme specific */
-  .header-icons .account-icon span,
-  .header-icons .my-account span,
-  .header-icon-user span,
-  .user-account-nav span,
-  nav .my-account > a > span,
-  .woocommerce-account-icon span { display: none !important; }
+  body:not(.logged-in) .menu-item-has-children.menu-item a[href*="register"],
+  body:not(.logged-in) .menu-item-has-children.menu-item a[href*="sign-up"],
+  body:not(.logged-in) li.menu-item a[href*="register"],
+  body:not(.logged-in) li.menu-item a[href*="sign-up"],
+  body:not(.logged-in) .af-hide-mobile { display: none !important; }
 
-  /* Keep the user icon itself visible */
-  .site-header .my-account > a,
-  .site-header .account > a,
-  header .my-account > a,
-  .postero-header .my-account > a,
-  .header-icons .account-icon > a {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
+  /* Dropdown panel styles */
+  #af-acc-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.13);
+    z-index: 999999;
+    min-width: 140px;
+    padding: 6px 0;
+    list-style: none;
+    margin: 0;
   }
-
-  /* Ensure header items sit in a clean row */
-  .site-header .header-inner,
-  .postero-header .header-inner,
-  header .header-inner {
-    display: flex !important;
-    align-items: center !important;
-    flex-wrap: nowrap !important;
-    gap: 0 !important;
+  #af-acc-dropdown.open { display: block; }
+  #af-acc-dropdown a {
+    display: block !important;
+    padding: 11px 20px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #222 !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+    border-bottom: 1px solid #f0f0f0 !important;
   }
+  #af-acc-dropdown a:last-child { border-bottom: none !important; }
+  #af-acc-dropdown a:hover { background: #f9f5ec !important; color: #c9a84c !important; }
 }
+</style>
+<script>
+(function(){
+  if (window.innerWidth > 600) return;
+  if (document.body.classList.contains('logged-in')) return;
 
-/* ── Features bar: horizontal row on mobile ── */
+  function setupMobileAccDropdown() {
+    if (document.body.classList.contains('logged-in')) return;
+    if (document.getElementById('af-acc-dropdown')) return; // already done
+
+    var header = document.querySelector('header, .site-header, .postero-header');
+    if (!header) return;
+
+    // Find Sign Up and Login links anywhere in header
+    var signUpLink = null, loginLink = null;
+    header.querySelectorAll('a').forEach(function(a) {
+      var t = a.textContent.trim();
+      if (!signUpLink && /^sign\s*up$/i.test(t)) signUpLink = a;
+      if (!loginLink  && /^login$/i.test(t))      loginLink  = a;
+    });
+    if (!signUpLink && !loginLink) return;
+
+    // Hide their parent <li> elements from the nav
+    [signUpLink, loginLink].forEach(function(a) {
+      if (!a) return;
+      var li = a.closest('li');
+      if (li) li.style.setProperty('display', 'none', 'important');
+      else a.style.setProperty('display', 'none', 'important');
+    });
+
+    // Find the user icon trigger — the <a> that contains an SVG/icon near the account area
+    var trigger = null;
+    header.querySelectorAll('a').forEach(function(a) {
+      if (a === signUpLink || a === loginLink) return;
+      if (trigger) return;
+      var href = a.getAttribute('href') || '';
+      var hasSvg = a.querySelector('svg, i');
+      if (hasSvg && (href.indexOf('account') !== -1 || href.indexOf('login') !== -1 || href === '#')) {
+        trigger = a;
+      }
+    });
+    // Fallback: find first icon-only link in header
+    if (!trigger) {
+      header.querySelectorAll('a').forEach(function(a) {
+        if (trigger || a === signUpLink || a === loginLink) return;
+        if (a.querySelector('svg, i, img') && a.textContent.trim().length < 3) trigger = a;
+      });
+    }
+    if (!trigger) return;
+
+    // Create dropdown panel
+    var dropdown = document.createElement('div');
+    dropdown.id = 'af-acc-dropdown';
+    if (signUpLink) {
+      var s = document.createElement('a');
+      s.href = signUpLink.href;
+      s.textContent = 'Sign Up';
+      dropdown.appendChild(s);
+    }
+    if (loginLink) {
+      var l = document.createElement('a');
+      l.href = loginLink.href;
+      l.textContent = 'Login';
+      dropdown.appendChild(l);
+    }
+
+    // Anchor dropdown to trigger's parent
+    var anchor = trigger.closest('li') || trigger.parentElement;
+    anchor.style.setProperty('position', 'relative', 'important');
+    anchor.appendChild(dropdown);
+
+    // Toggle on tap
+    var open = false;
+    trigger.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      open = !open;
+      dropdown.classList.toggle('open', open);
+    });
+    document.addEventListener('click', function(e) {
+      if (open && !anchor.contains(e.target)) {
+        open = false;
+        dropdown.classList.remove('open');
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupMobileAccDropdown);
+  } else {
+    setupMobileAccDropdown();
+  }
+  window.addEventListener('load', setupMobileAccDropdown);
+  setTimeout(setupMobileAccDropdown, 300);
+}());
+</script>
+<?php }, 99);
+
+// Features bar: force inline on mobile
 @media (max-width: 600px) {
   .features-container {
     display: flex !important;
