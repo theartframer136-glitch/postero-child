@@ -708,7 +708,17 @@ add_action('wp_footer', function() { ?>
         shell.appendChild(vp);
         shell.appendChild(btnN);
 
-        // Watch every rating row — if WooCommerce JS re-sets padding-left, instantly clear it
+        // Watch every rating row — if WooCommerce JS re-sets padding, instantly clear it
+        // Disconnect before mutating to prevent observer→mutate→observer infinite loop
+        var ratingMo = new MutationObserver(function() {
+            ratingMo.disconnect();
+            track.querySelectorAll('.rating,.woocommerce-product-rating,.product-meta-row').forEach(function(r) {
+                r.style.setProperty('padding', '0', 'important');
+            });
+            track.querySelectorAll('.rating,.woocommerce-product-rating,.product-meta-row').forEach(function(r) {
+                ratingMo.observe(r, { attributes: true, attributeFilter: ['style'] });
+            });
+        });
         function zeroRatingPadding() {
             track.querySelectorAll('.rating,.woocommerce-product-rating,.product-meta-row').forEach(function(r) {
                 r.style.setProperty('padding', '0', 'important');
@@ -716,7 +726,6 @@ add_action('wp_footer', function() { ?>
         }
         zeroRatingPadding();
         [200, 600, 1200].forEach(function(d){ setTimeout(zeroRatingPadding, d); });
-        var ratingMo = new MutationObserver(zeroRatingPadding);
         track.querySelectorAll('.rating,.woocommerce-product-rating,.product-meta-row').forEach(function(r) {
             ratingMo.observe(r, { attributes: true, attributeFilter: ['style'] });
         });
@@ -1447,10 +1456,9 @@ add_action('wp_footer', function() { ?>
   // Swiper uses setProperty('width', Xpx, 'important') which beats stylesheet !important,
   // but our observer fires immediately after and resets it.
   function attachSlideLock() {
-    var _locking = false;
+    var slides = [];
     var mo = new MutationObserver(function(muts) {
-      if (_locking) return;
-      _locking = true;
+      mo.disconnect();
       muts.forEach(function(m) {
         var s = m.target;
         if (s.classList && s.classList.contains('swiper-slide')) {
@@ -1462,11 +1470,10 @@ add_action('wp_footer', function() { ?>
           s.style.setProperty('overflow',   'hidden', 'important');
         }
       });
-      _locking = false;
+      slides.forEach(function(s) { mo.observe(s, { attributes: true, attributeFilter: ['style'] }); });
     });
-    document.querySelectorAll('.elementor-slides .swiper-slide, .elementor-widget-slides .swiper-slide').forEach(function(s) {
-      mo.observe(s, { attributes: true, attributeFilter: ['style'] });
-    });
+    slides = Array.from(document.querySelectorAll('.elementor-slides .swiper-slide, .elementor-widget-slides .swiper-slide'));
+    slides.forEach(function(s) { mo.observe(s, { attributes: true, attributeFilter: ['style'] }); });
   }
   // Attach after Swiper has likely created the slides
   setTimeout(attachSlideLock, 500);
@@ -2073,19 +2080,20 @@ add_action('wp_footer', function() { ?>
     // 4. MutationObserver — catch Swiper re-setting slide widths
     if (!widget._sliderFixed) {
       widget._sliderFixed = true;
+      var obsSlides = Array.from(widget.querySelectorAll('.swiper-slide'));
       var obs = new MutationObserver(function() {
+        obs.disconnect();
         var vw2 = window.innerWidth;
-        widget.querySelectorAll('.swiper-slide').forEach(function(s) {
+        obsSlides.forEach(function(s) {
           var cur = parseInt(s.style.width);
           if (cur && cur !== vw2) {
             s.style.setProperty('width', vw2 + 'px', 'important');
             s.style.setProperty('min-width', vw2 + 'px', 'important');
           }
         });
+        obsSlides.forEach(function(s) { obs.observe(s, { attributes: true, attributeFilter: ['style'] }); });
       });
-      widget.querySelectorAll('.swiper-slide').forEach(function(s) {
-        obs.observe(s, { attributes: true, attributeFilter: ['style'] });
-      });
+      obsSlides.forEach(function(s) { obs.observe(s, { attributes: true, attributeFilter: ['style'] }); });
     }
   }
 
