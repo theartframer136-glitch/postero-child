@@ -665,6 +665,62 @@ ul.postero-scroll-content .cat-item a {
   }
 }
 
+/* ── collection-header: 4-icon row on mobile ── */
+@media (max-width: 600px) {
+  .collection-header > .e-con-inner,
+  .collection-header.e-con > .e-con-inner {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-evenly !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+  .collection-header > .e-con-inner > .elementor-element,
+  .collection-header > .e-con-inner > .e-con {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 25% !important;
+    text-align: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+  .collection-header .elementor-icon-wrapper,
+  .collection-header .elementor-icon {
+    width: 54px !important;
+    height: 54px !important;
+    min-width: 54px !important;
+    border-radius: 50% !important;
+    background: #c9a84c !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto 6px !important;
+  }
+  .collection-header .elementor-icon i,
+  .collection-header .elementor-icon svg {
+    color: #fff !important;
+    fill: #fff !important;
+    font-size: 22px !important;
+    width: 22px !important;
+    height: 22px !important;
+  }
+  .collection-header .elementor-heading-title,
+  .collection-header .elementor-icon-box-title,
+  .collection-header h1,.collection-header h2,
+  .collection-header h3,.collection-header h4 {
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    color: #222 !important;
+    text-align: center !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+}
+
 /* ── Features bar: force horizontal row on all mobile sizes ── */
 @media (max-width: 480px) {
   .features-section,

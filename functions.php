@@ -1160,26 +1160,26 @@ add_action('wp_footer', function() { ?>
   var sp = function(el, p, v) { el.style.setProperty(p, v, 'important'); };
 
   function fixFeaturesBar() {
-    // Find the element containing "Free Shipping" text
-    var freeShip = null;
-    document.querySelectorAll('*').forEach(function(el) {
-      if (!freeShip && el.children.length === 0 && el.textContent.trim() === 'Free Shipping') {
-        freeShip = el;
-      }
-    });
-    if (!freeShip) return;
+    // Target collection-header directly (class visible in devtools)
+    var section = document.querySelector('.collection-header');
+    var container = section ? (section.querySelector('.e-con-inner') || section) : null;
 
-    // Walk up to find a container that holds all 4 feature items
-    var container = freeShip.parentElement;
-    while (container && container !== document.body) {
-      var txt = container.textContent;
-      if (txt.indexOf('High Resolution') !== -1 &&
-          txt.indexOf('Premium Frames') !== -1 &&
-          txt.indexOf('Secure Payment') !== -1) {
-        // Check if direct children roughly equal the features
-        if (container.children.length >= 3) break;
+    // Fallback: walk up from "Free Shipping" text node
+    if (!container) {
+      var all = document.querySelectorAll('*');
+      var freeShip = null;
+      for (var i = 0; i < all.length; i++) {
+        if (all[i].children.length === 0 && all[i].textContent.trim() === 'Free Shipping') {
+          freeShip = all[i]; break;
+        }
       }
-      container = container.parentElement;
+      if (!freeShip) return;
+      container = freeShip.parentElement;
+      while (container && container !== document.body) {
+        var txt = container.textContent;
+        if (txt.indexOf('High Resolution') !== -1 && txt.indexOf('Secure Payment') !== -1 && container.children.length >= 2) break;
+        container = container.parentElement;
+      }
     }
     if (!container || container === document.body) return;
 
