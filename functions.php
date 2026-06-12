@@ -367,16 +367,20 @@ div.list-wrapper.postero-scroll {
         setTimeout(function() { _busy = false; }, 50);
     }
 
+    var _initDone = false;
     function init() {
+        if (_initDone) return;
         // Primary target: #subcategorySlider (confirmed display:grid, the actual circles container)
         var slider = document.getElementById('subcategorySlider');
-        if (slider) fixEl(slider);
+        if (slider) { fixEl(slider); _initDone = true; }
 
         // Fallback: UL with cat-items
         var catItems = document.querySelectorAll('li.cat-item');
         if (catItems.length && catItems[0].parentElement) {
             fixEl(catItems[0].parentElement);
+            _initDone = true;
         }
+        if (!_initDone) return; // nothing found yet, allow retry
 
         // MutationObserver — skip re-entry while we are mid-fix
         var mo = new MutationObserver(function(mutations) {
@@ -816,12 +820,16 @@ add_action('wp_footer', function() { ?>
         window.addEventListener('resize', function() { idx = 0; go(0); });
     }
 
+    var _sliderInitDone = false;
     function init() {
         var container = document.querySelector('.product-container');
         if (!container) return;
 
         var grid = container.querySelector('#productGrid') || container.querySelector('.product-slider');
         if (!grid) return;
+
+        if (_sliderInitDone) return; // observer already attached, skip
+        _sliderInitDone = true;
 
         // Initial build
         buildSlider(container, grid);
@@ -1242,22 +1250,10 @@ add_action('wp_footer', function() { ?>
       container = ch ? (ch.querySelector('.e-con-inner') || ch) : null;
     }
 
-    // Last resort: walk up from "Free Shipping" text node
+    // Last resort: find by data-popup attribute
     if (!container) {
-      var all = document.querySelectorAll('*');
-      var freeShip = null;
-      for (var i = 0; i < all.length; i++) {
-        if (all[i].children.length === 0 && all[i].textContent.trim() === 'Free Shipping') {
-          freeShip = all[i]; break;
-        }
-      }
-      if (!freeShip) return;
-      container = freeShip.parentElement;
-      while (container && container !== document.body) {
-        var txt = container.textContent;
-        if (txt.indexOf('High Resolution') !== -1 && txt.indexOf('Secure Payment') !== -1 && container.children.length >= 2) break;
-        container = container.parentElement;
-      }
+      var firstBox = document.querySelector('[data-popup]');
+      if (firstBox) container = firstBox.parentElement;
     }
     if (!container || container === document.body) return;
     var alreadyFixed = container.dataset.afFixed === '1';
@@ -1372,8 +1368,7 @@ add_action('wp_footer', function() { ?>
 
   document.addEventListener('DOMContentLoaded', fixFeaturesBar);
   window.addEventListener('load', fixFeaturesBar);
-  setTimeout(fixFeaturesBar, 600);
-  setTimeout(fixFeaturesBar, 1800);
+  setTimeout(fixFeaturesBar, 800);
 })();
 </script>
 <?php }, 5);
