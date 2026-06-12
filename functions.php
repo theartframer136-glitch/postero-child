@@ -1183,34 +1183,33 @@ html body .product-card .price ins {
 
 /* ── "Shop by Collection" title + VIEW MORE button — mobile inline layout ── */
 @media (max-width: 600px) {
-  /* Find the row that contains both the title and the button */
+  /* Ensure the product-container and its parents don't clip the title */
+  .product-container,
+  .product-container > *,
+  .product-container .e-con,
   .product-container .e-con-inner,
-  .product-container > .e-con,
-  .elementor-widget-container:has(.view-more-btn),
-  /* Target the Elementor container holding the title + button pair */
-  .product-container .e-con > .e-con-inner,
-  .product-container .elementor-container > .elementor-row,
+  .product-container .elementor-container,
   .product-container .elementor-row {
-    display: flex !important;
-    flex-direction: row !important;
-    align-items: center !important;
-    justify-content: space-between !important;
-    flex-wrap: nowrap !important;
-    width: 100% !important;
+    overflow: visible !important;
+    box-sizing: border-box !important;
   }
-  /* Title: left side, bigger on mobile */
+  /* Title: fully visible, left side */
   .product-container .elementor-heading-title,
   .product-container h2.elementor-heading-title,
   .product-container h3.elementor-heading-title {
     font-size: 20px !important;
-    white-space: nowrap !important;
-    flex-shrink: 0 !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    padding-left: 0 !important;
+    margin-left: 0 !important;
   }
-  /* Button: right side */
+  /* Button: right side, no shrink */
   .product-container .elementor-button-wrapper,
   .product-container .elementor-widget-button {
     flex-shrink: 0 !important;
-    margin-left: auto !important;
+    margin-left: 12px !important;
   }
 }
 
@@ -1363,10 +1362,17 @@ html body .product-card .price ins {
     sp(row,'justify-content','space-between');
     sp(row,'flex-wrap','nowrap');
     sp(row,'width','100%');
-    // Title: bigger font
+    sp(row,'overflow','visible');
+    sp(row,'box-sizing','border-box');
+    sp(row,'padding-left','12px');
+    sp(row,'padding-right','12px');
+    // Title: bigger font, take available space
     sp(heading,'font-size','20px');
-    sp(heading,'white-space','nowrap');
-    sp(heading,'flex-shrink','0');
+    sp(heading,'white-space','normal');
+    sp(heading,'flex','1 1 auto');
+    sp(heading,'min-width','0');
+    sp(heading,'padding-left','0');
+    sp(heading,'margin-left','0');
     // Button wrapper: push to right
     var btnWrap = btn.closest('.elementor-widget,.e-con') || btn.parentElement;
     sp(btnWrap,'flex-shrink','0');
