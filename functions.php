@@ -1362,6 +1362,8 @@ html body .product-container h3.elementor-heading-title {
 <?php }, 99);
 
 // Features bar: force inline on mobile
+add_action('wp_head', function() { ?>
+<style>
 @media (max-width: 600px) {
   .features-container {
     display: flex !important;
