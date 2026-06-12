@@ -1167,6 +1167,20 @@ html body .product-card .price ins {
   font-size: 15px !important;
 }
 
+/* ── "Shop by Collection" title font sizes ── */
+.product-container .elementor-heading-title,
+.product-container h2.elementor-heading-title,
+.product-container h3.elementor-heading-title {
+  font-size: 35px !important;
+}
+@media (max-width: 600px) {
+  .product-container .elementor-heading-title,
+  .product-container h2.elementor-heading-title,
+  .product-container h3.elementor-heading-title {
+    font-size: 20px !important;
+  }
+}
+
 /* ── "Shop by Collection" title + VIEW MORE button — mobile inline layout ── */
 @media (max-width: 600px) {
   /* Find the row that contains both the title and the button */
