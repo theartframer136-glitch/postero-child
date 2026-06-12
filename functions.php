@@ -1711,10 +1711,11 @@ add_action('wp_footer', function() {
 [data-widget_type^="video"],
 [data-widget_type^="video-playlist"] .elementor-widget-container,
 [data-widget_type^="video"] .elementor-widget-container { display:none !important; }
-/* Hide Veo / plain-iframe video grid columns that appear below the circular slider */
-.elementor-widget-html iframe:not(.af-pim-circle iframe),
-.elementor-widget-html .veo-player,
-.elementor-widget-html video { display:none !important; }
+/* Hide any iframe on the page that is NOT inside our circular slider or lightbox */
+body iframe:not(#afPimWrap iframe):not(#afPimLb iframe) { display:none !important; }
+/* Hide Veo / plain-iframe columns */
+.elementor-widget-html iframe, .elementor-widget-html video,
+.elementor-widget-html .veo-player { display:none !important; }
 </style>
 
 <?php
@@ -1836,51 +1837,20 @@ add_action('wp_footer', function() {
 
         wrap.dataset.placed = '1';
 
-        // Hide every widget in this section that is NOT a heading or text widget
-        // data-widget_type values are like "video-playlist.default" — use startsWith logic
+        // Hide every iframe on the page that is NOT part of our circular slider
+        document.querySelectorAll('iframe').forEach(function(fr) {
+            if (!fr.closest('#afPimWrap') && !fr.closest('.af-pim-lb')) {
+                var col = fr.closest('.elementor-column, .e-con, .elementor-widget');
+                if (col) col.style.setProperty('display', 'none', 'important');
+                else fr.style.setProperty('display', 'none', 'important');
+            }
+        });
+
+        // Also hide video/playlist widgets inside the section
         section.querySelectorAll('.elementor-widget').forEach(function(w) {
             var type = w.getAttribute('data-widget_type') || '';
             if (/^(heading|text-editor|text)\b/.test(type)) return;
             w.style.setProperty('display', 'none', 'important');
-        });
-
-        // Nuclear fallback: hide every elementor-widget-wrap that contains an iframe
-        section.querySelectorAll('.elementor-widget-wrap').forEach(function(wrap_el) {
-            if (wrap_el.querySelector('iframe')) {
-                Array.from(wrap_el.children).forEach(function(child) {
-                    if (!child.querySelector('h1,h2,h3,h4,h5,h6,.elementor-heading-title,.elementor-text-editor')) {
-                        child.style.setProperty('display', 'none', 'important');
-                    }
-                });
-            }
-        });
-
-        // Hide by column/container if it holds only video widgets
-        section.querySelectorAll('.elementor-column, .e-con').forEach(function(col) {
-            var hasHeading = col.querySelector('h1,h2,h3,h4,.elementor-heading-title');
-            var hasVideo   = col.querySelector('iframe, .elementor-widget-video, .elementor-widget-video-playlist');
-            if (hasVideo && !hasHeading) {
-                col.style.setProperty('display', 'none', 'important');
-            }
-        });
-
-        // Hide any sibling Elementor sections that contain a video grid (the flat duplicate)
-        // These are sections AFTER the "Products In Motion" heading but NOT containing afPimWrap
-        var allSections = Array.from(document.querySelectorAll('.elementor-section, .e-con[data-element_type="section"]'));
-        allSections.forEach(function(sec) {
-            if (sec === section) return; // skip the section we already handled
-            if (sec.contains(wrap)) return; // skip if it already has our slider
-            var hasVideo = sec.querySelector('iframe, .elementor-widget-video, .elementor-widget-video-playlist, [data-widget_type^="video"]');
-            var hasHeading = sec.querySelector('h1,h2,h3,h4,.elementor-heading-title');
-            var hasProductsMotion = hasHeading && /product.*mot/i.test(sec.textContent);
-            // Only hide sections that have video content but are NOT the products-in-motion section
-            if (hasVideo && !hasProductsMotion) {
-                // Double-check: section is near (after) our main section in the DOM
-                var pos = section.compareDocumentPosition(sec);
-                if (pos & Node.DOCUMENT_POSITION_FOLLOWING) {
-                    sec.style.setProperty('display', 'none', 'important');
-                }
-            }
         });
 
         section.appendChild(wrap);
