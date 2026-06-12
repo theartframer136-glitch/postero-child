@@ -1280,22 +1280,75 @@ html body .product-card .price ins {
 (function(){
   if (window.innerWidth > 600) return;
   if (document.body && document.body.classList.contains('logged-in')) return;
+
   function fixMobileHeader() {
     if (document.body.classList.contains('logged-in')) return;
     var header = document.querySelector('header, .site-header, .postero-header');
     if (!header) return;
-    // Hide "Sign Up" and "Login" text links (show user icon only)
-    header.querySelectorAll('a, li').forEach(function(el) {
-      var txt = el.textContent.trim();
-      if ((txt === 'Sign Up' || txt === 'Login' || txt === 'Sign up') && el.tagName !== 'NAV') {
-        el.style.setProperty('display', 'none', 'important');
+
+    // Find the account link container (.my-account or similar)
+    var accountWrap = header.querySelector('.my-account, .account, [class*="account-icon"], [class*="nav-account"]');
+    if (!accountWrap) return;
+    if (accountWrap.dataset.mobileFixed) return;
+    accountWrap.dataset.mobileFixed = '1';
+
+    // Find the dropdown UL inside it
+    var dropdown = accountWrap.querySelector('ul');
+    if (!dropdown) return;
+
+    // Hide dropdown by default — show on click
+    dropdown.style.setProperty('display', 'none', 'important');
+    dropdown.style.setProperty('position', 'absolute', 'important');
+    dropdown.style.setProperty('top', '100%', 'important');
+    dropdown.style.setProperty('left', '50%', 'important');
+    dropdown.style.setProperty('transform', 'translateX(-50%)', 'important');
+    dropdown.style.setProperty('background', '#fff', 'important');
+    dropdown.style.setProperty('border', '1px solid #ddd', 'important');
+    dropdown.style.setProperty('border-radius', '8px', 'important');
+    dropdown.style.setProperty('box-shadow', '0 4px 16px rgba(0,0,0,0.15)', 'important');
+    dropdown.style.setProperty('z-index', '9999', 'important');
+    dropdown.style.setProperty('min-width', '130px', 'important');
+    dropdown.style.setProperty('padding', '6px 0', 'important');
+    dropdown.style.setProperty('list-style', 'none', 'important');
+    dropdown.style.setProperty('margin', '0', 'important');
+
+    // Style each item inside dropdown
+    dropdown.querySelectorAll('li').forEach(function(li) {
+      li.style.setProperty('display', 'block', 'important');
+      li.style.setProperty('padding', '0', 'important');
+    });
+    dropdown.querySelectorAll('a').forEach(function(a) {
+      a.style.setProperty('display', 'block', 'important');
+      a.style.setProperty('padding', '10px 18px', 'important');
+      a.style.setProperty('font-size', '14px', 'important');
+      a.style.setProperty('font-weight', '600', 'important');
+      a.style.setProperty('color', '#222', 'important');
+      a.style.setProperty('text-decoration', 'none', 'important');
+      a.style.setProperty('white-space', 'nowrap', 'important');
+    });
+
+    // Make account wrap position:relative so dropdown positions correctly
+    accountWrap.style.setProperty('position', 'relative', 'important');
+
+    // Toggle dropdown on tap of the account icon/link
+    var trigger = accountWrap.querySelector('a') || accountWrap;
+    var open = false;
+    trigger.addEventListener('click', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      open = !open;
+      dropdown.style.setProperty('display', open ? 'block' : 'none', 'important');
+    });
+
+    // Close when tapping outside
+    document.addEventListener('click', function(e) {
+      if (!accountWrap.contains(e.target)) {
+        open = false;
+        dropdown.style.setProperty('display', 'none', 'important');
       }
     });
-    // Hide dropdown UL inside account area
-    header.querySelectorAll('.my-account ul, .account ul, [class*="account"] > ul').forEach(function(ul) {
-      ul.style.setProperty('display', 'none', 'important');
-    });
   }
+
   document.addEventListener('DOMContentLoaded', fixMobileHeader);
   window.addEventListener('load', fixMobileHeader);
   setTimeout(fixMobileHeader, 300);
