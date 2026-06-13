@@ -352,11 +352,13 @@ ul.postero-scroll-content .cat-item a {
 .af-shell-track .product-card .woocommerce-loop-product__link,
 .product-slider .product-card .product-image,
 .product-slider .product-card .image-wrapper,
-.woocommerce ul.products li.product .woocommerce-loop-product__link {
+.woocommerce ul.products li.product .woocommerce-loop-product__link,
+.woocommerce ul.products li.product .product-thumb,
+.woocommerce ul.products li.product figure.woocommerce-loop-product__link {
   position: relative !important;
   width: 100% !important;
   height: 0 !important;
-  padding-bottom: 75% !important; /* 4:3 ratio, reliable when theme sets explicit height */
+  padding-bottom: 100% !important; /* 1:1 square — both images same ratio */
   overflow: hidden !important;
   display: block !important;
   background: #f5f5f5 !important;
@@ -366,18 +368,22 @@ ul.postero-scroll-content .cat-item a {
 .af-shell-track .product-card .woocommerce-loop-product__link img,
 .product-slider .product-card .product-image img,
 .product-slider .product-card .image-wrapper img,
-.woocommerce ul.products li.product .woocommerce-loop-product__link img {
+.woocommerce ul.products li.product .woocommerce-loop-product__link img,
+.woocommerce ul.products li.product .product-thumb img,
+.woocommerce ul.products li.product figure img {
   position: absolute !important;
-  inset: 0 !important;
+  top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
   width: 100% !important;
   height: 100% !important;
   object-fit: cover !important;
   display: block !important;
-  transition: transform 0.4s ease !important;
+  transition: transform 0.4s ease, opacity 0.4s ease !important;
+  margin: 0 !important;
 }
 .af-shell-track .product-card:hover .product-image img,
 .product-slider .product-card:hover .product-image img,
-.woocommerce ul.products li.product:hover .woocommerce-loop-product__link img:first-child {
+.woocommerce ul.products li.product:hover .woocommerce-loop-product__link img:first-child,
+.woocommerce ul.products li.product:hover .product-thumb img:first-child {
   transform: scale(1.04) !important;
 }
 
@@ -385,19 +391,29 @@ ul.postero-scroll-content .cat-item a {
 .af-shell-track .product-card .hover-img,
 .product-slider .product-card .hover-img,
 .woocommerce ul.products li.product .woocommerce-loop-product__link img + img,
-.woocommerce ul.products li.product .woocommerce-loop-product__link .secondary-image {
+.woocommerce ul.products li.product .woocommerce-loop-product__link .secondary-image,
+.woocommerce ul.products li.product .product-thumb img + img,
+.woocommerce ul.products li.product .product-thumb .secondary-image,
+.woocommerce ul.products li.product figure img + img,
+.woocommerce ul.products li.product figure .secondary-image {
   position: absolute !important;
-  inset: 0 !important;
-  width: 100% !important; height: 100% !important;
+  top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
   object-fit: cover !important;
   opacity: 0 !important;
   transition: opacity 0.4s ease !important;
   z-index: 2 !important;
+  transform: none !important;
 }
 .af-shell-track .product-card:hover .hover-img,
 .product-slider .product-card:hover .hover-img,
 .woocommerce ul.products li.product:hover .woocommerce-loop-product__link img + img,
-.woocommerce ul.products li.product:hover .woocommerce-loop-product__link .secondary-image { opacity: 1 !important; }
+.woocommerce ul.products li.product:hover .woocommerce-loop-product__link .secondary-image,
+.woocommerce ul.products li.product:hover .product-thumb img + img,
+.woocommerce ul.products li.product:hover .product-thumb .secondary-image,
+.woocommerce ul.products li.product:hover figure img + img,
+.woocommerce ul.products li.product:hover figure .secondary-image { opacity: 1 !important; }
 
 /* ── SALE ribbon — diagonal top-left ── */
 .af-shell-track .product-card .onsale,
