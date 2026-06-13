@@ -2215,7 +2215,17 @@ body iframe:not(#afPimWrap iframe):not(#afPimLb iframe) { display:none !importan
             w.style.setProperty('display', 'none', 'important');
         });
 
-        section.appendChild(wrap);
+        // Insert slider after the description text (title → description → slider order)
+        var descWidget = null;
+        section.querySelectorAll('.elementor-widget').forEach(function(w) {
+            var type = w.getAttribute('data-widget_type') || '';
+            if (/^(text-editor|text)\b/.test(type)) descWidget = w;
+        });
+        if (descWidget && descWidget.parentNode) {
+            descWidget.parentNode.insertBefore(wrap, descWidget.nextSibling);
+        } else {
+            section.appendChild(wrap);
+        }
     }
 
     document.addEventListener('DOMContentLoaded', placeSlider);
