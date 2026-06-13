@@ -21,10 +21,12 @@ add_filter('nav_menu_css_class', function($classes, $item) {
     if (preg_match('/sign.?up|register/i', $title)) {
         $classes[] = 'af-nav-signup';
         $classes[] = 'af-nav-acc-hide';
-    } elseif (preg_match('/^log\s*in$/', $title)) {
+    } elseif (preg_match('/^log\s*in$/i', $title) || preg_match('/^login$/i', $title)) {
         $classes[] = 'af-nav-login';
         $classes[] = 'af-nav-acc-hide';
-    } elseif (preg_match('/my-account|\/account/i', $url) && !preg_match('/sign|register|log\s*in/i', $title)) {
+    } elseif (preg_match('/my-account|account/i', $url) && !preg_match('/sign|register|login/i', $title . $url)) {
+        $classes[] = 'af-nav-user-icon';
+    } elseif (preg_match('/account|user|person/i', $title) && !preg_match('/sign|register|login/i', $title)) {
         $classes[] = 'af-nav-user-icon';
     }
     return $classes;
