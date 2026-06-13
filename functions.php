@@ -1277,33 +1277,53 @@ html body .product-container h3.elementor-heading-title {
     var suHref = signUpA ? signUpA.href : '';
     var lgHref = loginA  ? loginA.href  : '';
 
-    // Hide Sign Up and Login li elements with inline style (beats any CSS)
+    // Properly hide an element using setProperty (cssText+!important doesn't work)
     function forceHide(el) {
       if (!el) return;
-      el.style.cssText += ';display:none!important;visibility:hidden!important;' +
-        'height:0!important;overflow:hidden!important;pointer-events:none!important;' +
-        'position:absolute!important;opacity:0!important;';
+      el.style.setProperty('display',        'none',     'important');
+      el.style.setProperty('visibility',     'hidden',   'important');
+      el.style.setProperty('height',         '0',        'important');
+      el.style.setProperty('overflow',       'hidden',   'important');
+      el.style.setProperty('pointer-events', 'none',     'important');
+      el.style.setProperty('opacity',        '0',        'important');
+      el.style.setProperty('position',       'absolute', 'important');
     }
-    if (signUpA) forceHide(signUpA.closest('li') || signUpA);
-    if (loginA)  forceHide(loginA.closest('li')  || loginA);
 
-    // Hide any ul that contained these links (sub-menu)
-    var subUl = (signUpA || loginA).closest('ul.sub-menu') ||
-                (signUpA || loginA).closest('ul');
-    if (subUl && subUl !== header.querySelector('ul')) forceHide(subUl);
+    var signUpLi = signUpA ? signUpA.closest('li') : null;
+    var loginLi  = loginA  ? loginA.closest('li')  : null;
+    forceHide(signUpLi || signUpA);
+    forceHide(loginLi  || loginA);
 
-    // Find the icon <li> — the li that IS or WAS the parent of the sub-menu
-    var iconLi = null;
-    if (subUl) iconLi = subUl.closest('li');
-    // Fallback: find li with an SVG/img icon and very short/no text
+    // Determine if they are inside a sub-menu or siblings in the main ul
+    var refA    = signUpA || loginA;
+    var subUl   = refA.closest('ul.sub-menu');
+    var iconLi  = null;
+
+    if (subUl) {
+      // They live in a sub-menu — parent li is the icon
+      iconLi = subUl.closest('li');
+      forceHide(subUl);
+    } else {
+      // They are siblings in the same ul — find the previous li that has an icon
+      var sharedUl = (signUpLi || loginLi) ? (signUpLi || loginLi).parentElement : null;
+      if (sharedUl) {
+        var prev = (signUpLi || loginLi).previousElementSibling;
+        while (prev) {
+          var pa = prev.querySelector(':scope > a');
+          if (pa && (pa.querySelector('svg, img, i') || pa.textContent.trim().length < 4)) {
+            iconLi = prev; break;
+          }
+          prev = prev.previousElementSibling;
+        }
+      }
+    }
+
+    // Last fallback: any header li whose direct anchor has an icon and short text
     if (!iconLi) {
       header.querySelectorAll('li').forEach(function(li) {
         if (iconLi) return;
-        var directA = li.querySelector(':scope > a');
-        if (!directA) return;
-        var hasIcon = directA.querySelector('svg, img, i');
-        var txt = directA.textContent.trim();
-        if (hasIcon && txt.length < 4) iconLi = li;
+        var a = li.querySelector(':scope > a');
+        if (a && a.querySelector('svg, img, i') && a.textContent.trim().length < 4) iconLi = li;
       });
     }
     if (!iconLi) return;
@@ -1325,7 +1345,7 @@ html body .product-container h3.elementor-heading-title {
     }
     iconLi.appendChild(dd);
 
-    // Wire click on icon link
+    // Wire click on the icon anchor
     var iconA = iconLi.querySelector(':scope > a') || iconLi;
     var open = false;
     iconA.addEventListener('click', function(e) {
