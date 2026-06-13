@@ -1232,6 +1232,49 @@ html body .product-container h3.elementor-heading-title {
   }
 }
 
+/* ── Language switcher dropdown (top bar) — match site dark/gold theme ── */
+/* The clickable trigger text */
+#stylable-list-first-item.menu-link,
+#sh_lsft_custom_dropdown_names .menu-link,
+#sh_lsft_custom_dropdown_names > li > a {
+  color: #fff !important;
+  background: transparent !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.3px !important;
+}
+#stylable-list-first-item.menu-link:hover,
+#sh_lsft_custom_dropdown_names .menu-link:hover {
+  color: #c9a84c !important;
+}
+/* The dropdown popup list */
+#lsft-sub-menu,
+#sh_lsft_custom_dropdown_names ul {
+  background: #1a1a1a !important;
+  border: 1px solid #333 !important;
+  border-radius: 6px !important;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.4) !important;
+  padding: 4px 0 !important;
+  min-width: 120px !important;
+}
+/* Dropdown items */
+#lsft-sub-menu li a,
+#sh_lsft_custom_dropdown_names ul li a {
+  color: #fff !important;
+  background: transparent !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  padding: 9px 16px !important;
+  display: block !important;
+  text-decoration: none !important;
+  transition: background 0.2s, color 0.2s !important;
+}
+#lsft-sub-menu li a:hover,
+#sh_lsft_custom_dropdown_names ul li a:hover {
+  background: #c9a84c !important;
+  color: #fff !important;
+}
+
 /* Hide popup data elements that render as static page content — only show in overlay */
 .popup-data,
 [class*="popup-data"],
