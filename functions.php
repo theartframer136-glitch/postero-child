@@ -1932,6 +1932,17 @@ add_action('wp_footer', function() {
     ?>
 <style>
 /* ── Products In Motion circular slider ── */
+.af-pim-section-heading {
+    text-align: left !important;
+    width: 100% !important;
+}
+.af-pim-section-heading .elementor-heading-title,
+.af-pim-section-heading h1,
+.af-pim-section-heading h2,
+.af-pim-section-heading h3,
+.af-pim-section-heading h4 {
+    text-align: left !important;
+}
 .af-pim-wrap {
     width:100%;
     padding:0 0 32px;
@@ -2185,6 +2196,12 @@ body iframe:not(#afPimWrap iframe):not(#afPimLb iframe) { display:none !importan
             if (!heading && /product.*mot/i.test(h.textContent)) heading = h;
         });
         if (!heading) return;
+
+        // Left-align the heading
+        var headWidget = heading.closest('.elementor-widget') || heading.parentElement;
+        headWidget.classList.add('af-pim-section-heading');
+        heading.style.setProperty('text-align', 'left', 'important');
+        headWidget.style.setProperty('text-align', 'left', 'important');
 
         // Walk up to the outermost Elementor section containing this heading
         var section = null;
