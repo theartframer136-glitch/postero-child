@@ -1224,33 +1224,39 @@ html body .product-container h3.elementor-heading-title {
   display: none !important;
 }
 
-/* ── Mobile header: hide Sign Up / Login from inline nav, show as dropdown ── */
-/* Applied immediately in <head> so items are hidden before paint */
+/* ── Mobile header: collapse account submenu into click-triggered dropdown ── */
 @media (max-width: 600px) {
-  body:not(.logged-in) .menu-item-has-children.menu-item a[href*="register"],
-  body:not(.logged-in) .menu-item-has-children.menu-item a[href*="sign-up"],
-  body:not(.logged-in) li.menu-item a[href*="register"],
-  body:not(.logged-in) li.menu-item a[href*="sign-up"],
-  body:not(.logged-in) .af-hide-mobile { display: none !important; }
-
-  /* Dropdown panel styles */
-  #af-acc-dropdown {
-    display: none;
-    position: absolute;
-    top: calc(100% + 8px);
-    right: 0;
-    background: #fff;
-    border: 1px solid #e8e8e8;
-    border-radius: 10px;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.13);
-    z-index: 999999;
-    min-width: 140px;
-    padding: 6px 0;
-    list-style: none;
-    margin: 0;
+  /* Hide sub-menu under account icon by default */
+  body:not(.logged-in) .postero-header li.menu-item-has-children > ul.sub-menu,
+  body:not(.logged-in) .site-header li.menu-item-has-children > ul.sub-menu,
+  body:not(.logged-in) header li.menu-item-has-children > ul.sub-menu,
+  body:not(.logged-in) nav li.menu-item-has-children > ul.sub-menu {
+    display: none !important;
+    position: absolute !important;
+    top: calc(100% + 6px) !important;
+    right: 0 !important;
+    left: auto !important;
+    background: #fff !important;
+    border: 1px solid #e8e8e8 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.13) !important;
+    z-index: 999999 !important;
+    min-width: 140px !important;
+    padding: 6px 0 !important;
+    margin: 0 !important;
+    list-style: none !important;
+    flex-direction: column !important;
   }
-  #af-acc-dropdown.open { display: block; }
-  #af-acc-dropdown a {
+  /* Show when parent li has .af-open class */
+  body:not(.logged-in) .postero-header li.menu-item-has-children.af-open > ul.sub-menu,
+  body:not(.logged-in) .site-header li.menu-item-has-children.af-open > ul.sub-menu,
+  body:not(.logged-in) header li.menu-item-has-children.af-open > ul.sub-menu,
+  body:not(.logged-in) nav li.menu-item-has-children.af-open > ul.sub-menu {
+    display: flex !important;
+  }
+  /* Style sub-menu items */
+  body:not(.logged-in) header li.menu-item-has-children > ul.sub-menu > li > a,
+  body:not(.logged-in) nav li.menu-item-has-children > ul.sub-menu > li > a {
     display: block !important;
     padding: 11px 20px !important;
     font-size: 14px !important;
@@ -1260,92 +1266,58 @@ html body .product-container h3.elementor-heading-title {
     white-space: nowrap !important;
     border-bottom: 1px solid #f0f0f0 !important;
   }
-  #af-acc-dropdown a:last-child { border-bottom: none !important; }
-  #af-acc-dropdown a:hover { background: #f9f5ec !important; color: #c9a84c !important; }
+  body:not(.logged-in) header li.menu-item-has-children > ul.sub-menu > li:last-child > a,
+  body:not(.logged-in) nav li.menu-item-has-children > ul.sub-menu > li:last-child > a {
+    border-bottom: none !important;
+  }
+  /* Ensure parent li is positioned for absolute sub-menu */
+  body:not(.logged-in) header li.menu-item-has-children,
+  body:not(.logged-in) nav li.menu-item-has-children {
+    position: relative !important;
+  }
 }
 </style>
 <script>
 (function(){
   if (window.innerWidth > 600) return;
-  if (document.body.classList.contains('logged-in')) return;
+  if (document.body && document.body.classList.contains('logged-in')) return;
 
   function setupMobileAccDropdown() {
     if (document.body.classList.contains('logged-in')) return;
-    if (document.getElementById('af-acc-dropdown')) return; // already done
+    if (document.body.dataset.mobileAccDone) return;
 
-    var header = document.querySelector('header, .site-header, .postero-header');
+    // Find all menu-item-has-children <li> in header/nav that contain Sign Up or Login in submenu
+    var header = document.querySelector('header, .site-header, .postero-header, nav');
     if (!header) return;
 
-    // Find Sign Up and Login links anywhere in header
-    var signUpLink = null, loginLink = null;
-    header.querySelectorAll('a').forEach(function(a) {
-      var t = a.textContent.trim();
-      if (!signUpLink && /^sign\s*up$/i.test(t)) signUpLink = a;
-      if (!loginLink  && /^login$/i.test(t))      loginLink  = a;
-    });
-    if (!signUpLink && !loginLink) return;
-
-    // Hide their parent <li> elements from the nav
-    [signUpLink, loginLink].forEach(function(a) {
-      if (!a) return;
-      var li = a.closest('li');
-      if (li) li.style.setProperty('display', 'none', 'important');
-      else a.style.setProperty('display', 'none', 'important');
-    });
-
-    // Find the user icon trigger — the <a> that contains an SVG/icon near the account area
-    var trigger = null;
-    header.querySelectorAll('a').forEach(function(a) {
-      if (a === signUpLink || a === loginLink) return;
-      if (trigger) return;
-      var href = a.getAttribute('href') || '';
-      var hasSvg = a.querySelector('svg, i');
-      if (hasSvg && (href.indexOf('account') !== -1 || href.indexOf('login') !== -1 || href === '#')) {
-        trigger = a;
-      }
-    });
-    // Fallback: find first icon-only link in header
-    if (!trigger) {
-      header.querySelectorAll('a').forEach(function(a) {
-        if (trigger || a === signUpLink || a === loginLink) return;
-        if (a.querySelector('svg, i, img') && a.textContent.trim().length < 3) trigger = a;
+    var targetLi = null;
+    header.querySelectorAll('li.menu-item-has-children').forEach(function(li) {
+      if (targetLi) return;
+      var sub = li.querySelector('ul.sub-menu');
+      if (!sub) return;
+      var hasAcc = false;
+      sub.querySelectorAll('a').forEach(function(a) {
+        var t = a.textContent.trim();
+        if (/sign\s*up|login|register/i.test(t)) hasAcc = true;
       });
-    }
-    if (!trigger) return;
+      if (hasAcc) targetLi = li;
+    });
 
-    // Create dropdown panel
-    var dropdown = document.createElement('div');
-    dropdown.id = 'af-acc-dropdown';
-    if (signUpLink) {
-      var s = document.createElement('a');
-      s.href = signUpLink.href;
-      s.textContent = 'Sign Up';
-      dropdown.appendChild(s);
-    }
-    if (loginLink) {
-      var l = document.createElement('a');
-      l.href = loginLink.href;
-      l.textContent = 'Login';
-      dropdown.appendChild(l);
-    }
+    if (!targetLi) return;
+    document.body.dataset.mobileAccDone = '1';
 
-    // Anchor dropdown to trigger's parent
-    var anchor = trigger.closest('li') || trigger.parentElement;
-    anchor.style.setProperty('position', 'relative', 'important');
-    anchor.appendChild(dropdown);
-
-    // Toggle on tap
-    var open = false;
+    // Toggle .af-open on click of the parent link/icon
+    var trigger = targetLi.querySelector(':scope > a') || targetLi;
     trigger.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      open = !open;
-      dropdown.classList.toggle('open', open);
+      targetLi.classList.toggle('af-open');
     });
+
+    // Close on outside click
     document.addEventListener('click', function(e) {
-      if (open && !anchor.contains(e.target)) {
-        open = false;
-        dropdown.classList.remove('open');
+      if (!targetLi.contains(e.target)) {
+        targetLi.classList.remove('af-open');
       }
     });
   }
@@ -1506,85 +1478,6 @@ add_action('wp_head', function() { ?>
   document.addEventListener('DOMContentLoaded', fixShopCollectionRow);
   window.addEventListener('load', fixShopCollectionRow);
   setTimeout(fixShopCollectionRow, 400);
-}());
-</script>
-<script>
-(function(){
-  if (window.innerWidth > 600) return;
-  if (document.body && document.body.classList.contains('logged-in')) return;
-
-  function fixMobileHeader() {
-    if (document.body.classList.contains('logged-in')) return;
-    var header = document.querySelector('header, .site-header, .postero-header');
-    if (!header) return;
-    if (header.dataset.mobileAccFixed) return;
-
-    // Find Sign Up and Login nav items — they show as inline nav links
-    var signUpEl = null, loginEl = null;
-    header.querySelectorAll('a').forEach(function(a) {
-      var t = a.textContent.trim();
-      if (!signUpEl && /^sign\s*up$/i.test(t)) signUpEl = a;
-      if (!loginEl  && /^login$/i.test(t))      loginEl  = a;
-    });
-    if (!signUpEl && !loginEl) return; // already logged in or not found
-    header.dataset.mobileAccFixed = '1';
-
-    // Find the user icon element (the nearest common ancestor or the icon before Sign Up)
-    var userIcon = null;
-    header.querySelectorAll('a').forEach(function(a) {
-      if (a === signUpEl || a === loginEl) return;
-      if (a.querySelector('svg, i, img') || a.classList.contains('account') || /account|user|person/i.test(a.className + ' ' + (a.getAttribute('href') || ''))) {
-        userIcon = a;
-      }
-    });
-
-    // Hide Sign Up and Login from the inline nav
-    if (signUpEl) signUpEl.closest('li') ? signUpEl.closest('li').style.setProperty('display','none','important') : signUpEl.style.setProperty('display','none','important');
-    if (loginEl)  loginEl.closest('li')  ? loginEl.closest('li').style.setProperty('display','none','important')  : loginEl.style.setProperty('display','none','important');
-
-    // Build a dropdown anchored to the user icon (or insert after it)
-    var anchor = userIcon ? (userIcon.closest('li') || userIcon) : null;
-    if (!anchor) {
-      // Fallback: create anchor at end of header icons area
-      anchor = header.querySelector('.header-icons, .nav-icons, .site-header-right') || header;
-    }
-    anchor.style.setProperty('position', 'relative', 'important');
-
-    // Create dropdown panel
-    var panel = document.createElement('div');
-    panel.id = 'af-mobile-acc-dropdown';
-    panel.innerHTML =
-      (signUpEl ? '<a href="' + signUpEl.href + '">Sign Up</a>' : '') +
-      (loginEl  ? '<a href="' + loginEl.href  + '">Login</a>'   : '');
-    panel.style.cssText = [
-      'display:none','position:absolute','top:calc(100% + 6px)','right:0',
-      'background:#fff','border:1px solid #e0e0e0','border-radius:10px',
-      'box-shadow:0 6px 20px rgba(0,0,0,0.15)','z-index:99999',
-      'min-width:130px','padding:6px 0','list-style:none','margin:0'
-    ].join(';');
-    panel.querySelectorAll('a').forEach(function(a) {
-      a.style.cssText = 'display:block;padding:11px 20px;font-size:14px;font-weight:600;color:#222;text-decoration:none;white-space:nowrap;';
-    });
-    anchor.appendChild(panel);
-
-    // Toggle on user icon tap
-    var trigger = userIcon || anchor;
-    var open = false;
-    trigger.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
-      open = !open;
-      panel.style.display = open ? 'block' : 'none';
-    });
-    // Close on outside tap
-    document.addEventListener('click', function(e) {
-      if (!anchor.contains(e.target)) { open = false; panel.style.display = 'none'; }
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', fixMobileHeader);
-  window.addEventListener('load', fixMobileHeader);
-  setTimeout(fixMobileHeader, 400);
 }());
 </script>
 <?php }, 99);
