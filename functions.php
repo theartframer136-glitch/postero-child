@@ -1388,11 +1388,21 @@ add_action('wp_head', function() { ?>
   }
 
   /* Google review cards — fit to content height on mobile */
+  /* Widget forces height:100% on .g-review — override it */
+  #g-review .swiper .swiper-wrapper .swiper-slide .g-review,
+  .g-review,
+  [class*="g-review"] {
+    height: auto !important;
+  }
   /* Slider track: don't force equal heights */
   .eapps-google-reviews-list,
   [class*="google-reviews-list"],
-  [class*="reviews-list"] {
+  [class*="reviews-list"],
+  .swiper-wrapper {
     align-items: flex-start !important;
+  }
+  .swiper-slide {
+    height: auto !important;
   }
   .eapps-google-reviews-list-item,
   .eapps-google-reviews-list .eapps-google-reviews-list-item,
