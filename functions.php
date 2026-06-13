@@ -1257,27 +1257,25 @@ html body .product-container h3.elementor-heading-title {
   if (window.innerWidth > 600) return;
   if (document.body && document.body.classList.contains('logged-in')) return;
 
+  var _ddDone = false;
+
   function run() {
     if (document.body.classList.contains('logged-in')) return;
-    if (document.getElementById('af-mob-dd')) return; // already done
+    if (_ddDone) return;
 
-    var header = document.querySelector('header, .site-header, .postero-header');
-    if (!header) return;
-
-    // Find Sign Up and Login anchor elements anywhere in header
+    // Search whole document — Postero header class varies
     var signUpA = null, loginA = null;
-    header.querySelectorAll('a').forEach(function(a) {
-      var t = a.textContent.trim();
-      if (!signUpA && /^sign\s*up$/i.test(t)) signUpA = a;
-      if (!loginA  && /^login$/i.test(t))     loginA  = a;
+    document.querySelectorAll('a').forEach(function(a) {
+      var t = a.textContent.replace(/\s+/g,' ').trim();
+      if (!signUpA && /sign.?up/i.test(t) && t.length < 20) signUpA = a;
+      if (!loginA  && /^log\s*in$/i.test(t))                 loginA  = a;
     });
     if (!signUpA && !loginA) return;
+    _ddDone = true;
 
-    // Save hrefs before we hide anything
     var suHref = signUpA ? signUpA.href : '';
     var lgHref = loginA  ? loginA.href  : '';
 
-    // Properly hide an element using setProperty (cssText+!important doesn't work)
     function forceHide(el) {
       if (!el) return;
       el.style.setProperty('display',        'none',     'important');
@@ -1286,7 +1284,6 @@ html body .product-container h3.elementor-heading-title {
       el.style.setProperty('overflow',       'hidden',   'important');
       el.style.setProperty('pointer-events', 'none',     'important');
       el.style.setProperty('opacity',        '0',        'important');
-      el.style.setProperty('position',       'absolute', 'important');
     }
 
     var signUpLi = signUpA ? signUpA.closest('li') : null;
@@ -1294,72 +1291,84 @@ html body .product-container h3.elementor-heading-title {
     forceHide(signUpLi || signUpA);
     forceHide(loginLi  || loginA);
 
-    // Determine if they are inside a sub-menu or siblings in the main ul
-    var refA    = signUpA || loginA;
-    var subUl   = refA.closest('ul.sub-menu');
-    var iconLi  = null;
+    // If they're in a sub-menu, hide the whole sub-menu ul
+    var refEl  = signUpA || loginA;
+    var subUl  = refEl.closest('ul.sub-menu') || refEl.closest('ul[class*="sub"]');
+    var iconLi = null;
 
     if (subUl) {
-      // They live in a sub-menu — parent li is the icon
       iconLi = subUl.closest('li');
       forceHide(subUl);
     } else {
-      // They are siblings in the same ul — find the previous li that has an icon
-      var sharedUl = (signUpLi || loginLi) ? (signUpLi || loginLi).parentElement : null;
-      if (sharedUl) {
-        var prev = (signUpLi || loginLi).previousElementSibling;
-        while (prev) {
-          var pa = prev.querySelector(':scope > a');
-          if (pa && (pa.querySelector('svg, img, i') || pa.textContent.trim().length < 4)) {
-            iconLi = prev; break;
+      // Siblings in same ul: walk backwards from signUpLi to find icon li
+      var parentUl = (signUpLi || loginLi) && (signUpLi || loginLi).parentElement;
+      if (parentUl) {
+        var sib = (signUpLi || loginLi).previousElementSibling;
+        while (sib) {
+          if (sib.querySelector('svg, img, i[class]') ||
+              (sib.querySelector('a') && /account|my-account|user/i.test(sib.querySelector('a').getAttribute('href') || ''))) {
+            iconLi = sib; break;
           }
-          prev = prev.previousElementSibling;
+          sib = sib.previousElementSibling;
+        }
+        // Also scan all sibling li for any that has an SVG icon
+        if (!iconLi) {
+          parentUl.querySelectorAll(':scope > li').forEach(function(li) {
+            if (iconLi || li === signUpLi || li === loginLi) return;
+            if (li.querySelector('svg, i[class*="user"], i[class*="person"], i[class*="account"]')) iconLi = li;
+          });
         }
       }
     }
 
-    // Last fallback: any header li whose direct anchor has an icon and short text
+    // Broadest fallback: find any li in page header area with a person/user SVG
     if (!iconLi) {
-      header.querySelectorAll('li').forEach(function(li) {
-        if (iconLi) return;
-        var a = li.querySelector(':scope > a');
-        if (a && a.querySelector('svg, img, i') && a.textContent.trim().length < 4) iconLi = li;
+      var hdr = document.querySelector('header, [class*="header"], [id*="header"]') || document.body;
+      hdr.querySelectorAll('li').forEach(function(li) {
+        if (iconLi || li === signUpLi || li === loginLi) return;
+        if (li.querySelector('svg, i[class]') && !/(sign|login|register)/i.test(li.textContent)) iconLi = li;
       });
     }
-    if (!iconLi) return;
+
+    if (!iconLi) {
+      // Could not find icon container — still hide the links but no dropdown
+      return;
+    }
 
     iconLi.style.setProperty('position', 'relative', 'important');
 
-    // Build dropdown
+    // Remove any existing dropdown first
+    var existing = document.getElementById('af-mob-dd');
+    if (existing) existing.parentNode.removeChild(existing);
+
     var dd = document.createElement('div');
     dd.id = 'af-mob-dd';
     if (suHref) {
-      var s = document.createElement('a');
-      s.href = suHref; s.textContent = 'Sign Up';
-      dd.appendChild(s);
+      var s = document.createElement('a'); s.href = suHref; s.textContent = 'Sign Up'; dd.appendChild(s);
     }
     if (lgHref) {
-      var l = document.createElement('a');
-      l.href = lgHref; l.textContent = 'Login';
-      dd.appendChild(l);
+      var l = document.createElement('a'); l.href = lgHref; l.textContent = 'Login'; dd.appendChild(l);
     }
     iconLi.appendChild(dd);
 
-    // Wire click on the icon anchor
     var iconA = iconLi.querySelector(':scope > a') || iconLi;
     var open = false;
     iconA.addEventListener('click', function(e) {
-      e.preventDefault();
-      e.stopPropagation();
+      e.preventDefault(); e.stopPropagation();
       open = !open;
       dd.style.display = open ? 'block' : 'none';
     });
     document.addEventListener('click', function(e) {
-      if (open && !iconLi.contains(e.target)) {
-        open = false;
-        dd.style.display = 'none';
-      }
+      if (open && !iconLi.contains(e.target)) { open = false; dd.style.display = 'none'; }
     });
+
+    // Keep hiding sign up/login in case theme re-renders them
+    var mo = new MutationObserver(function() {
+      forceHide(signUpLi || signUpA);
+      forceHide(loginLi  || loginA);
+      if (subUl) forceHide(subUl);
+    });
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style','class'] });
   }
 
   if (document.readyState !== 'loading') run();
