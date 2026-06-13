@@ -1488,9 +1488,59 @@ add_action('wp_head', function() { ?>
     sp(btnWrap,'flex-shrink','0');
     sp(btnWrap,'margin-left','auto');
   }
-  document.addEventListener('DOMContentLoaded', fixShopCollectionRow);
-  window.addEventListener('load', fixShopCollectionRow);
-  setTimeout(fixShopCollectionRow, 400);
+
+  // Generic helper: fix any section with a heading + "MORE LIKE THIS" or "VIEW MORE" button inline
+  function fixSectionRow(headingText) {
+    var heading = null;
+    document.querySelectorAll('h1,h2,h3,h4,.elementor-heading-title').forEach(function(h) {
+      if (!heading && headingText.test(h.textContent)) heading = h;
+    });
+    if (!heading) return;
+    var btn = null;
+    // Find nearest MORE LIKE THIS / VIEW MORE button — search from heading's section outward
+    var sec = heading.closest('.e-con, .elementor-section, section') || document.body;
+    sec.querySelectorAll('a,button').forEach(function(b) {
+      if (!btn && /more\s*like\s*this|view\s*more/i.test(b.textContent)) btn = b;
+    });
+    var row = heading.closest('.e-con, .elementor-container, .elementor-row, section');
+    if (!row) return;
+    if (row.dataset.sectionRowFixed) return;
+    row.dataset.sectionRowFixed = '1';
+    var sp = function(el,p,v){ el.style.setProperty(p,v,'important'); };
+    sp(row,'display','flex');
+    sp(row,'flex-direction','row');
+    sp(row,'align-items','center');
+    sp(row,'justify-content','space-between');
+    sp(row,'flex-wrap','nowrap');
+    sp(row,'width','100%');
+    sp(row,'overflow','visible');
+    sp(row,'box-sizing','border-box');
+    sp(row,'padding-left','12px');
+    sp(row,'padding-right','12px');
+    sp(heading,'font-size','20px');
+    sp(heading,'line-height','1.3');
+    sp(heading,'white-space','normal');
+    sp(heading,'flex','1 1 auto');
+    sp(heading,'min-width','0');
+    sp(heading,'padding-left','0');
+    sp(heading,'margin-left','0');
+    sp(heading,'max-width','none');
+    if (btn) {
+      var btnWrap = btn.closest('.elementor-widget,.e-con') || btn.parentElement;
+      sp(btnWrap,'flex-shrink','0');
+      sp(btnWrap,'margin-left','auto');
+    }
+  }
+
+  function fixAllSectionRows() {
+    fixSectionRow(/trending\s*today/i);
+    fixSectionRow(/new\s*arrivals/i);
+    fixSectionRow(/shop.*collection|collection.*shop/i);
+  }
+
+  document.addEventListener('DOMContentLoaded', fixAllSectionRows);
+  window.addEventListener('load', fixAllSectionRows);
+  setTimeout(fixAllSectionRows, 400);
 }());
 </script>
 <?php }, 99);
