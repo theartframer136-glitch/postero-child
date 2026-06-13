@@ -2232,16 +2232,27 @@ body iframe:not(#afPimWrap iframe):not(#afPimLb iframe) { display:none !importan
             w.style.setProperty('display', 'none', 'important');
         });
 
-        // Insert slider after the description text (title → description → slider order)
+        // Find the widget-wrap container that holds the heading (direct parent of elementor-widgets)
+        var container = heading.closest('.elementor-widget-wrap, .e-con-inner, .e-con') || section;
+
+        // Find description text widget in that same container
         var descWidget = null;
-        section.querySelectorAll('.elementor-widget').forEach(function(w) {
+        container.querySelectorAll(':scope > .elementor-widget, :scope > .elementor-element').forEach(function(w) {
             var type = w.getAttribute('data-widget_type') || '';
             if (/^(text-editor|text)\b/.test(type)) descWidget = w;
         });
-        if (descWidget && descWidget.parentNode) {
-            descWidget.parentNode.insertBefore(wrap, descWidget.nextSibling);
-        } else {
-            section.appendChild(wrap);
+        // Fallback: search anywhere in section
+        if (!descWidget) {
+            section.querySelectorAll('.elementor-widget').forEach(function(w) {
+                var type = w.getAttribute('data-widget_type') || '';
+                if (/^(text-editor|text)\b/.test(type)) descWidget = w;
+            });
+        }
+
+        // Append slider to container, then move desc just before it → title → desc → slider
+        container.appendChild(wrap);
+        if (descWidget) {
+            container.insertBefore(descWidget, wrap);
         }
     }
 
