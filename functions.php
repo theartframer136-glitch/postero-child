@@ -1224,111 +1224,129 @@ html body .product-container h3.elementor-heading-title {
   display: none !important;
 }
 
-/* ── Mobile header: collapse account submenu into click-triggered dropdown ── */
-@media (max-width: 600px) {
-  /* Hide sub-menu under account icon by default */
-  body:not(.logged-in) .postero-header li.menu-item-has-children > ul.sub-menu,
-  body:not(.logged-in) .site-header li.menu-item-has-children > ul.sub-menu,
-  body:not(.logged-in) header li.menu-item-has-children > ul.sub-menu,
-  body:not(.logged-in) nav li.menu-item-has-children > ul.sub-menu {
-    display: none !important;
-    position: absolute !important;
-    top: calc(100% + 6px) !important;
-    right: 0 !important;
-    left: auto !important;
-    background: #fff !important;
-    border: 1px solid #e8e8e8 !important;
-    border-radius: 10px !important;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.13) !important;
-    z-index: 999999 !important;
-    min-width: 140px !important;
-    padding: 6px 0 !important;
-    margin: 0 !important;
-    list-style: none !important;
-    flex-direction: column !important;
-  }
-  /* Show when parent li has .af-open class */
-  body:not(.logged-in) .postero-header li.menu-item-has-children.af-open > ul.sub-menu,
-  body:not(.logged-in) .site-header li.menu-item-has-children.af-open > ul.sub-menu,
-  body:not(.logged-in) header li.menu-item-has-children.af-open > ul.sub-menu,
-  body:not(.logged-in) nav li.menu-item-has-children.af-open > ul.sub-menu {
-    display: flex !important;
-  }
-  /* Style sub-menu items */
-  body:not(.logged-in) header li.menu-item-has-children > ul.sub-menu > li > a,
-  body:not(.logged-in) nav li.menu-item-has-children > ul.sub-menu > li > a {
-    display: block !important;
-    padding: 11px 20px !important;
-    font-size: 14px !important;
-    font-weight: 600 !important;
-    color: #222 !important;
-    text-decoration: none !important;
-    white-space: nowrap !important;
-    border-bottom: 1px solid #f0f0f0 !important;
-  }
-  body:not(.logged-in) header li.menu-item-has-children > ul.sub-menu > li:last-child > a,
-  body:not(.logged-in) nav li.menu-item-has-children > ul.sub-menu > li:last-child > a {
-    border-bottom: none !important;
-  }
-  /* Ensure parent li is positioned for absolute sub-menu */
-  body:not(.logged-in) header li.menu-item-has-children,
-  body:not(.logged-in) nav li.menu-item-has-children {
-    position: relative !important;
-  }
+/* ── Mobile header account dropdown ── */
+/* #af-mob-dd is created by JS below; hidden by default */
+#af-mob-dd {
+  display: none;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: #fff;
+  border: 1px solid #e8e8e8;
+  border-radius: 10px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+  z-index: 9999999;
+  min-width: 140px;
+  padding: 6px 0;
 }
+#af-mob-dd a {
+  display: block;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #222;
+  text-decoration: none;
+  white-space: nowrap;
+  border-bottom: 1px solid #f0f0f0;
+}
+#af-mob-dd a:last-child { border-bottom: none; }
+#af-mob-dd a:active { background: #f9f5ec; color: #c9a84c; }
 </style>
 <script>
 (function(){
   if (window.innerWidth > 600) return;
   if (document.body && document.body.classList.contains('logged-in')) return;
 
-  function setupMobileAccDropdown() {
+  function run() {
     if (document.body.classList.contains('logged-in')) return;
-    if (document.body.dataset.mobileAccDone) return;
+    if (document.getElementById('af-mob-dd')) return; // already done
 
-    // Find all menu-item-has-children <li> in header/nav that contain Sign Up or Login in submenu
-    var header = document.querySelector('header, .site-header, .postero-header, nav');
+    var header = document.querySelector('header, .site-header, .postero-header');
     if (!header) return;
 
-    var targetLi = null;
-    header.querySelectorAll('li.menu-item-has-children').forEach(function(li) {
-      if (targetLi) return;
-      var sub = li.querySelector('ul.sub-menu');
-      if (!sub) return;
-      var hasAcc = false;
-      sub.querySelectorAll('a').forEach(function(a) {
-        var t = a.textContent.trim();
-        if (/sign\s*up|login|register/i.test(t)) hasAcc = true;
-      });
-      if (hasAcc) targetLi = li;
+    // Find Sign Up and Login anchor elements anywhere in header
+    var signUpA = null, loginA = null;
+    header.querySelectorAll('a').forEach(function(a) {
+      var t = a.textContent.trim();
+      if (!signUpA && /^sign\s*up$/i.test(t)) signUpA = a;
+      if (!loginA  && /^login$/i.test(t))     loginA  = a;
     });
+    if (!signUpA && !loginA) return;
 
-    if (!targetLi) return;
-    document.body.dataset.mobileAccDone = '1';
+    // Save hrefs before we hide anything
+    var suHref = signUpA ? signUpA.href : '';
+    var lgHref = loginA  ? loginA.href  : '';
 
-    // Toggle .af-open on click of the parent link/icon
-    var trigger = targetLi.querySelector(':scope > a') || targetLi;
-    trigger.addEventListener('click', function(e) {
+    // Hide Sign Up and Login li elements with inline style (beats any CSS)
+    function forceHide(el) {
+      if (!el) return;
+      el.style.cssText += ';display:none!important;visibility:hidden!important;' +
+        'height:0!important;overflow:hidden!important;pointer-events:none!important;' +
+        'position:absolute!important;opacity:0!important;';
+    }
+    if (signUpA) forceHide(signUpA.closest('li') || signUpA);
+    if (loginA)  forceHide(loginA.closest('li')  || loginA);
+
+    // Hide any ul that contained these links (sub-menu)
+    var subUl = (signUpA || loginA).closest('ul.sub-menu') ||
+                (signUpA || loginA).closest('ul');
+    if (subUl && subUl !== header.querySelector('ul')) forceHide(subUl);
+
+    // Find the icon <li> — the li that IS or WAS the parent of the sub-menu
+    var iconLi = null;
+    if (subUl) iconLi = subUl.closest('li');
+    // Fallback: find li with an SVG/img icon and very short/no text
+    if (!iconLi) {
+      header.querySelectorAll('li').forEach(function(li) {
+        if (iconLi) return;
+        var directA = li.querySelector(':scope > a');
+        if (!directA) return;
+        var hasIcon = directA.querySelector('svg, img, i');
+        var txt = directA.textContent.trim();
+        if (hasIcon && txt.length < 4) iconLi = li;
+      });
+    }
+    if (!iconLi) return;
+
+    iconLi.style.setProperty('position', 'relative', 'important');
+
+    // Build dropdown
+    var dd = document.createElement('div');
+    dd.id = 'af-mob-dd';
+    if (suHref) {
+      var s = document.createElement('a');
+      s.href = suHref; s.textContent = 'Sign Up';
+      dd.appendChild(s);
+    }
+    if (lgHref) {
+      var l = document.createElement('a');
+      l.href = lgHref; l.textContent = 'Login';
+      dd.appendChild(l);
+    }
+    iconLi.appendChild(dd);
+
+    // Wire click on icon link
+    var iconA = iconLi.querySelector(':scope > a') || iconLi;
+    var open = false;
+    iconA.addEventListener('click', function(e) {
       e.preventDefault();
       e.stopPropagation();
-      targetLi.classList.toggle('af-open');
+      open = !open;
+      dd.style.display = open ? 'block' : 'none';
     });
-
-    // Close on outside click
     document.addEventListener('click', function(e) {
-      if (!targetLi.contains(e.target)) {
-        targetLi.classList.remove('af-open');
+      if (open && !iconLi.contains(e.target)) {
+        open = false;
+        dd.style.display = 'none';
       }
     });
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', setupMobileAccDropdown);
-  } else {
-    setupMobileAccDropdown();
-  }
-  window.addEventListener('load', setupMobileAccDropdown);
-  setTimeout(setupMobileAccDropdown, 300);
+  if (document.readyState !== 'loading') run();
+  document.addEventListener('DOMContentLoaded', run);
+  window.addEventListener('load', run);
+  setTimeout(run, 400);
+  setTimeout(run, 1200);
 }());
 </script>
 <?php }, 99);
