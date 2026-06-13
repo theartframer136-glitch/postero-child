@@ -1541,6 +1541,66 @@ add_action('wp_head', function() { ?>
   document.addEventListener('DOMContentLoaded', fixAllSectionRows);
   window.addEventListener('load', fixAllSectionRows);
   setTimeout(fixAllSectionRows, 400);
+
+  // Fix WooCommerce product grid hover image gap
+  // The gallery/secondary image can sit outside .woocommerce-loop-product__link
+  // so we find both images' real shared container and force them to the same box.
+  function fixProductHoverImages() {
+    document.querySelectorAll('ul.products li.product').forEach(function(card) {
+      if (card.dataset.hoverFixed) return;
+
+      // Find main image and gallery/secondary image
+      var imgs = card.querySelectorAll('img');
+      if (imgs.length < 2) return;
+      var mainImg = imgs[0];
+      var hoverImg = null;
+      imgs.forEach(function(img) {
+        if (img === mainImg) return;
+        var cls = (img.className || '') + ' ' + (img.getAttribute('src') || '');
+        if (!hoverImg) hoverImg = img;
+      });
+      if (!hoverImg) return;
+      card.dataset.hoverFixed = '1';
+
+      // Find the real container: the closest shared ancestor that directly wraps the images
+      var mainParent  = mainImg.parentElement;
+      var hoverParent = hoverImg.parentElement;
+      var container   = (mainParent === hoverParent) ? mainParent : mainImg.closest('a, .product-thumbnail, .woocommerce-loop-product__link') || mainParent;
+
+      // Make container a positioned box sized to the main image
+      var sp = function(el, p, v) { el.style.setProperty(p, v, 'important'); };
+      sp(container, 'position', 'relative');
+      sp(container, 'overflow', 'hidden');
+      sp(container, 'display',  'block');
+
+      // Let main image define height naturally, hide hover image on top
+      sp(mainImg,  'display',  'block');
+      sp(mainImg,  'width',    '100%');
+      sp(mainImg,  'height',   'auto');
+      sp(mainImg,  'position', 'relative');
+      sp(mainImg,  'z-index',  '1');
+      sp(mainImg,  'object-fit', 'cover');
+
+      sp(hoverImg, 'position', 'absolute');
+      sp(hoverImg, 'top',      '0');
+      sp(hoverImg, 'left',     '0');
+      sp(hoverImg, 'width',    '100%');
+      sp(hoverImg, 'height',   '100%');
+      sp(hoverImg, 'object-fit', 'cover');
+      sp(hoverImg, 'opacity',  '0');
+      sp(hoverImg, 'z-index',  '2');
+      sp(hoverImg, 'transition', 'opacity 0.4s ease');
+      sp(hoverImg, 'margin',   '0');
+
+      // Wire hover
+      card.addEventListener('mouseenter', function() { hoverImg.style.setProperty('opacity', '1', 'important'); });
+      card.addEventListener('mouseleave', function() { hoverImg.style.setProperty('opacity', '0', 'important'); });
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', fixProductHoverImages);
+  window.addEventListener('load', fixProductHoverImages);
+  setTimeout(fixProductHoverImages, 600);
 }());
 </script>
 <?php }, 99);
