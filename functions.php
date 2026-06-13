@@ -1243,24 +1243,26 @@ html body .product-container h3.elementor-heading-title {
   display: none !important;
 }
 
-/* ── Mobile header: hide Sign Up / Login nav items, show as dropdown on icon click ── */
+/* ── Mobile header: theme dropdown widget — hide menu by default, toggle on click ── */
 @media (max-width: 600px) {
-  body:not(.logged-in) li.af-nav-acc-hide { display: none !important; }
-  li.af-nav-user-icon { position: relative !important; }
-  #af-mob-dd {
-    display: none;
-    position: absolute;
-    top: 100%;
-    right: 0;
-    background: #fff;
-    border: 1px solid #e8e8e8;
-    border-radius: 10px;
-    box-shadow: 0 6px 24px rgba(0,0,0,0.15);
-    z-index: 9999999;
-    min-width: 140px;
-    padding: 6px 0;
+  body:not(.logged-in) .mobile_navbar_menu_dropdown_menu {
+    display: none !important;
+    position: absolute !important;
+    top: 100% !important;
+    right: 0 !important;
+    background: #fff !important;
+    border: 1px solid #e8e8e8 !important;
+    border-radius: 10px !important;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.15) !important;
+    z-index: 9999999 !important;
+    min-width: 140px !important;
+    padding: 6px 0 !important;
+    flex-direction: column !important;
   }
-  #af-mob-dd a {
+  body:not(.logged-in) .mobile_navbar_menu_dropdown_menu.af-dd-open {
+    display: flex !important;
+  }
+  body:not(.logged-in) .mobile_navbar_menu_dropdown_menu a {
     display: block !important;
     padding: 12px 20px !important;
     font-size: 14px !important;
@@ -1270,7 +1272,12 @@ html body .product-container h3.elementor-heading-title {
     white-space: nowrap !important;
     border-bottom: 1px solid #f0f0f0 !important;
   }
-  #af-mob-dd a:last-child { border-bottom: none !important; }
+  body:not(.logged-in) .mobile_navbar_menu_dropdown_menu a:last-child {
+    border-bottom: none !important;
+  }
+  body:not(.logged-in) .mobile_navbar_menu_dropdown_parent {
+    position: relative !important;
+  }
 }
 </style>
 <script>
@@ -1278,72 +1285,30 @@ html body .product-container h3.elementor-heading-title {
   if (window.innerWidth > 600) return;
   if (document.body && document.body.classList.contains('logged-in')) return;
 
-  function findNavLiByText(pattern) {
-    var items = document.querySelectorAll('nav li, header li, .elementor-nav-menu li, #site-navigation li');
-    for (var i = 0; i < items.length; i++) {
-      var a = items[i].querySelector('a');
-      if (a && pattern.test(a.textContent.trim())) return items[i];
-    }
-    return null;
-  }
-
   function run() {
     if (document.body.classList.contains('logged-in')) return;
-    if (document.getElementById('af-mob-dd')) return;
+    if (document.body.dataset.afDdDone) return;
 
-    // Find Sign Up and Login by text content — works regardless of PHP filter
-    var signUpLi = document.querySelector('li.af-nav-signup') || findNavLiByText(/^sign\s*up$/i);
-    var loginLi  = document.querySelector('li.af-nav-login')  || findNavLiByText(/^log\s*in$|^login$/i);
+    var menu   = document.querySelector('.mobile_navbar_menu_dropdown_menu');
+    var title  = document.querySelector('.mobile_navbar_menu_dropdown_title');
+    var parent = document.querySelector('.mobile_navbar_menu_dropdown_parent');
 
-    if (!signUpLi && !loginLi) return;
+    if (!menu || !title) return;
+    document.body.dataset.afDdDone = '1';
 
-    var suHref = signUpLi ? signUpLi.querySelector('a').href : '';
-    var lgHref = loginLi  ? loginLi.querySelector('a').href  : '';
+    if (parent) parent.style.setProperty('position', 'relative', 'important');
 
-    // Hide Sign Up and Login inline items via JS (belt-and-suspenders with CSS)
-    if (signUpLi) signUpLi.style.setProperty('display', 'none', 'important');
-    if (loginLi)  loginLi.style.setProperty('display', 'none', 'important');
-
-    // Find person/account icon: PHP-stamped class first, then SVG sibling
-    var iconLi = document.querySelector('li.af-nav-user-icon');
-    if (!iconLi) {
-      var ref = signUpLi || loginLi;
-      var sib = ref ? ref.previousElementSibling : null;
-      while (sib) {
-        if (sib.querySelector('svg, img, i[class], .eicon-person, [class*="person"], [class*="user"]')) { iconLi = sib; break; }
-        sib = sib.previousElementSibling;
-      }
-    }
-    // Last resort: find any nav li that contains an SVG/icon but no text
-    if (!iconLi) {
-      var items = document.querySelectorAll('nav li, header li, .elementor-nav-menu li');
-      for (var i = 0; i < items.length; i++) {
-        var txt = (items[i].querySelector('a') || items[i]).textContent.trim();
-        if (items[i].querySelector('svg, i[class*="person"], i[class*="user"]') && txt.length < 5) {
-          iconLi = items[i]; break;
-        }
-      }
-    }
-
-    if (!iconLi) return;
-
-    iconLi.style.setProperty('position', 'relative', 'important');
-
-    var dd = document.createElement('div');
-    dd.id = 'af-mob-dd';
-    if (suHref) { var s = document.createElement('a'); s.href = suHref; s.textContent = 'Sign Up'; dd.appendChild(s); }
-    if (lgHref) { var l = document.createElement('a'); l.href = lgHref; l.textContent = 'Login';   dd.appendChild(l); }
-    iconLi.appendChild(dd);
-
-    var iconA = iconLi.querySelector(':scope > a') || iconLi;
     var open = false;
-    iconA.addEventListener('click', function(e) {
+    title.addEventListener('click', function(e) {
       e.preventDefault(); e.stopPropagation();
       open = !open;
-      dd.style.display = open ? 'block' : 'none';
+      menu.classList.toggle('af-dd-open', open);
     });
     document.addEventListener('click', function(e) {
-      if (open && !iconLi.contains(e.target)) { open = false; dd.style.display = 'none'; }
+      if (open && menu && !menu.contains(e.target) && !title.contains(e.target)) {
+        open = false;
+        menu.classList.remove('af-dd-open');
+      }
     });
   }
 
