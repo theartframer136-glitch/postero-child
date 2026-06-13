@@ -1991,7 +1991,14 @@ add_action('wp_footer', function() {
 [data-widget_type^="video-playlist"] .elementor-widget-container,
 [data-widget_type^="video"] .elementor-widget-container { display:none !important; }
 /* Hide any iframe on the page that is NOT inside our circular slider or lightbox */
-body iframe:not(#afPimWrap iframe):not(#afPimLb iframe) { display:none !important; }
+/* Hide any iframe on the page that is NOT inside our circular slider, lightbox, or social/instagram feeds */
+body iframe:not(#afPimWrap iframe):not(#afPimLb iframe):not([src*="instagram"]):not([src*="facebook"]):not([src*="elfsight"]):not([src*="eapps"]) { display:none !important; }
+/* Also protect containers that hold instagram/social embeds */
+[class*="instagram"] iframe,
+[class*="sb_instagram"] iframe,
+[id*="instagram"] iframe,
+[class*="elfsight"] iframe,
+.eapps-instagram-feed iframe { display:block !important; }
 /* Hide Veo / plain-iframe columns */
 .elementor-widget-html iframe, .elementor-widget-html video,
 .elementor-widget-html .veo-player { display:none !important; }
@@ -2122,9 +2129,12 @@ body iframe:not(#afPimWrap iframe):not(#afPimLb iframe) { display:none !importan
 
         wrap.dataset.placed = '1';
 
-        // Hide every iframe on the page that is NOT part of our circular slider
+        // Hide every iframe on the page that is NOT part of our circular slider or social feeds
         document.querySelectorAll('iframe').forEach(function(fr) {
-            if (!fr.closest('#afPimWrap') && !fr.closest('.af-pim-lb')) {
+            var src = (fr.getAttribute('src') || '');
+            var isSocial = /instagram|facebook|elfsight|eapps|twitter|tiktok/i.test(src);
+            var inSocialWidget = !!(fr.closest('[class*="instagram"],[id*="instagram"],[class*="elfsight"],[class*="sb_instagram"]'));
+            if (!fr.closest('#afPimWrap') && !fr.closest('.af-pim-lb') && !isSocial && !inSocialWidget) {
                 var col = fr.closest('.elementor-column, .e-con, .elementor-widget');
                 if (col) col.style.setProperty('display', 'none', 'important');
                 else fr.style.setProperty('display', 'none', 'important');
