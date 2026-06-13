@@ -13,6 +13,23 @@ add_action('wp_enqueue_scripts', function() {
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
 
+// 1b. Tag Sign Up / Login / user-icon nav items with CSS classes (server-side, reliable)
+add_filter('nav_menu_css_class', function($classes, $item) {
+    if (is_user_logged_in()) return $classes;
+    $title = strtolower(trim(strip_tags($item->title)));
+    $url   = strtolower($item->url);
+    if (preg_match('/sign.?up|register/i', $title)) {
+        $classes[] = 'af-nav-signup';
+        $classes[] = 'af-nav-acc-hide';
+    } elseif (preg_match('/^log\s*in$/', $title)) {
+        $classes[] = 'af-nav-login';
+        $classes[] = 'af-nav-acc-hide';
+    } elseif (preg_match('/my-account|\/account/i', $url) && !preg_match('/sign|register|log\s*in/i', $title)) {
+        $classes[] = 'af-nav-user-icon';
+    }
+    return $classes;
+}, 10, 2);
+
 // 2. Force USD as default currency — override currency switcher plugins
 add_filter('woocommerce_currency', function() { return 'USD'; }, 9999);
 add_filter('woocommerce_currency_symbol', function($symbol, $currency) { return '$'; }, 9999, 2);
@@ -1224,131 +1241,71 @@ html body .product-container h3.elementor-heading-title {
   display: none !important;
 }
 
-/* ── Mobile header account dropdown ── */
-/* #af-mob-dd is created by JS below; hidden by default */
-#af-mob-dd {
-  display: none;
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background: #fff;
-  border: 1px solid #e8e8e8;
-  border-radius: 10px;
-  box-shadow: 0 6px 24px rgba(0,0,0,0.15);
-  z-index: 9999999;
-  min-width: 140px;
-  padding: 6px 0;
+/* ── Mobile header: hide Sign Up / Login nav items, show as dropdown on icon click ── */
+@media (max-width: 600px) {
+  body:not(.logged-in) li.af-nav-acc-hide { display: none !important; }
+  li.af-nav-user-icon { position: relative !important; }
+  #af-mob-dd {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: #fff;
+    border: 1px solid #e8e8e8;
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(0,0,0,0.15);
+    z-index: 9999999;
+    min-width: 140px;
+    padding: 6px 0;
+  }
+  #af-mob-dd a {
+    display: block !important;
+    padding: 12px 20px !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    color: #222 !important;
+    text-decoration: none !important;
+    white-space: nowrap !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+  }
+  #af-mob-dd a:last-child { border-bottom: none !important; }
 }
-#af-mob-dd a {
-  display: block;
-  padding: 12px 20px;
-  font-size: 14px;
-  font-weight: 600;
-  color: #222;
-  text-decoration: none;
-  white-space: nowrap;
-  border-bottom: 1px solid #f0f0f0;
-}
-#af-mob-dd a:last-child { border-bottom: none; }
-#af-mob-dd a:active { background: #f9f5ec; color: #c9a84c; }
 </style>
 <script>
 (function(){
   if (window.innerWidth > 600) return;
   if (document.body && document.body.classList.contains('logged-in')) return;
 
-  var _ddDone = false;
-
   function run() {
     if (document.body.classList.contains('logged-in')) return;
-    if (_ddDone) return;
+    if (document.getElementById('af-mob-dd')) return;
 
-    // Search whole document — Postero header class varies
-    var signUpA = null, loginA = null;
-    document.querySelectorAll('a').forEach(function(a) {
-      var t = a.textContent.replace(/\s+/g,' ').trim();
-      if (!signUpA && /sign.?up/i.test(t) && t.length < 20) signUpA = a;
-      if (!loginA  && /^log\s*in$/i.test(t))                 loginA  = a;
-    });
-    if (!signUpA && !loginA) return;
-    _ddDone = true;
+    // Use PHP-stamped classes — guaranteed to exist if menu items do
+    var signUpLi = document.querySelector('li.af-nav-signup');
+    var loginLi  = document.querySelector('li.af-nav-login');
+    var iconLi   = document.querySelector('li.af-nav-user-icon');
 
-    var suHref = signUpA ? signUpA.href : '';
-    var lgHref = loginA  ? loginA.href  : '';
-
-    function forceHide(el) {
-      if (!el) return;
-      el.style.setProperty('display',        'none',     'important');
-      el.style.setProperty('visibility',     'hidden',   'important');
-      el.style.setProperty('height',         '0',        'important');
-      el.style.setProperty('overflow',       'hidden',   'important');
-      el.style.setProperty('pointer-events', 'none',     'important');
-      el.style.setProperty('opacity',        '0',        'important');
-    }
-
-    var signUpLi = signUpA ? signUpA.closest('li') : null;
-    var loginLi  = loginA  ? loginA.closest('li')  : null;
-    forceHide(signUpLi || signUpA);
-    forceHide(loginLi  || loginA);
-
-    // If they're in a sub-menu, hide the whole sub-menu ul
-    var refEl  = signUpA || loginA;
-    var subUl  = refEl.closest('ul.sub-menu') || refEl.closest('ul[class*="sub"]');
-    var iconLi = null;
-
-    if (subUl) {
-      iconLi = subUl.closest('li');
-      forceHide(subUl);
-    } else {
-      // Siblings in same ul: walk backwards from signUpLi to find icon li
-      var parentUl = (signUpLi || loginLi) && (signUpLi || loginLi).parentElement;
-      if (parentUl) {
-        var sib = (signUpLi || loginLi).previousElementSibling;
-        while (sib) {
-          if (sib.querySelector('svg, img, i[class]') ||
-              (sib.querySelector('a') && /account|my-account|user/i.test(sib.querySelector('a').getAttribute('href') || ''))) {
-            iconLi = sib; break;
-          }
-          sib = sib.previousElementSibling;
-        }
-        // Also scan all sibling li for any that has an SVG icon
-        if (!iconLi) {
-          parentUl.querySelectorAll(':scope > li').forEach(function(li) {
-            if (iconLi || li === signUpLi || li === loginLi) return;
-            if (li.querySelector('svg, i[class*="user"], i[class*="person"], i[class*="account"]')) iconLi = li;
-          });
-        }
+    // Fallback: if PHP filter didn't tag user-icon, find by SVG near acc-hide items
+    if (!iconLi && (signUpLi || loginLi)) {
+      var ref = signUpLi || loginLi;
+      var sib = ref.previousElementSibling;
+      while (sib) {
+        if (sib.querySelector('svg, img, i[class]')) { iconLi = sib; break; }
+        sib = sib.previousElementSibling;
       }
     }
 
-    // Broadest fallback: find any li in page header area with a person/user SVG
-    if (!iconLi) {
-      var hdr = document.querySelector('header, [class*="header"], [id*="header"]') || document.body;
-      hdr.querySelectorAll('li').forEach(function(li) {
-        if (iconLi || li === signUpLi || li === loginLi) return;
-        if (li.querySelector('svg, i[class]') && !/(sign|login|register)/i.test(li.textContent)) iconLi = li;
-      });
-    }
+    if (!iconLi) return;
 
-    if (!iconLi) {
-      // Could not find icon container — still hide the links but no dropdown
-      return;
-    }
+    var suHref = signUpLi ? signUpLi.querySelector('a').href : '';
+    var lgHref = loginLi  ? loginLi.querySelector('a').href  : '';
 
     iconLi.style.setProperty('position', 'relative', 'important');
 
-    // Remove any existing dropdown first
-    var existing = document.getElementById('af-mob-dd');
-    if (existing) existing.parentNode.removeChild(existing);
-
     var dd = document.createElement('div');
     dd.id = 'af-mob-dd';
-    if (suHref) {
-      var s = document.createElement('a'); s.href = suHref; s.textContent = 'Sign Up'; dd.appendChild(s);
-    }
-    if (lgHref) {
-      var l = document.createElement('a'); l.href = lgHref; l.textContent = 'Login'; dd.appendChild(l);
-    }
+    if (suHref) { var s = document.createElement('a'); s.href = suHref; s.textContent = 'Sign Up'; dd.appendChild(s); }
+    if (lgHref) { var l = document.createElement('a'); l.href = lgHref; l.textContent = 'Login';   dd.appendChild(l); }
     iconLi.appendChild(dd);
 
     var iconA = iconLi.querySelector(':scope > a') || iconLi;
@@ -1361,21 +1318,12 @@ html body .product-container h3.elementor-heading-title {
     document.addEventListener('click', function(e) {
       if (open && !iconLi.contains(e.target)) { open = false; dd.style.display = 'none'; }
     });
-
-    // Keep hiding sign up/login in case theme re-renders them
-    var mo = new MutationObserver(function() {
-      forceHide(signUpLi || signUpA);
-      forceHide(loginLi  || loginA);
-      if (subUl) forceHide(subUl);
-    });
-    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style','class'] });
   }
 
   if (document.readyState !== 'loading') run();
   document.addEventListener('DOMContentLoaded', run);
   window.addEventListener('load', run);
-  setTimeout(run, 400);
-  setTimeout(run, 1200);
+  setTimeout(run, 300);
 }());
 </script>
 <?php }, 99);
