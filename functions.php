@@ -1549,50 +1549,48 @@ add_action('wp_head', function() { ?>
     document.querySelectorAll('ul.products li.product').forEach(function(card) {
       if (card.dataset.hoverFixed) return;
 
-      // Find main image and gallery/secondary image
-      var imgs = card.querySelectorAll('img');
-      if (imgs.length < 2) return;
-      var mainImg = imgs[0];
-      var hoverImg = null;
-      imgs.forEach(function(img) {
-        if (img === mainImg) return;
-        var cls = (img.className || '') + ' ' + (img.getAttribute('src') || '');
-        if (!hoverImg) hoverImg = img;
-      });
-      if (!hoverImg) return;
+      // Find main image (first) and gallery/hover image (second)
+      var allImgs = Array.from(card.querySelectorAll('img'));
+      if (allImgs.length < 2) return;
+      var mainImg  = allImgs[0];
+      var hoverImg = allImgs[1];
       card.dataset.hoverFixed = '1';
 
-      // Find the real container: the closest shared ancestor that directly wraps the images
-      var mainParent  = mainImg.parentElement;
-      var hoverParent = hoverImg.parentElement;
-      var container   = (mainParent === hoverParent) ? mainParent : mainImg.closest('a, .product-thumbnail, .woocommerce-loop-product__link') || mainParent;
-
-      // Make container a positioned box sized to the main image
       var sp = function(el, p, v) { el.style.setProperty(p, v, 'important'); };
+
+      // Use main image's direct parent as the container
+      var container = mainImg.parentElement;
       sp(container, 'position', 'relative');
       sp(container, 'overflow', 'hidden');
       sp(container, 'display',  'block');
 
-      // Let main image define height naturally, hide hover image on top
-      sp(mainImg,  'display',  'block');
-      sp(mainImg,  'width',    '100%');
-      sp(mainImg,  'height',   'auto');
-      sp(mainImg,  'position', 'relative');
-      sp(mainImg,  'z-index',  '1');
-      sp(mainImg,  'object-fit', 'cover');
+      // If hover image is in a DIFFERENT parent, physically move it into container
+      // so position:absolute is relative to the correct element
+      if (hoverImg.parentElement !== container) {
+        container.appendChild(hoverImg);
+      }
 
-      sp(hoverImg, 'position', 'absolute');
-      sp(hoverImg, 'top',      '0');
-      sp(hoverImg, 'left',     '0');
-      sp(hoverImg, 'width',    '100%');
-      sp(hoverImg, 'height',   '100%');
+      // Main image: sits in flow and defines the container's height
+      sp(mainImg, 'display',   'block');
+      sp(mainImg, 'width',     '100%');
+      sp(mainImg, 'height',    'auto');
+      sp(mainImg, 'position',  'relative');
+      sp(mainImg, 'z-index',   '1');
+      sp(mainImg, 'margin',    '0');
+
+      // Hover image: absolutely fills the exact same space as main image
+      sp(hoverImg, 'position',   'absolute');
+      sp(hoverImg, 'top',        '0');
+      sp(hoverImg, 'left',       '0');
+      sp(hoverImg, 'width',      '100%');
+      sp(hoverImg, 'height',     '100%');
       sp(hoverImg, 'object-fit', 'cover');
-      sp(hoverImg, 'opacity',  '0');
-      sp(hoverImg, 'z-index',  '2');
+      sp(hoverImg, 'opacity',    '0');
+      sp(hoverImg, 'z-index',    '2');
       sp(hoverImg, 'transition', 'opacity 0.4s ease');
-      sp(hoverImg, 'margin',   '0');
+      sp(hoverImg, 'margin',     '0');
 
-      // Wire hover
+      // Wire hover on the card
       card.addEventListener('mouseenter', function() { hoverImg.style.setProperty('opacity', '1', 'important'); });
       card.addEventListener('mouseleave', function() { hoverImg.style.setProperty('opacity', '0', 'important'); });
     });
