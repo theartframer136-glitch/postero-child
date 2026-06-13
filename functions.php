@@ -1278,29 +1278,54 @@ html body .product-container h3.elementor-heading-title {
   if (window.innerWidth > 600) return;
   if (document.body && document.body.classList.contains('logged-in')) return;
 
+  function findNavLiByText(pattern) {
+    var items = document.querySelectorAll('nav li, header li, .elementor-nav-menu li, #site-navigation li');
+    for (var i = 0; i < items.length; i++) {
+      var a = items[i].querySelector('a');
+      if (a && pattern.test(a.textContent.trim())) return items[i];
+    }
+    return null;
+  }
+
   function run() {
     if (document.body.classList.contains('logged-in')) return;
     if (document.getElementById('af-mob-dd')) return;
 
-    // Use PHP-stamped classes — guaranteed to exist if menu items do
-    var signUpLi = document.querySelector('li.af-nav-signup');
-    var loginLi  = document.querySelector('li.af-nav-login');
-    var iconLi   = document.querySelector('li.af-nav-user-icon');
+    // Find Sign Up and Login by text content — works regardless of PHP filter
+    var signUpLi = document.querySelector('li.af-nav-signup') || findNavLiByText(/^sign\s*up$/i);
+    var loginLi  = document.querySelector('li.af-nav-login')  || findNavLiByText(/^log\s*in$|^login$/i);
 
-    // Fallback: if PHP filter didn't tag user-icon, find by SVG near acc-hide items
-    if (!iconLi && (signUpLi || loginLi)) {
+    if (!signUpLi && !loginLi) return;
+
+    var suHref = signUpLi ? signUpLi.querySelector('a').href : '';
+    var lgHref = loginLi  ? loginLi.querySelector('a').href  : '';
+
+    // Hide Sign Up and Login inline items via JS (belt-and-suspenders with CSS)
+    if (signUpLi) signUpLi.style.setProperty('display', 'none', 'important');
+    if (loginLi)  loginLi.style.setProperty('display', 'none', 'important');
+
+    // Find person/account icon: PHP-stamped class first, then SVG sibling
+    var iconLi = document.querySelector('li.af-nav-user-icon');
+    if (!iconLi) {
       var ref = signUpLi || loginLi;
-      var sib = ref.previousElementSibling;
+      var sib = ref ? ref.previousElementSibling : null;
       while (sib) {
-        if (sib.querySelector('svg, img, i[class]')) { iconLi = sib; break; }
+        if (sib.querySelector('svg, img, i[class], .eicon-person, [class*="person"], [class*="user"]')) { iconLi = sib; break; }
         sib = sib.previousElementSibling;
+      }
+    }
+    // Last resort: find any nav li that contains an SVG/icon but no text
+    if (!iconLi) {
+      var items = document.querySelectorAll('nav li, header li, .elementor-nav-menu li');
+      for (var i = 0; i < items.length; i++) {
+        var txt = (items[i].querySelector('a') || items[i]).textContent.trim();
+        if (items[i].querySelector('svg, i[class*="person"], i[class*="user"]') && txt.length < 5) {
+          iconLi = items[i]; break;
+        }
       }
     }
 
     if (!iconLi) return;
-
-    var suHref = signUpLi ? signUpLi.querySelector('a').href : '';
-    var lgHref = loginLi  ? loginLi.querySelector('a').href  : '';
 
     iconLi.style.setProperty('position', 'relative', 'important');
 
@@ -1325,7 +1350,8 @@ html body .product-container h3.elementor-heading-title {
   if (document.readyState !== 'loading') run();
   document.addEventListener('DOMContentLoaded', run);
   window.addEventListener('load', run);
-  setTimeout(run, 300);
+  setTimeout(run, 500);
+  setTimeout(run, 1500);
 }());
 </script>
 <?php }, 99);
