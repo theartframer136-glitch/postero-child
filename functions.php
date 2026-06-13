@@ -2040,8 +2040,18 @@ add_action('wp_footer', function() {
 [data-widget_type^="video"],
 [data-widget_type^="video-playlist"] .elementor-widget-container,
 [data-widget_type^="video"] .elementor-widget-container { display:none !important; }
-/* Hide Veo / plain-iframe columns inside the PIM section only (handled by JS targeting) */
-/* NOTE: No global iframe hide — too aggressive, breaks instagram/social feeds */
+/* Hide YouTube iframes that are NOT inside our circular slider or lightbox */
+/* Instagram/elfsight/social iframes are excluded — they don't use youtube src */
+body iframe[src*="youtube.com"]:not(#afPimWrap iframe):not(#afPimLb iframe),
+body iframe[src*="youtube-nocookie.com"]:not(#afPimWrap iframe):not(#afPimLb iframe),
+body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
+  display: none !important;
+}
+/* Also hide the widget containers of those YouTube iframes so no empty space remains */
+.elementor-widget-html:has(iframe[src*="youtube.com"]:not(#afPimWrap iframe)),
+.elementor-widget-html:has(iframe[src*="youtube-nocookie.com"]:not(#afPimWrap iframe)) {
+  display: none !important;
+}
 </style>
 
 <?php
