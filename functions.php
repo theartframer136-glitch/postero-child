@@ -1585,7 +1585,6 @@ add_action('wp_head', function() { ?>
     document.querySelectorAll('ul.products li.product, .woocommerce li.product').forEach(function(card) {
       if (card.dataset.hoverFixed4) return;
 
-      // Collect all non-icon images in the card
       var allImgs = Array.from(card.querySelectorAll('img')).filter(function(img) {
         var src = img.getAttribute('src') || '';
         return src && src.indexOf('woocommerce-placeholder') === -1;
@@ -1596,39 +1595,45 @@ add_action('wp_head', function() { ?>
       var hoverImg = allImgs[1];
       card.dataset.hoverFixed4 = '1';
 
-      // Stamp CSS classes so our stylesheet rules apply
       mainImg.classList.add('af-main-img');
       hoverImg.classList.add('af-hover-img');
 
-      // Container = main image's direct parent
       var container = mainImg.parentElement;
+      if (hoverImg.parentElement !== container) container.appendChild(hoverImg);
 
-      // Move hover image into the same container as main image
-      if (hoverImg.parentElement !== container) {
-        container.appendChild(hoverImg);
-      }
-
-      // Ensure container is a positioned block
       container.style.setProperty('position', 'relative', 'important');
       container.style.setProperty('overflow',  'hidden',   'important');
       container.style.setProperty('display',   'block',    'important');
+      container.style.setProperty('width',     '100%',     'important');
 
-      // Lock container height to main image height so hover image fills exactly
-      function lockHeight() {
-        var h = mainImg.offsetHeight;
-        if (h > 0) {
-          container.style.setProperty('height', h + 'px', 'important');
-          hoverImg.style.setProperty('height',  h + 'px', 'important');
-          hoverImg.style.setProperty('width',   '100%',   'important');
-        }
+      function applyRatio() {
+        var nw = mainImg.naturalWidth;
+        var nh = mainImg.naturalHeight;
+        if (!nw || !nh) return;
+        var pct = (nh / nw * 100).toFixed(4) + '%';
+        // Padding-bottom trick: locks container to main image aspect ratio
+        container.style.setProperty('height',         '0',  'important');
+        container.style.setProperty('padding-bottom', pct,  'important');
+        // Both images fill the container absolutely — no layout shift on hover
+        mainImg.style.setProperty('position',   'absolute', 'important');
+        mainImg.style.setProperty('top',        '0',        'important');
+        mainImg.style.setProperty('left',       '0',        'important');
+        mainImg.style.setProperty('width',      '100%',     'important');
+        mainImg.style.setProperty('height',     '100%',     'important');
+        mainImg.style.setProperty('object-fit', 'cover',    'important');
+        hoverImg.style.setProperty('position',   'absolute', 'important');
+        hoverImg.style.setProperty('top',        '0',        'important');
+        hoverImg.style.setProperty('left',       '0',        'important');
+        hoverImg.style.setProperty('width',      '100%',     'important');
+        hoverImg.style.setProperty('height',     '100%',     'important');
+        hoverImg.style.setProperty('object-fit', 'cover',    'important');
       }
-      if (mainImg.complete && mainImg.naturalHeight > 0) {
-        lockHeight();
+
+      if (mainImg.complete && mainImg.naturalWidth > 0) {
+        applyRatio();
       } else {
-        mainImg.addEventListener('load', lockHeight);
+        mainImg.addEventListener('load', applyRatio);
       }
-      // Re-lock on resize so it stays correct
-      window.addEventListener('resize', lockHeight);
     });
   }
 
