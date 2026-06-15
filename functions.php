@@ -1578,15 +1578,17 @@ add_action('wp_head', function() { ?>
   window.addEventListener('load', fixAllSectionRows);
   setTimeout(fixAllSectionRows, 400);
 
-  // Fix WooCommerce product grid hover image gap
-  // The gallery/secondary image can sit outside .woocommerce-loop-product__link
-  // so we find both images' real shared container and force them to the same box.
-  // CSS in custom.css handles the 66.57% ratio container and absolute fill.
-  // JS only stamps af-main-img / af-hover-img classes and moves hover img into
-  // the same parent as the main image so CSS selectors apply correctly.
+  // Fix WooCommerce product grid hover image gap.
+  // Bulletproof approach: wrap BOTH the main and hover images in our own
+  // ratio-locked <div class="af-img-ratio">. The wrapper is a plain div with a
+  // fixed aspect ratio (padding-bottom), isolated from all theme CSS. Both
+  // images are absolutely positioned inside it with object-fit:cover, so the
+  // main and hover images occupy the EXACT same box — no gap, no size shift.
+  var CARD_RATIO = 66.57; // percent — 3:2 landscape (matches 356x237 render)
+
   function fixProductHoverImages() {
-    document.querySelectorAll('ul.products li.product, .woocommerce li.product').forEach(function(card) {
-      if (card.dataset.hoverFixed4) return;
+    document.querySelectorAll('ul.products li.product, .woocommerce li.product, li.product').forEach(function(card) {
+      if (card.dataset.hoverFixed5) return;
 
       var allImgs = Array.from(card.querySelectorAll('img')).filter(function(img) {
         var src = img.getAttribute('src') || '';
@@ -1596,14 +1598,61 @@ add_action('wp_head', function() { ?>
 
       var mainImg  = allImgs[0];
       var hoverImg = allImgs[1];
-      card.dataset.hoverFixed4 = '1';
+      card.dataset.hoverFixed5 = '1';
 
       mainImg.classList.add('af-main-img');
       hoverImg.classList.add('af-hover-img');
 
-      // Move hover image into same container as main image
-      var container = mainImg.parentElement;
-      if (hoverImg.parentElement !== container) container.appendChild(hoverImg);
+      // Build a ratio-locked wrapper and insert it where the main image is
+      var wrap = document.createElement('div');
+      wrap.className = 'af-img-ratio';
+      wrap.style.setProperty('position',       'relative', 'important');
+      wrap.style.setProperty('width',          '100%',     'important');
+      wrap.style.setProperty('height',         '0',        'important');
+      wrap.style.setProperty('padding-bottom', CARD_RATIO + '%', 'important');
+      wrap.style.setProperty('overflow',       'hidden',   'important');
+      wrap.style.setProperty('display',        'block',    'important');
+      wrap.style.setProperty('margin',         '0',        'important');
+
+      mainImg.parentElement.insertBefore(wrap, mainImg);
+      wrap.appendChild(mainImg);
+      wrap.appendChild(hoverImg);
+
+      // Make the link/wrapper ancestor a simple block so it sizes to the wrap
+      var link = wrap.parentElement;
+      if (link) {
+        link.style.setProperty('display',        'block',  'important');
+        link.style.setProperty('width',          '100%',   'important');
+        link.style.setProperty('height',         'auto',   'important');
+        link.style.setProperty('padding-bottom', '0',      'important');
+        link.style.setProperty('overflow',       'hidden', 'important');
+      }
+
+      // Force both images to fill the wrapper identically
+      [mainImg, hoverImg].forEach(function(img) {
+        img.style.setProperty('position',        'absolute', 'important');
+        img.style.setProperty('top',             '0',        'important');
+        img.style.setProperty('left',            '0',        'important');
+        img.style.setProperty('width',           '100%',     'important');
+        img.style.setProperty('height',          '100%',     'important');
+        img.style.setProperty('object-fit',      'cover',    'important');
+        img.style.setProperty('object-position', 'center',   'important');
+        img.style.setProperty('margin',          '0',        'important');
+        img.style.setProperty('max-width',       'none',     'important');
+      });
+
+      // Stacking + hover fade
+      mainImg.style.setProperty('z-index', '1', 'important');
+      hoverImg.style.setProperty('z-index', '2', 'important');
+      hoverImg.style.setProperty('opacity', '0', 'important');
+      hoverImg.style.setProperty('transition', 'opacity 0.4s ease', 'important');
+
+      card.addEventListener('mouseenter', function() {
+        hoverImg.style.setProperty('opacity', '1', 'important');
+      });
+      card.addEventListener('mouseleave', function() {
+        hoverImg.style.setProperty('opacity', '0', 'important');
+      });
     });
   }
 
@@ -1611,6 +1660,7 @@ add_action('wp_head', function() { ?>
   window.addEventListener('load', fixProductHoverImages);
   setTimeout(fixProductHoverImages, 500);
   setTimeout(fixProductHoverImages, 1500);
+  setTimeout(fixProductHoverImages, 3000);
 }());
 </script>
 <?php }, 99);

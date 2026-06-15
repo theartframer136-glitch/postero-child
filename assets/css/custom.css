@@ -361,7 +361,8 @@ ul.postero-scroll-content .cat-item a {
   display: block !important;
   background: #f5f5f5 !important;
 }
-/* WooCommerce product grid: fixed 3:2 ratio container, both images fill absolutely */
+/* WooCommerce product grid: JS wraps images in .af-img-ratio which owns the
+   aspect ratio; the link just needs to be a simple block. */
 .woocommerce ul.products li.product .woocommerce-loop-product__link,
 .woocommerce ul.products li.product .product-thumb,
 .woocommerce ul.products li.product figure.woocommerce-loop-product__link {
@@ -370,8 +371,30 @@ ul.postero-scroll-content .cat-item a {
   overflow: hidden !important;
   display: block !important;
   background: #f5f5f5 !important;
+  height: auto !important;
+  padding-bottom: 0 !important;
+}
+/* JS-built ratio wrapper for product hover images */
+.woocommerce ul.products li.product .af-img-ratio,
+li.product .af-img-ratio {
+  position: relative !important;
+  width: 100% !important;
   height: 0 !important;
   padding-bottom: 66.57% !important;
+  overflow: hidden !important;
+  display: block !important;
+  margin: 0 !important;
+}
+.woocommerce ul.products li.product .af-img-ratio img,
+li.product .af-img-ratio img {
+  position: absolute !important;
+  top: 0 !important; left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  object-position: center !important;
+  margin: 0 !important;
+  max-width: none !important;
 }
 /* Custom slider images — absolute fill the padding-bottom container */
 .af-shell-track .product-card .product-image img,
