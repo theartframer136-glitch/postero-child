@@ -1582,6 +1582,10 @@ add_action('wp_head', function() { ?>
   // The gallery/secondary image can sit outside .woocommerce-loop-product__link
   // so we find both images' real shared container and force them to the same box.
   function fixProductHoverImages() {
+    // Fixed aspect ratio for ALL product cards: 3:2 landscape (66.57% = 237/356)
+    // Both main and hover images fill with object-fit:cover — no layout shift on hover
+    var CARD_RATIO = '66.57%';
+
     document.querySelectorAll('ul.products li.product, .woocommerce li.product').forEach(function(card) {
       if (card.dataset.hoverFixed4) return;
 
@@ -1601,39 +1605,24 @@ add_action('wp_head', function() { ?>
       var container = mainImg.parentElement;
       if (hoverImg.parentElement !== container) container.appendChild(hoverImg);
 
-      container.style.setProperty('position', 'relative', 'important');
-      container.style.setProperty('overflow',  'hidden',   'important');
-      container.style.setProperty('display',   'block',    'important');
-      container.style.setProperty('width',     '100%',     'important');
+      // Lock container to fixed ratio immediately — no waiting for image load
+      container.style.setProperty('position',       'relative',  'important');
+      container.style.setProperty('overflow',       'hidden',    'important');
+      container.style.setProperty('display',        'block',     'important');
+      container.style.setProperty('width',          '100%',      'important');
+      container.style.setProperty('height',         '0',         'important');
+      container.style.setProperty('padding-bottom', CARD_RATIO,  'important');
 
-      function applyRatio() {
-        var nw = mainImg.naturalWidth;
-        var nh = mainImg.naturalHeight;
-        if (!nw || !nh) return;
-        var pct = (nh / nw * 100).toFixed(4) + '%';
-        // Padding-bottom trick: locks container to main image aspect ratio
-        container.style.setProperty('height',         '0',  'important');
-        container.style.setProperty('padding-bottom', pct,  'important');
-        // Both images fill the container absolutely — no layout shift on hover
-        mainImg.style.setProperty('position',   'absolute', 'important');
-        mainImg.style.setProperty('top',        '0',        'important');
-        mainImg.style.setProperty('left',       '0',        'important');
-        mainImg.style.setProperty('width',      '100%',     'important');
-        mainImg.style.setProperty('height',     '100%',     'important');
-        mainImg.style.setProperty('object-fit', 'cover',    'important');
-        hoverImg.style.setProperty('position',   'absolute', 'important');
-        hoverImg.style.setProperty('top',        '0',        'important');
-        hoverImg.style.setProperty('left',       '0',        'important');
-        hoverImg.style.setProperty('width',      '100%',     'important');
-        hoverImg.style.setProperty('height',     '100%',     'important');
-        hoverImg.style.setProperty('object-fit', 'cover',    'important');
-      }
-
-      if (mainImg.complete && mainImg.naturalWidth > 0) {
-        applyRatio();
-      } else {
-        mainImg.addEventListener('load', applyRatio);
-      }
+      // Both images: absolute fill with cover — no layout effect, no gap, no shift
+      [mainImg, hoverImg].forEach(function(img) {
+        img.style.setProperty('position',        'absolute', 'important');
+        img.style.setProperty('top',             '0',        'important');
+        img.style.setProperty('left',            '0',        'important');
+        img.style.setProperty('width',           '100%',     'important');
+        img.style.setProperty('height',          '100%',     'important');
+        img.style.setProperty('object-fit',      'cover',    'important');
+        img.style.setProperty('object-position', 'center',   'important');
+      });
     });
   }
 
