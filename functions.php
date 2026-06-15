@@ -1612,6 +1612,23 @@ add_action('wp_head', function() { ?>
       container.style.setProperty('position', 'relative', 'important');
       container.style.setProperty('overflow',  'hidden',   'important');
       container.style.setProperty('display',   'block',    'important');
+
+      // Lock container height to main image height so hover image fills exactly
+      function lockHeight() {
+        var h = mainImg.offsetHeight;
+        if (h > 0) {
+          container.style.setProperty('height', h + 'px', 'important');
+          hoverImg.style.setProperty('height',  h + 'px', 'important');
+          hoverImg.style.setProperty('width',   '100%',   'important');
+        }
+      }
+      if (mainImg.complete && mainImg.naturalHeight > 0) {
+        lockHeight();
+      } else {
+        mainImg.addEventListener('load', lockHeight);
+      }
+      // Re-lock on resize so it stays correct
+      window.addEventListener('resize', lockHeight);
     });
   }
 
