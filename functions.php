@@ -2042,7 +2042,7 @@ add_action('wp_footer', function() {
     position:absolute;
     top:50%; left:50%;
     width:400%; height:225%;
-    transform:translate(-50%,-50%) scale(1.5);
+    transform:translate(-50%,-50%) scale(2.2);
     transform-origin:center center;
     border:none;
     pointer-events:none;
