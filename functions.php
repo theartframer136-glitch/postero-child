@@ -2041,7 +2041,7 @@ add_action('wp_footer', function() {
 .af-pim-circle iframe {
     position:absolute;
     top:50%; left:50%;
-    width:340%; height:340%;
+    width:400%; height:225%;
     transform:translate(-50%,-50%);
     border:none;
     pointer-events:none;
