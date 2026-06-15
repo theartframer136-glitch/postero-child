@@ -1581,11 +1581,10 @@ add_action('wp_head', function() { ?>
   // Fix WooCommerce product grid hover image gap
   // The gallery/secondary image can sit outside .woocommerce-loop-product__link
   // so we find both images' real shared container and force them to the same box.
+  // CSS in custom.css handles the 66.57% ratio container and absolute fill.
+  // JS only stamps af-main-img / af-hover-img classes and moves hover img into
+  // the same parent as the main image so CSS selectors apply correctly.
   function fixProductHoverImages() {
-    // Fixed aspect ratio for ALL product cards: 3:2 landscape (66.57% = 237/356)
-    // Both main and hover images fill with object-fit:cover — no layout shift on hover
-    var CARD_RATIO = '66.57%';
-
     document.querySelectorAll('ul.products li.product, .woocommerce li.product').forEach(function(card) {
       if (card.dataset.hoverFixed4) return;
 
@@ -1602,27 +1601,9 @@ add_action('wp_head', function() { ?>
       mainImg.classList.add('af-main-img');
       hoverImg.classList.add('af-hover-img');
 
+      // Move hover image into same container as main image
       var container = mainImg.parentElement;
       if (hoverImg.parentElement !== container) container.appendChild(hoverImg);
-
-      // Lock container to fixed ratio immediately — no waiting for image load
-      container.style.setProperty('position',       'relative',  'important');
-      container.style.setProperty('overflow',       'hidden',    'important');
-      container.style.setProperty('display',        'block',     'important');
-      container.style.setProperty('width',          '100%',      'important');
-      container.style.setProperty('height',         '0',         'important');
-      container.style.setProperty('padding-bottom', CARD_RATIO,  'important');
-
-      // Both images: absolute fill with cover — no layout effect, no gap, no shift
-      [mainImg, hoverImg].forEach(function(img) {
-        img.style.setProperty('position',        'absolute', 'important');
-        img.style.setProperty('top',             '0',        'important');
-        img.style.setProperty('left',            '0',        'important');
-        img.style.setProperty('width',           '100%',     'important');
-        img.style.setProperty('height',          '100%',     'important');
-        img.style.setProperty('object-fit',      'cover',    'important');
-        img.style.setProperty('object-position', 'center',   'important');
-      });
     });
   }
 

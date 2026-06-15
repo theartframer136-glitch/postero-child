@@ -361,7 +361,7 @@ ul.postero-scroll-content .cat-item a {
   display: block !important;
   background: #f5f5f5 !important;
 }
-/* WooCommerce product grid: JS controls image stacking — container just needs position+overflow */
+/* WooCommerce product grid: fixed 3:2 ratio container, both images fill absolutely */
 .woocommerce ul.products li.product .woocommerce-loop-product__link,
 .woocommerce ul.products li.product .product-thumb,
 .woocommerce ul.products li.product figure.woocommerce-loop-product__link {
@@ -370,8 +370,8 @@ ul.postero-scroll-content .cat-item a {
   overflow: hidden !important;
   display: block !important;
   background: #f5f5f5 !important;
-  height: auto !important;
-  padding-bottom: 0 !important;
+  height: 0 !important;
+  padding-bottom: 66.57% !important;
 }
 /* Custom slider images — absolute fill the padding-bottom container */
 .af-shell-track .product-card .product-image img,
