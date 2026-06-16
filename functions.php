@@ -623,10 +623,10 @@ add_action('wp_footer', function() { ?>
 
             var discount = c.querySelector('.price-section .discount, .discount-percentage, span.discount');
             if (discount) {
-                sp(discount,'color','#c9a84c');
+                sp(discount,'color','#4caf2f');
                 sp(discount,'font-weight','600');
-                sp(discount,'font-size','12px');
-                discount.querySelectorAll('*').forEach(function(el){ sp(el,'color','#c9a84c'); });
+                sp(discount,'font-size','13px');
+                discount.querySelectorAll('*').forEach(function(el){ sp(el,'color','#4caf2f'); });
             }
 
             // ── Description: 2-line clamp ──

@@ -43,6 +43,39 @@ span.discount {
 /* Hide themes widget from sidebar */
 .widget_postero_product_themes { display: none !important; }
 
+/* ── Shop by Collection — price/discount style to match reference design ──
+   Scoped to .product-container only so no other section is affected. */
+.product-container .price-section,
+.product-container .price {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+}
+.product-container .price-section ins,
+.product-container .price ins {
+  text-decoration: none !important;
+  font-weight: 700 !important;
+  color: #1a1a1a !important;
+  font-size: 15px !important;
+}
+.product-container .price-section del,
+.product-container .price del,
+.product-container .price-section del *,
+.product-container .price del * {
+  color: #999 !important;
+  font-weight: 400 !important;
+  font-size: 13px !important;
+  text-decoration: line-through !important;
+}
+.product-container .price-section .discount,
+.product-container .discount-percentage,
+.product-container span.discount {
+  color: #4caf2f !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
+
 
 /* ============================================================
    SHOP BY COLLECTION
