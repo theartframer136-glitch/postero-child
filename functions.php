@@ -1592,6 +1592,22 @@ add_action('wp_head', function() { ?>
   window.addEventListener('load', fixAllSectionRows);
   setTimeout(fixAllSectionRows, 400);
 
+  // Tag the "Trending Today" section with a marker class so its price/discount
+  // style can be scoped via CSS to match the Shop by Collection cards.
+  function tagTrendingTodaySection() {
+    var heading = null;
+    document.querySelectorAll('h1,h2,h3,h4,.elementor-heading-title').forEach(function(h) {
+      if (!heading && /trending\s*today/i.test(h.textContent)) heading = h;
+    });
+    if (!heading) return;
+    var sec = heading.closest('.e-con, .elementor-section, section') || heading.parentElement;
+    if (sec && !sec.classList.contains('af-trending-section')) sec.classList.add('af-trending-section');
+  }
+  document.addEventListener('DOMContentLoaded', tagTrendingTodaySection);
+  window.addEventListener('load', tagTrendingTodaySection);
+  setTimeout(tagTrendingTodaySection, 400);
+  setTimeout(tagTrendingTodaySection, 1200);
+
   // Fix WooCommerce product grid hover image gap.
   // Bulletproof approach: wrap BOTH the main and hover images in our own
   // ratio-locked <div class="af-img-ratio">. The wrapper is a plain div with a

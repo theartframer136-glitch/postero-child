@@ -102,6 +102,57 @@ span.discount {
   font-size: 13px !important;
 }
 
+/* ── Trending Today — same price layout/strikethrough as Shop by Collection ──
+   Scoped to .af-trending-section (tagged by JS) so no other section is affected. */
+.af-trending-section .price-section,
+.af-trending-section .price {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: center !important;
+  gap: 6px !important;
+  white-space: nowrap !important;
+}
+.af-trending-section .price-section ins,
+.af-trending-section .price ins {
+  display: inline-block !important;
+  text-decoration: none !important;
+  font-weight: 700 !important;
+  color: #1a1a1a !important;
+  font-size: 15px !important;
+}
+.af-trending-section .price-section del,
+.af-trending-section .price del,
+.af-trending-section .old-price {
+  display: inline-block !important;
+  position: relative !important;
+  color: #999 !important;
+  font-weight: 400 !important;
+  font-size: 13px !important;
+  text-decoration: line-through !important;
+  text-decoration-color: #999 !important;
+  text-decoration-thickness: 1.5px !important;
+}
+.af-trending-section .price-section del *,
+.af-trending-section .price del *,
+.af-trending-section .old-price * {
+  color: #999 !important;
+  font-weight: 400 !important;
+  font-size: 13px !important;
+  text-decoration: line-through !important;
+}
+.af-trending-section .price-section del::after,
+.af-trending-section .price del::after,
+.af-trending-section .old-price::after {
+  content: '' !important;
+  position: absolute !important;
+  left: 0 !important;
+  right: 0 !important;
+  top: 50% !important;
+  border-top: 1.5px solid #999 !important;
+  pointer-events: none !important;
+}
+
 
 /* ============================================================
    SHOP BY COLLECTION
