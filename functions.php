@@ -621,6 +621,14 @@ add_action('wp_footer', function() { ?>
                 });
             }
 
+            var discount = c.querySelector('.price-section .discount, .discount-percentage, span.discount');
+            if (discount) {
+                sp(discount,'color','#c9a84c');
+                sp(discount,'font-weight','600');
+                sp(discount,'font-size','12px');
+                discount.querySelectorAll('*').forEach(function(el){ sp(el,'color','#c9a84c'); });
+            }
+
             // ── Description: 2-line clamp ──
             var desc = c.querySelector('.desc, p.desc, .product-excerpt, .short-description');
             if (desc) {
