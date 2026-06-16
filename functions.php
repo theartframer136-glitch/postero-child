@@ -1014,8 +1014,8 @@ html body .product-card .woocommerce-review-link { font-size:11px !important; co
 /* price */
 html body .product-card .price,
 html body .product-card .price-section {
-  display:flex !important; flex-wrap:wrap !important;
-  align-items:baseline !important; gap:4px !important;
+  display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important;
+  align-items:center !important; gap:4px !important; white-space:nowrap !important;
   font-size:14px !important; font-weight:700 !important; color:#1a1a1a !important;
   margin:0 0 6px !important; padding:0 !important;
 }
