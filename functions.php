@@ -1614,6 +1614,10 @@ add_action('wp_head', function() { ?>
     }
     if (!sec) return;
     if (!sec.classList.contains('af-trending-section')) sec.classList.add('af-trending-section');
+    sec.querySelectorAll('.price-section .discount, .discount-percentage, span.discount').forEach(function(el) {
+      el.style.setProperty('color', '#4caf2f', 'important');
+      el.querySelectorAll('*').forEach(function(c) { c.style.setProperty('color', '#4caf2f', 'important'); });
+    });
   }
   document.addEventListener('DOMContentLoaded', tagTrendingTodaySection);
   window.addEventListener('load', tagTrendingTodaySection);
