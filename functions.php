@@ -1013,7 +1013,9 @@ html body .product-card .price ins { text-decoration:none !important; font-weigh
 html body .product-card .price del,
 html body .product-card .price del * { color:#999 !important; font-weight:400 !important; font-size:12px !important; }
 html body .product-card .price del { text-decoration:line-through !important; }
-html body .product-card .discount-percentage { font-size:12px !important; color:#c9a84c !important; font-weight:600 !important; }
+html body .product-card .discount-percentage,
+html body .product-card .price-section .discount,
+html body .price-section .discount { font-size:12px !important; color:#c9a84c !important; font-weight:600 !important; }
 
 /* description */
 html body .product-card p.desc,

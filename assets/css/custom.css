@@ -33,7 +33,9 @@
 /* Discount percentage badge — gold to match site theme */
 .woocommerce .discount-percentage,
 .woocommerce-page .discount-percentage,
-.discount-percentage {
+.discount-percentage,
+.price-section .discount,
+span.discount {
   color: #c9a84c !important;
   font-weight: 600 !important;
 }
