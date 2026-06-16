@@ -63,7 +63,8 @@ span.discount {
   font-size: 15px !important;
 }
 .product-container .price-section del,
-.product-container .price del {
+.product-container .price del,
+.product-container .old-price {
   display: inline-block !important;
   position: relative !important;
   color: #999 !important;
@@ -74,7 +75,8 @@ span.discount {
   text-decoration-thickness: 1.5px !important;
 }
 .product-container .price-section del *,
-.product-container .price del * {
+.product-container .price del *,
+.product-container .old-price * {
   color: #999 !important;
   font-weight: 400 !important;
   font-size: 13px !important;
@@ -82,7 +84,8 @@ span.discount {
 }
 /* Fallback strike line in case nested markup suppresses text-decoration rendering */
 .product-container .price-section del::after,
-.product-container .price del::after {
+.product-container .price del::after,
+.product-container .old-price::after {
   content: '' !important;
   position: absolute !important;
   left: 0 !important;

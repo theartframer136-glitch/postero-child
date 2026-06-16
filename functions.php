@@ -613,7 +613,7 @@ add_action('wp_footer', function() { ?>
             }
             var ins = c.querySelector('.price-section ins, .price ins');
             if (ins) { sp(ins,'display','inline-block'); sp(ins,'text-decoration','none'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); sp(ins,'font-size','15px'); }
-            var del = c.querySelector('.price-section del, .price del');
+            var del = c.querySelector('.price-section del, .price del, .old-price');
             if (del) {
                 sp(del,'display','inline-block'); sp(del,'position','relative');
                 sp(del,'color','#999'); sp(del,'font-weight','400'); sp(del,'font-size','13px');
@@ -1183,8 +1183,10 @@ html body .product-card .card-actions {
 }
 html body .product-card .price-section del,
 html body .product-card .price del,
+html body .product-card .old-price,
 html body .product-card .price-section del *,
-html body .product-card .price del * {
+html body .product-card .price del *,
+html body .product-card .old-price * {
   color: #999 !important;
   text-decoration: line-through !important;
   font-size: 13px !important;
