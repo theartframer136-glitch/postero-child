@@ -152,6 +152,13 @@ span.discount {
   border-top: 1.5px solid #999 !important;
   pointer-events: none !important;
 }
+html body .af-trending-section .price-section .discount,
+html body .af-trending-section .discount-percentage,
+html body .af-trending-section span.discount {
+  color: #4caf2f !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+}
 
 
 /* ============================================================
