@@ -1614,9 +1614,26 @@ add_action('wp_head', function() { ?>
     }
     if (!sec) return;
     if (!sec.classList.contains('af-trending-section')) sec.classList.add('af-trending-section');
-    sec.querySelectorAll('.price-section .discount, .discount-percentage, span.discount').forEach(function(el) {
+
+    // Real markup confirmed via DevTools: .trending-card > .trending-content
+    // > .price-section > .price / .old-price / .discount (no <del> tag at all).
+    // .trending-card only exists in this section, so it's a safe, unambiguous scope.
+    document.querySelectorAll('.trending-card .discount, .trending-card .discount-percentage').forEach(function(el) {
       el.style.setProperty('color', '#4caf2f', 'important');
+      el.style.setProperty('font-weight', '600', 'important');
       el.querySelectorAll('*').forEach(function(c) { c.style.setProperty('color', '#4caf2f', 'important'); });
+    });
+    document.querySelectorAll('.trending-card .old-price').forEach(function(el) {
+      el.style.setProperty('display', 'inline-block', 'important');
+      el.style.setProperty('position', 'relative', 'important');
+      el.style.setProperty('color', '#999', 'important');
+      el.style.setProperty('text-decoration', 'line-through', 'important');
+      el.style.setProperty('text-decoration-color', '#999', 'important');
+      el.style.setProperty('text-decoration-thickness', '1.5px', 'important');
+      el.querySelectorAll('*').forEach(function(c) {
+        c.style.setProperty('color', '#999', 'important');
+        c.style.setProperty('text-decoration', 'line-through', 'important');
+      });
     });
   }
   document.addEventListener('DOMContentLoaded', tagTrendingTodaySection);
