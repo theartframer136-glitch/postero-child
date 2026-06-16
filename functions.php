@@ -1283,10 +1283,28 @@ html body .product-container h3.elementor-heading-title {
   text-decoration: none !important;
   transition: background 0.2s, color 0.2s !important;
 }
-#lsft-sub-menu li a:hover,
-#sh_lsft_custom_dropdown_names ul li a:hover {
-  background: #c9a84c !important;
+#lsft-sub-menu li a *,
+#sh_lsft_custom_dropdown_names ul li a * {
   color: #fff !important;
+}
+#lsft-sub-menu li,
+#sh_lsft_custom_dropdown_names ul li {
+  background: transparent !important;
+}
+#lsft-sub-menu li:hover,
+#lsft-sub-menu li a:hover,
+#lsft-sub-menu li:hover a,
+#sh_lsft_custom_dropdown_names ul li:hover,
+#sh_lsft_custom_dropdown_names ul li a:hover,
+#sh_lsft_custom_dropdown_names ul li:hover a {
+  background: #c9a84c !important;
+  color: #1a1a1a !important;
+}
+#lsft-sub-menu li:hover a *,
+#lsft-sub-menu li a:hover *,
+#sh_lsft_custom_dropdown_names ul li:hover a *,
+#sh_lsft_custom_dropdown_names ul li a:hover * {
+  color: #1a1a1a !important;
 }
 
 /* Hide popup data elements that render as static page content — only show in overlay */
