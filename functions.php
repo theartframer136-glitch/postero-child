@@ -597,7 +597,8 @@ add_action('wp_footer', function() { ?>
             var price = c.querySelector('.price-section, .price, .product-price');
             if (price) {
                 sp(price,'display',     'flex');
-                sp(price,'flex-wrap',   'wrap');
+                sp(price,'flex-direction','row');
+                sp(price,'flex-wrap',   'nowrap');
                 sp(price,'align-items', 'center');
                 sp(price,'gap',         '6px');
                 sp(price,'font-size',   '14px');
@@ -608,14 +609,15 @@ add_action('wp_footer', function() { ?>
                 sp(price,'min-height',  '22px');
                 sp(price,'overflow',    'visible');
                 sp(price,'flex-shrink', '0');
-                sp(price,'flex-wrap',   'wrap');
+                sp(price,'white-space', 'nowrap');
             }
             var ins = c.querySelector('.price-section ins, .price ins');
-            if (ins) { sp(ins,'text-decoration','none'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); sp(ins,'font-size','15px'); }
+            if (ins) { sp(ins,'display','inline-block'); sp(ins,'text-decoration','none'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); sp(ins,'font-size','15px'); }
             var del = c.querySelector('.price-section del, .price del');
             if (del) {
+                sp(del,'display','inline-block'); sp(del,'position','relative');
                 sp(del,'color','#999'); sp(del,'font-weight','400'); sp(del,'font-size','13px');
-                sp(del,'text-decoration','line-through');
+                sp(del,'text-decoration','line-through'); sp(del,'text-decoration-color','#999'); sp(del,'text-decoration-thickness','1.5px');
                 del.querySelectorAll('*').forEach(function(el){
                     sp(el,'color','#999'); sp(el,'text-decoration','line-through'); sp(el,'font-size','13px');
                 });
