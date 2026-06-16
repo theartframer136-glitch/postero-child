@@ -1600,13 +1600,26 @@ add_action('wp_head', function() { ?>
       if (!heading && /trending\s*today/i.test(h.textContent)) heading = h;
     });
     if (!heading) return;
-    var sec = heading.closest('.e-con, .elementor-section, section') || heading.parentElement;
-    if (sec && !sec.classList.contains('af-trending-section')) sec.classList.add('af-trending-section');
+    // Walk up from the heading until we find an ancestor that actually
+    // contains the price elements — the heading's own .e-con may only
+    // wrap the title row, not the product grid below it.
+    var node = heading;
+    var sec = null;
+    while (node && node !== document.body) {
+      if (node.querySelector && node.querySelector('.price-section, .price, li.product')) {
+        sec = node;
+        break;
+      }
+      node = node.parentElement;
+    }
+    if (!sec) return;
+    if (!sec.classList.contains('af-trending-section')) sec.classList.add('af-trending-section');
   }
   document.addEventListener('DOMContentLoaded', tagTrendingTodaySection);
   window.addEventListener('load', tagTrendingTodaySection);
   setTimeout(tagTrendingTodaySection, 400);
   setTimeout(tagTrendingTodaySection, 1200);
+  setTimeout(tagTrendingTodaySection, 2500);
 
   // Fix WooCommerce product grid hover image gap.
   // Bulletproof approach: wrap BOTH the main and hover images in our own
