@@ -30,6 +30,14 @@
   font-size: 0.9em !important;
 }
 
+/* Discount percentage badge — gold to match site theme */
+.woocommerce .discount-percentage,
+.woocommerce-page .discount-percentage,
+.discount-percentage {
+  color: #c9a84c !important;
+  font-weight: 600 !important;
+}
+
 /* Hide themes widget from sidebar */
 .widget_postero_product_themes { display: none !important; }
 
