@@ -846,6 +846,33 @@ li.product .af-img-ratio img {
 .add_to_compare_button { display: none !important; }
 
 
+/* ── New Arrivals section — scoped card grid layout ──
+   Targets the af-new-arrivals-tagged ancestor to ensure
+   proper column gap and card height alignment.          */
+.af-new-arrivals ul.products {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 20px !important;
+  list-style: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.af-new-arrivals ul.products li.product {
+  margin: 0 !important;
+  float: none !important;
+  width: auto !important;
+}
+@media (max-width: 768px) {
+  .af-new-arrivals ul.products {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media (max-width: 480px) {
+  .af-new-arrivals ul.products {
+    grid-template-columns: 1fr !important;
+  }
+}
+
 /* ============================================================
    RESPONSIVE
    ============================================================ */
