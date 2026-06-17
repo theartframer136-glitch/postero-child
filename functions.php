@@ -1661,46 +1661,47 @@ add_action('wp_head', function() { ?>
   setTimeout(tagTrendingTodaySection, 2500);
 
   // Fix WooCommerce product grid hover image gap.
-  // Bulletproof approach: wrap BOTH the main and hover images in our own
-  // ratio-locked <div class="af-img-ratio">. The wrapper is a plain div with a
-  // fixed aspect ratio (padding-bottom), isolated from all theme CSS. Both
-  // images are absolutely positioned inside it with object-fit:cover, so the
-  // main and hover images occupy the EXACT same box — no gap, no size shift.
-  var CARD_RATIO = 66.57; // percent — 3:2 landscape (matches 356x237 render)
+  // Derives the aspect ratio from the main image's own naturalWidth/naturalHeight
+  // so both images occupy the EXACT same box with no gap — regardless of each
+  // product's image dimensions being portrait, landscape, or square.
 
-  function fixProductHoverImages() {
-    document.querySelectorAll('ul.products li.product, .woocommerce li.product, li.product').forEach(function(card) {
-      if (card.dataset.hoverFixed5) return;
+  function applyHoverFix(card) {
+    if (card.dataset.hoverFixed6) return;
 
-      var allImgs = Array.from(card.querySelectorAll('img')).filter(function(img) {
-        var src = img.getAttribute('src') || '';
-        return src && src.indexOf('woocommerce-placeholder') === -1;
-      });
-      if (allImgs.length < 2) return;
+    var allImgs = Array.from(card.querySelectorAll('img')).filter(function(img) {
+      var src = img.getAttribute('src') || '';
+      return src && src.indexOf('woocommerce-placeholder') === -1;
+    });
+    if (allImgs.length < 2) return;
 
-      var mainImg  = allImgs[0];
-      var hoverImg = allImgs[1];
-      card.dataset.hoverFixed5 = '1';
+    var mainImg  = allImgs[0];
+    var hoverImg = allImgs[1];
 
+    function build() {
+      if (card.dataset.hoverFixed6) return;
+      var nw = mainImg.naturalWidth, nh = mainImg.naturalHeight;
+      if (!nw || !nh) return; // not loaded yet
+
+      card.dataset.hoverFixed6 = '1';
       mainImg.classList.add('af-main-img');
       hoverImg.classList.add('af-hover-img');
 
-      // Build a ratio-locked wrapper and insert it where the main image is
+      var ratio = (nh / nw * 100).toFixed(4); // e.g. 133.33 for portrait
+
       var wrap = document.createElement('div');
       wrap.className = 'af-img-ratio';
-      wrap.style.setProperty('position',       'relative', 'important');
-      wrap.style.setProperty('width',          '100%',     'important');
-      wrap.style.setProperty('height',         '0',        'important');
-      wrap.style.setProperty('padding-bottom', CARD_RATIO + '%', 'important');
-      wrap.style.setProperty('overflow',       'hidden',   'important');
-      wrap.style.setProperty('display',        'block',    'important');
-      wrap.style.setProperty('margin',         '0',        'important');
+      wrap.style.setProperty('position',       'relative',    'important');
+      wrap.style.setProperty('width',          '100%',        'important');
+      wrap.style.setProperty('height',         '0',           'important');
+      wrap.style.setProperty('padding-bottom', ratio + '%',   'important');
+      wrap.style.setProperty('overflow',       'hidden',      'important');
+      wrap.style.setProperty('display',        'block',       'important');
+      wrap.style.setProperty('margin',         '0',           'important');
 
       mainImg.parentElement.insertBefore(wrap, mainImg);
       wrap.appendChild(mainImg);
       wrap.appendChild(hoverImg);
 
-      // Make the link/wrapper ancestor a simple block so it sizes to the wrap
       var link = wrap.parentElement;
       if (link) {
         link.style.setProperty('display',        'block',  'important');
@@ -1710,7 +1711,6 @@ add_action('wp_head', function() { ?>
         link.style.setProperty('overflow',       'hidden', 'important');
       }
 
-      // Force both images to fill the wrapper identically
       [mainImg, hoverImg].forEach(function(img) {
         img.style.setProperty('position',        'absolute', 'important');
         img.style.setProperty('top',             '0',        'important');
@@ -1723,7 +1723,6 @@ add_action('wp_head', function() { ?>
         img.style.setProperty('max-width',       'none',     'important');
       });
 
-      // Stacking + hover fade
       mainImg.style.setProperty('z-index', '1', 'important');
       hoverImg.style.setProperty('z-index', '2', 'important');
       hoverImg.style.setProperty('opacity', '0', 'important');
@@ -1735,6 +1734,21 @@ add_action('wp_head', function() { ?>
       card.addEventListener('mouseleave', function() {
         hoverImg.style.setProperty('opacity', '0', 'important');
       });
+    }
+
+    if (mainImg.complete && mainImg.naturalWidth) {
+      build();
+    } else {
+      mainImg.addEventListener('load', build);
+      // also retry after short delay in case load already fired
+      setTimeout(build, 300);
+      setTimeout(build, 800);
+    }
+  }
+
+  function fixProductHoverImages() {
+    document.querySelectorAll('ul.products li.product, .woocommerce li.product, li.product').forEach(function(card) {
+      applyHoverFix(card);
     });
   }
 
