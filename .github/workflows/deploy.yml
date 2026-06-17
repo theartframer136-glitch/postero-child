@@ -1,4 +1,4 @@
-﻿name: Deploy Theme
+name: Deploy Theme
 
 on:
   push:
@@ -19,29 +19,48 @@ jobs:
           printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-      - name: Deploy + reset caches
+      - name: Deploy + reset caches (with retry)
         run: |
           set -euo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
           THEME="postero-child"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ServerAliveInterval=30"
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
           echo "Deploying to: ${TARGET}"
 
-          rsync -avz --delete \
-            --exclude ".git" \
-            --exclude ".github" \
-            --exclude "node_modules" \
-            -e "${SSH} -i ~/.ssh/id_ed25519" \
-            ./ \
-            "${USER}@${HOST}:${TARGET}/"
+          # Retry rsync up to 5 times with exponential backoff
+          for attempt in 1 2 3 4 5; do
+            echo "rsync attempt ${attempt}/5..."
+            rsync -avz --delete \
+              --exclude ".git" \
+              --exclude ".github" \
+              --exclude "node_modules" \
+              -e "${SSH} -i ~/.ssh/id_ed25519" \
+              ./ \
+              "${USER}@${HOST}:${TARGET}/" && break
 
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp litespeed-purge all --allow-root 2>/dev/null || true; \
-             wp cache flush --allow-root 2>/dev/null || true; \
-             echo 'Cache cleared'"
+            if [ $attempt -eq 5 ]; then
+              echo "All rsync attempts failed."
+              exit 1
+            fi
+            WAIT=$((attempt * 15))
+            echo "Attempt ${attempt} failed. Retrying in ${WAIT}s..."
+            sleep $WAIT
+          done
+
+          # Flush caches (also with retry)
+          for attempt in 1 2 3; do
+            echo "Cache flush attempt ${attempt}/3..."
+            ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+              "cd ~/websites/OPu0sKi4J/public_html && \
+               wp litespeed-purge all --allow-root 2>/dev/null || true; \
+               wp cache flush --allow-root 2>/dev/null || true; \
+               echo 'Cache cleared'" && break
+            WAIT=$((attempt * 10))
+            echo "Cache flush attempt ${attempt} failed. Retrying in ${WAIT}s..."
+            sleep $WAIT
+          done
 
           echo "Deploy complete"
