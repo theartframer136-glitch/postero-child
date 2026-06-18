@@ -172,6 +172,17 @@ html body .af-trending-section.af-trending-section span.discount {
   font-size: 13px !important;
 }
 
+/* Trending Today — Add to Cart button color */
+.af-trending-section .add-to-cart-btn,
+.af-trending-section .add_to_cart_button,
+.af-trending-section a.button,
+.trending-card .add-to-cart-btn,
+.trending-card .add_to_cart_button,
+.trending-card a.button {
+  background-color: #c9a84c !important;
+  border-color: #c9a84c !important;
+}
+
 
 /* ============================================================
    SHOP BY COLLECTION

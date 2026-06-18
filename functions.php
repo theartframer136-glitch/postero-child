@@ -1653,6 +1653,10 @@ add_action('wp_head', function() { ?>
         c.style.setProperty('text-decoration', 'line-through', 'important');
       });
     });
+    document.querySelectorAll('.trending-card .add-to-cart-btn, .trending-card .add_to_cart_button, .trending-card a.button').forEach(function(el) {
+      el.style.setProperty('background-color', '#c9a84c', 'important');
+      el.style.setProperty('border-color', '#c9a84c', 'important');
+    });
   }
   document.addEventListener('DOMContentLoaded', tagTrendingTodaySection);
   window.addEventListener('load', tagTrendingTodaySection);
