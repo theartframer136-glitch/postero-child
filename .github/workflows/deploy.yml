@@ -12,57 +12,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Setup SSH
-        run: |
-          set -euo pipefail
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-
-      - name: Check SSH connectivity
-        run: |
-          USER="${{ secrets.HOSTINGER_USERNAME }}"
-          HOST="${{ secrets.HOSTINGER_HOST }}"
-          PORT="${{ secrets.HOSTINGER_PORT }}"
-          echo "Runner public IP: $(curl -s https://api.ipify.org)"
-          echo "Testing TCP connectivity to ${HOST}:${PORT}..."
-          nc -zv -w 10 "${HOST}" "${PORT}" 2>&1 || echo "TCP check result above"
-
-      - name: Deploy + reset caches
-        run: |
-          set -euo pipefail
-          USER="${{ secrets.HOSTINGER_USERNAME }}"
-          HOST="${{ secrets.HOSTINGER_HOST }}"
-          PORT="${{ secrets.HOSTINGER_PORT }}"
-          THEME="postero-child"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ServerAliveInterval=30 -o IPQoS=throughput"
-          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
-          echo "Deploying to: ${TARGET}"
-
-          # Two attempts with a 20s gap — avoids hammering fail2ban
-          for attempt in 1 2; do
-            echo "rsync attempt ${attempt}/2..."
-            rsync -avz --delete \
-              --exclude ".git" \
-              --exclude ".github" \
-              --exclude "node_modules" \
-              -e "${SSH} -i ~/.ssh/id_ed25519" \
-              ./ \
-              "${USER}@${HOST}:${TARGET}/" && break
-
-            if [ $attempt -eq 2 ]; then
-              echo "Both rsync attempts failed. See 'Check SSH connectivity' step for the runner IP."
-              echo "Please whitelist that IP in Hostinger hPanel → Security → IP Manager, then re-run."
-              exit 1
-            fi
-            echo "Attempt ${attempt} failed. Waiting 20s before retry..."
-            sleep 20
-          done
-
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp litespeed-purge all --allow-root 2>/dev/null || true; \
-             wp cache flush --allow-root 2>/dev/null || true; \
-             echo 'Cache cleared'"
-
-          echo "Deploy complete"
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.HOSTINGER_HOST }}
+          username: ${{ secrets.HOSTINGER_USERNAME }}
+          password: ${{ secrets.HOSTINGER_PASSWORD }}
+          port: 21
+          protocol: ftp
+          server-dir: /websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
