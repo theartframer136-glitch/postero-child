@@ -1937,61 +1937,87 @@ add_action('wp_head', function() { ?>
       if (card.dataset.shopFixed2) return;
       card.dataset.shopFixed2 = '1';
 
-      // 1. Hide the diagonal .onsale ribbon from the image
+      // 1. Hide diagonal .onsale ribbon from image
       var onsale = card.querySelector('.onsale');
       if (onsale) onsale.style.setProperty('display', 'none', 'important');
 
-      // 2. Hide WooCommerce default add-to-cart button (we add our own in overlay)
-      var defaultBtn = card.querySelector('a.button.add_to_cart_button, a.button.product_type_simple');
-      if (defaultBtn) defaultBtn.style.setProperty('display', 'none', 'important');
+      // 2. Style the Add to Cart button gold (keep it visible, don't hide)
+      var cartBtn = card.querySelector('a.add_to_cart_button, a.button');
+      if (cartBtn) {
+        cartBtn.style.setProperty('background-color', '#c9a84c', 'important');
+        cartBtn.style.setProperty('color', '#fff', 'important');
+        cartBtn.style.setProperty('border', 'none', 'important');
+        cartBtn.style.setProperty('border-radius', '6px', 'important');
+        cartBtn.style.setProperty('font-weight', '700', 'important');
+        cartBtn.style.setProperty('font-size', '13px', 'important');
+        cartBtn.style.setProperty('padding', '10px 16px', 'important');
+        cartBtn.style.setProperty('display', 'inline-flex', 'important');
+        cartBtn.style.setProperty('align-items', 'center', 'important');
+        cartBtn.style.setProperty('justify-content', 'center', 'important');
+        cartBtn.style.setProperty('flex', '1', 'important');
+        cartBtn.style.setProperty('text-decoration', 'none', 'important');
+        cartBtn.style.setProperty('cursor', 'pointer', 'important');
 
-      // 3. Build hover overlay inside the image link
-      var imgLink = card.querySelector('a.woocommerce-loop-product__link, a.woocommerce-LoopProduct-link');
-      if (imgLink && !imgLink.querySelector('.af-shop-hover-overlay')) {
-        var productUrl = imgLink.href || '#';
-        var cartLink   = card.querySelector('a.add_to_cart_button');
-        var cartHref   = cartLink ? cartLink.href : productUrl;
+        // 3. Inject Quick View button next to Add to Cart
+        if (!card.querySelector('.af-shop-qv-btn')) {
+          var productUrl = card.querySelector('a.woocommerce-loop-product__link');
+          productUrl = productUrl ? productUrl.href : '#';
 
-        // Make sure imgLink is positioned
-        imgLink.style.setProperty('position', 'relative', 'important');
-        imgLink.style.setProperty('display', 'block', 'important');
-        imgLink.style.setProperty('overflow', 'hidden', 'important');
+          var qvBtn = document.createElement('a');
+          qvBtn.className = 'af-shop-qv-btn';
+          qvBtn.href = productUrl;
+          qvBtn.textContent = 'Quick View';
+          qvBtn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;flex:1;padding:10px 16px;background:#1a1a1a;color:#fff;font-size:13px;font-weight:700;border-radius:6px;text-decoration:none;cursor:pointer;';
 
-        var overlay = document.createElement('div');
-        overlay.className = 'af-shop-hover-overlay';
-        overlay.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.35);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;opacity:0;transition:opacity 0.3s;z-index:10;';
+          // Wrap both buttons in a flex row
+          var btnWrapper = document.createElement('div');
+          btnWrapper.className = 'af-shop-btn-row';
+          btnWrapper.style.cssText = 'display:flex;gap:8px;margin-top:10px;width:100%;';
 
-        var btnCart = document.createElement('a');
-        btnCart.href = cartHref;
-        btnCart.textContent = 'Add to Cart';
-        btnCart.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;padding:10px 24px;background:#c9a84c;color:#fff;font-size:13px;font-weight:700;border-radius:6px;text-decoration:none;min-width:148px;border:none;cursor:pointer;';
-        if (cartLink) {
-          btnCart.className = cartLink.className;
-          btnCart.setAttribute('data-product_id', cartLink.getAttribute('data-product_id') || '');
-          btnCart.setAttribute('data-product_sku', cartLink.getAttribute('data-product_sku') || '');
-          btnCart.rel = cartLink.rel || '';
+          cartBtn.parentNode.insertBefore(btnWrapper, cartBtn);
+          btnWrapper.appendChild(cartBtn);
+          btnWrapper.appendChild(qvBtn);
         }
-
-        var btnView = document.createElement('a');
-        btnView.href = productUrl;
-        btnView.textContent = 'Quick View';
-        btnView.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;padding:10px 24px;background:#1a1a1a;color:#fff;font-size:13px;font-weight:700;border-radius:6px;text-decoration:none;min-width:148px;cursor:pointer;';
-
-        overlay.appendChild(btnCart);
-        overlay.appendChild(btnView);
-        imgLink.appendChild(overlay);
-
-        // Hover: show/hide overlay
-        card.addEventListener('mouseenter', function() { overlay.style.opacity = '1'; });
-        card.addEventListener('mouseleave', function() { overlay.style.opacity = '0'; });
       }
 
-      // 4. Discount badge in price row
+      // 4. Fix title color (override gold/orange link color)
+      var title = card.querySelector('.woocommerce-loop-product__title, h2');
+      if (title) {
+        title.style.setProperty('color', '#1a1a1a', 'important');
+        title.style.setProperty('font-size', '14px', 'important');
+        title.style.setProperty('font-weight', '600', 'important');
+        title.style.setProperty('line-height', '1.4', 'important');
+        title.querySelectorAll('a').forEach(function(a) {
+          a.style.setProperty('color', '#1a1a1a', 'important');
+          a.style.setProperty('text-decoration', 'none', 'important');
+        });
+      }
+
+      // 5. Price row: inline layout, strikethrough on del, bold ins
       var priceEl = card.querySelector('.price');
-      if (priceEl && !card.querySelector('.af-shop-discount-badge')) {
-        var insEl = priceEl.querySelector('ins');
+      if (priceEl) {
+        priceEl.style.setProperty('display', 'flex', 'important');
+        priceEl.style.setProperty('flex-direction', 'row', 'important');
+        priceEl.style.setProperty('align-items', 'center', 'important');
+        priceEl.style.setProperty('flex-wrap', 'nowrap', 'important');
+        priceEl.style.setProperty('gap', '6px', 'important');
         var delEl = priceEl.querySelector('del');
-        if (insEl && delEl) {
+        if (delEl) {
+          delEl.style.setProperty('color', '#999', 'important');
+          delEl.style.setProperty('text-decoration', 'line-through', 'important');
+          delEl.style.setProperty('font-weight', '400', 'important');
+          delEl.style.setProperty('font-size', '13px', 'important');
+        }
+        var insEl = priceEl.querySelector('ins');
+        if (insEl) {
+          insEl.style.setProperty('text-decoration', 'none', 'important');
+          insEl.style.setProperty('font-weight', '700', 'important');
+          insEl.style.setProperty('color', '#1a1a1a', 'important');
+          insEl.style.setProperty('font-size', '15px', 'important');
+        }
+
+        // 6. Discount badge
+        if (!card.querySelector('.af-shop-discount-badge') && insEl && delEl) {
           var insVal = parseFloat(insEl.textContent.replace(/[^0-9.]/g, ''));
           var delVal = parseFloat(delEl.textContent.replace(/[^0-9.]/g, ''));
           if (delVal > insVal && delVal > 0) {
@@ -1999,30 +2025,9 @@ add_action('wp_head', function() { ?>
             var badge = document.createElement('span');
             badge.className = 'af-shop-discount-badge';
             badge.textContent = pct + '% off';
-            badge.style.cssText = 'display:inline-block;background:#4caf2f;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:6px;vertical-align:middle;';
+            badge.style.cssText = 'display:inline-block;background:#4caf2f;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;';
             priceEl.appendChild(badge);
           }
-        }
-      }
-
-      // 5. Price row: inline layout, strikethrough on del, bold on ins
-      if (priceEl) {
-        priceEl.style.setProperty('display', 'flex', 'important');
-        priceEl.style.setProperty('flex-direction', 'row', 'important');
-        priceEl.style.setProperty('align-items', 'center', 'important');
-        priceEl.style.setProperty('flex-wrap', 'nowrap', 'important');
-        priceEl.style.setProperty('gap', '6px', 'important');
-        var delEl2 = priceEl.querySelector('del');
-        if (delEl2) {
-          delEl2.style.setProperty('color', '#999', 'important');
-          delEl2.style.setProperty('text-decoration', 'line-through', 'important');
-          delEl2.style.setProperty('font-weight', '400', 'important');
-        }
-        var insEl2 = priceEl.querySelector('ins');
-        if (insEl2) {
-          insEl2.style.setProperty('text-decoration', 'none', 'important');
-          insEl2.style.setProperty('font-weight', '700', 'important');
-          insEl2.style.setProperty('color', '#1a1a1a', 'important');
         }
       }
     });

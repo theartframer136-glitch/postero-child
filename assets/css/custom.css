@@ -1629,93 +1629,41 @@ body.post-type-archive-product ul.products li.product .onsale {
   display: none !important;
 }
 
-/* Image wrapper — relative so hover overlay can sit on top */
-body.woocommerce-page ul.products li.product .woocommerce-loop-product__link {
-  position: relative !important;
-  display: block !important;
-  overflow: hidden !important;
-}
-
-/* Hover overlay — dark semi-transparent layer over image with buttons */
-body.woocommerce-page ul.products li.product .af-shop-hover-overlay {
-  position: absolute !important;
-  inset: 0 !important;
-  background: rgba(0,0,0,0.32) !important;
-  display: flex !important;
-  flex-direction: column !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 10px !important;
-  opacity: 0 !important;
-  transition: opacity 0.3s ease !important;
-  z-index: 10 !important;
-}
-body.woocommerce-page ul.products li.product:hover .af-shop-hover-overlay {
-  opacity: 1 !important;
-}
-
-/* Overlay buttons */
-body.woocommerce-page ul.products li.product .af-shop-hover-overlay .af-shop-btn {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 6px !important;
-  padding: 9px 22px !important;
-  border-radius: 6px !important;
-  font-size: 13px !important;
-  font-weight: 600 !important;
-  cursor: pointer !important;
+/* Title link color */
+body.woocommerce-page ul.products li.product .woocommerce-loop-product__title,
+body.woocommerce-page ul.products li.product .woocommerce-loop-product__title a,
+body.tax-product_cat ul.products li.product .woocommerce-loop-product__title,
+body.tax-product_cat ul.products li.product .woocommerce-loop-product__title a {
+  color: #1a1a1a !important;
   text-decoration: none !important;
-  border: none !important;
-  min-width: 140px !important;
-  transition: opacity 0.2s !important;
-}
-body.woocommerce-page ul.products li.product .af-shop-hover-overlay .af-shop-btn:hover {
-  opacity: 0.88 !important;
-}
-body.woocommerce-page ul.products li.product .af-shop-hover-overlay .af-shop-btn-cart {
-  background: #c9a84c !important;
-  color: #fff !important;
-}
-body.woocommerce-page ul.products li.product .af-shop-hover-overlay .af-shop-btn-view {
-  background: #1a1a1a !important;
-  color: #fff !important;
 }
 
-/* Hide WooCommerce's default add-to-cart button on shop page (we use overlay) */
-body.woocommerce-page ul.products li.product > a.button,
-body.woocommerce-page ul.products li.product .add_to_cart_button:not(.af-shop-btn) {
-  display: none !important;
-}
-
-/* Discount badge in price area */
-body.woocommerce-page ul.products li.product .af-shop-discount-badge {
-  display: inline-block !important;
-  background: #4caf2f !important;
-  color: #fff !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  padding: 2px 7px !important;
-  border-radius: 4px !important;
-  margin-left: 6px !important;
-  vertical-align: middle !important;
+/* Button row */
+body.woocommerce-page ul.products li.product .af-shop-btn-row,
+body.tax-product_cat ul.products li.product .af-shop-btn-row {
+  display: flex !important;
+  gap: 8px !important;
+  margin-top: 10px !important;
+  width: 100% !important;
 }
 
 /* Price row inline on shop page */
-body.woocommerce-page ul.products li.product .price {
+body.woocommerce-page ul.products li.product .price,
+body.tax-product_cat ul.products li.product .price {
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
   flex-wrap: nowrap !important;
   gap: 6px !important;
-  font-size: 15px !important;
 }
-body.woocommerce-page ul.products li.product .price del {
+body.woocommerce-page ul.products li.product .price del,
+body.tax-product_cat ul.products li.product .price del {
   color: #999 !important;
   text-decoration: line-through !important;
   font-weight: 400 !important;
 }
-body.woocommerce-page ul.products li.product .price ins {
+body.woocommerce-page ul.products li.product .price ins,
+body.tax-product_cat ul.products li.product .price ins {
   text-decoration: none !important;
   font-weight: 700 !important;
   color: #1a1a1a !important;
