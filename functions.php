@@ -1917,129 +1917,35 @@ add_action('wp_head', function() { ?>
   setTimeout(fixNewArrivalsCards, 600);
   setTimeout(fixNewArrivalsCards, 1500);
   setTimeout(fixNewArrivalsCards, 3000);
-
-  /* ── Shop / Category archive page card enhancements ──
-     Detects shop/category pages by body class OR URL pattern.
-     Removes diagonal sale ribbon from image, injects hover overlay with
-     Add to Cart + Quick View buttons, and shows discount % badge in price. */
-  function isShopPage() {
-    var b = document.body;
-    return b.classList.contains('tax-product_cat') ||
-           b.classList.contains('post-type-archive-product') ||
-           b.classList.contains('woocommerce-page') ||
-           /\/product-category\/|\/shop\//.test(window.location.pathname);
-  }
-
-  function fixShopPageCards() {
-    if (!isShopPage()) return;
-
-    document.querySelectorAll('ul.products li.product').forEach(function(card) {
-      if (card.dataset.shopFixed2) return;
-      card.dataset.shopFixed2 = '1';
-
-      // 1. Hide diagonal .onsale ribbon from image
-      var onsale = card.querySelector('.onsale');
-      if (onsale) onsale.style.setProperty('display', 'none', 'important');
-
-      // 2. Style the Add to Cart button gold (keep it visible, don't hide)
-      var cartBtn = card.querySelector('a.add_to_cart_button, a.button');
-      if (cartBtn) {
-        cartBtn.style.setProperty('background-color', '#c9a84c', 'important');
-        cartBtn.style.setProperty('color', '#fff', 'important');
-        cartBtn.style.setProperty('border', 'none', 'important');
-        cartBtn.style.setProperty('border-radius', '6px', 'important');
-        cartBtn.style.setProperty('font-weight', '700', 'important');
-        cartBtn.style.setProperty('font-size', '13px', 'important');
-        cartBtn.style.setProperty('padding', '10px 16px', 'important');
-        cartBtn.style.setProperty('display', 'inline-flex', 'important');
-        cartBtn.style.setProperty('align-items', 'center', 'important');
-        cartBtn.style.setProperty('justify-content', 'center', 'important');
-        cartBtn.style.setProperty('flex', '1', 'important');
-        cartBtn.style.setProperty('text-decoration', 'none', 'important');
-        cartBtn.style.setProperty('cursor', 'pointer', 'important');
-
-        // 3. Inject Quick View button next to Add to Cart
-        if (!card.querySelector('.af-shop-qv-btn')) {
-          var productUrl = card.querySelector('a.woocommerce-loop-product__link');
-          productUrl = productUrl ? productUrl.href : '#';
-
-          var qvBtn = document.createElement('a');
-          qvBtn.className = 'af-shop-qv-btn';
-          qvBtn.href = productUrl;
-          qvBtn.textContent = 'Quick View';
-          qvBtn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;flex:1;padding:10px 16px;background:#1a1a1a;color:#fff;font-size:13px;font-weight:700;border-radius:6px;text-decoration:none;cursor:pointer;';
-
-          // Wrap both buttons in a flex row
-          var btnWrapper = document.createElement('div');
-          btnWrapper.className = 'af-shop-btn-row';
-          btnWrapper.style.cssText = 'display:flex;gap:8px;margin-top:10px;width:100%;';
-
-          cartBtn.parentNode.insertBefore(btnWrapper, cartBtn);
-          btnWrapper.appendChild(cartBtn);
-          btnWrapper.appendChild(qvBtn);
-        }
-      }
-
-      // 4. Fix title color (override gold/orange link color)
-      var title = card.querySelector('.woocommerce-loop-product__title, h2');
-      if (title) {
-        title.style.setProperty('color', '#1a1a1a', 'important');
-        title.style.setProperty('font-size', '14px', 'important');
-        title.style.setProperty('font-weight', '600', 'important');
-        title.style.setProperty('line-height', '1.4', 'important');
-        title.querySelectorAll('a').forEach(function(a) {
-          a.style.setProperty('color', '#1a1a1a', 'important');
-          a.style.setProperty('text-decoration', 'none', 'important');
-        });
-      }
-
-      // 5. Price row: inline layout, strikethrough on del, bold ins
-      var priceEl = card.querySelector('.price');
-      if (priceEl) {
-        priceEl.style.setProperty('display', 'flex', 'important');
-        priceEl.style.setProperty('flex-direction', 'row', 'important');
-        priceEl.style.setProperty('align-items', 'center', 'important');
-        priceEl.style.setProperty('flex-wrap', 'nowrap', 'important');
-        priceEl.style.setProperty('gap', '6px', 'important');
-        var delEl = priceEl.querySelector('del');
-        if (delEl) {
-          delEl.style.setProperty('color', '#999', 'important');
-          delEl.style.setProperty('text-decoration', 'line-through', 'important');
-          delEl.style.setProperty('font-weight', '400', 'important');
-          delEl.style.setProperty('font-size', '13px', 'important');
-        }
-        var insEl = priceEl.querySelector('ins');
-        if (insEl) {
-          insEl.style.setProperty('text-decoration', 'none', 'important');
-          insEl.style.setProperty('font-weight', '700', 'important');
-          insEl.style.setProperty('color', '#1a1a1a', 'important');
-          insEl.style.setProperty('font-size', '15px', 'important');
-        }
-
-        // 6. Discount badge
-        if (!card.querySelector('.af-shop-discount-badge') && insEl && delEl) {
-          var insVal = parseFloat(insEl.textContent.replace(/[^0-9.]/g, ''));
-          var delVal = parseFloat(delEl.textContent.replace(/[^0-9.]/g, ''));
-          if (delVal > insVal && delVal > 0) {
-            var pct = Math.round((delVal - insVal) / delVal * 100);
-            var badge = document.createElement('span');
-            badge.className = 'af-shop-discount-badge';
-            badge.textContent = pct + '% off';
-            badge.style.cssText = 'display:inline-block;background:#4caf2f;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;';
-            priceEl.appendChild(badge);
-          }
-        }
-      }
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', fixShopPageCards);
-  window.addEventListener('load', fixShopPageCards);
-  setTimeout(fixShopPageCards, 400);
-  setTimeout(fixShopPageCards, 1200);
 }());
 </script>
 <?php }, 99);
+
+/* ============================================================
+   SHOP / CATEGORY PAGE — PHP hooks for card buttons & badge
+   ============================================================ */
+
+// Add Quick View button after WooCommerce's Add to Cart button
+add_action('woocommerce_after_shop_loop_item', function() {
+  if (!is_shop() && !is_product_category() && !is_product_tag()) return;
+  global $product;
+  $url = get_permalink($product->get_id());
+  echo '<a href="' . esc_url($url) . '" class="af-shop-qv-btn">Quick View</a>';
+}, 15);
+
+// Add discount badge after price
+add_action('woocommerce_after_shop_loop_item_title', function() {
+  if (!is_shop() && !is_product_category() && !is_product_tag()) return;
+  global $product;
+  if ($product->is_on_sale() && $product->get_regular_price()) {
+    $regular = (float) $product->get_regular_price();
+    $sale    = (float) $product->get_sale_price();
+    if ($regular > 0 && $sale < $regular) {
+      $pct = round(($regular - $sale) / $regular * 100);
+      echo '<span class="af-shop-discount-badge">' . $pct . '% off</span>';
+    }
+  }
+}, 12);
 
 // Features bar: force inline on mobile
 add_action('wp_footer', function() { ?>
