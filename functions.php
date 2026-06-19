@@ -1917,6 +1917,91 @@ add_action('wp_head', function() { ?>
   setTimeout(fixNewArrivalsCards, 600);
   setTimeout(fixNewArrivalsCards, 1500);
   setTimeout(fixNewArrivalsCards, 3000);
+
+  /* ── Shop page card buttons ──
+     Reads hidden .af-pd data injected by PHP hook.
+     Works regardless of parent theme template structure. */
+  function buildShopCards() {
+    document.querySelectorAll('ul.products li.product').forEach(function(card) {
+      if (card.dataset.afShopDone) return;
+      var pd = card.querySelector('.af-pd');
+      if (!pd) return; // not a WooCommerce product loop card
+      card.dataset.afShopDone = '1';
+
+      var productUrl = pd.dataset.url || '#';
+      var cartUrl    = pd.dataset.cart || productUrl;
+      var pct        = parseInt(pd.dataset.pct) || 0;
+
+      // Hide diagonal .onsale ribbon
+      var onsale = card.querySelector('.onsale');
+      if (onsale) onsale.style.setProperty('display', 'none', 'important');
+
+      // Fix title color
+      var title = card.querySelector('.woocommerce-loop-product__title, h2.woocommerce-loop-product__title');
+      if (title) {
+        title.style.setProperty('color', '#1a1a1a', 'important');
+        title.querySelectorAll('a').forEach(function(a) { a.style.setProperty('color', '#1a1a1a', 'important'); });
+      }
+
+      // Fix price
+      var priceEl = card.querySelector('.price');
+      if (priceEl) {
+        priceEl.style.setProperty('display', 'flex', 'important');
+        priceEl.style.setProperty('flex-direction', 'row', 'important');
+        priceEl.style.setProperty('align-items', 'center', 'important');
+        priceEl.style.setProperty('flex-wrap', 'nowrap', 'important');
+        priceEl.style.setProperty('gap', '6px', 'important');
+        var del = priceEl.querySelector('del');
+        if (del) { del.style.setProperty('color','#999','important'); del.style.setProperty('text-decoration','line-through','important'); del.style.setProperty('font-weight','400','important'); }
+        var ins = priceEl.querySelector('ins');
+        if (ins) { ins.style.setProperty('text-decoration','none','important'); ins.style.setProperty('font-weight','700','important'); ins.style.setProperty('color','#1a1a1a','important'); }
+
+        // Discount badge
+        if (pct > 0 && !card.querySelector('.af-shop-discount-badge')) {
+          var badge = document.createElement('span');
+          badge.className = 'af-shop-discount-badge';
+          badge.textContent = pct + '% off';
+          badge.style.cssText = 'display:inline-block;background:#4caf2f;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0;';
+          priceEl.appendChild(badge);
+        }
+      }
+
+      // Inject Add to Cart + Quick View buttons if not already present
+      if (!card.querySelector('.af-shop-btn-row')) {
+        var row = document.createElement('div');
+        row.className = 'af-shop-btn-row';
+        row.style.cssText = 'display:flex;gap:8px;padding:10px 14px 0;';
+
+        var btnCart = document.createElement('a');
+        btnCart.href = cartUrl;
+        btnCart.textContent = 'Add to Cart';
+        btnCart.className = 'af-shop-cart-btn';
+        btnCart.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#c9a84c;color:#fff;font-size:13px;font-weight:700;border-radius:6px;padding:10px 8px;text-decoration:none;cursor:pointer;';
+
+        var btnView = document.createElement('a');
+        btnView.href = productUrl;
+        btnView.textContent = 'Quick View';
+        btnView.className = 'af-shop-qv-btn';
+        btnView.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#1a1a1a;color:#fff;font-size:13px;font-weight:700;border-radius:6px;padding:10px 8px;text-decoration:none;cursor:pointer;';
+
+        row.appendChild(btnCart);
+        row.appendChild(btnView);
+
+        // Append after price or at end of card
+        var anchor = priceEl || card.querySelector('.woocommerce-loop-product__title') || card.lastElementChild;
+        if (anchor && anchor.parentNode === card) {
+          anchor.insertAdjacentElement('afterend', row);
+        } else {
+          card.appendChild(row);
+        }
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', buildShopCards);
+  window.addEventListener('load', buildShopCards);
+  setTimeout(buildShopCards, 300);
+  setTimeout(buildShopCards, 900);
 }());
 </script>
 <?php }, 99);
@@ -1944,6 +2029,20 @@ add_action('woocommerce_after_shop_loop_item_title', function() {
     echo '<span class="af-shop-discount-badge">' . $pct . '% off</span>';
   }
 }, 12);
+
+// Inject hidden product data into every loop card so JS can build buttons
+add_action('woocommerce_before_shop_loop_item_title', function() {
+  global $product;
+  if (!$product) return;
+  $id       = $product->get_id();
+  $url      = get_permalink($id);
+  $cart_url = esc_url(add_query_arg('add-to-cart', $id, $url));
+  $regular  = (float) $product->get_regular_price();
+  $sale     = (float) $product->get_sale_price();
+  $pct      = ($regular > 0 && $sale > 0 && $sale < $regular)
+              ? round(($regular - $sale) / $regular * 100) : 0;
+  echo '<span class="af-pd" data-id="' . $id . '" data-url="' . esc_url($url) . '" data-cart="' . $cart_url . '" data-pct="' . $pct . '" style="display:none"></span>';
+}, 1);
 
 // Features bar: force inline on mobile
 add_action('wp_footer', function() { ?>
