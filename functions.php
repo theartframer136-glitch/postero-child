@@ -1927,23 +1927,21 @@ add_action('wp_head', function() { ?>
 
 // Add Quick View button after WooCommerce's Add to Cart button
 add_action('woocommerce_after_shop_loop_item', function() {
-  if (!is_shop() && !is_product_category() && !is_product_tag()) return;
   global $product;
+  if (!$product) return;
   $url = get_permalink($product->get_id());
   echo '<a href="' . esc_url($url) . '" class="af-shop-qv-btn">Quick View</a>';
 }, 15);
 
 // Add discount badge after price
 add_action('woocommerce_after_shop_loop_item_title', function() {
-  if (!is_shop() && !is_product_category() && !is_product_tag()) return;
   global $product;
-  if ($product->is_on_sale() && $product->get_regular_price()) {
-    $regular = (float) $product->get_regular_price();
-    $sale    = (float) $product->get_sale_price();
-    if ($regular > 0 && $sale < $regular) {
-      $pct = round(($regular - $sale) / $regular * 100);
-      echo '<span class="af-shop-discount-badge">' . $pct . '% off</span>';
-    }
+  if (!$product || !$product->is_on_sale() || !$product->get_regular_price()) return;
+  $regular = (float) $product->get_regular_price();
+  $sale    = (float) $product->get_sale_price();
+  if ($regular > 0 && $sale < $regular) {
+    $pct = round(($regular - $sale) / $regular * 100);
+    echo '<span class="af-shop-discount-badge">' . $pct . '% off</span>';
   }
 }, 12);
 
