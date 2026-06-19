@@ -1917,6 +1917,80 @@ add_action('wp_head', function() { ?>
   setTimeout(fixNewArrivalsCards, 600);
   setTimeout(fixNewArrivalsCards, 1500);
   setTimeout(fixNewArrivalsCards, 3000);
+
+  /* ── Shop / Category archive page card enhancements ──
+     Only runs on WooCommerce archive pages (body has .woocommerce-page).
+     Injects hover overlay with Add to Cart + Quick View buttons,
+     hides the diagonal sale ribbon, and shows discount % in price area. */
+  function fixShopPageCards() {
+    if (!document.body.classList.contains('woocommerce-page') &&
+        !document.body.classList.contains('tax-product_cat') &&
+        !document.body.classList.contains('post-type-archive-product')) return;
+
+    document.querySelectorAll('ul.products li.product').forEach(function(card) {
+      if (card.dataset.shopFixed) return;
+      card.dataset.shopFixed = '1';
+
+      // --- Hover overlay inside image link ---
+      var imgLink = card.querySelector('.woocommerce-loop-product__link, figure.woocommerce-loop-product__link');
+      if (imgLink && !imgLink.querySelector('.af-shop-hover-overlay')) {
+        var productUrl = imgLink.href || card.querySelector('a.woocommerce-loop-product__link, h2 a, .woocommerce-loop-product__title a');
+        if (typeof productUrl === 'object' && productUrl && productUrl.href) productUrl = productUrl.href;
+        if (typeof productUrl !== 'string') productUrl = '#';
+
+        // Add to Cart link
+        var cartLink = card.querySelector('a.add_to_cart_button');
+        var cartHref = cartLink ? cartLink.href : '#';
+        var cartClasses = cartLink ? cartLink.className : '';
+
+        var overlay = document.createElement('div');
+        overlay.className = 'af-shop-hover-overlay';
+
+        var btnCart = document.createElement('a');
+        btnCart.className = 'af-shop-btn af-shop-btn-cart ' + cartClasses;
+        btnCart.href = cartHref;
+        btnCart.innerHTML = '🛒 Add to Cart';
+        if (cartLink) {
+          btnCart.setAttribute('data-product_id', cartLink.getAttribute('data-product_id') || '');
+          btnCart.setAttribute('data-product_sku', cartLink.getAttribute('data-product_sku') || '');
+          btnCart.setAttribute('aria-label', cartLink.getAttribute('aria-label') || 'Add to cart');
+          btnCart.rel = cartLink.rel || '';
+        }
+
+        var btnView = document.createElement('a');
+        btnView.className = 'af-shop-btn af-shop-btn-view';
+        btnView.href = productUrl;
+        btnView.innerHTML = '👁 Quick View';
+
+        overlay.appendChild(btnCart);
+        overlay.appendChild(btnView);
+        imgLink.appendChild(overlay);
+      }
+
+      // --- Discount badge next to price ---
+      var priceEl = card.querySelector('.price');
+      var insEl = priceEl ? priceEl.querySelector('ins .woocommerce-Price-amount, ins') : null;
+      var delEl = priceEl ? priceEl.querySelector('del .woocommerce-Price-amount, del') : null;
+      if (insEl && delEl && !card.querySelector('.af-shop-discount-badge')) {
+        var insText = insEl.textContent.replace(/[^0-9.]/g, '');
+        var delText = delEl.textContent.replace(/[^0-9.]/g, '');
+        var insVal = parseFloat(insText);
+        var delVal = parseFloat(delText);
+        if (delVal > insVal && delVal > 0) {
+          var pct = Math.round((delVal - insVal) / delVal * 100);
+          var badge = document.createElement('span');
+          badge.className = 'af-shop-discount-badge';
+          badge.textContent = pct + '% off';
+          priceEl.appendChild(badge);
+        }
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', fixShopPageCards);
+  window.addEventListener('load', fixShopPageCards);
+  setTimeout(fixShopPageCards, 500);
+  setTimeout(fixShopPageCards, 1500);
 }());
 </script>
 <?php }, 99);
