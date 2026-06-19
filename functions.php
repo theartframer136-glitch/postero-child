@@ -1919,69 +1919,110 @@ add_action('wp_head', function() { ?>
   setTimeout(fixNewArrivalsCards, 3000);
 
   /* ── Shop / Category archive page card enhancements ──
-     Only runs on WooCommerce archive pages (body has .woocommerce-page).
-     Injects hover overlay with Add to Cart + Quick View buttons,
-     hides the diagonal sale ribbon, and shows discount % in price area. */
+     Detects shop/category pages by body class OR URL pattern.
+     Removes diagonal sale ribbon from image, injects hover overlay with
+     Add to Cart + Quick View buttons, and shows discount % badge in price. */
+  function isShopPage() {
+    var b = document.body;
+    return b.classList.contains('tax-product_cat') ||
+           b.classList.contains('post-type-archive-product') ||
+           b.classList.contains('woocommerce-page') ||
+           /\/product-category\/|\/shop\//.test(window.location.pathname);
+  }
+
   function fixShopPageCards() {
-    if (!document.body.classList.contains('woocommerce-page') &&
-        !document.body.classList.contains('tax-product_cat') &&
-        !document.body.classList.contains('post-type-archive-product')) return;
+    if (!isShopPage()) return;
 
     document.querySelectorAll('ul.products li.product').forEach(function(card) {
-      if (card.dataset.shopFixed) return;
-      card.dataset.shopFixed = '1';
+      if (card.dataset.shopFixed2) return;
+      card.dataset.shopFixed2 = '1';
 
-      // --- Hover overlay inside image link ---
-      var imgLink = card.querySelector('.woocommerce-loop-product__link, figure.woocommerce-loop-product__link');
+      // 1. Hide the diagonal .onsale ribbon from the image
+      var onsale = card.querySelector('.onsale');
+      if (onsale) onsale.style.setProperty('display', 'none', 'important');
+
+      // 2. Hide WooCommerce default add-to-cart button (we add our own in overlay)
+      var defaultBtn = card.querySelector('a.button.add_to_cart_button, a.button.product_type_simple');
+      if (defaultBtn) defaultBtn.style.setProperty('display', 'none', 'important');
+
+      // 3. Build hover overlay inside the image link
+      var imgLink = card.querySelector('a.woocommerce-loop-product__link, a.woocommerce-LoopProduct-link');
       if (imgLink && !imgLink.querySelector('.af-shop-hover-overlay')) {
-        var productUrl = imgLink.href || card.querySelector('a.woocommerce-loop-product__link, h2 a, .woocommerce-loop-product__title a');
-        if (typeof productUrl === 'object' && productUrl && productUrl.href) productUrl = productUrl.href;
-        if (typeof productUrl !== 'string') productUrl = '#';
+        var productUrl = imgLink.href || '#';
+        var cartLink   = card.querySelector('a.add_to_cart_button');
+        var cartHref   = cartLink ? cartLink.href : productUrl;
 
-        // Add to Cart link
-        var cartLink = card.querySelector('a.add_to_cart_button');
-        var cartHref = cartLink ? cartLink.href : '#';
-        var cartClasses = cartLink ? cartLink.className : '';
+        // Make sure imgLink is positioned
+        imgLink.style.setProperty('position', 'relative', 'important');
+        imgLink.style.setProperty('display', 'block', 'important');
+        imgLink.style.setProperty('overflow', 'hidden', 'important');
 
         var overlay = document.createElement('div');
         overlay.className = 'af-shop-hover-overlay';
+        overlay.style.cssText = 'position:absolute;inset:0;background:rgba(0,0,0,0.35);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;opacity:0;transition:opacity 0.3s;z-index:10;';
 
         var btnCart = document.createElement('a');
-        btnCart.className = 'af-shop-btn af-shop-btn-cart ' + cartClasses;
         btnCart.href = cartHref;
-        btnCart.innerHTML = '🛒 Add to Cart';
+        btnCart.textContent = 'Add to Cart';
+        btnCart.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;padding:10px 24px;background:#c9a84c;color:#fff;font-size:13px;font-weight:700;border-radius:6px;text-decoration:none;min-width:148px;border:none;cursor:pointer;';
         if (cartLink) {
+          btnCart.className = cartLink.className;
           btnCart.setAttribute('data-product_id', cartLink.getAttribute('data-product_id') || '');
           btnCart.setAttribute('data-product_sku', cartLink.getAttribute('data-product_sku') || '');
-          btnCart.setAttribute('aria-label', cartLink.getAttribute('aria-label') || 'Add to cart');
           btnCart.rel = cartLink.rel || '';
         }
 
         var btnView = document.createElement('a');
-        btnView.className = 'af-shop-btn af-shop-btn-view';
         btnView.href = productUrl;
-        btnView.innerHTML = '👁 Quick View';
+        btnView.textContent = 'Quick View';
+        btnView.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;padding:10px 24px;background:#1a1a1a;color:#fff;font-size:13px;font-weight:700;border-radius:6px;text-decoration:none;min-width:148px;cursor:pointer;';
 
         overlay.appendChild(btnCart);
         overlay.appendChild(btnView);
         imgLink.appendChild(overlay);
+
+        // Hover: show/hide overlay
+        card.addEventListener('mouseenter', function() { overlay.style.opacity = '1'; });
+        card.addEventListener('mouseleave', function() { overlay.style.opacity = '0'; });
       }
 
-      // --- Discount badge next to price ---
+      // 4. Discount badge in price row
       var priceEl = card.querySelector('.price');
-      var insEl = priceEl ? priceEl.querySelector('ins .woocommerce-Price-amount, ins') : null;
-      var delEl = priceEl ? priceEl.querySelector('del .woocommerce-Price-amount, del') : null;
-      if (insEl && delEl && !card.querySelector('.af-shop-discount-badge')) {
-        var insText = insEl.textContent.replace(/[^0-9.]/g, '');
-        var delText = delEl.textContent.replace(/[^0-9.]/g, '');
-        var insVal = parseFloat(insText);
-        var delVal = parseFloat(delText);
-        if (delVal > insVal && delVal > 0) {
-          var pct = Math.round((delVal - insVal) / delVal * 100);
-          var badge = document.createElement('span');
-          badge.className = 'af-shop-discount-badge';
-          badge.textContent = pct + '% off';
-          priceEl.appendChild(badge);
+      if (priceEl && !card.querySelector('.af-shop-discount-badge')) {
+        var insEl = priceEl.querySelector('ins');
+        var delEl = priceEl.querySelector('del');
+        if (insEl && delEl) {
+          var insVal = parseFloat(insEl.textContent.replace(/[^0-9.]/g, ''));
+          var delVal = parseFloat(delEl.textContent.replace(/[^0-9.]/g, ''));
+          if (delVal > insVal && delVal > 0) {
+            var pct = Math.round((delVal - insVal) / delVal * 100);
+            var badge = document.createElement('span');
+            badge.className = 'af-shop-discount-badge';
+            badge.textContent = pct + '% off';
+            badge.style.cssText = 'display:inline-block;background:#4caf2f;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;margin-left:6px;vertical-align:middle;';
+            priceEl.appendChild(badge);
+          }
+        }
+      }
+
+      // 5. Price row: inline layout, strikethrough on del, bold on ins
+      if (priceEl) {
+        priceEl.style.setProperty('display', 'flex', 'important');
+        priceEl.style.setProperty('flex-direction', 'row', 'important');
+        priceEl.style.setProperty('align-items', 'center', 'important');
+        priceEl.style.setProperty('flex-wrap', 'nowrap', 'important');
+        priceEl.style.setProperty('gap', '6px', 'important');
+        var delEl2 = priceEl.querySelector('del');
+        if (delEl2) {
+          delEl2.style.setProperty('color', '#999', 'important');
+          delEl2.style.setProperty('text-decoration', 'line-through', 'important');
+          delEl2.style.setProperty('font-weight', '400', 'important');
+        }
+        var insEl2 = priceEl.querySelector('ins');
+        if (insEl2) {
+          insEl2.style.setProperty('text-decoration', 'none', 'important');
+          insEl2.style.setProperty('font-weight', '700', 'important');
+          insEl2.style.setProperty('color', '#1a1a1a', 'important');
         }
       }
     });
@@ -1989,8 +2030,8 @@ add_action('wp_head', function() { ?>
 
   document.addEventListener('DOMContentLoaded', fixShopPageCards);
   window.addEventListener('load', fixShopPageCards);
-  setTimeout(fixShopPageCards, 500);
-  setTimeout(fixShopPageCards, 1500);
+  setTimeout(fixShopPageCards, 400);
+  setTimeout(fixShopPageCards, 1200);
 }());
 </script>
 <?php }, 99);
