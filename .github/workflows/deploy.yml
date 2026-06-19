@@ -21,7 +21,7 @@ jobs:
 
       - name: Deploy + reset caches
         run: |
-          set -euo pipefail
+          set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
@@ -32,15 +32,19 @@ jobs:
 
           MAX=6
           DELAY=25
+          DEPLOYED=0
           for i in $(seq 1 $MAX); do
             echo "Attempt $i of $MAX..."
-            rsync -avz --delete \
+            if rsync -avz --delete \
               --exclude ".git" \
               --exclude ".github" \
               --exclude "node_modules" \
               -e "${SSH} -i ~/.ssh/id_ed25519" \
               ./ \
-              "${USER}@${HOST}:${TARGET}/" && break
+              "${USER}@${HOST}:${TARGET}/"; then
+              DEPLOYED=1
+              break
+            fi
             if [ $i -eq $MAX ]; then
               echo "All $MAX attempts failed."
               exit 1
@@ -50,10 +54,11 @@ jobs:
             DELAY=$((DELAY + 25))
           done
 
+          echo "Files deployed. Clearing cache..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp litespeed-purge all --allow-root 2>/dev/null || true; \
              wp cache flush --allow-root 2>/dev/null || true; \
-             echo 'Cache cleared'"
+             echo 'Cache cleared'" || echo "Cache clear skipped (SSH throttled — files already deployed)"
 
           echo "Deploy complete"
