@@ -30,8 +30,8 @@ jobs:
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
           echo "Deploying to: ${TARGET}"
 
-          MAX=6
-          DELAY=25
+          MAX=5
+          DELAY=60
           DEPLOYED=0
           for i in $(seq 1 $MAX); do
             echo "Attempt $i of $MAX..."
@@ -51,7 +51,7 @@ jobs:
             fi
             echo "Throttled — waiting ${DELAY}s before retry..."
             sleep $DELAY
-            DELAY=$((DELAY + 25))
+            DELAY=$((DELAY + 60))
           done
 
           echo "Files deployed. Clearing cache..."
