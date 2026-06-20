@@ -9,7 +9,7 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.4');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.0', true);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
 
@@ -1918,90 +1918,6 @@ add_action('wp_head', function() { ?>
   setTimeout(fixNewArrivalsCards, 1500);
   setTimeout(fixNewArrivalsCards, 3000);
 
-  /* ── Shop page card buttons ──
-     Reads hidden .af-pd data injected by PHP hook.
-     Works regardless of parent theme template structure. */
-  function buildShopCards() {
-    document.querySelectorAll('ul.products li.product').forEach(function(card) {
-      if (card.dataset.afShopDone) return;
-      var pd = card.querySelector('.af-pd');
-      if (!pd) return; // not a WooCommerce product loop card
-      card.dataset.afShopDone = '1';
-
-      var productUrl = pd.dataset.url || '#';
-      var cartUrl    = pd.dataset.cart || productUrl;
-      var pct        = parseInt(pd.dataset.pct) || 0;
-
-      // Hide diagonal .onsale ribbon
-      var onsale = card.querySelector('.onsale');
-      if (onsale) onsale.style.setProperty('display', 'none', 'important');
-
-      // Fix title color
-      var title = card.querySelector('.woocommerce-loop-product__title, h2.woocommerce-loop-product__title');
-      if (title) {
-        title.style.setProperty('color', '#1a1a1a', 'important');
-        title.querySelectorAll('a').forEach(function(a) { a.style.setProperty('color', '#1a1a1a', 'important'); });
-      }
-
-      // Fix price
-      var priceEl = card.querySelector('.price');
-      if (priceEl) {
-        priceEl.style.setProperty('display', 'flex', 'important');
-        priceEl.style.setProperty('flex-direction', 'row', 'important');
-        priceEl.style.setProperty('align-items', 'center', 'important');
-        priceEl.style.setProperty('flex-wrap', 'nowrap', 'important');
-        priceEl.style.setProperty('gap', '6px', 'important');
-        var del = priceEl.querySelector('del');
-        if (del) { del.style.setProperty('color','#999','important'); del.style.setProperty('text-decoration','line-through','important'); del.style.setProperty('font-weight','400','important'); }
-        var ins = priceEl.querySelector('ins');
-        if (ins) { ins.style.setProperty('text-decoration','none','important'); ins.style.setProperty('font-weight','700','important'); ins.style.setProperty('color','#1a1a1a','important'); }
-
-        // Discount badge
-        if (pct > 0 && !card.querySelector('.af-shop-discount-badge')) {
-          var badge = document.createElement('span');
-          badge.className = 'af-shop-discount-badge';
-          badge.textContent = pct + '% off';
-          badge.style.cssText = 'display:inline-block;background:#4caf2f;color:#fff;font-size:11px;font-weight:700;padding:2px 7px;border-radius:4px;white-space:nowrap;flex-shrink:0;';
-          priceEl.appendChild(badge);
-        }
-      }
-
-      // Inject Add to Cart + Quick View buttons if not already present
-      if (!card.querySelector('.af-shop-btn-row')) {
-        var row = document.createElement('div');
-        row.className = 'af-shop-btn-row';
-        row.style.cssText = 'display:flex;gap:8px;padding:10px 14px 0;';
-
-        var btnCart = document.createElement('a');
-        btnCart.href = cartUrl;
-        btnCart.textContent = 'Add to Cart';
-        btnCart.className = 'af-shop-cart-btn';
-        btnCart.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#c9a84c;color:#fff;font-size:13px;font-weight:700;border-radius:6px;padding:10px 8px;text-decoration:none;cursor:pointer;';
-
-        var btnView = document.createElement('a');
-        btnView.href = productUrl;
-        btnView.textContent = 'Quick View';
-        btnView.className = 'af-shop-qv-btn';
-        btnView.style.cssText = 'flex:1;display:flex;align-items:center;justify-content:center;background:#1a1a1a;color:#fff;font-size:13px;font-weight:700;border-radius:6px;padding:10px 8px;text-decoration:none;cursor:pointer;';
-
-        row.appendChild(btnCart);
-        row.appendChild(btnView);
-
-        // Append after price or at end of card
-        var anchor = priceEl || card.querySelector('.woocommerce-loop-product__title') || card.lastElementChild;
-        if (anchor && anchor.parentNode === card) {
-          anchor.insertAdjacentElement('afterend', row);
-        } else {
-          card.appendChild(row);
-        }
-      }
-    });
-  }
-
-  document.addEventListener('DOMContentLoaded', buildShopCards);
-  window.addEventListener('load', buildShopCards);
-  setTimeout(buildShopCards, 300);
-  setTimeout(buildShopCards, 900);
 }());
 </script>
 <?php }, 99);
@@ -3023,3 +2939,161 @@ add_action('wp_footer', function() { ?>
 </script>
 <?php }, 10004);
 
+
+/* ============================================================
+   SHOP / CATEGORY PAGE — comprehensive card fix via JS
+   JS inline styles beat all CSS (including theme overrides).
+   ============================================================ */
+add_action('wp_footer', function() {
+  $is_shop = is_product_category() || is_shop() || is_tax('product_cat');
+  if (!$is_shop) return;
+?><script>
+(function() {
+  var body = document.body;
+  if (!body.classList.contains('tax-product_cat') &&
+      !body.classList.contains('woocommerce-page') &&
+      !/\/product-category\/|\/shop\//.test(window.location.pathname)) return;
+
+  function sp(el, p, v) { el.style.setProperty(p, v, 'important'); }
+
+  function fixShopCard(card) {
+    if (card.dataset.afShopFixed) return;
+    card.dataset.afShopFixed = '1';
+
+    // 1. Sale ribbon → small badge (inline style beats ALL CSS)
+    var ribbon = card.querySelector('.onsale');
+    if (ribbon) {
+      sp(ribbon, 'position',       'absolute');
+      sp(ribbon, 'top',            '10px');
+      sp(ribbon, 'left',           '10px');
+      sp(ribbon, 'right',          'auto');
+      sp(ribbon, 'bottom',         'auto');
+      sp(ribbon, 'transform',      'none');
+      sp(ribbon, 'background',     '#c9a84c');
+      sp(ribbon, 'color',          '#fff');
+      sp(ribbon, 'font-size',      '11px');
+      sp(ribbon, 'font-weight',    '700');
+      sp(ribbon, 'padding',        '3px 9px');
+      sp(ribbon, 'border-radius',  '4px');
+      sp(ribbon, 'text-transform', 'uppercase');
+      sp(ribbon, 'letter-spacing', '0.05em');
+      sp(ribbon, 'min-width',      'unset');
+      sp(ribbon, 'width',          'auto');
+      sp(ribbon, 'z-index',        '10');
+      sp(ribbon, 'line-height',    '1.5');
+      sp(ribbon, 'margin',         '0');
+      sp(ribbon, 'display',        'inline-block');
+      sp(ribbon, 'box-shadow',     '0 1px 4px rgba(0,0,0,.18)');
+    }
+
+    // 2. Get URLs — from .af-pd data, the theme cart button, or main link
+    var pd        = card.querySelector('.af-pd');
+    var mainLink  = card.querySelector('a.woocommerce-loop-product__link');
+    var themeCart = card.querySelector('a.add_to_cart_button, a.ajax_add_to_cart, a.button.product_type_simple');
+    var productUrl = (pd && pd.dataset.url) || (mainLink && mainLink.href) || '#';
+    var cartUrl    = (pd && pd.dataset.cart) || (themeCart && themeCart.href) || productUrl;
+
+    // 3. Hide the Postero theme hover overlay (the white space gap in cards)
+    //    Target: anything inside the product link that is NOT an image
+    if (mainLink) {
+      Array.from(mainLink.children).forEach(function(child) {
+        var tag = child.tagName.toLowerCase();
+        if (tag !== 'img' && !child.classList.contains('onsale') && !child.classList.contains('af-pd')) {
+          // Likely a hover overlay div or button — hide it
+          sp(child, 'display', 'none');
+        }
+      });
+    }
+    // Also hide any standalone theme add-to-cart (not inside our row)
+    if (themeCart && !themeCart.classList.contains('af-shop-cart-btn')) {
+      var themeRow = themeCart.closest('.af-shop-btn-row');
+      if (!themeRow) sp(themeCart, 'display', 'none');
+    }
+
+    // 4. Caption padding (title, rating, price, discount badge)
+    ['.woocommerce-loop-product__title', '.woocommerce-product-rating', '.price',
+     '.af-shop-discount-badge'].forEach(function(sel) {
+      var el = card.querySelector(sel);
+      if (el) { sp(el, 'padding-left', '12px'); sp(el, 'padding-right', '12px'); }
+    });
+
+    // 5. Title color fix
+    var titleEl = card.querySelector('.woocommerce-loop-product__title');
+    if (titleEl) {
+      sp(titleEl, 'color', '#1a1a1a');
+      titleEl.querySelectorAll('a').forEach(function(a) { sp(a, 'color', '#1a1a1a'); });
+    }
+
+    // 6. Price layout
+    var priceEl = card.querySelector('.price');
+    if (priceEl) {
+      sp(priceEl, 'display',        'flex');
+      sp(priceEl, 'flex-direction', 'row');
+      sp(priceEl, 'align-items',    'center');
+      sp(priceEl, 'flex-wrap',      'nowrap');
+      sp(priceEl, 'gap',            '6px');
+      var del = priceEl.querySelector('del');
+      if (del) { sp(del,'color','#999'); sp(del,'text-decoration','line-through'); sp(del,'font-weight','400'); }
+      var ins = priceEl.querySelector('ins');
+      if (ins) { sp(ins,'text-decoration','none'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); }
+    }
+
+    // 7. Button row — only add if not already present (PHP may have added it)
+    if (!card.querySelector('.af-shop-btn-row') && productUrl !== '#') {
+      var row     = document.createElement('div');
+      row.className = 'af-shop-btn-row';
+      sp(row, 'display',  'flex');
+      sp(row, 'gap',      '8px');
+      sp(row, 'padding',  '10px 12px 12px');
+
+      var btnC    = document.createElement('a');
+      btnC.href   = cartUrl;
+      btnC.className = 'af-shop-cart-btn';
+      btnC.textContent = 'Add to Cart';
+
+      var btnV    = document.createElement('a');
+      btnV.href   = productUrl;
+      btnV.className = 'af-shop-qv-btn';
+      btnV.textContent = 'Quick View';
+
+      row.appendChild(btnC);
+      row.appendChild(btnV);
+      card.appendChild(row);
+    }
+
+    // Style our button row buttons (override anything)
+    var btnRow = card.querySelector('.af-shop-btn-row');
+    if (btnRow) {
+      var cartBtn = btnRow.querySelector('.af-shop-cart-btn');
+      var qvBtn   = btnRow.querySelector('.af-shop-qv-btn');
+      [cartBtn, qvBtn].forEach(function(btn) {
+        if (!btn) return;
+        sp(btn, 'flex',             '1');
+        sp(btn, 'display',          'flex');
+        sp(btn, 'align-items',      'center');
+        sp(btn, 'justify-content',  'center');
+        sp(btn, 'font-size',        '13px');
+        sp(btn, 'font-weight',      '700');
+        sp(btn, 'border-radius',    '6px');
+        sp(btn, 'padding',          '10px 8px');
+        sp(btn, 'text-decoration',  'none');
+        sp(btn, 'cursor',           'pointer');
+        sp(btn, 'border',           'none');
+        sp(btn, 'color',            '#fff');
+      });
+      if (cartBtn) sp(cartBtn, 'background', '#c9a84c');
+      if (qvBtn)   sp(qvBtn,   'background', '#1a1a1a');
+    }
+  }
+
+  function run() {
+    document.querySelectorAll('ul.products li.product').forEach(fixShopCard);
+  }
+
+  document.addEventListener('DOMContentLoaded', run);
+  window.addEventListener('load', run);
+  [300, 800, 1500].forEach(function(d) { setTimeout(run, d); });
+}());
+</script>
+<?php
+}, 200);
