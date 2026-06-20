@@ -1618,80 +1618,52 @@ li.product .af-img-ratio img {
 }
 
 /* ============================================================
-   SHOP / CATEGORY ARCHIVE PAGE — complete card style
+   SHOP / CATEGORY ARCHIVE PAGE — card style fixes
    ============================================================ */
 
-/* Hide diagonal sale ribbon from image */
-.tax-product_cat ul.products li.product .onsale,
-.woocommerce-page ul.products li.product .onsale,
-.post-type-archive-product ul.products li.product .onsale {
+/* Hide diagonal sale ribbon — strong selector to beat parent theme */
+body.tax-product_cat .woocommerce ul.products li.product .onsale,
+body.woocommerce-page .woocommerce ul.products li.product .onsale,
+body.post-type-archive-product .woocommerce ul.products li.product .onsale {
   display: none !important;
 }
 
-/* Card base */
-.tax-product_cat ul.products li.product,
-.woocommerce-page ul.products li.product {
-  background: #fff !important;
-  border: 1px solid #ececec !important;
-  border-radius: 12px !important;
-  overflow: hidden !important;
-  display: flex !important;
-  flex-direction: column !important;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
-  transition: box-shadow 0.25s, transform 0.25s !important;
-  padding: 0 0 14px !important;
-}
-.tax-product_cat ul.products li.product:hover,
-.woocommerce-page ul.products li.product:hover {
-  box-shadow: 0 8px 28px rgba(0,0,0,0.14) !important;
-  transform: translateY(-3px) !important;
-}
-
-/* Title */
-.tax-product_cat ul.products li.product .woocommerce-loop-product__title,
-.woocommerce-page ul.products li.product .woocommerce-loop-product__title {
+/* Title dark color */
+body.tax-product_cat ul.products li.product .woocommerce-loop-product__title,
+body.tax-product_cat ul.products li.product .woocommerce-loop-product__title a,
+body.woocommerce-page ul.products li.product .woocommerce-loop-product__title,
+body.woocommerce-page ul.products li.product .woocommerce-loop-product__title a {
   color: #1a1a1a !important;
-  font-size: 14px !important;
-  font-weight: 600 !important;
-  line-height: 1.4 !important;
-  padding: 10px 14px 4px !important;
-  margin: 0 !important;
-  display: -webkit-box !important;
-  -webkit-line-clamp: 2 !important;
-  -webkit-box-orient: vertical !important;
-  overflow: hidden !important;
-  min-height: 2.8em !important;
+  text-decoration: none !important;
 }
 
-/* Price row */
-.tax-product_cat ul.products li.product .price,
-.woocommerce-page ul.products li.product .price {
+/* Price inline */
+body.tax-product_cat ul.products li.product .price,
+body.woocommerce-page ul.products li.product .price {
   display: flex !important;
   flex-direction: row !important;
   align-items: center !important;
   flex-wrap: nowrap !important;
   gap: 6px !important;
-  padding: 0 14px !important;
-  margin: 4px 0 0 !important;
 }
-.tax-product_cat ul.products li.product .price del,
-.woocommerce-page ul.products li.product .price del {
+body.tax-product_cat ul.products li.product .price del,
+body.woocommerce-page ul.products li.product .price del {
   color: #999 !important;
   text-decoration: line-through !important;
   font-weight: 400 !important;
   font-size: 13px !important;
 }
-.tax-product_cat ul.products li.product .price ins,
-.woocommerce-page ul.products li.product .price ins {
+body.tax-product_cat ul.products li.product .price ins,
+body.woocommerce-page ul.products li.product .price ins {
   text-decoration: none !important;
   font-weight: 700 !important;
   color: #1a1a1a !important;
   font-size: 15px !important;
 }
 
-/* Discount badge (injected by PHP hook) */
-.tax-product_cat ul.products li.product .af-shop-discount-badge,
-.woocommerce-page ul.products li.product .af-shop-discount-badge {
+/* Discount badge */
+body.tax-product_cat ul.products li.product .af-shop-discount-badge,
+body.woocommerce-page ul.products li.product .af-shop-discount-badge {
   display: inline-block !important;
   background: #4caf2f !important;
   color: #fff !important;
@@ -1700,50 +1672,53 @@ li.product .af-img-ratio img {
   padding: 2px 7px !important;
   border-radius: 4px !important;
   white-space: nowrap !important;
-  margin: 6px 14px 0 !important;
 }
 
-/* Add to Cart button — gold */
-.tax-product_cat ul.products li.product a.button,
-.woocommerce-page ul.products li.product a.button {
+/* Button row */
+body.tax-product_cat ul.products li.product .af-shop-btn-row,
+body.woocommerce-page ul.products li.product .af-shop-btn-row {
+  display: flex !important;
+  gap: 8px !important;
+  padding: 10px 14px 4px !important;
+}
+
+/* Add to Cart button */
+body.tax-product_cat ul.products li.product .af-shop-cart-btn,
+body.woocommerce-page ul.products li.product .af-shop-cart-btn {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   background: #c9a84c !important;
   color: #fff !important;
-  border: none !important;
-  border-radius: 6px !important;
   font-size: 13px !important;
   font-weight: 700 !important;
-  padding: 10px 0 !important;
-  margin: 10px 14px 0 !important;
-  display: block !important;
-  text-align: center !important;
+  border-radius: 6px !important;
+  padding: 10px 8px !important;
   text-decoration: none !important;
   cursor: pointer !important;
-  transition: opacity 0.2s !important;
-}
-.tax-product_cat ul.products li.product a.button:hover,
-.woocommerce-page ul.products li.product a.button:hover {
-  opacity: 0.88 !important;
-  color: #fff !important;
+  border: none !important;
 }
 
-/* Quick View button — dark (injected by PHP hook) */
-.tax-product_cat ul.products li.product .af-shop-qv-btn,
-.woocommerce-page ul.products li.product .af-shop-qv-btn {
-  display: block !important;
+/* Quick View button */
+body.tax-product_cat ul.products li.product .af-shop-qv-btn,
+body.woocommerce-page ul.products li.product .af-shop-qv-btn {
+  flex: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   background: #1a1a1a !important;
   color: #fff !important;
-  border-radius: 6px !important;
   font-size: 13px !important;
   font-weight: 700 !important;
-  padding: 10px 0 !important;
-  margin: 8px 14px 0 !important;
-  text-align: center !important;
+  border-radius: 6px !important;
+  padding: 10px 8px !important;
   text-decoration: none !important;
   cursor: pointer !important;
-  transition: opacity 0.2s !important;
 }
-.tax-product_cat ul.products li.product .af-shop-qv-btn:hover,
-.woocommerce-page ul.products li.product .af-shop-qv-btn:hover {
-  opacity: 0.88 !important;
-  color: #fff !important;
+
+/* Hide the default WooCommerce Add to Cart button (we use our own) */
+body.tax-product_cat ul.products li.product a.button:not(.af-shop-cart-btn),
+body.woocommerce-page ul.products li.product a.button:not(.af-shop-cart-btn) {
+  display: none !important;
 }
