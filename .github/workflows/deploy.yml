@@ -20,6 +20,7 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
 
       - name: Deploy + reset caches
+        timeout-minutes: 30
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -30,8 +31,11 @@ jobs:
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
           echo "Deploying to: ${TARGET}"
 
-          MAX=5
-          DELAY=60
+          echo "Waiting 90s for any SSH throttle to clear..."
+          sleep 90
+
+          MAX=6
+          DELAY=90
           DEPLOYED=0
           for i in $(seq 1 $MAX); do
             echo "Attempt $i of $MAX..."
@@ -51,7 +55,7 @@ jobs:
             fi
             echo "Throttled — waiting ${DELAY}s before retry..."
             sleep $DELAY
-            DELAY=$((DELAY + 60))
+            DELAY=$((DELAY + 90))
           done
 
           echo "Files deployed. Clearing cache..."
@@ -59,6 +63,6 @@ jobs:
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp litespeed-purge all --allow-root 2>/dev/null || true; \
              wp cache flush --allow-root 2>/dev/null || true; \
-             echo 'Cache cleared'" || echo "Cache clear skipped (SSH throttled — files already deployed)"
+             echo 'Cache cleared'" || echo "Cache clear skipped"
 
           echo "Deploy complete"
