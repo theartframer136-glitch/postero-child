@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.5');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.6');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1952,19 +1952,6 @@ add_action('woocommerce_after_shop_loop_item_title', function() {
   }
 }, 12);
 
-// Add to Cart + Quick View — use woocommerce_after_shop_loop_item which fires
-// OUTSIDE the <a class="woocommerce-loop-product__link"> tag so nested <a> works
-add_action('woocommerce_after_shop_loop_item', function() {
-  global $product;
-  if (!$product) return;
-  $id       = $product->get_id();
-  $url      = get_permalink($id);
-  $cart_url = esc_url(add_query_arg('add-to-cart', $id, $url));
-  echo '<div class="af-shop-btn-row">';
-  echo '<a href="' . $cart_url . '" class="af-shop-cart-btn">Add to Cart</a>';
-  echo '<a href="' . esc_url($url) . '" class="af-shop-qv-btn">Quick View</a>';
-  echo '</div>';
-}, 5);
 
 // Features bar: force inline on mobile
 add_action('wp_footer', function() { ?>
@@ -2994,21 +2981,44 @@ add_action('wp_footer', function() {
     var productUrl = (pd && pd.dataset.url) || (mainLink && mainLink.href) || '#';
     var cartUrl    = (pd && pd.dataset.cart) || (themeCart && themeCart.href) || productUrl;
 
-    // 3. Hide the Postero theme hover overlay (the white space gap in cards)
-    //    Target: anything inside the product link that is NOT an image
+    // 3. Inject "Add to Cart" into the theme's hover overlay (alongside Quick View)
+    //    The Postero theme puts a hover overlay inside the product link
+    var overlay = null;
     if (mainLink) {
       Array.from(mainLink.children).forEach(function(child) {
         var tag = child.tagName.toLowerCase();
         if (tag !== 'img' && !child.classList.contains('onsale') && !child.classList.contains('af-pd')) {
-          // Likely a hover overlay div or button — hide it
-          sp(child, 'display', 'none');
+          overlay = child; // this is the hover overlay div
         }
       });
     }
-    // Also hide any standalone theme add-to-cart (not inside our row)
-    if (themeCart && !themeCart.classList.contains('af-shop-cart-btn')) {
-      var themeRow = themeCart.closest('.af-shop-btn-row');
-      if (!themeRow) sp(themeCart, 'display', 'none');
+    // Fallback selectors for various theme overlay patterns
+    if (!overlay) {
+      overlay = card.querySelector('.woo-action, .product-action, .entry-action, [class*="hover-action"], [class*="woo-action"]');
+    }
+    if (overlay && cartUrl && cartUrl !== '#' && !overlay.querySelector('.af-ov-cart')) {
+      var atc = document.createElement('a');
+      atc.href = cartUrl;
+      atc.className = 'af-ov-cart';
+      atc.title = 'Add to Cart';
+      atc.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>';
+      sp(atc, 'display',          'inline-flex');
+      sp(atc, 'align-items',      'center');
+      sp(atc, 'justify-content',  'center');
+      sp(atc, 'width',            '36px');
+      sp(atc, 'height',           '36px');
+      sp(atc, 'background',       '#c9a84c');
+      sp(atc, 'color',            '#fff');
+      sp(atc, 'border-radius',    '50%');
+      sp(atc, 'text-decoration',  'none');
+      sp(atc, 'cursor',           'pointer');
+      sp(atc, 'flex-shrink',      '0');
+      overlay.insertBefore(atc, overlay.firstChild);
+    }
+    // Hide standalone theme add-to-cart button (outside our overlay)
+    if (themeCart) {
+      var inOverlay = overlay && overlay.contains(themeCart);
+      if (!inOverlay) sp(themeCart, 'display', 'none');
     }
 
     // 4. Caption padding (title, rating, price, discount badge)
@@ -3050,52 +3060,6 @@ add_action('wp_footer', function() {
       if (ins) { sp(ins,'text-decoration','none'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); }
     }
 
-    // 7. Button row — only add if not already present (PHP may have added it)
-    if (!card.querySelector('.af-shop-btn-row') && productUrl !== '#') {
-      var row     = document.createElement('div');
-      row.className = 'af-shop-btn-row';
-      sp(row, 'display',  'flex');
-      sp(row, 'gap',      '8px');
-      sp(row, 'padding',  '10px 12px 12px');
-
-      var btnC    = document.createElement('a');
-      btnC.href   = cartUrl;
-      btnC.className = 'af-shop-cart-btn';
-      btnC.textContent = 'Add to Cart';
-
-      var btnV    = document.createElement('a');
-      btnV.href   = productUrl;
-      btnV.className = 'af-shop-qv-btn';
-      btnV.textContent = 'Quick View';
-
-      row.appendChild(btnC);
-      row.appendChild(btnV);
-      card.appendChild(row);
-    }
-
-    // Style our button row buttons (override anything)
-    var btnRow = card.querySelector('.af-shop-btn-row');
-    if (btnRow) {
-      var cartBtn = btnRow.querySelector('.af-shop-cart-btn');
-      var qvBtn   = btnRow.querySelector('.af-shop-qv-btn');
-      [cartBtn, qvBtn].forEach(function(btn) {
-        if (!btn) return;
-        sp(btn, 'flex',             '1');
-        sp(btn, 'display',          'flex');
-        sp(btn, 'align-items',      'center');
-        sp(btn, 'justify-content',  'center');
-        sp(btn, 'font-size',        '13px');
-        sp(btn, 'font-weight',      '700');
-        sp(btn, 'border-radius',    '6px');
-        sp(btn, 'padding',          '10px 8px');
-        sp(btn, 'text-decoration',  'none');
-        sp(btn, 'cursor',           'pointer');
-        sp(btn, 'border',           'none');
-        sp(btn, 'color',            '#fff');
-      });
-      if (cartBtn) sp(cartBtn, 'background', '#c9a84c');
-      if (qvBtn)   sp(qvBtn,   'background', '#1a1a1a');
-    }
   }
 
   function run() {

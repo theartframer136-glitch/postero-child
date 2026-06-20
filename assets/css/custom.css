@@ -1521,59 +1521,28 @@ body.woocommerce-page ul.products li.product .af-shop-discount-badge {
   white-space: nowrap !important;
 }
 
-/* Button row */
-body.tax-product_cat ul.products li.product .af-shop-btn-row,
-body.woocommerce-page ul.products li.product .af-shop-btn-row {
-  display: flex !important;
-  gap: 8px !important;
-  padding: 10px 12px 12px !important;
-}
-
-/* Add to Cart — gold */
-body.tax-product_cat ul.products li.product .af-shop-cart-btn,
-body.woocommerce-page ul.products li.product .af-shop-cart-btn {
-  flex: 1 !important;
-  display: flex !important;
+/* Add to Cart icon in hover overlay */
+body.tax-product_cat ul.products li.product .af-ov-cart,
+body.woocommerce-page ul.products li.product .af-ov-cart {
+  display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
+  width: 36px !important;
+  height: 36px !important;
   background: #c9a84c !important;
   color: #fff !important;
-  font-size: 13px !important;
-  font-weight: 700 !important;
-  border-radius: 6px !important;
-  padding: 10px 8px !important;
+  border-radius: 50% !important;
   text-decoration: none !important;
   cursor: pointer !important;
-  border: none !important;
+  flex-shrink: 0 !important;
 }
-body.tax-product_cat ul.products li.product .af-shop-cart-btn:hover,
-body.woocommerce-page ul.products li.product .af-shop-cart-btn:hover {
+body.tax-product_cat ul.products li.product .af-ov-cart:hover,
+body.woocommerce-page ul.products li.product .af-ov-cart:hover {
   background: #a8872e !important;
 }
 
-/* Quick View — dark */
-body.tax-product_cat ul.products li.product .af-shop-qv-btn,
-body.woocommerce-page ul.products li.product .af-shop-qv-btn {
-  flex: 1 !important;
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  background: #1a1a1a !important;
-  color: #fff !important;
-  font-size: 13px !important;
-  font-weight: 700 !important;
-  border-radius: 6px !important;
-  padding: 10px 8px !important;
-  text-decoration: none !important;
-  cursor: pointer !important;
-}
-body.tax-product_cat ul.products li.product .af-shop-qv-btn:hover,
-body.woocommerce-page ul.products li.product .af-shop-qv-btn:hover {
-  background: #333 !important;
-}
-
-/* Hide the default WooCommerce Add to Cart button (we use our own) */
-body.tax-product_cat ul.products li.product a.button:not(.af-shop-cart-btn),
-body.woocommerce-page ul.products li.product a.button:not(.af-shop-cart-btn) {
+/* Hide the default WooCommerce Add to Cart button (we use overlay) */
+body.tax-product_cat ul.products li.product a.button:not(.af-ov-cart),
+body.woocommerce-page ul.products li.product a.button:not(.af-ov-cart) {
   display: none !important;
 }
