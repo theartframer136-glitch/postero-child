@@ -8,8 +8,8 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.3');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.2.9', true);
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.4');
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.0', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
 
@@ -2010,27 +2010,7 @@ add_action('wp_head', function() { ?>
    SHOP / CATEGORY PAGE — PHP hooks for card buttons & badge
    ============================================================ */
 
-// Add Quick View button after WooCommerce's Add to Cart button
-add_action('woocommerce_after_shop_loop_item', function() {
-  global $product;
-  if (!$product) return;
-  $url = get_permalink($product->get_id());
-  echo '<a href="' . esc_url($url) . '" class="af-shop-qv-btn">Quick View</a>';
-}, 15);
-
-// Add discount badge after price
-add_action('woocommerce_after_shop_loop_item_title', function() {
-  global $product;
-  if (!$product || !$product->is_on_sale() || !$product->get_regular_price()) return;
-  $regular = (float) $product->get_regular_price();
-  $sale    = (float) $product->get_sale_price();
-  if ($regular > 0 && $sale < $regular) {
-    $pct = round(($regular - $sale) / $regular * 100);
-    echo '<span class="af-shop-discount-badge">' . $pct . '% off</span>';
-  }
-}, 12);
-
-// Inject hidden product data into every loop card so JS can build buttons
+// Inject hidden product data (fires inside the product link, inside the image area)
 add_action('woocommerce_before_shop_loop_item_title', function() {
   global $product;
   if (!$product) return;
@@ -2043,6 +2023,32 @@ add_action('woocommerce_before_shop_loop_item_title', function() {
               ? round(($regular - $sale) / $regular * 100) : 0;
   echo '<span class="af-pd" data-id="' . $id . '" data-url="' . esc_url($url) . '" data-cart="' . $cart_url . '" data-pct="' . $pct . '" style="display:none"></span>';
 }, 1);
+
+// Discount badge (fires after price, inside the product link — span is OK here)
+add_action('woocommerce_after_shop_loop_item_title', function() {
+  global $product;
+  if (!$product || !$product->is_on_sale() || !$product->get_regular_price()) return;
+  $regular = (float) $product->get_regular_price();
+  $sale    = (float) $product->get_sale_price();
+  if ($regular > 0 && $sale < $regular) {
+    $pct = round(($regular - $sale) / $regular * 100);
+    echo '<span class="af-shop-discount-badge">' . $pct . '% off</span>';
+  }
+}, 12);
+
+// Add to Cart + Quick View — use woocommerce_after_shop_loop_item which fires
+// OUTSIDE the <a class="woocommerce-loop-product__link"> tag so nested <a> works
+add_action('woocommerce_after_shop_loop_item', function() {
+  global $product;
+  if (!$product) return;
+  $id       = $product->get_id();
+  $url      = get_permalink($id);
+  $cart_url = esc_url(add_query_arg('add-to-cart', $id, $url));
+  echo '<div class="af-shop-btn-row">';
+  echo '<a href="' . $cart_url . '" class="af-shop-cart-btn">Add to Cart</a>';
+  echo '<a href="' . esc_url($url) . '" class="af-shop-qv-btn">Quick View</a>';
+  echo '</div>';
+}, 5);
 
 // Features bar: force inline on mobile
 add_action('wp_footer', function() { ?>
@@ -3017,47 +3023,3 @@ add_action('wp_footer', function() { ?>
 </script>
 <?php }, 10004);
 
-/* ============================================================
-   SHOP / CATEGORY PAGE — PHP hooks for card buttons & badge
-   All hooks use woocommerce_after_shop_loop_item_title which
-   fires reliably in the Postero parent theme.
-   ============================================================ */
-
-// Inject hidden product data so JS can read it for any fallback
-add_action('woocommerce_before_shop_loop_item_title', function() {
-  global $product;
-  if (!$product) return;
-  $id       = $product->get_id();
-  $url      = get_permalink($id);
-  $cart_url = esc_url(add_query_arg('add-to-cart', $id, $url));
-  $regular  = (float) $product->get_regular_price();
-  $sale     = (float) $product->get_sale_price();
-  $pct      = ($regular > 0 && $sale > 0 && $sale < $regular)
-              ? round(($regular - $sale) / $regular * 100) : 0;
-  echo '<span class="af-pd" data-id="' . $id . '" data-url="' . esc_url($url) . '" data-cart="' . $cart_url . '" data-pct="' . $pct . '" style="display:none"></span>';
-}, 1);
-
-// Discount badge after price (priority 12 = after price at 10)
-add_action('woocommerce_after_shop_loop_item_title', function() {
-  global $product;
-  if (!$product || !$product->is_on_sale() || !$product->get_regular_price()) return;
-  $regular = (float) $product->get_regular_price();
-  $sale    = (float) $product->get_sale_price();
-  if ($regular > 0 && $sale < $regular) {
-    $pct = round(($regular - $sale) / $regular * 100);
-    echo '<span class="af-shop-discount-badge">' . $pct . '% off</span>';
-  }
-}, 12);
-
-// Add to Cart + Quick View buttons (priority 20 = after price+badge)
-add_action('woocommerce_after_shop_loop_item_title', function() {
-  global $product;
-  if (!$product) return;
-  $id       = $product->get_id();
-  $url      = get_permalink($id);
-  $cart_url = esc_url(add_query_arg('add-to-cart', $id, $url));
-  echo '<div class="af-shop-btn-row">';
-  echo '<a href="' . $cart_url . '" class="af-shop-cart-btn">&#x1F6D2; Add to Cart</a>';
-  echo '<a href="' . esc_url($url) . '" class="af-shop-qv-btn">Quick View</a>';
-  echo '</div>';
-}, 20);
