@@ -30,158 +30,8 @@
   font-size: 0.9em !important;
 }
 
-/* Discount percentage badge — gold to match site theme */
-.woocommerce .discount-percentage,
-.woocommerce-page .discount-percentage,
-.discount-percentage,
-.price-section .discount,
-span.discount {
-  color: #c9a84c !important;
-  font-weight: 600 !important;
-}
-
 /* Hide themes widget from sidebar */
 .widget_postero_product_themes { display: none !important; }
-
-/* ── Shop by Collection — price/discount style to match reference design ──
-   Scoped to .product-container only so no other section is affected. */
-.product-container .price-section,
-.product-container .price {
-  display: flex !important;
-  flex-direction: row !important;
-  flex-wrap: nowrap !important;
-  align-items: center !important;
-  gap: 6px !important;
-  white-space: nowrap !important;
-}
-.product-container .price-section ins,
-.product-container .price ins {
-  display: inline-block !important;
-  text-decoration: none !important;
-  font-weight: 700 !important;
-  color: #1a1a1a !important;
-  font-size: 15px !important;
-}
-.product-container .price-section del,
-.product-container .price del,
-.product-container .old-price {
-  display: inline-block !important;
-  position: relative !important;
-  color: #999 !important;
-  font-weight: 400 !important;
-  font-size: 13px !important;
-  text-decoration: line-through !important;
-  text-decoration-color: #999 !important;
-  text-decoration-thickness: 1.5px !important;
-}
-.product-container .price-section del *,
-.product-container .price del *,
-.product-container .old-price * {
-  color: #999 !important;
-  font-weight: 400 !important;
-  font-size: 13px !important;
-  text-decoration: line-through !important;
-}
-/* Fallback strike line in case nested markup suppresses text-decoration rendering */
-.product-container .price-section del::after,
-.product-container .price del::after,
-.product-container .old-price::after {
-  content: '' !important;
-  position: absolute !important;
-  left: 0 !important;
-  right: 0 !important;
-  top: 50% !important;
-  border-top: 1.5px solid #999 !important;
-  pointer-events: none !important;
-}
-.product-container .price-section .discount,
-.product-container .discount-percentage,
-.product-container span.discount {
-  color: #4caf2f !important;
-  font-weight: 600 !important;
-  font-size: 13px !important;
-}
-
-/* ── Trending Today — same price layout/strikethrough as Shop by Collection ──
-   Scoped to .af-trending-section (tagged by JS) so no other section is affected. */
-.af-trending-section .price-section,
-.af-trending-section .price {
-  display: flex !important;
-  flex-direction: row !important;
-  flex-wrap: nowrap !important;
-  align-items: center !important;
-  gap: 6px !important;
-  white-space: nowrap !important;
-}
-.af-trending-section .price-section ins,
-.af-trending-section .price ins {
-  display: inline-block !important;
-  text-decoration: none !important;
-  font-weight: 700 !important;
-  color: #1a1a1a !important;
-  font-size: 15px !important;
-}
-.af-trending-section .price-section del,
-.af-trending-section .price del,
-.af-trending-section .old-price {
-  display: inline-block !important;
-  position: relative !important;
-  color: #999 !important;
-  font-weight: 400 !important;
-  font-size: 13px !important;
-  text-decoration: line-through !important;
-  text-decoration-color: #999 !important;
-  text-decoration-thickness: 1.5px !important;
-}
-.af-trending-section .price-section del *,
-.af-trending-section .price del *,
-.af-trending-section .old-price * {
-  color: #999 !important;
-  font-weight: 400 !important;
-  font-size: 13px !important;
-  text-decoration: line-through !important;
-}
-.af-trending-section .price-section del::after,
-.af-trending-section .price del::after,
-.af-trending-section .old-price::after,
-.trending-card .old-price::after {
-  content: '' !important;
-  position: absolute !important;
-  left: 0 !important;
-  right: 0 !important;
-  top: 50% !important;
-  border-top: 1.5px solid #999 !important;
-  pointer-events: none !important;
-}
-.trending-card .old-price {
-  display: inline-block !important;
-  position: relative !important;
-  color: #999 !important;
-  text-decoration: line-through !important;
-}
-html body .trending-card.trending-card .discount,
-html body .trending-card.trending-card .discount-percentage {
-  color: #4caf2f !important;
-  font-weight: 600 !important;
-}
-html body .af-trending-section.af-trending-section .price-section .discount,
-html body .af-trending-section.af-trending-section .discount-percentage,
-html body .af-trending-section.af-trending-section span.discount {
-  color: #4caf2f !important;
-  font-weight: 600 !important;
-  font-size: 13px !important;
-}
-
-/* Trending Today — Add to Cart button color */
-.af-trending-section .add-to-cart-btn,
-.af-trending-section .add_to_cart_button,
-.af-trending-section a.button,
-.trending-card .add-to-cart-btn,
-.trending-card .add_to_cart_button,
-.trending-card a.button {
-  background-color: #c9a84c !important;
-  border-color: #c9a84c !important;
-}
 
 
 /* ============================================================
@@ -511,8 +361,7 @@ ul.postero-scroll-content .cat-item a {
   display: block !important;
   background: #f5f5f5 !important;
 }
-/* WooCommerce product grid: JS wraps images in .af-img-ratio which owns the
-   aspect ratio; the link just needs to be a simple block. */
+/* WooCommerce product grid: JS controls image stacking — container just needs position+overflow */
 .woocommerce ul.products li.product .woocommerce-loop-product__link,
 .woocommerce ul.products li.product .product-thumb,
 .woocommerce ul.products li.product figure.woocommerce-loop-product__link {
@@ -523,28 +372,6 @@ ul.postero-scroll-content .cat-item a {
   background: #f5f5f5 !important;
   height: auto !important;
   padding-bottom: 0 !important;
-}
-/* JS-built ratio wrapper for product hover images */
-.woocommerce ul.products li.product .af-img-ratio,
-li.product .af-img-ratio {
-  position: relative !important;
-  width: 100% !important;
-  height: 0 !important;
-  padding-bottom: 66.57% !important;
-  overflow: hidden !important;
-  display: block !important;
-  margin: 0 !important;
-}
-.woocommerce ul.products li.product .af-img-ratio img,
-li.product .af-img-ratio img {
-  position: absolute !important;
-  top: 0 !important; left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
-  object-position: center !important;
-  margin: 0 !important;
-  max-width: none !important;
 }
 /* Custom slider images — absolute fill the padding-bottom container */
 .af-shell-track .product-card .product-image img,
@@ -580,16 +407,15 @@ li.product .af-img-ratio img {
 .af-shell-track .product-card:hover .hover-img,
 .product-slider .product-card:hover .hover-img { opacity: 1 !important; }
 
-/* WooCommerce product grid — both images fill the aspect-ratio container absolutely */
+/* WooCommerce product grid — JS handles stacking; CSS just ensures images fill their parent */
 .woocommerce ul.products li.product img.af-main-img {
-  position: absolute !important;
-  top: 0 !important; left: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
-  object-fit: cover !important;
+  position: relative !important;
   display: block !important;
+  width: 100% !important;
+  height: auto !important;
   z-index: 1 !important;
   margin: 0 !important;
+  object-fit: cover !important;
 }
 .woocommerce ul.products li.product img.af-hover-img {
   position: absolute !important;
@@ -856,33 +682,6 @@ li.product .af-img-ratio img {
 .yith-woocompare-add-button, .compare-button,
 .add_to_compare_button { display: none !important; }
 
-
-/* ── New Arrivals section — scoped card grid layout ──
-   Targets the af-new-arrivals-tagged ancestor to ensure
-   proper column gap and card height alignment.          */
-.af-new-arrivals ul.products {
-  display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
-  gap: 20px !important;
-  list-style: none !important;
-  padding: 0 !important;
-  margin: 0 !important;
-}
-.af-new-arrivals ul.products li.product {
-  margin: 0 !important;
-  float: none !important;
-  width: auto !important;
-}
-@media (max-width: 768px) {
-  .af-new-arrivals ul.products {
-    grid-template-columns: repeat(2, 1fr) !important;
-  }
-}
-@media (max-width: 480px) {
-  .af-new-arrivals ul.products {
-    grid-template-columns: 1fr !important;
-  }
-}
 
 /* ============================================================
    RESPONSIVE
@@ -1619,25 +1418,57 @@ li.product .af-img-ratio img {
 
 /* ============================================================
    SHOP / CATEGORY ARCHIVE PAGE — card style fixes
+   Scoped to body.tax-product_cat / body.woocommerce-page only
    ============================================================ */
 
-/* Hide diagonal sale ribbon — strong selector to beat parent theme */
+/* Sale ribbon — small clean badge, override diagonal ribbon */
 body.tax-product_cat .woocommerce ul.products li.product .onsale,
 body.woocommerce-page .woocommerce ul.products li.product .onsale,
-body.post-type-archive-product .woocommerce ul.products li.product .onsale {
-  display: none !important;
+body.tax-product_cat ul.products li.product .onsale,
+body.woocommerce-page ul.products li.product .onsale {
+  display: inline-block !important;
+  position: absolute !important;
+  top: 10px !important;
+  left: 10px !important;
+  right: auto !important;
+  bottom: auto !important;
+  background: #c9a84c !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  padding: 3px 9px !important;
+  border-radius: 4px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  transform: none !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.18) !important;
+  min-width: unset !important;
+  width: auto !important;
+  z-index: 10 !important;
+  line-height: 1.5 !important;
+  margin: 0 !important;
+}
+
+/* Caption padding — left/right spacing on text elements */
+body.tax-product_cat ul.products li.product .woocommerce-loop-product__title,
+body.woocommerce-page ul.products li.product .woocommerce-loop-product__title,
+body.tax-product_cat ul.products li.product .woocommerce-product-rating,
+body.woocommerce-page ul.products li.product .woocommerce-product-rating,
+body.tax-product_cat ul.products li.product .price,
+body.woocommerce-page ul.products li.product .price,
+body.tax-product_cat ul.products li.product .af-shop-discount-badge,
+body.woocommerce-page ul.products li.product .af-shop-discount-badge {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
 }
 
 /* Title dark color */
 body.tax-product_cat ul.products li.product .woocommerce-loop-product__title,
-body.tax-product_cat ul.products li.product .woocommerce-loop-product__title a,
-body.woocommerce-page ul.products li.product .woocommerce-loop-product__title,
-body.woocommerce-page ul.products li.product .woocommerce-loop-product__title a {
+body.woocommerce-page ul.products li.product .woocommerce-loop-product__title {
   color: #1a1a1a !important;
-  text-decoration: none !important;
 }
 
-/* Price inline */
+/* Price inline layout */
 body.tax-product_cat ul.products li.product .price,
 body.woocommerce-page ul.products li.product .price {
   display: flex !important;
@@ -1679,10 +1510,10 @@ body.tax-product_cat ul.products li.product .af-shop-btn-row,
 body.woocommerce-page ul.products li.product .af-shop-btn-row {
   display: flex !important;
   gap: 8px !important;
-  padding: 10px 14px 4px !important;
+  padding: 10px 12px 12px !important;
 }
 
-/* Add to Cart button */
+/* Add to Cart — gold */
 body.tax-product_cat ul.products li.product .af-shop-cart-btn,
 body.woocommerce-page ul.products li.product .af-shop-cart-btn {
   flex: 1 !important;
@@ -1699,8 +1530,12 @@ body.woocommerce-page ul.products li.product .af-shop-cart-btn {
   cursor: pointer !important;
   border: none !important;
 }
+body.tax-product_cat ul.products li.product .af-shop-cart-btn:hover,
+body.woocommerce-page ul.products li.product .af-shop-cart-btn:hover {
+  background: #a8872e !important;
+}
 
-/* Quick View button */
+/* Quick View — dark */
 body.tax-product_cat ul.products li.product .af-shop-qv-btn,
 body.woocommerce-page ul.products li.product .af-shop-qv-btn {
   flex: 1 !important;
@@ -1715,6 +1550,10 @@ body.woocommerce-page ul.products li.product .af-shop-qv-btn {
   padding: 10px 8px !important;
   text-decoration: none !important;
   cursor: pointer !important;
+}
+body.tax-product_cat ul.products li.product .af-shop-qv-btn:hover,
+body.woocommerce-page ul.products li.product .af-shop-qv-btn:hover {
+  background: #333 !important;
 }
 
 /* Hide the default WooCommerce Add to Cart button (we use our own) */
