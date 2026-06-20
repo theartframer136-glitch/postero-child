@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.4');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.5');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -2960,30 +2960,31 @@ add_action('wp_footer', function() {
     if (card.dataset.afShopFixed) return;
     card.dataset.afShopFixed = '1';
 
-    // 1. Sale ribbon → small badge (inline style beats ALL CSS)
+    // 1. Sale ribbon — diagonal banner (like reference screenshot)
     var ribbon = card.querySelector('.onsale');
     if (ribbon) {
       sp(ribbon, 'position',       'absolute');
-      sp(ribbon, 'top',            '10px');
-      sp(ribbon, 'left',           '10px');
+      sp(ribbon, 'top',            '20px');
+      sp(ribbon, 'left',           '-28px');
       sp(ribbon, 'right',          'auto');
       sp(ribbon, 'bottom',         'auto');
-      sp(ribbon, 'transform',      'none');
+      sp(ribbon, 'width',          '110px');
       sp(ribbon, 'background',     '#c9a84c');
       sp(ribbon, 'color',          '#fff');
-      sp(ribbon, 'font-size',      '11px');
-      sp(ribbon, 'font-weight',    '700');
-      sp(ribbon, 'padding',        '3px 9px');
-      sp(ribbon, 'border-radius',  '4px');
+      sp(ribbon, 'font-size',      '12px');
+      sp(ribbon, 'font-weight',    '800');
+      sp(ribbon, 'padding',        '5px 0');
+      sp(ribbon, 'border-radius',  '0');
+      sp(ribbon, 'text-align',     'center');
       sp(ribbon, 'text-transform', 'uppercase');
-      sp(ribbon, 'letter-spacing', '0.05em');
-      sp(ribbon, 'min-width',      'unset');
-      sp(ribbon, 'width',          'auto');
+      sp(ribbon, 'letter-spacing', '0.08em');
+      sp(ribbon, 'transform',      'rotate(-45deg)');
+      sp(ribbon, 'min-width',      '110px');
       sp(ribbon, 'z-index',        '10');
-      sp(ribbon, 'line-height',    '1.5');
+      sp(ribbon, 'line-height',    '1.6');
       sp(ribbon, 'margin',         '0');
-      sp(ribbon, 'display',        'inline-block');
-      sp(ribbon, 'box-shadow',     '0 1px 4px rgba(0,0,0,.18)');
+      sp(ribbon, 'display',        'block');
+      sp(ribbon, 'box-shadow',     '0 2px 6px rgba(0,0,0,.22)');
     }
 
     // 2. Get URLs — from .af-pd data, the theme cart button, or main link
@@ -3012,10 +3013,21 @@ add_action('wp_footer', function() {
 
     // 4. Caption padding (title, rating, price, discount badge)
     ['.woocommerce-loop-product__title', '.woocommerce-product-rating', '.price',
-     '.af-shop-discount-badge'].forEach(function(sel) {
+     '.af-shop-discount-badge', '.star-rating'].forEach(function(sel) {
       var el = card.querySelector(sel);
-      if (el) { sp(el, 'padding-left', '12px'); sp(el, 'padding-right', '12px'); }
+      if (el) {
+        sp(el, 'padding-left',  '12px');
+        sp(el, 'padding-right', '12px');
+        sp(el, 'margin-left',   '0');
+        sp(el, 'box-sizing',    'border-box');
+      }
     });
+    // Ensure .woocommerce-product-rating has no zeroed-out padding from theme
+    var ratingWrap = card.querySelector('.woocommerce-product-rating');
+    if (ratingWrap) {
+      sp(ratingWrap, 'display',      'block');
+      sp(ratingWrap, 'padding-left', '12px');
+    }
 
     // 5. Title color fix
     var titleEl = card.querySelector('.woocommerce-loop-product__title');
