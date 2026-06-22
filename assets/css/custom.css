@@ -1527,8 +1527,8 @@ body.woocommerce-page ul.products li.product .af-ov-cart {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
-  width: 36px !important;
-  height: 36px !important;
+  width: 40px !important;
+  height: 40px !important;
   background: #c9a84c !important;
   color: #fff !important;
   border-radius: 50% !important;
@@ -1539,10 +1539,4 @@ body.woocommerce-page ul.products li.product .af-ov-cart {
 body.tax-product_cat ul.products li.product .af-ov-cart:hover,
 body.woocommerce-page ul.products li.product .af-ov-cart:hover {
   background: #a8872e !important;
-}
-
-/* Hide the default WooCommerce Add to Cart button (we use overlay) */
-body.tax-product_cat ul.products li.product a.button:not(.af-ov-cart),
-body.woocommerce-page ul.products li.product a.button:not(.af-ov-cart) {
-  display: none !important;
 }

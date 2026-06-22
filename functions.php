@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.7');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.8');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -3050,10 +3050,10 @@ add_action('wp_footer', function() {
       sp(atc, 'flex-shrink',      '0');
       overlay.insertBefore(atc, overlay.firstChild);
     }
-    // Hide standalone theme add-to-cart button rendered outside the overlay
-    if (themeCart) {
-      var inOverlay = overlay && overlay.contains(themeCart);
-      if (!inOverlay) sp(themeCart, 'display', 'none');
+    // The theme's own Add to Cart button lives inside the overlay — leave it visible.
+    // Only hide it if it somehow ended up outside both the overlay and our injected btn.
+    if (themeCart && overlay && !overlay.contains(themeCart)) {
+      sp(themeCart, 'display', 'none');
     }
 
     // 4. Caption padding (title, rating, price, discount badge)
