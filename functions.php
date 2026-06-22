@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.8');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.9');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -3048,7 +3048,12 @@ add_action('wp_footer', function() {
       sp(atc, 'text-decoration',  'none');
       sp(atc, 'cursor',           'pointer');
       sp(atc, 'flex-shrink',      '0');
-      overlay.insertBefore(atc, overlay.firstChild);
+      sp(atc, 'visibility',       'visible');
+      sp(atc, 'opacity',          '1');
+      sp(atc, 'position',         'relative');
+      sp(atc, 'z-index',          '20');
+      sp(atc, 'pointer-events',   'auto');
+      overlay.appendChild(atc);
     }
     // The theme's own Add to Cart button lives inside the overlay — leave it visible.
     // Only hide it if it somehow ended up outside both the overlay and our injected btn.

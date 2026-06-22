@@ -1521,9 +1521,8 @@ body.woocommerce-page ul.products li.product .af-shop-discount-badge {
   white-space: nowrap !important;
 }
 
-/* Add to Cart icon in hover overlay */
-body.tax-product_cat ul.products li.product .af-ov-cart,
-body.woocommerce-page ul.products li.product .af-ov-cart {
+/* Add to Cart icon injected into hover overlay */
+.af-ov-cart {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
@@ -1535,8 +1534,12 @@ body.woocommerce-page ul.products li.product .af-ov-cart {
   text-decoration: none !important;
   cursor: pointer !important;
   flex-shrink: 0 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  position: relative !important;
+  z-index: 20 !important;
+  pointer-events: auto !important;
 }
-body.tax-product_cat ul.products li.product .af-ov-cart:hover,
-body.woocommerce-page ul.products li.product .af-ov-cart:hover {
+.af-ov-cart:hover {
   background: #a8872e !important;
 }
