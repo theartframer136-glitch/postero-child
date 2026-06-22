@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.6');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.7');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -2981,21 +2981,56 @@ add_action('wp_footer', function() {
     var productUrl = (pd && pd.dataset.url) || (mainLink && mainLink.href) || '#';
     var cartUrl    = (pd && pd.dataset.cart) || (themeCart && themeCart.href) || productUrl;
 
-    // 3. Inject "Add to Cart" into the theme's hover overlay (alongside Quick View)
-    //    The Postero theme puts a hover overlay inside the product link
+    // 3. Fix hover overlay — make it sit ON TOP of the image (not below it)
+    //    The Postero theme overlay div is inside the product link but renders as block (below image).
+    //    Fix: make the product link position:relative, overlay position:absolute over the image.
     var overlay = null;
     if (mainLink) {
+      // Make the link a positioned container so overlay can sit on top of image
+      sp(mainLink, 'position', 'relative');
+      sp(mainLink, 'display',  'block');
       Array.from(mainLink.children).forEach(function(child) {
         var tag = child.tagName.toLowerCase();
-        if (tag !== 'img' && !child.classList.contains('onsale') && !child.classList.contains('af-pd')) {
-          overlay = child; // this is the hover overlay div
+        if (tag === 'img') {
+          sp(child, 'display', 'block');
+          sp(child, 'width',   '100%');
+        } else if (!child.classList.contains('onsale') && !child.classList.contains('af-pd')) {
+          overlay = child; // this is the hover action overlay div
+          // Position it absolutely over the image
+          sp(overlay, 'position',        'absolute');
+          sp(overlay, 'top',             '0');
+          sp(overlay, 'left',            '0');
+          sp(overlay, 'right',           '0');
+          sp(overlay, 'bottom',          '0');
+          sp(overlay, 'width',           '100%');
+          sp(overlay, 'height',          '100%');
+          sp(overlay, 'display',         'flex');
+          sp(overlay, 'align-items',     'center');
+          sp(overlay, 'justify-content', 'center');
+          sp(overlay, 'gap',             '10px');
+          sp(overlay, 'z-index',         '5');
         }
       });
     }
-    // Fallback selectors for various theme overlay patterns
+    // Fallback: look for overlay by class outside mainLink
     if (!overlay) {
       overlay = card.querySelector('.woo-action, .product-action, .entry-action, [class*="hover-action"], [class*="woo-action"]');
+      if (overlay) {
+        var imgWrap = overlay.previousElementSibling || mainLink;
+        if (imgWrap) sp(imgWrap, 'position', 'relative');
+        sp(overlay, 'position',        'absolute');
+        sp(overlay, 'top',             '0');
+        sp(overlay, 'left',            '0');
+        sp(overlay, 'right',           '0');
+        sp(overlay, 'bottom',          '0');
+        sp(overlay, 'display',         'flex');
+        sp(overlay, 'align-items',     'center');
+        sp(overlay, 'justify-content', 'center');
+        sp(overlay, 'gap',             '10px');
+        sp(overlay, 'z-index',         '5');
+      }
     }
+    // Add our gold "Add to Cart" icon into the overlay (if not already there)
     if (overlay && cartUrl && cartUrl !== '#' && !overlay.querySelector('.af-ov-cart')) {
       var atc = document.createElement('a');
       atc.href = cartUrl;
@@ -3005,8 +3040,8 @@ add_action('wp_footer', function() {
       sp(atc, 'display',          'inline-flex');
       sp(atc, 'align-items',      'center');
       sp(atc, 'justify-content',  'center');
-      sp(atc, 'width',            '36px');
-      sp(atc, 'height',           '36px');
+      sp(atc, 'width',            '40px');
+      sp(atc, 'height',           '40px');
       sp(atc, 'background',       '#c9a84c');
       sp(atc, 'color',            '#fff');
       sp(atc, 'border-radius',    '50%');
@@ -3015,7 +3050,7 @@ add_action('wp_footer', function() {
       sp(atc, 'flex-shrink',      '0');
       overlay.insertBefore(atc, overlay.firstChild);
     }
-    // Hide standalone theme add-to-cart button (outside our overlay)
+    // Hide standalone theme add-to-cart button rendered outside the overlay
     if (themeCart) {
       var inOverlay = overlay && overlay.contains(themeCart);
       if (!inOverlay) sp(themeCart, 'display', 'none');
