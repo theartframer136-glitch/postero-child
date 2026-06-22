@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.0.9');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.1.0');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -2992,9 +2992,21 @@ add_action('wp_footer', function() {
       Array.from(mainLink.children).forEach(function(child) {
         var tag = child.tagName.toLowerCase();
         if (tag === 'img') {
-          sp(child, 'display', 'block');
-          sp(child, 'width',   '100%');
-        } else if (!child.classList.contains('onsale') && !child.classList.contains('af-pd')) {
+          sp(child, 'display',   'block');
+          sp(child, 'width',     '100%');
+          sp(child, 'position',  'static');
+        } else if (child.classList.contains('woocommerce-product-rating') ||
+                   child.classList.contains('star-rating') ||
+                   child.classList.contains('price') ||
+                   child.classList.contains('woocommerce-loop-product__title')) {
+          // Keep caption elements in normal document flow
+          sp(child, 'position', 'static');
+        } else if (!child.classList.contains('onsale') &&
+                   !child.classList.contains('af-pd') &&
+                   !child.classList.contains('woocommerce-product-rating') &&
+                   !child.classList.contains('star-rating') &&
+                   !child.classList.contains('price') &&
+                   !child.classList.contains('woocommerce-loop-product__title')) {
           overlay = child; // this is the hover action overlay div
           // Position it absolutely over the image
           sp(overlay, 'position',        'absolute');
