@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.2.0');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.3.0');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -2947,217 +2947,227 @@ add_action('wp_footer', function() {
     if (card.dataset.afShopFixed) return;
     card.dataset.afShopFixed = '1';
 
-    /* ── PREMIUM CARD REDESIGN ─────────────────────────────────────
-       Layout:
-         [Image area] ← hover shows dark overlay + wishlist/quickview icons
-         [Card body]
-           Title (bold, 2 lines max)
-           ★ Rating
-           Price (sale + original)
-           [🛒 Add to Cart] full-width gold button
-    ────────────────────────────────────────────────────────────── */
+    /* ── PREMIUM ART-STORE CARD ────────────────────────────────────
+       Structure:
+         [image wrapper position:relative]
+           <img> object-fit:cover
+           .onsale  → diagonal ribbon position:absolute top-left
+           theme-overlay → dark scrim position:absolute inset:0
+                           contains: [❤] [🛒 Add to Cart] [👁]
+         [content section — never on image]
+           Title (2-line clamp, fixed height for equal cards)
+           Rating
+           Price (bold current | struck-through original)
+    ──────────────────────────────────────────────────────────────── */
 
-    // ── 1. Card shell ──────────────────────────────────────────
-    sp(card, 'background',     '#fff');
-    sp(card, 'border-radius',  '12px');
-    sp(card, 'overflow',       'hidden');
-    sp(card, 'box-shadow',     '0 2px 12px rgba(0,0,0,.07)');
-    sp(card, 'transition',     'box-shadow .25s ease, transform .25s ease');
-    sp(card, 'display',        'flex');
-    sp(card, 'flex-direction', 'column');
-    sp(card, 'border',         '1px solid #f0ece4');
+    // ── 1. Card shell
+    sp(card,'background',    '#fff');
+    sp(card,'border-radius', '10px');
+    sp(card,'overflow',      'hidden');
+    sp(card,'box-shadow',    '0 2px 16px rgba(0,0,0,.08)');
+    sp(card,'border',        '1px solid #ede9e0');
+    sp(card,'display',       'flex');
+    sp(card,'flex-direction','column');
+    sp(card,'transition',    'box-shadow .25s ease, transform .25s ease');
 
-    card.addEventListener('mouseenter', function() {
-      card.style.setProperty('box-shadow', '0 8px 32px rgba(0,0,0,.13)', 'important');
-      card.style.setProperty('transform',  'translateY(-3px)',            'important');
+    card.addEventListener('mouseenter',function(){
+      card.style.setProperty('box-shadow','0 8px 36px rgba(0,0,0,.14)','important');
+      card.style.setProperty('transform','translateY(-2px)','important');
     });
-    card.addEventListener('mouseleave', function() {
-      card.style.setProperty('box-shadow', '0 2px 12px rgba(0,0,0,.07)', 'important');
-      card.style.setProperty('transform',  'translateY(0)',               'important');
+    card.addEventListener('mouseleave',function(){
+      card.style.setProperty('box-shadow','0 2px 16px rgba(0,0,0,.08)','important');
+      card.style.setProperty('transform','translateY(0)','important');
     });
 
-    // ── 2. URLs ────────────────────────────────────────────────
+    // ── 2. URLs
     var pd        = card.querySelector('.af-pd');
     var mainLink  = card.querySelector('a.woocommerce-loop-product__link');
-    var themeCart = card.querySelector('a.add_to_cart_button, a.ajax_add_to_cart, a.button.product_type_simple');
-    var productUrl = (pd && pd.dataset.url) || (mainLink && mainLink.href) || '#';
-    var cartUrl    = (pd && pd.dataset.cart) || (themeCart && themeCart.href) || productUrl;
+    var themeCart = card.querySelector('a.add_to_cart_button,a.ajax_add_to_cart,a.button.product_type_simple');
+    var productUrl= (pd&&pd.dataset.url)||(mainLink&&mainLink.href)||'#';
+    var cartUrl   = (pd&&pd.dataset.cart)||(themeCart&&themeCart.href)||productUrl;
 
-    // ── 3. Image wrapper ───────────────────────────────────────
+    // ── 3. Image wrapper (position:relative container)
     if (mainLink) {
-      sp(mainLink, 'position',    'relative');
-      sp(mainLink, 'display',     'block');
-      sp(mainLink, 'overflow',    'hidden');
-      sp(mainLink, 'aspect-ratio','4/3');
-      sp(mainLink, 'background',  '#f8f5f0');
+      sp(mainLink,'position',   'relative');
+      sp(mainLink,'display',    'block');
+      sp(mainLink,'overflow',   'hidden');
+      sp(mainLink,'aspect-ratio','1 / 1');
+      sp(mainLink,'background', '#f5f2ed');
+      sp(mainLink,'flex-shrink','0');
 
-      Array.from(mainLink.children).forEach(function(child) {
-        var tag = child.tagName.toLowerCase();
-        var cls = child.classList;
+      Array.from(mainLink.children).forEach(function(child){
+        var tag=child.tagName.toLowerCase();
+        var cls=child.classList;
 
-        if (tag === 'img') {
-          sp(child, 'width',      '100%');
-          sp(child, 'height',     '100%');
-          sp(child, 'object-fit', 'cover');
-          sp(child, 'display',    'block');
-          sp(child, 'transition', 'transform .4s ease');
-          // subtle zoom on card hover
-          card.addEventListener('mouseenter', function() { child.style.setProperty('transform','scale(1.04)','important'); });
-          card.addEventListener('mouseleave', function() { child.style.setProperty('transform','scale(1)',   'important'); });
+        if (tag==='img') {
+          sp(child,'width',     '100%');
+          sp(child,'height',    '100%');
+          sp(child,'object-fit','cover');
+          sp(child,'display',   'block');
+          sp(child,'transition','transform .5s cubic-bezier(.25,.46,.45,.94)');
+          card.addEventListener('mouseenter',function(){ child.style.setProperty('transform','scale(1.06)','important'); });
+          card.addEventListener('mouseleave',function(){ child.style.setProperty('transform','scale(1)',   'important'); });
 
         } else if (cls.contains('onsale')) {
-          // ── Small elegant sale badge ──
-          sp(child, 'position',       'absolute');
-          sp(child, 'top',            '10px');
-          sp(child, 'left',           '10px');
-          sp(child, 'right',          'auto');
-          sp(child, 'bottom',         'auto');
-          sp(child, 'background',     '#c9a84c');
-          sp(child, 'color',          '#fff');
-          sp(child, 'font-size',      '11px');
-          sp(child, 'font-weight',    '700');
-          sp(child, 'padding',        '4px 10px');
-          sp(child, 'border-radius',  '20px');
-          sp(child, 'text-transform', 'uppercase');
-          sp(child, 'letter-spacing', '0.07em');
-          sp(child, 'z-index',        '10');
-          sp(child, 'transform',      'none');
-          sp(child, 'width',          'auto');
-          sp(child, 'min-width',      '0');
-          sp(child, 'line-height',    '1.5');
-          sp(child, 'box-shadow',     '0 2px 8px rgba(201,168,76,.35)');
-          sp(child, 'display',        'inline-block');
+          // Diagonal ribbon — position:absolute, no layout impact
+          sp(child,'position',      'absolute');
+          sp(child,'top',           '18px');
+          sp(child,'left',          '-22px');
+          sp(child,'width',         '90px');
+          sp(child,'background',    '#c9a84c');
+          sp(child,'color',         '#fff');
+          sp(child,'font-size',     '10px');
+          sp(child,'font-weight',   '800');
+          sp(child,'text-align',    'center');
+          sp(child,'padding',       '5px 0');
+          sp(child,'transform',     'rotate(-45deg)');
+          sp(child,'z-index',       '10');
+          sp(child,'letter-spacing','0.10em');
+          sp(child,'text-transform','uppercase');
+          sp(child,'line-height',   '1.4');
+          sp(child,'min-width',     'unset');
+          sp(child,'border-radius', '0');
+          sp(child,'margin',        '0');
+          sp(child,'display',       'block');
+          sp(child,'box-shadow',    '0 2px 6px rgba(0,0,0,.20)');
 
-        } else if (cls.contains('af-pd') ||
-                   cls.contains('woocommerce-product-rating') ||
-                   cls.contains('star-rating') ||
-                   cls.contains('price') ||
+        } else if (cls.contains('af-pd')||cls.contains('woocommerce-product-rating')||
+                   cls.contains('star-rating')||cls.contains('price')||
                    cls.contains('woocommerce-loop-product__title')) {
-          sp(child, 'position', 'static');
+          sp(child,'position','static');
 
         } else {
-          // ── Theme hover overlay — position over image ──
-          sp(child, 'position',        'absolute');
-          sp(child, 'inset',           '0');
-          sp(child, 'display',         'flex');
-          sp(child, 'align-items',     'center');
-          sp(child, 'justify-content', 'center');
-          sp(child, 'gap',             '12px');
-          sp(child, 'z-index',         '5');
-          sp(child, 'background',      'rgba(0,0,0,0)');
-          sp(child, 'transition',      'background .3s ease');
-          card.addEventListener('mouseenter', function() { child.style.setProperty('background','rgba(0,0,0,.32)','important'); });
-          card.addEventListener('mouseleave', function() { child.style.setProperty('background','rgba(0,0,0,0)','important'); });
-
-          // Style existing icon buttons inside the overlay (wishlist / quickview)
-          Array.from(child.children).forEach(function(btn) {
-            if (btn.classList.contains('af-ov-cart')) return;
-            sp(btn, 'width',          '38px');
-            sp(btn, 'height',         '38px');
-            sp(btn, 'border-radius',  '50%');
-            sp(btn, 'background',     'rgba(255,255,255,.92)');
-            sp(btn, 'color',          '#1a1a1a');
-            sp(btn, 'display',        'inline-flex');
-            sp(btn, 'align-items',    'center');
-            sp(btn, 'justify-content','center');
-            sp(btn, 'border',         'none');
-            sp(btn, 'cursor',         'pointer');
-            sp(btn, 'transition',     'background .2s');
+          // Theme hover overlay → dark scrim over image
+          sp(child,'position',       'absolute');
+          sp(child,'top',            '0');
+          sp(child,'left',           '0');
+          sp(child,'right',          '0');
+          sp(child,'bottom',         '0');
+          sp(child,'width',          '100%');
+          sp(child,'height',         '100%');
+          sp(child,'display',        'flex');
+          sp(child,'align-items',    'center');
+          sp(child,'justify-content','center');
+          sp(child,'gap',            '10px');
+          sp(child,'z-index',        '5');
+          sp(child,'opacity',        '0');
+          sp(child,'background',     'rgba(12,9,5,.50)');
+          sp(child,'transition',     'opacity .3s ease');
+          sp(child,'pointer-events', 'none');
+          card.addEventListener('mouseenter',function(){
+            child.style.setProperty('opacity',        '1',    'important');
+            child.style.setProperty('pointer-events', 'auto', 'important');
           });
+          card.addEventListener('mouseleave',function(){
+            child.style.setProperty('opacity',        '0',    'important');
+            child.style.setProperty('pointer-events', 'none', 'important');
+          });
+
+          // Style wishlist / quickview as white circles
+          Array.from(child.children).forEach(function(btn){
+            if (btn.classList.contains('af-ov-atc')) return;
+            sp(btn,'width',          '38px');
+            sp(btn,'height',         '38px');
+            sp(btn,'border-radius',  '50%');
+            sp(btn,'background',     'rgba(255,255,255,.88)');
+            sp(btn,'color',          '#1a1a1a');
+            sp(btn,'display',        'inline-flex');
+            sp(btn,'align-items',    'center');
+            sp(btn,'justify-content','center');
+            sp(btn,'border',         'none');
+            sp(btn,'cursor',         'pointer');
+            sp(btn,'flex-shrink',    '0');
+            sp(btn,'text-decoration','none');
+          });
+
+          // Inject "Add to Cart" pill button (icon + text) as middle child
+          if (cartUrl&&cartUrl!=='#'&&!child.querySelector('.af-ov-atc')) {
+            var atc=document.createElement('a');
+            atc.href=cartUrl;
+            atc.className='af-ov-atc';
+            atc.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span>Add to Cart</span>';
+            sp(atc,'display',        'inline-flex');
+            sp(atc,'align-items',    'center');
+            sp(atc,'gap',            '6px');
+            sp(atc,'padding',        '9px 18px');
+            sp(atc,'background',     '#c9a84c');
+            sp(atc,'color',          '#fff');
+            sp(atc,'border-radius',  '4px');
+            sp(atc,'font-size',      '12px');
+            sp(atc,'font-weight',    '700');
+            sp(atc,'letter-spacing', '0.05em');
+            sp(atc,'white-space',    'nowrap');
+            sp(atc,'text-decoration','none');
+            sp(atc,'cursor',         'pointer');
+            sp(atc,'flex-shrink',    '0');
+            sp(atc,'line-height',    '1');
+            sp(atc,'transition',     'background .2s');
+            var mid=child.children[Math.floor(child.children.length/2)];
+            child.insertBefore(atc,mid||null);
+          }
         }
       });
     }
 
-    // Hide standalone theme cart button (it's handled by our bottom button)
-    if (themeCart) sp(themeCart, 'display', 'none');
+    // Hide standalone theme cart button
+    if (themeCart) sp(themeCart,'display','none');
 
-    // ── 4. Card body — title, rating, price ───────────────────
-    sp(card, 'padding-bottom', '0');
-
-    var titleEl  = card.querySelector('.woocommerce-loop-product__title');
-    var ratingEl = card.querySelector('.woocommerce-product-rating');
-    var priceEl  = card.querySelector('.price');
+    // ── 4. Content: Title → Rating → Price (never on image)
+    var titleEl =card.querySelector('.woocommerce-loop-product__title');
+    var ratingEl=card.querySelector('.woocommerce-product-rating');
+    var priceEl =card.querySelector('.price');
 
     if (titleEl) {
-      sp(titleEl, 'font-size',      '14px');
-      sp(titleEl, 'font-weight',    '600');
-      sp(titleEl, 'color',          '#1a1a1a');
-      sp(titleEl, 'line-height',    '1.4');
-      sp(titleEl, 'padding',        '14px 14px 4px');
-      sp(titleEl, 'margin',         '0');
-      sp(titleEl, 'display',        '-webkit-box');
-      sp(titleEl, '-webkit-line-clamp', '2');
-      sp(titleEl, '-webkit-box-orient', 'vertical');
-      sp(titleEl, 'overflow',       'hidden');
-      sp(titleEl, 'box-sizing',     'border-box');
-      titleEl.querySelectorAll('a').forEach(function(a) {
-        sp(a, 'color', '#1a1a1a');
-        sp(a, 'text-decoration', 'none');
+      sp(titleEl,'font-size',         '13.5px');
+      sp(titleEl,'font-weight',       '600');
+      sp(titleEl,'color',             '#1a1a1a');
+      sp(titleEl,'line-height',       '1.45');
+      sp(titleEl,'padding',           '13px 13px 3px');
+      sp(titleEl,'margin',            '0');
+      sp(titleEl,'height',            '56px');
+      sp(titleEl,'overflow',          'hidden');
+      sp(titleEl,'display',           '-webkit-box');
+      sp(titleEl,'-webkit-line-clamp','2');
+      sp(titleEl,'-webkit-box-orient','vertical');
+      sp(titleEl,'box-sizing',        'border-box');
+      titleEl.querySelectorAll('a').forEach(function(a){
+        sp(a,'color','#1a1a1a'); sp(a,'text-decoration','none');
       });
     }
 
     if (ratingEl) {
-      sp(ratingEl, 'display',      'flex');
-      sp(ratingEl, 'align-items',  'center');
-      sp(ratingEl, 'padding',      '2px 14px 6px');
-      sp(ratingEl, 'margin',       '0');
-      sp(ratingEl, 'box-sizing',   'border-box');
-      var starEl = ratingEl.querySelector('.star-rating');
-      if (starEl) { sp(starEl, 'font-size', '13px'); sp(starEl, 'margin', '0'); }
-      var countEl = ratingEl.querySelector('.rating-count, .woocommerce-review-link');
-      if (countEl) { sp(countEl, 'font-size', '11px'); sp(countEl, 'color', '#888'); sp(countEl, 'margin-left', '4px'); }
+      sp(ratingEl,'display',    'flex');
+      sp(ratingEl,'align-items','center');
+      sp(ratingEl,'padding',    '3px 13px 4px');
+      sp(ratingEl,'margin',     '0');
+      sp(ratingEl,'box-sizing', 'border-box');
+      var starEl=ratingEl.querySelector('.star-rating');
+      var cntEl =ratingEl.querySelector('.woocommerce-review-link');
+      if (starEl){sp(starEl,'font-size','12px');sp(starEl,'margin','0');}
+      if (cntEl) {sp(cntEl, 'font-size','11px');sp(cntEl, 'color','#888');sp(cntEl,'margin-left','4px');}
     }
 
     if (priceEl) {
-      sp(priceEl, 'display',      'flex');
-      sp(priceEl, 'align-items',  'center');
-      sp(priceEl, 'gap',          '6px');
-      sp(priceEl, 'padding',      '0 14px 12px');
-      sp(priceEl, 'margin',       '0');
-      sp(priceEl, 'box-sizing',   'border-box');
-      var ins = priceEl.querySelector('ins');
-      var del = priceEl.querySelector('del');
-      if (ins) { sp(ins, 'font-size', '15px'); sp(ins, 'font-weight', '700'); sp(ins, 'color', '#1a1a1a'); sp(ins, 'text-decoration', 'none'); }
-      if (del) { sp(del, 'font-size', '12px'); sp(del, 'color', '#aaa'); sp(del, 'text-decoration', 'line-through'); sp(del, 'font-weight', '400'); }
-      if (!ins && !del) { sp(priceEl, 'font-size', '15px'); sp(priceEl, 'font-weight', '700'); sp(priceEl, 'color', '#1a1a1a'); }
+      sp(priceEl,'display',    'flex');
+      sp(priceEl,'align-items','baseline');
+      sp(priceEl,'gap',        '6px');
+      sp(priceEl,'padding',    '2px 13px 14px');
+      sp(priceEl,'margin',     '0');
+      sp(priceEl,'box-sizing', 'border-box');
+      var ins=priceEl.querySelector('ins');
+      var del=priceEl.querySelector('del');
+      if (ins){sp(ins,'font-size','15px');sp(ins,'font-weight','700');sp(ins,'color','#1a1a1a');sp(ins,'text-decoration','none');}
+      if (del){sp(del,'font-size','12px');sp(del,'color','#aaa');sp(del,'text-decoration','line-through');sp(del,'font-weight','400');}
+      if (!ins){sp(priceEl,'font-size','15px');sp(priceEl,'font-weight','700');sp(priceEl,'color','#1a1a1a');}
     }
 
-    // Discount badge — small, inline below price
-    var badge = card.querySelector('.af-shop-discount-badge');
-    if (badge) {
-      sp(badge, 'display',       'none'); // price already shows sale, badge is redundant
-    }
-
-    // ── 5. Full-width "Add to Cart" button at bottom ───────────
-    if (!card.querySelector('.af-atc-btn') && cartUrl && cartUrl !== '#') {
-      var btn = document.createElement('a');
-      btn.href      = cartUrl;
-      btn.className = 'af-atc-btn';
-      btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg> Add to Cart';
-      sp(btn, 'display',          'flex');
-      sp(btn, 'align-items',      'center');
-      sp(btn, 'justify-content',  'center');
-      sp(btn, 'gap',              '7px');
-      sp(btn, 'width',            '100%');
-      sp(btn, 'padding',          '11px 16px');
-      sp(btn, 'background',       '#c9a84c');
-      sp(btn, 'color',            '#fff');
-      sp(btn, 'font-size',        '13px');
-      sp(btn, 'font-weight',      '700');
-      sp(btn, 'letter-spacing',   '0.04em');
-      sp(btn, 'text-decoration',  'none');
-      sp(btn, 'border',           'none');
-      sp(btn, 'cursor',           'pointer');
-      sp(btn, 'transition',       'background .2s ease');
-      sp(btn, 'box-sizing',       'border-box');
-      sp(btn, 'border-top',       '1px solid rgba(0,0,0,.06)');
-      sp(btn, 'margin-top',       'auto');
-      btn.addEventListener('mouseenter', function() { btn.style.setProperty('background','#b8922e','important'); });
-      btn.addEventListener('mouseleave', function() { btn.style.setProperty('background','#c9a84c','important'); });
-      card.appendChild(btn);
-    }
-
+    // Clean up leftovers from previous card versions
+    var oldBadge=card.querySelector('.af-shop-discount-badge');
+    if (oldBadge) sp(oldBadge,'display','none');
+    var oldBtn=card.querySelector('.af-atc-btn');
+    if (oldBtn) sp(oldBtn,'display','none');
   }
+
 
   function run() {
     document.querySelectorAll('ul.products li.product').forEach(fixShopCard);
