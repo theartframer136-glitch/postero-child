@@ -1436,6 +1436,16 @@ body.woocommerce-page ul.products li.product {
   margin-bottom: 24px !important;
 }
 
+/* Image wrapper created by JS — contains image link + overlay */
+.af-img-wrap {
+  position: relative !important;
+  overflow: hidden !important;
+  aspect-ratio: 1 / 1 !important;
+  background: #f5f2ed !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+}
+
 /* Image wrapper — position:relative so ribbon+overlay are contained */
 body.tax-product_cat ul.products li.product a.woocommerce-loop-product__link,
 body.woocommerce-page ul.products li.product a.woocommerce-loop-product__link {

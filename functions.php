@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.4.0');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.5.0');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -2947,17 +2947,14 @@ add_action('wp_footer', function() {
     if (card.dataset.afShopFixed) return;
     card.dataset.afShopFixed = '1';
 
-    /* ROOT CAUSE FIX: The Postero theme renders the hover-action div
-       as a SIBLING of the product link (outside <a>), not inside it.
-       So position:absolute on it had no effect — it just rendered as
-       a tall block below the image creating a blank gap.
-       Solution: detect it as a card child, MOVE it inside mainLink,
-       then position it absolute over the image. */
+    /* APPROACH: Create a .af-img-wrap div as position:relative container.
+       Move mainLink + theme overlay INTO it. The wrap enforces aspect-ratio
+       and overflow:hidden so overlay can never add blank space. */
 
     // ── 1. Card shell
     sp(card,'background',    '#fff');
     sp(card,'border-radius', '10px');
-    sp(card,'overflow',      'visible');   // let ribbon peek out if needed
+    sp(card,'overflow',      'hidden');
     sp(card,'box-shadow',    '0 2px 16px rgba(0,0,0,.08)');
     sp(card,'border',        '1px solid #ede9e0');
     sp(card,'display',       'flex');
@@ -2980,40 +2977,47 @@ add_action('wp_footer', function() {
     var productUrl= (pd&&pd.dataset.url)||(mainLink&&mainLink.href)||'#';
     var cartUrl   = (pd&&pd.dataset.cart)||(themeCart&&themeCart.href)||productUrl;
 
-    // ── 3. Find the hover-action overlay as a card-level child (outside mainLink)
-    //    Typical Postero selectors: .woo-loop-btn, .woo-action, [class*="action"]
-    var overlayEl = card.querySelector(
-      '.woo-loop-btn, .woo-action, .product-action, .entry-action, ' +
-      '[class*="loop-btn"], [class*="woo-action"], [class*="product-action"]'
-    );
-
-    // Also check direct children of card that aren't the link / title / rating / price
-    if (!overlayEl) {
-      Array.from(card.children).forEach(function(child) {
+    // ── 3. Find theme overlay — it's a direct child of card (sibling of mainLink)
+    //    Strategy: walk card's direct children; skip known non-overlay elements.
+    var overlayEl = null;
+    if (mainLink) {
+      Array.from(card.children).forEach(function(child){
         if (overlayEl) return;
-        var tag = child.tagName.toLowerCase();
+        if (child === mainLink) return;
         var cls = child.classList;
-        if (tag === 'a' && cls.contains('woocommerce-loop-product__link')) return;
         if (cls.contains('woocommerce-loop-product__title')) return;
-        if (cls.contains('woocommerce-product-rating')) return;
-        if (cls.contains('price')) return;
-        if (cls.contains('af-pd') || cls.contains('onsale')) return;
-        if (tag === 'span' || tag === 'h2') return;
-        // Anything left is likely the action overlay
+        if (cls.contains('woocommerce-product-rating'))     return;
+        if (cls.contains('price'))                           return;
+        if (cls.contains('af-shop-discount-badge'))          return;
+        if (cls.contains('af-atc-btn'))                      return;
+        var tag = child.tagName.toLowerCase();
+        if (tag === 'h2' || tag === 'h3' || tag === 'span') return;
+        // Must be the action overlay (div or similar)
         overlayEl = child;
       });
     }
 
-    // ── 4. Image wrapper — make mainLink the position:relative container
-    if (mainLink) {
-      sp(mainLink,'position',   'relative');
-      sp(mainLink,'display',    'block');
-      sp(mainLink,'overflow',   'hidden');
-      sp(mainLink,'aspect-ratio','1 / 1');
-      sp(mainLink,'background', '#f5f2ed');
-      sp(mainLink,'flex-shrink','0');
+    // ── 4. Build .af-img-wrap — position:relative container for image + overlay
+    if (mainLink && !card.querySelector('.af-img-wrap')) {
+      var wrap = document.createElement('div');
+      wrap.className = 'af-img-wrap';
+      sp(wrap,'position',   'relative');
+      sp(wrap,'overflow',   'hidden');
+      sp(wrap,'aspect-ratio','1 / 1');
+      sp(wrap,'background', '#f5f2ed');
+      sp(wrap,'flex-shrink','0');
+      sp(wrap,'display',    'block');
 
-      // Style the image inside
+      // Insert wrap where mainLink currently is
+      card.insertBefore(wrap, mainLink);
+
+      // Move mainLink into wrap
+      wrap.appendChild(mainLink);
+      sp(mainLink,'display', 'block');
+      sp(mainLink,'width',   '100%');
+      sp(mainLink,'height',  '100%');
+
+      // Style the image
       var img = mainLink.querySelector('img');
       if (img) {
         sp(img,'width',     '100%');
@@ -3025,7 +3029,7 @@ add_action('wp_footer', function() {
         card.addEventListener('mouseleave',function(){ img.style.setProperty('transform','scale(1)',   'important'); });
       }
 
-      // Style .onsale ribbon inside mainLink
+      // Style diagonal sale ribbon (inside mainLink = inside wrap = clipped properly)
       var ribbon = mainLink.querySelector('.onsale');
       if (ribbon) {
         sp(ribbon,'position',      'absolute');
@@ -3050,13 +3054,9 @@ add_action('wp_footer', function() {
         sp(ribbon,'box-shadow',    '0 2px 6px rgba(0,0,0,.20)');
       }
 
-      // ── KEY FIX: Move overlay inside mainLink if it was outside
-      if (overlayEl && overlayEl.parentElement !== mainLink) {
-        mainLink.appendChild(overlayEl);
-      }
-
-      // Position overlay absolutely over the image
+      // Move theme overlay into wrap → now position:absolute works correctly
       if (overlayEl) {
+        wrap.appendChild(overlayEl);
         sp(overlayEl,'position',       'absolute');
         sp(overlayEl,'top',            '0');
         sp(overlayEl,'left',           '0');
@@ -3070,7 +3070,7 @@ add_action('wp_footer', function() {
         sp(overlayEl,'gap',            '10px');
         sp(overlayEl,'z-index',        '5');
         sp(overlayEl,'opacity',        '0');
-        sp(overlayEl,'background',     'rgba(12,9,5,.50)');
+        sp(overlayEl,'background',     'rgba(12,9,5,.52)');
         sp(overlayEl,'transition',     'opacity .3s ease');
         sp(overlayEl,'pointer-events', 'none');
         sp(overlayEl,'box-sizing',     'border-box');
@@ -3083,7 +3083,7 @@ add_action('wp_footer', function() {
           overlayEl.style.setProperty('pointer-events', 'none', 'important');
         });
 
-        // Style existing wishlist / quickview as white circles
+        // Style wishlist / quickview as white circles
         Array.from(overlayEl.children).forEach(function(btn){
           if (btn.classList.contains('af-ov-atc')) return;
           sp(btn,'width',          '38px');
@@ -3098,14 +3098,15 @@ add_action('wp_footer', function() {
           sp(btn,'cursor',         'pointer');
           sp(btn,'flex-shrink',    '0');
           sp(btn,'text-decoration','none');
+          sp(btn,'font-size',      '0');
         });
 
-        // Inject "Add to Cart" pill (icon + text) in the middle
+        // Inject prominent "Add to Cart" pill with icon + text in the middle
         if (cartUrl && cartUrl !== '#' && !overlayEl.querySelector('.af-ov-atc')) {
           var atc = document.createElement('a');
           atc.href      = cartUrl;
           atc.className = 'af-ov-atc';
-          atc.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span>Add to Cart</span>';
+          atc.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span style="font-size:12px;font-weight:700;letter-spacing:0.05em;white-space:nowrap">Add to Cart</span>';
           sp(atc,'display',        'inline-flex');
           sp(atc,'align-items',    'center');
           sp(atc,'gap',            '6px');
@@ -3113,14 +3114,11 @@ add_action('wp_footer', function() {
           sp(atc,'background',     '#c9a84c');
           sp(atc,'color',          '#fff');
           sp(atc,'border-radius',  '4px');
-          sp(atc,'font-size',      '12px');
-          sp(atc,'font-weight',    '700');
-          sp(atc,'letter-spacing', '0.05em');
-          sp(atc,'white-space',    'nowrap');
           sp(atc,'text-decoration','none');
           sp(atc,'cursor',         'pointer');
           sp(atc,'flex-shrink',    '0');
           sp(atc,'line-height',    '1');
+          sp(atc,'transition',     'background .2s');
           var mid = overlayEl.children[Math.floor(overlayEl.children.length / 2)];
           overlayEl.insertBefore(atc, mid || null);
         }
@@ -3130,7 +3128,7 @@ add_action('wp_footer', function() {
     // Hide standalone theme cart button
     if (themeCart) sp(themeCart,'display','none');
 
-    // ── 5. Content: Title → Rating → Price (below image, never on it)
+    // ── 5. Content section: Title → Rating → Price
     var titleEl  = card.querySelector('.woocommerce-loop-product__title');
     var ratingEl = card.querySelector('.woocommerce-product-rating');
     var priceEl  = card.querySelector('.price');
@@ -3161,8 +3159,8 @@ add_action('wp_footer', function() {
       sp(ratingEl,'box-sizing', 'border-box');
       var starEl = ratingEl.querySelector('.star-rating');
       var cntEl  = ratingEl.querySelector('.woocommerce-review-link');
-      if (starEl) { sp(starEl,'font-size','12px'); sp(starEl,'margin','0'); }
-      if (cntEl)  { sp(cntEl, 'font-size','11px'); sp(cntEl, 'color','#888'); sp(cntEl,'margin-left','4px'); }
+      if (starEl){ sp(starEl,'font-size','12px'); sp(starEl,'margin','0'); }
+      if (cntEl) { sp(cntEl, 'font-size','11px'); sp(cntEl, 'color','#888'); sp(cntEl,'margin-left','4px'); }
     }
 
     if (priceEl) {
@@ -3174,9 +3172,9 @@ add_action('wp_footer', function() {
       sp(priceEl,'box-sizing', 'border-box');
       var ins = priceEl.querySelector('ins');
       var del = priceEl.querySelector('del');
-      if (ins) { sp(ins,'font-size','15px'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); sp(ins,'text-decoration','none'); }
-      if (del) { sp(del,'font-size','12px'); sp(del,'color','#aaa'); sp(del,'text-decoration','line-through'); sp(del,'font-weight','400'); }
-      if (!ins) { sp(priceEl,'font-size','15px'); sp(priceEl,'font-weight','700'); sp(priceEl,'color','#1a1a1a'); }
+      if (ins){ sp(ins,'font-size','15px'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); sp(ins,'text-decoration','none'); }
+      if (del){ sp(del,'font-size','12px'); sp(del,'color','#aaa'); sp(del,'text-decoration','line-through'); sp(del,'font-weight','400'); }
+      if (!ins){ sp(priceEl,'font-size','15px'); sp(priceEl,'font-weight','700'); sp(priceEl,'color','#1a1a1a'); }
     }
 
     // Clean up old elements
