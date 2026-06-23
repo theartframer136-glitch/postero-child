@@ -1,0 +1,9 @@
+# Secrets — never commit live credentials
+.env
+*.env
+!*.env.example
+
+# Importer tooling artifacts
+tools/product-importer/output/
+tools/product-importer/__pycache__/
+tools/product-importer/.venv/
