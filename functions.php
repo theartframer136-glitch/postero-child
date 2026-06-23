@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.5.0');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.6.0');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -2947,9 +2947,13 @@ add_action('wp_footer', function() {
     if (card.dataset.afShopFixed) return;
     card.dataset.afShopFixed = '1';
 
-    /* APPROACH: Create a .af-img-wrap div as position:relative container.
-       Move mainLink + theme overlay INTO it. The wrap enforces aspect-ratio
-       and overflow:hidden so overlay can never add blank space. */
+    /* v4 — DEFINITIVE FIX
+       1. Hide ALL unknown card children (theme overlay, badges) → eliminates blank space
+       2. padding-top:100% wrapper → bulletproof 1:1 ratio, content-independent
+       3. mainLink position:absolute inset:0 → fills wrap, zero layout contribution
+       4. Custom .af-ov overlay → position:absolute inset:0, sibling of link (not nested in <a>)
+       5. pointer-events:none on overlay, pointer-events:auto on buttons
+    */
 
     // ── 1. Card shell
     sp(card,'background',    '#fff');
@@ -2960,7 +2964,6 @@ add_action('wp_footer', function() {
     sp(card,'display',       'flex');
     sp(card,'flex-direction','column');
     sp(card,'transition',    'box-shadow .25s ease, transform .25s ease');
-
     card.addEventListener('mouseenter',function(){
       card.style.setProperty('box-shadow','0 8px 36px rgba(0,0,0,.14)','important');
       card.style.setProperty('transform','translateY(-2px)','important');
@@ -2970,56 +2973,59 @@ add_action('wp_footer', function() {
       card.style.setProperty('transform','translateY(0)','important');
     });
 
-    // ── 2. URLs
+    // ── 2. Gather data
     var pd        = card.querySelector('.af-pd');
     var mainLink  = card.querySelector('a.woocommerce-loop-product__link');
+    if (!mainLink) return;
     var themeCart = card.querySelector('a.add_to_cart_button,a.ajax_add_to_cart,a.button.product_type_simple');
-    var productUrl= (pd&&pd.dataset.url)||(mainLink&&mainLink.href)||'#';
-    var cartUrl   = (pd&&pd.dataset.cart)||(themeCart&&themeCart.href)||productUrl;
+    var cartUrl   = (pd&&pd.dataset.cart)||(themeCart&&themeCart.href)||mainLink.href||'#';
+    var productUrl= (pd&&pd.dataset.url)||mainLink.href||'#';
 
-    // ── 3. Find theme overlay — it's a direct child of card (sibling of mainLink)
-    //    Strategy: walk card's direct children; skip known non-overlay elements.
-    var overlayEl = null;
-    if (mainLink) {
-      Array.from(card.children).forEach(function(child){
-        if (overlayEl) return;
-        if (child === mainLink) return;
-        var cls = child.classList;
-        if (cls.contains('woocommerce-loop-product__title')) return;
-        if (cls.contains('woocommerce-product-rating'))     return;
-        if (cls.contains('price'))                           return;
-        if (cls.contains('af-shop-discount-badge'))          return;
-        if (cls.contains('af-atc-btn'))                      return;
-        var tag = child.tagName.toLowerCase();
-        if (tag === 'h2' || tag === 'h3' || tag === 'span') return;
-        // Must be the action overlay (div or similar)
-        overlayEl = child;
-      });
-    }
+    // Collect wishlist link data for cloning (before hiding)
+    var wlSrc = card.querySelector('a.add_to_wishlist,.yith-wcwl-add-to-wishlist a,a[class*="wishlist"]');
 
-    // ── 4. Build .af-img-wrap — position:relative container for image + overlay
-    if (mainLink && !card.querySelector('.af-img-wrap')) {
-      var wrap = document.createElement('div');
-      wrap.className = 'af-img-wrap';
+    // ── 3. HIDE all non-content direct children → eliminates blank space absolutely
+    Array.from(card.children).forEach(function(c){
+      if (c===mainLink) return;
+      var cls=c.classList;
+      if (cls.contains('woocommerce-loop-product__title')) return;
+      if (cls.contains('woocommerce-product-rating'))     return;
+      if (cls.contains('price'))                          return;
+      sp(c,'display','none');
+    });
+
+    // ── 4. Build .af-img-wrap (only once)
+    if (!card.querySelector('.af-img-wrap')) {
+
+      var wrap=document.createElement('div');
+      wrap.className='af-img-wrap';
       sp(wrap,'position',   'relative');
+      sp(wrap,'width',      '100%');
+      sp(wrap,'padding-top','100%');  // bulletproof 1:1 — height = width, content-independent
       sp(wrap,'overflow',   'hidden');
-      sp(wrap,'aspect-ratio','1 / 1');
       sp(wrap,'background', '#f5f2ed');
       sp(wrap,'flex-shrink','0');
-      sp(wrap,'display',    'block');
 
-      // Insert wrap where mainLink currently is
       card.insertBefore(wrap, mainLink);
-
-      // Move mainLink into wrap
       wrap.appendChild(mainLink);
-      sp(mainLink,'display', 'block');
-      sp(mainLink,'width',   '100%');
-      sp(mainLink,'height',  '100%');
 
-      // Style the image
-      var img = mainLink.querySelector('img');
+      // mainLink fills entire wrap
+      sp(mainLink,'position','absolute');
+      sp(mainLink,'top',    '0');
+      sp(mainLink,'left',   '0');
+      sp(mainLink,'right',  '0');
+      sp(mainLink,'bottom', '0');
+      sp(mainLink,'width',  '100%');
+      sp(mainLink,'height', '100%');
+      sp(mainLink,'display','block');
+      sp(mainLink,'z-index','1');
+
+      // Image fills mainLink with zoom on hover
+      var img=mainLink.querySelector('img');
       if (img) {
+        sp(img,'position',  'absolute');
+        sp(img,'top',       '0');
+        sp(img,'left',      '0');
         sp(img,'width',     '100%');
         sp(img,'height',    '100%');
         sp(img,'object-fit','cover');
@@ -3029,8 +3035,9 @@ add_action('wp_footer', function() {
         card.addEventListener('mouseleave',function(){ img.style.setProperty('transform','scale(1)',   'important'); });
       }
 
-      // Style diagonal sale ribbon (inside mainLink = inside wrap = clipped properly)
-      var ribbon = mainLink.querySelector('.onsale');
+      // Diagonal sale ribbon
+      var ribbon=mainLink.querySelector('.onsale');
+      if (!ribbon) ribbon=wrap.querySelector('.onsale');
       if (ribbon) {
         sp(ribbon,'position',      'absolute');
         sp(ribbon,'top',           '18px');
@@ -3054,84 +3061,96 @@ add_action('wp_footer', function() {
         sp(ribbon,'box-shadow',    '0 2px 6px rgba(0,0,0,.20)');
       }
 
-      // Move theme overlay into wrap → now position:absolute works correctly
-      if (overlayEl) {
-        wrap.appendChild(overlayEl);
-        sp(overlayEl,'position',       'absolute');
-        sp(overlayEl,'top',            '0');
-        sp(overlayEl,'left',           '0');
-        sp(overlayEl,'right',          '0');
-        sp(overlayEl,'bottom',         '0');
-        sp(overlayEl,'width',          '100%');
-        sp(overlayEl,'height',         '100%');
-        sp(overlayEl,'display',        'flex');
-        sp(overlayEl,'align-items',    'center');
-        sp(overlayEl,'justify-content','center');
-        sp(overlayEl,'gap',            '10px');
-        sp(overlayEl,'z-index',        '5');
-        sp(overlayEl,'opacity',        '0');
-        sp(overlayEl,'background',     'rgba(12,9,5,.52)');
-        sp(overlayEl,'transition',     'opacity .3s ease');
-        sp(overlayEl,'pointer-events', 'none');
-        sp(overlayEl,'box-sizing',     'border-box');
-        card.addEventListener('mouseenter',function(){
-          overlayEl.style.setProperty('opacity',        '1',    'important');
-          overlayEl.style.setProperty('pointer-events', 'auto', 'important');
-        });
-        card.addEventListener('mouseleave',function(){
-          overlayEl.style.setProperty('opacity',        '0',    'important');
-          overlayEl.style.setProperty('pointer-events', 'none', 'important');
-        });
+      // Custom overlay — sibling of mainLink inside wrap (NOT nested in <a>)
+      var ov=document.createElement('div');
+      ov.className='af-ov';
+      sp(ov,'position',       'absolute');
+      sp(ov,'top',            '0');
+      sp(ov,'left',           '0');
+      sp(ov,'right',          '0');
+      sp(ov,'bottom',         '0');
+      sp(ov,'z-index',        '2');
+      sp(ov,'display',        'flex');
+      sp(ov,'align-items',    'flex-end');
+      sp(ov,'justify-content','center');
+      sp(ov,'gap',            '10px');
+      sp(ov,'padding',        '0 12px 16px');
+      sp(ov,'background',     'rgba(12,9,5,.50)');
+      sp(ov,'opacity',        '0');
+      sp(ov,'transition',     'opacity .3s ease');
+      sp(ov,'pointer-events', 'none');
+      sp(ov,'box-sizing',     'border-box');
+      card.addEventListener('mouseenter',function(){ ov.style.setProperty('opacity','1','important'); });
+      card.addEventListener('mouseleave',function(){ ov.style.setProperty('opacity','0','important'); });
 
-        // Style wishlist / quickview as white circles
-        Array.from(overlayEl.children).forEach(function(btn){
-          if (btn.classList.contains('af-ov-atc')) return;
-          sp(btn,'width',          '38px');
-          sp(btn,'height',         '38px');
-          sp(btn,'border-radius',  '50%');
-          sp(btn,'background',     'rgba(255,255,255,.88)');
-          sp(btn,'color',          '#1a1a1a');
-          sp(btn,'display',        'inline-flex');
-          sp(btn,'align-items',    'center');
-          sp(btn,'justify-content','center');
-          sp(btn,'border',         'none');
-          sp(btn,'cursor',         'pointer');
-          sp(btn,'flex-shrink',    '0');
-          sp(btn,'text-decoration','none');
-          sp(btn,'font-size',      '0');
-        });
-
-        // Inject prominent "Add to Cart" pill with icon + text in the middle
-        if (cartUrl && cartUrl !== '#' && !overlayEl.querySelector('.af-ov-atc')) {
-          var atc = document.createElement('a');
-          atc.href      = cartUrl;
-          atc.className = 'af-ov-atc';
-          atc.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span style="font-size:12px;font-weight:700;letter-spacing:0.05em;white-space:nowrap">Add to Cart</span>';
-          sp(atc,'display',        'inline-flex');
-          sp(atc,'align-items',    'center');
-          sp(atc,'gap',            '6px');
-          sp(atc,'padding',        '9px 18px');
-          sp(atc,'background',     '#c9a84c');
-          sp(atc,'color',          '#fff');
-          sp(atc,'border-radius',  '4px');
-          sp(atc,'text-decoration','none');
-          sp(atc,'cursor',         'pointer');
-          sp(atc,'flex-shrink',    '0');
-          sp(atc,'line-height',    '1');
-          sp(atc,'transition',     'background .2s');
-          var mid = overlayEl.children[Math.floor(overlayEl.children.length / 2)];
-          overlayEl.insertBefore(atc, mid || null);
-        }
+      function iconBtn(el) {
+        sp(el,'width',          '36px');
+        sp(el,'height',         '36px');
+        sp(el,'border-radius',  '50%');
+        sp(el,'background',     'rgba(255,255,255,.9)');
+        sp(el,'color',          '#222');
+        sp(el,'display',        'inline-flex');
+        sp(el,'align-items',    'center');
+        sp(el,'justify-content','center');
+        sp(el,'border',         'none');
+        sp(el,'cursor',         'pointer');
+        sp(el,'flex-shrink',    '0');
+        sp(el,'text-decoration','none');
+        sp(el,'pointer-events', 'auto');
+        sp(el,'transition',     'background .2s');
       }
+
+      // Wishlist — clone from theme element to preserve YITH data attributes
+      var wlBtn;
+      if (wlSrc) {
+        wlBtn=wlSrc.cloneNode(false);
+        wlBtn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+      } else {
+        wlBtn=document.createElement('a');
+        wlBtn.href='#';
+        wlBtn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>';
+      }
+      iconBtn(wlBtn);
+
+      // Add to Cart — primary gold pill button
+      var atcBtn=document.createElement('a');
+      atcBtn.href=cartUrl;
+      atcBtn.className='af-ov-atc';
+      atcBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span>Add to Cart</span>';
+      sp(atcBtn,'display',        'inline-flex');
+      sp(atcBtn,'align-items',    'center');
+      sp(atcBtn,'gap',            '6px');
+      sp(atcBtn,'padding',        '9px 18px');
+      sp(atcBtn,'background',     '#c9a84c');
+      sp(atcBtn,'color',          '#fff');
+      sp(atcBtn,'border-radius',  '4px');
+      sp(atcBtn,'font-size',      '12px');
+      sp(atcBtn,'font-weight',    '700');
+      sp(atcBtn,'letter-spacing', '0.05em');
+      sp(atcBtn,'white-space',    'nowrap');
+      sp(atcBtn,'text-decoration','none');
+      sp(atcBtn,'cursor',         'pointer');
+      sp(atcBtn,'flex-shrink',    '0');
+      sp(atcBtn,'line-height',    '1');
+      sp(atcBtn,'pointer-events', 'auto');
+
+      // Quick View — eye icon circle
+      var qvBtn=document.createElement('a');
+      qvBtn.href=productUrl;
+      qvBtn.className='af-ov-qv';
+      qvBtn.innerHTML='<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>';
+      iconBtn(qvBtn);
+
+      ov.appendChild(wlBtn);
+      ov.appendChild(atcBtn);
+      ov.appendChild(qvBtn);
+      wrap.appendChild(ov);
     }
 
-    // Hide standalone theme cart button
-    if (themeCart) sp(themeCart,'display','none');
-
-    // ── 5. Content section: Title → Rating → Price
-    var titleEl  = card.querySelector('.woocommerce-loop-product__title');
-    var ratingEl = card.querySelector('.woocommerce-product-rating');
-    var priceEl  = card.querySelector('.price');
+    // ── 5. Content: Title → Rating → Price
+    var titleEl =card.querySelector('.woocommerce-loop-product__title');
+    var ratingEl=card.querySelector('.woocommerce-product-rating');
+    var priceEl =card.querySelector('.price');
 
     if (titleEl) {
       sp(titleEl,'font-size',         '13.5px');
@@ -3150,19 +3169,17 @@ add_action('wp_footer', function() {
         sp(a,'color','#1a1a1a'); sp(a,'text-decoration','none');
       });
     }
-
     if (ratingEl) {
       sp(ratingEl,'display',    'flex');
       sp(ratingEl,'align-items','center');
       sp(ratingEl,'padding',    '3px 13px 4px');
       sp(ratingEl,'margin',     '0');
       sp(ratingEl,'box-sizing', 'border-box');
-      var starEl = ratingEl.querySelector('.star-rating');
-      var cntEl  = ratingEl.querySelector('.woocommerce-review-link');
-      if (starEl){ sp(starEl,'font-size','12px'); sp(starEl,'margin','0'); }
-      if (cntEl) { sp(cntEl, 'font-size','11px'); sp(cntEl, 'color','#888'); sp(cntEl,'margin-left','4px'); }
+      var starEl=ratingEl.querySelector('.star-rating');
+      var cntEl =ratingEl.querySelector('.woocommerce-review-link');
+      if (starEl){sp(starEl,'font-size','12px');sp(starEl,'margin','0');}
+      if (cntEl) {sp(cntEl, 'font-size','11px');sp(cntEl, 'color','#888');sp(cntEl,'margin-left','4px');}
     }
-
     if (priceEl) {
       sp(priceEl,'display',    'flex');
       sp(priceEl,'align-items','baseline');
@@ -3170,18 +3187,12 @@ add_action('wp_footer', function() {
       sp(priceEl,'padding',    '2px 13px 14px');
       sp(priceEl,'margin',     '0');
       sp(priceEl,'box-sizing', 'border-box');
-      var ins = priceEl.querySelector('ins');
-      var del = priceEl.querySelector('del');
-      if (ins){ sp(ins,'font-size','15px'); sp(ins,'font-weight','700'); sp(ins,'color','#1a1a1a'); sp(ins,'text-decoration','none'); }
-      if (del){ sp(del,'font-size','12px'); sp(del,'color','#aaa'); sp(del,'text-decoration','line-through'); sp(del,'font-weight','400'); }
-      if (!ins){ sp(priceEl,'font-size','15px'); sp(priceEl,'font-weight','700'); sp(priceEl,'color','#1a1a1a'); }
+      var ins=priceEl.querySelector('ins');
+      var del=priceEl.querySelector('del');
+      if (ins){sp(ins,'font-size','15px');sp(ins,'font-weight','700');sp(ins,'color','#1a1a1a');sp(ins,'text-decoration','none');}
+      if (del){sp(del,'font-size','12px');sp(del,'color','#aaa');sp(del,'text-decoration','line-through');sp(del,'font-weight','400');}
+      if (!ins){sp(priceEl,'font-size','15px');sp(priceEl,'font-weight','700');sp(priceEl,'color','#1a1a1a');}
     }
-
-    // Clean up old elements
-    var oldBadge = card.querySelector('.af-shop-discount-badge');
-    if (oldBadge) sp(oldBadge,'display','none');
-    var oldBtn = card.querySelector('.af-atc-btn');
-    if (oldBtn) sp(oldBtn,'display','none');
   }
 
 
