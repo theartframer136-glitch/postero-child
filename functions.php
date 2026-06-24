@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.7.0');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.8.0');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -3157,7 +3157,7 @@ add_action('wp_footer', function() {
       sp(titleEl,'font-weight',       '600');
       sp(titleEl,'color',             '#1a1a1a');
       sp(titleEl,'line-height',       '1.45');
-      sp(titleEl,'padding',           '13px 13px 3px');
+      sp(titleEl,'padding',           '13px 16px 3px');
       sp(titleEl,'margin',            '0');
       sp(titleEl,'height',            '56px');
       sp(titleEl,'overflow',          'hidden');
@@ -3172,7 +3172,7 @@ add_action('wp_footer', function() {
     if (ratingEl) {
       sp(ratingEl,'display',    'flex');
       sp(ratingEl,'align-items','center');
-      sp(ratingEl,'padding',    '3px 13px 4px');
+      sp(ratingEl,'padding',    '3px 16px 4px');
       sp(ratingEl,'margin',     '0');
       sp(ratingEl,'box-sizing', 'border-box');
       var starEl=ratingEl.querySelector('.star-rating');
@@ -3184,7 +3184,7 @@ add_action('wp_footer', function() {
       sp(priceEl,'display',    'flex');
       sp(priceEl,'align-items','baseline');
       sp(priceEl,'gap',        '6px');
-      sp(priceEl,'padding',    '2px 13px 14px');
+      sp(priceEl,'padding',    '2px 16px 14px');
       sp(priceEl,'margin',     '0');
       sp(priceEl,'box-sizing', 'border-box');
       var ins=priceEl.querySelector('ins');
