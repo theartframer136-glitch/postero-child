@@ -1359,9 +1359,9 @@ ul.postero-scroll-content .cat-item a {
   margin-bottom: 8px !important;
 }
 
-/* Push price + buttons to bottom of card */
-.woocommerce ul.products li.product .price,
-.woocommerce-page ul.products li.product .price {
+/* Push price + buttons to bottom of card — slider/shell only, NOT shop archive (JS handles that) */
+.af-shell-track ul.products li.product .price,
+.product-slider ul.products li.product .price {
   margin-top: auto !important;
 }
 
@@ -1436,25 +1436,22 @@ body.woocommerce-page ul.products li.product {
   margin-bottom: 24px !important;
 }
 
-/* Image wrapper created by JS — contains image link + overlay */
+/* Image wrapper created by JS — padding-top:100% gives bulletproof 1:1 ratio */
 .af-img-wrap {
   position: relative !important;
   overflow: hidden !important;
-  aspect-ratio: 1 / 1 !important;
+  padding-top: 100% !important;   /* height = width, immune to child content */
   background: #f5f2ed !important;
   flex-shrink: 0 !important;
   display: block !important;
+  width: 100% !important;
 }
 
-/* Image wrapper — position:relative so ribbon+overlay are contained */
+/* Product link — JS moves it inside .af-img-wrap and makes it position:absolute */
 body.tax-product_cat ul.products li.product a.woocommerce-loop-product__link,
 body.woocommerce-page ul.products li.product a.woocommerce-loop-product__link {
-  position: relative !important;
   display: block !important;
   overflow: hidden !important;
-  aspect-ratio: 1 / 1 !important;
-  background: #f5f2ed !important;
-  flex-shrink: 0 !important;
 }
 
 /* Image — fills wrapper, subtle zoom on hover via JS */
@@ -1492,6 +1489,23 @@ body.woocommerce-page ul.products li.product .onsale {
   margin: 0 !important;
   display: block !important;
   box-shadow: 0 2px 6px rgba(0,0,0,.20) !important;
+}
+
+/* Hover overlay — absolutely positioned over image, zero layout impact */
+.af-ov {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2 !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  padding: 0 12px 16px !important;
+  background: rgba(12,9,5,.50) !important;
+  opacity: 0 !important;
+  transition: opacity .3s ease !important;
+  pointer-events: none !important;
+  box-sizing: border-box !important;
 }
 
 /* Add to Cart button inside hover overlay */
