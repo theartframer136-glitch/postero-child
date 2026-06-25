@@ -328,14 +328,14 @@ WP_CLI::log( '3. Setting product attributes...' );
 $wc_attributes = array();
 $position      = 0;
 foreach ( $ATTRIBUTES as $attr_name => $attr_value ) {
-    $taxonomy = 'pa_' . sanitize_title( $attr_name );
-    $attr     = new WC_Product_Attribute();
+    $attr = new WC_Product_Attribute();
+    $attr->set_id( 0 );
     $attr->set_name( $attr_name );
     $attr->set_options( array( $attr_value ) );
     $attr->set_position( $position++ );
     $attr->set_visible( true );
     $attr->set_variation( false );
-    $wc_attributes[] = $attr;
+    $wc_attributes[ sanitize_title( $attr_name ) ] = $attr;
 }
 $product = wc_get_product( $PRODUCT_ID );
 $product->set_attributes( $wc_attributes );
