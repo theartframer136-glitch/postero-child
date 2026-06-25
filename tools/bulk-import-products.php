@@ -224,7 +224,7 @@ foreach ( $PRODUCTS as $idx => $row ) {
     // ── Build product ──
     $product = new WC_Product_Simple();
     $product->set_name( $name );
-    $product->set_status( 'draft' );
+    $product->set_status( 'publish' );
     $product->set_catalog_visibility( 'visible' );
     $product->set_description( $row['description'] );
     $product->set_short_description( $row['short_desc'] );
