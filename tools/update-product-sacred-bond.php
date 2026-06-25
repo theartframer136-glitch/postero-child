@@ -387,14 +387,13 @@ $IMAGE_META = array(
    EXECUTION — update everything
    ══════════════════════════════════════════════════════════════ */
 
-WP_CLI::log( '' );
-WP_CLI::log( '╔══════════════════════════════════════════════════════╗' );
-WP_CLI::log( '║  The Art Framer — Premium Product Update             ║' );
-WP_CLI::log( '║  Radha Krishna Sacred Bond Canvas Art  #' . $PRODUCT_ID . '       ║' );
-WP_CLI::log( '╚══════════════════════════════════════════════════════╝' );
-WP_CLI::log( '' );
+WP_CLI::log( '=== Sacred Bond Product Update Starting ===' );
+WP_CLI::log( 'Product ID: ' . $PRODUCT_ID );
+WP_CLI::log( 'LONG_DESC length: ' . strlen( $LONG_DESC ) );
+WP_CLI::log( 'SHORT_DESC length: ' . strlen( $SHORT_DESC ) );
 
 $product = wc_get_product( $PRODUCT_ID );
+WP_CLI::log( 'wc_get_product result: ' . ( $product ? 'OK (type=' . $product->get_type() . ')' : 'FALSE - not found!' ) );
 if ( ! $product ) {
     WP_CLI::error( "Product #{$PRODUCT_ID} not found. Check the ID." );
 }
@@ -412,7 +411,12 @@ $result = wp_update_post( array(
 if ( is_wp_error( $result ) ) {
     WP_CLI::warning( '  Post update error: ' . $result->get_error_message() );
 } else {
-    WP_CLI::log( '  ✓ Title, slug, descriptions updated.' );
+    WP_CLI::log( '  ✓ wp_update_post returned ID: ' . $result );
+    // Verify what's now in the DB
+    $verify = get_post( $PRODUCT_ID );
+    WP_CLI::log( '  DB title now: ' . $verify->post_title );
+    WP_CLI::log( '  DB content first 80 chars: ' . substr( strip_tags( $verify->post_content ), 0, 80 ) );
+    WP_CLI::log( '  DB excerpt first 80 chars: ' . substr( strip_tags( $verify->post_excerpt ), 0, 80 ) );
 }
 
 /* ── 2. WooCommerce product data ── */
