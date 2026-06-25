@@ -77,4 +77,10 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/publish-draft-products.php --allow-root 2>&1" \
             && echo "Publish complete" || echo "Publish step finished"
 
+          echo "Running premium product content update..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/update-product-sacred-bond.php --allow-root 2>&1" \
+            && echo "Product update complete" || echo "Product update finished"
+
           echo "Deploy complete"
