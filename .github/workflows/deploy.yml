@@ -58,13 +58,6 @@ jobs:
             DELAY=$((DELAY + 90))
           done
 
-          echo "Files deployed. Clearing cache..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp litespeed-purge all --allow-root 2>/dev/null || true; \
-             wp cache flush --allow-root 2>/dev/null || true; \
-             echo 'Cache cleared'" || echo "Cache clear skipped"
-
           echo "Running bulk product importer..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -82,5 +75,12 @@ jobs:
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/update-product-sacred-bond.php --allow-root 2>&1" \
             && echo "Product update complete" || echo "Product update finished"
+
+          echo "Clearing caches after all updates..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp litespeed-purge all --allow-root 2>/dev/null || true; \
+             wp cache flush --allow-root 2>/dev/null || true; \
+             echo 'Cache cleared'" || echo "Cache clear skipped"
 
           echo "Deploy complete"
