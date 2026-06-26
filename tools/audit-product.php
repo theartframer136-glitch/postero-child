@@ -6,7 +6,7 @@
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
 // ── Find the product by slug ──────────────────────────────────
-$slug    = 'krishna-moonlight-canvas-wall-art';
+$slug    = 'radha-krishna-sacred-bond-canvas-art';
 $posts   = get_posts( array( 'name' => $slug, 'post_type' => 'product', 'post_status' => 'any', 'numberposts' => 1 ) );
 if ( empty( $posts ) ) { WP_CLI::error( "No product found with slug: $slug" ); }
 $post    = $posts[0];
