@@ -70,6 +70,7 @@ def row_to_spec(row, status):
         "categories": split(row.get("categories", "")) or ["Digital Canvas Prints"],
         "tags": split(row.get("tags", "")),
         "focus_keyword": row.get("focus_keyword", "").strip(),
+        "sku": row.get("sku", "").strip(),
         "status": status,
     }
     if row.get("price", "").strip():

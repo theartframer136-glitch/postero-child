@@ -15,6 +15,7 @@ is constant across products, exactly as observed in the existing catalog.
 """
 
 import os
+import re
 import textwrap
 
 # --- Business constants (from the existing catalog) ------------------------- #
@@ -213,42 +214,104 @@ def price_for(spec):
 # --------------------------------------------------------------------------- #
 # Assemble full product
 # --------------------------------------------------------------------------- #
+def _orientation(size):
+    """Sizes are written height x width (e.g. '36x60'); decide orientation."""
+    nums = re.findall(r"\d+", size or "")
+    if len(nums) >= 2:
+        h, w = int(nums[0]), int(nums[1])
+        return "Landscape" if w > h else ("Portrait" if h > w else "Square")
+    return "Portrait"
+
+
+def _theme(subject):
+    s = subject.lower()
+    devotional = ["krishna", "ganesh", "shiva", "ram", "buddha", "lakshmi", "balaji",
+                  "hanuman", "durga", "sai", "guru", "sikh", "venkatesw", "swaminarayan",
+                  "shiv", "vishnu", "saraswati", "kali", "ganpati", "radha"]
+    return "Spiritual / Devotional" if any(k in s for k in devotional) else "Artistic"
+
+
+_ADDITIONAL_INFO = """<strong>Additional Information </strong>
+<table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 14px;">
+<tbody>
+<tr>
+<td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; width: 35%; background-color: #f7f7f7;">Manufacturer</td>
+<td style="border: 1px solid #ddd; padding: 10px;">The Art Framer</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; background-color: #f7f7f7;">Packer</td>
+<td style="border: 1px solid #ddd; padding: 10px;">The Art Framer</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; background-color: #f7f7f7;">Item Weight</td>
+<td style="border: 1px solid #ddd; padding: 10px;">Approx. 2 – 4 kg (Depending on Size &amp; Frame Type)</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; background-color: #f7f7f7;">Net Quantity</td>
+<td style="border: 1px solid #ddd; padding: 10px;">1 Piece</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; background-color: #f7f7f7;">Generic Name</td>
+<td style="border: 1px solid #ddd; padding: 10px;">Canvas Printed Wall Frame</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; background-color: #f7f7f7;">Best Sellers Rank</td>
+<td style="border: 1px solid #ddd; padding: 10px;">#Trending in Home Decor &amp; Wall Art</td>
+</tr>
+</tbody>
+</table>"""
+
+
 def build_technical_specs(spec):
-    """HTML for the '_technical_specs' custom field — an intro line plus a
-    4-column spec table, matching the existing catalog's format."""
+    """HTML for the '_technical_specs' custom field — intro line + the 4-column
+    spec table + the Additional Information table, matching the catalog exactly."""
     subject = spec["subject"]
+    size = spec.get("size", "")
     cats = spec.get("categories", ["Digital Canvas Prints"])
     category = next((c for c in cats if c not in
                      ("Digital Canvas Prints", "Art Accessories")), cats[0])
-    intro = (f"<p>Bring home the timeless beauty of this <strong>{subject} Canvas "
-             f"Wall Art</strong>, crafted to elevate your space with premium quality "
-             f"and devotional charm.</p>")
+    sku = spec.get("sku", "") or "—"
+
+    intro = (f"Bring home the divine beauty of this <strong>{subject} Canvas Wall Art "
+             f"({size})</strong>. A perfect blend of devotion, style, and meaningful décor.")
+
     pairs = [
         ("Original", "Yes"), ("Brand", "The Art Framer"),
         ("Category", category), ("Type", "Canvas Wall Art"),
         ("Material", "Premium Canvas"), ("Support Base", "Canvas"),
-        ("Print Method", "HD Colour Digital Printing"), ("Ink Type", "Eco-Friendly Ink"),
-        ("Frame Type", "Floating / Fibre / Wooden / Aluminium"), ("Net Quantity", "1 Piece"),
-        ("Manufacturer", "The Art Framer"), ("Packer", "The Art Framer"),
-        ("Item Weight", "Approx. 2 – 4 kg (Depending on Size & Frame Type)"),
-        ("Generic Name", "Canvas Printed Wall Frame"),
-        ("Country of Origin", "India"),
-        ("Best Sellers Rank", "#Trending in Home Decor & Wall Art"),
+        ("Print Method", "XYZ Colour Digital Printing"), ("Ink Type", "Eco-Friendly Ink"),
+        ("Frame Type", "Custom Frame Available"), ("Orientation", _orientation(size)),
+        ("Shape", "Rectangular / Square"), ("Colour", "Multicolor"),
+        ("Use / Room Type", "Living Room / Bedroom / Puja Room"), ("Indoor / Outdoor", "Indoor"),
+        ("Selling Unit", "Single Piece"), ("Sample", "Provided"),
+        ("OEM / ODM", "Available"), ("Product Weight", "—"),
+        ("Product Size", size or "—"), ("Product Dimension", "—"),
+        ("Number of Items", "1"), ("Theme", _theme(subject)),
+        ("Recommended Use", "Home / Office Decoration"), ("Wall Art Form", "Canvas Wall Art"),
+        ("Style", "Modern"), ("Colour Family", "Multicolor"),
+        ("Age Range", "All Ages"), ("Pattern", "Artistic"),
+        ("Special Feature", "Fade Resistant Print"), ("Frame Material", "Wood / Fibre / Aluminium"),
+        ("Mounting Type", "Wall Mount"), ("Finish Type", "Matte / Glossy"),
+        ("Is Framed", "Yes"), ("Manufacturer", "The Art Framer"),
+        ("Country Of Origin", "India"), ("Item Part Number", sku),
+        ("ASIN", "Not Applicable"), ("", ""),
     ]
     lbl = "width: 25%; border: 1px solid #ddd; padding: 10px; font-weight: bold;"
     val = "width: 25%; border: 1px solid #ddd; padding: 10px;"
     rows = []
     for i in range(0, len(pairs), 2):
         bg = ' style="background: #f5f5f5;"' if (i // 2) % 2 == 0 else ""
-        cells = "".join(
-            f'<td style="{lbl}">{l}</td><td style="{val}">{v}</td>'
-            for l, v in pairs[i:i + 2]
-        )
-        rows.append(f"<tr{bg}>{cells}</tr>")
+        cells = ""
+        for l, v in pairs[i:i + 2]:
+            if l == "":
+                cells += f'\n<td style="{val}"></td>\n<td style="{val}"></td>'
+            else:
+                cells += f'\n<td style="{lbl}">{l}</td>\n<td style="{val}">{v}</td>'
+        rows.append(f"<tr{bg}>{cells}\n</tr>")
     table = ('<table style="width: 100%; border-collapse: collapse; table-layout: fixed; '
              'font-family: Arial, sans-serif; font-size: 14px;">\n<tbody>\n'
              + "\n".join(rows) + "\n</tbody>\n</table>")
-    return intro + "\n" + table
+    return intro + "\n" + table + "\n" + _ADDITIONAL_INFO
 
 
 def build_tags(spec):
