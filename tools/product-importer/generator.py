@@ -213,6 +213,44 @@ def price_for(spec):
 # --------------------------------------------------------------------------- #
 # Assemble full product
 # --------------------------------------------------------------------------- #
+def build_technical_specs(spec):
+    """HTML for the '_technical_specs' custom field — an intro line plus a
+    4-column spec table, matching the existing catalog's format."""
+    subject = spec["subject"]
+    cats = spec.get("categories", ["Digital Canvas Prints"])
+    category = next((c for c in cats if c not in
+                     ("Digital Canvas Prints", "Art Accessories")), cats[0])
+    intro = (f"<p>Bring home the timeless beauty of this <strong>{subject} Canvas "
+             f"Wall Art</strong>, crafted to elevate your space with premium quality "
+             f"and devotional charm.</p>")
+    pairs = [
+        ("Original", "Yes"), ("Brand", "The Art Framer"),
+        ("Category", category), ("Type", "Canvas Wall Art"),
+        ("Material", "Premium Canvas"), ("Support Base", "Canvas"),
+        ("Print Method", "HD Colour Digital Printing"), ("Ink Type", "Eco-Friendly Ink"),
+        ("Frame Type", "Floating / Fibre / Wooden / Aluminium"), ("Net Quantity", "1 Piece"),
+        ("Manufacturer", "The Art Framer"), ("Packer", "The Art Framer"),
+        ("Item Weight", "Approx. 2 – 4 kg (Depending on Size & Frame Type)"),
+        ("Generic Name", "Canvas Printed Wall Frame"),
+        ("Country of Origin", "India"),
+        ("Best Sellers Rank", "#Trending in Home Decor & Wall Art"),
+    ]
+    lbl = "width: 25%; border: 1px solid #ddd; padding: 10px; font-weight: bold;"
+    val = "width: 25%; border: 1px solid #ddd; padding: 10px;"
+    rows = []
+    for i in range(0, len(pairs), 2):
+        bg = ' style="background: #f5f5f5;"' if (i // 2) % 2 == 0 else ""
+        cells = "".join(
+            f'<td style="{lbl}">{l}</td><td style="{val}">{v}</td>'
+            for l, v in pairs[i:i + 2]
+        )
+        rows.append(f"<tr{bg}>{cells}</tr>")
+    table = ('<table style="width: 100%; border-collapse: collapse; table-layout: fixed; '
+             'font-family: Arial, sans-serif; font-size: 14px;">\n<tbody>\n'
+             + "\n".join(rows) + "\n</tbody>\n</table>")
+    return intro + "\n" + table
+
+
 def build_tags(spec):
     """Sensible tags derived from the subject + standard store tags."""
     subject = spec["subject"]
@@ -272,6 +310,7 @@ def build_product(spec):
         "tags": tags,
         "attributes": attributes,
         "meta_data": [
+            {"key": "_technical_specs", "value": build_technical_specs(spec)},
             {"key": "rank_math_focus_keyword", "value": focus_kw},
             {"key": "rank_math_title", "value": f"{build_title(spec)} | The Art Framer"},
             {"key": "rank_math_description", "value": short.replace("<p>", "").replace("</p>", "")[:155]},
