@@ -149,18 +149,28 @@ def resolve_terms(cfg, taxonomy, names):
         if not match:
             cr = requests.post(base, auth=(cfg["ck"], cfg["cs"]),
                                json={"name": name}, timeout=60)
-            if cr.status_code >= 400:
+            try:
                 data = cr.json()
-                rid = data.get("data", {}).get("resource_id")  # term already exists
-                if rid:
-                    match = {"id": rid}
-                else:
-                    cr.raise_for_status()
+            except ValueError:  # non-JSON (e.g. a security plugin's HTML block page)
+                print(f"  [warn] could not create {taxonomy} '{name}' "
+                      f"(HTTP {cr.status_code}, non-JSON response) — skipping it")
+                continue
+            if cr.ok:
+                match = data
+            elif data.get("data", {}).get("resource_id"):  # already exists
+                match = {"id": data["data"]["resource_id"]}
             else:
-                match = cr.json()
+                print(f"  [warn] could not create {taxonomy} '{name}': {data} — skipping it")
+                continue
         _term_cache[key] = match["id"]
         ids.append(match["id"])
     return [{"id": i} for i in ids]
+
+
+def name_terms(names):
+    """Tags can be sent by name on product create — WooCommerce creates any
+    that don't exist, avoiding a separate (sometimes-blocked) create request."""
+    return [{"name": n.strip()} for n in names if n.strip()]
 def sku_exists(cfg, sku):
     if not sku:
         return False
@@ -234,9 +244,10 @@ def main():
             print(f"  description: {len(payload['description'])} chars\n")
             continue
 
-        # Categories & tags must be sent as term IDs, so resolve (and create) them.
+        # Categories must be sent as term IDs (names alone -> Uncategorized).
         payload["categories"] = resolve_terms(cfg, "categories", cat_names)
-        payload["tags"] = resolve_terms(cfg, "tags", tag_names)
+        # Tags can go by name; WooCommerce creates them during product create.
+        payload["tags"] = name_terms(tag_names)
 
         try:
             product = create_product(cfg, payload)
