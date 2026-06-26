@@ -68,6 +68,7 @@ def row_to_spec(row, status):
         "style": row.get("style", "").strip() or "Premium Digital Canvas Print",
         "use_case": row.get("use_case", "").strip(),
         "categories": split(row.get("categories", "")) or ["Digital Canvas Prints"],
+        "tags": split(row.get("tags", "")),
         "focus_keyword": row.get("focus_keyword", "").strip(),
         "status": status,
     }
@@ -107,20 +108,59 @@ def upload_local_image(cfg, path):
     return resp.json()["source_url"]
 
 
-def resolve_image(cfg, image_field, dry_run):
-    if not image_field.strip():
-        return []
-    image = image_field.strip()
-    if image.startswith(("http://", "https://")):
-        return [{"src": image}]
-    if dry_run:
-        return [{"src": f"(local file, will upload on real run): {image}"}]
-    return [{"src": upload_local_image(cfg, image)}]
+def resolve_images(cfg, image_field, dry_run):
+    """The `image` column may hold several URLs/paths separated by '|'.
+    First image becomes the featured image; the rest form the gallery."""
+    out = []
+    for image in [x.strip() for x in (image_field or "").split("|") if x.strip()]:
+        if image.startswith(("http://", "https://")):
+            out.append({"src": image})
+        elif dry_run:
+            out.append({"src": f"(local file, will upload on real run): {image}"})
+        else:
+            out.append({"src": upload_local_image(cfg, image)})
+    return out
 
 
 # --------------------------------------------------------------------------- #
 # WooCommerce
 # --------------------------------------------------------------------------- #
+_term_cache = {}
+
+
+def resolve_terms(cfg, taxonomy, names):
+    """Map category/tag NAMES to WooCommerce term IDs, creating any that are
+    missing. WooCommerce assigns categories by ID, not name — passing names
+    alone leaves products 'Uncategorized'."""
+    ids = []
+    for name in names:
+        name = name.strip()
+        if not name:
+            continue
+        key = (taxonomy, name.lower())
+        if key in _term_cache:
+            ids.append(_term_cache[key])
+            continue
+        base = f"{cfg['url']}/wp-json/wc/v3/products/{taxonomy}"
+        r = requests.get(base, auth=(cfg["ck"], cfg["cs"]),
+                         params={"search": name, "per_page": 100}, timeout=60)
+        r.raise_for_status()
+        match = next((t for t in r.json() if t["name"].lower() == name.lower()), None)
+        if not match:
+            cr = requests.post(base, auth=(cfg["ck"], cfg["cs"]),
+                               json={"name": name}, timeout=60)
+            if cr.status_code >= 400:
+                data = cr.json()
+                rid = data.get("data", {}).get("resource_id")  # term already exists
+                if rid:
+                    match = {"id": rid}
+                else:
+                    cr.raise_for_status()
+            else:
+                match = cr.json()
+        _term_cache[key] = match["id"]
+        ids.append(match["id"])
+    return [{"id": i} for i in ids]
 def sku_exists(cfg, sku):
     if not sku:
         return False
@@ -182,14 +222,21 @@ def main():
         payload = generator.build_product(spec)
         if sku:
             payload["sku"] = sku
-        payload["images"] = resolve_image(cfg, row.get("image", ""), args.dry_run)
+        payload["images"] = resolve_images(cfg, row.get("image", ""), args.dry_run)
+        cat_names = [c["name"] for c in payload.get("categories", [])]
+        tag_names = [t["name"] for t in payload.get("tags", [])]
 
         if args.dry_run:
             print(f"  TITLE: {payload['name']}")
-            print(f"  price={payload['regular_price']} cats={[c['name'] for c in payload['categories']]} "
-                  f"images={[im['src'] for im in payload['images']]}")
+            print(f"  price={payload['regular_price']} cats={cat_names} tags={tag_names}")
+            print(f"  attributes={[a['name'] for a in payload.get('attributes', [])]} "
+                  f"images={len(payload['images'])}")
             print(f"  description: {len(payload['description'])} chars\n")
             continue
+
+        # Categories & tags must be sent as term IDs, so resolve (and create) them.
+        payload["categories"] = resolve_terms(cfg, "categories", cat_names)
+        payload["tags"] = resolve_terms(cfg, "tags", tag_names)
 
         try:
             product = create_product(cfg, payload)

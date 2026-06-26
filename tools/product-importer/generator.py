@@ -213,6 +213,27 @@ def price_for(spec):
 # --------------------------------------------------------------------------- #
 # Assemble full product
 # --------------------------------------------------------------------------- #
+def build_tags(spec):
+    """Sensible tags derived from the subject + standard store tags."""
+    subject = spec["subject"]
+    tags = [
+        subject,
+        f"{subject} canvas",
+        f"{subject} wall art",
+        "canvas wall art",
+        "wall decor",
+        "spiritual wall art",
+        "home decor",
+    ]
+    tags += spec.get("tags", [])  # any extra tags from the CSV
+    seen, out = set(), []
+    for t in tags:                # de-dupe, preserve order
+        if t.lower() not in seen:
+            seen.add(t.lower())
+            out.append(t)
+    return out
+
+
 def build_product(spec):
     """Return a WooCommerce-ready product dict (minus image URLs)."""
     description = "\n".join([
@@ -229,6 +250,16 @@ def build_product(spec):
                         f"{spec['subject']} canvas wall art".lower())
     categories = [{"name": c} for c in spec.get("categories",
                   ["Digital Canvas Prints"])]
+    tags = [{"name": t} for t in build_tags(spec)]
+    sizes = spec.get("sizes", [spec["size"]])
+
+    # Product attributes -> shown in the "Additional information" tab.
+    attributes = [
+        {"name": "Type", "visible": True, "options": ["Digital Canvas Printing"]},
+        {"name": "Frame", "visible": True, "options": FRAME_OPTIONS},
+        {"name": "Size", "visible": True, "options": sizes},
+        {"name": "Colour", "visible": True, "options": COLOR_OPTIONS},
+    ]
 
     return {
         "name": build_title(spec),
@@ -238,6 +269,8 @@ def build_product(spec):
         "description": description,
         "short_description": short,
         "categories": categories,
+        "tags": tags,
+        "attributes": attributes,
         "meta_data": [
             {"key": "rank_math_focus_keyword", "value": focus_kw},
             {"key": "rank_math_title", "value": f"{build_title(spec)} | The Art Framer"},
