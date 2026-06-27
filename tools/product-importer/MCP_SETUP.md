@@ -57,7 +57,20 @@ Example prompts:
 The agent calls `create_product`, which builds the complete product and posts it
 as a **draft** (say "publish" if you want it live).
 
+## Auto gallery from one image
+Pass `generate_gallery: true` (or `--gallery` for the CSV script) and the system
+composites your single artwork into framed (black/oak/white) + room-scene mockups
+automatically — one image in, a full gallery out. Your art is never altered.
+
+This uploads the generated images, so it needs a **WordPress Application Password**
+in `.env` (`WP_APP_USER` / `WP_APP_PASSWORD`) — create one at
+WP Admin > Users > Profile > Application Passwords.
+
+Example prompt: *"Create a Lord Shiva canvas, 36x48, image <url>, generate the
+gallery automatically, category Hindu Deities."*
+
 ## Tools the server exposes
 - `list_categories()` — existing categories, so the agent picks valid ones.
 - `create_product(subject, size, image_urls, categories, tags, price, sizes,
-  use_case, focus_keyword, sku, status)` — builds + publishes one full product.
+  use_case, focus_keyword, sku, generate_gallery, status)` — builds + publishes
+  one full product (optionally with an auto-composited gallery).

@@ -36,6 +36,7 @@ import requests
 from dotenv import load_dotenv
 
 import generator
+import compositor
 
 HERE = Path(__file__).parent
 
@@ -109,20 +110,6 @@ def upload_local_image(cfg, path):
     return resp.json()["source_url"]
 
 
-def resolve_images(cfg, image_field, dry_run):
-    """The `image` column may hold several URLs/paths separated by '|'.
-    First image becomes the featured image; the rest form the gallery."""
-    out = []
-    for image in [x.strip() for x in (image_field or "").split("|") if x.strip()]:
-        if image.startswith(("http://", "https://")):
-            out.append({"src": image})
-        elif dry_run:
-            out.append({"src": f"(local file, will upload on real run): {image}"})
-        else:
-            out.append({"src": upload_local_image(cfg, image)})
-    return out
-
-
 # --------------------------------------------------------------------------- #
 # WooCommerce
 # --------------------------------------------------------------------------- #
@@ -172,6 +159,57 @@ def name_terms(names):
     """Tags can be sent by name on product create — WooCommerce creates any
     that don't exist, avoiding a separate (sometimes-blocked) create request."""
     return [{"name": n.strip()} for n in names if n.strip()]
+
+
+def assemble_images(cfg, image_list, base_name, gallery, dry_run):
+    """Build the product image list. With gallery=True, composite the FIRST
+    image into framed (black/oak/white) + room mockups, upload them, and use
+    them as the gallery (original art stays the featured image).
+
+    Compositing + upload requires a WordPress Application Password in .env
+    (WP_APP_USER / WP_APP_PASSWORD)."""
+    images = [x.strip() for x in image_list if x and x.strip()]
+    if not images:
+        return []
+
+    if not gallery:
+        out = []
+        for img in images:
+            if img.startswith(("http://", "https://")):
+                out.append({"src": img})
+            elif dry_run:
+                out.append({"src": f"(local file, upload on real run): {img}"})
+            else:
+                out.append({"src": upload_local_image(cfg, img)})
+        return out
+
+    # gallery mode
+    if dry_run:
+        return [{"src": images[0]},
+                {"src": "(+ composited black/oak/white frame + room scene, uploaded)"}]
+
+    import tempfile
+    tmp = Path(tempfile.mkdtemp())
+    src_field = images[0]
+    if src_field.startswith(("http://", "https://")):
+        src = tmp / "source.jpg"
+        r = requests.get(src_field, timeout=120)
+        r.raise_for_status()
+        src.write_bytes(r.content)
+        featured = src_field
+    else:
+        src = Path(src_field)
+        if not src.exists():
+            sys.exit(f"Artwork not found: {src_field}")
+        featured = upload_local_image(cfg, str(src))
+
+    out = [{"src": featured}]
+    for f in compositor.make_gallery(src, tmp, base_name):
+        out.append({"src": upload_local_image(cfg, f)})
+    for extra in images[1:]:  # any additional images the user supplied
+        out.append({"src": extra} if extra.startswith(("http", "https"))
+                   else {"src": upload_local_image(cfg, extra)})
+    return out
 def sku_exists(cfg, sku):
     if not sku:
         return False
@@ -203,6 +241,8 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="preview only, post nothing")
     ap.add_argument("--publish", action="store_true", help="status=publish (default draft)")
     ap.add_argument("--limit", type=int, default=0, help="process only first N rows")
+    ap.add_argument("--gallery", action="store_true",
+                    help="auto-composite the main image into framed + room mockups")
     args = ap.parse_args()
 
     cfg = load_config()
@@ -233,7 +273,9 @@ def main():
         payload = generator.build_product(spec)
         if sku:
             payload["sku"] = sku
-        payload["images"] = resolve_images(cfg, row.get("image", ""), args.dry_run)
+        img_list = (row.get("image", "") or "").split("|")
+        payload["images"] = assemble_images(
+            cfg, img_list, sku or subject.replace(" ", "-"), args.gallery, args.dry_run)
         cat_names = [c["name"] for c in payload.get("categories", [])]
         tag_names = [t["name"] for t in payload.get("tags", [])]
 

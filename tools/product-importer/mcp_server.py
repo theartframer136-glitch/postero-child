@@ -24,7 +24,7 @@ import requests
 from mcp.server.fastmcp import FastMCP
 
 import generator
-from publish import (load_config, resolve_terms, name_terms,
+from publish import (load_config, resolve_terms, name_terms, assemble_images,
                      sku_exists, create_product as wc_create_product)
 
 mcp = FastMCP("art-framer")
@@ -54,6 +54,7 @@ def create_product(
     use_case: Optional[str] = None,
     focus_keyword: Optional[str] = None,
     sku: Optional[str] = None,
+    generate_gallery: bool = False,
     status: str = "draft",
 ) -> str:
     """Create one complete WooCommerce product in The Art Framer house style.
@@ -74,6 +75,9 @@ def create_product(
         use_case: e.g. "Pooja Room & Living Room Spiritual Wall Décor".
         focus_keyword: SEO focus keyword; derived from subject if omitted.
         sku: Unique stock code; skipped if it already exists.
+        generate_gallery: If true, composite the first image into framed
+            (black/oak/white) + room-scene mockups automatically — one image in,
+            a full gallery out. Needs WP_APP_USER/WP_APP_PASSWORD in .env.
         status: "draft" (default) or "publish".
 
     Returns:
@@ -102,7 +106,9 @@ def create_product(
     payload = generator.build_product(spec)
     if sku:
         payload["sku"] = sku
-    payload["images"] = [{"src": u} for u in image_urls]
+    payload["images"] = assemble_images(
+        cfg, image_urls, sku or subject.replace(" ", "-"),
+        gallery=generate_gallery, dry_run=False)
     payload["categories"] = resolve_terms(
         cfg, "categories", [c["name"] for c in payload["categories"]])
     payload["tags"] = name_terms([t["name"] for t in payload["tags"]])
