@@ -283,12 +283,15 @@ def main():
             continue
 
         spec = row_to_spec(row, status)
+        img_list = (row.get("image", "") or "").split("|")
+        images = assemble_images(
+            cfg, img_list, sku or subject.replace(" ", "-"), args.gallery, args.dry_run)
+        if not args.dry_run:
+            spec["gallery_urls"] = [im["src"] for im in images]
         payload = generator.build_product(spec)
         if sku:
             payload["sku"] = sku
-        img_list = (row.get("image", "") or "").split("|")
-        payload["images"] = assemble_images(
-            cfg, img_list, sku or subject.replace(" ", "-"), args.gallery, args.dry_run)
+        payload["images"] = images
         cat_names = [c["name"] for c in payload.get("categories", [])]
         tag_names = [t["name"] for t in payload.get("tags", [])]
 

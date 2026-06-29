@@ -381,14 +381,48 @@ def build_tags(spec):
     return out
 
 
+# Reusable images embedded in every product description (found on 43-48 products).
+CARE_IMG = "https://theartframer.us/wp-content/uploads/2026/02/wall-art-care-202604031610-69cf9a2f4de25.webp"
+COLLECTIONS_IMG = "https://theartframer.us/wp-content/uploads/2026/02/10-1-69d648860cb9e.webp"
+
+
+def _placement_block(spec):
+    """Product-specific placement image — uses the composited room scene if the
+    gallery was generated (it's the last uploaded image)."""
+    urls = spec.get("gallery_urls") or []
+    room = urls[-1] if len(urls) >= 5 else (urls[0] if urls else "")
+    if not room:
+        return ""
+    subject = spec["subject"]
+    return (f"<h4>Placement Ideas</h4>\n"
+            f"<p>This {subject} canvas enhances living rooms, bedrooms, pooja rooms, "
+            f"and office spaces with its elegant presence.</p>\n"
+            f'<p><img src="{room}" alt="{subject} canvas wall art placement" '
+            f'width="1500" height="1500" /></p>')
+
+
+def _care_image_block():
+    return (f'<p><img src="{CARE_IMG}" alt="canvas wall art care instructions" '
+            f'width="1376" height="768" /></p>')
+
+
+def _collections_block():
+    return (f"<h3>Other Collections</h3>\n"
+            f'<p><img src="{COLLECTIONS_IMG}" alt="The Art Framer Other Canvas Collections" '
+            f'width="1536" height="839" /></p>')
+
+
 def build_product(spec):
     """Return a WooCommerce-ready product dict (minus image URLs)."""
-    description = "\n".join([
+    description = "\n".join(filter(None, [
         build_narrative(spec),
         _spec_table(spec),
+        _placement_block(spec),
         _frame_and_care(),
+        _care_image_block(),
+        _collections_block(),
         _FAQ,
-    ])
+    ]))
     short = (f"<p>Premium {spec['subject']} canvas wall art ({spec['size']}), "
              f"gallery-wrapped and ready to hang. Fade-resistant archival inks, "
              f"museum-quality canvas. Multiple frames & sizes available.</p>")

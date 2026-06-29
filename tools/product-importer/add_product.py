@@ -63,10 +63,12 @@ def add_one(cfg):
     if price:
         spec["price"] = price
 
+    print("  building images" + (" + gallery (this can take a few seconds)" if gallery else "") + " ...")
+    uploaded = assemble_images(cfg, images, sku, gallery=gallery, dry_run=False)
+    spec["gallery_urls"] = [im["src"] for im in uploaded]
     payload = generator.build_product(spec)
     payload["sku"] = sku
-    print("  building images" + (" + gallery (this can take a few seconds)" if gallery else "") + " ...")
-    payload["images"] = assemble_images(cfg, images, sku, gallery=gallery, dry_run=False)
+    payload["images"] = uploaded
     payload["categories"] = resolve_terms(cfg, "categories",
                                           [c["name"] for c in payload["categories"]])
     payload["tags"] = name_terms([t["name"] for t in payload["tags"]])

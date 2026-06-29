@@ -104,12 +104,14 @@ def create_product(
     if price is not None:
         spec["price"] = str(price)
 
+    images = assemble_images(
+        cfg, image_urls, sku or subject.replace(" ", "-"),
+        gallery=generate_gallery, dry_run=False)
+    spec["gallery_urls"] = [im["src"] for im in images]
     payload = generator.build_product(spec)
     if sku:
         payload["sku"] = sku
-    payload["images"] = assemble_images(
-        cfg, image_urls, sku or subject.replace(" ", "-"),
-        gallery=generate_gallery, dry_run=False)
+    payload["images"] = images
     payload["categories"] = resolve_terms(
         cfg, "categories", [c["name"] for c in payload["categories"]])
     payload["tags"] = name_terms([t["name"] for t in payload["tags"]])
