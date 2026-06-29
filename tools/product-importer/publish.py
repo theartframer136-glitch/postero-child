@@ -234,6 +234,19 @@ def create_product(cfg, payload):
     return resp.json()
 
 
+def create_variations(cfg, product_id, variations):
+    """Create all variations for a variable product via the batch endpoint."""
+    url = f"{cfg['url']}/wp-json/wc/v3/products/{product_id}/variations/batch"
+    created = 0
+    for i in range(0, len(variations), 100):  # batch endpoint caps ~100
+        chunk = variations[i:i + 100]
+        r = requests.post(url, auth=(cfg["ck"], cfg["cs"]),
+                          json={"create": chunk}, timeout=180)
+        r.raise_for_status()
+        created += len(r.json().get("create", []))
+    return created
+
+
 # --------------------------------------------------------------------------- #
 def main():
     ap = argparse.ArgumentParser()
@@ -281,7 +294,11 @@ def main():
 
         if args.dry_run:
             print(f"  TITLE: {payload['name']}")
-            print(f"  price={payload['regular_price']} cats={cat_names} tags={tag_names}")
+            print(f"  type={payload['type']} cats={cat_names} tags={tag_names}")
+            if payload.get("type") == "variable":
+                vs = generator.build_variations(spec)
+                prices = [float(v["regular_price"]) for v in vs]
+                print(f"  variations={len(vs)} price range ${min(prices):.0f}-${max(prices):.0f}")
             print(f"  attributes={[a['name'] for a in payload.get('attributes', [])]} "
                   f"images={len(payload['images'])}")
             print(f"  description: {len(payload['description'])} chars\n")
@@ -294,7 +311,11 @@ def main():
 
         try:
             product = create_product(cfg, payload)
-            print(f"  created id={product['id']} status={product['status']} -> {product.get('permalink','')}\n")
+            print(f"  created id={product['id']} status={product['status']} -> {product.get('permalink','')}")
+            if payload.get("type") == "variable":
+                n = create_variations(cfg, product["id"], generator.build_variations(spec))
+                print(f"  + {n} variations (size x frame x colour)")
+            print()
             created += 1
             time.sleep(1)  # be gentle on the server
         except requests.HTTPError as e:

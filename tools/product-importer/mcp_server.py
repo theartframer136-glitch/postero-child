@@ -25,7 +25,8 @@ from mcp.server.fastmcp import FastMCP
 
 import generator
 from publish import (load_config, resolve_terms, name_terms, assemble_images,
-                     sku_exists, create_product as wc_create_product)
+                     sku_exists, create_product as wc_create_product,
+                     create_variations)
 
 mcp = FastMCP("art-framer")
 
@@ -114,7 +115,11 @@ def create_product(
     payload["tags"] = name_terms([t["name"] for t in payload["tags"]])
 
     product = wc_create_product(cfg, payload)
-    return (f"Created product id={product['id']} status={product['status']}\n"
+    extra = ""
+    if payload.get("type") == "variable":
+        n = create_variations(cfg, product["id"], generator.build_variations(spec))
+        extra = f"\nVariations created: {n} (size x frame x colour)"
+    return (f"Created product id={product['id']} status={product['status']}{extra}\n"
             f"Title: {product['name']}\n"
             f"Edit: {cfg['url']}/wp-admin/post.php?post={product['id']}&action=edit\n"
             f"View: {product.get('permalink', '')}")

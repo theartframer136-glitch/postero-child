@@ -29,6 +29,52 @@ FRAME_OPTIONS = ["Floating Frame", "Fibre Frame", "Aluminium Frame",
                  "White Frame", "Wooden Frame"]
 COLOR_OPTIONS = ["Black", "Silver", "Gold", "Rose Gold", "White", "Wooden"]
 
+# ---- Variation options (what the customer selects) + pricing rules ---------- #
+FRAME_VARIATION = ["No Frame", "Classic Oak",
+                   "Aluminium Premium Black", "Aluminium Premium White"]
+COLOUR_VARIATION = ["Black", "Golden", "Silver", "Rose Gold"]
+FRAME_SURCHARGE = {  # USD added on top of the size base price
+    "No Frame": 0, "Classic Oak": 25, "Wooden": 25, "Floating Frame": 50,
+    "Aluminium Premium Black": 40, "Aluminium Premium Silver": 40,
+    "Aluminium Premium White": 40,
+}
+
+
+def _area_sq_inches(size):
+    nums = re.findall(r"[\d.]+", size or "")
+    if len(nums) < 2:
+        return 1728.0  # ~36x48
+    a, b = float(nums[0]), float(nums[1])
+    if "feet" in (size or "").lower() or "ft" in (size or "").lower():
+        a, b = a * 12, b * 12
+    return a * b
+
+
+def size_base_price(size):
+    """Base price by canvas area (calibrated so 36x48 in ≈ $179)."""
+    return round(49 + _area_sq_inches(size) * 0.075)
+
+
+def build_variations(spec):
+    """Every Size x Frame x Colour combination, priced by size + frame surcharge.
+    (Colour does not change price.)"""
+    import itertools
+    sizes = spec.get("sizes", [spec["size"]])
+    frames = spec.get("frames", FRAME_VARIATION)
+    colours = spec.get("colours", COLOUR_VARIATION)
+    variations = []
+    for size, frame, colour in itertools.product(sizes, frames, colours):
+        price = size_base_price(size) + FRAME_SURCHARGE.get(frame, 0)
+        variations.append({
+            "regular_price": str(price),
+            "attributes": [
+                {"name": "Size", "option": size},
+                {"name": "Frame", "option": frame},
+                {"name": "Colour", "option": colour},
+            ],
+        })
+    return variations
+
 
 # --------------------------------------------------------------------------- #
 # Title
@@ -353,20 +399,31 @@ def build_product(spec):
                   ["Digital Canvas Prints"])]
     tags = [{"name": t} for t in build_tags(spec)]
     sizes = spec.get("sizes", [spec["size"]])
+    frames = spec.get("frames", FRAME_VARIATION)
+    colours = spec.get("colours", COLOUR_VARIATION)
+    variable = spec.get("variable", True)
 
-    # Product attributes -> shown in the "Additional information" tab.
-    attributes = [
-        {"name": "Type", "visible": True, "options": ["Digital Canvas Printing"]},
-        {"name": "Frame", "visible": True, "options": FRAME_OPTIONS},
-        {"name": "Size", "visible": True, "options": sizes},
-        {"name": "Colour", "visible": True, "options": COLOR_OPTIONS},
-    ]
+    if variable:
+        # Size / Frame / Colour are selectable (variation=True) and drive variations.
+        attributes = [
+            {"name": "Type", "visible": True, "variation": False,
+             "options": ["Digital Canvas Printing"]},
+            {"name": "Size", "visible": True, "variation": True, "options": sizes},
+            {"name": "Frame", "visible": True, "variation": True, "options": frames},
+            {"name": "Colour", "visible": True, "variation": True, "options": colours},
+        ]
+    else:
+        attributes = [
+            {"name": "Type", "visible": True, "options": ["Digital Canvas Printing"]},
+            {"name": "Frame", "visible": True, "options": FRAME_OPTIONS},
+            {"name": "Size", "visible": True, "options": sizes},
+            {"name": "Colour", "visible": True, "options": COLOR_OPTIONS},
+        ]
 
-    return {
+    product = {
         "name": build_title(spec),
-        "type": "simple",
+        "type": "variable" if variable else "simple",
         "status": spec.get("status", "draft"),
-        "regular_price": price_for(spec),
         "description": description,
         "short_description": short,
         "categories": categories,
@@ -379,6 +436,11 @@ def build_product(spec):
             {"key": "rank_math_description", "value": short.replace("<p>", "").replace("</p>", "")[:155]},
         ],
     }
+    if not variable:
+        # Variable products derive their price from variations, so only set a
+        # parent price for simple products.
+        product["regular_price"] = price_for(spec)
+    return product
 
 
 if __name__ == "__main__":
