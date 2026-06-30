@@ -58,28 +58,10 @@ jobs:
             DELAY=$((DELAY + 90))
           done
 
-          echo "Running bulk product importer..."
+          echo "Running READ-ONLY full site audit..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/bulk-import-products.php --allow-root 2>&1" \
-            && echo "Import complete" || echo "Import step finished (check output above)"
-
-          echo "Publishing any remaining draft products..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/publish-draft-products.php --allow-root 2>&1" \
-            && echo "Publish complete" || echo "Publish step finished"
-
-          echo "Running premium product content update..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/update-product-sacred-bond.php --allow-root 2>&1" \
-            && echo "Product update complete" || echo "Product update finished"
-
-          echo "Auditing krishna-moonlight reference product..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/audit-product.php --allow-root 2>&1" \
+             wp eval-file wp-content/themes/postero-child/tools/site-audit.php --allow-root 2>&1" \
             || true
 
           echo "Clearing caches after all updates..."
