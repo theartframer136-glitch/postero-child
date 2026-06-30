@@ -12,8 +12,19 @@
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 if ( ! function_exists( 'wc_get_product' ) ) { echo "WooCommerce not active\n"; exit(1); }
 
-$TARGET_CATEGORY_SLUG = 'radha-krishna'; // PILOT scope
 $DIR = __DIR__;
+
+/* SCOPE: all published products EXCEPT those in non-canvas categories
+   (accessories, banners, frames, downloads) which need their own template. */
+$EXCLUDE_CAT_SLUGS = array(
+    'art-accessories','canvas-stretcher-bars','diy-canvas-stretcher-bars','diy-floating-frames',
+    'frame-sizes','frame-colors','premium-aluminium-frames','rolled-canvas','stands',
+    'stretcher-tools','wooden-frames','framed-white-canvas',
+    'banners-signage','banners-signages','backdrops','banner-stands','fabric-cloth-banners',
+    'fence-banners','vinyl-banners',
+    'digital-downloads','instant-downloads','printable-art',
+    'black','silver','gold','rose-gold', // frame-color leaf cats
+);
 
 /* ── Shared attribute defaults (apply to every canvas product) ──
    Values left as '' are intentionally skipped (product-specific). */
@@ -54,28 +65,30 @@ $SHARED_ATTRS = array(
 $FAQ_MARKER = '<!--taf-faq-->';
 $FAQ_HTML = $FAQ_MARKER . "\n" . file_get_contents( $DIR . '/template-faq.html' );
 
-// ── Resolve target products ────────────────────────────────────
-$term = get_term_by( 'slug', $TARGET_CATEGORY_SLUG, 'product_cat' );
-if ( ! $term ) { echo "Category '$TARGET_CATEGORY_SLUG' not found\n"; exit(1); }
-
+// ── Resolve target products: all published ─────────────────────
 $ids = get_posts( array(
     'post_type'      => 'product',
     'post_status'    => 'publish',
     'posts_per_page' => -1,
     'fields'         => 'ids',
-    'tax_query'      => array( array(
-        'taxonomy' => 'product_cat',
-        'field'    => 'term_id',
-        'terms'    => $term->term_id,
-    ) ),
 ) );
 
-echo "=== Apply Template: '{$TARGET_CATEGORY_SLUG}' (" . count($ids) . " products) ===\n\n";
+echo "=== Apply Template to ALL canvas products (" . count($ids) . " candidates) ===\n";
+echo "    Skipping accessory/banner/frame/download categories.\n\n";
 
-$done = 0;
+$done = 0; $skipped = 0;
 foreach ( $ids as $pid ) {
     $product = wc_get_product( $pid );
     if ( ! $product ) { continue; }
+
+    // Skip products in excluded (non-canvas) categories
+    $cat_slugs = wp_get_post_terms( $pid, 'product_cat', array( 'fields' => 'slugs' ) );
+    if ( array_intersect( $cat_slugs, $EXCLUDE_CAT_SLUGS ) ) {
+        $skipped++;
+        echo "#{$pid} SKIP (non-canvas: " . implode( ',', array_intersect( $cat_slugs, $EXCLUDE_CAT_SLUGS ) ) . ")\n";
+        continue;
+    }
+
     $title = $product->get_name();
     echo "#{$pid} {$title}\n";
 
@@ -135,4 +148,4 @@ foreach ( $ids as $pid ) {
     echo "\n";
 }
 
-echo "=== DONE. Templated {$done} product(s). ===\n";
+echo "=== DONE. Templated {$done} product(s). Skipped {$skipped} non-canvas. ===\n";
