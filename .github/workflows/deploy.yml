@@ -58,10 +58,10 @@ jobs:
             DELAY=$((DELAY + 90))
           done
 
-          echo "Running READ-ONLY full site audit..."
+          echo "Applying product template to PILOT category (Radha Krishna)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/site-audit.php --allow-root 2>&1" \
+             wp eval-file wp-content/themes/postero-child/tools/apply-template.php --allow-root 2>&1" \
             || true
 
           echo "Clearing caches after all updates..."
