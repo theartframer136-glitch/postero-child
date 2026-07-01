@@ -3310,3 +3310,44 @@ add_action('wp_footer', function() {
     </div>
     <?php
 }, 50);
+
+// ─────────────────────────────────────────────────────────────
+// Footer policy/links bar — makes legal & utility pages reachable
+// sitewide without editing the Elementor footer template.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function() {
+    if (is_admin()) return;
+    $links = array(
+        'About'              => '/about/',
+        'Contact'            => '/contact/',
+        'Help & Support'     => '/help-support/',
+        'Shipping & Delivery'=> '/shipping-delivery/',
+        'Returns & Exchanges'=> '/returns-exchanges/',
+        'Refund Policy'      => '/refund-policy/',
+        'Track Your Order'   => '/track-your-order/',
+        'Wholesale'          => '/wholesale-corporate/',
+        'Privacy Policy'     => '/privacy-policy/',
+        'Terms & Conditions' => '/terms-conditions/',
+        'Content & Ethics'   => '/content-ethics-policy/',
+    );
+    ?>
+    <div class="af-policy-bar">
+      <div class="af-policy-inner">
+        <nav class="af-policy-links" aria-label="Policies and support">
+          <?php foreach ($links as $label => $url): ?>
+            <a href="<?php echo esc_url($url); ?>"><?php echo esc_html($label); ?></a>
+          <?php endforeach; ?>
+        </nav>
+        <p class="af-policy-copy">&copy; <?php echo date('Y'); ?> The Art Framer &middot; theartframer.us &middot; All rights reserved.</p>
+      </div>
+    </div>
+    <style>
+    .af-policy-bar{background:#141414;color:#cfcfcf;padding:22px 16px;border-top:1px solid #2a2a2a;}
+    .af-policy-inner{max-width:1200px;margin:0 auto;text-align:center;}
+    .af-policy-links{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:center;margin:0 0 12px;}
+    .af-policy-links a{color:#cfcfcf;text-decoration:none;font-size:13px;transition:color .2s;}
+    .af-policy-links a:hover{color:#c9a84c;}
+    .af-policy-copy{margin:0;font-size:12px;color:#8a8a8a;}
+    </style>
+    <?php
+}, 300);
