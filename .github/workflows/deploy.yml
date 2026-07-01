@@ -64,6 +64,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/apply-template.php --allow-root 2>&1" \
             || true
 
+          echo "Creating missing legal/utility pages..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/create-pages.php --allow-root 2>&1" \
+            || true
+
           echo "Clearing caches after all updates..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
