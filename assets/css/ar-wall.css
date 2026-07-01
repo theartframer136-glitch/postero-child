@@ -1,0 +1,79 @@
+/* ── "Try It On Your Wall" — upload-photo AR mockup ── */
+.af-arw-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  width:100%;margin:12px 0 0;padding:13px 18px;
+  background:#1a1a1a;color:#fff;border:none;border-radius:8px;
+  font-size:14px;font-weight:700;letter-spacing:.02em;cursor:pointer;
+  text-transform:uppercase;transition:background .2s,transform .2s;
+}
+.af-arw-btn:hover{background:#c9a84c;transform:translateY(-1px);}
+.af-arw-btn svg{width:20px;height:20px;flex-shrink:0;}
+
+.af-arw-overlay{
+  position:fixed;inset:0;z-index:99999;display:none;
+  background:rgba(15,15,15,.82);backdrop-filter:blur(3px);
+  align-items:center;justify-content:center;padding:20px;
+}
+.af-arw-overlay.open{display:flex;}
+.af-arw-modal{
+  background:#fff;border-radius:16px;width:min(920px,100%);
+  max-height:92vh;overflow:hidden;display:flex;flex-direction:column;
+  box-shadow:0 24px 70px rgba(0,0,0,.5);
+}
+.af-arw-head{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:16px 22px;border-bottom:1px solid #eee;
+}
+.af-arw-head h3{margin:0;font-size:17px;font-weight:800;color:#1a1a1a;}
+.af-arw-close{
+  background:none;border:none;font-size:26px;line-height:1;cursor:pointer;
+  color:#888;padding:0 4px;
+}
+.af-arw-close:hover{color:#1a1a1a;}
+.af-arw-body{display:flex;flex-wrap:wrap;gap:0;overflow:auto;}
+.af-arw-stage-wrap{flex:1 1 500px;min-width:0;background:#f0f0f0;position:relative;}
+.af-arw-stage{
+  position:relative;width:100%;height:440px;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  background:repeating-conic-gradient(#e9e9e9 0% 25%,#f4f4f4 0% 50%) 50%/24px 24px;
+}
+.af-arw-stage .af-arw-placeholder{
+  color:#999;font-size:14px;text-align:center;padding:24px;max-width:320px;line-height:1.6;
+}
+.af-arw-wall{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;}
+.af-arw-art{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  cursor:grab;touch-action:none;user-select:none;
+  box-shadow:0 10px 30px rgba(0,0,0,.35);
+  border:6px solid #fff;background:#fff;max-width:none;
+}
+.af-arw-art.dragging{cursor:grabbing;}
+.af-arw-panel{
+  flex:1 1 260px;min-width:240px;padding:20px 22px;
+  display:flex;flex-direction:column;gap:18px;border-left:1px solid #eee;
+}
+.af-arw-field label{display:block;font-size:12.5px;font-weight:700;color:#333;margin:0 0 7px;text-transform:uppercase;letter-spacing:.03em;}
+.af-arw-upload{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:12px;border:2px dashed #c9a84c;border-radius:9px;
+  color:#a8872e;font-weight:600;font-size:13.5px;cursor:pointer;text-align:center;
+  background:#fdfaf2;transition:background .2s;
+}
+.af-arw-upload:hover{background:#faf4e3;}
+.af-arw-field input[type=range]{width:100%;accent-color:#c9a84c;}
+.af-arw-hint{font-size:12px;color:#888;line-height:1.5;margin:0;}
+.af-arw-row{display:flex;gap:10px;}
+.af-arw-row .af-arw-field{flex:1;}
+.af-arw-size-select{width:100%;padding:9px;border:1px solid #ddd;border-radius:7px;font-size:13.5px;}
+.af-arw-actions{margin-top:auto;display:flex;gap:10px;}
+.af-arw-actions button{
+  flex:1;padding:11px;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;
+}
+.af-arw-reset{background:#efefef;color:#333;}
+.af-arw-reset:hover{background:#e2e2e2;}
+.af-arw-save{background:#c9a84c;color:#fff;}
+.af-arw-save:hover{background:#a8872e;}
+@media(max-width:680px){
+  .af-arw-stage{height:340px;}
+  .af-arw-panel{border-left:none;border-top:1px solid #eee;}
+}

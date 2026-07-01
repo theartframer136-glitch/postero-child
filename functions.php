@@ -3207,3 +3207,106 @@ add_action('wp_footer', function() {
 </script>
 <?php
 }, 200);
+
+// ─────────────────────────────────────────────────────────────
+// "Try It On Your Wall" — upload-photo AR mockup (no plugin, no cost)
+// ─────────────────────────────────────────────────────────────
+
+// Enqueue AR assets on single product pages only
+add_action('wp_enqueue_scripts', function() {
+    if (!function_exists('is_product') || !is_product()) return;
+    wp_enqueue_style('af-ar-wall', get_stylesheet_directory_uri() . '/assets/css/ar-wall.css', array(), '1.0.0');
+    wp_enqueue_script('af-ar-wall', get_stylesheet_directory_uri() . '/assets/js/ar-wall.js', array(), '1.0.0', true);
+}, 25);
+
+// Render the "Try It On Your Wall" button under Add to Cart
+add_action('woocommerce_after_add_to_cart_button', function() {
+    global $product;
+    if (!$product) return;
+    $img = wp_get_attachment_image_url($product->get_image_id(), 'large');
+    if (!$img) $img = wc_placeholder_img_src('large');
+    ?>
+    <button type="button" id="af-arw-open" class="af-arw-btn" data-art="<?php echo esc_url($img); ?>">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
+        </svg>
+        Try It On Your Wall
+    </button>
+    <?php
+}, 15);
+
+// Render the AR modal in the footer (once, on product pages)
+add_action('wp_footer', function() {
+    if (!function_exists('is_product') || !is_product()) return;
+    global $product;
+    if (!$product) return;
+
+    // Build size options from the product's Size attribute (parse inch width)
+    $size_opts = array();
+    $size_terms = $product->get_attribute('pa_size');
+    if (!$size_terms) $size_terms = $product->get_attribute('size');
+    if ($size_terms) {
+        foreach (array_map('trim', explode(',', $size_terms)) as $s) {
+            if (preg_match('/(\d+(?:\.\d+)?)\s*[x×*]\s*(\d+(?:\.\d+)?)/i', $s, $m)) {
+                $w = floatval($m[1]);
+                // If dimensions are in feet, convert to inches
+                if (stripos($s, 'ft') !== false || stripos($s, 'feet') !== false) $w *= 12;
+                $size_opts[$w] = $s;
+            }
+        }
+    }
+    if (empty($size_opts)) {
+        $size_opts = array(24 => '24 inches wide', 36 => '36 inches wide', 48 => '48 inches wide', 60 => '60 inches wide');
+    }
+    ?>
+    <div id="af-arw-overlay" class="af-arw-overlay" data-arw-close>
+      <div class="af-arw-modal">
+        <div class="af-arw-head">
+          <h3>Try It On Your Wall</h3>
+          <button type="button" class="af-arw-close" data-arw-close aria-label="Close">&times;</button>
+        </div>
+        <div class="af-arw-body">
+          <div class="af-arw-stage-wrap">
+            <div id="af-arw-stage" class="af-arw-stage">
+              <img id="af-arw-wall" class="af-arw-wall" alt="" style="display:none">
+              <div id="af-arw-placeholder" class="af-arw-placeholder">
+                📷 Upload a photo of your wall to preview this artwork in your space. Then drag to position and adjust the size.
+              </div>
+              <img id="af-arw-art" class="af-arw-art" alt="Artwork preview" style="display:none" crossorigin="anonymous">
+            </div>
+          </div>
+          <div class="af-arw-panel">
+            <div class="af-arw-field">
+              <label>1. Your wall photo</label>
+              <label class="af-arw-upload">
+                <input type="file" id="af-arw-wall-file" accept="image/*" hidden>
+                ⬆ Upload wall photo
+              </label>
+            </div>
+            <div class="af-arw-field">
+              <label>2. Artwork size</label>
+              <select id="af-arw-size" class="af-arw-size-select">
+                <?php foreach ($size_opts as $w => $label): ?>
+                  <option value="<?php echo esc_attr($w); ?>"><?php echo esc_html($label); ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <div class="af-arw-field">
+              <label>3. Your wall width (inches)</label>
+              <input type="number" id="af-arw-wallwidth" class="af-arw-size-select" placeholder="e.g. 120" min="12" step="1">
+              <p class="af-arw-hint">Enter the real width of the wall in the photo, so the artwork appears true-to-scale.</p>
+            </div>
+            <div class="af-arw-field">
+              <label>Fine-tune size</label>
+              <input type="range" id="af-arw-scale" min="50" max="150" value="100">
+            </div>
+            <div class="af-arw-actions">
+              <button type="button" class="af-arw-reset" id="af-arw-reset">Reset</button>
+              <button type="button" class="af-arw-save" id="af-arw-save">Save preview</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <?php
+}, 50);
