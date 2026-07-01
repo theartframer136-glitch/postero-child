@@ -37,6 +37,7 @@ from dotenv import load_dotenv
 
 import generator
 import compositor
+import mockups_api
 
 HERE = Path(__file__).parent
 
@@ -49,6 +50,7 @@ def load_config():
         "cs": os.getenv("WC_CONSUMER_SECRET"),
         "wp_user": os.getenv("WP_APP_USER"),
         "wp_pass": os.getenv("WP_APP_PASSWORD"),
+        "mockup_key": os.getenv("DYNAMIC_MOCKUPS_API_KEY"),
     }
     if not all([cfg["url"], cfg["ck"], cfg["cs"]]):
         sys.exit("Missing WC_STORE_URL / WC_CONSUMER_KEY / WC_CONSUMER_SECRET in .env")
@@ -204,8 +206,19 @@ def assemble_images(cfg, image_list, base_name, gallery, dry_run):
         featured = upload_local_image(cfg, str(src))
 
     out = [{"src": featured}]
-    for f in compositor.make_gallery(src, tmp, base_name):
-        out.append({"src": upload_local_image(cfg, f)})
+
+    # Photoreal path: if Dynamic Mockups is configured, use its hosted renders
+    # (no local compositing, no WP upload — the API returns image URLs directly).
+    if cfg.get("mockup_key") and mockups_api.is_configured():
+        try:
+            for u in mockups_api.render_all(featured, cfg["mockup_key"]):
+                out.append({"src": u})
+        except Exception as e:
+            print(f"  [warn] mockup API failed ({e}); falling back to compositor.")
+    if len(out) == 1:  # no API renders — fall back to the local compositor
+        for f in compositor.make_gallery(src, tmp, base_name):
+            out.append({"src": upload_local_image(cfg, f)})
+
     for extra in images[1:]:  # any additional images the user supplied
         out.append({"src": extra} if extra.startswith(("http", "https"))
                    else {"src": upload_local_image(cfg, extra)})

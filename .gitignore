@@ -7,3 +7,5 @@
 tools/product-importer/output/
 tools/product-importer/__pycache__/
 tools/product-importer/.venv/
+tools/product-importer/mockups.json
+tools/product-importer/templates/

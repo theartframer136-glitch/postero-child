@@ -14,7 +14,11 @@ Standalone test:
 
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
+
+# Optional: drop real frame-photo PNGs (transparent centre) here for photoreal
+# results. If empty, the drawn frames below are used instead.
+TEMPLATE_DIR = Path(__file__).parent / "templates" / "frames"
 
 # Frame colors (RGB)
 FRAMES = {
@@ -92,18 +96,56 @@ def room_scene(framed, wall=WALL):
     return canvas.convert("RGB")
 
 
+def _cover(img, size):
+    """Resize + centre-crop `img` to exactly `size` (like CSS object-fit: cover)."""
+    tw, th = size
+    iw, ih = img.size
+    scale = max(tw / iw, th / ih)
+    r = img.resize((max(1, int(iw * scale)), max(1, int(ih * scale))))
+    x, y = (r.width - tw) // 2, (r.height - th) // 2
+    return r.crop((x, y, x + tw, y + th))
+
+
+def frame_with_template(art, template_path):
+    """Place the artwork into a real frame-photo PNG that has a transparent
+    centre 'window'. Much more photorealistic than the drawn frames.
+    The window is auto-detected as the transparent region of the template."""
+    tpl = Image.open(template_path).convert("RGBA")
+    window = ImageChops.invert(tpl.split()[3]).getbbox()  # bbox of transparent hole
+    if not window:
+        return None
+    x0, y0, x1, y1 = window
+    base = Image.new("RGBA", tpl.size, (255, 255, 255, 0))
+    base.paste(_cover(art.convert("RGB"), (x1 - x0, y1 - y0)), (x0, y0))
+    base.alpha_composite(tpl)  # frame photo on top of the artwork
+    return base.convert("RGB")
+
+
 def make_gallery(src_path, out_dir, base_name):
-    """Generate the gallery image files from one artwork. Returns file paths."""
+    """Generate the gallery image files from one artwork. Returns file paths.
+
+    If real frame templates exist in templates/frames/*.png, they are used
+    (photoreal). Otherwise the drawn frames are used (free, no templates)."""
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     art = Image.open(src_path)
     outputs = []
 
-    for name, color in FRAMES.items():
-        img = on_studio_bg(frame_art(art, color, mat_w=int(min(art.size) * 0.04)))
-        p = out_dir / f"{base_name}-{name}-frame.jpg"
-        img.save(p, "JPEG", quality=90)
-        outputs.append(str(p))
+    templates = sorted(TEMPLATE_DIR.glob("*.png")) if TEMPLATE_DIR.exists() else []
+    if templates:
+        for tpl in templates:
+            img = frame_with_template(art, tpl)
+            if img is None:
+                continue
+            p = out_dir / f"{base_name}-{tpl.stem}.jpg"
+            img.save(p, "JPEG", quality=92)
+            outputs.append(str(p))
+    else:
+        for name, color in FRAMES.items():
+            img = on_studio_bg(frame_art(art, color, mat_w=int(min(art.size) * 0.04)))
+            p = out_dir / f"{base_name}-{name}-frame.jpg"
+            img.save(p, "JPEG", quality=90)
+            outputs.append(str(p))
 
     room = room_scene(frame_art(art, FRAMES["black"]))
     pr = out_dir / f"{base_name}-room.jpg"
