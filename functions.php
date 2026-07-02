@@ -3351,3 +3351,89 @@ add_action('wp_footer', function() {
     </style>
     <?php
 }, 300);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 2 — Header: top utility/help-support bar (Layer 1) + sticky
+// Additive; injected above the theme header. Reversible via this block.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_body_open', function() {
+    if (is_admin()) return;
+    ?>
+    <div class="af-utilitybar">
+      <div class="af-ub-inner">
+        <div class="af-ub-msg" aria-live="polite">
+          <span class="af-ub-rot">✨ Free Shipping across the USA on Premium Canvas Wall Art</span>
+        </div>
+        <nav class="af-ub-links" aria-label="Support and account">
+          <a href="/track-your-order/" class="af-ub-link">🚚 Track Order</a>
+          <a href="/help-support/" class="af-ub-link">❓ Help</a>
+          <a href="tel:+16104707280" class="af-ub-link af-ub-phone">📞 +1 (610) 470-7280</a>
+          <span class="af-ub-cur">USD $</span>
+        </nav>
+      </div>
+    </div>
+    <script>
+    (function(){
+      // Rotating announcement messages
+      var msgs = [
+        '✨ Free Shipping across the USA on Premium Canvas Wall Art',
+        '🖼️ Try "On Your Wall" preview on any product before you buy',
+        '🎨 Custom sizes & frames available — message us on WhatsApp',
+        '⭐ Trusted by art lovers — archival, fade-resistant prints'
+      ];
+      var el = document.querySelector('.af-ub-rot');
+      if (el) {
+        var i = 0;
+        setInterval(function(){
+          i = (i + 1) % msgs.length;
+          el.style.opacity = '0';
+          setTimeout(function(){ el.textContent = msgs[i]; el.style.opacity = '1'; }, 300);
+        }, 4000);
+      }
+      // Sticky header on scroll — add class to the theme header
+      var header = document.querySelector(
+        'header.site-header, #masthead, .site-header, header#header, ' +
+        '.postero-header, .header-main, [class*="site-header"], header[class*="header"]'
+      );
+      if (header) {
+        var lastY = 0;
+        window.addEventListener('scroll', function(){
+          var y = window.pageYOffset || document.documentElement.scrollTop;
+          if (y > 120) header.classList.add('af-header-stuck');
+          else header.classList.remove('af-header-stuck');
+          lastY = y;
+        }, { passive: true });
+      }
+    })();
+    </script>
+    <style>
+    .af-utilitybar{
+      background:linear-gradient(90deg,#141414,#2a2416);color:#e8e2cf;
+      font-size:13px;padding:7px 16px;border-bottom:1px solid rgba(201,168,76,.25);
+      position:relative;z-index:9;
+    }
+    .af-ub-inner{max-width:1300px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+    .af-ub-msg{flex:1 1 auto;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;}
+    .af-ub-rot{transition:opacity .3s;display:inline-block;}
+    .af-ub-links{display:flex;align-items:center;gap:18px;flex-shrink:0;}
+    .af-ub-link{color:#e8e2cf;text-decoration:none;transition:color .2s;white-space:nowrap;}
+    .af-ub-link:hover{color:#c9a84c;}
+    .af-ub-cur{color:#c9a84c;font-weight:700;border:1px solid rgba(201,168,76,.4);border-radius:4px;padding:1px 8px;}
+    /* Sticky header polish */
+    .af-header-stuck{
+      position:sticky !important;top:0 !important;z-index:9999 !important;
+      box-shadow:0 4px 18px rgba(0,0,0,.12) !important;
+      animation:af-slidedown .3s ease !important;
+    }
+    @keyframes af-slidedown{from{transform:translateY(-6px);opacity:.85;}to{transform:translateY(0);opacity:1;}}
+    @media(max-width:768px){
+      .af-ub-msg{font-size:12px;}
+      .af-ub-phone,.af-ub-cur{display:none;}
+      .af-ub-links{gap:12px;}
+    }
+    @media(max-width:480px){
+      .af-ub-link span,.af-ub-link{font-size:11.5px;}
+    }
+    </style>
+    <?php
+}, 5);
