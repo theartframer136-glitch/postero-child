@@ -3238,7 +3238,11 @@ add_action('woocommerce_after_add_to_cart_button', function() {
 // Render the AR modal in the footer (once, on product pages)
 add_action('wp_footer', function() {
     if (!function_exists('is_product') || !is_product()) return;
-    global $product;
+    // wp_footer often runs after WooCommerce clears the global $product,
+    // so fetch it from the queried page instead — otherwise the modal
+    // never renders and the button has nothing to open.
+    $product = wc_get_product(get_queried_object_id());
+    if (!$product) { global $product; }
     if (!$product) return;
 
     // Build size options from the product's Size attribute (parse inch width)
