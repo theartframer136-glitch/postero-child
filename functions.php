@@ -3758,3 +3758,130 @@ add_action('wp_footer', function() {
     </style>
     <?php
 }, 26);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 5 — Category/Listing pages: filter & sort toolbar,
+// subcategory chips, price filter, AR "Try on Wall" hooks on cards.
+// Uses native WooCommerce params so filtering reliably works.
+// ─────────────────────────────────────────────────────────────
+
+// 5a. Enqueue AR assets on shop/category pages too (for card AR links -> product)
+add_action('wp_enqueue_scripts', function() {
+    if (function_exists('is_shop') && (is_shop() || is_product_category() || is_product_tag())) {
+        // AR modal lives on the product page; listing only needs the toolbar CSS.
+    }
+}, 26);
+
+// 5b. Filter / sort toolbar above the product loop
+add_action('woocommerce_before_shop_loop', function() {
+    if (is_admin()) return;
+
+    // Subcategory chips: children of current category, else top-level categories
+    $current_id = 0;
+    if (is_product_category()) { $obj = get_queried_object(); $current_id = $obj->term_id ?? 0; }
+    $chips = get_terms(array(
+        'taxonomy'=>'product_cat','hide_empty'=>true,'parent'=>$current_id,
+        'orderby'=>'count','order'=>'DESC','number'=>12,
+    ));
+
+    // Frame color + size quick filters (global attributes exist on this store)
+    $colors = get_terms(array('taxonomy'=>'pa_colors','hide_empty'=>true,'number'=>8));
+    $sizes  = get_terms(array('taxonomy'=>'pa_size','hide_empty'=>true,'number'=>10));
+
+    $base_url = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
+    ?>
+    <div class="af-listing-toolbar">
+      <?php if (!is_wp_error($chips) && $chips): ?>
+      <div class="af-lt-chips" role="navigation" aria-label="Categories">
+        <a class="af-chip<?php echo $current_id? '' : ' af-chip-active'; ?>" href="/shop/">All</a>
+        <?php foreach ($chips as $c): ?>
+          <a class="af-chip" href="<?php echo esc_url(get_term_link($c)); ?>"><?php echo esc_html($c->name); ?> <span><?php echo (int)$c->count; ?></span></a>
+        <?php endforeach; ?>
+      </div>
+      <?php endif; ?>
+
+      <div class="af-lt-controls">
+        <?php if (!is_wp_error($colors) && $colors): ?>
+        <div class="af-lt-drop">
+          <button type="button" class="af-lt-dbtn">Frame Color ▾</button>
+          <div class="af-lt-menu">
+            <?php foreach ($colors as $t): ?>
+              <a href="?filter_colors=<?php echo esc_attr($t->slug); ?>&query_type_colors=or"><?php echo esc_html($t->name); ?></a>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!is_wp_error($sizes) && $sizes): ?>
+        <div class="af-lt-drop">
+          <button type="button" class="af-lt-dbtn">Size ▾</button>
+          <div class="af-lt-menu">
+            <?php foreach ($sizes as $t): ?>
+              <a href="?filter_size=<?php echo esc_attr($t->slug); ?>&query_type_size=or"><?php echo esc_html($t->name); ?></a>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($_GET['filter_colors']) || !empty($_GET['filter_size']) || !empty($_GET['min_price'])): ?>
+          <a class="af-lt-clear" href="<?php echo esc_url($base_url); ?>">✕ Clear filters</a>
+        <?php endif; ?>
+      </div>
+    </div>
+    <script>
+    (function(){
+      document.querySelectorAll('.af-lt-dbtn').forEach(function(b){
+        b.addEventListener('click', function(e){
+          e.stopPropagation();
+          var m = this.nextElementSibling;
+          document.querySelectorAll('.af-lt-menu.open').forEach(function(o){ if(o!==m) o.classList.remove('open'); });
+          m.classList.toggle('open');
+        });
+      });
+      document.addEventListener('click', function(){ document.querySelectorAll('.af-lt-menu.open').forEach(function(o){ o.classList.remove('open'); }); });
+    })();
+    </script>
+    <?php
+}, 5);
+
+// 5c. Add "Try on Wall" AR hook button on each listing card
+add_action('woocommerce_after_shop_loop_item', function() {
+    global $product;
+    if (!$product) return;
+    $url = get_permalink($product->get_id()) . '#try-on-wall';
+    echo '<a class="af-card-ar" href="'.esc_url($url).'" aria-label="Try on your wall">'
+       . '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'
+       . '<span>Try on Wall</span></a>';
+}, 15);
+
+// 5d. Listing toolbar + card AR styling + grid polish
+add_action('wp_head', function() {
+    if (!function_exists('is_shop')) return;
+    if (!(is_shop() || is_product_category() || is_product_tag())) return;
+    ?>
+    <style>
+    .af-listing-toolbar{max-width:1240px;margin:0 auto 20px;padding:14px 0;border-bottom:1px solid #eee;display:flex;flex-direction:column;gap:12px;}
+    .af-lt-chips{display:flex;flex-wrap:wrap;gap:8px;}
+    .af-chip{display:inline-flex;align-items:center;gap:5px;padding:6px 13px;border-radius:20px;background:#f4f1e9;color:#333;font-size:13px;font-weight:600;text-decoration:none;transition:background .2s,color .2s;}
+    .af-chip:hover{background:#c9a84c;color:#fff;}
+    .af-chip-active{background:#1a1a1a;color:#fff;}
+    .af-chip span{font-size:11px;opacity:.7;}
+    .af-lt-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;}
+    .af-lt-drop{position:relative;}
+    .af-lt-dbtn{background:#fff;border:1px solid #ddd;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;cursor:pointer;color:#333;}
+    .af-lt-dbtn:hover{border-color:#c9a84c;color:#a8872e;}
+    .af-lt-menu{position:absolute;top:calc(100% + 6px);left:0;z-index:50;background:#fff;border:1px solid #eee;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:8px;min-width:170px;display:none;max-height:280px;overflow:auto;}
+    .af-lt-menu.open{display:block;}
+    .af-lt-menu a{display:block;padding:8px 12px;font-size:13px;color:#333;text-decoration:none;border-radius:6px;}
+    .af-lt-menu a:hover{background:#faf7ef;color:#a8872e;}
+    .af-lt-clear{font-size:12.5px;color:#c0392b;text-decoration:none;font-weight:600;margin-left:4px;}
+    /* Card AR button */
+    .woocommerce ul.products li.product{position:relative;}
+    .af-card-ar{position:absolute;left:10px;bottom:64px;z-index:6;display:inline-flex;align-items:center;gap:5px;background:rgba(20,20,20,.86);color:#fff;font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:20px;text-decoration:none;opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s,background .2s;}
+    .woocommerce ul.products li.product:hover .af-card-ar{opacity:1;transform:translateY(0);}
+    .af-card-ar:hover{background:#c9a84c;}
+    .af-card-ar svg{width:14px;height:14px;}
+    @media(max-width:768px){ .af-card-ar{opacity:1;transform:none;left:8px;bottom:auto;top:8px;padding:5px 8px;font-size:11px;} .af-card-ar span{display:none;} }
+    </style>
+    <?php
+}, 20);

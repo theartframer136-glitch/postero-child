@@ -25,6 +25,11 @@
     var artURL = openBtn.getAttribute('data-art');
     if (artURL && artImg) artImg.src = artURL;
 
+    // Auto-open when arriving from a listing "Try on Wall" link (#try-on-wall)
+    function maybeAutoOpen() {
+      if (window.location.hash === '#try-on-wall') { open(); }
+    }
+
     // ── open / close ──
     function open() { overlay.classList.add('open'); document.body.style.overflow = 'hidden'; }
     function close() { overlay.classList.remove('open'); document.body.style.overflow = ''; }
@@ -35,6 +40,8 @@
       });
     });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    maybeAutoOpen();
+    window.addEventListener('hashchange', maybeAutoOpen);
 
     // ── wall photo upload ──
     wallInput.addEventListener('change', function () {
