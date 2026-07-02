@@ -3356,7 +3356,9 @@ add_action('wp_footer', function() {
 // PHASE 2 — Header: top utility/help-support bar (Layer 1) + sticky
 // Additive; injected above the theme header. Reversible via this block.
 // ─────────────────────────────────────────────────────────────
-add_action('wp_body_open', function() {
+// Render via wp_footer (universally called) + JS relocates the bar to the
+// very top of <body>, so it works even if the theme omits wp_body_open().
+add_action('wp_footer', function() {
     if (is_admin()) return;
     ?>
     <div class="af-utilitybar">
@@ -3374,6 +3376,11 @@ add_action('wp_body_open', function() {
     </div>
     <script>
     (function(){
+      // Ensure the utility bar sits at the very top of <body> (theme-independent)
+      var bar = document.querySelector('.af-utilitybar');
+      if (bar && document.body && document.body.firstElementChild !== bar) {
+        document.body.insertBefore(bar, document.body.firstChild);
+      }
       // Rotating announcement messages
       var msgs = [
         '✨ Free Shipping across the USA on Premium Canvas Wall Art',
