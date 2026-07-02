@@ -3448,3 +3448,101 @@ add_action('wp_footer', function() {
     </style>
     <?php
 }, 5);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 3 — Homepage: floating quick-access panel (sitewide) +
+// trust badges bar (front page). Additive; reversible via this block.
+// ─────────────────────────────────────────────────────────────
+
+// 3a. Floating quick-access side panel — WhatsApp, Wishlist, Track, Top
+add_action('wp_footer', function() {
+    if (is_admin()) return;
+    ?>
+    <div class="af-quickpanel" aria-label="Quick access">
+      <a class="af-qp-btn af-qp-wa" href="https://wa.me/16104707280" target="_blank" rel="noopener" data-tip="Chat on WhatsApp" aria-label="Chat on WhatsApp">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 018.413 3.488 11.82 11.82 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.978-1.005zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.767.967-.94 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.71.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z"/></svg>
+      </a>
+      <a class="af-qp-btn af-qp-wl" href="/wishlist/" data-tip="Wishlist" aria-label="Wishlist">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      </a>
+      <a class="af-qp-btn af-qp-tr" href="/track-your-order/" data-tip="Track Order" aria-label="Track Order">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+      </a>
+      <button class="af-qp-btn af-qp-top" id="af-qp-top" data-tip="Back to top" aria-label="Back to top">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"/></svg>
+      </button>
+    </div>
+    <script>
+    (function(){
+      var top = document.getElementById('af-qp-top');
+      if (top) top.addEventListener('click', function(){ window.scrollTo({top:0,behavior:'smooth'}); });
+      window.addEventListener('scroll', function(){
+        var y = window.pageYOffset||document.documentElement.scrollTop;
+        if (top) top.style.opacity = y>400 ? '1':'0';
+        if (top) top.style.pointerEvents = y>400 ? 'auto':'none';
+      }, {passive:true});
+    })();
+    </script>
+    <style>
+    .af-quickpanel{position:fixed;right:16px;bottom:20px;z-index:9998;display:flex;flex-direction:column;gap:12px;}
+    .af-qp-btn{
+      width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;
+      display:flex;align-items:center;justify-content:center;
+      box-shadow:0 4px 14px rgba(0,0,0,.22);transition:transform .2s,box-shadow .2s;
+      position:relative;color:#fff;text-decoration:none;
+    }
+    .af-qp-btn:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(0,0,0,.3);}
+    .af-qp-btn svg{width:24px;height:24px;}
+    .af-qp-wa{background:#25d366;}
+    .af-qp-wl{background:#c9a84c;}
+    .af-qp-tr{background:#1a1a1a;}
+    .af-qp-top{background:#555;opacity:0;pointer-events:none;transition:opacity .3s,transform .2s;}
+    .af-qp-btn[data-tip]:hover::after{
+      content:attr(data-tip);position:absolute;right:58px;top:50%;transform:translateY(-50%);
+      background:#1a1a1a;color:#fff;font-size:12px;white-space:nowrap;padding:5px 10px;border-radius:6px;
+    }
+    @media(max-width:600px){
+      .af-quickpanel{right:12px;bottom:14px;gap:10px;}
+      .af-qp-btn{width:44px;height:44px;}
+      .af-qp-btn svg{width:21px;height:21px;}
+      .af-qp-btn[data-tip]:hover::after{display:none;}
+    }
+    </style>
+    <?php
+}, 20);
+
+// 3b. Trust badges bar — front page only, injected above the footer
+add_action('wp_footer', function() {
+    if (!is_front_page()) return;
+    ?>
+    <div class="af-trustbar">
+      <div class="af-trust-inner">
+        <div class="af-trust-item"><span class="af-trust-ico">🚚</span><div><strong>Free USA Shipping</strong><small>On premium canvas art</small></div></div>
+        <div class="af-trust-item"><span class="af-trust-ico">🎨</span><div><strong>Archival Quality</strong><small>Fade-resistant inks</small></div></div>
+        <div class="af-trust-item"><span class="af-trust-ico">🔒</span><div><strong>Secure Checkout</strong><small>Encrypted payments</small></div></div>
+        <div class="af-trust-item"><span class="af-trust-ico">↩️</span><div><strong>Easy Returns</strong><small>7-day policy</small></div></div>
+        <div class="af-trust-item"><span class="af-trust-ico">🖼️</span><div><strong>Try On Your Wall</strong><small>Preview before buying</small></div></div>
+      </div>
+    </div>
+    <script>
+    (function(){
+      // Place the trust bar just before the footer/policy bar for a natural flow
+      var bar = document.querySelector('.af-trustbar');
+      var anchor = document.querySelector('.af-policy-bar') || document.querySelector('footer');
+      if (bar && anchor && anchor.parentNode) anchor.parentNode.insertBefore(bar, anchor);
+    })();
+    </script>
+    <style>
+    .af-trustbar{background:#faf7ef;border-top:1px solid #ece4cf;border-bottom:1px solid #ece4cf;padding:22px 16px;}
+    .af-trust-inner{max-width:1200px;margin:0 auto;display:flex;flex-wrap:wrap;gap:20px;justify-content:space-between;}
+    .af-trust-item{display:flex;align-items:center;gap:12px;flex:1 1 180px;min-width:170px;}
+    .af-trust-ico{font-size:26px;line-height:1;}
+    .af-trust-item strong{display:block;font-size:14px;color:#1a1a1a;}
+    .af-trust-item small{display:block;font-size:12px;color:#777;}
+    @media(max-width:600px){
+      .af-trust-inner{gap:14px;}
+      .af-trust-item{flex:1 1 45%;min-width:140px;}
+    }
+    </style>
+    <?php
+}, 25);
