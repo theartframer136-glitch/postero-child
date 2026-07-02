@@ -3316,42 +3316,126 @@ add_action('wp_footer', function() {
 }, 50);
 
 // ─────────────────────────────────────────────────────────────
-// Footer policy/links bar — makes legal & utility pages reachable
-// sitewide without editing the Elementor footer template.
+// PHASE 4 — 4-column site footer (brand · shop · service · company).
+// Theme-code footer, appended sitewide. Reversible via this block.
 // ─────────────────────────────────────────────────────────────
 add_action('wp_footer', function() {
     if (is_admin()) return;
-    $links = array(
-        'About'              => '/about/',
-        'Contact'            => '/contact/',
-        'Help & Support'     => '/help-support/',
-        'Shipping & Delivery'=> '/shipping-delivery/',
-        'Returns & Exchanges'=> '/returns-exchanges/',
-        'Refund Policy'      => '/refund-policy/',
-        'Track Your Order'   => '/track-your-order/',
-        'Wholesale'          => '/wholesale-corporate/',
-        'Privacy Policy'     => '/privacy-policy/',
-        'Terms & Conditions' => '/terms-conditions/',
-        'Content & Ethics'   => '/content-ethics-policy/',
-    );
+
+    // Column 2: top shop categories (by product count), fall back gracefully
+    $shop_cats = get_terms(array(
+        'taxonomy'=>'product_cat','hide_empty'=>true,'number'=>7,
+        'orderby'=>'count','order'=>'DESC','exclude'=>array(get_option('default_product_cat')),
+    ));
     ?>
-    <div class="af-policy-bar">
-      <div class="af-policy-inner">
-        <nav class="af-policy-links" aria-label="Policies and support">
-          <?php foreach ($links as $label => $url): ?>
-            <a href="<?php echo esc_url($url); ?>"><?php echo esc_html($label); ?></a>
-          <?php endforeach; ?>
-        </nav>
-        <p class="af-policy-copy">&copy; <?php echo date('Y'); ?> The Art Framer &middot; theartframer.us &middot; All rights reserved.</p>
+    <footer class="af-footer" aria-label="Site footer">
+      <div class="af-footer-inner">
+
+        <div class="af-fcol af-fcol-brand">
+          <h4 class="af-f-logo">The Art Framer</h4>
+          <p class="af-f-blurb">Premium digital canvas wall art &amp; framed prints — spiritual, cultural, and modern pieces crafted with archival, fade-resistant inks. Ready to hang, made to inspire.</p>
+          <ul class="af-f-contact">
+            <li>📍 Delaware, USA</li>
+            <li>📞 <a href="tel:+16104707280">+1 (610) 470-7280</a></li>
+            <li>✉️ <a href="mailto:theartframer136@gmail.com">theartframer136@gmail.com</a></li>
+          </ul>
+          <div class="af-f-social">
+            <a href="https://www.facebook.com/" target="_blank" rel="noopener" aria-label="Facebook">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 10-11.5 9.9v-7H8v-2.9h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6v1.8H16l-.4 2.9h-2.1v7A10 10 0 0022 12z"/></svg>
+            </a>
+            <a href="https://www.instagram.com/" target="_blank" rel="noopener" aria-label="Instagram">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
+            </a>
+            <a href="https://wa.me/16104707280" target="_blank" rel="noopener" aria-label="WhatsApp">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M.057 24l1.687-6.163a11.867 11.867 0 01-1.587-5.945C.16 5.335 5.495 0 12.05 0a11.82 11.82 0 018.413 3.488 11.82 11.82 0 013.48 8.414c-.003 6.557-5.338 11.892-11.893 11.892a11.9 11.9 0 01-5.688-1.448L.057 24zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884a9.86 9.86 0 001.51 5.26l-.999 3.648 3.978-1.005z"/></svg>
+            </a>
+          </div>
+        </div>
+
+        <div class="af-fcol">
+          <h5 class="af-f-title">Shop</h5>
+          <ul class="af-f-links">
+            <?php if (!is_wp_error($shop_cats) && $shop_cats): foreach ($shop_cats as $c): ?>
+              <li><a href="<?php echo esc_url(get_term_link($c)); ?>"><?php echo esc_html($c->name); ?></a></li>
+            <?php endforeach; endif; ?>
+            <li><a href="/shop/">View All Products</a></li>
+          </ul>
+        </div>
+
+        <div class="af-fcol">
+          <h5 class="af-f-title">Customer Service</h5>
+          <ul class="af-f-links">
+            <li><a href="/help-support/">Help &amp; Support</a></li>
+            <li><a href="/shipping-delivery/">Shipping &amp; Delivery</a></li>
+            <li><a href="/returns-exchanges/">Returns &amp; Exchanges</a></li>
+            <li><a href="/refund-policy/">Refund Policy</a></li>
+            <li><a href="/track-your-order/">Track Your Order</a></li>
+            <li><a href="/faqs/">FAQs</a></li>
+          </ul>
+        </div>
+
+        <div class="af-fcol">
+          <h5 class="af-f-title">Company</h5>
+          <ul class="af-f-links">
+            <li><a href="/about/">About Us</a></li>
+            <li><a href="/contact/">Contact</a></li>
+            <li><a href="/wholesale-corporate/">Wholesale &amp; Corporate</a></li>
+            <li><a href="/privacy-policy/">Privacy Policy</a></li>
+            <li><a href="/terms-conditions/">Terms &amp; Conditions</a></li>
+            <li><a href="/content-ethics-policy/">Content &amp; Ethics</a></li>
+          </ul>
+          <div class="af-f-news">
+            <h5 class="af-f-title">Newsletter</h5>
+            <?php if (shortcode_exists('mc4wp_form')): ?>
+              <?php echo do_shortcode('[mc4wp_form]'); ?>
+            <?php else: ?>
+              <form class="af-f-newsform" action="/contact/" method="get" onsubmit="window.location='/contact/';return false;">
+                <input type="email" placeholder="Your email" aria-label="Email for newsletter">
+                <button type="submit">Join</button>
+              </form>
+            <?php endif; ?>
+          </div>
+        </div>
+
       </div>
-    </div>
+      <div class="af-footer-bottom">
+        <p>&copy; <?php echo date('Y'); ?> The Art Framer &middot; theartframer.us &middot; All rights reserved.</p>
+        <p class="af-f-pay">🔒 Secure checkout &middot; Square &middot; Zelle &middot; COD</p>
+      </div>
+    </footer>
     <style>
-    .af-policy-bar{background:#141414;color:#cfcfcf;padding:22px 16px;border-top:1px solid #2a2a2a;}
-    .af-policy-inner{max-width:1200px;margin:0 auto;text-align:center;}
-    .af-policy-links{display:flex;flex-wrap:wrap;gap:8px 20px;justify-content:center;margin:0 0 12px;}
-    .af-policy-links a{color:#cfcfcf;text-decoration:none;font-size:13px;transition:color .2s;}
-    .af-policy-links a:hover{color:#c9a84c;}
-    .af-policy-copy{margin:0;font-size:12px;color:#8a8a8a;}
+    .af-footer{background:#141414;color:#cfcfcf;padding:48px 16px 0;border-top:3px solid #c9a84c;}
+    .af-footer-inner{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:1.6fr 1fr 1fr 1.4fr;gap:34px;}
+    .af-fcol-brand{max-width:340px;}
+    .af-f-logo{font-size:22px;font-weight:800;color:#fff;margin:0 0 12px;letter-spacing:.02em;}
+    .af-f-blurb{font-size:13px;line-height:1.7;color:#a8a8a8;margin:0 0 16px;}
+    .af-f-contact{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-direction:column;gap:7px;}
+    .af-f-contact li{font-size:13px;color:#b8b8b8;}
+    .af-f-contact a{color:#b8b8b8;text-decoration:none;}
+    .af-f-contact a:hover{color:#c9a84c;}
+    .af-f-social{display:flex;gap:12px;}
+    .af-f-social a{width:36px;height:36px;border-radius:50%;background:#242424;display:flex;align-items:center;justify-content:center;color:#cfcfcf;transition:background .2s,color .2s;}
+    .af-f-social a:hover{background:#c9a84c;color:#141414;}
+    .af-f-social svg{width:18px;height:18px;}
+    .af-f-title{font-size:14px;font-weight:700;color:#fff;margin:0 0 16px;text-transform:uppercase;letter-spacing:.06em;}
+    .af-f-links{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
+    .af-f-links a{font-size:13px;color:#a8a8a8;text-decoration:none;transition:color .2s;}
+    .af-f-links a:hover{color:#c9a84c;padding-left:3px;}
+    .af-f-news{margin-top:22px;}
+    .af-f-newsform{display:flex;gap:8px;}
+    .af-f-newsform input{flex:1;min-width:0;padding:9px 11px;border:1px solid #333;border-radius:6px;background:#1e1e1e;color:#eee;font-size:13px;}
+    .af-f-newsform button{padding:9px 16px;border:none;border-radius:6px;background:#c9a84c;color:#141414;font-weight:700;font-size:13px;cursor:pointer;}
+    .af-f-newsform button:hover{background:#dcb85a;}
+    .af-footer-bottom{max-width:1240px;margin:38px auto 0;border-top:1px solid #2a2a2a;padding:18px 0;display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;}
+    .af-footer-bottom p{margin:0;font-size:12px;color:#8a8a8a;}
+    @media(max-width:900px){
+      .af-footer-inner{grid-template-columns:1fr 1fr;gap:28px;}
+      .af-fcol-brand{grid-column:1 / -1;max-width:none;}
+    }
+    @media(max-width:560px){
+      .af-footer-inner{grid-template-columns:1fr;}
+      .af-footer-bottom{flex-direction:column;text-align:center;}
+    }
     </style>
     <?php
 }, 300);
@@ -3528,7 +3612,7 @@ add_action('wp_footer', function() {
     (function(){
       // Place the trust bar just before the footer/policy bar for a natural flow
       var bar = document.querySelector('.af-trustbar');
-      var anchor = document.querySelector('.af-policy-bar') || document.querySelector('footer');
+      var anchor = document.querySelector('.af-footer') || document.querySelector('footer');
       if (bar && anchor && anchor.parentNode) anchor.parentNode.insertBefore(bar, anchor);
     })();
     </script>
@@ -3621,7 +3705,7 @@ add_action('wp_footer', function() {
     <script>
     (function(){
       var extra = document.getElementById('af-home-extra');
-      var anchor = document.querySelector('.af-trustbar') || document.querySelector('.af-policy-bar') || document.querySelector('footer');
+      var anchor = document.querySelector('.af-trustbar') || document.querySelector('.af-footer') || document.querySelector('footer');
       if (extra && anchor && anchor.parentNode) anchor.parentNode.insertBefore(extra, anchor);
     })();
     </script>
