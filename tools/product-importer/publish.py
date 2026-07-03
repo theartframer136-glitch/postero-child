@@ -38,6 +38,7 @@ from dotenv import load_dotenv
 import generator
 import compositor
 import mockups_api
+import ai_images
 
 HERE = Path(__file__).parent
 
@@ -207,15 +208,24 @@ def assemble_images(cfg, image_list, base_name, gallery, dry_run):
 
     out = [{"src": featured}]
 
-    # Photoreal path: if Dynamic Mockups is configured, use its hosted renders
-    # (no local compositing, no WP upload — the API returns image URLs directly).
+    # Best image source wins: Dynamic Mockups API > AI (Gemini/OpenAI) > compositor.
+    # 1) Dynamic Mockups — hosted renders, used directly (no WP upload).
     if cfg.get("mockup_key") and mockups_api.is_configured():
         try:
             for u in mockups_api.render_all(featured, cfg["mockup_key"]):
                 out.append({"src": u})
         except Exception as e:
-            print(f"  [warn] mockup API failed ({e}); falling back to compositor.")
-    if len(out) == 1:  # no API renders — fall back to the local compositor
+            print(f"  [warn] mockup API failed ({e}); trying next option.")
+    # 2) AI image generation (Nano Banana / OpenAI) — save + upload.
+    if len(out) == 1 and ai_images.is_configured():
+        try:
+            art_bytes = Path(src).read_bytes()
+            for f in ai_images.generate_gallery(art_bytes, tmp, base_name):
+                out.append({"src": upload_local_image(cfg, f)})
+        except Exception as e:
+            print(f"  [warn] AI image gen failed ({e}); trying next option.")
+    # 3) Built-in compositor (templates or drawn) — save + upload.
+    if len(out) == 1:
         for f in compositor.make_gallery(src, tmp, base_name):
             out.append({"src": upload_local_image(cfg, f)})
 

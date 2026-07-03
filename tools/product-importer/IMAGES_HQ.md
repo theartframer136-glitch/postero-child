@@ -1,9 +1,10 @@
 # High-quality product images — two options
 
 The pipeline picks the best available image source automatically, in this order:
-1. **Dynamic Mockups API** (photoreal) — if configured.
-2. **Real frame templates** — if you added template PNGs.
-3. **Built-in drawn compositor** — the free default.
+1. **Dynamic Mockups API** (photoreal mockups) — if configured.
+2. **AI image generation** (Nano Banana / OpenAI) — if a key is set.
+3. **Real frame templates** — if you added template PNGs.
+4. **Built-in drawn compositor** — the free default.
 
 You don't change any commands; you just enable one of the options below.
 
@@ -34,6 +35,23 @@ That's it — next time you add a product with a gallery, it uses photoreal rend
 (hosted by Dynamic Mockups) instead of the drawn frames.
 
 ---
+
+## Option 1b — AI image generation (Nano Banana / ChatGPT)
+
+Places your real artwork into framed/room scenes using an AI image model.
+
+1. Get a key:
+   - **Nano Banana** (Gemini 2.5 Flash Image): https://aistudio.google.com/apikey
+   - **OpenAI** GPT-Image: https://platform.openai.com/api-keys
+2. Put ONE of them in `.env`:
+   ```
+   GEMINI_API_KEY=your_key      # or
+   OPENAI_API_KEY=your_key
+   ```
+
+Next product with a gallery uses AI-generated images (3 per product: black frame,
+oak frame, room scene). Prompts instruct the model to keep the artwork unchanged,
+but AI can subtly alter art — review important products before publishing.
 
 ## Option 2 — Free real-frame templates
 
