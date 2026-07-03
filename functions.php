@@ -3641,45 +3641,9 @@ add_action('wp_footer', function() {
 
     ob_start();
 
-    /* ── New Arrivals: latest 8 published products ── */
-    $new = get_posts(array('post_type'=>'product','post_status'=>'publish','numberposts'=>8,'orderby'=>'date','order'=>'DESC'));
-    if ($new) {
-        echo '<section class="af-home-sec af-newarrivals"><div class="af-hs-inner">';
-        echo '<div class="af-hs-head"><h2>New Arrivals</h2><a class="af-hs-more" href="/shop/?orderby=date">View All →</a></div>';
-        echo '<div class="af-hs-row">';
-        foreach ($new as $p) {
-            $prod = wc_get_product($p->ID);
-            if (!$prod) continue;
-            $img = wp_get_attachment_image_url($prod->get_image_id(),'medium') ?: wc_placeholder_img_src('medium');
-            echo '<a class="af-hs-card" href="'.esc_url(get_permalink($p->ID)).'">';
-            echo '<div class="af-hs-imgwrap"><img src="'.esc_url($img).'" alt="'.esc_attr($prod->get_name()).'" loading="lazy"></div>';
-            echo '<div class="af-hs-info"><span class="af-hs-title">'.esc_html($prod->get_name()).'</span>';
-            echo '<span class="af-hs-price">'.$prod->get_price_html().'</span></div></a>';
-        }
-        echo '</div></div></section>';
-    }
-
-    /* ── Reviews: latest approved product reviews (with rating) ── */
-    $reviews = get_comments(array(
-        'status'=>'approve','post_type'=>'product','number'=>9,
-        'meta_key'=>'rating','orderby'=>'comment_date_gmt','order'=>'DESC',
-    ));
-    $reviews = array_filter($reviews, function($c){ return (int)get_comment_meta($c->comment_ID,'rating',true) >= 4; });
-    if (count($reviews) >= 3) {
-        echo '<section class="af-home-sec af-reviews"><div class="af-hs-inner">';
-        echo '<div class="af-hs-head"><h2>What Our Customers Say</h2></div>';
-        echo '<div class="af-rv-row">';
-        foreach (array_slice($reviews,0,6) as $c) {
-            $rating = (int)get_comment_meta($c->comment_ID,'rating',true);
-            $stars = str_repeat('★',$rating).str_repeat('☆',5-$rating);
-            $txt = wp_trim_words($c->comment_content, 28);
-            echo '<div class="af-rv-card"><div class="af-rv-stars">'.$stars.'</div>';
-            echo '<p class="af-rv-text">"'.esc_html($txt).'"</p>';
-            echo '<div class="af-rv-meta"><strong>'.esc_html($c->comment_author).'</strong>';
-            echo '<span>on '.esc_html(get_the_title($c->comment_post_ID)).'</span></div></div>';
-        }
-        echo '</div></div></section>';
-    }
+    // NOTE: New Arrivals & "What Our Customers Say" already exist at the top
+    // of the homepage (Elementor), so they are intentionally NOT duplicated
+    // here. Only the Blog region is rendered below.
 
     /* ── Blog: latest 3 posts ── */
     $posts = get_posts(array('post_type'=>'post','post_status'=>'publish','numberposts'=>3));
