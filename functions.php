@@ -3892,3 +3892,63 @@ add_action('wp_head', function() {
     </style>
     <?php
 }, 21);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 7b — Remaining post-tab sections per spec Section 13:
+// Digital Downloads + Customize Your Picture. Additive; reversible.
+// ─────────────────────────────────────────────────────────────
+
+// 7h. Digital Downloads section (post-tab) — shows Digital Downloads category
+add_action('woocommerce_after_single_product_summary', function() {
+    global $product;
+    if (!$product) return;
+    $ids = wc_get_products(array(
+        'status'=>'publish','limit'=>4,'return'=>'ids',
+        'category'=>array('digital-downloads','instant-downloads','printable-art'),
+        'exclude'=>array($product->get_id()),
+    ));
+    if (count($ids) < 2) return;
+    echo '<section class="af-pp-sec af-digital"><h2>Digital Downloads</h2>';
+    echo '<p class="af-pp-sub">Instant high-resolution files — delivered to your inbox, ready to print.</p>';
+    echo '<div class="af-pp-row">';
+    foreach ($ids as $pid) { af_render_mini_card($pid); }
+    echo '</div></section>';
+}, 23);
+
+// 7i. Customize Your Picture CTA (post-tab)
+add_action('woocommerce_after_single_product_summary', function() {
+    global $product;
+    if (!$product) return;
+    // Link to Personalised Prints category if it exists, else Contact
+    $term = get_term_by('slug', 'personalised-prints', 'product_cat');
+    $url  = $term ? get_term_link($term) : home_url('/contact/');
+    if (is_wp_error($url)) $url = home_url('/contact/');
+    ?>
+    <section class="af-pp-sec af-customize">
+      <div class="af-cz-inner">
+        <div class="af-cz-text">
+          <h2>Customize Your Picture</h2>
+          <p>Turn your own photo into premium canvas or framed art — portraits, family collages, and personalised gifts, made to order.</p>
+        </div>
+        <a class="af-cz-btn" href="<?php echo esc_url($url); ?>">Start Customizing →</a>
+      </div>
+    </section>
+    <?php
+}, 24);
+
+// 7j. Styles for the two added sections
+add_action('wp_head', function() {
+    if (!function_exists('is_product') || !is_product()) return;
+    ?>
+    <style>
+    .af-pp-sub{font-size:13.5px;color:#777;margin:-8px 0 16px;}
+    .af-customize{background:linear-gradient(90deg,#141414,#2a2416);border-radius:16px;padding:30px 28px;color:#fff;}
+    .af-cz-inner{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;}
+    .af-cz-text h2{color:#fff;margin:0 0 6px;font-size:22px;}
+    .af-cz-text p{margin:0;font-size:14px;color:#cfc7b3;max-width:640px;line-height:1.6;}
+    .af-cz-btn{flex-shrink:0;background:#c9a84c;color:#141414;font-weight:800;font-size:14px;padding:13px 24px;border-radius:9px;text-decoration:none;transition:background .2s,transform .2s;white-space:nowrap;}
+    .af-cz-btn:hover{background:#dcb85a;transform:translateY(-1px);}
+    @media(max-width:600px){ .af-cz-inner{flex-direction:column;align-items:flex-start;} .af-cz-btn{width:100%;text-align:center;} }
+    </style>
+    <?php
+}, 22);
