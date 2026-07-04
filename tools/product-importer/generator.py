@@ -386,11 +386,23 @@ CARE_IMG = "https://theartframer.us/wp-content/uploads/2026/02/wall-art-care-202
 COLLECTIONS_IMG = "https://theartframer.us/wp-content/uploads/2026/02/10-1-69d648860cb9e.webp"
 
 
-def _placement_block(spec):
-    """Product-specific placement image — uses the composited room scene if the
-    gallery was generated (it's the last uploaded image)."""
+def _frame_showcase_block(spec):
+    """Embed a framed view (AI/mockup/composited) in the description."""
     urls = spec.get("gallery_urls") or []
-    room = urls[-1] if len(urls) >= 5 else (urls[0] if urls else "")
+    frame_img = urls[1] if len(urls) >= 3 else ""
+    if not frame_img:
+        return ""
+    subject = spec["subject"]
+    return (f"<h4>Frame Options</h4>\n"
+            f"<p>Choose from premium frame finishes to match your interior.</p>\n"
+            f'<p><img src="{frame_img}" alt="{subject} framed canvas wall art" '
+            f'width="1500" height="1500" /></p>')
+
+
+def _placement_block(spec):
+    """Product-specific placement image — the room scene (last gallery image)."""
+    urls = spec.get("gallery_urls") or []
+    room = urls[-1] if len(urls) >= 3 else (urls[0] if urls else "")
     if not room:
         return ""
     subject = spec["subject"]
@@ -417,6 +429,7 @@ def build_product(spec):
     description = "\n".join(filter(None, [
         build_narrative(spec),
         _spec_table(spec),
+        _frame_showcase_block(spec),
         _placement_block(spec),
         _frame_and_care(),
         _care_image_block(),
