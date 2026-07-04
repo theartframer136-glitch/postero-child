@@ -126,20 +126,9 @@ foreach ( $ids as $pid ) {
         echo "   SEO meta already present (skipped)\n";
     }
 
-    /* 3. Append FAQ block to description (only once) */
-    $post = get_post( $pid );
-    if ( strpos( $post->post_content, $FAQ_MARKER ) === false ) {
-        global $wpdb;
-        $wpdb->update(
-            $wpdb->posts,
-            array( 'post_content' => $post->post_content . "\n\n" . $FAQ_HTML ),
-            array( 'ID' => $pid ),
-            array( '%s' ), array( '%d' )
-        );
-        echo "   FAQ block appended\n";
-    } else {
-        echo "   FAQ already present (skipped)\n";
-    }
+    /* 3. FAQ is no longer stored in post_content — it is rendered as a
+          styled accordion via a theme hook (see functions.php af_product_faqs).
+          Historical in-content FAQ blocks are removed by tools/dedup-faq.php. */
 
     update_post_meta( $pid, '_taf_template_applied', '1' );
     clean_post_cache( $pid );

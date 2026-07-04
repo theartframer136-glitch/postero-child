@@ -4192,3 +4192,56 @@ add_action('wp_head', function() {
     </script>
     <?php
 }, 23);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 9 — Styled FAQ accordion (rendered via hook, not in content).
+// Fixes duplicate FAQ + missing styling. Shows once on every product.
+// ─────────────────────────────────────────────────────────────
+function af_product_faqs() {
+    return array(
+        array('What is canvas wall art made of?', 'Our canvas wall art is made using premium-quality, high-density artist-grade canvas combined with durable wooden or metal frames. The material ensures vibrant color reproduction, long-lasting durability, and a premium gallery-style finish suitable for homes and offices.'),
+        array('Is digital canvas printing long-lasting?', 'Yes, digital canvas printing is highly durable when produced with fade-resistant pigment inks and premium canvas materials. Under normal indoor conditions, our canvas prints maintain their color vibrancy and quality for many years.'),
+        array('Does canvas wall art fade over time?', 'Our canvas prints are produced using advanced fade-resistant inks that help prevent color fading. When kept away from direct sunlight and moisture, the artwork retains its color richness for years.'),
+        array('Is canvas wall art better than paper posters?', 'Yes, canvas wall art offers better durability, texture, and a premium appearance compared to paper posters. Canvas prints provide a realistic artistic look and are more resistant to tearing and fading.'),
+        array('Is canvas wall art a good gift option?', 'Yes, canvas wall art is an excellent gift choice for housewarming events, weddings, festivals, birthdays, and special occasions.'),
+        array('How can I contact customer support?', 'You can contact our customer support team for any canvas wall art or digital canvas printing inquiries through phone, email, or WhatsApp. Our team assists with product details, customization requests, order updates, and installation guidance.'),
+        array('What is your customer support contact number?', 'You can reach our customer support team at +1 (610) 470-7280 for assistance related to product inquiries, order tracking, and customization support.'),
+        array('What is your customer support email address?', 'You can contact us via email at theartframer136@gmail.com for product inquiries, bulk orders, or support-related questions.'),
+        array('Do you provide WhatsApp support?', 'Yes, we provide WhatsApp support for quick assistance with product selection, order inquiries, and customization requests. You can message us on WhatsApp at +1 (610) 470-7280.'),
+        array('Where is your canvas printing business located?', 'Our canvas printing business operates from Delaware, USA, and we provide delivery services across multiple locations.'),
+        array('Which areas are eligible for free delivery?', 'We offer free delivery across major cities and serviceable locations in the USA, including Delaware, Pennsylvania, Maryland, New Jersey and nearby areas.'),
+    );
+}
+
+add_action('woocommerce_after_single_product_summary', function() {
+    if (!function_exists('is_product') || !is_product()) return;
+    $faqs = af_product_faqs();
+    if (empty($faqs)) return;
+    echo '<section class="af-pp-sec af-faq"><h2>Frequently Asked Questions</h2><div class="af-faq-list">';
+    foreach ($faqs as $i => $f) {
+        echo '<details class="af-faq-item"'.($i===0?' open':'').'>';
+        echo '<summary class="af-faq-q">'.esc_html($f[0]).'</summary>';
+        echo '<div class="af-faq-a">'.esc_html($f[1]).'</div>';
+        echo '</details>';
+    }
+    echo '</div></section>';
+}, 14);
+
+// FAQ accordion styling
+add_action('wp_head', function() {
+    if (!function_exists('is_product') || !is_product()) return;
+    ?>
+    <style>
+    .af-faq-list{border:1px solid #eee;border-radius:12px;overflow:hidden;}
+    .af-faq-item{border-bottom:1px solid #eee;background:#fff;}
+    .af-faq-item:last-child{border-bottom:none;}
+    .af-faq-q{list-style:none;cursor:pointer;padding:16px 46px 16px 18px;font-size:14.5px;font-weight:700;color:#1a1a1a;position:relative;transition:background .15s;user-select:none;}
+    .af-faq-q::-webkit-details-marker{display:none;}
+    .af-faq-q:hover{background:#faf7ef;}
+    .af-faq-q::after{content:'+';position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:22px;font-weight:400;color:#c9a84c;line-height:1;transition:transform .2s;}
+    .af-faq-item[open] .af-faq-q::after{content:'−';}
+    .af-faq-item[open] .af-faq-q{background:#faf7ef;color:#a8872e;}
+    .af-faq-a{padding:0 18px 18px;font-size:13.5px;line-height:1.7;color:#555;}
+    </style>
+    <?php
+}, 24);
