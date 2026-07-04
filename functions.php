@@ -3776,13 +3776,50 @@ add_action('template_redirect', function() {
     wc_setcookie('af_recently_viewed', implode('|', $ids), time() + 60*60*24*30);
 }, 20);
 
-// 7b. "Buy Now" button beside Add to Cart (simple, purchasable products)
+// 7b. "Buy Now" button beside Add to Cart.
+//     Simple products: direct link to checkout with add-to-cart.
+//     Variable products: JS adds the chosen variation, then redirects.
 add_action('woocommerce_after_add_to_cart_button', function() {
     global $product;
-    if (!$product || !$product->is_type('simple') || !$product->is_purchasable() || !$product->is_in_stock()) return;
-    $url = esc_url(wc_get_checkout_url() . '?add-to-cart=' . $product->get_id());
-    echo '<a href="' . $url . '" class="af-buynow button">Buy Now</a>';
+    if (!$product || !$product->is_purchasable() || !$product->is_in_stock()) return;
+
+    if ($product->is_type('simple')) {
+        $url = esc_url(wc_get_checkout_url() . '?add-to-cart=' . $product->get_id());
+        echo '<a href="' . $url . '" class="af-buynow button">Buy Now</a>';
+    } elseif ($product->is_type('variable')) {
+        // Button submits the variation form, then redirects to checkout.
+        echo '<button type="button" class="af-buynow af-buynow-var button" data-checkout="' . esc_url(wc_get_checkout_url()) . '">Buy Now</button>';
+        ?>
+        <script>
+        (function(){
+          document.addEventListener('click', function(e){
+            var b = e.target.closest('.af-buynow-var'); if(!b) return;
+            e.preventDefault();
+            var form = b.closest('form.cart');
+            if(!form){ return; }
+            var vid = form.querySelector('input[name="variation_id"]');
+            if(!vid || !vid.value || vid.value === '0'){
+              alert('Please select the options (size / frame / color) first.');
+              return;
+            }
+            // Mark that we want to go to checkout after add-to-cart, then submit.
+            var flag = document.createElement('input');
+            flag.type='hidden'; flag.name='af_buy_now'; flag.value='1';
+            form.appendChild(flag);
+            var addBtn = form.querySelector('.single_add_to_cart_button');
+            if(addBtn){ addBtn.click(); } else { form.submit(); }
+          });
+        })();
+        </script>
+        <?php
+    }
 }, 4);
+
+// Redirect to checkout when Buy Now was used on a variable product
+add_filter('woocommerce_add_to_cart_redirect', function($url){
+    if (!empty($_REQUEST['af_buy_now'])) { return wc_get_checkout_url(); }
+    return $url;
+}, 20);
 
 // 7c. Trust badges directly under the CTA
 add_action('woocommerce_after_add_to_cart_button', function() {

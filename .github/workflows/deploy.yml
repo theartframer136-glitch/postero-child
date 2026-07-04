@@ -82,6 +82,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/fix-featured-images.php --allow-root 2>&1" \
             || true
 
+          echo "Buy Now diagnostic (simple vs variable + links)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-buynow.php --allow-root 2>&1" \
+            || true
+
           echo "Drafting imageless products (removes blank cards)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
