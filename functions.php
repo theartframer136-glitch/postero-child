@@ -3757,3 +3757,138 @@ add_action('wp_head', function() {
     </style>
     <?php
 }, 20);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 7 — Product page missing sections (per spec):
+// Buy Now, trust badges under CTA, Related Searches, Popular
+// Products, Recently Viewed. Additive; existing sections untouched.
+// ─────────────────────────────────────────────────────────────
+
+// 7a. Track recently-viewed products (cookie)
+add_action('template_redirect', function() {
+    if (!function_exists('is_product') || !is_product()) return;
+    global $post;
+    if (!$post) return;
+    $ids = isset($_COOKIE['af_recently_viewed']) ? array_filter(array_map('absint', explode('|', $_COOKIE['af_recently_viewed']))) : array();
+    $ids = array_diff($ids, array($post->ID));
+    array_unshift($ids, $post->ID);
+    $ids = array_slice(array_unique($ids), 0, 12);
+    wc_setcookie('af_recently_viewed', implode('|', $ids), time() + 60*60*24*30);
+}, 20);
+
+// 7b. "Buy Now" button beside Add to Cart (simple, purchasable products)
+add_action('woocommerce_after_add_to_cart_button', function() {
+    global $product;
+    if (!$product || !$product->is_type('simple') || !$product->is_purchasable() || !$product->is_in_stock()) return;
+    $url = esc_url(wc_get_checkout_url() . '?add-to-cart=' . $product->get_id());
+    echo '<a href="' . $url . '" class="af-buynow button">Buy Now</a>';
+}, 4);
+
+// 7c. Trust badges directly under the CTA
+add_action('woocommerce_after_add_to_cart_button', function() {
+    global $product;
+    if (!$product) return;
+    ?>
+    <div class="af-pp-trust">
+      <div class="af-ppt"><span>🔒</span><div><strong>Secure Payments</strong><small>Encrypted checkout</small></div></div>
+      <div class="af-ppt"><span>↩️</span><div><strong>Easy Returns</strong><small>7-day policy</small></div></div>
+      <div class="af-ppt"><span>🚚</span><div><strong>Fast Shipping</strong><small>Free across USA</small></div></div>
+    </div>
+    <?php
+}, 25);
+
+// 7d. Related Searches (from product tags + category) after summary
+add_action('woocommerce_after_single_product_summary', function() {
+    global $product;
+    if (!$product) return;
+    $terms = array();
+    foreach (array('product_tag','product_cat') as $tax) {
+        $t = get_the_terms($product->get_id(), $tax);
+        if ($t && !is_wp_error($t)) foreach ($t as $term) $terms[$term->name] = get_term_link($term);
+    }
+    if (count($terms) < 2) return;
+    $terms = array_slice($terms, 0, 10, true);
+    echo '<section class="af-pp-sec af-related-searches"><h2>Related Searches</h2><div class="af-rs-chips">';
+    foreach ($terms as $name => $link) {
+        if (is_wp_error($link)) continue;
+        echo '<a class="af-rs-chip" href="'.esc_url($link).'">'.esc_html($name).'</a>';
+    }
+    echo '</div></section>';
+}, 16);
+
+// 7e. Popular Products (best sellers) after tabs
+add_action('woocommerce_after_single_product_summary', function() {
+    global $product;
+    if (!$product) return;
+    $ids = wc_get_products(array(
+        'status'=>'publish','limit'=>5,'orderby'=>'meta_value_num','meta_key'=>'total_sales',
+        'order'=>'DESC','exclude'=>array($product->get_id()),'return'=>'ids',
+    ));
+    if (count($ids) < 4) { // fallback: featured/recent if not enough sales data
+        $ids = wc_get_products(array('status'=>'publish','limit'=>5,'orderby'=>'date','order'=>'DESC','exclude'=>array($product->get_id()),'return'=>'ids'));
+    }
+    $ids = array_slice($ids, 0, 4);
+    if (!$ids) return;
+    echo '<section class="af-pp-sec af-popular"><h2>Popular Products</h2><div class="af-pp-row">';
+    foreach ($ids as $pid) { af_render_mini_card($pid); }
+    echo '</div></section>';
+}, 21);
+
+// 7f. Recently Viewed after tabs
+add_action('woocommerce_after_single_product_summary', function() {
+    global $product;
+    if (!$product) return;
+    $ids = isset($_COOKIE['af_recently_viewed']) ? array_filter(array_map('absint', explode('|', $_COOKIE['af_recently_viewed']))) : array();
+    $ids = array_values(array_diff($ids, array($product->get_id())));
+    $ids = array_slice($ids, 0, 4);
+    if (count($ids) < 2) return;
+    echo '<section class="af-pp-sec af-recent"><h2>Recently Viewed</h2><div class="af-pp-row">';
+    foreach ($ids as $pid) { af_render_mini_card($pid); }
+    echo '</div></section>';
+}, 22);
+
+// Shared mini product card renderer
+function af_render_mini_card($pid) {
+    $p = wc_get_product($pid);
+    if (!$p || $p->get_status() !== 'publish') return;
+    $img = wp_get_attachment_image_url($p->get_image_id(),'medium') ?: wc_placeholder_img_src('medium');
+    echo '<a class="af-mini-card" href="'.esc_url(get_permalink($pid)).'">';
+    echo '<div class="af-mini-img"><img src="'.esc_url($img).'" alt="'.esc_attr($p->get_name()).'" loading="lazy"></div>';
+    echo '<div class="af-mini-info"><span class="af-mini-title">'.esc_html($p->get_name()).'</span>';
+    echo '<span class="af-mini-price">'.$p->get_price_html().'</span></div></a>';
+}
+
+// 7g. Styles for the new product-page sections
+add_action('wp_head', function() {
+    if (!function_exists('is_product') || !is_product()) return;
+    ?>
+    <style>
+    /* Buy Now */
+    .single-product .af-buynow.button{background:#1a1a1a !important;color:#fff !important;margin-left:8px !important;}
+    .single-product .af-buynow.button:hover{background:#c9a84c !important;}
+    /* Trust badges under CTA */
+    .af-pp-trust{display:flex;flex-wrap:wrap;gap:14px;margin:18px 0 0;padding:14px 0 0;border-top:1px solid #eee;width:100%;}
+    .af-ppt{display:flex;align-items:center;gap:9px;flex:1 1 150px;min-width:140px;}
+    .af-ppt span{font-size:22px;line-height:1;}
+    .af-ppt strong{display:block;font-size:12.5px;color:#1a1a1a;}
+    .af-ppt small{display:block;font-size:11px;color:#888;}
+    /* Post-summary sections */
+    .af-pp-sec{max-width:1240px;margin:34px auto 0;padding:0 4px;}
+    .af-pp-sec h2{font-size:22px;font-weight:800;color:#1a1a1a;margin:0 0 16px;}
+    .af-rs-chips{display:flex;flex-wrap:wrap;gap:9px;}
+    .af-rs-chip{padding:7px 15px;border-radius:20px;background:#f4f1e9;color:#333;font-size:13px;font-weight:600;text-decoration:none;transition:background .2s,color .2s;}
+    .af-rs-chip:hover{background:#c9a84c;color:#fff;}
+    .af-pp-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+    .af-mini-card{background:#fff;border:1px solid #eee;border-radius:12px;overflow:hidden;text-decoration:none;transition:box-shadow .25s,transform .25s;display:flex;flex-direction:column;}
+    .af-mini-card:hover{box-shadow:0 8px 22px rgba(0,0,0,.12);transform:translateY(-3px);}
+    .af-mini-img{aspect-ratio:1/1;overflow:hidden;background:#f4f4f4;}
+    .af-mini-img img{width:100%;height:100%;object-fit:cover;transition:transform .4s;}
+    .af-mini-card:hover .af-mini-img img{transform:scale(1.05);}
+    .af-mini-info{padding:11px 13px;display:flex;flex-direction:column;gap:5px;}
+    .af-mini-title{font-size:13px;font-weight:700;color:#1a1a1a;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em;}
+    .af-mini-price{font-size:13.5px;font-weight:700;color:#c9a84c;}
+    @media(max-width:900px){ .af-pp-row{grid-template-columns:repeat(2,1fr);} }
+    @media(max-width:600px){ .af-pp-sec h2{font-size:19px;} .af-ppt{flex:1 1 45%;} }
+    </style>
+    <?php
+}, 21);
