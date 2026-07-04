@@ -4006,3 +4006,189 @@ add_action('wp_head', function() {
     </style>
     <?php
 }, 22);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 8 — Universal Size / Frame / Color selector + dynamic
+// pricing on ALL products (simple ones). Formula-based; the
+// default selection equals the product's current price, so nothing
+// is mispriced unless the customer upgrades. Fully adjustable below.
+// ─────────────────────────────────────────────────────────────
+
+// ---- Pricing configuration (edit these numbers anytime) ----
+function af_pricing_config() {
+    return array(
+        // Size label => price multiplier (relative to the product's base price)
+        'sizes' => array(
+            '24×36 in' => 1.00,   // base / smallest — keeps current price
+            '30×45 in' => 1.40,
+            '36×54 in' => 1.90,
+            '48×72 in' => 2.70,
+        ),
+        // Frame type => flat add-on fee (USD)
+        'frames' => array(
+            'Without Frame'   => 0,
+            'Fibre Frame'     => 25,
+            'Floating Frame'  => 40,
+            'Aluminium Frame' => 55,
+        ),
+        // Frame color => flat add-on fee (USD)
+        'colors' => array(
+            'Black'     => 0,
+            'Silver'    => 0,
+            'Gold'      => 10,
+            'Rose Gold' => 10,
+        ),
+    );
+}
+
+// Authoritative server-side price calculation
+function af_calc_price($base, $size, $frame, $color) {
+    $cfg = af_pricing_config();
+    $mult = isset($cfg['sizes'][$size]) ? (float)$cfg['sizes'][$size] : 1.0;
+    $fee  = (isset($cfg['frames'][$frame]) ? (float)$cfg['frames'][$frame] : 0)
+          + (isset($cfg['colors'][$color]) ? (float)$cfg['colors'][$color] : 0);
+    return round(((float)$base * $mult) + $fee, 2);
+}
+
+// 8a. Render selectors inside the add-to-cart form (simple products)
+add_action('woocommerce_before_add_to_cart_button', function() {
+    global $product;
+    if (!$product || !$product->is_type('simple') || !$product->is_purchasable() || !$product->is_in_stock()) return;
+    $cfg  = af_pricing_config();
+    $base = (float) wc_get_price_to_display($product);
+    $sizes  = array_keys($cfg['sizes']);
+    $frames = array_keys($cfg['frames']);
+    $colors = array_keys($cfg['colors']);
+    ?>
+    <div class="af-opts" data-base="<?php echo esc_attr($base); ?>" data-config='<?php echo esc_attr(wp_json_encode($cfg)); ?>' data-symbol="<?php echo esc_attr(get_woocommerce_currency_symbol()); ?>">
+      <div class="af-opt-group">
+        <label class="af-opt-label">Size</label>
+        <div class="af-chips af-size-chips">
+          <?php foreach ($sizes as $i => $s): ?>
+            <button type="button" class="af-chip-opt<?php echo $i===0?' active':''; ?>" data-type="size" data-val="<?php echo esc_attr($s); ?>"><?php echo esc_html($s); ?></button>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <div class="af-opt-group">
+        <label class="af-opt-label">Frame Type</label>
+        <div class="af-chips af-frame-chips">
+          <?php foreach ($frames as $i => $f): $fee=$cfg['frames'][$f]; ?>
+            <button type="button" class="af-chip-opt<?php echo $i===0?' active':''; ?>" data-type="frame" data-val="<?php echo esc_attr($f); ?>"><?php echo esc_html($f); ?><?php if($fee>0) echo ' <em>+'.get_woocommerce_currency_symbol().$fee.'</em>'; ?></button>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <div class="af-opt-group">
+        <label class="af-opt-label">Frame Color</label>
+        <div class="af-chips af-color-chips">
+          <?php $swatch=array('Black'=>'#1a1a1a','Silver'=>'#c0c0c0','Gold'=>'#d4af37','Rose Gold'=>'#b76e79'); foreach ($colors as $i => $c): ?>
+            <button type="button" class="af-swatch<?php echo $i===0?' active':''; ?>" data-type="color" data-val="<?php echo esc_attr($c); ?>" title="<?php echo esc_attr($c); ?>"><span style="background:<?php echo esc_attr($swatch[$c]??'#ccc'); ?>"></span><?php echo esc_html($c); ?></button>
+          <?php endforeach; ?>
+        </div>
+      </div>
+      <div class="af-price-live">Your Price: <strong id="af-live-price"><?php echo wc_price($base); ?></strong></div>
+      <input type="hidden" name="af_size"  value="<?php echo esc_attr($sizes[0]); ?>">
+      <input type="hidden" name="af_frame" value="<?php echo esc_attr($frames[0]); ?>">
+      <input type="hidden" name="af_color" value="<?php echo esc_attr($colors[0]); ?>">
+    </div>
+    <?php
+}, 8);
+
+// 8b. Capture selections + compute authoritative price on add to cart
+add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
+    $product = wc_get_product($pid);
+    if (!$product || !$product->is_type('simple')) return $data;
+    $cfg = af_pricing_config();
+    $size  = isset($_POST['af_size'])  ? sanitize_text_field(wp_unslash($_POST['af_size']))  : array_key_first($cfg['sizes']);
+    $frame = isset($_POST['af_frame']) ? sanitize_text_field(wp_unslash($_POST['af_frame'])) : array_key_first($cfg['frames']);
+    $color = isset($_POST['af_color']) ? sanitize_text_field(wp_unslash($_POST['af_color'])) : array_key_first($cfg['colors']);
+    // Validate against config
+    if (!isset($cfg['sizes'][$size]))   $size  = array_key_first($cfg['sizes']);
+    if (!isset($cfg['frames'][$frame])) $frame = array_key_first($cfg['frames']);
+    if (!isset($cfg['colors'][$color])) $color = array_key_first($cfg['colors']);
+    $data['af_size']  = $size;
+    $data['af_frame'] = $frame;
+    $data['af_color'] = $color;
+    $data['af_price'] = af_calc_price(wc_get_price_to_display($product), $size, $frame, $color);
+    $data['af_unique'] = md5($size.'|'.$frame.'|'.$color.'|'.$pid);
+    return $data;
+}, 10, 2);
+
+// 8c. Apply the computed price in the cart
+add_action('woocommerce_before_calculate_totals', function($cart) {
+    if (is_admin() && !defined('DOING_AJAX')) return;
+    if (empty($cart) || !is_a($cart, 'WC_Cart')) return;
+    foreach ($cart->get_cart() as $item) {
+        if (isset($item['af_price']) && $item['af_price'] > 0) {
+            $item['data']->set_price($item['af_price']);
+        }
+    }
+}, 20);
+
+// 8d. Show selected options in cart/checkout
+add_filter('woocommerce_get_item_data', function($data, $item) {
+    foreach (array('af_size'=>'Size','af_frame'=>'Frame Type','af_color'=>'Frame Color') as $k=>$label) {
+        if (!empty($item[$k])) $data[] = array('name'=>$label, 'value'=>$item[$k]);
+    }
+    return $data;
+}, 10, 2);
+
+// 8e. Persist selected options to the order line items
+add_action('woocommerce_checkout_create_order_line_item', function($item, $key, $values) {
+    foreach (array('af_size'=>'Size','af_frame'=>'Frame Type','af_color'=>'Frame Color') as $k=>$label) {
+        if (!empty($values[$k])) $item->add_meta_data($label, $values[$k]);
+    }
+}, 10, 3);
+
+// 8f. Selector styling + live price JS
+add_action('wp_head', function() {
+    if (!function_exists('is_product') || !is_product()) return;
+    ?>
+    <style>
+    .af-opts{margin:14px 0 6px;padding:16px 0 4px;border-top:1px solid #eee;}
+    .af-opt-group{margin:0 0 14px;}
+    .af-opt-label{display:block;font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#444;margin:0 0 8px;}
+    .af-chips{display:flex;flex-wrap:wrap;gap:8px;}
+    .af-chip-opt{background:#fff;border:1.5px solid #ddd;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;color:#333;cursor:pointer;transition:all .15s;}
+    .af-chip-opt em{font-style:normal;color:#a8872e;font-weight:700;}
+    .af-chip-opt:hover{border-color:#c9a84c;}
+    .af-chip-opt.active{border-color:#1a1a1a;background:#1a1a1a;color:#fff;}
+    .af-chip-opt.active em{color:#e8c766;}
+    .af-swatch{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid #ddd;border-radius:8px;padding:6px 12px 6px 8px;font-size:12.5px;font-weight:600;color:#333;cursor:pointer;transition:all .15s;}
+    .af-swatch span{width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.15);display:inline-block;}
+    .af-swatch:hover{border-color:#c9a84c;}
+    .af-swatch.active{border-color:#1a1a1a;}
+    .af-price-live{margin:6px 0 0;font-size:15px;color:#333;}
+    .af-price-live strong{font-size:20px;color:#1a1a1a;}
+    .af-price-live .amount{font-weight:800;}
+    </style>
+    <script>
+    (function(){
+      function money(sym,val){ return sym + val.toFixed(2); }
+      document.addEventListener('click', function(e){
+        var b = e.target.closest('.af-chip-opt, .af-swatch'); if(!b) return;
+        var wrap = b.closest('.af-opts'); if(!wrap) return;
+        var type = b.getAttribute('data-type');
+        wrap.querySelectorAll('[data-type="'+type+'"]').forEach(function(x){ x.classList.remove('active'); });
+        b.classList.add('active');
+        var input = wrap.parentNode.querySelector('input[name="af_'+type+'"]') || document.querySelector('input[name="af_'+type+'"]');
+        if(input) input.value = b.getAttribute('data-val');
+        recalc(wrap);
+      });
+      function recalc(wrap){
+        var base = parseFloat(wrap.getAttribute('data-base'))||0;
+        var cfg = {}; try{ cfg = JSON.parse(wrap.getAttribute('data-config')); }catch(e){ return; }
+        var sym = wrap.getAttribute('data-symbol')||'$';
+        var size = wrap.querySelector('[data-type="size"].active');
+        var frame= wrap.querySelector('[data-type="frame"].active');
+        var color= wrap.querySelector('[data-type="color"].active');
+        var mult = size ? (cfg.sizes[size.getAttribute('data-val')]||1) : 1;
+        var fee  = (frame ? (cfg.frames[frame.getAttribute('data-val')]||0) : 0)
+                 + (color ? (cfg.colors[color.getAttribute('data-val')]||0) : 0);
+        var price = Math.round((base*mult + fee)*100)/100;
+        var el = wrap.querySelector('#af-live-price');
+        if(el) el.innerHTML = '<span class="amount">'+money(sym,price)+'</span>';
+      }
+    })();
+    </script>
+    <?php
+}, 23);
