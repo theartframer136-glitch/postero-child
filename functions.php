@@ -3858,14 +3858,14 @@ add_action('woocommerce_after_single_product_summary', function() {
     global $product;
     if (!$product) return;
     $ids = wc_get_products(array(
-        'status'=>'publish','limit'=>5,'orderby'=>'meta_value_num','meta_key'=>'total_sales',
+        'status'=>'publish','limit'=>12,'orderby'=>'meta_value_num','meta_key'=>'total_sales',
         'order'=>'DESC','exclude'=>array($product->get_id()),'return'=>'ids',
     ));
-    if (count($ids) < 4) { // fallback: featured/recent if not enough sales data
-        $ids = wc_get_products(array('status'=>'publish','limit'=>5,'orderby'=>'date','order'=>'DESC','exclude'=>array($product->get_id()),'return'=>'ids'));
+    if (count($ids) < 4) { // fallback: recent if not enough sales data
+        $ids = wc_get_products(array('status'=>'publish','limit'=>12,'orderby'=>'date','order'=>'DESC','exclude'=>array($product->get_id()),'return'=>'ids'));
     }
-    $ids = array_slice($ids, 0, 4);
-    if (!$ids) return;
+    $ids = af_ids_with_image($ids, 4);
+    if (count($ids) < 4) return;
     echo '<section class="af-pp-sec af-popular"><h2>Popular Products</h2><div class="af-pp-row">';
     foreach ($ids as $pid) { af_render_mini_card($pid); }
     echo '</div></section>';
@@ -3877,18 +3877,32 @@ add_action('woocommerce_after_single_product_summary', function() {
     if (!$product) return;
     $ids = isset($_COOKIE['af_recently_viewed']) ? array_filter(array_map('absint', explode('|', $_COOKIE['af_recently_viewed']))) : array();
     $ids = array_values(array_diff($ids, array($product->get_id())));
-    $ids = array_slice($ids, 0, 4);
+    $ids = af_ids_with_image($ids, 4);
     if (count($ids) < 2) return;
-    echo '<section class="af-pp-sec af-recent"><h2>Recently Viewed</h2><div class="af-pp-row">';
+    echo '<section class="af-pp-sec af-recent"><h2>Recently Viewed</h2><div class="af-pp-row af-pp-row-left">';
     foreach ($ids as $pid) { af_render_mini_card($pid); }
     echo '</div></section>';
 }, 22);
 
-// Shared mini product card renderer
+// Filter product IDs down to those with a real featured image (avoids
+// grey placeholder cards), capped at $max.
+function af_ids_with_image($ids, $max) {
+    $out = array();
+    foreach ((array) $ids as $pid) {
+        $p = wc_get_product($pid);
+        if (!$p || $p->get_status() !== 'publish' || !$p->get_image_id()) continue;
+        $out[] = $pid;
+        if (count($out) >= $max) break;
+    }
+    return $out;
+}
+
+// Shared mini product card renderer (assumes a valid featured image)
 function af_render_mini_card($pid) {
     $p = wc_get_product($pid);
     if (!$p || $p->get_status() !== 'publish') return;
-    $img = wp_get_attachment_image_url($p->get_image_id(),'medium') ?: wc_placeholder_img_src('medium');
+    $img = wp_get_attachment_image_url($p->get_image_id(),'medium');
+    if (!$img) return; // never render a placeholder card
     echo '<a class="af-mini-card" href="'.esc_url(get_permalink($pid)).'">';
     echo '<div class="af-mini-img"><img src="'.esc_url($img).'" alt="'.esc_attr($p->get_name()).'" loading="lazy"></div>';
     echo '<div class="af-mini-info"><span class="af-mini-title">'.esc_html($p->get_name()).'</span>';
@@ -3909,21 +3923,23 @@ add_action('wp_head', function() {
     .af-ppt span{font-size:22px;line-height:1;}
     .af-ppt strong{display:block;font-size:12.5px;color:#1a1a1a;}
     .af-ppt small{display:block;font-size:11px;color:#888;}
-    /* Post-summary sections */
-    .af-pp-sec{max-width:1240px;margin:34px auto 0;padding:0 4px;}
+    /* Post-summary sections — full width of the theme content column so
+       they line up with the native "Related products" section. */
+    .af-pp-sec{width:100%;max-width:100%;margin:40px 0 0;padding:0;box-sizing:border-box;clear:both;}
     .af-pp-sec h2{font-size:22px;font-weight:800;color:#1a1a1a;margin:0 0 16px;}
     .af-rs-chips{display:flex;flex-wrap:wrap;gap:9px;}
     .af-rs-chip{padding:7px 15px;border-radius:20px;background:#f4f1e9;color:#333;font-size:13px;font-weight:600;text-decoration:none;transition:background .2s,color .2s;}
     .af-rs-chip:hover{background:#c9a84c;color:#fff;}
-    .af-pp-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
-    .af-mini-card{background:#fff;border:1px solid #eee;border-radius:12px;overflow:hidden;text-decoration:none;transition:box-shadow .25s,transform .25s;display:flex;flex-direction:column;}
+    /* 4-up grid; fewer items naturally left-align into the first columns */
+    .af-pp-row{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:stretch;}
+    .af-mini-card{background:#fff;border:1px solid #eee;border-radius:12px;overflow:hidden;text-decoration:none;transition:box-shadow .25s,transform .25s;display:flex;flex-direction:column;height:100%;}
     .af-mini-card:hover{box-shadow:0 8px 22px rgba(0,0,0,.12);transform:translateY(-3px);}
     .af-mini-img{aspect-ratio:1/1;overflow:hidden;background:#f4f4f4;}
     .af-mini-img img{width:100%;height:100%;object-fit:cover;transition:transform .4s;}
     .af-mini-card:hover .af-mini-img img{transform:scale(1.05);}
-    .af-mini-info{padding:11px 13px;display:flex;flex-direction:column;gap:5px;}
+    .af-mini-info{padding:11px 13px;display:flex;flex-direction:column;gap:5px;flex:1 1 auto;}
     .af-mini-title{font-size:13px;font-weight:700;color:#1a1a1a;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em;}
-    .af-mini-price{font-size:13.5px;font-weight:700;color:#c9a84c;}
+    .af-mini-price{font-size:13.5px;font-weight:700;color:#c9a84c;margin-top:auto;}
     @media(max-width:900px){ .af-pp-row{grid-template-columns:repeat(2,1fr);} }
     @media(max-width:600px){ .af-pp-sec h2{font-size:19px;} .af-ppt{flex:1 1 45%;} }
     </style>
@@ -3940,10 +3956,11 @@ add_action('woocommerce_after_single_product_summary', function() {
     global $product;
     if (!$product) return;
     $ids = wc_get_products(array(
-        'status'=>'publish','limit'=>4,'return'=>'ids',
+        'status'=>'publish','limit'=>12,'return'=>'ids',
         'category'=>array('digital-downloads','instant-downloads','printable-art'),
         'exclude'=>array($product->get_id()),
     ));
+    $ids = af_ids_with_image($ids, 4);
     if (count($ids) < 2) return;
     echo '<section class="af-pp-sec af-digital"><h2>Digital Downloads</h2>';
     echo '<p class="af-pp-sub">Instant high-resolution files — delivered to your inbox, ready to print.</p>';
