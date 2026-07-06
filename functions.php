@@ -3321,6 +3321,9 @@ add_action('wp_footer', function() {
 // ─────────────────────────────────────────────────────────────
 add_action('wp_footer', function() {
     if (is_admin()) return;
+    // DISABLED: the theme's own Elementor footer is used instead, to avoid a
+    // duplicate/stacked footer. Kept here (reversible) in case it's wanted later.
+    return;
 
     // Column 2: top shop categories (by product count), fall back gracefully
     $shop_cats = get_terms(array(
