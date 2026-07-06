@@ -3663,6 +3663,7 @@ add_action('woocommerce_before_shop_loop', function() {
     $sizes  = get_terms(array('taxonomy'=>'pa_size','hide_empty'=>true,'number'=>30));
     $colors = get_terms(array('taxonomy'=>'pa_colors','hide_empty'=>true,'number'=>12));
     $frames = get_terms(array('taxonomy'=>'pa_frame','hide_empty'=>true,'number'=>12));
+    $tags   = get_terms(array('taxonomy'=>'product_tag','hide_empty'=>true,'orderby'=>'count','order'=>'DESC','number'=>25));
 
     $base_url = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
     // Current price bounds
@@ -3742,6 +3743,23 @@ add_action('woocommerce_before_shop_loop', function() {
           <a class="af-lt-clear" href="<?php echo esc_url($base_url); ?>">✕ Clear filters</a>
         <?php endif; ?>
       </div>
+
+      <?php if (!is_wp_error($tags) && $tags):
+        $active_tag = isset($_GET['product_tag']) ? sanitize_title($_GET['product_tag']) : '';
+        // Merge product_tag into current params (keeps other filters)
+        $tlink = function($slug) use ($keep){ $q=$keep; $q['product_tag']=$slug; return '?'.http_build_query($q); };
+        $clear_tag = $keep; unset($clear_tag['product_tag']);
+      ?>
+      <div class="af-lt-tags" role="navigation" aria-label="Tags">
+        <span class="af-lt-tagslabel">Tags:</span>
+        <?php foreach ($tags as $t): $on = ($active_tag === $t->slug); ?>
+          <a class="af-tag-btn<?php echo $on?' active':''; ?>"
+             href="<?php echo esc_url($on ? '?'.http_build_query($clear_tag) : $tlink($t->slug)); ?>">
+            #<?php echo esc_html($t->name); ?>
+          </a>
+        <?php endforeach; ?>
+      </div>
+      <?php endif; ?>
     </div>
     <script>
     (function(){
@@ -3796,6 +3814,12 @@ add_action('wp_head', function() {
     .af-price-apply{width:100%;background:#1a1a1a;color:#fff;border:none;border-radius:7px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;}
     .af-price-apply:hover{background:#c9a84c;}
     .af-lt-clear{font-size:12.5px;color:#c0392b;text-decoration:none;font-weight:600;margin-left:4px;}
+    /* Tag filter — simple clickable buttons */
+    .af-lt-tags{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:6px;}
+    .af-lt-tagslabel{font-size:12.5px;font-weight:700;color:#666;margin-right:2px;}
+    .af-tag-btn{display:inline-block;padding:5px 12px;border-radius:16px;background:#fff;border:1.5px solid #e2ddcf;color:#6b6250;font-size:12.5px;font-weight:600;text-decoration:none;transition:all .15s;}
+    .af-tag-btn:hover{border-color:#c9a84c;color:#a8872e;}
+    .af-tag-btn.active{background:#c9a84c;border-color:#c9a84c;color:#fff;}
     /* Card AR button */
     .woocommerce ul.products li.product{position:relative;}
     .af-card-ar{position:absolute;left:10px;bottom:64px;z-index:6;display:inline-flex;align-items:center;gap:5px;background:rgba(20,20,20,.86);color:#fff;font-size:11.5px;font-weight:600;padding:6px 10px;border-radius:20px;text-decoration:none;opacity:0;transform:translateY(6px);transition:opacity .25s,transform .25s,background .2s;}
