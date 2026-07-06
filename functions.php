@@ -4560,3 +4560,219 @@ add_filter('wp_nav_menu_objects', function($items){
     }
     return $items;
 }, 20);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 13 — Fully dynamic standalone "Try It On Your Wall" page.
+// Replaces the static Elementor mockup at /try-on-wall/ with a working
+// tool: Category→Product pickers, frame type/size/color, wall-photo
+// upload, live framed preview, drag + scale, live price, buy link.
+// ─────────────────────────────────────────────────────────────
+add_action('template_redirect', function(){
+    if (!function_exists('is_page') || !is_page(array('try-on-wall','try-it-on-your-wall'))) return;
+    if (!function_exists('wc_get_products')) return;
+
+    // Build catalog data
+    $cats = get_terms(array('taxonomy'=>'product_cat','hide_empty'=>true,'orderby'=>'name'));
+    $cat_items = array();
+    if (!is_wp_error($cats)) foreach ($cats as $c) $cat_items[] = array('slug'=>$c->slug,'name'=>$c->name);
+
+    $ids = wc_get_products(array('status'=>'publish','limit'=>-1,'return'=>'ids'));
+    $prod_items = array();
+    foreach ($ids as $pid) {
+        $p = wc_get_product($pid);
+        if (!$p || !$p->get_image_id()) continue;
+        $prod_items[] = array(
+            'id'=>$pid,
+            'name'=>$p->get_name(),
+            'cats'=>wp_get_post_terms($pid,'product_cat',array('fields'=>'slugs')),
+            'img'=>wp_get_attachment_image_url($p->get_image_id(),'large'),
+            'price'=>(float) wc_get_price_to_display($p),
+            'url'=>get_permalink($pid),
+        );
+    }
+    $cfg = function_exists('af_pricing_config') ? af_pricing_config() : array(
+        'sizes'=>array('24×36 in'=>1.0,'30×45 in'=>1.4,'36×54 in'=>1.9,'48×72 in'=>2.7),
+        'frames'=>array('Without Frame'=>0,'Fibre Frame'=>25,'Floating Frame'=>40,'Aluminium Frame'=>55),
+        'colors'=>array('Black'=>0,'Silver'=>0,'Gold'=>10,'Rose Gold'=>10),
+    );
+    $sym = get_woocommerce_currency_symbol();
+
+    get_header();
+    ?>
+    <div class="af-tow-wrap">
+      <div class="af-tow-card">
+        <a class="af-tow-home" href="<?php echo esc_url(home_url('/')); ?>">← Back to Home</a>
+        <h1 class="af-tow-title">Try It on Your Wall</h1>
+        <p class="af-tow-sub">Pick an artwork, choose your frame, upload a photo of your wall, and preview it to scale.</p>
+
+        <div class="af-tow-grid">
+          <div class="af-tow-panel">
+            <label>Category</label>
+            <select id="tow-cat"><option value="">All Categories</option></select>
+
+            <label>Choose Product</label>
+            <select id="tow-prod"><option value="">Select a product</option></select>
+
+            <label>Frame Type</label>
+            <select id="tow-frame"></select>
+
+            <label>Frame Size</label>
+            <select id="tow-size"></select>
+
+            <label>Frame Color</label>
+            <select id="tow-color"></select>
+
+            <label>Upload Your Wall Photo</label>
+            <label class="af-tow-upload"><input type="file" id="tow-wall" accept="image/*" hidden>⬆ Upload wall photo</label>
+
+            <label>Adjust Size <span id="tow-scaleval">100%</span></label>
+            <input type="range" id="tow-scale" min="40" max="160" value="100">
+
+            <div class="af-tow-price">Price: <strong id="tow-price">—</strong></div>
+            <div class="af-tow-actions">
+              <button type="button" id="tow-save" class="af-tow-btn ghost">Save Preview</button>
+              <a href="#" id="tow-view" class="af-tow-btn solid">View Product</a>
+            </div>
+          </div>
+
+          <div class="af-tow-stagewrap">
+            <div id="tow-stage" class="af-tow-stage">
+              <img id="tow-wallimg" class="af-tow-wallimg" alt="">
+              <div id="tow-placeholder" class="af-tow-ph">📷 Upload a wall photo and choose a product to preview it here. Drag the artwork to position it.</div>
+              <div id="tow-framebox" class="af-tow-framebox" style="display:none"><img id="tow-art" class="af-tow-art" alt="" crossorigin="anonymous"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    (function(){
+      var CATS = <?php echo wp_json_encode($cat_items); ?>;
+      var PRODUCTS = <?php echo wp_json_encode($prod_items); ?>;
+      var CFG = <?php echo wp_json_encode($cfg); ?>;
+      var SYM = <?php echo wp_json_encode($sym); ?>;
+      var $=function(id){return document.getElementById(id);};
+
+      // Populate selects
+      CATS.forEach(function(c){ var o=document.createElement('option'); o.value=c.slug; o.textContent=c.name; $('tow-cat').appendChild(o); });
+      Object.keys(CFG.frames).forEach(function(f){ var o=document.createElement('option'); o.value=f; o.textContent=f+(CFG.frames[f]>0?(' (+'+SYM+CFG.frames[f]+')'):''); $('tow-frame').appendChild(o); });
+      Object.keys(CFG.sizes).forEach(function(s){ var o=document.createElement('option'); o.value=s; o.textContent=s; $('tow-size').appendChild(o); });
+      Object.keys(CFG.colors).forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c+(CFG.colors[c]>0?(' (+'+SYM+CFG.colors[c]+')'):''); $('tow-color').appendChild(o); });
+
+      function fillProducts(cat){
+        var sel=$('tow-prod'); sel.innerHTML='<option value="">Select a product</option>';
+        PRODUCTS.filter(function(p){ return !cat || (p.cats||[]).indexOf(cat)>-1; })
+                .forEach(function(p){ var o=document.createElement('option'); o.value=p.id; o.textContent=p.name; sel.appendChild(o); });
+      }
+      fillProducts('');
+      $('tow-cat').addEventListener('change', function(){ fillProducts(this.value); });
+
+      function current(){ return PRODUCTS.filter(function(p){ return String(p.id)===String($('tow-prod').value); })[0]; }
+
+      function applyFrame(){
+        var box=$('tow-framebox'), art=$('tow-art');
+        var frame=$('tow-frame').value, color=$('tow-color').value;
+        var hex={'Black':'#1a1a1a','Silver':'#c0c0c0','Gold':'#d4af37','Rose Gold':'#b76e79'}[color]||'#1a1a1a';
+        var w = frame==='Without Frame'?0 : frame==='Floating Frame'?7 : 12;
+        box.style.border = w? (w+'px solid '+hex) : 'none';
+        box.style.background = frame==='Floating Frame' ? '#111' : hex;
+        box.style.padding = frame==='Floating Frame' ? '8px' : '0';
+        box.style.boxShadow = '0 12px 34px rgba(0,0,0,.4)';
+      }
+
+      function calcPrice(){
+        var p=current(); if(!p) return null;
+        var mult=CFG.sizes[$('tow-size').value]||1;
+        var fee=(CFG.frames[$('tow-frame').value]||0)+(CFG.colors[$('tow-color').value]||0);
+        return Math.round((p.price*mult+fee)*100)/100;
+      }
+      function refresh(){
+        var p=current();
+        if(p){
+          $('tow-art').src=p.img;
+          $('tow-framebox').style.display='inline-block';
+          $('tow-placeholder').style.display='none';
+          $('tow-view').href=p.url;
+          applyFrame(); applyScale();
+          var pr=calcPrice(); $('tow-price').textContent = pr!=null ? (SYM+pr.toFixed(2)) : '—';
+        }
+      }
+      ['tow-prod','tow-frame','tow-size','tow-color'].forEach(function(id){ $(id).addEventListener('change', refresh); });
+
+      function applyScale(){
+        var stage=$('tow-stage'), box=$('tow-framebox');
+        var sizeMult=CFG.sizes[$('tow-size').value]||1;
+        var base=(stage.getBoundingClientRect().width||500)*0.32;
+        var slider=parseFloat($('tow-scale').value)/100;
+        box.style.width=Math.max(60, base*sizeMult*slider)+'px';
+        $('tow-art').style.width='100%'; $('tow-art').style.height='auto'; $('tow-art').style.display='block';
+      }
+      $('tow-scale').addEventListener('input', function(){ $('tow-scaleval').textContent=this.value+'%'; applyScale(); });
+
+      // Wall upload
+      $('tow-wall').addEventListener('change', function(){
+        var f=this.files&&this.files[0]; if(!f) return;
+        var r=new FileReader();
+        r.onload=function(e){ var im=$('tow-wallimg'); im.src=e.target.result; im.style.display='block'; $('tow-placeholder').style.display='none'; };
+        r.readAsDataURL(f);
+      });
+
+      // Drag artwork
+      var box=$('tow-framebox'), drag=false,sx,sy,ox,oy;
+      box.addEventListener('pointerdown', function(e){ drag=true; box.classList.add('dragging'); var st=getComputedStyle(box); sx=e.clientX; sy=e.clientY; ox=parseFloat(st.left)||box.offsetLeft; oy=parseFloat(st.top)||box.offsetTop; box.style.left=ox+'px'; box.style.top=oy+'px'; box.style.transform='none'; e.preventDefault(); });
+      document.addEventListener('pointermove', function(e){ if(!drag) return; box.style.left=(ox+(e.clientX-sx))+'px'; box.style.top=(oy+(e.clientY-sy))+'px'; });
+      document.addEventListener('pointerup', function(){ drag=false; box.classList.remove('dragging'); });
+
+      // Save preview
+      $('tow-save').addEventListener('click', function(){
+        var wall=$('tow-wallimg');
+        if(!wall.src || wall.style.display==='none'){ alert('Please upload a wall photo first.'); return; }
+        try{
+          var stage=$('tow-stage'), r=stage.getBoundingClientRect();
+          var cv=document.createElement('canvas'); cv.width=r.width; cv.height=r.height; var ctx=cv.getContext('2d');
+          var iw=wall.naturalWidth,ih=wall.naturalHeight,sc=Math.max(r.width/iw,r.height/ih);
+          ctx.drawImage(wall,(r.width-iw*sc)/2,(r.height-ih*sc)/2,iw*sc,ih*sc);
+          var ar=$('tow-framebox').getBoundingClientRect();
+          ctx.drawImage($('tow-art'), ar.left-r.left, ar.top-r.top, ar.width, ar.height);
+          var a=document.createElement('a'); a.download='my-wall-preview.png'; a.href=cv.toDataURL('image/png'); a.click();
+        }catch(err){ alert('Could not save (image may be cross-origin). Please screenshot instead.'); }
+      });
+
+      window.addEventListener('resize', applyScale);
+    })();
+    </script>
+
+    <style>
+    .af-tow-wrap{background:#f3efe6;padding:40px 16px 60px;}
+    .af-tow-card{max-width:1200px;margin:0 auto;background:#faf7ef;border-radius:20px;padding:34px 30px;position:relative;box-shadow:0 10px 40px rgba(0,0,0,.06);}
+    .af-tow-home{position:absolute;top:26px;right:26px;background:#1a1a1a;color:#fff;text-decoration:none;font-weight:700;font-size:13px;padding:11px 18px;border-radius:9px;}
+    .af-tow-home:hover{background:#c9a84c;}
+    .af-tow-title{text-align:center;font-size:44px;font-weight:800;color:#1a1a1a;margin:6px 0 8px;}
+    .af-tow-sub{text-align:center;color:#6b6250;font-size:15px;margin:0 0 30px;}
+    .af-tow-grid{display:grid;grid-template-columns:340px 1fr;gap:26px;align-items:start;}
+    .af-tow-panel{background:#fff;border:1px solid #ece4cf;border-radius:14px;padding:20px;display:flex;flex-direction:column;gap:6px;}
+    .af-tow-panel label{font-size:12.5px;font-weight:800;color:#444;text-transform:uppercase;letter-spacing:.03em;margin-top:10px;}
+    .af-tow-panel select{width:100%;padding:11px;border:1px solid #ddd;border-radius:8px;font-size:14px;background:#fff;}
+    .af-tow-upload{display:flex !important;align-items:center;justify-content:center;gap:8px;padding:12px;border:2px dashed #c9a84c;border-radius:9px;color:#a8872e;font-weight:700 !important;font-size:13px !important;cursor:pointer;text-transform:none !important;letter-spacing:0 !important;background:#fdfaf2;margin-top:6px;}
+    .af-tow-panel input[type=range]{width:100%;accent-color:#c9a84c;margin-top:4px;}
+    .af-tow-price{margin-top:14px;font-size:15px;color:#333;}
+    .af-tow-price strong{font-size:22px;color:#1a1a1a;}
+    .af-tow-actions{display:flex;gap:10px;margin-top:14px;}
+    .af-tow-btn{flex:1;text-align:center;padding:12px;border-radius:9px;font-weight:800;font-size:13px;cursor:pointer;text-decoration:none;border:none;}
+    .af-tow-btn.ghost{background:#efe9db;color:#333;}
+    .af-tow-btn.solid{background:#c9a84c;color:#fff;}
+    .af-tow-btn.solid:hover{background:#a8872e;}
+    .af-tow-stagewrap{position:relative;}
+    .af-tow-stage{position:relative;width:100%;height:560px;border-radius:14px;overflow:hidden;background:repeating-conic-gradient(#e9e9e9 0% 25%,#f4f4f4 0% 50%) 50%/26px 26px;display:flex;align-items:center;justify-content:center;}
+    .af-tow-wallimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;}
+    .af-tow-ph{color:#999;font-size:14px;text-align:center;max-width:340px;line-height:1.6;padding:20px;}
+    .af-tow-framebox{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);cursor:grab;touch-action:none;z-index:5;}
+    .af-tow-framebox.dragging{cursor:grabbing;}
+    .af-tow-art{display:block;width:100%;height:auto;}
+    @media(max-width:860px){ .af-tow-grid{grid-template-columns:1fr;} .af-tow-stage{height:420px;} .af-tow-title{font-size:32px;} .af-tow-home{position:static;display:inline-block;margin-bottom:14px;} }
+    </style>
+    <?php
+    get_footer();
+    exit;
+}, 1);
