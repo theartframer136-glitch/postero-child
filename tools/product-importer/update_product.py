@@ -7,17 +7,18 @@ table — WITHOUT touching their images, variations, price, or categories.
 Use this for products created before the description-images update.
 
 Usage:
-    python update_product.py 11617              # one product by ID
-    python update_product.py 11617 11595 11588  # several
+    python update_product.py 11617              # rebuild text/description only
+    python update_product.py --images 11617     # ALSO regenerate images (Gemini/etc.)
+    python update_product.py --images 11617 11595 11588
 """
 
+import argparse
 import re
-import sys
 
 import requests
 
 import generator
-from publish import load_config
+from publish import load_config, assemble_images
 
 
 def parse_spec(product):
@@ -40,12 +41,16 @@ def parse_spec(product):
 
 
 def main():
-    if len(sys.argv) < 2:
-        raise SystemExit("usage: python update_product.py <product_id> [more_ids...]")
+    ap = argparse.ArgumentParser()
+    ap.add_argument("ids", nargs="+", help="product IDs to update")
+    ap.add_argument("--images", action="store_true",
+                    help="also regenerate the gallery + description images (Gemini/mockups/compositor)")
+    args = ap.parse_args()
+
     cfg = load_config()
     base = f"{cfg['url']}/wp-json/wc/v3/products"
 
-    for pid in sys.argv[1:]:
+    for pid in args.ids:
         r = requests.get(f"{base}/{pid}", auth=(cfg["ck"], cfg["cs"]), timeout=60)
         if r.status_code != 200:
             print(f"[{pid}] not found (HTTP {r.status_code})")
@@ -53,16 +58,31 @@ def main():
         product = r.json()
         spec = parse_spec(product)
 
+        new_images = None
+        if args.images:
+            source = (spec.get("gallery_urls") or [None])[0]  # first image = original art
+            if not source:
+                print(f"[{pid}] no source image to regenerate from — skipping images")
+            else:
+                print(f"[{pid}] regenerating images from {source} ...")
+                new_images = assemble_images(cfg, [source], product.get("sku") or str(pid),
+                                             gallery=True, dry_run=False)
+                spec["gallery_urls"] = [im["src"] for im in new_images]
+
         rebuilt = generator.build_product(spec)
         update = {
             "description": rebuilt["description"],
             "meta_data": [m for m in rebuilt["meta_data"] if m["key"] == "_technical_specs"],
         }
+        if new_images:
+            update["images"] = new_images
+
         u = requests.put(f"{base}/{pid}", auth=(cfg["ck"], cfg["cs"]),
-                         json=update, timeout=120)
+                         json=update, timeout=180)
         if u.status_code in (200, 201):
             imgs = update["description"].count("<img")
-            print(f"[{pid}] updated '{spec['subject']}' — description now has {imgs} embedded images")
+            extra = f", {len(new_images)} gallery images regenerated" if new_images else ""
+            print(f"[{pid}] updated '{spec['subject']}' — {imgs} description images{extra}")
         else:
             print(f"[{pid}] update failed (HTTP {u.status_code}): {u.text[:200]}")
 
