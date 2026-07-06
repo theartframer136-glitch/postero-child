@@ -4318,3 +4318,83 @@ add_action('wp_head', function() {
     </style>
     <?php
 }, 24);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 10 — Shop tag filter (works on Elementor archives) + force
+// price-filter widget to USD. Additive; other sections untouched.
+// ─────────────────────────────────────────────────────────────
+
+// 10a. Force the WooCommerce price-slider/filter widget to show USD ($)
+add_filter('woocommerce_currency', function(){ return 'USD'; }, PHP_INT_MAX);
+add_filter('woocommerce_currency_symbol', function($s,$c){ return '$'; }, PHP_INT_MAX, 2);
+add_filter('woocommerce_price_slider_params', function($p){
+    $p['currency_format_symbol']   = '$';
+    $p['currency_format_num_decimals'] = 0;
+    return $p;
+}, PHP_INT_MAX);
+
+// 10b. Guarantee ?product_tag= filters the main product query (so it works
+//      even on Elementor-built archives that use the main query)
+add_action('woocommerce_product_query', function($q){
+    if (is_admin()) return;
+    if (!empty($_GET['product_tag'])) {
+        $slug = sanitize_title(wp_unslash($_GET['product_tag']));
+        $tax = (array) $q->get('tax_query');
+        $tax[] = array('taxonomy'=>'product_tag','field'=>'slug','terms'=>array($slug));
+        $q->set('tax_query', $tax);
+    }
+});
+
+// 10c. Inject a clickable Tag filter bar above the product grid on shop/category
+add_action('wp_footer', function() {
+    if (!function_exists('is_shop')) return;
+    if (!(is_shop() || is_product_category() || is_product_tag())) return;
+
+    $tags = get_terms(array('taxonomy'=>'product_tag','hide_empty'=>true,'orderby'=>'count','order'=>'DESC','number'=>30));
+    if (is_wp_error($tags) || !$tags) return;
+
+    $active = isset($_GET['product_tag']) ? sanitize_title($_GET['product_tag']) : '';
+    $keep = $_GET; unset($keep['paged']);
+    $items = array();
+    foreach ($tags as $t) {
+        $q = $keep;
+        if ($active === $t->slug) { unset($q['product_tag']); $on = true; }
+        else { $q['product_tag'] = $t->slug; $on = false; }
+        $items[] = array('name'=>$t->name, 'url'=>'?'.http_build_query($q), 'on'=>$on);
+    }
+    ?>
+    <script>
+    (function(){
+      var tags = <?php echo wp_json_encode($items); ?>;
+      if(!tags.length) return;
+      function build(){
+        if(document.querySelector('.af-tagbar')) return true;
+        var anchor = document.querySelector('ul.products')
+                  || document.querySelector('.products')
+                  || document.querySelector('.woocommerce-result-count');
+        if(!anchor || !anchor.parentNode) return false;
+        var bar = document.createElement('div'); bar.className='af-tagbar';
+        var lbl = document.createElement('span'); lbl.className='af-tagbar-label'; lbl.textContent='Filter by Tag:';
+        bar.appendChild(lbl);
+        tags.forEach(function(t){
+          var a=document.createElement('a');
+          a.className='af-tag-btn2'+(t.on?' active':'');
+          a.href=t.url; a.textContent='#'+t.name;
+          bar.appendChild(a);
+        });
+        anchor.parentNode.insertBefore(bar, anchor);
+        return true;
+      }
+      if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',build); else build();
+      window.addEventListener('load', function(){ build(); setTimeout(build,700); setTimeout(build,1600); });
+    })();
+    </script>
+    <style>
+    .af-tagbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 20px;padding:0 0 6px;}
+    .af-tagbar-label{font-size:13px;font-weight:800;color:#555;margin-right:2px;}
+    .af-tag-btn2{display:inline-block;padding:6px 13px;border-radius:16px;background:#fff;border:1.5px solid #e2ddcf;color:#6b6250;font-size:12.5px;font-weight:600;text-decoration:none;transition:all .15s;cursor:pointer;}
+    .af-tag-btn2:hover{border-color:#c9a84c;color:#a8872e;}
+    .af-tag-btn2.active{background:#c9a84c;border-color:#c9a84c;color:#fff;}
+    </style>
+    <?php
+}, 30);

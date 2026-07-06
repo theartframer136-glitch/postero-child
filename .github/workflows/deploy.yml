@@ -70,6 +70,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/assign-filter-attributes.php --allow-root 2>&1" \
             || true
 
+          echo "Assigning product tags (for tag filter)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/assign-tags.php --allow-root 2>&1" \
+            || true
+
           echo "Stripping in-content FAQ (now rendered via styled hook)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
