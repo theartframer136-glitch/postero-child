@@ -4447,3 +4447,97 @@ add_action('wp_footer', function() {
     </style>
     <?php
 }, 30);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 11 — Sidebar Color filter (clickable swatches), injected into
+// the sidebar like the tag filter. Uses pa_colors (?filter_colors).
+// Additive; other sections untouched.
+// ─────────────────────────────────────────────────────────────
+
+// 11a. Guarantee ?filter_colors= narrows the main product query (Elementor-safe)
+add_action('woocommerce_product_query', function($q){
+    if (is_admin()) return;
+    if (!empty($_GET['filter_colors'])) {
+        $slugs = array_filter(array_map('sanitize_title', explode(',', wp_unslash($_GET['filter_colors']))));
+        if ($slugs) {
+            $tax = (array) $q->get('tax_query');
+            $tax[] = array('taxonomy'=>'pa_colors','field'=>'slug','terms'=>$slugs,'operator'=>'IN');
+            $q->set('tax_query', $tax);
+        }
+    }
+});
+
+// 11b. Inject the Color filter into the sidebar
+add_action('wp_footer', function() {
+    if (!function_exists('is_shop')) return;
+    if (!(is_shop() || is_product_category() || is_product_tag())) return;
+
+    $colors = get_terms(array('taxonomy'=>'pa_colors','hide_empty'=>true,'number'=>12));
+    if (is_wp_error($colors) || !$colors) return;
+
+    $swatch = array('black'=>'#1a1a1a','silver'=>'#c0c0c0','gold'=>'#d4af37','rose-gold'=>'#b76e79');
+    $active = isset($_GET['filter_colors']) ? sanitize_title($_GET['filter_colors']) : '';
+    $keep = $_GET; unset($keep['paged']);
+    $items = array();
+    foreach ($colors as $t) {
+        $q = $keep;
+        if ($active === $t->slug) { unset($q['filter_colors']); $on = true; }
+        else { $q['filter_colors'] = $t->slug; $q['query_type_colors']='or'; $on = false; }
+        $items[] = array(
+            'name'=>$t->name, 'slug'=>$t->slug, 'on'=>$on,
+            'hex'=>($swatch[$t->slug] ?? '#cccccc'),
+            'url'=>'?'.http_build_query($q),
+        );
+    }
+    ?>
+    <script>
+    (function(){
+      var colors = <?php echo wp_json_encode($items); ?>;
+      if(!colors.length) return;
+      function findWidget(label){
+        var heads = document.querySelectorAll('h1,h2,h3,h4,h5,h6,.elementor-heading-title,.widget-title,.wp-block-heading,.widgettitle');
+        for(var i=0;i<heads.length;i++){
+          if(heads[i].textContent.trim().toLowerCase()===label){
+            return heads[i].closest('.elementor-widget, aside .widget, .widget, section, .elementor-element') || heads[i].parentElement;
+          }
+        }
+        return null;
+      }
+      function build(){
+        if(document.querySelector('.af-colorbar')) return true;
+        var box = document.createElement('div'); box.className='af-colorbar';
+        var lbl = document.createElement('div'); lbl.className='af-colorbar-label'; lbl.textContent='Frame Color';
+        box.appendChild(lbl);
+        var wrap = document.createElement('div'); wrap.className='af-colorbar-swatches';
+        colors.forEach(function(c){
+          var a=document.createElement('a');
+          a.className='af-swatch2'+(c.on?' active':'');
+          a.href=c.url; a.title=c.name;
+          var dot=document.createElement('span'); dot.className='af-swatch2-dot'; dot.style.background=c.hex;
+          var nm=document.createElement('span'); nm.className='af-swatch2-name'; nm.textContent=c.name;
+          a.appendChild(dot); a.appendChild(nm); wrap.appendChild(a);
+        });
+        box.appendChild(wrap);
+        // place after Frame widget, else after Size, else after Categories, else above grid
+        var anchor = findWidget('frame') || findWidget('size') || findWidget('categories');
+        if(anchor && anchor.parentNode){ anchor.parentNode.insertBefore(box, anchor.nextSibling); return true; }
+        var grid = document.querySelector('ul.products') || document.querySelector('.woocommerce-result-count');
+        if(grid && grid.parentNode){ box.classList.add('af-colorbar-top'); grid.parentNode.insertBefore(box, grid); return true; }
+        return false;
+      }
+      if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',build); else build();
+      window.addEventListener('load', function(){ build(); setTimeout(build,700); setTimeout(build,1600); });
+    })();
+    </script>
+    <style>
+    .af-colorbar{margin:22px 0 10px;}
+    .af-colorbar-label{font-size:17px;font-weight:800;color:#1a1a1a;margin:0 0 14px;}
+    .af-colorbar-swatches{display:flex;flex-direction:column;gap:9px;}
+    .af-swatch2{display:inline-flex;align-items:center;gap:9px;text-decoration:none;color:#555;font-size:13px;font-weight:600;padding:4px 6px;border-radius:8px;border:1.5px solid transparent;transition:all .15s;}
+    .af-swatch2:hover{color:#a8872e;background:#faf7ef;}
+    .af-swatch2.active{border-color:#c9a84c;background:#faf7ef;color:#1a1a1a;}
+    .af-swatch2-dot{width:20px;height:20px;border-radius:50%;border:1px solid rgba(0,0,0,.2);flex-shrink:0;}
+    .af-colorbar-top .af-colorbar-swatches{flex-direction:row;flex-wrap:wrap;gap:10px;}
+    </style>
+    <?php
+}, 31);
