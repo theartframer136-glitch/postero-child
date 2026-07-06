@@ -4541,3 +4541,22 @@ add_action('wp_footer', function() {
     </style>
     <?php
 }, 31);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 12 — Fix "Try It On Your Wall" nav link to point to the page.
+// ─────────────────────────────────────────────────────────────
+add_filter('wp_nav_menu_objects', function($items){
+    // Resolve the Try-On-Wall page URL (fall back to a sensible slug)
+    $page = get_page_by_path('try-on-wall');
+    if (!$page) { $page = get_page_by_path('try-it-on-your-wall'); }
+    $url = $page ? get_permalink($page) : home_url('/try-on-wall/');
+    foreach ($items as $it) {
+        $t = strtolower(trim(wp_strip_all_tags($it->title)));
+        if (strpos($t,'try') !== false && strpos($t,'wall') !== false) {
+            $it->url = $url;
+            // Clear any "#" or empty target that blocks navigation
+            $it->target = '';
+        }
+    }
+    return $items;
+}, 20);
