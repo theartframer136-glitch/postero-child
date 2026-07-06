@@ -4333,6 +4333,32 @@ add_filter('woocommerce_price_slider_params', function($p){
     return $p;
 }, PHP_INT_MAX);
 
+// 10a-2. Force the FOX / WOOCS currency switcher itself to USD (it geo-switches
+// per visitor to INR, which is why the price filter showed rupees). This makes
+// its current currency USD so converted prices + the price filter stay in $.
+add_filter('woocs_is_geoip_activated', '__return_false', PHP_INT_MAX);
+add_filter('woocs_geoip_country', function(){ return 'US'; }, PHP_INT_MAX);
+add_filter('woocs_current_currency', function(){ return 'USD'; }, PHP_INT_MAX);
+add_filter('woocs_convert_price', function($price){ return $price; }, 1); // no conversion
+add_action('init', function(){
+    // WOOCS reads this cookie first — pin it to USD before the plugin runs
+    if (!isset($_COOKIE['woocs_current_currency']) || $_COOKIE['woocs_current_currency'] !== 'USD') {
+        @setcookie('woocs_current_currency', 'USD', time()+YEAR_IN_SECONDS, defined('COOKIEPATH')?COOKIEPATH:'/', defined('COOKIE_DOMAIN')?COOKIE_DOMAIN:'');
+        $_COOKIE['woocs_current_currency'] = 'USD';
+    }
+    if (session_status() === PHP_SESSION_ACTIVE) { $_SESSION['woocs_current_currency'] = 'USD'; }
+    $def = get_option('woocs_default_currency', '');
+    if ($def !== 'USD') update_option('woocs_default_currency', 'USD');
+}, 0);
+add_action('wp_loaded', function(){
+    if (isset($GLOBALS['WOOCS']) && is_object($GLOBALS['WOOCS'])) {
+        $w = $GLOBALS['WOOCS'];
+        if (method_exists($w, 'set_currency')) { $w->set_currency('USD'); }
+        if (property_exists($w, 'current_currency')) { $w->current_currency = 'USD'; }
+        if (property_exists($w, 'default_currency')) { $w->default_currency = 'USD'; }
+    }
+}, 1);
+
 // 10b. Guarantee ?product_tag= filters the main product query (so it works
 //      even on Elementor-built archives that use the main query)
 add_action('woocommerce_product_query', function($q){
@@ -4367,32 +4393,55 @@ add_action('wp_footer', function() {
     (function(){
       var tags = <?php echo wp_json_encode($items); ?>;
       if(!tags.length) return;
+      // Find the "Categories" widget in the sidebar so we can place Tags below it
+      function findCategoriesWidget(){
+        var heads = document.querySelectorAll('h1,h2,h3,h4,h5,h6,.elementor-heading-title,.widget-title,.wp-block-heading,.widgettitle');
+        for(var i=0;i<heads.length;i++){
+          if(heads[i].textContent.trim().toLowerCase()==='categories'){
+            return heads[i].closest('.elementor-widget, aside .widget, .widget, section, .elementor-element') || heads[i].parentElement;
+          }
+        }
+        return null;
+      }
       function build(){
         if(document.querySelector('.af-tagbar')) return true;
-        var anchor = document.querySelector('ul.products')
-                  || document.querySelector('.products')
-                  || document.querySelector('.woocommerce-result-count');
-        if(!anchor || !anchor.parentNode) return false;
-        var bar = document.createElement('div'); bar.className='af-tagbar';
-        var lbl = document.createElement('span'); lbl.className='af-tagbar-label'; lbl.textContent='Filter by Tag:';
+
+        var bar = document.createElement('div'); bar.className='af-tagbar af-tagbar-side';
+        var lbl = document.createElement('div'); lbl.className='af-tagbar-label'; lbl.textContent='Filter by Tag';
         bar.appendChild(lbl);
+        var wrap = document.createElement('div'); wrap.className='af-tagbar-chips';
         tags.forEach(function(t){
           var a=document.createElement('a');
           a.className='af-tag-btn2'+(t.on?' active':'');
           a.href=t.url; a.textContent='#'+t.name;
-          bar.appendChild(a);
+          wrap.appendChild(a);
         });
-        anchor.parentNode.insertBefore(bar, anchor);
-        return true;
+        bar.appendChild(wrap);
+
+        // Preferred: place in the sidebar right after the Categories widget
+        var catWidget = findCategoriesWidget();
+        if(catWidget && catWidget.parentNode){
+          catWidget.parentNode.insertBefore(bar, catWidget.nextSibling);
+          return true;
+        }
+        // Fallback: above the product grid
+        var anchor = document.querySelector('ul.products') || document.querySelector('.products') || document.querySelector('.woocommerce-result-count');
+        if(anchor && anchor.parentNode){ bar.classList.remove('af-tagbar-side'); anchor.parentNode.insertBefore(bar, anchor); return true; }
+        return false;
       }
       if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',build); else build();
       window.addEventListener('load', function(){ build(); setTimeout(build,700); setTimeout(build,1600); });
     })();
     </script>
     <style>
+    /* Above-grid fallback layout */
     .af-tagbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:0 0 20px;padding:0 0 6px;}
-    .af-tagbar-label{font-size:13px;font-weight:800;color:#555;margin-right:2px;}
-    .af-tag-btn2{display:inline-block;padding:6px 13px;border-radius:16px;background:#fff;border:1.5px solid #e2ddcf;color:#6b6250;font-size:12.5px;font-weight:600;text-decoration:none;transition:all .15s;cursor:pointer;}
+    /* Sidebar layout (preferred) */
+    .af-tagbar-side{display:block;margin:22px 0 10px;padding:0;}
+    .af-tagbar .af-tagbar-label{font-size:13px;font-weight:800;color:#555;margin-right:2px;}
+    .af-tagbar-side .af-tagbar-label{display:block;font-size:17px;font-weight:800;color:#1a1a1a;margin:0 0 14px;}
+    .af-tagbar-side .af-tagbar-chips{display:flex;flex-wrap:wrap;gap:7px;}
+    .af-tag-btn2{display:inline-block;padding:6px 12px;border-radius:16px;background:#fff;border:1.5px solid #e2ddcf;color:#6b6250;font-size:12px;font-weight:600;text-decoration:none;transition:all .15s;cursor:pointer;}
     .af-tag-btn2:hover{border-color:#c9a84c;color:#a8872e;}
     .af-tag-btn2.active{background:#c9a84c;border-color:#c9a84c;color:#fff;}
     </style>
