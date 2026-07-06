@@ -3659,11 +3659,24 @@ add_action('woocommerce_before_shop_loop', function() {
         'orderby'=>'count','order'=>'DESC','number'=>12,
     ));
 
-    // Frame color + size quick filters (global attributes exist on this store)
-    $colors = get_terms(array('taxonomy'=>'pa_colors','hide_empty'=>true,'number'=>8));
-    $sizes  = get_terms(array('taxonomy'=>'pa_size','hide_empty'=>true,'number'=>10));
+    // Filterable global attributes
+    $sizes  = get_terms(array('taxonomy'=>'pa_size','hide_empty'=>true,'number'=>30));
+    $colors = get_terms(array('taxonomy'=>'pa_colors','hide_empty'=>true,'number'=>12));
+    $frames = get_terms(array('taxonomy'=>'pa_frame','hide_empty'=>true,'number'=>12));
 
     $base_url = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
+    // Current price bounds
+    $cur_min = isset($_GET['min_price']) ? (float)$_GET['min_price'] : '';
+    $cur_max = isset($_GET['max_price']) ? (float)$_GET['max_price'] : '';
+    // Helper: current URL params minus paging, for merging filter links
+    $keep = $_GET;
+    unset($keep['paged']);
+    // Build a link that ADDS a filter param while keeping the others
+    $flink = function($key, $val) use ($keep) {
+        $q = $keep; $q[$key] = $val; $q['query_type_'.str_replace('filter_','',$key)] = 'or';
+        return '?' . http_build_query($q);
+    };
+    $has_filters = !empty($_GET['filter_colors']) || !empty($_GET['filter_size']) || !empty($_GET['filter_frame']) || $cur_min !== '' || $cur_max !== '';
     ?>
     <div class="af-listing-toolbar">
       <?php if (!is_wp_error($chips) && $chips): ?>
@@ -3676,29 +3689,56 @@ add_action('woocommerce_before_shop_loop', function() {
       <?php endif; ?>
 
       <div class="af-lt-controls">
-        <?php if (!is_wp_error($colors) && $colors): ?>
+        <!-- Price -->
         <div class="af-lt-drop">
-          <button type="button" class="af-lt-dbtn">Frame Color ▾</button>
-          <div class="af-lt-menu">
-            <?php foreach ($colors as $t): ?>
-              <a href="?filter_colors=<?php echo esc_attr($t->slug); ?>&query_type_colors=or"><?php echo esc_html($t->name); ?></a>
-            <?php endforeach; ?>
+          <button type="button" class="af-lt-dbtn">Price ▾</button>
+          <div class="af-lt-menu af-lt-price">
+            <form method="get" action="">
+              <?php foreach ($keep as $k=>$v){ if(in_array($k,array('min_price','max_price'),true)) continue; echo '<input type="hidden" name="'.esc_attr($k).'" value="'.esc_attr(is_array($v)?reset($v):$v).'">'; } ?>
+              <div class="af-price-row">
+                <input type="number" name="min_price" placeholder="Min $" value="<?php echo esc_attr($cur_min); ?>" min="0">
+                <span>–</span>
+                <input type="number" name="max_price" placeholder="Max $" value="<?php echo esc_attr($cur_max); ?>" min="0">
+              </div>
+              <button type="submit" class="af-price-apply">Apply</button>
+            </form>
           </div>
         </div>
-        <?php endif; ?>
 
         <?php if (!is_wp_error($sizes) && $sizes): ?>
         <div class="af-lt-drop">
           <button type="button" class="af-lt-dbtn">Size ▾</button>
           <div class="af-lt-menu">
             <?php foreach ($sizes as $t): ?>
-              <a href="?filter_size=<?php echo esc_attr($t->slug); ?>&query_type_size=or"><?php echo esc_html($t->name); ?></a>
+              <a href="<?php echo esc_url($flink('filter_size',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
             <?php endforeach; ?>
           </div>
         </div>
         <?php endif; ?>
 
-        <?php if (!empty($_GET['filter_colors']) || !empty($_GET['filter_size']) || !empty($_GET['min_price'])): ?>
+        <?php if (!is_wp_error($colors) && $colors): ?>
+        <div class="af-lt-drop">
+          <button type="button" class="af-lt-dbtn">Frame Color ▾</button>
+          <div class="af-lt-menu">
+            <?php foreach ($colors as $t): ?>
+              <a href="<?php echo esc_url($flink('filter_colors',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!is_wp_error($frames) && $frames): ?>
+        <div class="af-lt-drop">
+          <button type="button" class="af-lt-dbtn">Frame Type ▾</button>
+          <div class="af-lt-menu">
+            <?php foreach ($frames as $t): ?>
+              <a href="<?php echo esc_url($flink('filter_frame',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
+            <?php endforeach; ?>
+          </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($has_filters): ?>
           <a class="af-lt-clear" href="<?php echo esc_url($base_url); ?>">✕ Clear filters</a>
         <?php endif; ?>
       </div>
@@ -3749,6 +3789,12 @@ add_action('wp_head', function() {
     .af-lt-menu.open{display:block;}
     .af-lt-menu a{display:block;padding:8px 12px;font-size:13px;color:#333;text-decoration:none;border-radius:6px;}
     .af-lt-menu a:hover{background:#faf7ef;color:#a8872e;}
+    .af-lt-price{padding:14px;min-width:210px;}
+    .af-price-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;}
+    .af-price-row input{width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:13px;}
+    .af-price-row span{color:#999;}
+    .af-price-apply{width:100%;background:#1a1a1a;color:#fff;border:none;border-radius:7px;padding:9px;font-size:13px;font-weight:700;cursor:pointer;}
+    .af-price-apply:hover{background:#c9a84c;}
     .af-lt-clear{font-size:12.5px;color:#c0392b;text-decoration:none;font-weight:600;margin-left:4px;}
     /* Card AR button */
     .woocommerce ul.products li.product{position:relative;}
