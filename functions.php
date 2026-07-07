@@ -4802,3 +4802,47 @@ add_action('template_redirect', function(){
     get_footer();
     exit;
 }, 1);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 14 — Mobile responsiveness hardening. Only applies at mobile
+// breakpoints; additive, does not change desktop layout/logic.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_head', function() {
+    ?>
+    <style id="af-mobile-responsive">
+    /* ── Tablets & phones (≤ 781px) ── */
+    @media (max-width: 781px){
+      html{ -webkit-text-size-adjust: 100%; }
+      /* Kill horizontal scroll without breaking the sticky header (clip keeps sticky) */
+      body{ overflow-x: clip; }
+      /* Media never overflows its container */
+      img, svg{ max-width: 100% !important; height: auto !important; }
+      video, iframe{ max-width: 100% !important; }
+      /* Long words / URLs wrap instead of forcing width */
+      p, h1, h2, h3, h4, h5, h6, a, span, li, td, th{ overflow-wrap: break-word; word-wrap: break-word; }
+      /* Wide tables scroll inside their own box */
+      .entry-content table, .woocommerce table.shop_table, .af-faq-a table, table{ display: block; width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      /* Elementor containers go full-width on mobile (prevents fixed-width overflow) */
+      .elementor-section .elementor-container, .e-con-inner, .e-con{ max-width: 100% !important; }
+      /* Our custom sections collapse gracefully */
+      .af-pp-row{ grid-template-columns: 1fr 1fr !important; }
+      .af-hs-row{ grid-template-columns: 1fr 1fr !important; }
+      .af-rv-row, .af-blog-row{ grid-template-columns: 1fr !important; }
+      .af-trust-inner{ flex-wrap: wrap !important; }
+      .af-tow-grid{ grid-template-columns: 1fr !important; }
+      .af-tow-stage{ height: 420px !important; }
+      .af-footer-inner{ grid-template-columns: 1fr 1fr !important; }
+      .af-listing-toolbar .af-lt-controls{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    }
+    /* ── Phones (≤ 480px) ── */
+    @media (max-width: 480px){
+      .af-pp-row, .af-hs-row{ grid-template-columns: 1fr !important; }
+      .af-footer-inner{ grid-template-columns: 1fr !important; }
+      .af-tow-title{ font-size: 28px !important; }
+      .af-pp-sec h2, .af-hs-head h2{ font-size: 20px !important; }
+      /* Quick-access floating panel sits tighter on tiny screens */
+      .af-quickpanel{ right: 10px !important; bottom: 12px !important; }
+    }
+    </style>
+    <?php
+}, 99);
