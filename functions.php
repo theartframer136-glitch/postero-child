@@ -4847,3 +4847,50 @@ add_action('wp_head', function() {
     </style>
     <?php
 }, 99);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 15 — Fix blank product cards on shop/category: force any
+// lazy-loaded images (LiteSpeed/Elementor/native) to load. Their
+// data is valid; the lazy placeholder just never swapped in.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function() {
+    if (!function_exists('is_shop')) return;
+    if (!(is_shop() || is_product_category() || is_product_tag())) return;
+    ?>
+    <script>
+    (function(){
+      function unlazy(){
+        // <img> lazy variants
+        document.querySelectorAll('img:not([data-afun])').forEach(function(im){
+          var real = im.getAttribute('data-src') || im.getAttribute('data-lazy-src') ||
+                     im.getAttribute('data-lazysrc') || im.getAttribute('data-original') ||
+                     im.getAttribute('data-ls-src');
+          var cur = im.getAttribute('src') || '';
+          if (real && (cur === '' || cur.indexOf('data:image') === 0 || cur.indexOf('base64') > -1 || cur.indexOf('lazy') > -1)) {
+            im.src = real;
+          }
+          var ss = im.getAttribute('data-srcset') || im.getAttribute('data-lazy-srcset');
+          if (ss && !im.getAttribute('srcset')) im.setAttribute('srcset', ss);
+          im.removeAttribute('loading');
+          im.classList.remove('lazyload','litespeed-lazyload');
+          im.setAttribute('data-afun','1');
+        });
+        // lazy background images
+        document.querySelectorAll('[data-bg]:not([data-afun]),[data-lazy-bg]:not([data-afun])').forEach(function(el){
+          var v = el.getAttribute('data-bg') || el.getAttribute('data-lazy-bg');
+          if (v) el.style.backgroundImage = 'url("' + v + '")';
+          el.setAttribute('data-afun','1');
+        });
+      }
+      function run(){ try{ unlazy(); }catch(e){} }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+      window.addEventListener('load', function(){ run(); setTimeout(run,400); setTimeout(run,1200); });
+      // Re-run when the grid loads more cards (AJAX) — childList only, no loop
+      var mo = new MutationObserver(function(muts){
+        if (muts.some(function(m){ return m.addedNodes && m.addedNodes.length; })) run();
+      });
+      if (document.body) mo.observe(document.body, { childList:true, subtree:true });
+    })();
+    </script>
+    <?php
+}, 40);
