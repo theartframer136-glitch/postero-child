@@ -3212,31 +3212,31 @@ add_action('wp_footer', function() {
 // "Try It On Your Wall" — upload-photo AR mockup (no plugin, no cost)
 // ─────────────────────────────────────────────────────────────
 
-// Enqueue AR assets on single product pages only
+// Try-On-Wall CSS on product pages (button styling only; modal disabled)
 add_action('wp_enqueue_scripts', function() {
     if (!function_exists('is_product') || !is_product()) return;
-    wp_enqueue_style('af-ar-wall', get_stylesheet_directory_uri() . '/assets/css/ar-wall.css', array(), '1.0.0');
-    wp_enqueue_script('af-ar-wall', get_stylesheet_directory_uri() . '/assets/js/ar-wall.js', array(), '1.0.0', true);
+    wp_enqueue_style('af-ar-wall', get_stylesheet_directory_uri() . '/assets/css/ar-wall.css', array(), '1.1.0');
 }, 25);
 
-// Render the "Try It On Your Wall" button under Add to Cart
+// "Try It On Your Wall" button under Add to Cart — now LINKS to the full
+// standalone /try-on-wall/ page with this product pre-selected.
 add_action('woocommerce_after_add_to_cart_button', function() {
     global $product;
     if (!$product) return;
-    $img = wp_get_attachment_image_url($product->get_image_id(), 'large');
-    if (!$img) $img = wc_placeholder_img_src('large');
+    $url = add_query_arg('product', $product->get_id(), home_url('/try-on-wall/'));
     ?>
-    <button type="button" id="af-arw-open" class="af-arw-btn" data-art="<?php echo esc_url($img); ?>">
+    <a href="<?php echo esc_url($url); ?>" class="af-arw-btn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
         </svg>
         Try It On Your Wall
-    </button>
+    </a>
     <?php
 }, 15);
 
 // Render the AR modal in the footer (once, on product pages)
 add_action('wp_footer', function() {
+    return; // DISABLED: the button now links to the full /try-on-wall/ page.
     if (!function_exists('is_product') || !is_product()) return;
     // wp_footer often runs after WooCommerce clears the global $product,
     // so fetch it from the queried page instead — otherwise the modal
@@ -3781,7 +3781,7 @@ add_action('woocommerce_before_shop_loop', function() {
 add_action('woocommerce_after_shop_loop_item', function() {
     global $product;
     if (!$product) return;
-    $url = get_permalink($product->get_id()) . '#try-on-wall';
+    $url = add_query_arg('product', $product->get_id(), home_url('/try-on-wall/'));
     echo '<a class="af-card-ar" href="'.esc_url($url).'" aria-label="Try on your wall">'
        . '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'
        . '<span>Try on Wall</span></a>';
@@ -4740,6 +4740,23 @@ add_action('template_redirect', function(){
       });
 
       window.addEventListener('resize', applyScale);
+
+      // Pre-select a product passed via ?product=<id> (from product page / cards)
+      (function preselect(){
+        var m = location.search.match(/[?&]product=(\d+)/);
+        if(!m) return;
+        var pid = m[1];
+        var prod = PRODUCTS.filter(function(p){ return String(p.id)===String(pid); })[0];
+        if(!prod) return;
+        // Set category (first cat) then repopulate products, then select the product
+        var cat = (prod.cats||[])[0] || '';
+        if(cat){ $('tow-cat').value = cat; fillProducts(cat); }
+        $('tow-prod').value = pid;
+        // defaults for a nice first view
+        if($('tow-frame').options.length>1) $('tow-frame').selectedIndex = 2; // Floating
+        refresh();
+        var el=document.querySelector('.af-tow-wrap'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+      })();
     })();
     </script>
 
