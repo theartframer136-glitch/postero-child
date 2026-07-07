@@ -112,6 +112,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/draft-imageless.php --allow-root 2>&1" \
             || true
 
+          echo "Category cards diagnostic..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-cat.php --allow-root 2>&1" \
+            || true
+
           echo "Products In Motion (YouTube) diagnostic..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
