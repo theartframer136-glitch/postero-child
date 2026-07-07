@@ -2263,12 +2263,26 @@ add_action('wp_footer', function() { ?>
 add_action('wp_footer', function() {
     if (!is_front_page()) return;
 
-    // Fetch video IDs from YouTube RSS, cached 1 hour
+    // Fetch video IDs, cached 1 hour. (Key bumped to _ids3_ to bypass stale cache.)
     $channel = 'UC_GX4vXRQrN4GsvSfgmZxYw';
-    $ids = get_transient('af_yt_ids2_' . $channel);
-    if (empty($ids)) {
-        delete_transient('af_yt_ids2_' . $channel);
+    $ids = get_transient('af_yt_ids3_' . $channel);
+    if (!is_array($ids) || empty($ids)) {
         $ids = [];
+
+        // 1) PRIMARY: pull the YouTube video IDs already placed in the homepage's
+        //    Elementor content (reliable — no external request needed).
+        $raw = get_post_meta(get_the_ID(), '_elementor_data', true);
+        if ($raw) {
+            $flat = str_replace('\\/', '/', $raw); // unescape JSON slashes
+            if (preg_match_all('#(?:youtube(?:-nocookie)?\.com/(?:watch\?(?:[^"&]*&)*v=|embed/|shorts/|v/)|youtu\.be/)([A-Za-z0-9_-]{11})#i', $flat, $mm)) {
+                $ids = array_merge($ids, $mm[1]);
+            }
+            if (preg_match_all('#[?&]v=([A-Za-z0-9_-]{11})#', $flat, $mm2)) {
+                $ids = array_merge($ids, $mm2[1]);
+            }
+        }
+
+        // 2) SUPPLEMENT: latest uploads from the channel RSS (best-effort)
         $resp = wp_remote_get(
             'https://www.youtube.com/feeds/videos.xml?channel_id=' . $channel,
             ['timeout' => 8, 'sslverify' => false]
@@ -2277,34 +2291,13 @@ add_action('wp_footer', function() {
             $xml = @simplexml_load_string(wp_remote_retrieve_body($resp));
             if ($xml) {
                 foreach ($xml->entry as $entry) {
-                    preg_match('/video:([A-Za-z0-9_-]{11})/', (string)$entry->id, $m);
-                    if (!empty($m[1])) $ids[] = $m[1];
+                    if (preg_match('/video:([A-Za-z0-9_-]{11})/', (string)$entry->id, $m)) $ids[] = $m[1];
                 }
             }
         }
-        // Fallback: read IDs from Elementor page meta
-        if (empty($ids)) {
-            $raw = get_post_meta(get_the_ID(), '_elementor_data', true);
-            if ($raw) {
-                $stack = json_decode($raw, true) ?: [];
-                while ($stack) {
-                    $el = array_shift($stack);
-                    $type = $el['widgetType'] ?? '';
-                    if ($type === 'video') {
-                        $u = $el['settings']['youtube_url'] ?? '';
-                        if (preg_match('/(?:v=|embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})/', $u, $m)) $ids[] = $m[1];
-                    } elseif (in_array($type, ['video-playlist', 'playlist'])) {
-                        foreach (($el['settings']['tabs'] ?? []) as $tab) {
-                            $u = $tab['youtube_url'] ?? $tab['url'] ?? '';
-                            if (preg_match('/(?:v=|embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})/', $u, $m)) $ids[] = $m[1];
-                        }
-                    }
-                    if (!empty($el['elements'])) $stack = array_merge($stack, $el['elements']);
-                }
-            }
-        }
-        $ids = array_values(array_unique($ids));
-        if (!empty($ids)) set_transient('af_yt_ids2_' . $channel, $ids, HOUR_IN_SECONDS);
+
+        $ids = array_values(array_unique(array_filter($ids)));
+        if (!empty($ids)) set_transient('af_yt_ids3_' . $channel, $ids, HOUR_IN_SECONDS);
     }
 
     // Nothing to show
