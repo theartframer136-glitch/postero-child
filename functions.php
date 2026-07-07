@@ -4177,6 +4177,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
 
 // 8b. Capture selections + compute authoritative price on add to cart
 add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
+    if (!empty($_REQUEST['af_digital'])) return $data; // digital handled separately
     $product = wc_get_product($pid);
     if (!$product || !$product->is_type('simple')) return $data;
     $cfg = af_pricing_config();
@@ -4894,3 +4895,158 @@ add_action('wp_footer', function() {
     </script>
     <?php
 }, 40);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 16 — Digital Download modal from product-card buttons.
+// Clicking a card's "Digital Download" opens a modal; Add to Cart
+// adds a digital line (own price + label). Additive.
+// ─────────────────────────────────────────────────────────────
+
+// Digital download flat price (adjustable via filter)
+function af_digital_price() { return (float) apply_filters('af_digital_price', 9.99); }
+
+// Mark the cart item as a digital download with its own price/label
+add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
+    if (!empty($_REQUEST['af_digital'])) {
+        $data['af_digital'] = '1';
+        $data['af_price']   = af_digital_price();
+        $data['af_unique']  = md5('digital|' . $pid . '|' . microtime());
+    }
+    return $data;
+}, 20, 2);
+
+// Show "Digital Download" in cart; hide size/frame for digital lines
+add_filter('woocommerce_get_item_data', function($data, $item) {
+    if (!empty($item['af_digital'])) {
+        // strip any size/frame rows that may have been added
+        $data = array_values(array_filter($data, function($row){
+            return !in_array(($row['name'] ?? ''), array('Size','Frame Type','Frame Color'), true);
+        }));
+        $data[] = array('name'=>'Format', 'value'=>'Digital Download (instant email delivery)');
+    }
+    return $data;
+}, 20, 2);
+
+// Make digital lines virtual (no shipping) at cart calc time
+add_action('woocommerce_before_calculate_totals', function($cart){
+    if (is_admin() && !defined('DOING_AJAX')) return;
+    if (empty($cart) || !is_a($cart,'WC_Cart')) return;
+    foreach ($cart->get_cart() as $item) {
+        if (!empty($item['af_digital']) && is_object($item['data'])) {
+            $item['data']->set_virtual(true);
+        }
+    }
+}, 21);
+
+// Persist to order line item
+add_action('woocommerce_checkout_create_order_line_item', function($item, $key, $values){
+    if (!empty($values['af_digital'])) $item->add_meta_data('Format', 'Digital Download');
+}, 20, 3);
+
+// Render the Digital Download modal on homepage / shop / category
+add_action('wp_footer', function() {
+    if (is_admin()) return;
+    $is_shop = function_exists('is_shop') && (is_shop() || is_product_category() || is_product_tag());
+    if (!is_front_page() && !$is_shop) return;
+    $price_html = wc_price(af_digital_price());
+    ?>
+    <div id="af-dd-overlay" class="af-dd-overlay" data-dd-close>
+      <div class="af-dd-modal">
+        <button class="af-dd-x" data-dd-close aria-label="Close">&times;</button>
+        <div class="af-dd-flex">
+          <div class="af-dd-imgwrap"><img id="af-dd-img" alt=""></div>
+          <div class="af-dd-info">
+            <span class="af-dd-tag">⬇ Instant Digital Download</span>
+            <h3 id="af-dd-title">Digital Download</h3>
+            <ul class="af-dd-feat">
+              <li>High-resolution, print-ready file (JPG)</li>
+              <li>Delivered instantly by email after purchase</li>
+              <li>Print at home or any print shop — no frame needed</li>
+            </ul>
+            <div class="af-dd-price"><?php echo $price_html; ?></div>
+            <div class="af-dd-actions">
+              <button id="af-dd-add" class="af-dd-btn solid">Add to Cart</button>
+              <a id="af-dd-view" class="af-dd-btn ghost" href="#">View Product</a>
+            </div>
+            <p class="af-dd-msg" id="af-dd-msg"></p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script>
+    (function(){
+      var overlay=document.getElementById('af-dd-overlay');
+      var imgEl=document.getElementById('af-dd-img'), titleEl=document.getElementById('af-dd-title');
+      var viewEl=document.getElementById('af-dd-view'), addEl=document.getElementById('af-dd-add'), msgEl=document.getElementById('af-dd-msg');
+      var curPid='';
+      function open(){ overlay.classList.add('open'); document.body.style.overflow='hidden'; }
+      function close(){ overlay.classList.remove('open'); document.body.style.overflow=''; msgEl.textContent=''; }
+      overlay.querySelectorAll('[data-dd-close]').forEach(function(el){ el.addEventListener('click', function(e){ if(e.target===el) close(); }); });
+      document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
+
+      // Detect a "Digital Download" trigger inside a product card
+      document.addEventListener('click', function(e){
+        var trg = e.target.closest('.digital-download, .digital-download-btn, [class*="digital-download"], [data-digital-download]');
+        if(!trg){
+          var el = e.target.closest('a,button,span,div');
+          if(el && el.closest('.product-card, li.product, .product') && /^\s*digital\s*download\s*$/i.test((el.textContent||''))) trg = el;
+        }
+        if(!trg) return;
+        var card = trg.closest('.product-card, li.product, .product'); if(!card) return;
+        e.preventDefault(); e.stopPropagation();
+        var atc = card.querySelector('[data-product_id]');
+        curPid = atc ? atc.getAttribute('data-product_id') : '';
+        var im = card.querySelector('img');
+        var t  = card.querySelector('.product-title, h2, h3, .woocommerce-loop-product__title');
+        var lnk= card.querySelector('a[href]');
+        imgEl.src = im ? (im.currentSrc||im.src||im.getAttribute('data-src')||'') : '';
+        titleEl.textContent = (t?t.textContent.trim():'This Artwork') + ' — Digital Download';
+        viewEl.href = lnk ? lnk.href : '#';
+        msgEl.textContent='';
+        open();
+      }, true);
+
+      addEl.addEventListener('click', function(){
+        if(!curPid){ msgEl.textContent='Please open this from a product to add it.'; return; }
+        addEl.disabled=true; addEl.textContent='Adding…';
+        fetch('/?wc-ajax=add_to_cart', {
+          method:'POST', credentials:'same-origin',
+          headers:{'Content-Type':'application/x-www-form-urlencoded'},
+          body:'product_id='+encodeURIComponent(curPid)+'&quantity=1&af_digital=1'
+        }).then(function(r){ return r.json(); }).then(function(res){
+          addEl.disabled=false; addEl.textContent='Add to Cart';
+          msgEl.style.color='#2e7d32';
+          msgEl.textContent='✓ Digital download added to cart.';
+          // update mini-cart counters if present
+          document.body.dispatchEvent(new Event('wc_fragment_refresh'));
+          if(res && res.fragments){ for(var k in res.fragments){ document.querySelectorAll(k).forEach(function(n){ n.outerHTML=res.fragments[k]; }); } }
+        }).catch(function(){ addEl.disabled=false; addEl.textContent='Add to Cart'; msgEl.style.color='#c0392b'; msgEl.textContent='Could not add. Please try again.'; });
+      });
+    })();
+    </script>
+    <style>
+    .af-dd-overlay{position:fixed;inset:0;z-index:100000;display:none;background:rgba(15,15,15,.82);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px;}
+    .af-dd-overlay.open{display:flex;}
+    .af-dd-modal{background:#fff;border-radius:16px;max-width:720px;width:100%;position:relative;box-shadow:0 24px 70px rgba(0,0,0,.5);overflow:hidden;}
+    .af-dd-x{position:absolute;top:12px;right:14px;background:none;border:none;font-size:28px;line-height:1;color:#888;cursor:pointer;z-index:2;}
+    .af-dd-x:hover{color:#1a1a1a;}
+    .af-dd-flex{display:flex;flex-wrap:wrap;}
+    .af-dd-imgwrap{flex:1 1 260px;min-height:240px;background:#f4f4f4;}
+    .af-dd-imgwrap img{width:100%;height:100%;object-fit:cover;display:block;}
+    .af-dd-info{flex:1 1 300px;padding:26px 24px;}
+    .af-dd-tag{display:inline-block;background:#faf2df;color:#a8872e;font-weight:800;font-size:12px;padding:5px 11px;border-radius:14px;letter-spacing:.03em;}
+    .af-dd-info h3{font-size:19px;font-weight:800;color:#1a1a1a;margin:12px 0 12px;line-height:1.35;}
+    .af-dd-feat{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-direction:column;gap:8px;}
+    .af-dd-feat li{font-size:13px;color:#555;padding-left:22px;position:relative;line-height:1.5;}
+    .af-dd-feat li::before{content:'✓';position:absolute;left:0;color:#c9a84c;font-weight:800;}
+    .af-dd-price{font-size:24px;font-weight:800;color:#1a1a1a;margin:0 0 16px;}
+    .af-dd-actions{display:flex;gap:10px;flex-wrap:wrap;}
+    .af-dd-btn{flex:1;min-width:130px;text-align:center;padding:12px 14px;border-radius:9px;font-weight:800;font-size:13.5px;cursor:pointer;text-decoration:none;border:none;}
+    .af-dd-btn.solid{background:#c9a84c;color:#fff;}
+    .af-dd-btn.solid:hover{background:#a8872e;}
+    .af-dd-btn.ghost{background:#efe9db;color:#333;}
+    .af-dd-msg{font-size:13px;margin:12px 0 0;min-height:16px;}
+    @media(max-width:560px){ .af-dd-imgwrap{flex-basis:100%;min-height:200px;} }
+    </style>
+    <?php
+}, 45);
