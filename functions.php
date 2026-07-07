@@ -486,6 +486,12 @@ add_action('wp_footer', function() { ?>
         // Only grab cards currently in the grid (freshly loaded by the theme)
         var freshCards = Array.from(grid.querySelectorAll('.product-card'));
         if (!freshCards.length) return;
+        // Guard: only enhance REAL product sliders (cards with a price / add-to-cart).
+        // Skips non-product sliders like the "Products In Motion" video section.
+        var isProductSlider = freshCards.some(function(c){
+            return c.querySelector('.price, .price-section, .add-cart, .add_to_cart_button, [class*="price"]');
+        });
+        if (!isProductSlider) { grid.classList.remove('af-grid-hidden'); return; }
 
         var shell  = document.createElement('div');
         var btnP   = document.createElement('button');
@@ -851,11 +857,21 @@ add_action('wp_footer', function() { ?>
 
     var _sliderInitDone = false;
     function init() {
-        var container = document.querySelector('.product-container');
-        if (!container) return;
-
-        var grid = container.querySelector('#productGrid') || container.querySelector('.product-slider');
-        if (!grid) return;
+        // Find the REAL product slider (a container whose cards have prices),
+        // so we never grab the "Products In Motion" video section.
+        var containers = document.querySelectorAll('.product-container');
+        var container = null, grid = null;
+        for (var i = 0; i < containers.length; i++) {
+            var g = containers[i].querySelector('#productGrid') || containers[i].querySelector('.product-slider');
+            if (!g) continue;
+            var cards = Array.from(g.querySelectorAll('.product-card'));
+            if (!cards.length) continue;
+            var hasPrice = cards.some(function(c){
+                return c.querySelector('.price, .price-section, .add-cart, .add_to_cart_button, [class*="price"]');
+            });
+            if (hasPrice) { container = containers[i]; grid = g; break; }
+        }
+        if (!container || !grid) return;
 
         if (_sliderInitDone) return; // observer already attached, skip
         _sliderInitDone = true;
