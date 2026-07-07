@@ -3223,7 +3223,7 @@ add_action('wp_enqueue_scripts', function() {
 add_action('woocommerce_after_add_to_cart_button', function() {
     global $product;
     if (!$product) return;
-    $url = add_query_arg('product', $product->get_id(), home_url('/try-on-wall/'));
+    $url = add_query_arg('tow', $product->get_id(), home_url('/try-on-wall/'));
     ?>
     <a href="<?php echo esc_url($url); ?>" class="af-arw-btn">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -3781,7 +3781,7 @@ add_action('woocommerce_before_shop_loop', function() {
 add_action('woocommerce_after_shop_loop_item', function() {
     global $product;
     if (!$product) return;
-    $url = add_query_arg('product', $product->get_id(), home_url('/try-on-wall/'));
+    $url = add_query_arg('tow', $product->get_id(), home_url('/try-on-wall/'));
     echo '<a class="af-card-ar" href="'.esc_url($url).'" aria-label="Try on your wall">'
        . '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'
        . '<span>Try on Wall</span></a>';
@@ -4743,7 +4743,7 @@ add_action('template_redirect', function(){
 
       // Pre-select a product passed via ?product=<id> (from product page / cards)
       (function preselect(){
-        var m = location.search.match(/[?&]product=(\d+)/);
+        var m = location.search.match(/[?&]tow=(\d+)/);
         if(!m) return;
         var pid = m[1];
         var prod = PRODUCTS.filter(function(p){ return String(p.id)===String(pid); })[0];
