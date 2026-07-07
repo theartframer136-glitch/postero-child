@@ -4833,6 +4833,9 @@ add_action('wp_head', function() {
       .af-tow-stage{ height: 420px !important; }
       .af-footer-inner{ grid-template-columns: 1fr 1fr !important; }
       .af-listing-toolbar .af-lt-controls{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      /* Hide our floating quick-access panel on mobile — it overlaps content
+         and is redundant with the theme's bottom mobile nav + Click-to-Chat. */
+      .af-quickpanel{ display: none !important; }
     }
     /* ── Phones (≤ 480px) ── */
     @media (max-width: 480px){
@@ -4840,8 +4843,6 @@ add_action('wp_head', function() {
       .af-footer-inner{ grid-template-columns: 1fr !important; }
       .af-tow-title{ font-size: 28px !important; }
       .af-pp-sec h2, .af-hs-head h2{ font-size: 20px !important; }
-      /* Quick-access floating panel sits tighter on tiny screens */
-      .af-quickpanel{ right: 10px !important; bottom: 12px !important; }
     }
     </style>
     <?php
