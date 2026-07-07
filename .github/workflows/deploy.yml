@@ -112,6 +112,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/draft-imageless.php --allow-root 2>&1" \
             || true
 
+          echo "Enabling digital downloads (payment-gated files)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/enable-digital-downloads.php --allow-root 2>&1" \
+            || true
+
           echo "Category cards diagnostic..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

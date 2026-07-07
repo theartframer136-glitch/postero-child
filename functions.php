@@ -5050,3 +5050,33 @@ add_action('wp_footer', function() {
     </style>
     <?php
 }, 45);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 16b — Digital download is delivered ONLY after payment, and
+// ONLY for lines bought as digital. WooCommerce natively grants the
+// download on payment; here we revoke it for non-digital (physical)
+// lines so only paying digital customers can download.
+// ─────────────────────────────────────────────────────────────
+add_action('woocommerce_grant_product_download_permissions', function($order_id){
+    $order = wc_get_order($order_id);
+    if (!$order) return;
+
+    // Which products in this order were purchased AS digital?
+    $digital_pids = array();
+    foreach ($order->get_items() as $item) {
+        $is_digital = ($item->get_meta('Format') === 'Digital Download') || $item->get_meta('af_digital');
+        if ($is_digital) $digital_pids[$item->get_product_id()] = true;
+    }
+
+    // Revoke download permissions for products NOT bought as digital
+    if (!class_exists('WC_Data_Store')) return;
+    try {
+        $store = WC_Data_Store::load('customer-download');
+        $downloads = $store->get_downloads(array('order_id' => $order_id));
+        foreach ($downloads as $d) {
+            if (empty($digital_pids[$d->get_product_id()])) {
+                $store->delete_by_id($d->get_id());
+            }
+        }
+    } catch (Exception $e) { /* no-op */ }
+}, 20);
