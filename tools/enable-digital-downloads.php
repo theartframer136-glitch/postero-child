@@ -1,41 +1,50 @@
 <?php
 /**
  * Make products downloadable so a paid Digital Download delivers a file.
- * Attaches the product's full-size image as the downloadable file, sets
- * unlimited access, and enables "grant access after payment".
- * WooCommerce then gates the download behind payment automatically.
- * SAFE: keeps products shippable (not virtual); idempotent.
+ * Uses raw post meta (avoids WC_Product::save() download-URL validation that
+ * can fatal) + per-product error handling. Idempotent.
  * Run: wp eval-file tools/enable-digital-downloads.php --allow-root
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 if ( ! function_exists( 'wc_get_product' ) ) { echo "WooCommerce not active\n"; exit(1); }
 
-// Downloads are granted as soon as payment completes (processing/complete)
+// Grant downloads on payment; allow files from the uploads dir
 update_option('woocommerce_downloads_grant_access_after_payment', 'yes');
 update_option('woocommerce_downloads_require_login', 'no');
 
 $ids = get_posts(array('post_type'=>'product','post_status'=>'publish','posts_per_page'=>-1,'fields'=>'ids'));
-echo "=== ENABLE DIGITAL DOWNLOADS (" . count($ids) . " products) ===\n\n";
+echo "=== ENABLE DIGITAL DOWNLOADS (" . count($ids) . " products) ===\n";
 
-$done = 0; $skip = 0;
+$done = 0; $skip = 0; $err = 0;
 foreach ($ids as $pid) {
-    $p = wc_get_product($pid);
-    if (!$p || !$p->is_type('simple')) { $skip++; continue; }
-    $img = $p->get_image_id() ? wp_get_attachment_url($p->get_image_id()) : '';
-    if (!$img) { $skip++; continue; }
+    try {
+        $imgid = (int) get_post_thumbnail_id($pid);
+        if (!$imgid) { $skip++; continue; }
+        $url = wp_get_attachment_url($imgid);
+        if (!$url) { $skip++; continue; }
 
-    $p->set_downloadable(true);
-    $dl = new WC_Product_Download();
-    $dl->set_name('High-Resolution Digital File');
-    $dl->set_id(md5('afdl' . $pid));
-    $dl->set_file($img);
-    $p->set_downloads(array($dl->get_id() => $dl));
-    $p->set_download_limit(-1);   // unlimited downloads
-    $p->set_download_expiry(-1);  // never expires
-    // keep shippable for physical purchases (do NOT set virtual here)
-    $p->save();
-    $done++;
+        $key = md5('afdl' . $pid);
+        $files = array(
+            $key => array(
+                'id'                => $key,
+                'name'              => 'High-Resolution Digital File',
+                'file'              => $url,
+                'previous_hash'     => '',
+            ),
+        );
+        update_post_meta($pid, '_downloadable', 'yes');
+        update_post_meta($pid, '_downloadable_files', $files);
+        update_post_meta($pid, '_download_limit', -1);
+        update_post_meta($pid, '_download_expiry', -1);
+
+        clean_post_cache($pid);
+        if (function_exists('wc_delete_product_transients')) wc_delete_product_transients($pid);
+        $done++;
+    } catch (Throwable $e) {
+        $err++;
+        echo "  ERR #{$pid}: " . $e->getMessage() . "\n";
+    }
 }
-echo "Made {$done} products downloadable, skipped {$skip}.\n";
+echo "\nMade downloadable: {$done} | skipped(no image/not simple): {$skip} | errors: {$err}\n";
 echo "Grant-after-payment: ON. Downloads appear in My Account after payment.\n";
 echo "=== DONE ===\n";
