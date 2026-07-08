@@ -16,6 +16,7 @@ Usage:
 import argparse
 import base64
 import csv
+import io
 import json
 import os
 import re
@@ -24,6 +25,7 @@ from pathlib import Path
 
 import requests
 from dotenv import load_dotenv
+from PIL import Image
 
 HERE = Path(__file__).parent
 MODEL = "gemini-2.5-flash"
@@ -45,6 +47,16 @@ If the page shows no products, return []."""
 
 def norm(s):
     return re.sub(r"[^a-z0-9]", "", (s or "").lower())
+
+
+def _encode_image(img_path, max_dim=1024):
+    """Downscale to a small JPEG for the API call (far fewer tokens = faster,
+    avoids per-minute token limits). Does NOT touch the original file."""
+    im = Image.open(img_path).convert("RGB")
+    im.thumbnail((max_dim, max_dim))
+    buf = io.BytesIO()
+    im.save(buf, "JPEG", quality=80)
+    return base64.b64encode(buf.getvalue()).decode()
 
 
 def _parse_products(txt):
@@ -76,12 +88,11 @@ def _post_with_retry(url, headers, body, retries=6):
 
 
 def extract_page_gemini(api_key, img_path):
-    mime = "image/png" if img_path.suffix.lower() == ".png" else "image/jpeg"
     body = {
         "contents": [{"parts": [
             {"text": PROMPT},
-            {"inline_data": {"mime_type": mime,
-                             "data": base64.b64encode(img_path.read_bytes()).decode()}},
+            {"inline_data": {"mime_type": "image/jpeg",
+                             "data": _encode_image(img_path)}},
         ]}],
         "generationConfig": {"responseMimeType": "application/json"},
     }
@@ -91,15 +102,14 @@ def extract_page_gemini(api_key, img_path):
 
 
 def extract_page_groq(api_key, img_path):
-    mime = "image/png" if img_path.suffix.lower() == ".png" else "image/jpeg"
-    b64 = base64.b64encode(img_path.read_bytes()).decode()
+    b64 = _encode_image(img_path)
     body = {
         "model": GROQ_MODEL,
         "temperature": 0,
         "response_format": {"type": "json_object"},
         "messages": [{"role": "user", "content": [
             {"type": "text", "text": PROMPT + ' Return a JSON object: {"products": [...]}.'},
-            {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
+            {"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{b64}"}},
         ]}],
     }
     data = _post_with_retry(GROQ_URL, {"Authorization": f"Bearer {api_key}"}, body)
