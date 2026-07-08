@@ -13,12 +13,13 @@ Usage:
     #   python publish.py --gallery --csv products_extracted.csv
 """
 
+import argparse
 import base64
 import csv
 import json
 import os
 import re
-import sys
+import time
 from pathlib import Path
 
 import requests
@@ -27,6 +28,8 @@ from dotenv import load_dotenv
 HERE = Path(__file__).parent
 MODEL = "gemini-2.5-flash"
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
+STATE = HERE / "output" / "brochure_state.json"  # resume progress
+RETRY_STATUS = {429, 500, 503}
 
 PROMPT = """You are reading ONE page from a printed product catalog / brochure for
 canvas wall-art. Extract EVERY distinct product shown on this page.
@@ -41,7 +44,7 @@ def norm(s):
     return re.sub(r"[^a-z0-9]", "", (s or "").lower())
 
 
-def extract_page(api_key, img_path):
+def extract_page(api_key, img_path, retries=6):
     mime = "image/png" if img_path.suffix.lower() == ".png" else "image/jpeg"
     body = {
         "contents": [{"parts": [
@@ -51,16 +54,23 @@ def extract_page(api_key, img_path):
         ]}],
         "generationConfig": {"responseMimeType": "application/json"},
     }
-    r = requests.post(URL, headers={"x-goog-api-key": api_key,
-                                    "Content-Type": "application/json"},
-                      json=body, timeout=180)
-    r.raise_for_status()
-    txt = r.json()["candidates"][0]["content"]["parts"][0]["text"]
-    try:
-        return json.loads(txt)
-    except json.JSONDecodeError:
-        m = re.search(r"\[.*\]", txt, re.S)
-        return json.loads(m.group(0)) if m else []
+    for attempt in range(retries):
+        r = requests.post(URL, headers={"x-goog-api-key": api_key,
+                                        "Content-Type": "application/json"},
+                          json=body, timeout=180)
+        if r.status_code in RETRY_STATUS:
+            wait = 20 * (attempt + 1)  # 20s, 40s, 60s ... back off the rate limit
+            print(f"  rate-limited (HTTP {r.status_code}); waiting {wait}s ...")
+            time.sleep(wait)
+            continue
+        r.raise_for_status()
+        txt = r.json()["candidates"][0]["content"]["parts"][0]["text"]
+        try:
+            return json.loads(txt)
+        except json.JSONDecodeError:
+            m = re.search(r"\[.*\]", txt, re.S)
+            return json.loads(m.group(0)) if m else []
+    raise RuntimeError("still rate-limited after retries (free-tier daily cap?)")
 
 
 def existing_names():
@@ -70,43 +80,72 @@ def existing_names():
     return {norm(p.get("name", "")[:25]) for p in json.loads(raw.read_text(encoding="utf-8"))}
 
 
+def load_state():
+    if STATE.exists():
+        return json.loads(STATE.read_text(encoding="utf-8"))
+    return {"done": [], "products": []}
+
+
+def save_state(state):
+    STATE.parent.mkdir(exist_ok=True)
+    STATE.write_text(json.dumps(state), encoding="utf-8")
+
+
 def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("folder", help="folder of brochure page images")
+    ap.add_argument("--delay", type=float, default=4.5,
+                    help="seconds between pages (free tier ~15/min; default 4.5)")
+    args = ap.parse_args()
+
     load_dotenv(HERE / ".env")
     key = os.getenv("GEMINI_API_KEY")
     if not key:
-        sys.exit("Set GEMINI_API_KEY in .env first.")
-    if len(sys.argv) < 2:
-        sys.exit("usage: python extract_brochure.py <brochure_folder>")
-    folder = Path(sys.argv[1])
+        raise SystemExit("Set GEMINI_API_KEY in .env first.")
+    folder = Path(args.folder)
     if not folder.exists():
-        sys.exit(f"Folder not found: {folder}")
+        raise SystemExit(f"Folder not found: {folder}")
     imgs = sorted(p for p in folder.iterdir()
                   if p.suffix.lower() in (".png", ".jpg", ".jpeg", ".webp"))
     if not imgs:
-        sys.exit(f"No page images (.png/.jpg) found in {folder}")
+        raise SystemExit(f"No page images (.png/.jpg) found in {folder}")
 
-    existing = existing_names()
-    rows, seen = [], set()
-    for img in imgs:
+    state = load_state()             # resume across runs
+    done = set(state["done"])
+    products = state["products"]
+    todo = [p for p in imgs if p.name not in done]
+    print(f"{len(imgs)} pages total, {len(done)} already read, {len(todo)} to go.\n")
+
+    for img in todo:
         print(f"reading {img.name} ...")
         try:
-            products = extract_page(key, img)
+            page_products = extract_page(key, img)
         except Exception as e:
             print(f"  [warn] {img.name}: {e}")
-            continue
-        for p in products:
+            print("  Stopping — run the SAME command again later to resume where you left off.")
+            break
+        for p in page_products:
             subj = (p.get("subject") or "").strip()
-            if not subj:
-                continue
-            n = norm(subj[:25])
-            if n in existing:
-                print(f"  skip (already on store): {subj}")
-                continue
-            if n in seen:
-                continue
-            seen.add(n)
-            rows.append(p)
-            print(f"  + NEW: {subj}")
+            if subj:
+                products.append(p)
+                print(f"  + {subj}")
+        done.add(img.name)
+        state["done"], state["products"] = sorted(done), products
+        save_state(state)            # crash-safe: progress saved after each page
+        time.sleep(args.delay)
+
+    # Build the CSV from everything gathered so far, deduped against the store.
+    existing = existing_names()
+    rows, seen = [], set()
+    for p in products:
+        subj = (p.get("subject") or "").strip()
+        if not subj:
+            continue
+        n = norm(subj[:25])
+        if n in existing or n in seen:
+            continue
+        seen.add(n)
+        rows.append(p)
 
     out = HERE / "products_extracted.csv"
     with open(out, "w", newline="", encoding="utf-8") as f:
