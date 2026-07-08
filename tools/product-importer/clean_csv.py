@@ -151,16 +151,34 @@ def main():
             "sku": r.get("sku", ""),
         })
 
+    # Detect collage pages: one brochure image used by several products.
+    # Those can't give each product its own picture, so set them aside.
+    from collections import Counter
+    img_counts = Counter(p["image"] for p in cleaned)
+    unique = [p for p in cleaned if img_counts[p["image"]] == 1]
+    collage = [p for p in cleaned if img_counts[p["image"]] > 1]
+
     cols = ["subject", "size", "sizes", "style", "use_case", "categories",
             "tags", "focus_keyword", "price", "image", "sku"]
     with open(OUT, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=cols)
         w.writeheader()
-        w.writerows(cleaned)
+        w.writerows(unique)
 
-    print(f"Cleaned {len(rows)} rows -> {len(cleaned)} products "
-          f"({skipped_existing} skipped as already on store)")
+    if collage:
+        collage_path = HERE / "products_collage.csv"
+        with open(collage_path, "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, fieldnames=cols)
+            w.writeheader()
+            w.writerows(collage)
+
+    print(f"Cleaned {len(rows)} rows -> {len(unique)} products with their own image")
+    print(f"  ({skipped_existing} skipped as already on store, "
+          f"{len(collage)} set aside as collage-page products)")
     print(f"Wrote {OUT}")
+    if collage:
+        print(f"Also wrote {HERE / 'products_collage.csv'} (shared-image ones "
+              f"to handle later).")
     print("Next: python publish.py --gallery --no-ai-images --limit 3 --csv products_clean.csv")
 
 
