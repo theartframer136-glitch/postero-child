@@ -28,6 +28,9 @@ from dotenv import load_dotenv
 HERE = Path(__file__).parent
 MODEL = "gemini-2.5-flash"
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
+# Groq — free tier, no credit card, ~1000+ requests/day (fits the whole brochure).
+GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
 STATE = HERE / "output" / "brochure_state.json"  # resume progress
 RETRY_STATUS = {429, 500, 503}
 
@@ -44,7 +47,35 @@ def norm(s):
     return re.sub(r"[^a-z0-9]", "", (s or "").lower())
 
 
-def extract_page(api_key, img_path, retries=6):
+def _parse_products(txt):
+    """Accept a JSON array, or an object wrapping a products array."""
+    try:
+        data = json.loads(txt)
+    except json.JSONDecodeError:
+        m = re.search(r"\[.*\]", txt, re.S)
+        data = json.loads(m.group(0)) if m else []
+    if isinstance(data, dict):
+        for v in data.values():
+            if isinstance(v, list):
+                return v
+        return []
+    return data if isinstance(data, list) else []
+
+
+def _post_with_retry(url, headers, body, retries=6):
+    for attempt in range(retries):
+        r = requests.post(url, headers=headers, json=body, timeout=180)
+        if r.status_code in RETRY_STATUS:
+            wait = 15 * (attempt + 1)
+            print(f"  rate-limited (HTTP {r.status_code}); waiting {wait}s ...")
+            time.sleep(wait)
+            continue
+        r.raise_for_status()
+        return r.json()
+    raise RuntimeError("still rate-limited after retries")
+
+
+def extract_page_gemini(api_key, img_path):
     mime = "image/png" if img_path.suffix.lower() == ".png" else "image/jpeg"
     body = {
         "contents": [{"parts": [
@@ -54,23 +85,25 @@ def extract_page(api_key, img_path, retries=6):
         ]}],
         "generationConfig": {"responseMimeType": "application/json"},
     }
-    for attempt in range(retries):
-        r = requests.post(URL, headers={"x-goog-api-key": api_key,
-                                        "Content-Type": "application/json"},
-                          json=body, timeout=180)
-        if r.status_code in RETRY_STATUS:
-            wait = 20 * (attempt + 1)  # 20s, 40s, 60s ... back off the rate limit
-            print(f"  rate-limited (HTTP {r.status_code}); waiting {wait}s ...")
-            time.sleep(wait)
-            continue
-        r.raise_for_status()
-        txt = r.json()["candidates"][0]["content"]["parts"][0]["text"]
-        try:
-            return json.loads(txt)
-        except json.JSONDecodeError:
-            m = re.search(r"\[.*\]", txt, re.S)
-            return json.loads(m.group(0)) if m else []
-    raise RuntimeError("still rate-limited after retries (free-tier daily cap?)")
+    data = _post_with_retry(URL, {"x-goog-api-key": api_key,
+                                  "Content-Type": "application/json"}, body)
+    return _parse_products(data["candidates"][0]["content"]["parts"][0]["text"])
+
+
+def extract_page_groq(api_key, img_path):
+    mime = "image/png" if img_path.suffix.lower() == ".png" else "image/jpeg"
+    b64 = base64.b64encode(img_path.read_bytes()).decode()
+    body = {
+        "model": GROQ_MODEL,
+        "temperature": 0,
+        "response_format": {"type": "json_object"},
+        "messages": [{"role": "user", "content": [
+            {"type": "text", "text": PROMPT + ' Return a JSON object: {"products": [...]}.'},
+            {"type": "image_url", "image_url": {"url": f"data:{mime};base64,{b64}"}},
+        ]}],
+    }
+    data = _post_with_retry(GROQ_URL, {"Authorization": f"Bearer {api_key}"}, body)
+    return _parse_products(data["choices"][0]["message"]["content"])
 
 
 def existing_names():
@@ -99,9 +132,15 @@ def main():
     args = ap.parse_args()
 
     load_dotenv(HERE / ".env")
-    key = os.getenv("GEMINI_API_KEY")
-    if not key:
-        raise SystemExit("Set GEMINI_API_KEY in .env first.")
+    groq_key = os.getenv("GROQ_API_KEY")
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if groq_key:
+        provider, read = "Groq (free)", lambda img: extract_page_groq(groq_key, img)
+    elif gemini_key:
+        provider, read = "Gemini", lambda img: extract_page_gemini(gemini_key, img)
+    else:
+        raise SystemExit("Set GROQ_API_KEY (free) or GEMINI_API_KEY in .env first.")
+    print(f"Reading with: {provider}\n")
     folder = Path(args.folder)
     if not folder.exists():
         raise SystemExit(f"Folder not found: {folder}")
@@ -119,7 +158,7 @@ def main():
     for img in todo:
         print(f"reading {img.name} ...")
         try:
-            page_products = extract_page(key, img)
+            page_products = read(img)
         except Exception as e:
             print(f"  [warn] {img.name}: {e}")
             print("  Stopping — run the SAME command again later to resume where you left off.")
