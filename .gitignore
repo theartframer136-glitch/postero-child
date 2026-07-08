@@ -9,3 +9,8 @@ tools/product-importer/__pycache__/
 tools/product-importer/.venv/
 tools/product-importer/mockups.json
 tools/product-importer/templates/
+# User data (generated locally, not project code)
+tools/product-importer/products.csv
+tools/product-importer/products_extracted.csv
+tools/product-importer/products_clean.csv
+tools/product-importer/brochure_pages/
