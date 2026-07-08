@@ -164,7 +164,7 @@ def name_terms(names):
     return [{"name": n.strip()} for n in names if n.strip()]
 
 
-def assemble_images(cfg, image_list, base_name, gallery, dry_run):
+def assemble_images(cfg, image_list, base_name, gallery, dry_run, use_ai=True):
     """Build the product image list. With gallery=True, composite the FIRST
     image into framed (black/oak/white) + room mockups, upload them, and use
     them as the gallery (original art stays the featured image).
@@ -217,7 +217,7 @@ def assemble_images(cfg, image_list, base_name, gallery, dry_run):
         except Exception as e:
             print(f"  [warn] mockup API failed ({e}); trying next option.")
     # 2) AI image generation (Nano Banana / OpenAI) — save + upload.
-    if len(out) == 1 and ai_images.is_configured():
+    if len(out) == 1 and use_ai and ai_images.is_configured():
         try:
             art_bytes = Path(src).read_bytes()
             for f in ai_images.generate_gallery(art_bytes, tmp, base_name):
@@ -279,6 +279,8 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="process only first N rows")
     ap.add_argument("--gallery", action="store_true",
                     help="auto-composite the main image into framed + room mockups")
+    ap.add_argument("--no-ai-images", action="store_true",
+                    help="use the FREE compositor for images even if a Gemini key is set")
     args = ap.parse_args()
 
     cfg = load_config()
@@ -308,7 +310,8 @@ def main():
         spec = row_to_spec(row, status)
         img_list = (row.get("image", "") or "").split("|")
         images = assemble_images(
-            cfg, img_list, sku or subject.replace(" ", "-"), args.gallery, args.dry_run)
+            cfg, img_list, sku or subject.replace(" ", "-"), args.gallery, args.dry_run,
+            use_ai=not args.no_ai_images)
         if not args.dry_run:
             spec["gallery_urls"] = [im["src"] for im in images]
         payload = generator.build_product(spec)
