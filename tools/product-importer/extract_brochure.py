@@ -127,6 +127,7 @@ def main():
         for p in page_products:
             subj = (p.get("subject") or "").strip()
             if subj:
+                p["_page"] = str(img.resolve())  # the page becomes the product image
                 products.append(p)
                 print(f"  + {subj}")
         done.add(img.name)
@@ -159,8 +160,9 @@ def main():
             cats = "Digital Canvas Prints" + (f"|{cat}" if cat else "")
             price = str(p.get("price") or "").strip()
             slug = re.sub(r"[^A-Z0-9]+", "-", subj.upper()).strip("-")[:20]
+            image = p.get("_page", "")  # local page image -> product's main image
             w.writerow([subj, size, size, "Premium Digital Canvas Print", "",
-                        cats, "", subj.lower(), price, "", f"TAF-{slug}-{i:03d}"])
+                        cats, "", subj.lower(), price, image, f"TAF-{slug}-{i:03d}"])
 
     print(f"\nWrote {len(rows)} NEW products to {out}")
     print("Next steps:")
