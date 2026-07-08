@@ -139,6 +139,8 @@ def main():
     ap.add_argument("folder", help="folder of brochure page images")
     ap.add_argument("--delay", type=float, default=4.5,
                     help="seconds between pages (free tier ~15/min; default 4.5)")
+    ap.add_argument("--build-csv", action="store_true",
+                    help="skip reading; just write the CSV from pages already read")
     args = ap.parse_args()
 
     load_dotenv(HERE / ".env")
@@ -165,24 +167,28 @@ def main():
     todo = [p for p in imgs if p.name not in done]
     print(f"{len(imgs)} pages total, {len(done)} already read, {len(todo)} to go.\n")
 
-    for img in todo:
-        print(f"reading {img.name} ...")
+    if not args.build_csv:
         try:
-            page_products = read(img)
-        except Exception as e:
-            print(f"  [warn] {img.name}: {e}")
-            print("  Stopping — run the SAME command again later to resume where you left off.")
-            break
-        for p in page_products:
-            subj = (p.get("subject") or "").strip()
-            if subj:
-                p["_page"] = str(img.resolve())  # the page becomes the product image
-                products.append(p)
-                print(f"  + {subj}")
-        done.add(img.name)
-        state["done"], state["products"] = sorted(done), products
-        save_state(state)            # crash-safe: progress saved after each page
-        time.sleep(args.delay)
+            for img in todo:
+                print(f"reading {img.name} ...")
+                try:
+                    page_products = read(img)
+                except Exception as e:
+                    print(f"  [warn] {img.name}: {e}")
+                    print("  Stopping — run the SAME command again later to resume.")
+                    break
+                for p in page_products:
+                    subj = (p.get("subject") or "").strip()
+                    if subj:
+                        p["_page"] = str(img.resolve())  # page becomes the product image
+                        products.append(p)
+                        print(f"  + {subj}")
+                done.add(img.name)
+                state["done"], state["products"] = sorted(done), products
+                save_state(state)        # crash-safe: progress saved after each page
+                time.sleep(args.delay)
+        except KeyboardInterrupt:
+            print("\nInterrupted — writing the CSV from pages read so far ...")
 
     # Build the CSV from everything gathered so far, deduped against the store.
     existing = existing_names()
