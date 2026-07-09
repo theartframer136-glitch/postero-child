@@ -5185,6 +5185,7 @@ add_action('wp_footer', function() {
 // so it isn't stripped like inline <style> in page content).
 // ─────────────────────────────────────────────────────────────
 add_action('wp_head', function() {
+    return; // DISABLED: original Elementor About page restored; theme design used.
     if (!function_exists('is_page') || !is_page(array('about','about-us'))) return;
     ?>
     <style id="af-about-css">

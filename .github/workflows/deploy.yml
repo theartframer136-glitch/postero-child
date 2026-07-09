@@ -118,10 +118,10 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/enable-digital-downloads.php --allow-root 2>&1" \
             || true
 
-          echo "Updating About Us page content..."
+          echo "Restoring original theme About page (one-time)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/update-about-page.php --allow-root 2>&1" \
+             wp eval-file wp-content/themes/postero-child/tools/restore-about.php --allow-root 2>&1" \
             || true
 
           echo "Category cards diagnostic..."
