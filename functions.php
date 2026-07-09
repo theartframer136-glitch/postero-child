@@ -5257,3 +5257,33 @@ add_action('wp_head', function() {
     </style>
     <?php
 }, 100);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 19 — Fix header email/phone links (they pointed to About).
+// Email -> mailto:, Phone -> tel:. Class-agnostic (finds by text).
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function() {
+    ?>
+    <script>
+    (function(){
+      var EMAIL = 'theartframer136@gmail.com';
+      var TEL   = '+16104707280';
+      function fix(){
+        document.querySelectorAll('a').forEach(function(a){
+          var t = (a.textContent || '').replace(/\s+/g,' ').trim();
+          if (!t) return;
+          if (t.toLowerCase().indexOf(EMAIL) > -1) {
+            if (a.getAttribute('href') !== 'mailto:' + EMAIL) a.setAttribute('href', 'mailto:' + EMAIL);
+            a.removeAttribute('target');
+          } else if (/470[\s\-]?7280/.test(t)) {
+            if (a.getAttribute('href') !== 'tel:' + TEL) a.setAttribute('href', 'tel:' + TEL);
+            a.removeAttribute('target');
+          }
+        });
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fix); else fix();
+      window.addEventListener('load', function(){ fix(); setTimeout(fix,500); setTimeout(fix,1500); });
+    })();
+    </script>
+    <?php
+}, 102);
