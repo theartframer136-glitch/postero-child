@@ -5080,3 +5080,55 @@ add_action('woocommerce_grant_product_download_permissions', function($order_id)
         }
     } catch (Exception $e) { /* no-op */ }
 }, 20);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 17 — Keep the primary nav menu on ONE line (desktop only).
+// ─────────────────────────────────────────────────────────────
+add_action('wp_head', function() {
+    ?>
+    <style id="af-nav-oneline">
+    @media (min-width: 1025px){
+      /* Force the header menu row to not wrap */
+      .elementor-nav-menu,
+      ul.elementor-nav-menu,
+      .elementor-nav-menu--main > .elementor-nav-menu__container > ul,
+      .elementor-nav-menu--main ul.elementor-nav-menu,
+      nav .elementor-nav-menu,
+      .main-navigation > ul,
+      #site-navigation > ul,
+      .site-header .menu,
+      .postero-nav ul.menu {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        white-space: nowrap !important;
+        row-gap: 0 !important;
+      }
+      /* Each item stays on one line */
+      .elementor-nav-menu > li,
+      .elementor-nav-menu li.menu-item,
+      .main-navigation li,
+      .site-header .menu > li {
+        white-space: nowrap !important;
+        flex: 0 0 auto !important;
+      }
+      /* Tighten spacing + font so all items fit one row */
+      .elementor-nav-menu .elementor-item,
+      .elementor-nav-menu > li > a,
+      .main-navigation a,
+      .site-header .menu > li > a {
+        padding-left: 11px !important;
+        padding-right: 11px !important;
+        font-size: 14px !important;
+        white-space: nowrap !important;
+      }
+    }
+    @media (min-width: 1025px) and (max-width: 1200px){
+      /* Slightly smaller on narrower desktops to still fit one line */
+      .elementor-nav-menu .elementor-item,
+      .elementor-nav-menu > li > a,
+      .main-navigation a { font-size: 13px !important; padding-left: 8px !important; padding-right: 8px !important; }
+    }
+    </style>
+    <?php
+}, 100);
