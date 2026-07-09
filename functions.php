@@ -5132,3 +5132,50 @@ add_action('wp_head', function() {
     </style>
     <?php
 }, 100);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 17b — Force the primary nav onto one line via JS (finds the
+// menu by its content, so it works regardless of theme class names).
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function() {
+    ?>
+    <script>
+    (function(){
+      function fixNav(){
+        if (window.innerWidth < 1025) return; // desktop only
+        var target = null;
+        document.querySelectorAll('ul').forEach(function(ul){
+          if (target) return;
+          var t = (ul.textContent || '').toLowerCase();
+          // top-level header menu contains these items
+          if (t.indexOf('try it on your wall') > -1 && t.indexOf('categories') > -1 &&
+              t.indexOf('contact us') > -1 && ul.children.length >= 5) {
+            // prefer the shallowest matching UL (the main menu, not a wrapper)
+            target = ul;
+          }
+        });
+        if (!target) return;
+        target.style.setProperty('display','flex','important');
+        target.style.setProperty('flex-wrap','nowrap','important');
+        target.style.setProperty('align-items','center','important');
+        target.style.setProperty('white-space','nowrap','important');
+        target.style.setProperty('width','100%','important');
+        Array.from(target.children).forEach(function(li){
+          li.style.setProperty('flex','0 0 auto','important');
+          li.style.setProperty('white-space','nowrap','important');
+          var a = li.querySelector('a');
+          if (a){
+            a.style.setProperty('white-space','nowrap','important');
+            a.style.setProperty('padding-left','9px','important');
+            a.style.setProperty('padding-right','9px','important');
+            a.style.setProperty('font-size','13.5px','important');
+          }
+        });
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fixNav); else fixNav();
+      window.addEventListener('load', function(){ fixNav(); setTimeout(fixNav,400); setTimeout(fixNav,1200); });
+      window.addEventListener('resize', fixNav);
+    })();
+    </script>
+    <?php
+}, 101);
