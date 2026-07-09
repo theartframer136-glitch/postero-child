@@ -5179,3 +5179,80 @@ add_action('wp_footer', function() {
     </script>
     <?php
 }, 101);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 18 — Styling for the custom About Us page (loaded from theme
+// so it isn't stripped like inline <style> in page content).
+// ─────────────────────────────────────────────────────────────
+add_action('wp_head', function() {
+    if (!function_exists('is_page') || !is_page(array('about','about-us'))) return;
+    ?>
+    <style id="af-about-css">
+    .taf-about{max-width:1140px;margin:0 auto;padding:10px 18px 50px;color:#2a2a2a;font-family:inherit;}
+    .taf-about h1,.taf-about h2,.taf-about h3{color:#1a1a1a;}
+    /* Hero */
+    .taf-hero{position:relative;text-align:center;border-radius:22px;padding:64px 28px 58px;margin:8px 0 26px;overflow:hidden;
+      background:radial-gradient(1200px 400px at 50% -10%, #3a3320 0%, #191712 60%, #141210 100%);color:#f3eede;}
+    .taf-hero::after{content:"";position:absolute;inset:0;background:
+      repeating-linear-gradient(135deg, rgba(201,168,76,.06) 0 2px, transparent 2px 22px);pointer-events:none;}
+    .taf-eyebrow{position:relative;display:inline-block;background:rgba(201,168,76,.16);color:#e8c766;border:1px solid rgba(201,168,76,.4);
+      font-size:12px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;padding:7px 15px;border-radius:20px;margin-bottom:18px;}
+    .taf-hero h1{position:relative;font-size:52px;line-height:1.08;font-weight:800;color:#fff;margin:0 0 16px;letter-spacing:-.01em;}
+    .taf-hero h1 span{color:#c9a84c;}
+    .taf-hero p{position:relative;max-width:720px;margin:0 auto;font-size:16px;line-height:1.8;color:#d8d1bf;}
+    .taf-hero-badges{position:relative;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:24px;}
+    .taf-hero-badges span{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:#f0ead9;
+      font-size:13px;font-weight:600;padding:9px 15px;border-radius:30px;backdrop-filter:blur(4px);}
+    /* Stats */
+    .taf-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin:0 0 40px;}
+    .taf-stat{background:#faf7ef;border:1px solid #ece4cf;border-radius:14px;padding:22px 14px;text-align:center;}
+    .taf-stat strong{display:block;font-size:30px;font-weight:800;color:#c9a84c;line-height:1;}
+    .taf-stat span{display:block;margin-top:7px;font-size:12.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#6b6250;}
+    /* Blocks */
+    .taf-block{margin:0 0 44px;}
+    .taf-block-head{margin:0 0 18px;}
+    .taf-block-head h2{font-size:30px;font-weight:800;margin:0 0 10px;}
+    .taf-rule{width:64px;height:4px;border-radius:3px;background:linear-gradient(90deg,#c9a84c,#e8c766);}
+    .taf-story p, .taf-block > p{font-size:15.5px;line-height:1.85;color:#444;max-width:900px;}
+    /* Offer cards */
+    .taf-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+    .taf-card{background:#fff;border:1px solid #ececec;border-radius:16px;padding:24px 20px;transition:box-shadow .25s,transform .25s,border-color .25s;}
+    .taf-card:hover{box-shadow:0 14px 34px rgba(0,0,0,.10);transform:translateY(-4px);border-color:#e6d9b5;}
+    .taf-ico{width:52px;height:52px;border-radius:13px;background:#faf2df;display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:14px;}
+    .taf-card h3{font-size:17px;font-weight:800;margin:0 0 8px;}
+    .taf-card p{font-size:13.5px;line-height:1.65;color:#5a5a5a;margin:0;}
+    /* Why-choose list */
+    .taf-list{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:14px 30px;}
+    .taf-list li{position:relative;padding:14px 16px 14px 46px;background:#faf7ef;border:1px solid #efe8d6;border-radius:12px;font-size:14.5px;line-height:1.55;color:#444;}
+    .taf-list li strong{color:#1a1a1a;}
+    .taf-list li::before{content:"✓";position:absolute;left:16px;top:14px;width:20px;height:20px;background:#c9a84c;color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;}
+    /* Mission */
+    .taf-mission{position:relative;text-align:center;border-radius:20px;padding:46px 28px;margin:0 0 40px;overflow:hidden;
+      background:radial-gradient(900px 300px at 50% 0%, #2a2416 0%, #17150f 70%);}
+    .taf-mission h2{color:#fff;font-size:28px;margin:0 0 12px;}
+    .taf-mission p{color:#e8e2cf;font-size:18px;line-height:1.7;max-width:740px;margin:0 auto;font-style:italic;}
+    /* CTA */
+    .taf-cta{text-align:center;background:#faf7ef;border:1px solid #ece4cf;border-radius:20px;padding:40px 26px;}
+    .taf-cta h2{font-size:26px;margin:0 0 20px;}
+    .taf-cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+    .taf-btn-gold,.taf-btn-dark{display:inline-block;padding:14px 30px;border-radius:10px;font-weight:800;font-size:14.5px;text-decoration:none;transition:background .2s,transform .2s;}
+    .taf-btn-gold{background:#c9a84c;color:#fff;}
+    .taf-btn-gold:hover{background:#a8872e;transform:translateY(-1px);}
+    .taf-btn-dark{background:#1a1a1a;color:#fff;}
+    .taf-btn-dark:hover{background:#333;transform:translateY(-1px);}
+    .taf-contact{margin-top:22px;font-size:13.5px;color:#666;}
+    .taf-contact a{color:#a8872e;text-decoration:none;}
+    @media(max-width:900px){
+      .taf-hero h1{font-size:38px;}
+      .taf-grid{grid-template-columns:1fr 1fr;}
+      .taf-stats{grid-template-columns:repeat(2,1fr);}
+      .taf-list{grid-template-columns:1fr;}
+    }
+    @media(max-width:540px){
+      .taf-hero{padding:44px 20px;}
+      .taf-hero h1{font-size:30px;}
+      .taf-grid{grid-template-columns:1fr;}
+    }
+    </style>
+    <?php
+}, 100);
