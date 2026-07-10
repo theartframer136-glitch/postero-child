@@ -142,6 +142,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/diag-footer.php --allow-root 2>&1" \
             || true
 
+          echo "Assigning products to deity subcategories..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/assign-deity-categories.php --allow-root 2>&1" \
+            || true
+
           echo "Category DOM diagnostic (rendered HTML from server)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
