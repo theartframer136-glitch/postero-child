@@ -857,6 +857,14 @@ add_action('wp_footer', function() { ?>
 
     var _sliderInitDone = false;
     function init() {
+        // ONLY run on the homepage "Shop by Collection". On shop/category/tag
+        // archives the theme renders its own full grid — never hijack it, or
+        // products vanish after load.
+        var b = document.body;
+        var isHome = b && (b.classList.contains('af-front-page') || b.classList.contains('home') || b.classList.contains('front-page'));
+        var isArchive = b && (b.classList.contains('archive') || b.classList.contains('tax-product_cat') || b.classList.contains('post-type-archive-product') || b.classList.contains('woocommerce-shop') || b.classList.contains('search'));
+        if (!isHome || isArchive) return;
+
         // Find the REAL product slider (a container whose cards have prices),
         // so we never grab the "Products In Motion" video section.
         var containers = document.querySelectorAll('.product-container');
@@ -918,6 +926,18 @@ add_action('wp_footer', function() { ?>
         init();
         setTimeout(init, 500);
     });
+
+    // Safety net: never leave a product grid hidden unless a slider shell is
+    // actually showing its cards. Guarantees products stay visible everywhere.
+    function ensureProductsVisible(){
+        document.querySelectorAll('.af-grid-hidden').forEach(function(grid){
+            if (!grid.querySelector('.product-card')) return;
+            var shell = grid.parentNode ? grid.parentNode.querySelector('.af-shell') : null;
+            var shellCards = shell ? shell.querySelectorAll('.product-card').length : 0;
+            if (shellCards === 0) grid.classList.remove('af-grid-hidden');
+        });
+    }
+    setInterval(ensureProductsVisible, 700);
 }());
 </script>
 <?php }, 10000);
