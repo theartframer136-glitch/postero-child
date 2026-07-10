@@ -857,9 +857,12 @@ add_action('wp_footer', function() { ?>
 
     var _sliderInitDone = false;
     function init() {
-        // ONLY run on the homepage "Shop by Collection". On shop/category/tag
-        // archives the theme renders its own full grid — never hijack it, or
-        // products vanish after load.
+        // DISABLED: the custom slider transformation (hiding the grid + building
+        // a shell) was fragile and could leave products hidden after a category
+        // switch. The theme renders its own product grid reliably, so we no
+        // longer transform it. Kept below for reference; returns immediately.
+        return;
+        // eslint-disable-next-line no-unreachable
         var b = document.body;
         var isHome = b && (b.classList.contains('af-front-page') || b.classList.contains('home') || b.classList.contains('front-page'));
         var isArchive = b && (b.classList.contains('archive') || b.classList.contains('tax-product_cat') || b.classList.contains('post-type-archive-product') || b.classList.contains('woocommerce-shop') || b.classList.contains('search'));
