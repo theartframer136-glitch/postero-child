@@ -154,6 +154,14 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/diag-cat-dom.php --allow-root 2>&1" \
             || true
 
+          echo "Disabling LiteSpeed image lazy-load (source of vanishing images)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp litespeed-option set media-lazy false --allow-root 2>&1; \
+             wp litespeed-option set media-iframe_lazy false --allow-root 2>&1; \
+             wp litespeed-option get media-lazy --allow-root 2>&1" \
+            || true
+
           echo "Clearing caches after all updates..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

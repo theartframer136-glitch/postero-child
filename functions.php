@@ -4876,8 +4876,12 @@ add_action('wp_head', function() {
 // PHASE 15 — Fix blank product cards on shop/category: force any
 // lazy-loaded images (LiteSpeed/Elementor/native) to load. Their
 // data is valid; the lazy placeholder just never swapped in.
+// DISABLED: LiteSpeed lazy-load is now turned off at the source
+// (media-lazy=false), so this JS patch is unnecessary and could
+// conflict with other image scripts.
 // ─────────────────────────────────────────────────────────────
 add_action('wp_footer', function() {
+    return; // DISABLED — lazy-load off at source
     if (!function_exists('is_shop')) return;
     if (!(is_shop() || is_product_category() || is_product_tag())) return;
     ?>
