@@ -114,8 +114,8 @@ def main():
     with open(SRC, newline="", encoding="utf-8-sig") as f:
         rows = list(csv.DictReader(f))
 
-    existing = existing_store_names()
-    cleaned, seen, skipped_existing = [], set(), 0
+    existing = set(existing_store_names())   # exact normalized names on the store
+    cleaned, seen, name_counts, skipped_existing = [], set(), {}, 0
     for r in rows:
         subj_raw = (r.get("subject") or "").strip()
         if not subj_raw or subj_raw.lower() in FRAME_NAMES:
@@ -123,22 +123,33 @@ def main():
         if Path(r.get("image", "")).name == "191.jpg":  # frame-options page
             continue
         name = clean_name(subj_raw)
-        key = re.sub(r"[^a-z0-9]", "", name.lower())
-        if key in seen:
+        base = re.sub(r"[^a-z0-9]", "", name.lower())
+        m = re.search(r"([0-9]+)\.[a-zA-Z]+$", r.get("image", ""))  # page number in path
+        page = m.group(1) if m else None
+
+        # Merge only TRUE duplicates (same name AND same brochure page). Different
+        # pages with the same name are DIFFERENT artworks -> keep them all.
+        dkey = f"{base}|{page or id(r)}"
+        if dkey in seen:
             continue
-        # Skip if this product already exists on the store (name contained in a
-        # live product title). Min length avoids over-matching short generic words.
-        if len(key) >= 6 and any(key in e for e in existing):
+        seen.add(dkey)
+
+        # Only skip when the FULL name exactly matches a live product (generic
+        # names like 'Radha Krishna' won't over-match your existing variants).
+        if base in existing:
             skipped_existing += 1
-            print(f"  skip (already on store): {name}")
             continue
-        seen.add(key)
+
+        # Number repeats so distinct same-name artworks stay separate products.
+        n = name_counts.get(base, 0) + 1
+        name_counts[base] = n
+        display = name if n == 1 else f"{name} {n}"
 
         sizes = normalize_sizes(r.get("sizes") or r.get("size") or "")
         cat = category_for(name)
         cats = "Digital Canvas Prints" + (f"|{cat}" if cat else "")
         cleaned.append({
-            "subject": name,
+            "subject": display,
             "size": sizes[0],
             "sizes": "|".join(sizes),
             "style": "Premium Digital Canvas Print",
