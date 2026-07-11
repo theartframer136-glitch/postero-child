@@ -124,6 +124,18 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/restore-about.php --allow-root 2>&1" \
             || true
 
+          echo "Applying real Art Framer content to theme About page..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/about-real-content.php --allow-root 2>&1" \
+            || true
+
+          echo "Stripping broken images from product descriptions..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/fix-broken-content.php --allow-root 2>&1" \
+            || true
+
           echo "Category cards diagnostic..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

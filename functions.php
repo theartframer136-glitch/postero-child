@@ -5314,3 +5314,121 @@ add_action('wp_footer', function() {
     </script>
     <?php
 }, 102);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 20 — Fixes for issues reported in the site review PDF.
+// All additive & scoped; existing section styles/logic untouched.
+// ─────────────────────────────────────────────────────────────
+
+// 20a. Related products: drop any product with no real featured image so the
+//      blank "Posters" card (and similar) never appears in the row.
+add_filter('woocommerce_related_products', function($related) {
+    if (empty($related) || !is_array($related)) return $related;
+    $out = array();
+    foreach ($related as $pid) {
+        if (!has_post_thumbnail($pid)) continue;            // no image set at all
+        $tid = get_post_thumbnail_id($pid);
+        $file = $tid ? get_attached_file($tid) : '';
+        if ($file && !@file_exists($file)) continue;        // image record exists but file missing
+        $out[] = $pid;
+    }
+    return $out ?: $related; // never return empty (WooCommerce would query fresh)
+}, 20);
+
+// 20b. Cart page: auto-recalculate totals when the quantity changes (theme
+//      +/- buttons and manual edits), so the "Cart totals" box stays in sync
+//      without the shopper having to click "Update cart".
+add_action('wp_footer', function() {
+    if (!function_exists('is_cart') || !is_cart()) return;
+    ?>
+    <script>
+    (function(){
+      if (typeof jQuery === 'undefined') return;
+      var $ = jQuery, timer = null;
+      function triggerUpdate(){
+        var $btn = $('.woocommerce-cart-form [name="update_cart"], .woocommerce [name="update_cart"]');
+        if (!$btn.length) return;
+        $btn.prop('disabled', false).trigger('click');
+      }
+      function schedule(){
+        clearTimeout(timer);
+        timer = setTimeout(triggerUpdate, 700); // debounce rapid +/- clicks
+      }
+      // Manual edits / native change
+      $(document.body).on('change', '.woocommerce-cart-form input.qty', schedule);
+      // Theme +/- stepper buttons change the value programmatically — poll after click
+      $(document.body).on('click', '.woocommerce-cart-form .quantity button, .woocommerce-cart-form .quantity .plus, .woocommerce-cart-form .quantity .minus, .woocommerce-cart-form .quantity a', function(){
+        schedule();
+      });
+    })();
+    </script>
+    <?php
+}, 103);
+
+// 20c. Cart page: align the coupon field, Apply/Update buttons and the
+//      "Cart totals" box. Layout only — does not alter theme colours.
+add_action('wp_head', function() {
+    if (!function_exists('is_cart') || !is_cart()) return;
+    ?>
+    <style>
+    .woocommerce-cart .woocommerce-cart-form .actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;}
+    .woocommerce-cart .woocommerce-cart-form .actions .coupon{display:flex;align-items:center;gap:10px;margin:0;flex:1 1 auto;}
+    .woocommerce-cart .woocommerce-cart-form .actions .coupon .input-text{width:auto;min-width:180px;flex:0 1 240px;margin:0;}
+    .woocommerce-cart .woocommerce-cart-form .actions .coupon .button,
+    .woocommerce-cart .woocommerce-cart-form .actions > .button{margin:0;white-space:nowrap;}
+    .woocommerce-cart .woocommerce-cart-form .actions > .button[name="update_cart"]{margin-left:auto;}
+    @media(max-width:600px){
+      .woocommerce-cart .woocommerce-cart-form .actions{flex-direction:column;align-items:stretch;}
+      .woocommerce-cart .woocommerce-cart-form .actions .coupon{flex-direction:column;align-items:stretch;}
+      .woocommerce-cart .woocommerce-cart-form .actions .coupon .input-text{min-width:0;flex:none;}
+      .woocommerce-cart .woocommerce-cart-form .actions > .button[name="update_cart"]{margin-left:0;}
+    }
+    </style>
+    <?php
+}, 20);
+
+// 20d. Front page: make banner/landing carousel arrows work and give the
+//      "Explore Now" popup button a destination if its link is empty.
+add_action('wp_footer', function() {
+    if (!function_exists('is_front_page') || !is_front_page()) return;
+    ?>
+    <script>
+    (function(){
+      function findSwiper(arrow){
+        var node = arrow;
+        for (var i=0; i<8 && node; i++){ if (node.swiper) return node.swiper; node = node.parentElement; }
+        var cont = arrow.closest('.elementor-widget-slides, .elementor-widget-media-carousel, .swiper, .swiper-container, .elementor-main-swiper');
+        if (cont){
+          var sw = cont.querySelector('.swiper, .swiper-container');
+          if (sw && sw.swiper) return sw.swiper;
+          if (cont.swiper) return cont.swiper;
+        }
+        return null;
+      }
+      function bindArrows(){
+        document.querySelectorAll('.elementor-swiper-button-next, .swiper-button-next, .elementor-swiper-button-prev, .swiper-button-prev').forEach(function(a){
+          if (a.getAttribute('data-af-bound')) return;
+          a.setAttribute('data-af-bound','1');
+          a.addEventListener('click', function(){
+            var sw = findSwiper(a);
+            if (!sw) return;
+            if (a.className.indexOf('prev') > -1) sw.slidePrev(); else sw.slideNext();
+          });
+        });
+      }
+      function fixExploreBtn(){
+        var links = document.querySelectorAll('a.elementor-button, .elementor-popup-modal a, a');
+        links.forEach(function(a){
+          var t = (a.textContent||'').replace(/\s+/g,' ').trim().toLowerCase();
+          if (t !== 'explore now') return;
+          var href = a.getAttribute('href');
+          if (!href || href === '#' || href === '') a.setAttribute('href', '/shop/');
+        });
+      }
+      function run(){ bindArrows(); fixExploreBtn(); }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+      window.addEventListener('load', function(){ run(); setTimeout(run, 800); setTimeout(run, 2000); });
+    })();
+    </script>
+    <?php
+}, 104);
