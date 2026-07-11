@@ -5371,6 +5371,31 @@ add_action('wp_head', function() {
     if (!function_exists('is_cart') || !is_cart()) return;
     ?>
     <style>
+    /* Cart table: proper column proportions so the product name doesn't wrap
+       one letter per line. Widths are hints; browser auto-sizes the rest. */
+    .woocommerce-cart table.cart,
+    .woocommerce-cart table.shop_table{table-layout:auto;width:100%;}
+    .woocommerce-cart table.cart td,
+    .woocommerce-cart table.cart th{vertical-align:middle;}
+    .woocommerce-cart table.cart td.product-remove,
+    .woocommerce-cart table.cart th.product-remove{width:36px;text-align:center;padding-left:6px;padding-right:6px;}
+    .woocommerce-cart table.cart td.product-thumbnail,
+    .woocommerce-cart table.cart th.product-thumbnail{width:96px;}
+    .woocommerce-cart table.cart td.product-thumbnail img{width:80px;height:auto;max-width:none;border-radius:6px;}
+    .woocommerce-cart table.cart td.product-name,
+    .woocommerce-cart table.cart th.product-name{width:auto;min-width:240px;text-align:left;white-space:normal;word-break:normal;overflow-wrap:normal;line-height:1.4;}
+    .woocommerce-cart table.cart td.product-name a{word-break:normal;overflow-wrap:anywhere;}
+    .woocommerce-cart table.cart td.product-price,
+    .woocommerce-cart table.cart th.product-price,
+    .woocommerce-cart table.cart td.product-subtotal,
+    .woocommerce-cart table.cart th.product-subtotal{width:110px;white-space:nowrap;text-align:center;}
+    .woocommerce-cart table.cart td.product-quantity,
+    .woocommerce-cart table.cart th.product-quantity{width:130px;text-align:center;}
+    .woocommerce-cart table.cart td.product-quantity .quantity{display:inline-flex;align-items:center;}
+    @media(max-width:782px){
+      .woocommerce-cart table.cart td.product-name{min-width:0;}
+      .woocommerce-cart table.cart td.product-thumbnail img{width:64px;}
+    }
     .woocommerce-cart .woocommerce-cart-form .actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;}
     .woocommerce-cart .woocommerce-cart-form .actions .coupon{display:flex;align-items:center;gap:10px;margin:0;flex:1 1 auto;}
     .woocommerce-cart .woocommerce-cart-form .actions .coupon .input-text{width:auto;min-width:180px;flex:0 1 240px;margin:0;}
