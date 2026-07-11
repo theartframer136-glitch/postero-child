@@ -5371,6 +5371,13 @@ add_action('wp_head', function() {
     if (!function_exists('is_cart') || !is_cart()) return;
     ?>
     <style>
+    /* Two-column cart: the "Cart totals" box floats on the right, so give the
+       product table (left column) a defined width so it has room for the
+       product name AND never runs under the totals box. Cross-sells untouched. */
+    @media(min-width:981px){
+      .woocommerce-cart .woocommerce-cart-form{width:62% !important;float:left !important;box-sizing:border-box !important;}
+    }
+    .woocommerce-cart .cross-sells{clear:both;}
     /* Cart table: proper column proportions so the product name doesn't wrap
        one letter per line. Widths are hints; browser auto-sizes the rest. */
     .woocommerce-cart table.cart,
