@@ -37,24 +37,25 @@ def download_store_images():
         raise SystemExit(f"{RAW} not found — run analyze_products.py first.")
     CACHE.mkdir(parents=True, exist_ok=True)
     products = json.loads(RAW.read_text(encoding="utf-8"))
-    entries = []  # (product_name, local_path)
+    entries = []  # (product_name, [local_paths])
     for p in products:
-        imgs = p.get("images") or []
-        if not imgs:
-            continue
-        url = imgs[0].get("src")
-        if not url:
-            continue
-        dest = CACHE / f"{p.get('id')}{Path(url).suffix or '.jpg'}"
-        if not dest.exists():
-            try:
-                r = requests.get(url, timeout=60)
-                r.raise_for_status()
-                dest.write_bytes(r.content)
-            except Exception as e:
-                print(f"  [warn] could not fetch {url}: {e}")
+        paths = []
+        for j, im in enumerate(p.get("images") or []):
+            url = im.get("src")
+            if not url:
                 continue
-        entries.append((p.get("name", ""), dest))
+            dest = CACHE / f"{p.get('id')}_{j}{Path(url).suffix or '.jpg'}"
+            if not dest.exists():
+                try:
+                    r = requests.get(url, timeout=60)
+                    r.raise_for_status()
+                    dest.write_bytes(r.content)
+                except Exception as e:
+                    print(f"  [warn] could not fetch {url}: {e}")
+                    continue
+            paths.append(dest)
+        if paths:
+            entries.append((p.get("name", ""), paths))
     return entries
 
 
@@ -69,8 +70,8 @@ def main():
 
     print("Downloading existing store product images (one-time cache) ...")
     store = download_store_images()
-    print(f"Comparing against {len(store)} live products.\n")
-    store_feat = [(name, features(path)) for name, path in store]
+    print(f"Comparing against {len(store)} live products (all their images).\n")
+    store_feat = [(name, [features(p) for p in paths]) for name, paths in store]
 
     with open(SRC, newline="", encoding="utf-8-sig") as f:
         rows = list(csv.DictReader(f))
@@ -80,10 +81,11 @@ def main():
         main = (r.get("image", "").split("|") or [""])[0]
         md = features(Path(main)) if main else None
         best_n, best_name = 0, ""
-        for name, sf in store_feat:
-            n = good_matches(md, sf)
-            if n > best_n:
-                best_n, best_name = n, name
+        for name, feats in store_feat:
+            for sf in feats:
+                n = good_matches(md, sf)
+                if n > best_n:
+                    best_n, best_name = n, name
         if best_n >= args.min_matches:
             dropped += 1
             lines.append(f"[ALREADY ON STORE {best_n}] {r['subject']}  ~ {best_name}")
