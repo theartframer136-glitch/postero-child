@@ -45,6 +45,23 @@ def tokens(s):
     return {t for t in re.split(r"[^a-z0-9]+", s.lower()) if t and t not in STOPWORDS}
 
 
+def leading_num(stem):
+    m = re.match(r"(\d+)", stem.strip())
+    return m.group(1) if m else None
+
+
+def build_num_index(files):
+    """Map a leading page number -> list of files (e.g. '103' -> [103.jpg, 103-1.jpg])."""
+    idx = {}
+    for f in files:
+        n = leading_num(f.stem)
+        if n:
+            idx.setdefault(n, []).append(f)
+    for n in idx:
+        idx[n].sort(key=lambda p: p.stem)
+    return idx
+
+
 def list_images(folder, recursive=False):
     if not folder.exists():
         return []
@@ -101,6 +118,8 @@ def main():
                 seen.add(f.resolve())
                 main_files.append(f)
     gallery_files = list_images(GALLERY_DIR, recursive=True)
+    gallery_by_num = build_num_index(gallery_files)   # '103' -> [103.jpg, ...]
+    main_by_num = build_num_index(main_files)          # if main images are numbered too
 
     print(f"Found {len(main_files)} main images, {len(gallery_files)} gallery images.")
     if not main_files:
@@ -113,20 +132,34 @@ def main():
     matched, unmatched, lines = [], [], []
     for i, r in enumerate(rows, 1):
         subject = r["subject"]
-        avail = [f for f in main_files if f not in used_mains]
-        s, main = best_match(subject, avail)
-        gal = gallery_for(main, subject, gallery_files) if main else []
-        if main:
-            used_mains.add(main)
-            images = [str(main)] + [str(g) for g in gal]
+        page = leading_num(Path(r.get("image", "")).stem)  # brochure page number
+
+        # Gallery = same-numbered file(s) in Gallary Pic (reliable page-number link).
+        gal = list(gallery_by_num.get(page, [])) if page else []
+
+        # Main image: prefer same page number; else fall back to name matching.
+        main, s = None, 0.0
+        if page and main_by_num.get(page):
+            main = main_by_num[page][0]
+            s = 1.0
+        else:
+            avail = [f for f in main_files if f not in used_mains]
+            s, main = best_match(subject, avail)
+
+        if main or gal:
+            if main:
+                used_mains.add(main)
+            first = [str(main)] if main else []
+            images = first + [str(g) for g in gal if g != main]
             r["image"] = "|".join(images)
             r["sku"] = f"TAF-{re.sub(r'[^A-Z0-9]+', '-', subject.upper()).strip('-')[:18]}-N{i:03d}"
             matched.append(r)
-            lines.append(f"[OK {s:.2f}] {subject}\n    main: {main.name}\n"
+            lines.append(f"[OK {s:.2f}] {subject}  (page {page})\n"
+                         f"    main: {main.name if main else '-'}\n"
                          f"    gallery ({len(gal)}): {', '.join(g.name for g in gal) or '-'}")
         else:
             unmatched.append(r)
-            lines.append(f"[NO MATCH {s:.2f}] {subject}  (kept brochure page as image)")
+            lines.append(f"[NO MATCH] {subject}  (page {page})")
 
     cols = list(rows[0].keys())
     with open(OUT, "w", newline="", encoding="utf-8") as f:
