@@ -70,9 +70,22 @@ def best_match(subject, files, threshold=0.55):
     return (scored[0][0] if scored else 0.0), None
 
 
-def gallery_matches(subject, files, threshold=0.5, cap=6):
-    scored = sorted(((score(subject, f.stem), f) for f in files), reverse=True,
-                    key=lambda x: x[0])
+def gallery_for(main_file, subject, files, threshold=0.45, cap=8):
+    """Gallery images that belong to this product — matched primarily against the
+    MAIN image's filename (user: 'according to the main image'), then the product
+    name, and boosted when the file sits in a folder named like the product/main."""
+    key = main_file.stem if main_file else subject
+    scored = []
+    for f in files:
+        if main_file and f.resolve() == main_file.resolve():
+            continue  # don't repeat the main image
+        s = max(score(key, f.stem), score(subject, f.stem))
+        parent = norm(f.parent.name)
+        if parent and (parent in norm(key) or norm(key) in parent
+                       or parent in norm(subject) or norm(subject) in parent):
+            s = max(s, 0.9)  # same sub-folder as the product
+        scored.append((s, f))
+    scored.sort(reverse=True, key=lambda x: x[0])
     return [f for s, f in scored[:cap] if s >= threshold]
 
 
@@ -102,7 +115,7 @@ def main():
         subject = r["subject"]
         avail = [f for f in main_files if f not in used_mains]
         s, main = best_match(subject, avail)
-        gal = gallery_matches(subject, gallery_files)
+        gal = gallery_for(main, subject, gallery_files) if main else []
         if main:
             used_mains.add(main)
             images = [str(main)] + [str(g) for g in gal]
