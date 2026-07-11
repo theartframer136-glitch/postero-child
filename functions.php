@@ -5396,6 +5396,19 @@ add_action('wp_head', function() {
       .woocommerce-cart table.cart td.product-name{min-width:0;}
       .woocommerce-cart table.cart td.product-thumbnail img{width:64px;}
     }
+    /* Cart cross-sells ("You may be interested in…"): kill the grey gap under
+       each image. The image link reserves a tall aspect box while the landscape
+       image only fills the top — collapse the box and let the image fill it. */
+    .woocommerce-cart .cross-sells ul.products li.product a:has(img){
+      display:block !important;height:auto !important;min-height:0 !important;
+      padding-bottom:0 !important;aspect-ratio:4/3 !important;overflow:hidden !important;
+      background:#f4f4f4 !important;position:relative !important;
+    }
+    .woocommerce-cart .cross-sells ul.products li.product a:has(img) img{
+      position:absolute !important;inset:0 !important;
+      width:100% !important;height:100% !important;
+      object-fit:cover !important;display:block !important;max-width:none !important;
+    }
     .woocommerce-cart .woocommerce-cart-form .actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;}
     .woocommerce-cart .woocommerce-cart-form .actions .coupon{display:flex;align-items:center;gap:10px;margin:0;flex:1 1 auto;}
     .woocommerce-cart .woocommerce-cart-form .actions .coupon .input-text{width:auto;min-width:180px;flex:0 1 240px;margin:0;}
