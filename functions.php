@@ -5365,72 +5365,9 @@ add_action('wp_footer', function() {
     <?php
 }, 103);
 
-// 20c. Cart page: align the coupon field, Apply/Update buttons and the
-//      "Cart totals" box. Layout only — does not alter theme colours.
-add_action('wp_head', function() {
-    if (!function_exists('is_cart') || !is_cart()) return;
-    ?>
-    <style>
-    /* Two-column cart: the "Cart totals" box floats on the right, so give the
-       product table (left column) a defined width so it has room for the
-       product name AND never runs under the totals box. Cross-sells untouched. */
-    @media(min-width:981px){
-      .woocommerce-cart .woocommerce-cart-form{width:62% !important;float:left !important;box-sizing:border-box !important;}
-    }
-    .woocommerce-cart .cross-sells{clear:both;}
-    /* Cart table: proper column proportions so the product name doesn't wrap
-       one letter per line. Widths are hints; browser auto-sizes the rest. */
-    .woocommerce-cart table.cart,
-    .woocommerce-cart table.shop_table{table-layout:auto;width:100%;}
-    .woocommerce-cart table.cart td,
-    .woocommerce-cart table.cart th{vertical-align:middle;}
-    .woocommerce-cart table.cart td.product-remove,
-    .woocommerce-cart table.cart th.product-remove{width:36px;text-align:center;padding-left:6px;padding-right:6px;}
-    .woocommerce-cart table.cart td.product-thumbnail,
-    .woocommerce-cart table.cart th.product-thumbnail{width:96px;}
-    .woocommerce-cart table.cart td.product-thumbnail img{width:80px;height:auto;max-width:none;border-radius:6px;}
-    .woocommerce-cart table.cart td.product-name,
-    .woocommerce-cart table.cart th.product-name{width:auto;min-width:240px;text-align:left;white-space:normal;word-break:normal;overflow-wrap:normal;line-height:1.4;}
-    .woocommerce-cart table.cart td.product-name a{word-break:normal;overflow-wrap:anywhere;}
-    .woocommerce-cart table.cart td.product-price,
-    .woocommerce-cart table.cart th.product-price,
-    .woocommerce-cart table.cart td.product-subtotal,
-    .woocommerce-cart table.cart th.product-subtotal{width:110px;white-space:nowrap;text-align:center;}
-    .woocommerce-cart table.cart td.product-quantity,
-    .woocommerce-cart table.cart th.product-quantity{width:130px;text-align:center;}
-    .woocommerce-cart table.cart td.product-quantity .quantity{display:inline-flex;align-items:center;}
-    @media(max-width:782px){
-      .woocommerce-cart table.cart td.product-name{min-width:0;}
-      .woocommerce-cart table.cart td.product-thumbnail img{width:64px;}
-    }
-    /* Cart cross-sells ("You may be interested in…"): kill the grey gap under
-       each image. The image link reserves a tall aspect box while the landscape
-       image only fills the top — collapse the box and let the image fill it. */
-    .woocommerce-cart .cross-sells ul.products li.product a:has(img){
-      display:block !important;height:auto !important;min-height:0 !important;
-      padding-bottom:0 !important;aspect-ratio:4/3 !important;overflow:hidden !important;
-      background:#f4f4f4 !important;position:relative !important;
-    }
-    .woocommerce-cart .cross-sells ul.products li.product a:has(img) img{
-      position:absolute !important;inset:0 !important;
-      width:100% !important;height:100% !important;
-      object-fit:cover !important;display:block !important;max-width:none !important;
-    }
-    .woocommerce-cart .woocommerce-cart-form .actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;}
-    .woocommerce-cart .woocommerce-cart-form .actions .coupon{display:flex;align-items:center;gap:10px;margin:0;flex:1 1 auto;}
-    .woocommerce-cart .woocommerce-cart-form .actions .coupon .input-text{width:auto;min-width:180px;flex:0 1 240px;margin:0;}
-    .woocommerce-cart .woocommerce-cart-form .actions .coupon .button,
-    .woocommerce-cart .woocommerce-cart-form .actions > .button{margin:0;white-space:nowrap;}
-    .woocommerce-cart .woocommerce-cart-form .actions > .button[name="update_cart"]{margin-left:auto;}
-    @media(max-width:600px){
-      .woocommerce-cart .woocommerce-cart-form .actions{flex-direction:column;align-items:stretch;}
-      .woocommerce-cart .woocommerce-cart-form .actions .coupon{flex-direction:column;align-items:stretch;}
-      .woocommerce-cart .woocommerce-cart-form .actions .coupon .input-text{min-width:0;flex:none;}
-      .woocommerce-cart .woocommerce-cart-form .actions > .button[name="update_cart"]{margin-left:0;}
-    }
-    </style>
-    <?php
-}, 20);
+// 20c. (Removed) Cart page CSS overrides — reverted to the theme's native cart
+//      styling per request. Only the quantity auto-update behaviour (20b) and
+//      the theme's own layout remain.
 
 // 20d. Front page: make banner/landing carousel arrows work and give the
 //      "Explore Now" popup button a destination if its link is empty.
