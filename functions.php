@@ -3270,10 +3270,12 @@ add_action('wp_footer', function() {
 // "Try It On Your Wall" — upload-photo AR mockup (no plugin, no cost)
 // ─────────────────────────────────────────────────────────────
 
-// Try-On-Wall CSS on product pages (button styling only; modal disabled)
+// Try-On-Wall CSS — loaded site-wide (not just product pages) so the button
+// is styled inside the Quick View modal too (Quick View is injected on the
+// homepage/shop where is_product() is false). The CSS is fully class-scoped
+// (.af-arw-*), so it has no effect on any other markup.
 add_action('wp_enqueue_scripts', function() {
-    if (!function_exists('is_product') || !is_product()) return;
-    wp_enqueue_style('af-ar-wall', get_stylesheet_directory_uri() . '/assets/css/ar-wall.css', array(), '1.1.0');
+    wp_enqueue_style('af-ar-wall', get_stylesheet_directory_uri() . '/assets/css/ar-wall.css', array(), '1.2.0');
 }, 25);
 
 // "Try It On Your Wall" button under Add to Cart — now LINKS to the full
@@ -3284,7 +3286,7 @@ add_action('woocommerce_after_add_to_cart_button', function() {
     $url = add_query_arg('tow', $product->get_id(), home_url('/try-on-wall/'));
     ?>
     <a href="<?php echo esc_url($url); ?>" class="af-arw-btn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;flex-shrink:0">
             <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
         </svg>
         Try It On Your Wall
