@@ -31,12 +31,27 @@ IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 
 orb = cv2.ORB_create(nfeatures=1200)
 bf = cv2.BFMatcher(cv2.NORM_HAMMING)
+CACHE = HERE / "output" / "orb_cache"
 
 
 def features(path, max_dim=900, center=0.6):
+    import hashlib
+    path = Path(path)
+    try:
+        mt = path.stat().st_mtime
+    except OSError:
+        return None
+    CACHE.mkdir(parents=True, exist_ok=True)
+    key = hashlib.md5(f"{path}|{mt}|{max_dim}|{center}".encode()).hexdigest()
+    cf = CACHE / f"{key}.npy"
+    if cf.exists():                       # cached -> instant
+        d = np.load(cf, allow_pickle=False)
+        return d if d.size else None
+
     data = np.fromfile(str(path), dtype=np.uint8)   # handles unicode paths on Windows
     img = cv2.imdecode(data, cv2.IMREAD_GRAYSCALE)
     if img is None:
+        np.save(cf, np.array([], dtype=np.uint8))
         return None
     # Crop to the central region so we match the ARTWORK, not the surrounding
     # wall/frame/room that every mockup shares (avoids wrong-artwork matches).
@@ -48,7 +63,9 @@ def features(path, max_dim=900, center=0.6):
     scale = max_dim / max(h, w)
     if scale < 1:
         img = cv2.resize(img, (int(w * scale), int(h * scale)))
-    return orb.detectAndCompute(img, None)[1]  # descriptors
+    des = orb.detectAndCompute(img, None)[1]  # descriptors
+    np.save(cf, des if des is not None else np.array([], dtype=np.uint8))
+    return des
 
 
 def good_matches(d1, d2):
