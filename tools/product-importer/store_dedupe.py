@@ -70,8 +70,10 @@ def main():
 
     print("Downloading existing store product images (one-time cache) ...")
     store = download_store_images()
-    print(f"Comparing against {len(store)} live products (all their images).\n")
-    store_feat = [(name, [features(p) for p in paths]) for name, paths in store]
+    print(f"Comparing against {len(store)} live products.\n")
+    # Center-cropped artwork matching is accurate on the featured image alone,
+    # so we compare against the first image per product (fast).
+    store_feat = [(name, [features(paths[0])]) for name, paths in store]
 
     with open(SRC, newline="", encoding="utf-8-sig") as f:
         rows = list(csv.DictReader(f))

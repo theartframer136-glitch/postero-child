@@ -33,11 +33,17 @@ orb = cv2.ORB_create(nfeatures=1200)
 bf = cv2.BFMatcher(cv2.NORM_HAMMING)
 
 
-def features(path, max_dim=900):
+def features(path, max_dim=900, center=0.6):
     data = np.fromfile(str(path), dtype=np.uint8)   # handles unicode paths on Windows
     img = cv2.imdecode(data, cv2.IMREAD_GRAYSCALE)
     if img is None:
         return None
+    # Crop to the central region so we match the ARTWORK, not the surrounding
+    # wall/frame/room that every mockup shares (avoids wrong-artwork matches).
+    h, w = img.shape
+    ch, cw = int(h * center), int(w * center)
+    y0, x0 = (h - ch) // 2, (w - cw) // 2
+    img = img[y0:y0 + ch, x0:x0 + cw]
     h, w = img.shape
     scale = max_dim / max(h, w)
     if scale < 1:
