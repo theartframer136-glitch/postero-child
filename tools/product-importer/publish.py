@@ -281,6 +281,8 @@ def main():
                     help="auto-composite the main image into framed + room mockups")
     ap.add_argument("--no-ai-images", action="store_true",
                     help="use the FREE compositor for images even if a Gemini key is set")
+    ap.add_argument("--main-only", action="store_true",
+                    help="use only the first (main) image per product — no gallery")
     args = ap.parse_args()
 
     cfg = load_config()
@@ -309,6 +311,8 @@ def main():
 
         spec = row_to_spec(row, status)
         img_list = (row.get("image", "") or "").split("|")
+        if args.main_only:
+            img_list = img_list[:1]
         images = assemble_images(
             cfg, img_list, sku or subject.replace(" ", "-"), args.gallery, args.dry_run,
             use_ai=not args.no_ai_images)
