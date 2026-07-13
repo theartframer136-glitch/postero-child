@@ -857,12 +857,11 @@ add_action('wp_footer', function() { ?>
 
     var _sliderInitDone = false;
     function init() {
-        // DISABLED: the custom slider transformation (hiding the grid + building
-        // a shell) was fragile and could leave products hidden after a category
-        // switch. The theme renders its own product grid reliably, so we no
-        // longer transform it. Kept below for reference; returns immediately.
-        return;
-        // eslint-disable-next-line no-unreachable
+        // RE-ENABLED (homepage only): the vanishing-products bug was traced to
+        // the category-page card styler, not this slider. Guards below keep the
+        // slider strictly off archive/category/shop pages, and the
+        // ensureProductsVisible() safety net un-hides the grid if the shell
+        // ever fails to render cards.
         var b = document.body;
         var isHome = b && (b.classList.contains('af-front-page') || b.classList.contains('home') || b.classList.contains('front-page'));
         var isArchive = b && (b.classList.contains('archive') || b.classList.contains('tax-product_cat') || b.classList.contains('post-type-archive-product') || b.classList.contains('woocommerce-shop') || b.classList.contains('search'));
