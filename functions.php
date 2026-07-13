@@ -4042,14 +4042,16 @@ function af_render_mini_card($pid) {
     echo '<span class="af-mini-price">'.$p->get_price_html().'</span></div></a>';
 }
 
-// 7g. Styles for the new product-page sections
+// 7g. Styles for the new product-page sections.
+//     Loaded site-wide (all selectors are .af-* class-scoped) so the Quick View
+//     modal — which renders the same product summary on the homepage/shop —
+//     gets identical button/chip/card styling as the product page.
 add_action('wp_head', function() {
-    if (!function_exists('is_product') || !is_product()) return;
     ?>
     <style>
-    /* Buy Now */
-    .single-product .af-buynow.button{background:#1a1a1a !important;color:#fff !important;margin-left:8px !important;}
-    .single-product .af-buynow.button:hover{background:#c9a84c !important;}
+    /* Buy Now (works on product page AND inside the Quick View modal) */
+    .af-buynow.button{background:#1a1a1a !important;color:#fff !important;margin-left:8px !important;}
+    .af-buynow.button:hover{background:#c9a84c !important;}
     /* Trust badges under CTA */
     .af-pp-trust{display:flex;flex-wrap:wrap;gap:14px;margin:18px 0 0;padding:14px 0 0;border-top:1px solid #eee;width:100%;}
     .af-ppt{display:flex;align-items:center;gap:9px;flex:1 1 150px;min-width:140px;}
@@ -4123,9 +4125,9 @@ add_action('woocommerce_after_single_product_summary', function() {
     <?php
 }, 24);
 
-// 7j. Styles for the two added sections
+// 7j. Styles for the two added sections (loaded site-wide; .af-* class-scoped
+//     so the Quick View modal's Digital Downloads / Customize sections match).
 add_action('wp_head', function() {
-    if (!function_exists('is_product') || !is_product()) return;
     ?>
     <style>
     .af-pp-sub{font-size:13.5px;color:#777;margin:-8px 0 16px;}
@@ -4273,9 +4275,10 @@ add_action('woocommerce_checkout_create_order_line_item', function($item, $key, 
     }
 }, 10, 3);
 
-// 8f. Selector styling + live price JS
+// 8f. Selector styling + live price JS.
+//     Loaded site-wide (all .af-* class-scoped) so the Size/Frame/Color chips,
+//     swatches and live price look identical inside the Quick View modal.
 add_action('wp_head', function() {
-    if (!function_exists('is_product') || !is_product()) return;
     ?>
     <style>
     .af-opts{margin:14px 0 6px;padding:16px 0 4px;border-top:1px solid #eee;}
@@ -4361,9 +4364,8 @@ add_action('woocommerce_after_single_product_summary', function() {
     echo '</div></section>';
 }, 14);
 
-// FAQ accordion styling
+// FAQ accordion styling (site-wide; .af-faq-* class-scoped, matches modal)
 add_action('wp_head', function() {
-    if (!function_exists('is_product') || !is_product()) return;
     ?>
     <style>
     .af-faq-list{border:1px solid #eee;border-radius:12px;overflow:hidden;}
