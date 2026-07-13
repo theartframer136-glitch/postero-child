@@ -2979,6 +2979,14 @@ add_action('wp_footer', function() {
     if (card.dataset.afShopFixed) return;
     card.dataset.afShopFixed = '1';
 
+    /* v5 — structure guard: this transform was designed for the CLASSIC card
+       markup where the image link is a DIRECT child of li.product. On nested
+       "product-block" layouts a partial transform exposes the theme's hover
+       overlay and adds a stray 1:1 spacer — so on those cards we do NOTHING
+       and let the theme's own (correct) styling stand untouched. */
+    var linkProbe = card.querySelector('a.woocommerce-loop-product__link');
+    if (!linkProbe || linkProbe.parentNode !== card) return;
+
     /* v4 — DEFINITIVE FIX
        1. Hide ALL unknown card children (theme overlay, badges) → eliminates blank space
        2. padding-top:100% wrapper → bulletproof 1:1 ratio, content-independent
@@ -3027,7 +3035,6 @@ add_action('wp_footer', function() {
       if (cls.contains('woocommerce-product-rating'))     return;
       if (cls.contains('price'))                          return;
       if (c.contains(mainLink)) return;
-      if (c.querySelector && c.querySelector('.woocommerce-loop-product__title,.price,img,.woocommerce-product-rating')) return;
       sp(c,'display','none');
     });
 
