@@ -124,6 +124,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/restore-about.php --allow-root 2>&1" \
             || true
 
+          echo "Filling empty product galleries (fixes hover 'Gallery image not present')..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/fill-gallery-images.php --allow-root 2>&1" \
+            || true
+
           echo "Applying real Art Framer content to theme About page..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

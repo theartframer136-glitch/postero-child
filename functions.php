@@ -5441,3 +5441,39 @@ add_action('wp_footer', function() {
     </script>
     <?php
 }, 104);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 21 — Homepage product-card hover swap fix.
+// The theme swaps to the product's gallery image on hover; on the
+// homepage grids the second image rendered in normal flow (sliver
+// below the card). Overlay it on the first image with a fade instead.
+// Scoped to the front page only.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_head', function() {
+    if (!is_front_page()) return;
+    ?>
+    <style>
+    body.home ul.products li.product .woocommerce-loop-product__link,
+    body.af-front-page ul.products li.product .woocommerce-loop-product__link{
+      position:relative;display:block;overflow:hidden;
+    }
+    body.home ul.products li.product .woocommerce-loop-product__link > img,
+    body.af-front-page ul.products li.product .woocommerce-loop-product__link > img{
+      width:100%;display:block;
+    }
+    body.home ul.products li.product .woocommerce-loop-product__link > img + img,
+    body.home ul.products li.product .woocommerce-loop-product__link .secondary-image,
+    body.af-front-page ul.products li.product .woocommerce-loop-product__link > img + img,
+    body.af-front-page ul.products li.product .woocommerce-loop-product__link .secondary-image{
+      position:absolute;top:0;left:0;width:100%;height:100%;
+      object-fit:cover;opacity:0;transition:opacity .35s ease;z-index:2;
+    }
+    body.home ul.products li.product:hover .woocommerce-loop-product__link > img + img,
+    body.home ul.products li.product:hover .woocommerce-loop-product__link .secondary-image,
+    body.af-front-page ul.products li.product:hover .woocommerce-loop-product__link > img + img,
+    body.af-front-page ul.products li.product:hover .woocommerce-loop-product__link .secondary-image{
+      opacity:1;
+    }
+    </style>
+    <?php
+}, 30);
