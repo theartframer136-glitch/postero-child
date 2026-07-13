@@ -3017,12 +3017,17 @@ add_action('wp_footer', function() {
     var wlSrc = card.querySelector('a.add_to_wishlist,.yith-wcwl-add-to-wishlist a,a[class*="wishlist"]');
 
     // ── 3. HIDE all non-content direct children → eliminates blank space absolutely
+    //      SAFETY: never hide a wrapper that CONTAINS the product content.
+    //      (Postero "product-block" layouts nest link/title/price inside a
+    //      wrapper div — hiding it blanked the whole card on category pages.)
     Array.from(card.children).forEach(function(c){
       if (c===mainLink) return;
       var cls=c.classList;
       if (cls.contains('woocommerce-loop-product__title')) return;
       if (cls.contains('woocommerce-product-rating'))     return;
       if (cls.contains('price'))                          return;
+      if (c.contains(mainLink)) return;
+      if (c.querySelector && c.querySelector('.woocommerce-loop-product__title,.price,img,.woocommerce-product-rating')) return;
       sp(c,'display','none');
     });
 
@@ -3038,7 +3043,11 @@ add_action('wp_footer', function() {
       sp(wrap,'background', '#f5f2ed');
       sp(wrap,'flex-shrink','0');
 
-      card.insertBefore(wrap, mainLink);
+      // Insert relative to mainLink's ACTUAL parent (mainLink may be nested
+      // inside a theme wrapper, not a direct child of the card — the old
+      // card.insertBefore threw NotFoundError and aborted styling mid-loop,
+      // leaving remaining cards blank).
+      mainLink.parentNode.insertBefore(wrap, mainLink);
       wrap.appendChild(mainLink);
 
       // mainLink fills entire wrap
@@ -3229,7 +3238,18 @@ add_action('wp_footer', function() {
 
 
   function run() {
-    document.querySelectorAll('ul.products li.product').forEach(fixShopCard);
+    document.querySelectorAll('ul.products li.product').forEach(function(card){
+      try { fixShopCard(card); }
+      catch(e) {
+        // Never leave a card half-styled/hidden if anything throws —
+        // un-hide everything inside and let the theme's own styling stand.
+        card.removeAttribute('data-af-shop-fixed');
+        card.dataset.afShopFixed = 'error';
+        card.querySelectorAll('*').forEach(function(el){
+          if (el.style && el.style.display === 'none') el.style.removeProperty('display');
+        });
+      }
+    });
   }
 
   document.addEventListener('DOMContentLoaded', run);
