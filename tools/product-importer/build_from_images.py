@@ -267,38 +267,15 @@ def main():
         print(f"  [{j}/{len(pending)}] {mp.name} -> \"{cache[ckey(mp)]['name']}\" "
               f"(store {best_s}, {len(gscores)} gallery cand.)")
 
-    # Re-name images whose cached name still looks like a filename/size-code
-    # (vision failed, or the entry predates the "named" flag). Gallery scores
-    # are kept — only the NAME is refreshed.
     def looks_like_filename(nm, mp):
         return (not nm or nm == Path(mp).stem
                 or bool(re.search(r"(\d\s*[xX]\s*\d|@\d|^\d+$|^\[)", nm)))
 
-    to_rename = [mp for mp in mains
-                 if cache.get(ckey(mp))
-                 and (not cache[ckey(mp)].get("named", True)
-                      or looks_like_filename(cache[ckey(mp)].get("name", ""), mp))]
-    if to_rename:
-        print(f"\nRe-naming {len(to_rename)} image(s) that failed vision earlier ...")
-        for mp in to_rename:
-            try:
-                info = name_image(groq, mp)
-            except Exception as e:
-                print(f"  {mp.name} -> still failing: {e}")
-                continue
-            res = cache[ckey(mp)]
-            res["name"] = (info.get("name") or "").strip() or mp.stem
-            res["category"] = (info.get("category") or "").strip()
-            res["subject"] = (info.get("subject") or "").strip()
-            res["named"] = True
-            save_state(cache)
-            print(f"  {mp.name} -> \"{res['name']}\"")
-            time.sleep(args.delay)
-
-    # Assemble the CSV from the cache — pure re-thresholding, no image reading.
-    rows, used_gallery, lines, made = [], set(), [], 0
-    for i, mp in enumerate(mains, 1):
-        if args.limit and made >= args.limit:
+    # SELECT the winners first (store + gallery filters use only cached scores —
+    # no names needed). Only these actually become products.
+    winners, used_gallery, lines = [], set(), []
+    for mp in mains:
+        if args.limit and len(winners) >= args.limit:
             break
         res = cache.get(ckey(mp))
         if not res:
@@ -306,8 +283,6 @@ def main():
         if res["store_score"] >= args.store_min:
             lines.append(f"[ON STORE {res['store_score']}] {mp.name} ~ {res['store_name']}")
             continue
-        name = res["name"]
-        cat = res["category"] if res["category"] in CATEGORIES else ""
         picks = []
         for n, gpath in res["gscores"]:
             if n < args.gallery_min:
@@ -318,10 +293,48 @@ def main():
             if len(picks) >= args.max_gallery:
                 break
         if len(picks) < args.min_gallery:
-            lines.append(f"[NO-GALLERY] {name} main={mp.name} "
+            lines.append(f"[NO-GALLERY] {res.get('name', mp.name)} main={mp.name} "
                          f"({len(picks)} wall matches < {args.min_gallery})")
             continue
         used_gallery.update(picks)
+        winners.append((mp, picks))
+
+    # Re-name ONLY the winners whose name still looks like a filename. This is a
+    # handful of calls, not hundreds — so it won't exhaust the free vision quota.
+    to_rename = [mp for mp, _ in winners
+                 if not cache[ckey(mp)].get("named", True)
+                 or looks_like_filename(cache[ckey(mp)].get("name", ""), mp)]
+    if to_rename:
+        print(f"\nRe-naming {len(to_rename)} product image(s) ...")
+        fails = 0
+        for mp in to_rename:
+            try:
+                info = name_image(groq, mp)
+            except Exception as e:
+                fails += 1
+                print(f"  {mp.name} -> {e}")
+                if fails >= 3:      # quota clearly spent — stop, don't grind for hours
+                    print("  Vision quota looks exhausted. Stopping re-naming; the "
+                          "products keep their current names. Re-run this command "
+                          "later (after the quota resets) to finish the names.")
+                    break
+                continue
+            fails = 0
+            res = cache[ckey(mp)]
+            res["name"] = (info.get("name") or "").strip() or mp.stem
+            res["category"] = (info.get("category") or "").strip()
+            res["subject"] = (info.get("subject") or "").strip()
+            res["named"] = True
+            save_state(cache)
+            print(f"  {mp.name} -> \"{res['name']}\"")
+            time.sleep(args.delay)
+
+    # Build the CSV rows from the winners.
+    rows = []
+    for i, (mp, picks) in enumerate(winners, 1):
+        res = cache[ckey(mp)]
+        name = res["name"]
+        cat = res["category"] if res["category"] in CATEGORIES else ""
         cats = "Digital Canvas Prints" + (f"|{cat}" if cat else "")
         slug = re.sub(r"[^A-Z0-9]+", "-", name.upper()).strip("-")[:20]
         rows.append({
@@ -337,7 +350,6 @@ def main():
             "image": "|".join([str(mp)] + picks),
             "sku": f"TAF-{slug}-{i:03d}",
         })
-        made += 1
         lines.append(f"[NEW] {name} ({cat or 'no-cat'}) main={mp.name} "
                      f"gallery={[Path(g).name for g in picks] or ['-']}")
 
