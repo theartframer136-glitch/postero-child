@@ -302,6 +302,8 @@ def main():
     ap.add_argument("--dry-run", action="store_true", help="preview only, post nothing")
     ap.add_argument("--publish", action="store_true", help="status=publish (default draft)")
     ap.add_argument("--limit", type=int, default=0, help="process only first N rows")
+    ap.add_argument("--skip", type=int, default=0,
+                    help="skip the first N rows (continue a previous batch)")
     ap.add_argument("--gallery", action="store_true",
                     help="auto-composite the main image into framed + room mockups")
     ap.add_argument("--no-ai-images", action="store_true",
@@ -322,6 +324,8 @@ def main():
 
     with open(csv_path, newline="", encoding="utf-8-sig") as fh:
         rows = list(csv.DictReader(fh))
+    if args.skip:
+        rows = rows[args.skip:]
     if args.limit:
         rows = rows[: args.limit]
 
