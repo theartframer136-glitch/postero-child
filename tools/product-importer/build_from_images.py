@@ -156,9 +156,27 @@ def save_state(st):
     STATE.write_text(json.dumps(st), encoding="utf-8")
 
 
+# Filename signals that a file is an internal/working/duplicate copy, NOT a
+# finished product. Approved files (even tagged "[KJ-Approved]") are KEPT.
+WORKING_SIGNALS = [
+    "unapprov", "not approved", "not really needed", "please ", "to be removed",
+    "to be decided", "keep it aside", "let_s keep", "let's keep",
+    "do not consider", "redownload", "recovered", "deleted", "copy of",
+    "- copy", "too deep", "too much", "cannot manage",
+    "i think this has to be", "second right hand",
+]
+
+
+def is_working_file(path):
+    n = Path(path).name.lower()
+    return any(sig in n for sig in WORKING_SIGNALS)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0, help="build only N products (test)")
+    ap.add_argument("--skip-working", action="store_true",
+                    help="skip internal/unapproved/duplicate working files (recommended)")
     ap.add_argument("--store-min", type=int, default=22,
                     help="ORB score to treat a main image as ALREADY on the store")
     ap.add_argument("--gallery-min", type=int, default=20,
@@ -178,6 +196,11 @@ def main():
     if not mains:
         raise SystemExit("No main images found — check MAIN_DIRS paths.")
     print(f"{len(mains)} main images found.")
+    if args.skip_working:
+        before = len(mains)
+        mains = [m for m in mains if not is_working_file(m)]
+        print(f"  {before - len(mains)} internal/working/duplicate files skipped, "
+              f"{len(mains)} kept.")
 
     # Per-image RESULTS cache. Once an image is analysed (store check + vision
     # name + gallery match scores), the result is saved keyed by path+size and
