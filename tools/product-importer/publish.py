@@ -304,6 +304,9 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="process only first N rows")
     ap.add_argument("--skip", type=int, default=0,
                     help="skip the first N rows (continue a previous batch)")
+    ap.add_argument("--gallery-fill", action="store_true",
+                    help="products with NO matched wall photos get composited "
+                         "framed/room mockups made from their main image")
     ap.add_argument("--gallery", action="store_true",
                     help="auto-composite the main image into framed + room mockups")
     ap.add_argument("--no-ai-images", action="store_true",
@@ -348,8 +351,12 @@ def main():
         img_list = (row.get("image", "") or "").split("|")
         if args.main_only:
             img_list = img_list[:1]
+        # No real wall photos matched this artwork? Composite framed + room
+        # mockups FROM the main image so the gallery always matches the main.
+        want_gallery = args.gallery or (
+            args.gallery_fill and len([x for x in img_list if x.strip()]) <= 1)
         images = assemble_images(
-            cfg, img_list, sku or subject.replace(" ", "-"), args.gallery, args.dry_run,
+            cfg, img_list, sku or subject.replace(" ", "-"), want_gallery, args.dry_run,
             use_ai=not args.no_ai_images)
         if not args.dry_run:
             spec["gallery_urls"] = [im["src"] for im in images]
