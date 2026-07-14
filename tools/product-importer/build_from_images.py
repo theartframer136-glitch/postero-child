@@ -158,6 +158,8 @@ def main():
     ap.add_argument("--gallery-min", type=int, default=20,
                     help="ORB score for a gallery photo to count as the SAME artwork")
     ap.add_argument("--max-gallery", type=int, default=6)
+    ap.add_argument("--min-gallery", type=int, default=0,
+                    help="only keep products that have at least N matching wall photos")
     ap.add_argument("--delay", type=float, default=3.0, help="seconds between vision calls")
     args = ap.parse_args()
 
@@ -228,6 +230,14 @@ def main():
                 scored.append((n, g))
         scored.sort(reverse=True, key=lambda x: x[0])
         picks = [g for _, g in scored[: args.max_gallery]]
+
+        # Require a matching wall photo when asked (keeps the test product clean).
+        if len(picks) < args.min_gallery:
+            lines.append(f"[NO-GALLERY] {name}  main={mp.name} — skipped "
+                         f"(only {len(picks)} wall matches, need {args.min_gallery})")
+            print(f"[{i}/{len(mains)}] {mp.name} -> \"{name}\" but "
+                  f"{len(picks)} gallery matches (<{args.min_gallery}) — skip")
+            continue
         for g in picks:
             used_gallery.add(g)
 
