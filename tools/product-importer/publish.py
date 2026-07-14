@@ -258,6 +258,43 @@ def assemble_images(cfg, image_list, base_name, gallery, dry_run, use_ai=True):
         out.append({"src": extra} if extra.startswith(("http", "https"))
                    else {"src": upload_local_image(cfg, extra)})
     return out
+
+
+def top_up_gallery(cfg, images, main_src, base_name, min_gallery, dry_run):
+    """Guarantee at least `min_gallery` gallery images. Real wall photos are
+    kept; any shortfall is composited (framed black/oak/white + room scene)
+    from the MAIN image, so the fill always matches the artwork."""
+    need = min_gallery - (len(images) - 1)
+    if need <= 0:
+        return images
+    if dry_run:
+        return images + [{"src": f"(+{need} composited mockups from the main image)"}]
+
+    import tempfile
+    tmp = Path(tempfile.mkdtemp())
+    src = Path(str(main_src))
+    if str(main_src).startswith(("http://", "https://")):
+        src = tmp / "source.jpg"
+        r = requests.get(main_src, timeout=120)
+        r.raise_for_status()
+        src.write_bytes(r.content)
+    # Compose from a web-sized copy — compositing a 187-megapixel print file
+    # is slow and memory-hungry for zero visual gain at product-page size.
+    small = tmp / "art-small.jpg"
+    im = Image.open(src).convert("RGB")
+    im.thumbnail((2000, 2000))
+    im.save(small, "JPEG", quality=92)
+    try:
+        made = compositor.make_gallery(small, tmp, base_name)
+        for f in made[:need]:
+            images.append({"src": upload_local_image(cfg, f)})
+        print(f"  gallery topped up with {min(need, len(made))} composited mockup(s)")
+    except Exception as e:
+        print(f"  [warn] gallery fill failed ({e}); keeping "
+              f"{len(images) - 1} gallery image(s).")
+    return images
+
+
 def sku_exists(cfg, sku):
     if not sku:
         return False
@@ -304,9 +341,12 @@ def main():
     ap.add_argument("--limit", type=int, default=0, help="process only first N rows")
     ap.add_argument("--skip", type=int, default=0,
                     help="skip the first N rows (continue a previous batch)")
-    ap.add_argument("--gallery-fill", action="store_true",
-                    help="products with NO matched wall photos get composited "
-                         "framed/room mockups made from their main image")
+    ap.add_argument("--gallery-fill", nargs="?", const=4, type=int, default=0,
+                    metavar="N",
+                    help="guarantee at least N gallery images per product "
+                         "(default 4 when the flag is given): real matched wall "
+                         "photos first, any shortfall composited from the main "
+                         "image so the gallery ALWAYS matches the main")
     ap.add_argument("--gallery", action="store_true",
                     help="auto-composite the main image into framed + room mockups")
     ap.add_argument("--no-ai-images", action="store_true",
@@ -351,13 +391,13 @@ def main():
         img_list = (row.get("image", "") or "").split("|")
         if args.main_only:
             img_list = img_list[:1]
-        # No real wall photos matched this artwork? Composite framed + room
-        # mockups FROM the main image so the gallery always matches the main.
-        want_gallery = args.gallery or (
-            args.gallery_fill and len([x for x in img_list if x.strip()]) <= 1)
         images = assemble_images(
-            cfg, img_list, sku or subject.replace(" ", "-"), want_gallery, args.dry_run,
+            cfg, img_list, sku or subject.replace(" ", "-"), args.gallery, args.dry_run,
             use_ai=not args.no_ai_images)
+        if args.gallery_fill and not args.gallery:
+            images = top_up_gallery(cfg, images, img_list[0],
+                                    sku or subject.replace(" ", "-"),
+                                    args.gallery_fill, args.dry_run)
         if not args.dry_run:
             spec["gallery_urls"] = [im["src"] for im in images]
         payload = generator.build_product(spec)
