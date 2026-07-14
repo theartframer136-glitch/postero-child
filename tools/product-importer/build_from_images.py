@@ -45,7 +45,7 @@ OUT = HERE / "products_named.csv"
 REPORT = HERE / "build_from_images_report.txt"
 RAW = HERE / "output" / "products_raw.json"       # existing store products
 STORE_CACHE = HERE / "output" / "store_images"
-STATE = HERE / "output" / "name_state.json"        # resume vision naming
+STATE = HERE / "output" / "build_state.json"        # per-image results cache
 
 MAIN_DIRS = [
     Path(r"C:\Users\user\SynologyDrive\Final Edited Photos so far"),
@@ -173,74 +173,96 @@ def main():
         raise SystemExit("No main images found — check MAIN_DIRS paths.")
     print(f"{len(mains)} main images found.")
 
-    print("Loading existing store images (for visual dedupe) ...")
-    store_feat = load_store_features()
-    print(f"  comparing against {len(store_feat)} live products.")
+    # Per-image RESULTS cache. Once an image is analysed (store check + vision
+    # name + gallery match scores), the result is saved keyed by path+size and
+    # NEVER recomputed. A re-run reuses it instantly; heavy store/gallery
+    # indexing below only happens for images not yet in this cache.
+    cache = load_state()
 
-    print(f"Indexing gallery folder ...")
-    gallery = list_images(GALLERY_DIR)
-    gfeat = {g: features(g) for g in gallery}
-    print(f"  {len(gallery)} gallery photos.\n")
+    def ckey(p):
+        try:
+            return f"{p.resolve()}|{p.stat().st_size}"
+        except OSError:
+            return str(p.resolve())
 
-    state = load_state()          # cache vision names across runs (crash-safe)
-    rows, used_gallery, lines, made = [], set(), [], 0
+    pending = [mp for mp in mains if ckey(mp) not in cache]
+    if args.limit:                      # for a quick test, only analyse as many
+        pending = pending[: max(args.limit * 3, args.limit)]  # new ones as needed
+    if pending:
+        print(f"{len(pending)} new image(s) to analyse (rest served from cache).")
+        print("Loading existing store images (for visual dedupe) ...")
+        store_feat = load_store_features()
+        print(f"  comparing against {len(store_feat)} live products.")
+        print("Indexing gallery folder ...")
+        gallery = list_images(GALLERY_DIR)
+        gfeat = {g: features(g) for g in gallery}
+        print(f"  {len(gallery)} gallery photos.\n")
+    else:
+        print("All images already analysed — using cache, nothing re-read.\n")
+        store_feat, gfeat = [], {}
 
-    for i, mp in enumerate(mains, 1):
-        if args.limit and made >= args.limit:
-            break
+    # Analyse only the not-yet-cached images (this is the one-time heavy work).
+    for j, mp in enumerate(pending, 1):
         md = features(mp)
-
-        # 1) already on the store? (visual, not by name)
         best_s, best_name = 0, ""
         for name, sf in store_feat:
             n = good_matches(md, sf)
             if n > best_s:
                 best_s, best_name = n, name
-        if best_s >= args.store_min:
-            lines.append(f"[ON STORE {best_s}] {mp.name}  ~ {best_name}")
-            print(f"[{i}/{len(mains)}] {mp.name} -> already on store ({best_s}) — skip")
-            continue
-
-        # 2) NAME from the image itself (cached)
-        key = str(mp.resolve())
-        info = state.get(key)
-        if not info:
-            try:
-                info = name_image(groq, mp)
-            except Exception as e:
-                print(f"[{i}/{len(mains)}] {mp.name} -> vision error: {e} — skip")
-                lines.append(f"[VISION-ERR] {mp.name}: {e}")
-                continue
-            state[key] = info
-            save_state(state)
+        try:
+            info = name_image(groq, mp)
+        except Exception as e:
+            print(f"  [{j}/{len(pending)}] {mp.name} -> vision error: {e}")
+            info = {"name": mp.stem, "category": "", "subject": ""}
+        else:
             time.sleep(args.delay)
-        name = (info.get("name") or "").strip() or mp.stem
-        cat = (info.get("category") or "").strip()
-        if cat not in CATEGORIES:
-            cat = ""
-        subject_desc = (info.get("subject") or "").strip()
-
-        # 3) gallery photos whose wall shows THIS artwork (strict)
-        scored = []
+        # keep ALL gallery scores >= 8 so thresholds can change later WITHOUT
+        # re-matching (re-thresholding a cached list is free).
+        gscores = []
         for g, gd in gfeat.items():
-            if g in used_gallery:
-                continue
             n = good_matches(md, gd)
-            if n >= args.gallery_min:
-                scored.append((n, g))
-        scored.sort(reverse=True, key=lambda x: x[0])
-        picks = [g for _, g in scored[: args.max_gallery]]
+            if n >= 8:
+                gscores.append([n, str(g)])
+        gscores.sort(reverse=True, key=lambda x: x[0])
+        cache[ckey(mp)] = {
+            "main": str(mp),
+            "name": (info.get("name") or "").strip() or mp.stem,
+            "category": (info.get("category") or "").strip(),
+            "subject": (info.get("subject") or "").strip(),
+            "store_score": best_s, "store_name": best_name,
+            "gscores": gscores,
+        }
+        save_state(cache)               # crash-safe after every image
+        print(f"  [{j}/{len(pending)}] {mp.name} -> \"{cache[ckey(mp)]['name']}\" "
+              f"(store {best_s}, {len(gscores)} gallery cand.)")
 
-        # Require a matching wall photo when asked (keeps the test product clean).
-        if len(picks) < args.min_gallery:
-            lines.append(f"[NO-GALLERY] {name}  main={mp.name} — skipped "
-                         f"(only {len(picks)} wall matches, need {args.min_gallery})")
-            print(f"[{i}/{len(mains)}] {mp.name} -> \"{name}\" but "
-                  f"{len(picks)} gallery matches (<{args.min_gallery}) — skip")
+    # Assemble the CSV from the cache — pure re-thresholding, no image reading.
+    rows, used_gallery, lines, made = [], set(), [], 0
+    for i, mp in enumerate(mains, 1):
+        if args.limit and made >= args.limit:
+            break
+        res = cache.get(ckey(mp))
+        if not res:
             continue
-        for g in picks:
-            used_gallery.add(g)
-
+        if res["store_score"] >= args.store_min:
+            lines.append(f"[ON STORE {res['store_score']}] {mp.name} ~ {res['store_name']}")
+            continue
+        name = res["name"]
+        cat = res["category"] if res["category"] in CATEGORIES else ""
+        picks = []
+        for n, gpath in res["gscores"]:
+            if n < args.gallery_min:
+                break
+            if gpath in used_gallery:
+                continue
+            picks.append(gpath)
+            if len(picks) >= args.max_gallery:
+                break
+        if len(picks) < args.min_gallery:
+            lines.append(f"[NO-GALLERY] {name} main={mp.name} "
+                         f"({len(picks)} wall matches < {args.min_gallery})")
+            continue
+        used_gallery.update(picks)
         cats = "Digital Canvas Prints" + (f"|{cat}" if cat else "")
         slug = re.sub(r"[^A-Z0-9]+", "-", name.upper()).strip("-")[:20]
         rows.append({
@@ -253,15 +275,12 @@ def main():
             "tags": "",
             "focus_keyword": f"{name} canvas wall art".lower(),
             "price": "",
-            "image": "|".join([str(mp)] + [str(g) for g in picks]),
+            "image": "|".join([str(mp)] + picks),
             "sku": f"TAF-{slug}-{i:03d}",
         })
         made += 1
-        gnames = [g.name for g in picks] or ["-"]
-        lines.append(f"[NEW] {name}  ({cat or 'no-cat'})  main={mp.name}  "
-                     f"gallery={gnames}  gscores={[n for n, _ in scored[:args.max_gallery]]}")
-        print(f"[{i}/{len(mains)}] {mp.name} -> \"{name}\" [{cat or 'no-cat'}] "
-              f"+{len(picks)} gallery")
+        lines.append(f"[NEW] {name} ({cat or 'no-cat'}) main={mp.name} "
+                     f"gallery={[Path(g).name for g in picks] or ['-']}")
 
     cols = ["subject", "size", "sizes", "style", "use_case", "categories",
             "tags", "focus_keyword", "price", "image", "sku"]
