@@ -283,7 +283,11 @@ def main():
                     help="use the FREE compositor for images even if a Gemini key is set")
     ap.add_argument("--main-only", action="store_true",
                     help="use only the first (main) image per product — no gallery")
+    ap.add_argument("--fresh-skus", action="store_true",
+                    help="append a unique run tag to every SKU so it can't collide")
     args = ap.parse_args()
+    import time as _t
+    run_tag = format(int(_t.time()) % 100000, "05d")
 
     cfg = load_config()
     status = "publish" if args.publish else "draft"
@@ -302,9 +306,11 @@ def main():
     for i, row in enumerate(rows, 1):
         subject = row.get("subject", "?").strip()
         sku = row.get("sku", "").strip()
+        if args.fresh_skus and sku:
+            sku = f"{sku}-{run_tag}{i}"          # guaranteed unique this run
         print(f"[{i}/{len(rows)}] {subject} ({sku or 'no sku'})")
 
-        if sku and not args.dry_run and sku_exists(cfg, sku):
+        if sku and not args.fresh_skus and not args.dry_run and sku_exists(cfg, sku):
             print("  already exists -> skip")
             skipped += 1
             continue
