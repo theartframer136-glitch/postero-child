@@ -36,6 +36,12 @@ import time
 from pathlib import Path
 
 from dotenv import load_dotenv
+from PIL import Image
+
+# Your canvases are legit print-resolution art (4ft @ 300 DPI ~ 187M pixels), which
+# trips Pillow's "decompression bomb" guard. These are your own trusted files, so
+# lift the limit — otherwise vision naming fails and products get filename titles.
+Image.MAX_IMAGE_PIXELS = None
 
 from visual_match import features, good_matches, list_images
 from extract_brochure import _encode_image, _post_with_retry, GROQ_URL, GROQ_MODEL
@@ -211,9 +217,11 @@ def main():
                 best_s, best_name = n, name
         try:
             info = name_image(groq, mp)
+            vision_ok = True
         except Exception as e:
             print(f"  [{j}/{len(pending)}] {mp.name} -> vision error: {e}")
             info = {"name": mp.stem, "category": "", "subject": ""}
+            vision_ok = False
         else:
             time.sleep(args.delay)
         # keep ALL gallery scores >= 8 so thresholds can change later WITHOUT
@@ -230,11 +238,32 @@ def main():
             "category": (info.get("category") or "").strip(),
             "subject": (info.get("subject") or "").strip(),
             "store_score": best_s, "store_name": best_name,
-            "gscores": gscores,
+            "gscores": gscores, "named": vision_ok,
         }
         save_state(cache)               # crash-safe after every image
         print(f"  [{j}/{len(pending)}] {mp.name} -> \"{cache[ckey(mp)]['name']}\" "
               f"(store {best_s}, {len(gscores)} gallery cand.)")
+
+    # Re-name only the images whose vision call failed before (e.g. the huge
+    # decompression-bomb files). Gallery scores are kept — just fix the NAME.
+    to_rename = [mp for mp in mains
+                 if cache.get(ckey(mp)) and not cache[ckey(mp)].get("named", True)]
+    if to_rename:
+        print(f"\nRe-naming {len(to_rename)} image(s) that failed vision earlier ...")
+        for mp in to_rename:
+            try:
+                info = name_image(groq, mp)
+            except Exception as e:
+                print(f"  {mp.name} -> still failing: {e}")
+                continue
+            res = cache[ckey(mp)]
+            res["name"] = (info.get("name") or "").strip() or mp.stem
+            res["category"] = (info.get("category") or "").strip()
+            res["subject"] = (info.get("subject") or "").strip()
+            res["named"] = True
+            save_state(cache)
+            print(f"  {mp.name} -> \"{res['name']}\"")
+            time.sleep(args.delay)
 
     # Assemble the CSV from the cache — pure re-thresholding, no image reading.
     rows, used_gallery, lines, made = [], set(), [], 0
