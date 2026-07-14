@@ -32,8 +32,14 @@ import sys
 import time
 from pathlib import Path
 
+import io
 import requests
 from dotenv import load_dotenv
+from PIL import Image
+
+# Print files are huge (4ft @ 300 DPI ~ 187M px), which trips Pillow's bomb guard.
+# These are the user's own trusted files.
+Image.MAX_IMAGE_PIXELS = None
 
 import generator
 import compositor
@@ -41,6 +47,7 @@ import mockups_api
 import ai_images
 
 HERE = Path(__file__).parent
+UPLOAD_MAX_DIM = 2400   # web product images: downscale before upload (fast, reliable)
 
 
 def load_config():
@@ -97,18 +104,36 @@ def upload_local_image(cfg, path):
     if not p.exists():
         sys.exit(f"Image file not found: {path}")
     endpoint = f"{cfg['url']}/wp-json/wp/v2/media"
-    mime = mimetypes.guess_type(p.name)[0] or "image/jpeg"
-    with open(p, "rb") as fh:
-        resp = requests.post(
-            endpoint,
-            auth=(cfg["wp_user"], cfg["wp_pass"]),
-            headers={
-                "Content-Disposition": f'attachment; filename="{p.name}"',
-                "Content-Type": mime,
-            },
-            data=fh.read(),
-            timeout=120,
-        )
+
+    # Downscale huge print files to a web-sized JPEG before upload. A 30-50 MB,
+    # 187-megapixel file stalls or is rejected by WordPress; ~2400px is plenty
+    # for a product page and uploads in a second.
+    try:
+        im = Image.open(p)
+        im = im.convert("RGB")
+        if max(im.size) > UPLOAD_MAX_DIM:
+            im.thumbnail((UPLOAD_MAX_DIM, UPLOAD_MAX_DIM))
+        buf = io.BytesIO()
+        im.save(buf, "JPEG", quality=85, optimize=True)
+        body = buf.getvalue()
+        filename = p.stem + ".jpg"
+        mime = "image/jpeg"
+    except Exception as e:
+        print(f"  [warn] could not downscale {p.name} ({e}); uploading original.")
+        body = p.read_bytes()
+        filename = p.name
+        mime = mimetypes.guess_type(p.name)[0] or "image/jpeg"
+
+    resp = requests.post(
+        endpoint,
+        auth=(cfg["wp_user"], cfg["wp_pass"]),
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Type": mime,
+        },
+        data=body,
+        timeout=120,
+    )
     resp.raise_for_status()
     return resp.json()["source_url"]
 

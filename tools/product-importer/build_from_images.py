@@ -267,10 +267,17 @@ def main():
         print(f"  [{j}/{len(pending)}] {mp.name} -> \"{cache[ckey(mp)]['name']}\" "
               f"(store {best_s}, {len(gscores)} gallery cand.)")
 
-    # Re-name only the images whose vision call failed before (e.g. the huge
-    # decompression-bomb files). Gallery scores are kept — just fix the NAME.
+    # Re-name images whose cached name still looks like a filename/size-code
+    # (vision failed, or the entry predates the "named" flag). Gallery scores
+    # are kept — only the NAME is refreshed.
+    def looks_like_filename(nm, mp):
+        return (not nm or nm == Path(mp).stem
+                or bool(re.search(r"(\d\s*[xX]\s*\d|@\d|^\d+$|^\[)", nm)))
+
     to_rename = [mp for mp in mains
-                 if cache.get(ckey(mp)) and not cache[ckey(mp)].get("named", True)]
+                 if cache.get(ckey(mp))
+                 and (not cache[ckey(mp)].get("named", True)
+                      or looks_like_filename(cache[ckey(mp)].get("name", ""), mp))]
     if to_rename:
         print(f"\nRe-naming {len(to_rename)} image(s) that failed vision earlier ...")
         for mp in to_rename:
