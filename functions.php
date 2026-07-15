@@ -5482,59 +5482,38 @@ add_action('wp_head', function() {
 }, 30);
 
 // ─────────────────────────────────────────────────────────────
-// PHASE 22 — Quick View modal: fix the related-product cards
-// ("You may also like…", "Popular Products", "Frequently Bought
-// Together"). Inside the modal the theme's card CSS doesn't apply,
-// so each card's image sits at natural height and the hover overlay
-// flows below it → a tall grey gap. Rebuild the correct layout,
-// STRICTLY scoped to .quick-view-modal so nothing else is affected.
-// Card markup (from diagnostic): li.product > .product-block > .product-transition
+// PHASE 22 — Quick View modal: keep it COMPACT (buy box only).
+// The modal renders the entire product page, but the theme's card
+// CSS doesn't load inside it, so every post-summary card section
+// (Additional info, Reviews, Related Searches, Related products,
+// Popular, Recently Viewed, Digital Downloads, Customize, FAQ)
+// renders broken (grey gaps / missing images). A Quick View should
+// be short anyway — hide those sections in the modal; they remain on
+// the full product page (one click via the title / "View details").
+// STRICTLY scoped to the modal containers — no effect elsewhere.
 // ─────────────────────────────────────────────────────────────
 add_action('wp_head', function() {
     ?>
     <style>
-    /* Image area = clean 4:3 box; the image fills it */
-    .quick-view-modal .product-block .product-transition,
-    .quick-view-wrapper .product-block .product-transition,
-    #quickViewContent .product-block .product-transition{
-      position:relative !important;width:100% !important;
-      aspect-ratio:4/3 !important;overflow:hidden !important;
-      background:#f4f4f4 !important;border-radius:8px !important;
-    }
-    .quick-view-modal .product-block .product-transition a,
-    .quick-view-wrapper .product-block .product-transition a,
-    #quickViewContent .product-block .product-transition a{
-      position:absolute !important;inset:0 !important;
-      width:100% !important;height:100% !important;display:block !important;z-index:1;
-    }
-    .quick-view-modal .product-block .product-transition img,
-    .quick-view-wrapper .product-block .product-transition img,
-    #quickViewContent .product-block .product-transition img{
-      position:absolute !important;inset:0 !important;
-      width:100% !important;height:100% !important;
-      object-fit:cover !important;display:block !important;max-width:none !important;
-    }
-    /* Hover overlay (any wrapper that isn't the link/image/ribbon):
-       overlay it on the image and reveal on hover instead of leaving a gap */
-    .quick-view-modal .product-block .product-transition > *:not(a):not(img):not(.onsale),
-    .quick-view-wrapper .product-block .product-transition > *:not(a):not(img):not(.onsale),
-    #quickViewContent .product-block .product-transition > *:not(a):not(img):not(.onsale){
-      position:absolute !important;left:0 !important;right:0 !important;bottom:0 !important;top:auto !important;
-      display:flex !important;align-items:center !important;justify-content:center !important;
-      gap:8px !important;padding:10px !important;margin:0 !important;
-      opacity:0 !important;transition:opacity .25s ease !important;z-index:3 !important;
-      background:linear-gradient(to top,rgba(0,0,0,.06),transparent) !important;
-    }
-    .quick-view-modal .product-block:hover .product-transition > *:not(a):not(img):not(.onsale),
-    .quick-view-wrapper .product-block:hover .product-transition > *:not(a):not(img):not(.onsale),
-    #quickViewContent .product-block:hover .product-transition > *:not(a):not(img):not(.onsale){
-      opacity:1 !important;
-    }
-    /* Sale ribbon stays pinned to the corner */
-    .quick-view-modal .product-block .product-transition .onsale,
-    .quick-view-wrapper .product-block .product-transition .onsale,
-    #quickViewContent .product-block .product-transition .onsale{
-      position:absolute !important;top:10px !important;left:10px !important;z-index:4 !important;
+    .quick-view-modal .woocommerce-tabs,
+    .quick-view-modal .woocommerce-Tabs-panel,
+    .quick-view-modal .related.products,
+    .quick-view-modal .up-sells,
+    .quick-view-modal .woocommerce-product-attributes,
+    .quick-view-modal .af-pp-sec,
+    .quick-view-modal .cross-sells,
+    .quick-view-wrapper .woocommerce-tabs,
+    .quick-view-wrapper .related.products,
+    .quick-view-wrapper .up-sells,
+    .quick-view-wrapper .af-pp-sec,
+    .quick-view-wrapper .cross-sells,
+    #quickViewContent .woocommerce-tabs,
+    #quickViewContent .related.products,
+    #quickViewContent .up-sells,
+    #quickViewContent .woocommerce-product-attributes,
+    #quickViewContent .af-pp-sec,
+    #quickViewContent .cross-sells{
+      display:none !important;
     }
     </style>
     <?php
