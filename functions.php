@@ -33,12 +33,36 @@ add_filter('nav_menu_css_class', function($classes, $item) {
 }, 10, 2);
 
 // 2. Force USD as default currency — override currency switcher plugins
-add_filter('woocommerce_currency', function() { return 'USD'; }, 9999);
-add_filter('woocommerce_currency_symbol', function($symbol, $currency) { return '$'; }, 9999, 2);
+/**
+ * Storefront currencies (spec: USD + CAD). The site once geo-switched visitors
+ * to INR, so anything outside this whitelist is still forced back to USD.
+ */
+function af_allowed_currencies() { return array('USD', 'CAD'); }
 
-// Redirect any ?currency=INR (or any non-USD) URL to ?currency=USD
+function af_currency_symbol_for($code) { return $code === 'CAD' ? 'CA$' : '$'; }
+
+function af_active_currency() {
+    static $cur = null;
+    if ($cur !== null) return $cur;
+    $allowed = af_allowed_currencies();
+    $c = '';
+    if (isset($_GET['currency'])) {
+        $c = strtoupper(sanitize_text_field(wp_unslash($_GET['currency'])));
+    } elseif (isset($_COOKIE['woocs_current_currency'])) {
+        $c = strtoupper(sanitize_text_field(wp_unslash($_COOKIE['woocs_current_currency'])));
+    } elseif (isset($_COOKIE['woocs_session_currency'])) {
+        $c = strtoupper(sanitize_text_field(wp_unslash($_COOKIE['woocs_session_currency'])));
+    }
+    $cur = in_array($c, $allowed, true) ? $c : 'USD';
+    return $cur;
+}
+
+add_filter('woocommerce_currency', function() { return af_active_currency(); }, 9999);
+add_filter('woocommerce_currency_symbol', function($symbol, $currency) { return af_currency_symbol_for($currency); }, 9999, 2);
+
+// Redirect any ?currency= outside the whitelist (e.g. INR) back to USD
 add_action('template_redirect', function() {
-    if (isset($_GET['currency']) && $_GET['currency'] !== 'USD') {
+    if (isset($_GET['currency']) && !in_array(strtoupper($_GET['currency']), af_allowed_currencies(), true)) {
         $url = add_query_arg('currency', 'USD', remove_query_arg('currency'));
         wp_redirect($url, 302);
         exit;
@@ -59,63 +83,69 @@ add_action('init', function() {
         update_option('woocs_default_currency', 'USD');
     }
 
-    // Set all currency cookies to USD
+    // Pin all currency cookies to the visitor's chosen whitelist currency
+    // (USD default, CAD allowed). Anything else — e.g. geo-set INR — is reset.
+    $active = af_active_currency();
     $exp  = time() + 86400 * 365;
     $path = COOKIEPATH ?: '/';
     $host = COOKIE_DOMAIN ?: '';
     foreach (['woocs_session_currency','wmc_current_currency','wmc-currency','currency','chosen_currency'] as $name) {
-        if (!isset($_COOKIE[$name]) || $_COOKIE[$name] !== 'USD') {
-            setcookie($name, 'USD', $exp, $path, $host);
-            $_COOKIE[$name] = 'USD';
+        if (!isset($_COOKIE[$name]) || $_COOKIE[$name] !== $active) {
+            setcookie($name, $active, $exp, $path, $host);
+            $_COOKIE[$name] = $active;
         }
     }
     // WPML / WCML
     if (defined('WCML_VERSION')) {
-        add_filter('wcml_client_currency', function() { return 'USD'; }, 9999);
+        add_filter('wcml_client_currency', function() { return af_active_currency(); }, 9999);
     }
 }, 1);
 
-// Override any currency stored in WC session
+// Override any non-whitelisted currency stored in WC session
 add_action('woocommerce_init', function() {
     if (!WC()->session) return;
     $sess_cur = WC()->session->get('currency');
-    if ($sess_cur && $sess_cur !== 'USD') {
-        WC()->session->set('currency', 'USD');
+    $active   = af_active_currency();
+    if ($sess_cur && $sess_cur !== $active) {
+        WC()->session->set('currency', $active);
     }
 }, 9999);
 
-// Force USD, symbol before number, no space
+// Symbol before number, no space; currency comes from the whitelist helper
 add_filter('woocommerce_price_format', function() { return '%1$s%2$s'; }, 9999);
 add_filter('woocommerce_currency_pos', function() { return 'left'; }, 9999);
 add_filter('woocommerce_price_args', function($args) {
-    $args['currency'] = 'USD';
+    $args['currency'] = af_active_currency();
     $args['currency_pos'] = 'left';
     return $args;
 }, 9999);
 
-// WMC (Woo Multi Currency) — force USD as default
+// WMC (Woo Multi Currency) — keep pinned to the active whitelist currency
 add_filter('wmc_get_price', function($price, $currency) { return $price; }, 9999, 2);
-add_filter('wmc_current_currency', function() { return 'USD'; }, 9999);
-add_filter('wmc_frontend_display_currency', function() { return 'USD'; }, 9999);
+add_filter('wmc_current_currency', function() { return af_active_currency(); }, 9999);
+add_filter('wmc_frontend_display_currency', function() { return af_active_currency(); }, 9999);
 
 // Immediately fix navbar currency display before page renders
 add_action('wp_head', function() { ?>
 <script>
 (function(){
-  // Set cookies immediately — before any plugin JS reads them
+  // Set cookies immediately — before any plugin JS reads them.
+  // "cur" is the server-validated choice: USD default, CAD allowed.
+  var cur = '<?php echo esc_js(af_active_currency()); ?>';
   var opts = '; path=/; max-age=' + (86400 * 365);
-  document.cookie = 'woocs_session_currency=USD' + opts;
-  document.cookie = 'wmc_current_currency=USD' + opts;
-  document.cookie = 'wmc-currency=USD' + opts;
-  document.cookie = 'currency=USD' + opts;
-  document.cookie = 'chosen_currency=USD' + opts;
+  document.cookie = 'woocs_session_currency=' + cur + opts;
+  document.cookie = 'woocs_current_currency=' + cur + opts;
+  document.cookie = 'wmc_current_currency=' + cur + opts;
+  document.cookie = 'wmc-currency=' + cur + opts;
+  document.cookie = 'currency=' + cur + opts;
+  document.cookie = 'chosen_currency=' + cur + opts;
 
-  // Select USD in dropdowns without removing other options
+  // Select the active currency in dropdowns without removing other options
   function fixNavCurrency() {
     // Fix <select> dropdowns — just change selected value, keep all options intact
     document.querySelectorAll('select[name*="currency"], select[id*="currency"], select[class*="currency"]').forEach(function(sel) {
-      var usdOpt = Array.from(sel.options).find(function(o) { return o.value === 'USD' || o.text.indexOf('USD') !== -1; });
-      if (usdOpt) { sel.value = usdOpt.value; usdOpt.selected = true; }
+      var opt = Array.from(sel.options).find(function(o) { return o.value === cur || o.text.indexOf(cur) !== -1; });
+      if (opt) { sel.value = opt.value; opt.selected = true; }
     });
     // Fix the visible label/button text (not inside <select>) — replace only the display label
     document.querySelectorAll(
@@ -3433,6 +3463,8 @@ add_action('wp_footer', function() {
             <li><a href="/returns-exchanges/">Returns &amp; Exchanges</a></li>
             <li><a href="/refund-policy/">Refund Policy</a></li>
             <li><a href="/track-your-order/">Track Your Order</a></li>
+            <li><a href="/low-price-guarantee/">Low Price Guarantee</a></li>
+            <li><a href="/gift-cards/">Gift Cards</a></li>
             <li><a href="/faqs/">FAQs</a></li>
           </ul>
         </div>
@@ -3443,19 +3475,29 @@ add_action('wp_footer', function() {
             <li><a href="/about/">About Us</a></li>
             <li><a href="/contact/">Contact</a></li>
             <li><a href="/wholesale-corporate/">Wholesale &amp; Corporate</a></li>
+            <li><a href="/artists/">Artists &amp; Creators</a></li>
+            <li><a href="/reviews-press/">Reviews &amp; Press</a></li>
+            <li><a href="/refer-a-friend/">Refer a Friend</a></li>
+            <li><a href="/affiliates/">Affiliates</a></li>
+            <li><a href="/exhibitions-events/">Exhibitions &amp; Events</a></li>
             <li><a href="/privacy-policy/">Privacy Policy</a></li>
             <li><a href="/terms-conditions/">Terms &amp; Conditions</a></li>
             <li><a href="/content-ethics-policy/">Content &amp; Ethics</a></li>
+            <li><a href="/legal-imprint/">Legal Imprint</a></li>
           </ul>
           <div class="af-f-news">
             <h5 class="af-f-title">Newsletter</h5>
             <?php if (shortcode_exists('mc4wp_form')): ?>
               <?php echo do_shortcode('[mc4wp_form]'); ?>
             <?php else: ?>
-              <form class="af-f-newsform" action="/contact/" method="get" onsubmit="window.location='/contact/';return false;">
-                <input type="email" placeholder="Your email" aria-label="Email for newsletter">
+              <form class="af-f-newsform" method="post"
+                    data-ajax="<?php echo esc_url(admin_url('admin-ajax.php')); ?>"
+                    data-nonce="<?php echo esc_attr(wp_create_nonce('af_nl_subscribe')); ?>">
+                <input type="email" name="af_nl_email" placeholder="Your email" required aria-label="Email for newsletter">
+                <input type="text" name="af_nl_hp" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;">
                 <button type="submit">Join</button>
               </form>
+              <p class="af-f-newsmsg" role="status" aria-live="polite" style="display:none;margin:8px 0 0;font-size:12.5px;"></p>
             <?php endif; ?>
           </div>
         </div>
@@ -4387,37 +4429,41 @@ add_action('wp_head', function() {
 // price-filter widget to USD. Additive; other sections untouched.
 // ─────────────────────────────────────────────────────────────
 
-// 10a. Force the WooCommerce price-slider/filter widget to show USD ($)
-add_filter('woocommerce_currency', function(){ return 'USD'; }, PHP_INT_MAX);
-add_filter('woocommerce_currency_symbol', function($s,$c){ return '$'; }, PHP_INT_MAX, 2);
+// 10a. Pin the WooCommerce price-slider/filter widget to the active currency
+add_filter('woocommerce_currency', function(){ return af_active_currency(); }, PHP_INT_MAX);
+add_filter('woocommerce_currency_symbol', function($s,$c){ return af_currency_symbol_for($c); }, PHP_INT_MAX, 2);
 add_filter('woocommerce_price_slider_params', function($p){
-    $p['currency_format_symbol']   = '$';
+    $p['currency_format_symbol']   = af_currency_symbol_for(af_active_currency());
     $p['currency_format_num_decimals'] = 0;
     return $p;
 }, PHP_INT_MAX);
 
-// 10a-2. Force the FOX / WOOCS currency switcher itself to USD (it geo-switches
-// per visitor to INR, which is why the price filter showed rupees). This makes
-// its current currency USD so converted prices + the price filter stay in $.
+// 10a-2. Keep FOX/WOOCS off geoip (it used to geo-switch visitors to INR) and
+// pin its current currency to the visitor's whitelisted choice (USD or CAD).
+// Conversion is bypassed only for USD (base); CAD converts at the WOOCS rate.
 add_filter('woocs_is_geoip_activated', '__return_false', PHP_INT_MAX);
 add_filter('woocs_geoip_country', function(){ return 'US'; }, PHP_INT_MAX);
-add_filter('woocs_current_currency', function(){ return 'USD'; }, PHP_INT_MAX);
-add_filter('woocs_convert_price', function($price){ return $price; }, 1); // no conversion
+add_filter('woocs_current_currency', function(){ return af_active_currency(); }, PHP_INT_MAX);
+add_filter('woocs_convert_price', function($price){
+    return $price; // passthrough; WOOCS handles CAD conversion via its rate
+}, 1);
 add_action('init', function(){
-    // WOOCS reads this cookie first — pin it to USD before the plugin runs
-    if (!isset($_COOKIE['woocs_current_currency']) || $_COOKIE['woocs_current_currency'] !== 'USD') {
-        @setcookie('woocs_current_currency', 'USD', time()+YEAR_IN_SECONDS, defined('COOKIEPATH')?COOKIEPATH:'/', defined('COOKIE_DOMAIN')?COOKIE_DOMAIN:'');
-        $_COOKIE['woocs_current_currency'] = 'USD';
+    // WOOCS reads this cookie first — pin it to the whitelisted choice before the plugin runs
+    $active = af_active_currency();
+    if (!isset($_COOKIE['woocs_current_currency']) || $_COOKIE['woocs_current_currency'] !== $active) {
+        @setcookie('woocs_current_currency', $active, time()+YEAR_IN_SECONDS, defined('COOKIEPATH')?COOKIEPATH:'/', defined('COOKIE_DOMAIN')?COOKIE_DOMAIN:'');
+        $_COOKIE['woocs_current_currency'] = $active;
     }
-    if (session_status() === PHP_SESSION_ACTIVE) { $_SESSION['woocs_current_currency'] = 'USD'; }
+    if (session_status() === PHP_SESSION_ACTIVE) { $_SESSION['woocs_current_currency'] = $active; }
     $def = get_option('woocs_default_currency', '');
     if ($def !== 'USD') update_option('woocs_default_currency', 'USD');
 }, 0);
 add_action('wp_loaded', function(){
     if (isset($GLOBALS['WOOCS']) && is_object($GLOBALS['WOOCS'])) {
         $w = $GLOBALS['WOOCS'];
-        if (method_exists($w, 'set_currency')) { $w->set_currency('USD'); }
-        if (property_exists($w, 'current_currency')) { $w->current_currency = 'USD'; }
+        $active = af_active_currency();
+        if (method_exists($w, 'set_currency')) { $w->set_currency($active); }
+        if (property_exists($w, 'current_currency')) { $w->current_currency = $active; }
         if (property_exists($w, 'default_currency')) { $w->default_currency = 'USD'; }
     }
 }, 1);
@@ -5590,3 +5636,279 @@ add_action('wp_head', function(){
     </style>
     <?php
 }, 32);
+
+/* ============================================================
+   PHASE 12 — Spec completions (added 2026-07-15)
+   12a. Shop Through Videos — reels-style homepage section (spec §9)
+   12b. Clearance countdown timer (spec §11)
+   12c. Newsletter subscribe endpoint (footer form wiring)
+   All blocks are additive: existing sections are never modified.
+   ============================================================ */
+
+// ── 12a. Shop Through Videos ─────────────────────────────────
+// Video pool: WP option 'af_stv_videos' (one YouTube URL/ID per line, set by
+// admin for real client videos) — falls back to the cached channel pool that
+// Products In Motion already maintains. Renders portrait reel cards.
+add_action('wp_footer', function() {
+    if (!is_front_page()) return;
+
+    $ids = array();
+    $opt = trim((string) get_option('af_stv_videos', ''));
+    if ($opt !== '') {
+        foreach (preg_split('/[\r\n,]+/', $opt) as $line) {
+            $line = trim($line);
+            if ($line === '') continue;
+            if (preg_match('#(?:youtube(?:-nocookie)?\.com/(?:watch\?(?:[^&\s]*&)*v=|embed/|shorts/|v/)|youtu\.be/)([A-Za-z0-9_-]{11})#i', $line, $m)) {
+                $ids[] = $m[1];
+            } elseif (preg_match('/^[A-Za-z0-9_-]{11}$/', $line)) {
+                $ids[] = $line;
+            }
+        }
+    }
+    if (empty($ids)) {
+        $pool = get_transient('af_yt_ids3_UC_GX4vXRQrN4GsvSfgmZxYw');
+        if (is_array($pool)) $ids = $pool;
+    }
+    $ids = array_values(array_unique(array_filter($ids)));
+    if (empty($ids)) return;
+    $ids = array_slice($ids, 0, 10);
+    $channel_url = 'https://www.youtube.com/channel/UC_GX4vXRQrN4GsvSfgmZxYw';
+    ?>
+<style>
+.af-stv-section{width:100%;max-width:1240px;margin:0 auto;padding:44px 16px 36px;box-sizing:border-box;}
+.af-stv-head{display:flex;align-items:baseline;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
+.af-stv-title{font-size:30px;font-weight:800;margin:0;color:inherit;}
+.af-stv-sub{margin:0 0 18px;color:#777;font-size:14.5px;}
+.af-stv-more{flex-shrink:0;background:#c9a84c;color:#141414;font-weight:700;font-size:13.5px;padding:10px 20px;border-radius:24px;text-decoration:none;transition:background .2s;}
+.af-stv-more:hover{background:#a8872e;color:#fff;}
+.af-stv-row{display:flex;gap:18px;overflow-x:auto;padding:6px 2px 16px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;}
+.af-stv-row::-webkit-scrollbar{height:8px;}
+.af-stv-row::-webkit-scrollbar-thumb{background:#c9a84c;border-radius:4px;}
+.af-stv-card{flex:0 0 210px;scroll-snap-align:start;border-radius:14px;overflow:hidden;position:relative;cursor:pointer;background:#111;box-shadow:0 4px 16px rgba(0,0,0,.18);transition:transform .25s ease;}
+.af-stv-card:hover{transform:translateY(-4px);}
+.af-stv-thumb{width:100%;aspect-ratio:9/16;object-fit:cover;display:block;background:#222;}
+.af-stv-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;background:rgba(20,20,20,.72);display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.af-stv-play::after{content:"";display:block;margin-left:4px;border-style:solid;border-width:10px 0 10px 17px;border-color:transparent transparent transparent #c9a84c;}
+.af-stv-shop{position:absolute;left:10px;right:10px;bottom:10px;background:rgba(20,20,20,.82);color:#fff;font-size:12px;font-weight:700;text-align:center;padding:8px 6px;border-radius:8px;text-decoration:none;display:block;}
+.af-stv-shop:hover{background:#c9a84c;color:#141414;}
+.af-stv-lb{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:99999;display:none;align-items:center;justify-content:center;padding:24px;}
+.af-stv-lb.open{display:flex;}
+.af-stv-lb-frame{width:min(420px,92vw);aspect-ratio:9/16;max-height:88vh;border:none;border-radius:12px;background:#000;}
+.af-stv-lb-x{position:absolute;top:18px;right:22px;width:42px;height:42px;border-radius:50%;background:#c9a84c;color:#141414;border:none;font-size:22px;font-weight:700;cursor:pointer;line-height:1;}
+@media(max-width:600px){.af-stv-card{flex-basis:170px;}.af-stv-title{font-size:24px;}}
+</style>
+<div class="af-stv-section" id="afStvSection">
+  <div class="af-stv-head">
+    <h2 class="af-stv-title">Shop Through Videos</h2>
+    <a class="af-stv-more" href="<?php echo esc_url($channel_url); ?>" target="_blank" rel="noopener">View More ▸</a>
+  </div>
+  <p class="af-stv-sub">Real client installations, product demos &amp; behind-the-scenes framing.</p>
+  <div class="af-stv-row">
+    <?php foreach ($ids as $vid): ?>
+    <div class="af-stv-card" data-vid="<?php echo esc_attr($vid); ?>">
+      <img class="af-stv-thumb" loading="lazy" alt="Watch: client video"
+           src="https://i.ytimg.com/vi/<?php echo esc_attr($vid); ?>/hqdefault.jpg">
+      <span class="af-stv-play"></span>
+      <a class="af-stv-shop" href="/shop/" onclick="event.stopPropagation();">&#128722; Shop This Look</a>
+    </div>
+    <?php endforeach; ?>
+  </div>
+</div>
+<div class="af-stv-lb" id="afStvLb">
+  <button class="af-stv-lb-x" id="afStvLbX" aria-label="Close video">&times;</button>
+  <iframe class="af-stv-lb-frame" id="afStvLbFrame" allow="autoplay; encrypted-media" allowfullscreen title="Product video"></iframe>
+</div>
+<script>
+(function(){
+  var lb = document.getElementById('afStvLb'),
+      fr = document.getElementById('afStvLbFrame'),
+      x  = document.getElementById('afStvLbX');
+  document.querySelectorAll('.af-stv-card').forEach(function(card){
+    card.addEventListener('click', function(){
+      fr.src = 'https://www.youtube-nocookie.com/embed/' + card.dataset.vid + '?autoplay=1&rel=0&playsinline=1';
+      lb.classList.add('open');
+    });
+  });
+  function closeStv(){ lb.classList.remove('open'); fr.src=''; }
+  x.onclick = closeStv;
+  lb.addEventListener('click', function(e){ if (e.target === lb) closeStv(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeStv(); });
+
+  // Place after the "Try It on Your Wall" section (spec order); fall back to
+  // before "Corporate Signages"; final fallback leaves it where it rendered.
+  function place(){
+    var sec = document.getElementById('afStvSection');
+    if (!sec || sec.dataset.placed) return;
+    var anchor = null, before = false;
+    document.querySelectorAll('h1,h2,h3,h4,.elementor-heading-title').forEach(function(h){
+      if (anchor) return;
+      if (/try it on your wall/i.test(h.textContent)) anchor = h;
+    });
+    if (!anchor) {
+      document.querySelectorAll('h1,h2,h3,h4,.elementor-heading-title').forEach(function(h){
+        if (anchor) return;
+        if (/corporate signage/i.test(h.textContent)) { anchor = h; before = true; }
+      });
+    }
+    if (!anchor) return;
+    var el = anchor, section = null;
+    for (var i=0;i<20;i++){
+      el = el.parentElement;
+      if (!el || el === document.body) break;
+      if (/elementor-top-section/.test(el.className||'')) { section = el; break; }
+      if (/elementor-section/.test(el.className||'')) section = el;
+    }
+    if (!section) return;
+    sec.dataset.placed = '1';
+    if (before) section.parentElement.insertBefore(sec, section);
+    else section.parentElement.insertBefore(sec, section.nextSibling);
+  }
+  document.addEventListener('DOMContentLoaded', place);
+  window.addEventListener('load', place);
+  setTimeout(place, 600); setTimeout(place, 1600);
+})();
+</script>
+<?php }, 10003);
+
+// ── 12b. Clearance countdown timer ───────────────────────────
+// Attaches a live countdown under the "Stock Clearance Sale" heading.
+// End time: option 'af_clearance_end' ("YYYY-MM-DD HH:MM", site timezone) if
+// set and in the future; otherwise rolls to next Sunday 23:59:59 each week.
+add_action('wp_footer', function() {
+    if (!is_front_page()) return;
+
+    $tz  = wp_timezone();
+    $now = new DateTime('now', $tz);
+    $end = null;
+    $opt = trim((string) get_option('af_clearance_end', ''));
+    if ($opt !== '') {
+        $try = date_create($opt, $tz);
+        if ($try && $try > $now) $end = $try;
+    }
+    if (!$end) {
+        $end = new DateTime('now', $tz);
+        $end->modify('sunday this week')->setTime(23, 59, 59);
+        if ($end <= $now) $end->modify('+7 days');
+    }
+    $end_ms = $end->getTimestamp() * 1000;
+    ?>
+<style>
+.af-cd-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:10px 0 6px;}
+.af-cd-label{font-size:14px;font-weight:700;color:#b4342a;letter-spacing:.02em;}
+.af-cd-units{display:flex;gap:8px;}
+.af-cd-unit{min-width:56px;background:#1a1a1a;color:#fff;border-radius:10px;padding:7px 8px 6px;text-align:center;border:2px solid #c9a84c;}
+.af-cd-num{display:block;font-size:20px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.1;}
+.af-cd-word{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.09em;color:#c9a84c;margin-top:2px;}
+.af-cd-note{font-size:12.5px;color:#8a6d1f;font-weight:600;}
+@media(max-width:480px){.af-cd-unit{min-width:48px;padding:6px 6px 5px;}.af-cd-num{font-size:17px;}}
+</style>
+<div class="af-cd-bar" id="afCdBar" style="display:none;" data-end="<?php echo esc_attr($end_ms); ?>">
+  <span class="af-cd-label">&#9889; Offers end in</span>
+  <span class="af-cd-units">
+    <span class="af-cd-unit"><span class="af-cd-num" data-u="d">0</span><span class="af-cd-word">Days</span></span>
+    <span class="af-cd-unit"><span class="af-cd-num" data-u="h">0</span><span class="af-cd-word">Hours</span></span>
+    <span class="af-cd-unit"><span class="af-cd-num" data-u="m">0</span><span class="af-cd-word">Mins</span></span>
+    <span class="af-cd-unit"><span class="af-cd-num" data-u="s">0</span><span class="af-cd-word">Secs</span></span>
+  </span>
+  <span class="af-cd-note">Limited stock &mdash; while supplies last</span>
+</div>
+<script>
+(function(){
+  var bar = document.getElementById('afCdBar');
+  if (!bar) return;
+  var end = parseInt(bar.dataset.end, 10);
+
+  function place(){
+    if (bar.dataset.placed) return;
+    var heading = null;
+    document.querySelectorAll('h1,h2,h3,h4,.elementor-heading-title').forEach(function(h){
+      if (!heading && /stock\s*clearance/i.test(h.textContent)) heading = h;
+    });
+    if (!heading) return;
+    bar.dataset.placed = '1';
+    var w = heading.closest('.elementor-widget') || heading;
+    w.parentElement.insertBefore(bar, w.nextSibling);
+    bar.style.display = 'flex';
+  }
+
+  function pad(n){ return n < 10 ? '0' + n : '' + n; }
+  function tick(){
+    var left = end - Date.now();
+    if (left <= 0) { end += 7 * 86400000; left = end - Date.now(); } // roll weekly
+    var d = Math.floor(left / 86400000),
+        h = Math.floor(left % 86400000 / 3600000),
+        m = Math.floor(left % 3600000 / 60000),
+        s = Math.floor(left % 60000 / 1000);
+    bar.querySelector('[data-u="d"]').textContent = d;
+    bar.querySelector('[data-u="h"]').textContent = pad(h);
+    bar.querySelector('[data-u="m"]').textContent = pad(m);
+    bar.querySelector('[data-u="s"]').textContent = pad(s);
+  }
+  setInterval(tick, 1000); tick();
+  document.addEventListener('DOMContentLoaded', place);
+  window.addEventListener('load', place);
+  setTimeout(place, 600); setTimeout(place, 1600);
+})();
+</script>
+<?php }, 10004);
+
+// ── 12c. Newsletter subscribe endpoint ───────────────────────
+// Stores subscribers in the 'af_newsletter_subscribers' option and notifies
+// the admin. Swap for Klaviyo/Mailchimp later without touching the form.
+function af_nl_subscribe_handler() {
+    check_ajax_referer('af_nl_subscribe', 'nonce');
+    if (!empty($_POST['af_nl_hp'])) { // honeypot
+        wp_send_json_success(array('message' => 'Thanks — you are subscribed!'));
+    }
+    $email = isset($_POST['af_nl_email']) ? sanitize_email(wp_unslash($_POST['af_nl_email'])) : '';
+    if (!$email || !is_email($email)) {
+        wp_send_json_error(array('message' => 'Please enter a valid email address.'));
+    }
+    $subs = get_option('af_newsletter_subscribers', array());
+    if (!is_array($subs)) $subs = array();
+    foreach ($subs as $s) {
+        if (isset($s['email']) && strtolower($s['email']) === strtolower($email)) {
+            wp_send_json_success(array('message' => 'You are already on the list — thank you!'));
+        }
+    }
+    $subs[] = array('email' => $email, 'time' => current_time('mysql'), 'ip' => isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '');
+    if (count($subs) > 5000) $subs = array_slice($subs, -5000);
+    update_option('af_newsletter_subscribers', $subs, false);
+    wp_mail(get_option('admin_email'), '[The Art Framer] New newsletter subscriber', "New subscriber: {$email}\nTotal subscribers: " . count($subs));
+    wp_send_json_success(array('message' => 'Thanks — you are subscribed!'));
+}
+add_action('wp_ajax_af_nl_subscribe',        'af_nl_subscribe_handler');
+add_action('wp_ajax_nopriv_af_nl_subscribe', 'af_nl_subscribe_handler');
+
+// Front-end submit handler for the footer form
+add_action('wp_footer', function() { ?>
+<script>
+(function(){
+  document.querySelectorAll('form.af-f-newsform[data-ajax]').forEach(function(form){
+    form.addEventListener('submit', function(e){
+      e.preventDefault();
+      var btn = form.querySelector('button'),
+          msg = form.parentElement.querySelector('.af-f-newsmsg'),
+          fd  = new FormData(form);
+      fd.append('action', 'af_nl_subscribe');
+      fd.append('nonce', form.dataset.nonce);
+      if (btn) { btn.disabled = true; btn.textContent = '…'; }
+      fetch(form.dataset.ajax, { method: 'POST', credentials: 'same-origin', body: fd })
+        .then(function(r){ return r.json(); })
+        .then(function(res){
+          if (msg) {
+            msg.style.display = 'block';
+            msg.style.color = res.success ? '#7ec98f' : '#e08e88';
+            msg.textContent = (res.data && res.data.message) ? res.data.message : 'Something went wrong — please try again.';
+          }
+          if (res.success) form.reset();
+        })
+        .catch(function(){
+          if (msg) { msg.style.display='block'; msg.style.color='#e08e88'; msg.textContent='Network error — please try again.'; }
+        })
+        .finally(function(){ if (btn) { btn.disabled = false; btn.textContent = 'Join'; } });
+    });
+  });
+})();
+</script>
+<?php }, 301);

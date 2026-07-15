@@ -82,6 +82,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/dedup-faq.php --allow-root 2>&1" \
             || true
 
+          echo "Switching storefront currencies to USD + CAD..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/switch-currency-cad.php --allow-root 2>&1" \
+            || true
+
           echo "Creating missing legal/utility pages..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
