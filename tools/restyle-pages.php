@@ -7,7 +7,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$STYLE_VERSION = '13.0';
+$STYLE_VERSION = '13.1';
 $EMAIL = 'theartframer136@gmail.com';
 $PHONE = '+1 (610) 470-7280';
 $TEL   = 'tel:+16104707280';
@@ -62,6 +62,25 @@ $bodies['gift-cards'] = <<<HTML
     </div>
   </div>
 
+
+  <div class="taf-section taf-media">
+    <div>
+      <h2 class="taf-h2">Why Art Makes the Perfect Gift</h2>
+      <p>Flowers fade and gadgets get replaced — but wall art becomes part of someone's home. Every time they walk past it, they'll think of you. A gift card means they get to choose a piece that truly speaks to them, in the exact size and frame their wall needs.</p>
+      <p>Whether it's a housewarming, wedding, Diwali, or just-because — an Art Framer gift card is a gift of taste, not guesswork.</p>
+    </div>
+    <img src="https://theartframer.us/wp-content/uploads/2026/06/Radha-Krishna-Canvas-Wall-Art-Placement_Living-Room.webp" alt="Canvas wall art styled in a living room" loading="lazy">
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Gift Card Questions</h2>
+    <div class="taf-grid">
+      <div class="taf-card"><span class="taf-ico">📩</span><h3>Can I send it directly?</h3><p>Yes — give us the recipient's email and your message, and we deliver it beautifully designed, on the date you choose.</p></div>
+      <div class="taf-card"><span class="taf-ico">💱</span><h3>USD or CAD?</h3><p>Gift cards work in both currencies at checkout — the balance converts automatically at the current store rate.</p></div>
+      <div class="taf-card"><span class="taf-ico">🧾</span><h3>Lost the email?</h3><p>No problem. Write to us with the purchaser's name and we'll resend the card with its full remaining balance.</p></div>
+    </div>
+  </div>
+
   <div class="taf-cta">
     <h2>Order a Gift Card</h2>
     <p>Tell us the amount and the recipient's name — we'll handle the design and delivery, usually within a few hours.</p>
@@ -96,6 +115,16 @@ $bodies['legal-imprint'] = <<<HTML
   <h2>Artist Content</h2>
   <p>Artworks sold under our <a href="/artists/">Artists &amp; Creators</a> program remain the intellectual property of the respective artist and are reproduced and sold under licence. See our <a href="/content-ethics-policy/">Content &amp; Ethics Policy</a> for how we source and credit art.</p>
 
+
+  <div class="taf-media">
+    <img src="https://theartframer.us/wp-content/uploads/2026/03/canvas-texture-horizontal-1536x1024-1-69aa9f4f0a94b.webp" alt="Premium canvas texture from The Art Framer studio" loading="lazy">
+    <div>
+      <h2 style="margin-top:0;">About Our Studio</h2>
+      <p>The Art Framer is an independent print-and-frame studio. Every canvas sold on this website is printed, stretched, and framed in-house on museum-grade materials — which is also why we take full and direct responsibility for the quality of what we ship.</p>
+      <p>We serve customers across the United States with free delivery in Delaware, Pennsylvania, Maryland, New Jersey and nearby areas.</p>
+    </div>
+  </div>
+
   <h2>Dispute Resolution</h2>
   <p>We aim to resolve any concern directly and quickly — please contact us first at <a href="mailto:{$EMAIL}">{$EMAIL}</a>. We respond to all enquiries within two business days.</p>
 
@@ -111,6 +140,9 @@ $bodies['reviews-press'] = <<<HTML
     <h1>Reviews &amp; Press</h1>
     <p class="taf-sub"><span class="taf-stars">★★★★★</span><br>Rated 5.0 out of 5 by our customers on Google — real feedback from real walls.</p>
   </div>
+
+
+  <img class="taf-banner-img" src="https://theartframer.us/wp-content/uploads/2026/06/Radha-Krishna_Wall-Art_-Living-Room.webp" alt="Customer living room with Radha Krishna canvas wall art" loading="lazy">
 
   <div class="taf-section">
     <h2 class="taf-h2">What Customers Say</h2>
@@ -154,6 +186,21 @@ $bodies['reviews-press'] = <<<HTML
     </div>
   </div>
 
+
+  <div class="taf-section taf-media">
+    <div>
+      <h2 class="taf-h2">Why Walls Trust Us</h2>
+      <ul class="taf-check">
+        <li><b>5.0-star average</b> across all published Google reviews</li>
+        <li><b>In-house production</b> — no outsourced printing, no quality surprises</li>
+        <li><b>Big-wall-safe packaging</b> — canvases arrive intact, guaranteed</li>
+        <li><b>Real rooms, real photos</b> — the reviews above come with customer pictures on Google</li>
+      </ul>
+      <p style="margin-top:14px;">Every review is from a verified customer. We never edit or filter them — what you read is what people actually experienced.</p>
+    </div>
+    <img src="https://theartframer.us/wp-content/uploads/2026/06/Radha-Krishna-Abstract-Wall-Art_living-room.webp" alt="Abstract canvas print styled in a modern living room" loading="lazy">
+  </div>
+
   <div class="taf-cta">
     <h2>Get in Touch</h2>
     <p>Customer photos, press enquiries, or partnership ideas — one inbox for all of it.</p>
@@ -170,6 +217,16 @@ $bodies['customize-your-picture'] = <<<HTML
     <span class="taf-eyebrow">Made Just for You</span>
     <h1>Customize Your Picture</h1>
     <p class="taf-sub">Turn your own photo into premium canvas or framed wall art — portraits, collages, weddings, pets, and personalised gifts, made to order.</p>
+  </div>
+
+
+  <div class="taf-section taf-media">
+    <div>
+      <h2 class="taf-h2">Your Photo, Museum Quality</h2>
+      <p>A phone photo of your family, your wedding, your dog — our studio turns it into gallery-grade wall art. We colour-correct by hand, print on premium canvas with eco-friendly inks, and frame it in the finish you choose.</p>
+      <p>Not sure about sizing? Send the photo and a picture of your wall — we'll recommend the size that fits the space best.</p>
+    </div>
+    <img src="https://theartframer.us/wp-content/uploads/2026/03/personalized-prints-portrait-69aea49e486c6.webp" alt="Personalised portrait canvas print" loading="lazy">
   </div>
 
   <div class="taf-section">
@@ -203,6 +260,26 @@ $bodies['customize-your-picture'] = <<<HTML
       <li>Colour-corrected by hand for vibrant, accurate prints</li>
       <li>Secure packaging — no broken canvas, guaranteed</li>
       <li>Free shipping options across our delivery areas</li>
+    </ul>
+  </div>
+
+
+  <div class="taf-section">
+    <h2 class="taf-h2">See the Difference</h2>
+    <div class="taf-imgrow">
+      <figure><img src="https://theartframer.us/wp-content/uploads/2026/06/TAF-RADHA-KRISHNA-18530-room-1.jpg" alt="Framed canvas styled in a room" loading="lazy"><figcaption>Styled in a real room</figcaption></figure>
+      <figure><img src="https://theartframer.us/wp-content/uploads/2026/03/kids-room-decor.webp" alt="Kids room canvas decor" loading="lazy"><figcaption>Kids room custom art</figcaption></figure>
+      <figure><img src="https://theartframer.us/wp-content/uploads/2026/03/6-color-frame.webp" alt="Six frame colour options" loading="lazy"><figcaption>Choose from 6 frame finishes</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Tips for the Best Result</h2>
+    <ul class="taf-check">
+      <li>Send the original photo, not a screenshot — resolution matters</li>
+      <li>Daylight photos print truer than indoor evening shots</li>
+      <li>For collages, 5–9 photos works beautifully on large canvases</li>
+      <li>Tell us the room — we'll match the frame finish to your décor</li>
     </ul>
   </div>
 
@@ -255,6 +332,20 @@ $bodies['low-price-guarantee'] = <<<HTML
     </ul>
   </div>
 
+
+  <div class="taf-section taf-media">
+    <img src="https://theartframer.us/wp-content/uploads/2026/03/6-color-frame.webp" alt="Frame finishes printed and assembled in-house" loading="lazy">
+    <div>
+      <h2 class="taf-h2">Where the Savings Come From</h2>
+      <p>Galleries mark up 3–4×. Marketplaces take 15–30% in fees. We do neither — your canvas goes straight from our printer to your wall.</p>
+      <ul class="taf-check">
+        <li>In-house printing — no third-party production costs</li>
+        <li>Direct-to-you shipping — no retail middlemen</li>
+        <li>Made to order — no warehouse of unsold stock priced into your art</li>
+      </ul>
+    </div>
+  </div>
+
   <div class="taf-cta">
     <h2>Found It Cheaper?</h2>
     <p>Send your order number and the competing link — we'll take a look right away.</p>
@@ -288,6 +379,21 @@ $bodies['refer-a-friend'] = <<<HTML
       <div class="taf-card"><span class="taf-ico">🧾</span><h3>Works on Everything</h3><p>Referral discounts apply to canvas prints, framing, banners, and even fully custom orders.</p></div>
       <div class="taf-card"><span class="taf-ico">⏱️</span><h3>No Waiting</h3><p>Your friend's discount is applied immediately at order time — no coupons to hunt for.</p></div>
     </div>
+  </div>
+
+
+  <div class="taf-section taf-media">
+    <div>
+      <h2 class="taf-h2">Sharing Ideas</h2>
+      <p>The best referrals happen naturally — when guests ask "where did you get that?" Here are the easiest ways to spread the word:</p>
+      <ul class="taf-check">
+        <li>Post your wall on Instagram and tag us — we'll reshare it</li>
+        <li>Forward your order confirmation with a "you'd love these" note</li>
+        <li>Send friends to <b>theartframer.us</b> and have them mention your name at checkout</li>
+        <li>House-warming coming up? Gift a <a href="/gift-cards/">gift card</a> and earn on their next order too</li>
+      </ul>
+    </div>
+    <img src="https://theartframer.us/wp-content/uploads/2026/03/Living-Room-Decor.webp" alt="Living room decorated with canvas wall art" loading="lazy">
   </div>
 
   <div class="taf-cta">
@@ -339,6 +445,21 @@ $bodies['affiliates'] = <<<HTML
     </div>
   </div>
 
+
+  <div class="taf-section taf-media">
+    <img src="https://theartframer.us/wp-content/uploads/2026/03/Cafe-Decor.webp" alt="Cafe interior decorated with canvas art" loading="lazy">
+    <div>
+      <h2 class="taf-h2">Content That Converts</h2>
+      <p>Wall art is one of the most visual products on the internet — perfect for reels, room tours, before/after transformations, and styling guides. Our affiliates do best with:</p>
+      <ul class="taf-check">
+        <li>Room makeover videos featuring our canvases</li>
+        <li>"How to choose art for your wall" guides using our <a href="/try-on-wall/">Try It on Your Wall</a> tool</li>
+        <li>Festive gift guides linking our <a href="/gift-cards/">gift cards</a></li>
+        <li>Café &amp; office interior case studies</li>
+      </ul>
+    </div>
+  </div>
+
   <div class="taf-cta">
     <h2>Apply Today</h2>
     <p>It takes one email to get started.</p>
@@ -379,6 +500,19 @@ $bodies['exhibitions-events'] = <<<HTML
     </div>
   </div>
 
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Formats We Print</h2>
+    <div class="taf-imgrow">
+      <figure><img src="https://theartframer.us/wp-content/uploads/2026/03/backdrops.webp" alt="Custom event backdrop" loading="lazy"><figcaption>Event Backdrops</figcaption></figure>
+      <figure><img src="https://theartframer.us/wp-content/uploads/2026/03/banner-stand.webp" alt="Roll-up banner stand" loading="lazy"><figcaption>Roll-Up Stands</figcaption></figure>
+      <figure><img src="https://theartframer.us/wp-content/uploads/2026/03/vinyl-banner-1.webp" alt="Vinyl banner printing" loading="lazy"><figcaption>Vinyl Banners</figcaption></figure>
+      <figure><img src="https://theartframer.us/wp-content/uploads/2026/03/fabric-cloth-banners.webp" alt="Fabric cloth banner" loading="lazy"><figcaption>Fabric Banners</figcaption></figure>
+      <figure><img src="https://theartframer.us/wp-content/uploads/2026/03/fence-banner.webp" alt="Fence banner for construction sites" loading="lazy"><figcaption>Fence Banners</figcaption></figure>
+    </div>
+    <p class="taf-note">All formats available in custom sizes, with weatherproof inks for outdoor use and free design templates.</p>
+  </div>
+
   <div class="taf-cta">
     <h2>Host or Collaborate</h2>
     <p>Planning an exhibition or need event signage? We handle design, printing, and delivery timelines.</p>
@@ -396,6 +530,9 @@ $bodies['artists'] = <<<HTML
     <h1>Artists &amp; Creators</h1>
     <p class="taf-sub">Original art, direct from the people who made it — printed with museum-grade care, with every sale supporting the artist directly.</p>
   </div>
+
+
+  <img class="taf-banner-img" src="https://theartframer.us/wp-content/uploads/2026/04/works-of-artist-69da11c3d9a55.webp" alt="Original works by The Art Framer artists" loading="lazy">
 
   <div class="taf-section">
     <h2 class="taf-h2">Meet Our Artists</h2>
@@ -426,6 +563,19 @@ $bodies['artists'] = <<<HTML
       <li>Archival-resolution scans preserve every brushstroke</li>
       <li>The same museum-grade printing and framing as all our collections</li>
     </ul>
+  </div>
+
+
+  <div class="taf-section taf-media">
+    <img src="https://theartframer.us/wp-content/uploads/2026/04/discover-original-works-of-artists-1-69d75a56972fb-69d75ac9d6589.webp" alt="Discover original works of artists" loading="lazy">
+    <div>
+      <h2 class="taf-h2">How the Program Works</h2>
+      <ol class="taf-steps">
+        <li><b>Artists submit originals</b> — paintings, digital art, or mixed media.</li>
+        <li><b>We scan &amp; print</b> — archival resolution, artist-approved colour proofs.</li>
+        <li><b>You buy direct</b> — every sale pays the artist a transparent share.</li>
+      </ol>
+    </div>
   </div>
 
   <div class="taf-cta">
@@ -467,6 +617,21 @@ $bodies['artists/ananya-sengupta'] = <<<HTML
         <li>Every frame option: floating, aluminium, wooden</li>
       </ul>
     </div>
+  </div>
+
+
+  <div class="taf-section">
+    <h2 class="taf-h2">From the Collection</h2>
+    <div class="taf-imgrow">
+      <figure><img src="https://theartframer.us/wp-content/uploads/2026/06/Radha-Krishna-Face-To-Face-wall-Art.webp" alt="Radha Krishna face to face wall art by Ananya Sengupta" loading="lazy"><figcaption>Face to Face</figcaption></figure>
+      <figure><img src="https://theartframer.us/wp-content/uploads/2026/06/Devotional-Radha-Krishna-Canvas-Wall-Art.webp" alt="Devotional Radha Krishna canvas art" loading="lazy"><figcaption>Devotional Series</figcaption></figure>
+      <figure><img src="https://theartframer.us/wp-content/uploads/2026/02/Radha-Krishna-Abstract-flute.webp" alt="Radha Krishna abstract flute artwork" loading="lazy"><figcaption>The Flute (Abstract)</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Signature Style</h2>
+    <p class="taf-lead">Ananya's work is known for its layered symbolism — lotus motifs, peacock feathers, and the interplay of gold on deep indigo. Collectors often pair her devotional pieces with warm lighting and natural wood frames, where the gold detailing catches the evening light beautifully.</p>
   </div>
 
   <div class="taf-cta">
@@ -511,6 +676,21 @@ $bodies['artists/tanmay-choudhary'] = <<<HTML
     </div>
   </div>
 
+
+  <div class="taf-section">
+    <h2 class="taf-h2">From the Collection</h2>
+    <div class="taf-imgrow">
+      <figure><img src="https://theartframer.us/wp-content/uploads/2026/06/Radha-Krishna-Abstract-Wall-Art.webp" alt="Abstract wall art by Tanmay Choudhary" loading="lazy"><figcaption>Abstract Devotion</figcaption></figure>
+      <figure><img src="https://theartframer.us/wp-content/uploads/2026/03/Cafe-Decor.webp" alt="Contemporary cafe decor artwork" loading="lazy"><figcaption>Café Series</figcaption></figure>
+      <figure><img src="https://theartframer.us/wp-content/uploads/2026/03/Living-Room-Decor.webp" alt="Modern living room composition" loading="lazy"><figcaption>Living Room Statements</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Signature Style</h2>
+    <p class="taf-lead">Tanmay builds his compositions around colour fields and bold negative space — art that holds a wall without shouting. His large-format pieces are favourites for offices, studios, and minimalist interiors where a single artwork sets the tone for the whole room.</p>
+  </div>
+
   <div class="taf-cta">
     <h2>Shop the Collection</h2>
     <p>Every purchase directly supports Tanmay's studio practice.</p>
@@ -531,6 +711,15 @@ $bodies['privacy-policy'] = <<<HTML
 
   <p><span class="taf-updated">Last updated: 15 July 2026</span></p>
   <p>This Privacy Policy explains how <b>The Art Framer</b> ("we", "us") handles your personal information when you visit theartframer.us, create an account, or place an order.</p>
+
+
+  <div class="taf-media">
+    <img src="https://theartframer.us/wp-content/uploads/2026/02/The-Art-Framer-1.webp" alt="The Art Framer studio branding" loading="lazy">
+    <div>
+      <h2 style="margin-top:0;">Our Commitment</h2>
+      <p>We collect only what we need to print, frame, and deliver your order — nothing more. Your photos are used solely for your prints, your email is never sold, and you can ask us to delete your data at any time with a single email.</p>
+    </div>
+  </div>
 
   <h2>1. Information We Collect</h2>
   <ul>
