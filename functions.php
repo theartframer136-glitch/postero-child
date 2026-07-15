@@ -5912,3 +5912,83 @@ add_action('wp_footer', function() { ?>
 })();
 </script>
 <?php }, 301);
+
+// ── 12d. Footer utility strip — newsletter + spec quick links ─
+// The child theme's PHP footer (Phase 4) is disabled in favour of the theme's
+// Elementor footer, so the spec-required footer links and subscribe form are
+// added as an additive strip injected just above #colophon. Uses the same
+// .af-f-newsform contract as the 12c AJAX handler.
+add_action('wp_footer', function() {
+    if (is_admin()) return;
+    ?>
+<style>
+.af-futil{background:#1a1a1a;color:#cfcfcf;border-top:3px solid #c9a84c;padding:34px 16px;display:none;}
+.af-futil-inner{max-width:1240px;margin:0 auto;display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start;justify-content:space-between;}
+.af-futil-col{flex:1 1 260px;min-width:240px;}
+.af-futil-title{font-size:14px;font-weight:700;color:#fff;margin:0 0 12px;text-transform:uppercase;letter-spacing:.06em;}
+.af-futil-links{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:1fr 1fr;gap:8px 20px;}
+.af-futil-links a{font-size:13px;color:#a8a8a8;text-decoration:none;transition:color .2s;}
+.af-futil-links a:hover{color:#c9a84c;}
+.af-futil .af-f-newsform{display:flex;gap:8px;max-width:340px;}
+.af-futil .af-f-newsform input[type=email]{flex:1;min-width:0;padding:10px 12px;border:1px solid #333;border-radius:6px;background:#111;color:#eee;font-size:13px;}
+.af-futil .af-f-newsform button{padding:10px 18px;border:none;border-radius:6px;background:#c9a84c;color:#141414;font-weight:700;font-size:13px;cursor:pointer;}
+.af-futil .af-f-newsform button:hover{background:#dcb85a;}
+.af-futil .af-f-newsblurb{font-size:12.5px;color:#8a8a8a;margin:0 0 10px;}
+@media(max-width:600px){.af-futil-links{grid-template-columns:1fr;}}
+</style>
+<div class="af-futil" id="afFutil" aria-label="More from The Art Framer">
+  <div class="af-futil-inner">
+    <div class="af-futil-col">
+      <h5 class="af-futil-title">Newsletter</h5>
+      <p class="af-f-newsblurb">New collections, offers &amp; decor ideas — straight to your inbox.</p>
+      <form class="af-f-newsform" method="post"
+            data-ajax="<?php echo esc_url(admin_url('admin-ajax.php')); ?>"
+            data-nonce="<?php echo esc_attr(wp_create_nonce('af_nl_subscribe')); ?>">
+        <input type="email" name="af_nl_email" placeholder="Your email" required aria-label="Email for newsletter">
+        <input type="text" name="af_nl_hp" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;">
+        <button type="submit">Join</button>
+      </form>
+      <p class="af-f-newsmsg" role="status" aria-live="polite" style="display:none;margin:8px 0 0;font-size:12.5px;"></p>
+    </div>
+    <div class="af-futil-col">
+      <h5 class="af-futil-title">Customer Care</h5>
+      <ul class="af-futil-links">
+        <li><a href="/gift-cards/">Gift Cards</a></li>
+        <li><a href="/low-price-guarantee/">Low Price Guarantee</a></li>
+        <li><a href="/customize-your-picture/">Customize Your Picture</a></li>
+        <li><a href="/reviews-press/">Reviews &amp; Press</a></li>
+        <li><a href="/refer-a-friend/">Refer a Friend</a></li>
+        <li><a href="/legal-imprint/">Legal Imprint</a></li>
+      </ul>
+    </div>
+    <div class="af-futil-col">
+      <h5 class="af-futil-title">Community</h5>
+      <ul class="af-futil-links">
+        <li><a href="/artists/">Artists &amp; Creators</a></li>
+        <li><a href="/affiliates/">Affiliates</a></li>
+        <li><a href="/exhibitions-events/">Exhibitions &amp; Events</a></li>
+        <li><a href="/wholesale-corporate/">Wholesale &amp; Corporate</a></li>
+        <li><a href="/blog/">Blog</a></li>
+        <li><a href="/privacy-policy/">Privacy Policy</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+  function placeFutil(){
+    var strip = document.getElementById('afFutil');
+    if (!strip || strip.dataset.placed) return;
+    var foot = document.getElementById('colophon') ||
+               document.querySelector('.elementor-location-footer, footer');
+    if (!foot || !foot.parentElement) return;
+    strip.dataset.placed = '1';
+    foot.parentElement.insertBefore(strip, foot);
+    strip.style.display = 'block';
+  }
+  document.addEventListener('DOMContentLoaded', placeFutil);
+  window.addEventListener('load', placeFutil);
+  setTimeout(placeFutil, 600);
+})();
+</script>
+<?php }, 299);
