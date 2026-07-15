@@ -5041,18 +5041,31 @@ add_action('wp_footer', function() {
       overlay.querySelectorAll('[data-dd-close]').forEach(function(el){ el.addEventListener('click', function(e){ if(e.target===el) close(); }); });
       document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
 
-      // Detect a "Digital Download" trigger inside a product card
+      // Detect a "Digital Download" trigger inside a product card.
+      // Robust across sections: strip icons/whitespace and match the label
+      // exactly ("⊕ Digital Download", "Digital Download", etc.), walking up a
+      // few levels so clicking the icon or its link still opens the modal.
+      var CARD_SEL = '.product-card, li.product, .product, .product-block, [class*="product-block"]';
       document.addEventListener('click', function(e){
         var trg = e.target.closest('.digital-download, .digital-download-btn, [class*="digital-download"], [data-digital-download]');
         if(!trg){
-          var el = e.target.closest('a,button,span,div');
-          if(el && el.closest('.product-card, li.product, .product') && /^\s*digital\s*download\s*$/i.test((el.textContent||''))) trg = el;
+          var node = e.target;
+          for(var i=0;i<4 && node && node!==document.body;i++){
+            var txt = (node.textContent||'').replace(/[^a-z]/gi,'').toLowerCase();
+            if(txt === 'digitaldownload'){ trg = node; break; }
+            node = node.parentElement;
+          }
         }
         if(!trg) return;
-        var card = trg.closest('.product-card, li.product, .product'); if(!card) return;
+        var card = trg.closest(CARD_SEL); if(!card) return;
         e.preventDefault(); e.stopPropagation();
         var atc = card.querySelector('[data-product_id]');
         curPid = atc ? atc.getAttribute('data-product_id') : '';
+        if(!curPid){ // fallback: WooCommerce li.product carries a post-<id> class
+          var m = (card.className||'').match(/post-(\d+)/);
+          if(m) curPid = m[1];
+          if(!curPid){ var pel=card.querySelector('[class*="post-"]'); if(pel){ var m2=(pel.className||'').match(/post-(\d+)/); if(m2) curPid=m2[1]; } }
+        }
         var im = card.querySelector('img');
         var t  = card.querySelector('.product-title, h2, h3, .woocommerce-loop-product__title');
         var lnk= card.querySelector('a[href]');
