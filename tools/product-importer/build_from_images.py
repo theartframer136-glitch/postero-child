@@ -332,11 +332,16 @@ def main():
             print(f"  {mp.name} -> \"{res['name']}\"")
             time.sleep(args.delay)
 
-    # Build the CSV rows from the winners.
-    rows = []
+    # Build the CSV rows from the winners. Winners still carrying a filename-style
+    # name (vision quota ran out) are HELD BACK — they'll be appended on a later
+    # run once named, so published products never get filename titles.
+    rows, held = [], 0
     for i, (mp, picks) in enumerate(winners, 1):
         res = cache[ckey(mp)]
         name = res["name"]
+        if looks_like_filename(name, mp):
+            held += 1
+            continue
         cat = res["category"] if res["category"] in CATEGORIES else ""
         cats = "Digital Canvas Prints" + (f"|{cat}" if cat else "")
         slug = re.sub(r"[^A-Z0-9]+", "-", name.upper()).strip("-")[:20]
@@ -376,6 +381,9 @@ def main():
     REPORT.write_text("\n".join(lines), encoding="utf-8")
 
     print(f"\nDone. {len(rows)} products written to {OUT}")
+    if held:
+        print(f"({held} winners still un-named — held back for now; re-run this "
+              f"command later with --delay 25 to name them, they'll be appended.)")
     print(f"Review {REPORT} — every name is derived from its own picture.")
     print("Test ONE:")
     print("  python publish.py --no-ai-images --limit 1 --csv products_named.csv --fresh-skus")
