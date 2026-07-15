@@ -185,6 +185,9 @@ def main():
     ap.add_argument("--min-gallery", type=int, default=0,
                     help="only keep products that have at least N matching wall photos")
     ap.add_argument("--delay", type=float, default=3.0, help="seconds between vision calls")
+    ap.add_argument("--append-only", action="store_true",
+                    help="keep existing CSV rows frozen; only append new products "
+                         "(safe --skip counting for already-published rows)")
     args = ap.parse_args()
 
     load_dotenv(HERE / ".env")
@@ -352,6 +355,17 @@ def main():
         })
         lines.append(f"[NEW] {name} ({cat or 'no-cat'}) main={mp.name} "
                      f"gallery={[Path(g).name for g in picks] or ['-']}")
+
+    # --append-only: keep the existing CSV rows EXACTLY as they are (so --skip
+    # row counting stays valid for already-published products) and add only
+    # products whose main image isn't in the CSV yet.
+    if args.append_only and OUT.exists():
+        with open(OUT, newline="", encoding="utf-8-sig") as f:
+            old = list(csv.DictReader(f))
+        old_mains = {r["image"].split("|")[0] for r in old}
+        added = [r for r in rows if r["image"].split("|")[0] not in old_mains]
+        rows = old + added
+        print(f"append-only: kept {len(old)} existing rows, added {len(added)} new.")
 
     cols = ["subject", "size", "sizes", "style", "use_case", "categories",
             "tags", "focus_keyword", "price", "image", "sku"]
