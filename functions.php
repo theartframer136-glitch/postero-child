@@ -5518,3 +5518,62 @@ add_action('wp_head', function() {
     </style>
     <?php
 }, 31);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 23 — "Price on request" for products with no price set.
+// The frame / accessory products (Art Accessories category) have no
+// price, so they displayed as $0.00. Until real prices are entered
+// in wp-admin, show "Price on request" and make them non-purchasable
+// (no Add to Cart / Buy Now at $0). Fully automatic & reversible:
+// the moment a real price is saved, the product behaves normally.
+// ─────────────────────────────────────────────────────────────
+
+// A zero / empty price → not purchasable (removes Add to Cart + Buy Now)
+add_filter('woocommerce_is_purchasable', function($purchasable, $product){
+    if (!$product) return $purchasable;
+    $p = $product->get_price();
+    if ($p === '' || $p === null || (float)$p <= 0) return false;
+    return $purchasable;
+}, 20, 2);
+
+// Show "Price on request" instead of $0.00 anywhere the price renders
+add_filter('woocommerce_get_price_html', function($html, $product){
+    if (!$product) return $html;
+    $p = $product->get_price();
+    if ($p === '' || $p === null || (float)$p <= 0) {
+        return '<span class="af-por">Price on request</span>';
+    }
+    return $html;
+}, 20, 2);
+
+// Loop cards: swap the (now absent) Add to Cart for an "Enquire" link
+add_filter('woocommerce_loop_add_to_cart_link', function($html, $product){
+    if (!$product) return $html;
+    $p = $product->get_price();
+    if ($p === '' || $p === null || (float)$p <= 0) {
+        return '<a href="'.esc_url(home_url('/contact/')).'" class="button af-por-btn">Enquire</a>';
+    }
+    return $html;
+}, 20, 2);
+
+// Single product page: add an "Enquire for price" button where Add to Cart would be
+add_action('woocommerce_single_product_summary', function(){
+    global $product;
+    if (!$product) return;
+    $p = $product->get_price();
+    if ($p === '' || $p === null || (float)$p <= 0) {
+        echo '<a href="'.esc_url(home_url('/contact/')).'" class="button af-por-btn af-por-single">Enquire for Price</a>';
+    }
+}, 31);
+
+// Minimal styling for the label + enquire buttons
+add_action('wp_head', function(){
+    ?>
+    <style>
+    .af-por{font-size:15px;font-weight:700;color:#a8872e;}
+    .af-por-btn{display:inline-block;}
+    .af-por-single{background:#1a1a1a !important;color:#fff !important;padding:12px 22px !important;border-radius:8px !important;margin:6px 0 0 !important;}
+    .af-por-single:hover{background:#c9a84c !important;}
+    </style>
+    <?php
+}, 32);

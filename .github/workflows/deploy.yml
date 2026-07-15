@@ -142,10 +142,10 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/fix-broken-content.php --allow-root 2>&1" \
             || true
 
-          echo "Frame / accessory products diagnostic (price + image)..."
+          echo "Filling missing subcategory thumbnails..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-frames.php --allow-root 2>&1" \
+             wp eval-file wp-content/themes/postero-child/tools/fill-category-thumbs.php --allow-root 2>&1" \
             || true
 
           echo "Category cards diagnostic..."
