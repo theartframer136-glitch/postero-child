@@ -1705,3 +1705,17 @@ body:has(.taf-page) .site-main{max-width:none;}
   .taf-banner-img{height:200px;}
   .taf-imgrow img{height:200px;}
 }
+
+/* Phase 13.2 — FAQ accordion (.taf-faq) */
+.taf-faq{display:grid;gap:12px;margin:26px 0 8px;}
+.taf-faq details{background:#fff;border:1px solid #ece5d4;box-shadow:0 3px 12px rgba(20,20,20,.05);}
+.taf-faq details[open]{border-color:var(--taf-gold);}
+.taf-faq summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;
+  gap:14px;padding:18px 22px;font-size:16px;font-weight:700;color:var(--taf-dark);}
+.taf-faq summary::-webkit-details-marker{display:none;}
+.taf-faq summary::after{content:"+";flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--taf-cream);
+  border:1px solid var(--taf-gold);color:var(--taf-gold-d);font-size:19px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;transition:transform .2s;}
+.taf-faq details[open] summary::after{content:"−";background:var(--taf-gold);color:var(--taf-dark);}
+.taf-faq .taf-faq-a{padding:0 22px 18px;color:var(--taf-mut);font-size:15px;line-height:1.75;}
+.taf-faq .taf-faq-a p{margin:0;}

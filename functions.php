@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.9.3');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.9.4');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -5756,6 +5756,29 @@ function af_nl_subscribe_handler() {
 }
 add_action('wp_ajax_af_nl_subscribe',        'af_nl_subscribe_handler');
 add_action('wp_ajax_nopriv_af_nl_subscribe', 'af_nl_subscribe_handler');
+
+// ── 12e. [af_faqs] shortcode — renders the SAME FAQ list used on
+// product detail pages (af_product_faqs), so /faqs/ never drifts.
+add_shortcode('af_faqs', function() {
+    if (!function_exists('af_product_faqs')) return '';
+    $faqs = af_product_faqs();
+    $out  = '<div class="taf-faq">';
+    $ld   = array();
+    foreach ($faqs as $i => $qa) {
+        $q = esc_html($qa[0]);
+        $a = esc_html($qa[1]);
+        $out .= '<details' . ($i === 0 ? ' open' : '') . '><summary>' . $q . '</summary><div class="taf-faq-a"><p>' . $a . '</p></div></details>';
+        $ld[] = array(
+            '@type' => 'Question', 'name' => $qa[0],
+            'acceptedAnswer' => array('@type' => 'Answer', 'text' => $qa[1]),
+        );
+    }
+    $out .= '</div>';
+    $out .= '<script type="application/ld+json">' . wp_json_encode(array(
+        '@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => $ld,
+    )) . '</script>';
+    return $out;
+});
 
 // Front-end submit handler for the footer form
 add_action('wp_footer', function() { ?>

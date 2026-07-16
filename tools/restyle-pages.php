@@ -858,14 +858,57 @@ $bodies['help-support'] = <<<HTML
 </div>
 HTML;
 
+/* ── FAQs — same questions as the product detail pages ─────── */
+$bodies['faqs'] = <<<HTML
+<div class="taf-page">
+  <div class="taf-hero">
+    <span class="taf-eyebrow">Quick Answers</span>
+    <h1>Frequently Asked Questions</h1>
+    <p class="taf-sub">Everything about our canvas, printing, delivery, and support — the same answers you'll find on every product page.</p>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Canvas, Printing &amp; Delivery</h2>
+    <p class="taf-lead">Click any question to expand the answer.</p>
+    [af_faqs]
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Didn't Find Your Answer?</h2>
+    <div class="taf-grid">
+      <div class="taf-card"><span class="taf-ico">🆘</span><h3>Help &amp; Support</h3><p>Contact channels, common topics, and how support works.</p><p style="margin-top:12px;"><a class="taf-btn" href="/help-support/">Get Help</a></p></div>
+      <div class="taf-card"><span class="taf-ico">🚚</span><h3>Shipping &amp; Delivery</h3><p>Timelines, free-delivery areas, and packaging details.</p><p style="margin-top:12px;"><a class="taf-btn" href="/shipping-delivery/">Read More</a></p></div>
+      <div class="taf-card"><span class="taf-ico">🔄</span><h3>Returns &amp; Refunds</h3><p>Our return process and when refunds are issued.</p><p style="margin-top:12px;"><a class="taf-btn" href="/returns-exchanges/">Read More</a></p></div>
+    </div>
+  </div>
+
+  <div class="taf-cta">
+    <h2>Ask Us Directly</h2>
+    <p>Real people, real answers — usually within the hour during business time.</p>
+    <a class="taf-btn" href="mailto:{$EMAIL}?subject=Question">Email {$EMAIL}</a>
+    <a class="taf-btn-alt" href="{$TEL}">Call {$PHONE}</a>
+  </div>
+</div>
+HTML;
+
 /* ── Apply ──────────────────────────────────────────────────── */
 echo "=== Restyle spec pages (v{$STYLE_VERSION}) ===\n\n";
 $done = 0; $skipped = 0;
+$classic_render = array( 'faqs' );
+
 foreach ( $bodies as $slug => $body ) {
     $page = get_page_by_path( $slug );
     if ( ! $page ) {
         echo "MISS  /{$slug} — page not found (run create-pages first)\n";
         continue;
+    }
+    if ( in_array( $slug, $classic_render, true ) ) {
+        $mode = get_post_meta( $page->ID, '_elementor_edit_mode', true );
+        if ( $mode === 'builder' ) {
+            update_post_meta( $page->ID, '_taf_elementor_mode_backup', $mode );
+            update_post_meta( $page->ID, '_elementor_edit_mode', '' );
+            echo "MODE  /{$slug} — Elementor rendering disabled (backup kept)\n";
+        }
     }
     if ( get_post_meta( $page->ID, '_taf_styled_page', true ) === $STYLE_VERSION ) {
         echo "SKIP  /{$slug} — already styled v{$STYLE_VERSION}\n";
