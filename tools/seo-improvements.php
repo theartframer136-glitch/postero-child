@@ -236,20 +236,53 @@ if (!file_exists($og_path)) {
     }
 }
 if (file_exists($og_path)) {
-    $card_scan = function ($cur) { return stripos($cur, 'Business-Cards') !== false; };
-    if ($front_id && $set_meta($front_id, 'rank_math_facebook_image', $og_url, $card_scan)) {
-        $log('front page og:image set');
+    // Rank Math resolves social images by attachment ID, so the JPG
+    // must exist in the media library — register it once.
+    $att_id = 0;
+    $existing = get_posts(array(
+        'post_type' => 'attachment', 'posts_per_page' => 1, 'fields' => 'ids',
+        'meta_key' => '_af_og_home', 'meta_value' => '1',
+    ));
+    if ($existing) $att_id = (int) $existing[0];
+    if (!$att_id) {
+        $ft = wp_check_filetype(basename($og_path), null);
+        $ins = wp_insert_attachment(array(
+            'post_mime_type' => $ft['type'],
+            'post_title'     => 'The Art Framer — Custom Canvas Prints & Frames',
+            'post_content'   => '',
+            'post_status'    => 'inherit',
+        ), $og_path);
+        if (!is_wp_error($ins) && $ins) {
+            require_once ABSPATH . 'wp-admin/includes/image.php';
+            wp_update_attachment_metadata($ins, wp_generate_attachment_metadata($ins, $og_path));
+            update_post_meta($ins, '_af_og_home', '1');
+            update_post_meta($ins, '_wp_attachment_image_alt', 'The Art Framer — custom canvas prints and frames');
+            $att_id = (int) $ins;
+            $log("og:image registered as attachment $att_id");
+        }
     }
-    // sitewide default social image (used by pages with no image of
-    // their own) — only replace nothing-or-business-card.
+    // Replaceable = empty, the business-card scan, or our own og-home
+    // value from a previous run (so we can repair the missing ID).
+    $replaceable = function ($cur) {
+        return $cur === '' || stripos($cur, 'Business-Cards') !== false || stripos($cur, 'og-home') !== false;
+    };
+    if ($att_id && $front_id) {
+        $cur = (string) get_post_meta($front_id, 'rank_math_facebook_image', true);
+        if ($replaceable($cur)) {
+            update_post_meta($front_id, 'rank_math_facebook_image', $og_url);
+            update_post_meta($front_id, 'rank_math_facebook_image_id', $att_id);
+            $log('front page og:image set (url + id)');
+        }
+    }
+    // sitewide default social image (used by pages with none of their own)
     $titles = get_option('rank-math-options-titles', array());
-    if (is_array($titles)) {
+    if ($att_id && is_array($titles)) {
         $cur = isset($titles['open_graph_image']) ? (string) $titles['open_graph_image'] : '';
-        if ($cur === '' || stripos($cur, 'Business-Cards') !== false) {
+        if ($replaceable($cur)) {
             $titles['open_graph_image']    = $og_url;
-            $titles['open_graph_image_id'] = '';
+            $titles['open_graph_image_id'] = $att_id;
             update_option('rank-math-options-titles', $titles);
-            $log('sitewide default og:image set');
+            $log('sitewide default og:image set (url + id)');
         }
     }
 }

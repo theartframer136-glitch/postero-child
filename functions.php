@@ -6514,37 +6514,24 @@ add_action('wp_footer', function() { ?>
 </script>
 <?php }, 302);
 
-// 24g. BreadcrumbList JSON-LD — visible breadcrumbs exist but no
-// schema, so Google can't show breadcrumb trails in US results.
+// 24g. BreadcrumbList JSON-LD on single product pages ONLY — every
+// other page type (categories, pages, posts) already gets a
+// BreadcrumbList from elsewhere; products were the one gap.
 add_action('wp_head', function () {
     if (is_admin() || is_front_page()) return;
+    if (!function_exists('is_product') || !is_product()) return;
     $crumbs = array(array('Home', home_url('/')));
-    if (function_exists('is_product') && is_product()) {
-        $terms = get_the_terms(get_the_ID(), 'product_cat');
-        if ($terms && !is_wp_error($terms)) {
-            $t = $terms[0];
-            if ($t->parent) {
-                $p = get_term($t->parent, 'product_cat');
-                if ($p && !is_wp_error($p)) $crumbs[] = array($p->name, get_term_link($p));
-            }
-            $link = get_term_link($t);
-            if (!is_wp_error($link)) $crumbs[] = array($t->name, $link);
-        }
-        $crumbs[] = array(get_the_title(), get_permalink());
-    } elseif (is_tax('product_cat')) {
-        $term = get_queried_object();
-        if (!$term || is_wp_error($term)) return;
-        if ($term->parent) {
-            $p = get_term($term->parent, 'product_cat');
+    $terms = get_the_terms(get_the_ID(), 'product_cat');
+    if ($terms && !is_wp_error($terms)) {
+        $t = $terms[0];
+        if ($t->parent) {
+            $p = get_term($t->parent, 'product_cat');
             if ($p && !is_wp_error($p)) $crumbs[] = array($p->name, get_term_link($p));
         }
-        $link = get_term_link($term);
-        if (!is_wp_error($link)) $crumbs[] = array($term->name, $link);
-    } elseif (is_singular('post') || is_page()) {
-        $crumbs[] = array(get_the_title(), get_permalink());
-    } else {
-        return;
+        $link = get_term_link($t);
+        if (!is_wp_error($link)) $crumbs[] = array($t->name, $link);
     }
+    $crumbs[] = array(get_the_title(), get_permalink());
     if (count($crumbs) < 2) return;
     $items = array();
     foreach ($crumbs as $i => $c) {
