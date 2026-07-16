@@ -891,10 +891,47 @@ $bodies['faqs'] = <<<HTML
 </div>
 HTML;
 
+/* ── Contact Us — working form + real studio details ────────── */
+$bodies['contact'] = <<<HTML
+<div class="taf-page">
+  <div class="taf-hero">
+    <span class="taf-eyebrow">Get In Touch</span>
+    <h1>Contact Us</h1>
+    <p class="taf-sub">Questions, custom orders, bulk quotes — send us a message and we'll reply within 24 hours.</p>
+  </div>
+
+  <div class="taf-section taf-two">
+    <div>
+      <h2 class="taf-h2">Send a Message</h2>
+      <p class="taf-lead">Fill in the form and it lands straight in our studio inbox.</p>
+      [af_contact_form]
+    </div>
+    <div>
+      <h2 class="taf-h2">Reach Us Directly</h2>
+      <div class="taf-grid" style="grid-template-columns:1fr;">
+        <div class="taf-card"><span class="taf-ico">📞</span><h3>Call or WhatsApp</h3><p><a href="{$TEL}">{$PHONE}</a><br>Quickest for sizing advice and order changes.</p></div>
+        <div class="taf-card"><span class="taf-ico">✉️</span><h3>Email</h3><p><a href="mailto:{$EMAIL}">{$EMAIL}</a><br>Best for custom photo orders and attachments.</p></div>
+        <div class="taf-card"><span class="taf-ico">📍</span><h3>Studio &amp; Delivery</h3><p>Operating from Delaware, USA.<br>Free delivery: Delaware, Pennsylvania, Maryland, New Jersey &amp; nearby areas. Nationwide shipping available.</p></div>
+        <div class="taf-card"><span class="taf-ico">🕘</span><h3>Response Times</h3><p>Calls &amp; WhatsApp — right away in business hours.<br>Form &amp; email — within 24 hours.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Before You Write…</h2>
+    <div class="taf-grid">
+      <div class="taf-card"><span class="taf-ico">📦</span><h3>Where's my order?</h3><p>Check delivery status any time on the tracking page.</p><p style="margin-top:12px;"><a class="taf-btn" href="/track-your-order/">Track Order</a></p></div>
+      <div class="taf-card"><span class="taf-ico">❓</span><h3>Quick questions</h3><p>Materials, fading, delivery areas — the FAQs cover the most common ones.</p><p style="margin-top:12px;"><a class="taf-btn" href="/faqs/">Browse FAQs</a></p></div>
+      <div class="taf-card"><span class="taf-ico">🖼️</span><h3>Custom prints</h3><p>Turning your photo into wall art? Start here for sizes, frames, and mockups.</p><p style="margin-top:12px;"><a class="taf-btn" href="/customize-your-picture/">Custom Orders</a></p></div>
+    </div>
+  </div>
+</div>
+HTML;
+
 /* ── Apply ──────────────────────────────────────────────────── */
 echo "=== Restyle spec pages (v{$STYLE_VERSION}) ===\n\n";
 $done = 0; $skipped = 0;
-$classic_render = array( 'faqs' );
+$classic_render = array( 'faqs', 'contact' );
 
 foreach ( $bodies as $slug => $body ) {
     $page = get_page_by_path( $slug );

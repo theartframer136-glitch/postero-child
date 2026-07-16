@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.9.4');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.9.5');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -5814,3 +5814,214 @@ add_action('wp_footer', function() { ?>
 <?php }, 301);
 
 
+
+// ── 12f. Contact form — custom table, AJAX submit, admin viewer ─
+// [af_contact_form] renders the form; submissions are stored in the
+// {prefix}af_contact_messages table and listed under wp-admin →
+// "Contact Messages". Admin also gets an email notification.
+
+function af_contact_table() {
+    global $wpdb;
+    return $wpdb->prefix . 'af_contact_messages';
+}
+
+// Create/upgrade the table once (guarded by a schema-version option)
+add_action('init', function() {
+    if (get_option('af_contact_db_ver') === '1') return;
+    global $wpdb;
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    $table   = af_contact_table();
+    $charset = $wpdb->get_charset_collate();
+    dbDelta("CREATE TABLE {$table} (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        created_at DATETIME NOT NULL,
+        name VARCHAR(120) NOT NULL,
+        email VARCHAR(190) NOT NULL,
+        phone VARCHAR(40) DEFAULT '',
+        subject VARCHAR(120) DEFAULT '',
+        message TEXT NOT NULL,
+        ip VARCHAR(45) DEFAULT '',
+        status VARCHAR(10) DEFAULT 'new',
+        PRIMARY KEY  (id),
+        KEY created_at (created_at),
+        KEY status (status)
+    ) {$charset};");
+    update_option('af_contact_db_ver', '1');
+}, 5);
+
+// Shortcode: the form
+add_shortcode('af_contact_form', function() {
+    $subjects = array('General Question', 'Custom Order / Personalised Print', 'Bulk & Corporate Order', 'Order Support / Tracking', 'Returns & Refunds', 'Artist / Partnership');
+    ob_start(); ?>
+<form class="taf-form" id="afContactForm"
+      data-ajax="<?php echo esc_url(admin_url('admin-ajax.php')); ?>"
+      data-nonce="<?php echo esc_attr(wp_create_nonce('af_contact_submit')); ?>">
+  <div class="taf-form-row">
+    <label>Full Name *<input type="text" name="af_name" required maxlength="120" autocomplete="name"></label>
+    <label>Email *<input type="email" name="af_email" required maxlength="190" autocomplete="email"></label>
+  </div>
+  <div class="taf-form-row">
+    <label>Phone (optional)<input type="tel" name="af_phone" maxlength="40" autocomplete="tel"></label>
+    <label>Subject *
+      <select name="af_subject" required>
+        <?php foreach ($subjects as $s) echo '<option>' . esc_html($s) . '</option>'; ?>
+      </select>
+    </label>
+  </div>
+  <label>Your Message *<textarea name="af_message" rows="6" required maxlength="5000" placeholder="Tell us about your wall, your order, or your question…"></textarea></label>
+  <input type="text" name="af_hp" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;">
+  <button type="submit" class="taf-form-submit">Send Message</button>
+  <p class="taf-form-msg" role="status" aria-live="polite" style="display:none;"></p>
+</form>
+<script>
+(function(){
+  var form = document.getElementById('afContactForm');
+  if (!form) return;
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var btn = form.querySelector('.taf-form-submit'),
+        msg = form.querySelector('.taf-form-msg'),
+        fd  = new FormData(form);
+    fd.append('action', 'af_contact_submit');
+    fd.append('nonce', form.dataset.nonce);
+    btn.disabled = true; btn.textContent = 'Sending…';
+    fetch(form.dataset.ajax, { method:'POST', credentials:'same-origin', body: fd })
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        msg.style.display = 'block';
+        msg.className = 'taf-form-msg ' + (res.success ? 'ok' : 'err');
+        msg.textContent = (res.data && res.data.message) ? res.data.message : 'Something went wrong — please try again.';
+        if (res.success) form.reset();
+      })
+      .catch(function(){
+        msg.style.display = 'block';
+        msg.className = 'taf-form-msg err';
+        msg.textContent = 'Network error — please try again, or email us directly.';
+      })
+      .finally(function(){ btn.disabled = false; btn.textContent = 'Send Message'; });
+  });
+})();
+</script>
+<?php return ob_get_clean();
+});
+
+// AJAX endpoint
+function af_contact_submit_handler() {
+    check_ajax_referer('af_contact_submit', 'nonce');
+    if (!empty($_POST['af_hp'])) { // honeypot: pretend success
+        wp_send_json_success(array('message' => 'Thank you! Your message has been sent.'));
+    }
+    $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '';
+    // Rate limit: 5 messages per hour per IP
+    $rl_key = 'af_ct_rl_' . md5($ip);
+    $count  = (int) get_transient($rl_key);
+    if ($count >= 5) {
+        wp_send_json_error(array('message' => 'Too many messages from this connection — please try again in an hour, or email us directly.'));
+    }
+
+    $name    = isset($_POST['af_name'])    ? sanitize_text_field(wp_unslash($_POST['af_name']))    : '';
+    $email   = isset($_POST['af_email'])   ? sanitize_email(wp_unslash($_POST['af_email']))        : '';
+    $phone   = isset($_POST['af_phone'])   ? sanitize_text_field(wp_unslash($_POST['af_phone']))   : '';
+    $subject = isset($_POST['af_subject']) ? sanitize_text_field(wp_unslash($_POST['af_subject'])) : '';
+    $message = isset($_POST['af_message']) ? sanitize_textarea_field(wp_unslash($_POST['af_message'])) : '';
+
+    if (mb_strlen($name) < 2)          wp_send_json_error(array('message' => 'Please enter your name.'));
+    if (!$email || !is_email($email))  wp_send_json_error(array('message' => 'Please enter a valid email address.'));
+    if (mb_strlen($message) < 10)      wp_send_json_error(array('message' => 'Please write a few words about your request.'));
+
+    global $wpdb;
+    $ok = $wpdb->insert(af_contact_table(), array(
+        'created_at' => current_time('mysql'),
+        'name'       => mb_substr($name, 0, 120),
+        'email'      => mb_substr($email, 0, 190),
+        'phone'      => mb_substr($phone, 0, 40),
+        'subject'    => mb_substr($subject, 0, 120),
+        'message'    => mb_substr($message, 0, 5000),
+        'ip'         => $ip,
+        'status'     => 'new',
+    ), array('%s','%s','%s','%s','%s','%s','%s','%s'));
+
+    if (!$ok) {
+        wp_send_json_error(array('message' => 'Could not save your message — please email us directly at theartframer136@gmail.com.'));
+    }
+    set_transient($rl_key, $count + 1, HOUR_IN_SECONDS);
+
+    wp_mail(
+        get_option('admin_email'),
+        '[The Art Framer] New contact message: ' . $subject,
+        "From: {$name} <{$email}>" . ($phone ? " / {$phone}" : '') . "\nSubject: {$subject}\n\n{$message}\n\n— Saved in wp-admin → Contact Messages",
+        array('Reply-To: ' . $name . ' <' . $email . '>')
+    );
+    wp_send_json_success(array('message' => 'Thank you! Your message has been sent — we usually reply within 24 hours.'));
+}
+add_action('wp_ajax_af_contact_submit',        'af_contact_submit_handler');
+add_action('wp_ajax_nopriv_af_contact_submit', 'af_contact_submit_handler');
+
+// Admin viewer: wp-admin → Contact Messages
+add_action('admin_menu', function() {
+    global $wpdb;
+    $table  = af_contact_table();
+    $unread = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status='new'");
+    $badge  = $unread ? " <span class='awaiting-mod'>{$unread}</span>" : '';
+    add_menu_page('Contact Messages', 'Contact Messages' . $badge, 'manage_options',
+        'af-contact-messages', 'af_contact_admin_page', 'dashicons-email-alt2', 26);
+});
+
+function af_contact_admin_page() {
+    if (!current_user_can('manage_options')) return;
+    global $wpdb;
+    $table = af_contact_table();
+
+    // Row actions (mark read / delete), nonce-protected
+    if (isset($_GET['af_action'], $_GET['id'], $_GET['_wpnonce'])) {
+        $id = (int) $_GET['id'];
+        if (wp_verify_nonce($_GET['_wpnonce'], 'af_ct_' . $id)) {
+            if ($_GET['af_action'] === 'read')   $wpdb->update($table, array('status' => 'read'), array('id' => $id));
+            if ($_GET['af_action'] === 'unread') $wpdb->update($table, array('status' => 'new'),  array('id' => $id));
+            if ($_GET['af_action'] === 'delete') $wpdb->delete($table, array('id' => $id));
+        }
+        echo '<script>location.replace("' . esc_url_raw(admin_url('admin.php?page=af-contact-messages')) . '");</script>';
+        return;
+    }
+
+    $per  = 20;
+    $pg   = max(1, (int) ($_GET['paged'] ?? 1));
+    $tot  = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table}");
+    $rows = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM {$table} ORDER BY id DESC LIMIT %d OFFSET %d", $per, ($pg - 1) * $per
+    ));
+    echo '<div class="wrap"><h1>Contact Messages</h1>';
+    echo '<p>' . esc_html($tot) . ' total. Submissions from the <a href="' . esc_url(home_url('/contact/')) . '" target="_blank">contact form</a> are stored here and emailed to ' . esc_html(get_option('admin_email')) . '.</p>';
+    if (!$rows) { echo '<p><em>No messages yet.</em></p></div>'; return; }
+    echo '<table class="widefat striped"><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Phone</th><th>Subject</th><th style="width:34%">Message</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
+    foreach ($rows as $r) {
+        $n1 = wp_create_nonce('af_ct_' . $r->id);
+        $base = admin_url('admin.php?page=af-contact-messages&id=' . $r->id . '&_wpnonce=' . $n1);
+        $bold = $r->status === 'new' ? ' style="font-weight:700;"' : '';
+        echo '<tr' . $bold . '>';
+        echo '<td>' . esc_html(mysql2date('M j, Y g:i a', $r->created_at)) . '</td>';
+        echo '<td>' . esc_html($r->name) . '</td>';
+        echo '<td><a href="mailto:' . esc_attr($r->email) . '">' . esc_html($r->email) . '</a></td>';
+        echo '<td>' . esc_html($r->phone) . '</td>';
+        echo '<td>' . esc_html($r->subject) . '</td>';
+        echo '<td>' . esc_html(mb_strimwidth($r->message, 0, 220, '…')) . '</td>';
+        echo '<td>' . esc_html($r->status) . '</td>';
+        echo '<td>';
+        echo $r->status === 'new'
+            ? '<a href="' . esc_url($base . '&af_action=read') . '">Mark read</a>'
+            : '<a href="' . esc_url($base . '&af_action=unread') . '">Mark unread</a>';
+        echo ' | <a href="' . esc_url($base . '&af_action=delete') . '" onclick="return confirm(\'Delete this message?\');" style="color:#b32d2e;">Delete</a>';
+        echo '</td></tr>';
+    }
+    echo '</tbody></table>';
+    $pages = (int) ceil($tot / $per);
+    if ($pages > 1) {
+        echo '<p>';
+        for ($i = 1; $i <= $pages; $i++) {
+            echo $i === $pg ? "<strong style='margin-right:8px;'>{$i}</strong>"
+                : '<a style="margin-right:8px;" href="' . esc_url(admin_url('admin.php?page=af-contact-messages&paged=' . $i)) . '">' . $i . '</a>';
+        }
+        echo '</p>';
+    }
+    echo '</div>';
+}

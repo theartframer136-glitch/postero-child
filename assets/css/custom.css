@@ -1719,3 +1719,21 @@ body:has(.taf-page) .site-main{max-width:none;}
 .taf-faq details[open] summary::after{content:"−";background:var(--taf-gold);color:var(--taf-dark);}
 .taf-faq .taf-faq-a{padding:0 22px 18px;color:var(--taf-mut);font-size:15px;line-height:1.75;}
 .taf-faq .taf-faq-a p{margin:0;}
+
+/* Phase 13.3 — contact form (.taf-form) */
+.taf-form{background:#fff;border:1px solid #ece5d4;box-shadow:0 4px 18px rgba(20,20,20,.06);padding:30px 28px;display:grid;gap:18px;}
+.taf-form label{display:flex;flex-direction:column;gap:7px;font-size:13.5px;font-weight:700;color:var(--taf-dark);}
+.taf-form-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.taf-form input,.taf-form select,.taf-form textarea{border:1px solid #d9d0bd;background:#fdfcf9;padding:12px 13px;
+  font-size:15px;font-weight:400;color:var(--taf-ink);width:100%;box-sizing:border-box;font-family:inherit;}
+.taf-form input:focus,.taf-form select:focus,.taf-form textarea:focus{outline:none;border-color:var(--taf-gold);
+  box-shadow:0 0 0 3px rgba(201,168,76,.18);}
+.taf-form textarea{resize:vertical;min-height:130px;}
+.taf-form-submit{justify-self:start;background:var(--taf-dark);color:#fff;border:none;padding:14px 38px;
+  font-size:15px;font-weight:700;cursor:pointer;transition:background .2s;}
+.taf-form-submit:hover{background:var(--taf-gold);color:var(--taf-dark);}
+.taf-form-submit:disabled{opacity:.6;cursor:wait;}
+.taf-form-msg{margin:0;padding:13px 16px;font-size:14.5px;font-weight:600;}
+.taf-form-msg.ok{background:#eef7ee;color:#256d2c;border:1px solid #bfe3c2;}
+.taf-form-msg.err{background:#fbeeee;color:#a13232;border:1px solid #efc7c7;}
+@media(max-width:640px){.taf-form-row{grid-template-columns:1fr;}.taf-form{padding:22px 18px;}}
