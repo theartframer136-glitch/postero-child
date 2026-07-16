@@ -1079,6 +1079,59 @@ $bodies['returns-exchanges'] = <<<HTML
 </div>
 HTML;
 
+/* ── Refund Policy ──────────────────────────────────────────── */
+$bodies['refund-policy'] = <<<HTML
+<div class="taf-page">
+  <div class="taf-hero">
+    <span class="taf-eyebrow">Fair &amp; Fast</span>
+    <h1>Refund Policy</h1>
+    <p class="taf-sub">Approved refunds go back to your original payment method within 5–7 business days — here's how the process works.</p>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">How Refunds Work</h2>
+    <ol class="taf-steps">
+      <li><b>Return approved</b> — after your <a href="/returns-exchanges/">return request</a> is reviewed (usually the same day), we confirm the refund by email.</li>
+      <li><b>Inspection &amp; processing</b> — once the approved return is received and inspected, your refund is issued to the <b>original payment method</b>.</li>
+      <li><b>Money back in 5–7 business days</b> — depending on your bank or card issuer, it may take a little extra time to appear on your statement.</li>
+    </ol>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">What You Can Expect</h2>
+    <div class="taf-grid">
+      <div class="taf-card"><span class="taf-ico">📦</span><h3>Damaged or Incorrect Items</h3><p>Your choice of a <b>free replacement</b> or a <b>full refund</b> — no extra cost, and damaged items never need to be shipped back.</p></div>
+      <div class="taf-card"><span class="taf-ico">💳</span><h3>Original Payment Method</h3><p>Refunds always return to the card or account you paid with — no store-credit-only tricks.</p></div>
+      <div class="taf-card"><span class="taf-ico">📧</span><h3>Status Updates</h3><p>You're notified by email at every step: approval, inspection, and the moment the refund is issued.</p></div>
+    </div>
+  </div>
+
+  <div class="taf-section taf-two">
+    <div>
+      <h2 class="taf-h2">Refund Timeline at a Glance</h2>
+      <ul class="taf-check">
+        <li>Return request reviewed — <b>same day</b> in most cases</li>
+        <li>Refund issued after inspection — <b>within 5–7 business days</b></li>
+        <li>Bank/card posting time — varies by issuer, typically 2–5 days more</li>
+        <li>Gift card purchases — refunded back to the gift card balance</li>
+      </ul>
+    </div>
+    <div class="taf-card">
+      <span class="taf-ico">⏳</span>
+      <h3>Refund taking longer?</h3>
+      <p>First check with your bank or card issuer — pending refunds often sit on their side. Still nothing after 10 business days? Contact us with your order number and we'll trace it with the payment processor right away.</p>
+    </div>
+  </div>
+
+  <div class="taf-cta">
+    <h2>Questions About a Refund?</h2>
+    <p>Send your order number and we'll check the status immediately.</p>
+    <a class="taf-btn" href="mailto:{$EMAIL}?subject=Refund%20Question">Email {$EMAIL}</a>
+    <a class="taf-btn-alt" href="{$TEL}">Call {$PHONE}</a>
+  </div>
+</div>
+HTML;
+
 /* ── Apply ──────────────────────────────────────────────────── */
 echo "=== Restyle spec pages (v{$STYLE_VERSION}) ===\n\n";
 $done = 0; $skipped = 0;
