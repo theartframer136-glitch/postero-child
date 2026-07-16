@@ -944,6 +944,66 @@ $bodies['contact'] = <<<HTML
 </div>
 HTML;
 
+/* ── Shipping & Delivery ────────────────────────────────────── */
+$bodies['shipping-delivery'] = <<<HTML
+<div class="taf-page">
+  <div class="taf-hero">
+    <span class="taf-eyebrow">Made to Order, Delivered with Care</span>
+    <h1>Shipping &amp; Delivery</h1>
+    <p class="taf-sub">Every piece is printed and framed just for you — here's exactly what happens after you order.</p>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">From Our Studio to Your Wall</h2>
+    <ol class="taf-steps">
+      <li><b>Order placed</b> — you get an instant confirmation email with your order number.</li>
+      <li><b>Production (3–5 business days)</b> — your canvas is printed, stretched, and framed to order. Custom and large-format pieces may need a little extra time.</li>
+      <li><b>Dispatch &amp; tracking</b> — the moment your order ships, tracking details arrive by email. Follow it any time on our <a href="/track-your-order/">Track Your Order</a> page.</li>
+      <li><b>Delivery (5–10 business days)</b> — standard delivery anywhere in the United States after dispatch.</li>
+    </ol>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Shipping Charges</h2>
+    <div class="taf-grid">
+      <div class="taf-card"><span class="taf-ico">🎁</span><h3>Free Delivery</h3><p>Free across major serviceable US locations — including <b>Delaware, Pennsylvania, Maryland, New Jersey</b> and nearby areas.</p></div>
+      <div class="taf-card"><span class="taf-ico">🇺🇸</span><h3>Rest of the USA</h3><p>Nationwide shipping available everywhere else — charges are calculated automatically at checkout based on size and destination.</p></div>
+      <div class="taf-card"><span class="taf-ico">🌎</span><h3>Outside the US?</h3><p>International orders are handled case by case — <a href="/contact/">contact us</a> with your address and we'll quote shipping before you pay anything.</p></div>
+    </div>
+  </div>
+
+  <div class="taf-section taf-media">
+    <img src="https://theartframer.us/wp-content/uploads/2026/02/Try-It-on-Your-Wall.jpg" alt="Canvas artwork ready for delivery by The Art Framer" loading="lazy">
+    <div>
+      <h2 class="taf-h2">Packed for Big Walls</h2>
+      <p>Large canvases are the most damage-prone parcels in shipping — so we over-engineer the packaging.</p>
+      <ul class="taf-check">
+        <li>Corner protectors on every frame</li>
+        <li>Moisture-resistant wrap around the canvas face</li>
+        <li>Double-walled boxes sized to the artwork</li>
+        <li><b>No Broken Canvas guarantee</b> — damaged in transit? We reprint and reship free, no return needed</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Good to Know</h2>
+    <div class="taf-grid">
+      <div class="taf-card"><span class="taf-ico">📦</span><h3>Multi-piece orders</h3><p>Sets and multiple artworks may arrive in separate parcels a day or two apart — each has its own tracking.</p></div>
+      <div class="taf-card"><span class="taf-ico">✏️</span><h3>Address changes</h3><p>Need to redirect an order? Contact us before dispatch and we'll update it — after dispatch we'll help you reroute with the carrier.</p></div>
+      <div class="taf-card"><span class="taf-ico">⏱️</span><h3>In a hurry?</h3><p>Tell us your deadline — events and gifts can often be prioritised in production. <a href="/contact/">Ask us first</a>.</p></div>
+    </div>
+  </div>
+
+  <div class="taf-cta">
+    <h2>Questions About Your Delivery?</h2>
+    <p>We're happy to check production status, tracking, or timelines for you.</p>
+    <a class="taf-btn" href="/track-your-order/">Track Your Order</a>
+    <a class="taf-btn-alt" href="mailto:{$EMAIL}?subject=Delivery%20Question">Email {$EMAIL}</a>
+  </div>
+</div>
+HTML;
+
 /* ── Apply ──────────────────────────────────────────────────── */
 echo "=== Restyle spec pages (v{$STYLE_VERSION}) ===\n\n";
 $done = 0; $skipped = 0;
