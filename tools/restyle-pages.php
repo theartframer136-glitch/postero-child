@@ -1009,6 +1009,76 @@ $bodies['shipping-delivery'] = <<<HTML
 </div>
 HTML;
 
+/* ── Returns & Exchanges ────────────────────────────────────── */
+$bodies['returns-exchanges'] = <<<HTML
+<div class="taf-page">
+  <div class="taf-hero">
+    <span class="taf-eyebrow">Your Satisfaction Matters</span>
+    <h1>Returns &amp; Exchanges</h1>
+    <p class="taf-sub">Most pieces are made to order just for you — here's exactly how returns, exchanges, and damage claims work.</p>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">How to Request a Return</h2>
+    <ol class="taf-steps">
+      <li><b>Email us within 7 days of delivery</b> — send your order number and clear photos of the issue to <a href="mailto:{$EMAIL}?subject=Return%20Request">{$EMAIL}</a>, or use the <a href="/contact/">contact form</a> (choose "Returns &amp; Refunds").</li>
+      <li><b>We review the same day</b> — your photos are checked against production and packing records; no forms, no waiting on hold.</li>
+      <li><b>We make it right</b> — a free reprint, an exchange, or a refund per our <a href="/refund-policy/">Refund Policy</a>. Damaged items never need to be shipped back.</li>
+    </ol>
+  </div>
+
+  <div class="taf-section taf-two">
+    <div>
+      <h2 class="taf-h2">Eligible for Return</h2>
+      <ul class="taf-check">
+        <li>Items that arrive <b>damaged</b> in transit</li>
+        <li>Items with a <b>printing or framing defect</b></li>
+        <li><b>Incorrect items</b> — wrong artwork, size, or frame delivered</li>
+        <li>Reported within <b>7 days of delivery</b></li>
+        <li>Unused and in the original packaging</li>
+      </ul>
+    </div>
+    <div>
+      <h2 class="taf-h2">Not Returnable</h2>
+      <div class="taf-grid" style="grid-template-columns:1fr;">
+        <div class="taf-card"><span class="taf-ico">🖼️</span><h3>Personalised &amp; custom-sized art</h3><p>Made uniquely for you, so they can't be resold — unless they arrive damaged or defective, in which case we reprint free.</p></div>
+        <div class="taf-card"><span class="taf-ico">💾</span><h3>Digital downloads</h3><p>Delivered instantly and can't be "returned" — but if a file has an issue, we'll fix or replace it right away.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="taf-section taf-media">
+    <img src="https://theartframer.us/wp-content/uploads/2026/06/TAF-RADHA-KRISHNA-18530-room-1.jpg" alt="Framed canvas artwork from The Art Framer" loading="lazy">
+    <div>
+      <h2 class="taf-h2">The No Broken Canvas Guarantee</h2>
+      <p>A damaged canvas is always on us — never on you.</p>
+      <ul class="taf-check">
+        <li>Send photos of the damage and packaging within 48 hours of delivery</li>
+        <li>We reprint and reship <b>completely free</b></li>
+        <li><b>No return shipping</b> — keep or dispose of the damaged piece</li>
+        <li>Priority production so the replacement ships fast</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Good to Know</h2>
+    <div class="taf-grid">
+      <div class="taf-card"><span class="taf-ico">🔄</span><h3>Want a different size or frame?</h3><p>Contact us before your order enters production and we'll change it free. After delivery, exchanges are assessed case by case — just ask.</p></div>
+      <div class="taf-card"><span class="taf-ico">💳</span><h3>When is the refund paid?</h3><p>Approved refunds go back to your original payment method — see the <a href="/refund-policy/">Refund Policy</a> for timelines.</p></div>
+      <div class="taf-card"><span class="taf-ico">📸</span><h3>Why photos?</h3><p>Clear photos of the item and packaging let us approve most claims the same day — and help us hold our carriers accountable.</p></div>
+    </div>
+  </div>
+
+  <div class="taf-cta">
+    <h2>Start a Return or Exchange</h2>
+    <p>Have your order number and photos ready — we'll take it from there.</p>
+    <a class="taf-btn" href="mailto:{$EMAIL}?subject=Return%20Request">Email a Return Request</a>
+    <a class="taf-btn-alt" href="/contact/">Use the Contact Form</a>
+  </div>
+</div>
+HTML;
+
 /* ── Apply ──────────────────────────────────────────────────── */
 echo "=== Restyle spec pages (v{$STYLE_VERSION}) ===\n\n";
 $done = 0; $skipped = 0;
