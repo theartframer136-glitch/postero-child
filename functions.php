@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.9.6');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.9.7');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -6025,3 +6025,76 @@ function af_contact_admin_page() {
     }
     echo '</div>';
 }
+
+// ── 12g. [af_delivery_checker] — ZIP-based delivery estimate ──
+// Interactive widget for the Shipping & Delivery page: tells the visitor
+// whether their ZIP gets free delivery and computes an estimated arrival
+// window (production 3–5 business days + delivery 5–10 business days).
+add_shortcode('af_delivery_checker', function() {
+    ob_start(); ?>
+<div class="taf-shipcheck" id="afShipCheck">
+  <div class="taf-shipcheck-head">
+    <span class="taf-ico">📮</span>
+    <div>
+      <h3>Check Your Delivery</h3>
+      <p>Enter your ZIP code — see your shipping cost and estimated arrival dates instantly.</p>
+    </div>
+  </div>
+  <div class="taf-shipcheck-row">
+    <input type="text" id="afZip" inputmode="numeric" maxlength="10" placeholder="e.g. 19801" aria-label="ZIP code">
+    <button type="button" id="afZipBtn">Check Delivery</button>
+  </div>
+  <div class="taf-shipcheck-result" id="afZipResult" role="status" aria-live="polite" style="display:none;"></div>
+</div>
+<script>
+(function(){
+  var input = document.getElementById('afZip'),
+      btn   = document.getElementById('afZipBtn'),
+      out   = document.getElementById('afZipResult');
+  if (!input) return;
+
+  // Free-delivery states by ZIP3 prefix: DE 197-199, PA 150-196, MD 206-219, NJ 070-089
+  function zone(z3){
+    if (z3 >= 197 && z3 <= 199) return 'Delaware';
+    if (z3 >= 150 && z3 <= 196) return 'Pennsylvania';
+    if (z3 >= 206 && z3 <= 219) return 'Maryland';
+    if (z3 >=  70 && z3 <=  89) return 'New Jersey';
+    return null;
+  }
+  function addBiz(date, days){
+    var d = new Date(date);
+    while (days > 0) { d.setDate(d.getDate() + 1); var w = d.getDay(); if (w !== 0 && w !== 6) days--; }
+    return d;
+  }
+  function fmt(d){ return d.toLocaleDateString('en-US', { month:'short', day:'numeric' }); }
+
+  function check(){
+    var raw = (input.value || '').trim(),
+        m   = raw.match(/^(\d{5})(?:-\d{4})?$/);
+    out.style.display = 'block';
+    if (!m) {
+      out.className = 'taf-shipcheck-result err';
+      out.innerHTML = 'Please enter a valid 5-digit US ZIP code. Outside the US? <a href="/contact/">Contact us</a> for an international quote.';
+      return;
+    }
+    var z3    = parseInt(m[1].substring(0,3), 10),
+        st    = zone(z3),
+        today = new Date(),
+        early = addBiz(addBiz(today, 3), 5),   // fastest: 3d production + 5d transit
+        late  = addBiz(addBiz(today, 5), 10);  // slowest: 5d production + 10d transit
+    if (st) {
+      out.className = 'taf-shipcheck-result ok';
+      out.innerHTML = '<b>🎁 Free delivery to ' + m[1] + ' (' + st + ')!</b><br>' +
+        'Order today and your artwork should arrive between <b>' + fmt(early) + '</b> and <b>' + fmt(late) + '</b>.';
+    } else {
+      out.className = 'taf-shipcheck-result mid';
+      out.innerHTML = '<b>🚚 We deliver to ' + m[1] + '.</b> Shipping is calculated at checkout based on artwork size.<br>' +
+        'Estimated arrival between <b>' + fmt(early) + '</b> and <b>' + fmt(late) + '</b>.';
+    }
+  }
+  btn.addEventListener('click', check);
+  input.addEventListener('keydown', function(e){ if (e.key === 'Enter') { e.preventDefault(); check(); } });
+})();
+</script>
+<?php return ob_get_clean();
+});

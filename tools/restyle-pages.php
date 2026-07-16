@@ -7,7 +7,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$STYLE_VERSION = '13.2';
+$STYLE_VERSION = '13.3';
 $EMAIL = 'theartframer136@gmail.com';
 $PHONE = '+1 (610) 470-7280';
 $TEL   = 'tel:+16104707280';
@@ -970,6 +970,11 @@ $bodies['shipping-delivery'] = <<<HTML
       <div class="taf-card"><span class="taf-ico">🇺🇸</span><h3>Rest of the USA</h3><p>Nationwide shipping available everywhere else — charges are calculated automatically at checkout based on size and destination.</p></div>
       <div class="taf-card"><span class="taf-ico">🌎</span><h3>Outside the US?</h3><p>International orders are handled case by case — <a href="/contact/">contact us</a> with your address and we'll quote shipping before you pay anything.</p></div>
     </div>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Will It Be Free For You?</h2>
+    [af_delivery_checker]
   </div>
 
   <div class="taf-section taf-media">

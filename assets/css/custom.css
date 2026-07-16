@@ -1755,3 +1755,23 @@ body:has(.taf-page) .site-main{max-width:none;}
   .taf-map iframe{height:320px;filter:none;}
   .taf-map-card{position:static;max-width:none;}
 }
+
+/* Phase 13.5 — delivery checker (.taf-shipcheck) */
+.taf-shipcheck{background:#141414;color:#e9e4d6;padding:30px 28px;margin:26px 0 8px;border-top:3px solid var(--taf-gold);}
+.taf-shipcheck-head{display:flex;gap:16px;align-items:flex-start;margin-bottom:18px;}
+.taf-shipcheck-head .taf-ico{font-size:34px;margin:0;}
+.taf-shipcheck-head h3{color:#fff;font-size:19px;font-weight:800;margin:0 0 4px;}
+.taf-shipcheck-head p{margin:0;font-size:13.5px;color:#b8b2a2;}
+.taf-shipcheck-row{display:flex;gap:12px;max-width:460px;}
+.taf-shipcheck-row input{flex:1;min-width:0;padding:13px 14px;border:1px solid #3a3a3a;background:#1f1f1f;color:#fff;
+  font-size:16px;letter-spacing:.06em;}
+.taf-shipcheck-row input:focus{outline:none;border-color:var(--taf-gold);box-shadow:0 0 0 3px rgba(201,168,76,.25);}
+.taf-shipcheck-row button{background:var(--taf-gold);color:#141414;border:none;padding:13px 24px;font-weight:800;
+  font-size:14px;cursor:pointer;white-space:nowrap;transition:background .2s;}
+.taf-shipcheck-row button:hover{background:#dcb85a;}
+.taf-shipcheck-result{margin-top:16px;padding:14px 18px;font-size:14.5px;line-height:1.7;}
+.taf-shipcheck-result a{color:var(--taf-gold);}
+.taf-shipcheck-result.ok{background:rgba(126,201,143,.12);border:1px solid #3f6d4a;color:#bfe3c2;}
+.taf-shipcheck-result.mid{background:rgba(201,168,76,.12);border:1px solid #8a6d1f;color:#e6d9ae;}
+.taf-shipcheck-result.err{background:rgba(224,142,136,.12);border:1px solid #7d3b36;color:#eec6c2;}
+@media(max-width:520px){.taf-shipcheck-row{flex-direction:column;}.taf-shipcheck{padding:22px 18px;}}
