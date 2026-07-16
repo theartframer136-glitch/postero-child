@@ -784,6 +784,80 @@ $bodies['privacy-policy'] = <<<HTML
 </div>
 HTML;
 
+
+/* ── Help & Support ─────────────────────────────────────────── */
+$bodies['help-support'] = <<<HTML
+<div class="taf-page">
+  <div class="taf-hero">
+    <span class="taf-eyebrow">We're Here For You</span>
+    <h1>Help &amp; Support</h1>
+    <p class="taf-sub">Real people, fast answers — before, during, and after your order.</p>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Talk to Us</h2>
+    <p class="taf-lead">Choose whichever channel suits you — every message reaches the same small studio team.</p>
+    <div class="taf-grid">
+      <div class="taf-card"><span class="taf-ico">📞</span><h3>Call or WhatsApp</h3><p><a href="{$TEL}">{$PHONE}</a><br>Quickest for sizing advice, order changes, and bulk quotes.</p></div>
+      <div class="taf-card"><span class="taf-ico">✉️</span><h3>Email Us</h3><p><a href="mailto:{$EMAIL}">{$EMAIL}</a><br>Best for custom photo orders and anything with attachments. We reply within 24 hours.</p></div>
+      <div class="taf-card"><span class="taf-ico">📝</span><h3>Contact Form</h3><p><a href="/contact/">theartframer.us/contact</a><br>Leave the details and we'll get back to you — no account needed.</p></div>
+    </div>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Common Topics</h2>
+    <div class="taf-grid">
+      <div class="taf-card"><span class="taf-ico">📦</span><h3>Track Your Order</h3><p>See where your canvas is right now.</p><p style="margin-top:12px;"><a class="taf-btn" href="/track-your-order/">Track Order</a></p></div>
+      <div class="taf-card"><span class="taf-ico">🚚</span><h3>Shipping &amp; Delivery</h3><p>Timelines, free-delivery areas, and packaging.</p><p style="margin-top:12px;"><a class="taf-btn" href="/shipping-delivery/">Read More</a></p></div>
+      <div class="taf-card"><span class="taf-ico">🔄</span><h3>Returns &amp; Exchanges</h3><p>Something not right? Here's how we fix it.</p><p style="margin-top:12px;"><a class="taf-btn" href="/returns-exchanges/">Read More</a></p></div>
+      <div class="taf-card"><span class="taf-ico">💳</span><h3>Refund Policy</h3><p>When and how refunds are processed.</p><p style="margin-top:12px;"><a class="taf-btn" href="/refund-policy/">Read More</a></p></div>
+      <div class="taf-card"><span class="taf-ico">❓</span><h3>FAQs</h3><p>Quick answers to the questions we hear most.</p><p style="margin-top:12px;"><a class="taf-btn" href="/faqs/">Browse FAQs</a></p></div>
+      <div class="taf-card"><span class="taf-ico">🖼️</span><h3>Custom Orders</h3><p>Turn your own photo into premium wall art.</p><p style="margin-top:12px;"><a class="taf-btn" href="/customize-your-picture/">Start Here</a></p></div>
+    </div>
+  </div>
+
+  <div class="taf-section taf-media">
+    <img src="https://theartframer.us/wp-content/uploads/2026/03/Choosing-the-best-canvas-prints-in-Delaware.webp" alt="Choosing the best canvas prints with The Art Framer" loading="lazy">
+    <div>
+      <h2 class="taf-h2">Talk to the Makers</h2>
+      <p>When you contact The Art Framer, you're not talking to a call centre — you're talking to the studio that prints, stretches, and frames your order. That means real answers about sizes, frames, colours, and walls, from people who work with canvas every day.</p>
+      <ul class="taf-check">
+        <li>Sizing advice for your exact wall — send a photo, we'll recommend</li>
+        <li>Frame &amp; colour guidance matched to your décor</li>
+        <li>Order changes possible any time before printing starts</li>
+        <li>Bulk &amp; corporate quotes within one business day</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">How Support Works</h2>
+    <ol class="taf-steps">
+      <li><b>Reach out</b> — call, WhatsApp, email, or the contact form, whatever is easiest.</li>
+      <li><b>We investigate</b> — order issues are checked against production and shipping records the same day.</li>
+      <li><b>We make it right</b> — replacement, reprint, or refund. A damaged canvas is always on us, never on you.</li>
+    </ol>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Quick Answers</h2>
+    <div class="taf-grid">
+      <div class="taf-card"><span class="taf-ico">⏱️</span><h3>How fast do you reply?</h3><p>Calls and WhatsApp — usually right away during business hours. Email and the contact form — within 24 hours, often much sooner.</p></div>
+      <div class="taf-card"><span class="taf-ico">📐</span><h3>Can you help me pick a size?</h3><p>Yes — send a photo of your wall and its rough width. We'll recommend a size, or use <a href="/try-on-wall/">Try It on Your Wall</a> to preview it yourself.</p></div>
+      <div class="taf-card"><span class="taf-ico">📦</span><h3>My canvas arrived damaged</h3><p>Send us a photo of the damage and the packaging within 48 hours — we reprint and reship at no cost, no return needed.</p></div>
+      <div class="taf-card"><span class="taf-ico">✏️</span><h3>Can I change my order?</h3><p>Any time before printing starts — contact us with your order number and the change you need.</p></div>
+    </div>
+  </div>
+
+  <div class="taf-cta">
+    <h2>Still Need a Hand?</h2>
+    <p>Tell us what's going on — we'll sort it out quickly.</p>
+    <a class="taf-btn" href="mailto:{$EMAIL}?subject=Support%20Request">Email Support</a>
+    <a class="taf-btn-alt" href="{$TEL}">Call {$PHONE}</a>
+  </div>
+</div>
+HTML;
+
 /* ── Apply ──────────────────────────────────────────────────── */
 echo "=== Restyle spec pages (v{$STYLE_VERSION}) ===\n\n";
 $done = 0; $skipped = 0;
