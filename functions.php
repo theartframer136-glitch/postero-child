@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.0.0');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.0.1');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -5963,12 +5963,13 @@ add_action('admin_menu', function() {
     $table  = af_contact_table();
     $unread = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE status='new'");
     $badge  = $unread ? " <span class='awaiting-mod'>{$unread}</span>" : '';
-    add_menu_page('Contact Messages', 'Contact Messages' . $badge, 'manage_options',
+    $cap = current_user_can('af_view_contact_messages') ? 'af_view_contact_messages' : 'manage_options';
+    add_menu_page('Contact Messages', 'Contact Messages' . $badge, $cap,
         'af-contact-messages', 'af_contact_admin_page', 'dashicons-email-alt2', 26);
 });
 
 function af_contact_admin_page() {
-    if (!current_user_can('manage_options')) return;
+    if (!current_user_can('manage_options') && !current_user_can('af_view_contact_messages')) return;
     global $wpdb;
     $table = af_contact_table();
 
@@ -6330,3 +6331,156 @@ add_action('template_redirect', function () {
         exit;
     }
 }, 1);
+
+// ── 12j. Compare Products (spec §4) ──────────────────────────
+// Client-side selection (localStorage, max 4) + floating bar + /compare/
+// page that renders a side-by-side table from a JSON endpoint.
+
+// Endpoint: product data for the compare table
+function af_compare_data_handler() {
+    $raw = isset($_POST['ids']) ? (array) $_POST['ids'] : array();
+    $ids = array_slice(array_filter(array_map('absint', $raw)), 0, 4);
+    $out = array();
+    foreach ($ids as $id) {
+        $p = wc_get_product($id);
+        if (!$p || $p->get_status() !== 'publish') continue;
+        $attr = function($tax) use ($p) {
+            $terms = wc_get_product_terms($p->get_id(), $tax, array('fields' => 'names'));
+            return $terms && !is_wp_error($terms) ? implode(', ', $terms) : '—';
+        };
+        $img = wp_get_attachment_image_url($p->get_image_id(), 'woocommerce_thumbnail');
+        $out[] = array(
+            'id'      => $p->get_id(),
+            'title'   => html_entity_decode(wp_strip_all_tags($p->get_name()), ENT_QUOTES),
+            'url'     => get_permalink($p->get_id()),
+            'img'     => $img ?: wc_placeholder_img_src(),
+            'price'   => wp_strip_all_tags($p->get_price_html()),
+            'rating'  => $p->get_average_rating() > 0 ? number_format((float)$p->get_average_rating(), 1) . ' ★ (' . $p->get_review_count() . ')' : 'No reviews yet',
+            'sizes'   => $attr('pa_size'),
+            'frames'  => $attr('pa_frame'),
+            'colours' => $attr('pa_colour'),
+            'type'    => $p->is_type('variable') ? 'Multiple options' : 'Single option',
+            'stock'   => $p->is_in_stock() ? 'In stock' : 'Out of stock',
+            'digital' => $p->is_downloadable() ? 'Available' : '—',
+        );
+    }
+    wp_send_json_success($out);
+}
+add_action('wp_ajax_af_compare_data',        'af_compare_data_handler');
+add_action('wp_ajax_nopriv_af_compare_data', 'af_compare_data_handler');
+
+// Compare toggle button on product cards
+add_action('woocommerce_after_shop_loop_item', function() {
+    global $product;
+    if (!$product) return;
+    echo '<button type="button" class="af-cmp-btn" data-id="' . esc_attr($product->get_id())
+        . '" aria-label="Add to compare">⇄ Compare</button>';
+}, 25);
+
+// Compare toggle on single product pages
+add_action('woocommerce_after_add_to_cart_button', function() {
+    global $product;
+    if (!$product) return;
+    echo '<button type="button" class="af-cmp-btn af-cmp-single" data-id="' . esc_attr($product->get_id())
+        . '">⇄ Add to Compare</button>';
+}, 25);
+
+// Shortcode: the compare page table
+add_shortcode('af_compare', function() {
+    return '<div id="afCompareWrap" data-ajax="' . esc_url(admin_url('admin-ajax.php')) . '">'
+         . '<div class="af-cmp-empty" id="afCmpEmpty" style="display:none;text-align:center;padding:30px 10px;">'
+         . '<span class="taf-ico" style="font-size:46px;">⇄</span>'
+         . '<h3 style="margin:12px 0 8px;">Nothing to compare yet</h3>'
+         . '<p>Browse the shop and tap <b>⇄ Compare</b> on up to four artworks.</p>'
+         . '<p style="margin-top:14px;"><a class="taf-btn" href="/shop/">Browse Artworks</a></p></div>'
+         . '<div id="afCmpTable"></div></div>';
+});
+
+// Site-wide compare JS: state, floating bar, page renderer
+add_action('wp_footer', function() { ?>
+<script>
+(function(){
+  var KEY = 'af_compare_ids', MAX = 4;
+  function ids(){ try { return JSON.parse(localStorage.getItem(KEY)) || []; } catch(e){ return []; } }
+  function save(a){ localStorage.setItem(KEY, JSON.stringify(a.slice(0, MAX))); refresh(); }
+  function toggle(id){
+    var a = ids(), i = a.indexOf(id);
+    if (i >= 0) a.splice(i, 1);
+    else { if (a.length >= MAX) { alert('You can compare up to ' + MAX + ' artworks — remove one first.'); return; } a.push(id); }
+    save(a);
+  }
+  function refresh(){
+    var a = ids();
+    document.querySelectorAll('.af-cmp-btn').forEach(function(b){
+      b.classList.toggle('on', a.indexOf(parseInt(b.dataset.id, 10)) >= 0);
+    });
+    var bar = document.getElementById('afCmpBar');
+    if (a.length > 0) {
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.id = 'afCmpBar';
+        bar.innerHTML = '<span id="afCmpCount"></span>' +
+          '<a class="af-cmp-go" href="/compare/">Compare Now →</a>' +
+          '<button type="button" class="af-cmp-clear" id="afCmpClear">Clear</button>';
+        document.body.appendChild(bar);
+        document.getElementById('afCmpClear').addEventListener('click', function(){ save([]); });
+      }
+      bar.style.display = 'flex';
+      document.getElementById('afCmpCount').textContent = a.length + ' of ' + MAX + ' selected';
+    } else if (bar) { bar.style.display = 'none'; }
+  }
+  document.addEventListener('click', function(e){
+    var b = e.target.closest('.af-cmp-btn');
+    if (!b) return;
+    e.preventDefault(); e.stopPropagation();
+    toggle(parseInt(b.dataset.id, 10));
+  });
+  refresh();
+
+  // Compare page renderer
+  var wrap = document.getElementById('afCompareWrap');
+  if (!wrap) return;
+  function esc(t){ var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
+  function render(){
+    var a = ids(), empty = document.getElementById('afCmpEmpty'), tbl = document.getElementById('afCmpTable');
+    if (!a.length) { empty.style.display = 'block'; tbl.innerHTML = ''; return; }
+    empty.style.display = 'none';
+    tbl.innerHTML = '<p style="text-align:center;color:#888;">Loading comparison…</p>';
+    var fd = new FormData();
+    fd.append('action', 'af_compare_data');
+    a.forEach(function(id){ fd.append('ids[]', id); });
+    fetch(wrap.dataset.ajax, { method:'POST', credentials:'same-origin', body: fd })
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        var items = (res && res.data) || [];
+        if (!items.length) { empty.style.display = 'block'; tbl.innerHTML = ''; return; }
+        var rows = [
+          ['Artwork', function(p){ return '<a href="' + esc(p.url) + '"><img src="' + esc(p.img) + '" alt="' + esc(p.title) + '" style="width:100%;max-width:170px;display:block;margin:0 auto 10px;"><b>' + esc(p.title) + '</b></a>'; }],
+          ['Price', function(p){ return esc(p.price); }],
+          ['Rating', function(p){ return esc(p.rating); }],
+          ['Sizes', function(p){ return esc(p.sizes); }],
+          ['Frame Types', function(p){ return esc(p.frames); }],
+          ['Frame Colours', function(p){ return esc(p.colours); }],
+          ['Options', function(p){ return esc(p.type); }],
+          ['Digital Download', function(p){ return esc(p.digital); }],
+          ['Availability', function(p){ return esc(p.stock); }],
+          ['', function(p){ return '<a class="taf-btn" href="' + esc(p.url) + '">View Product</a> <button type="button" class="af-cmp-rm taf-btn-alt" data-id="' + p.id + '">Remove</button>'; }]
+        ];
+        var h = '<div style="overflow-x:auto;"><table class="taf-table af-cmp-table"><tbody>';
+        rows.forEach(function(row){
+          h += '<tr><td style="white-space:nowrap;font-weight:700;">' + row[0] + '</td>';
+          items.forEach(function(p){ h += '<td style="text-align:center;">' + row[1](p) + '</td>'; });
+          h += '</tr>';
+        });
+        h += '</tbody></table></div>';
+        tbl.innerHTML = h;
+        tbl.querySelectorAll('.af-cmp-rm').forEach(function(b){
+          b.addEventListener('click', function(){ toggle(parseInt(b.dataset.id, 10)); render(); });
+        });
+      })
+      .catch(function(){ tbl.innerHTML = '<p style="text-align:center;color:#a13232;">Could not load the comparison — please refresh.</p>'; });
+  }
+  render();
+})();
+</script>
+<?php }, 302);

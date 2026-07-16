@@ -95,6 +95,10 @@ $pages = array(
 <h3>What You Get</h3><ul><li>Volume-based pricing</li><li>Custom sizes and framing</li><li>Dedicated support</li><li>Corporate gifting &amp; branding options</li></ul>
 <h3>Get a Quote</h3><p>Email <a href=\"mailto:{$EMAIL}\">{$EMAIL}</a> or call {$PHONE} with your requirements and we'll prepare a custom quote.</p>",
     ),
+    'compare' => array(
+        'title' => 'Compare Products',
+        'body'  => "<h2>Compare Products</h2><p>Select artworks in the shop with the Compare button, then review them side by side here.</p>",
+    ),
     'safe-easy-payments' => array(
         'title' => 'Safe & Easy Payments',
         'body'  => "<h2>Safe &amp; Easy Payments</h2>

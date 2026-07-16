@@ -7,7 +7,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$STYLE_VERSION = '13.8';
+$STYLE_VERSION = '13.9';
 $EMAIL = 'theartframer136@gmail.com';
 $PHONE = '+1 (610) 470-7280';
 $TEL   = 'tel:+16104707280';
@@ -1357,6 +1357,73 @@ $bodies['dashboard'] = <<<HTML
     <p class="taf-sub">Orders, downloads, tracking, and account settings — everything in one place.</p>
   </div>
   [af_dashboard]
+</div>
+HTML;
+
+/* ── Track Your Order ───────────────────────────────────────── */
+$bodies['track-your-order'] = <<<HTML
+<div class="taf-page">
+  <div class="taf-hero">
+    <span class="taf-eyebrow">From Studio to Doorstep</span>
+    <h1>Track Your Order</h1>
+    <p class="taf-sub">Enter your order details below, or track everything from your account dashboard.</p>
+  </div>
+
+  <div class="taf-section taf-two">
+    <div>
+      <h2 class="taf-h2">Track by Order Number</h2>
+      <p class="taf-lead">Use the order number and the email from your confirmation.</p>
+      [woocommerce_order_tracking]
+    </div>
+    <div>
+      <h2 class="taf-h2">Or From Your Account</h2>
+      <div class="taf-grid" style="grid-template-columns:1fr;">
+        <div class="taf-card"><span class="taf-ico">📋</span><h3>My Orders</h3><p>Signed-in customers see every order, status, and invoice in one place.</p><p style="margin-top:12px;"><a class="taf-btn" href="/my-account/orders/">View My Orders</a></p></div>
+        <div class="taf-card"><span class="taf-ico">📧</span><h3>Tracking Email</h3><p>The moment your order ships, a tracking number and courier link land in your inbox — check spam if it's missing.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">What the Statuses Mean</h2>
+    <ul class="taf-track">
+      <li><b>Processing</b><span>Payment received — your canvas enters the production queue.</span></li>
+      <li><b>In Production</b><span>Printing, stretching, and framing — typically 3–5 business days.</span></li>
+      <li><b>Shipped</b><span>On its way with tracking — standard delivery is 5–10 business days.</span></li>
+      <li><b>Delivered</b><span>On your wall! Something wrong? Our <a href="/returns-exchanges/">guarantee</a> has you covered.</span></li>
+    </ul>
+  </div>
+
+  <div class="taf-cta">
+    <h2>Need Help Locating Your Order?</h2>
+    <p>Send your order number and we'll check production and shipping records right away.</p>
+    <a class="taf-btn" href="mailto:{$EMAIL}?subject=Order%20Tracking%20Help">Email {$EMAIL}</a>
+    <a class="taf-btn-alt" href="{$TEL}">Call {$PHONE}</a>
+  </div>
+</div>
+HTML;
+
+/* ── Compare Products ───────────────────────────────────────── */
+$bodies['compare'] = <<<HTML
+<div class="taf-page">
+  <div class="taf-hero">
+    <span class="taf-eyebrow">Side by Side</span>
+    <h1>Compare Products</h1>
+    <p class="taf-sub">Sizes, frames, prices, and ratings — up to four artworks compared at a glance.</p>
+  </div>
+
+  <div class="taf-section">
+    [af_compare]
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">How It Works</h2>
+    <ol class="taf-steps">
+      <li><b>Browse the shop</b> — tap the <b>⇄ Compare</b> button on any product card (up to four).</li>
+      <li><b>Open the compare bar</b> — it floats at the bottom of the screen; hit "Compare Now".</li>
+      <li><b>Decide with confidence</b> — every size, frame, and price side by side. Still unsure? Preview any piece with <a href="/try-on-wall/">Try It on Your Wall</a>.</li>
+    </ol>
+  </div>
 </div>
 HTML;
 

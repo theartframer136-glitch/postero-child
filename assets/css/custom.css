@@ -1823,3 +1823,18 @@ body:has(.taf-page) .site-main{max-width:none;}
 .taf-dash-hi p{color:#b8b2a2;margin:0;font-size:14px;}
 .taf-dash-logout{border-color:var(--taf-gold) !important;color:var(--taf-gold) !important;background:transparent !important;}
 .taf-dash-logout:hover{background:var(--taf-gold) !important;color:#141414 !important;}
+
+/* Phase 13.9 — compare products */
+.af-cmp-btn{display:inline-block;margin-top:8px;background:transparent;border:1px solid #c9a84c;color:#8a6d1f;
+  font-size:12px;font-weight:700;padding:7px 14px;cursor:pointer;transition:all .2s;}
+.af-cmp-btn:hover{background:#c9a84c;color:#141414;}
+.af-cmp-btn.on{background:#141414;border-color:#141414;color:#c9a84c;}
+.af-cmp-single{margin:10px 0 0 8px;padding:11px 20px;font-size:13px;}
+#afCmpBar{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:99990;display:flex;align-items:center;
+  gap:16px;background:#141414;color:#fff;padding:13px 22px;border-radius:40px;box-shadow:0 8px 30px rgba(0,0,0,.35);
+  border:1px solid #c9a84c;font-size:14px;}
+#afCmpBar .af-cmp-go{background:#c9a84c;color:#141414;font-weight:800;text-decoration:none;padding:9px 20px;border-radius:22px;}
+#afCmpBar .af-cmp-go:hover{background:#dcb85a;}
+#afCmpBar .af-cmp-clear{background:none;border:none;color:#999;cursor:pointer;font-size:13px;text-decoration:underline;}
+.af-cmp-table td{min-width:150px;}
+.af-cmp-table .af-cmp-rm{padding:9px 16px;font-size:12.5px;cursor:pointer;margin-top:6px;}
