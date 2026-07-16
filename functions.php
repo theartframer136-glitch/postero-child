@@ -6556,3 +6556,45 @@ add_action('wp_head', function () {
         'itemListElement' => $items,
     )) . '</script>' . "\n";
 }, 5);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 24 — Remove the "Custom Canvas Prints, Wall Art & Picture
+// Framing" hero heading + subtitle (per request). Targeted by exact
+// text so nothing else is affected; removes the tight wrapper that
+// contains only this hero (heading + subtitle).
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function(){
+    ?>
+    <script>
+    (function(){
+      var HEAD = 'custom canvas prints, wall art & picture framing';
+      var SUB  = 'museum-quality prints and handcrafted frames';
+      function norm(s){ return (s||'').replace(/\s+/g,' ').trim().toLowerCase(); }
+      function removeHero(matchFn, budget){
+        var all = document.querySelectorAll('h1,h2,h3,p,span,div');
+        for (var i=0;i<all.length;i++){
+          var el = all[i];
+          if (!matchFn(norm(el.textContent))) continue;
+          // walk up while the wrapper still contains ONLY this hero text
+          var target = el, node = el.parentElement;
+          while (node && node !== document.body){
+            if (norm(node.textContent).length <= budget){ target = node; node = node.parentElement; }
+            else break;
+          }
+          target.style.display = 'none';   // hide (safe) rather than destroy
+          target.setAttribute('data-af-removed','1');
+          return true;
+        }
+        return false;
+      }
+      function run(){
+        var budget = (HEAD.length + SUB.length) + 60;
+        removeHero(function(t){ return t === HEAD || t.indexOf(HEAD) === 0; }, budget);
+        removeHero(function(t){ return t.indexOf(SUB) === 0; }, budget);
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+      window.addEventListener('load', function(){ run(); setTimeout(run, 600); });
+    })();
+    </script>
+    <?php
+}, 105);
