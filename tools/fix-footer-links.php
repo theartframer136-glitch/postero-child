@@ -22,7 +22,7 @@ $map = array(
     'faqs'                  => '/faqs/',
     'help centre'           => '/help-support/',
     'live chat'             => '/contact/',
-    'safe & easy payments'  => '/faqs/',
+    'safe & easy payments'  => '/safe-easy-payments/',
     'content ethics policy' => '/content-ethics-policy/',
     'terms of use'          => '/terms-conditions/',
     'terms of service'      => '/terms-conditions/',
@@ -79,8 +79,11 @@ foreach ( $rows as $row ) {
                 if ( ! isset( $map[ $key ] ) ) continue;
                 $cur = $item['link']['url'] ?? '';
                 $new = $map[ $key ];
-                // fix dead (#/empty) or demo-site URLs; leave good live URLs alone
-                if ( $cur === '' || $cur === '#' || strpos( $cur, 'demo2wpopal' ) !== false ) {
+                // Force-remap items whose earlier fix pointed at a stopgap page
+                $force = array( 'safe & easy payments' );
+                // fix dead (#/empty), demo-site, or force-remapped URLs; leave other live URLs alone
+                if ( $cur === '' || $cur === '#' || strpos( $cur, 'demo2wpopal' ) !== false
+                     || ( in_array( $key, $force, true ) && $cur !== $new ) ) {
                     if ( ! is_array( $item['link'] ?? null ) ) $item['link'] = array();
                     $item['link']['url'] = $new;
                     $item['link']['is_external'] = '';

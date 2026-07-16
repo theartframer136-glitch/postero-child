@@ -1132,6 +1132,72 @@ $bodies['refund-policy'] = <<<HTML
 </div>
 HTML;
 
+/* ── Safe & Easy Payments ───────────────────────────────────── */
+$bodies['safe-easy-payments'] = <<<HTML
+<div class="taf-page">
+  <div class="taf-hero">
+    <span class="taf-eyebrow">Shop With Confidence</span>
+    <h1>Safe &amp; Easy Payments</h1>
+    <p class="taf-sub">Encrypted checkout, trusted payment providers, and zero card details stored on our servers.</p>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Ways to Pay</h2>
+    <p class="taf-lead">Choose whichever suits you at checkout — every option is processed securely.</p>
+    <div class="taf-grid">
+      <div class="taf-card"><span class="taf-ico">💳</span><h3>Card Payments</h3><p>Credit and debit cards processed through our PCI-compliant secure checkout — your card number never touches our servers.</p></div>
+      <div class="taf-card"><span class="taf-ico">⚡</span><h3>Zelle</h3><p>Fast, fee-free bank transfer for US customers — ideal for custom and bulk orders. Payment details are shared at checkout.</p></div>
+      <div class="taf-card"><span class="taf-ico">💵</span><h3>Cash on Delivery</h3><p>Available in select local delivery areas — pay when your artwork arrives at your door.</p></div>
+      <div class="taf-card"><span class="taf-ico">🎁</span><h3>Gift Cards</h3><p>Redeem an Art Framer <a href="/gift-cards/">gift card</a> at checkout — combinable with sale prices, any remaining balance stays on the card.</p></div>
+    </div>
+  </div>
+
+  <div class="taf-section taf-two">
+    <div>
+      <h2 class="taf-h2">How We Keep Payments Safe</h2>
+      <ul class="taf-check">
+        <li><b>SSL/TLS encryption</b> on every page — look for the padlock in your browser</li>
+        <li><b>PCI-compliant processing</b> — card data is handled by certified payment providers, never by our website directly</li>
+        <li><b>No card storage</b> — we never save your card number, CVV, or banking credentials</li>
+        <li><b>Fraud screening</b> — unusual transactions are automatically flagged and verified</li>
+        <li><b>Two currencies</b> — pay in USD or CAD; switch any time using the currency selector in the header</li>
+      </ul>
+    </div>
+    <div class="taf-card">
+      <span class="taf-ico">🛡️</span>
+      <h3>Our Payment Promise</h3>
+      <p>If anything ever looks wrong with a charge — a duplicate, a wrong amount, an unrecognised line — contact us first. We resolve payment issues directly and quickly, and approved refunds go back to your original payment method within 5–7 business days per our <a href="/refund-policy/">Refund Policy</a>.</p>
+    </div>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Checkout in Three Steps</h2>
+    <ol class="taf-steps">
+      <li><b>Review your cart</b> — sizes, frames, and quantities, with prices shown in your chosen currency.</li>
+      <li><b>Enter delivery details</b> — your address is used for shipping and never sold or shared beyond the carrier.</li>
+      <li><b>Pay securely</b> — pick your payment method and confirm. An order confirmation lands in your inbox immediately.</li>
+    </ol>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Common Payment Questions</h2>
+    <div class="taf-grid">
+      <div class="taf-card"><span class="taf-ico">🧾</span><h3>Will I get an invoice?</h3><p>Yes — an order confirmation is emailed instantly, and a full invoice accompanies your delivery.</p></div>
+      <div class="taf-card"><span class="taf-ico">💱</span><h3>USD or CAD?</h3><p>Both. Prices convert automatically when you switch currency — the charge is made in the currency you check out with.</p></div>
+      <div class="taf-card"><span class="taf-ico">🔁</span><h3>How do refunds work?</h3><p>Back to your original payment method within 5–7 business days — details in our <a href="/refund-policy/">Refund Policy</a>.</p></div>
+    </div>
+    <p style="margin-top:18px;">More questions? See the full <a href="/faqs/">FAQs</a> or <a href="/contact/">contact us</a> directly.</p>
+  </div>
+
+  <div class="taf-cta">
+    <h2>Ready When You Are</h2>
+    <p>Browse the collection and check out securely in minutes.</p>
+    <a class="taf-btn" href="/shop/">Shop the Collection</a>
+    <a class="taf-btn-alt" href="/contact/">Ask a Payment Question</a>
+  </div>
+</div>
+HTML;
+
 /* ── Apply ──────────────────────────────────────────────────── */
 echo "=== Restyle spec pages (v{$STYLE_VERSION}) ===\n\n";
 $done = 0; $skipped = 0;

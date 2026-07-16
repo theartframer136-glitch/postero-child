@@ -95,6 +95,12 @@ $pages = array(
 <h3>What You Get</h3><ul><li>Volume-based pricing</li><li>Custom sizes and framing</li><li>Dedicated support</li><li>Corporate gifting &amp; branding options</li></ul>
 <h3>Get a Quote</h3><p>Email <a href=\"mailto:{$EMAIL}\">{$EMAIL}</a> or call {$PHONE} with your requirements and we'll prepare a custom quote.</p>",
     ),
+    'safe-easy-payments' => array(
+        'title' => 'Safe & Easy Payments',
+        'body'  => "<h2>Safe &amp; Easy Payments</h2>
+<p>Every transaction on {$BRAND} is protected with SSL encryption and processed by PCI-compliant payment providers. We never store your card details on our servers.</p>
+<p>Questions about payments? Email <a href=\"mailto:{$EMAIL}\">{$EMAIL}</a> or call {$PHONE}.</p>",
+    ),
     'gift-cards' => array(
         'title' => 'Gift Cards',
         'body'  => "<h2>Gift Cards</h2>
