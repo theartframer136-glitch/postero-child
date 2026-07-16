@@ -6231,3 +6231,102 @@ add_shortcode('af_dashboard', function() {
 <?php
     return ob_get_clean();
 });
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 24 — SEO hardening for US search (added 2026-07-16).
+// 24a force one https:// origin   24b robots.txt (virtual)
+// 24c strip invalid hreflang tags 24d front-page H1 intro strip
+// 24e alt-text fallback on rendered images  24f /about-us 301.
+// Persisted meta (titles, descriptions, alts, physical robots.txt)
+// is written by tools/seo-improvements.php on deploy.
+// Additive; reversible via this block.
+// ─────────────────────────────────────────────────────────────
+
+// 24a. http:// serves the full site with a 200 — force a single 301
+// to https so search engines see one origin.
+add_action('init', function () {
+    if (is_ssl()) return;
+    if (php_sapi_name() === 'cli' || (defined('WP_CLI') && WP_CLI) || wp_doing_cron()) return;
+    if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') return;
+    $host = !empty($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : (string) parse_url(home_url('/'), PHP_URL_HOST);
+    $uri  = !empty($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
+    wp_redirect('https://' . $host . $uri, 301);
+    exit;
+}, 0);
+
+// 24b. robots.txt content. Served two ways: WP's virtual robots.txt
+// (filter below) and a physical file written on deploy, because the
+// web server currently 404s /robots.txt before WordPress sees it.
+// NOTE: the "Disallow: /items/" line is a tourniquet while the spam
+// sitemap hack is live — REMOVE it after cleanup so Google can crawl
+// those URLs and see their 404s.
+function af_seo_robots_txt() {
+    $lines = array(
+        '# theartframer-seo',
+        'User-agent: *',
+        'Disallow: /wp-admin/',
+        'Allow: /wp-admin/admin-ajax.php',
+        'Disallow: /cart/',
+        'Disallow: /checkout/',
+        'Disallow: /my-account/',
+        'Disallow: /?s=',
+        'Disallow: /items/',
+        '',
+        'Sitemap: https://theartframer.us/sitemap_index.xml',
+    );
+    return implode("\n", $lines) . "\n";
+}
+add_filter('robots_txt', function ($output, $public) {
+    return af_seo_robots_txt();
+}, 99, 2);
+
+// 24c. Something outside the theme emits invalid hreflang alternates
+// (relative hrefs, plus a Hindi variant with no real content) that
+// dilute US geo-targeting. A single-language US store needs no
+// hreflang at all, so strip every hreflang link tag from output.
+add_action('template_redirect', function () {
+    if (is_admin() || is_feed()) return;
+    ob_start(function ($html) {
+        if (stripos($html, 'hreflang') === false) return $html;
+        return preg_replace('#<link\b[^>]*\bhreflang=[^>]*>\s*#i', '', $html);
+    });
+}, 0);
+
+// 24d. The front page has no descriptive H1 (only the logo text), so
+// prepend a styled heading strip above the Elementor content.
+add_filter('the_content', function ($content) {
+    if (is_admin() || !is_front_page() || !in_the_loop() || !is_main_query()) return $content;
+    if (strpos($content, 'af-home-h1') !== false) return $content;
+    $strip  = '<section class="af-home-h1">';
+    $strip .= '<h1>Custom Canvas Prints, Wall Art &amp; Picture Framing</h1>';
+    $strip .= '<p>Museum-quality prints and handcrafted frames — made to order and shipped across the USA.</p>';
+    $strip .= '</section>';
+    return $strip . $content;
+}, 99);
+add_action('wp_head', function () {
+    if (!is_front_page()) return;
+    echo '<style>.af-home-h1{text-align:center;padding:26px 18px 6px;}.af-home-h1 h1{font-size:clamp(22px,3.2vw,34px);font-weight:700;letter-spacing:.01em;margin:0 0 6px;color:#1a1a1a;}.af-home-h1 p{margin:0;color:#666;font-size:15px;}@media(max-width:600px){.af-home-h1{padding:18px 14px 2px;}}</style>';
+});
+
+// 24e. Most rendered images ship without alt text. Fall back to the
+// attachment's parent (product) title, then the attachment title.
+add_filter('wp_get_attachment_image_attributes', function ($attr, $attachment) {
+    if (!empty($attr['alt']) || !($attachment instanceof WP_Post)) return $attr;
+    $alt = (string) get_post_meta($attachment->ID, '_wp_attachment_image_alt', true);
+    if ($alt === '' && $attachment->post_parent) $alt = (string) get_the_title($attachment->post_parent);
+    if ($alt === '') $alt = trim(preg_replace('/[-_]+/', ' ', (string) $attachment->post_title));
+    if ($alt !== '') $attr['alt'] = wp_strip_all_tags($alt);
+    return $attr;
+}, 20, 2);
+
+// 24f. /about-us is a dead URL that still collects links — 301 it to
+// the real About page.
+add_action('template_redirect', function () {
+    if (!is_404()) return;
+    $uri  = !empty($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
+    $path = strtolower(trim((string) parse_url($uri, PHP_URL_PATH), '/'));
+    if ($path === 'about-us') {
+        wp_redirect(home_url('/about/'), 301);
+        exit;
+    }
+}, 1);
