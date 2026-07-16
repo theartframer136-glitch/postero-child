@@ -6236,7 +6236,7 @@ add_shortcode('af_dashboard', function() {
 // ─────────────────────────────────────────────────────────────
 // PHASE 24 — SEO hardening for US search (added 2026-07-16).
 // 24a force one https:// origin   24b robots.txt (virtual)
-// 24c strip invalid hreflang tags 24d front-page H1 intro strip
+// 24c strip invalid hreflang tags 24d (removed per request)
 // 24e alt-text fallback on rendered images  24f /about-us 301.
 // Persisted meta (titles, descriptions, alts, physical robots.txt)
 // is written by tools/seo-improvements.php on deploy.
@@ -6293,21 +6293,12 @@ add_action('template_redirect', function () {
     });
 }, 0);
 
-// 24d. The front page has no descriptive H1 (only the logo text), so
-// prepend a styled heading strip above the Elementor content.
-add_filter('the_content', function ($content) {
-    if (is_admin() || !is_front_page() || !in_the_loop() || !is_main_query()) return $content;
-    if (strpos($content, 'af-home-h1') !== false) return $content;
-    $strip  = '<section class="af-home-h1">';
-    $strip .= '<h1>Custom Canvas Prints, Wall Art &amp; Picture Framing</h1>';
-    $strip .= '<p>Museum-quality prints and handcrafted frames — made to order and shipped across the USA.</p>';
-    $strip .= '</section>';
-    return $strip . $content;
-}, 99);
-add_action('wp_head', function () {
-    if (!is_front_page()) return;
-    echo '<style>.af-home-h1{text-align:center;padding:26px 18px 6px;}.af-home-h1 h1{font-size:clamp(22px,3.2vw,34px);font-weight:700;letter-spacing:.01em;margin:0 0 6px;color:#1a1a1a;}.af-home-h1 p{margin:0;color:#666;font-size:15px;}@media(max-width:600px){.af-home-h1{padding:18px 14px 2px;}}</style>';
-});
+// 24d. REMOVED 2026-07-16 per request — the front-page H1 intro strip
+// ("Custom Canvas Prints, Wall Art & Picture Framing") was removed at
+// the user's request (see the wp_footer hider at the end of this
+// file, added by the same request). Leaving the H1 in the HTML while
+// JS hides it would be hidden text, so the injection is gone
+// entirely. The homepage intentionally has no keyword H1.
 
 // 24e. Most rendered images ship without alt text. Fall back to the
 // attachment's parent (product) title, then the attachment title.
