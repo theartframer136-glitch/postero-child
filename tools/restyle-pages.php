@@ -7,7 +7,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$STYLE_VERSION = '13.3';
+$STYLE_VERSION = '13.4';
 $EMAIL = 'theartframer136@gmail.com';
 $PHONE = '+1 (610) 470-7280';
 $TEL   = 'tel:+16104707280';
@@ -1048,7 +1048,7 @@ $bodies['returns-exchanges'] = <<<HTML
   </div>
 
   <div class="taf-section taf-media">
-    <img src="https://theartframer.us/wp-content/uploads/2026/06/TAF-RADHA-KRISHNA-18530-room-1.jpg" alt="Framed canvas artwork from The Art Framer" loading="lazy">
+    <img src="https://theartframer.us/wp-content/uploads/2026/06/Radha-Krishna_Wall-Art_-Living-Room.webp" alt="Large Radha Krishna canvas delivered and installed in a modern living room" loading="lazy">
     <div>
       <h2 class="taf-h2">The No Broken Canvas Guarantee</h2>
       <p>A damaged canvas is always on us — never on you.</p>
