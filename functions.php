@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.9.9');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.0.0');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -6143,4 +6143,91 @@ add_shortcode('af_artists', function() {
     }
     $out .= '</div>';
     return $out;
+});
+
+// ── 12i. [af_dashboard] — dynamic customer dashboard ─────────
+// Replaces the dead [dokan-dashboard] shortcode on /dashboard/.
+// Logged in: greeting, live order/download counts, recent orders,
+// quick links to My Account endpoints. Logged out: login/register CTAs.
+add_shortcode('af_dashboard', function() {
+    if (!function_exists('wc_get_account_endpoint_url')) return '';
+    ob_start();
+
+    if (!is_user_logged_in()) { ?>
+<div class="taf-section" style="text-align:center;max-width:660px;margin:40px auto;">
+  <span class="taf-ico" style="font-size:52px;">👋</span>
+  <h2 class="taf-h2" style="margin-top:10px;">Welcome to Your Dashboard</h2>
+  <p class="taf-lead" style="margin:16px auto 26px;">Sign in to see your orders, downloads, and saved details — or create a free account in under a minute.</p>
+  <p>
+    <a class="taf-btn" href="<?php echo esc_url(home_url('/my-account/')); ?>">Sign In</a>
+    <a class="taf-btn-alt" href="<?php echo esc_url(home_url('/sign-up/')); ?>">Create Account</a>
+  </p>
+  <ul class="taf-check" style="max-width:420px;margin:30px auto 0;text-align:left;">
+    <li>Track orders and deliveries in one place</li>
+    <li>Instant access to your digital downloads</li>
+    <li>Faster checkout with saved addresses</li>
+    <li>Wishlist across devices</li>
+  </ul>
+</div>
+<?php
+        return ob_get_clean();
+    }
+
+    $user   = wp_get_current_user();
+    $uid    = $user->ID;
+    $name   = $user->first_name ? $user->first_name : $user->display_name;
+    $orders = function_exists('wc_get_customer_order_count') ? wc_get_customer_order_count($uid) : 0;
+    $downloads = function_exists('wc_get_customer_available_downloads') ? count(wc_get_customer_available_downloads($uid)) : 0;
+    $recent = wc_get_orders(array('customer_id' => $uid, 'limit' => 3, 'orderby' => 'date', 'order' => 'DESC'));
+    ?>
+<div class="taf-dash-hi">
+  <div>
+    <h2>Hi <?php echo esc_html($name); ?> 👋</h2>
+    <p>Welcome back — here's what's happening with your art.</p>
+  </div>
+  <a class="taf-btn-alt taf-dash-logout" href="<?php echo esc_url(wp_logout_url(home_url('/'))); ?>">Log Out</a>
+</div>
+
+<div class="taf-stats" style="margin-bottom:34px;">
+  <div class="taf-stat"><span class="num"><?php echo (int) $orders; ?></span><span class="lbl">Orders placed</span></div>
+  <div class="taf-stat"><span class="num"><?php echo (int) $downloads; ?></span><span class="lbl">Digital downloads</span></div>
+  <div class="taf-stat"><span class="num"><?php echo esc_html(date_i18n('M Y', strtotime($user->user_registered))); ?></span><span class="lbl">Member since</span></div>
+</div>
+
+<?php if ($recent) : ?>
+<h2 class="taf-h2">Recent Orders</h2>
+<table class="taf-table">
+  <thead><tr><th>Order</th><th>Date</th><th>Status</th><th>Total</th><th></th></tr></thead>
+  <tbody>
+  <?php foreach ($recent as $o) : ?>
+    <tr>
+      <td>#<?php echo esc_html($o->get_order_number()); ?></td>
+      <td><?php echo esc_html(wc_format_datetime($o->get_date_created(), 'M j, Y')); ?></td>
+      <td><?php echo esc_html(wc_get_order_status_name($o->get_status())); ?></td>
+      <td><?php echo wp_kses_post($o->get_formatted_order_total()); ?></td>
+      <td><a href="<?php echo esc_url($o->get_view_order_url()); ?>">View →</a></td>
+    </tr>
+  <?php endforeach; ?>
+  </tbody>
+</table>
+<?php else : ?>
+<div class="taf-card" style="text-align:center;margin:10px 0 30px;">
+  <span class="taf-ico">🖼️</span>
+  <h3>No orders yet</h3>
+  <p>Your walls are waiting — browse the collection or preview art in your own room.</p>
+  <p style="margin-top:14px;"><a class="taf-btn" href="/shop/">Start Shopping</a> <a class="taf-btn-alt" href="/try-on-wall/">Try It on Your Wall</a></p>
+</div>
+<?php endif; ?>
+
+<h2 class="taf-h2" style="margin-top:38px;">Quick Access</h2>
+<div class="taf-grid">
+  <div class="taf-card"><span class="taf-ico">📦</span><h3>My Orders</h3><p>Full order history, invoices, and order details.</p><p style="margin-top:12px;"><a class="taf-btn" href="<?php echo esc_url(wc_get_account_endpoint_url('orders')); ?>">View Orders</a></p></div>
+  <div class="taf-card"><span class="taf-ico">💾</span><h3>Downloads</h3><p>Your purchased digital files, ready any time.</p><p style="margin-top:12px;"><a class="taf-btn" href="<?php echo esc_url(wc_get_account_endpoint_url('downloads')); ?>">My Downloads</a></p></div>
+  <div class="taf-card"><span class="taf-ico">🚚</span><h3>Track an Order</h3><p>Follow your canvas from studio to doorstep.</p><p style="margin-top:12px;"><a class="taf-btn" href="/track-your-order/">Track Order</a></p></div>
+  <div class="taf-card"><span class="taf-ico">📍</span><h3>Addresses</h3><p>Manage shipping and billing addresses.</p><p style="margin-top:12px;"><a class="taf-btn" href="<?php echo esc_url(wc_get_account_endpoint_url('edit-address')); ?>">Edit Addresses</a></p></div>
+  <div class="taf-card"><span class="taf-ico">❤️</span><h3>Wishlist</h3><p>Pieces you've saved for the right wall.</p><p style="margin-top:12px;"><a class="taf-btn" href="/wishlist/">My Wishlist</a></p></div>
+  <div class="taf-card"><span class="taf-ico">⚙️</span><h3>Account Details</h3><p>Name, email, and password settings.</p><p style="margin-top:12px;"><a class="taf-btn" href="<?php echo esc_url(wc_get_account_endpoint_url('edit-account')); ?>">Edit Account</a></p></div>
+</div>
+<?php
+    return ob_get_clean();
 });

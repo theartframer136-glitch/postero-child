@@ -7,7 +7,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$STYLE_VERSION = '13.7';
+$STYLE_VERSION = '13.8';
 $EMAIL = 'theartframer136@gmail.com';
 $PHONE = '+1 (610) 470-7280';
 $TEL   = 'tel:+16104707280';
@@ -1348,10 +1348,22 @@ $bodies['wholesale-corporate'] = <<<HTML
 </div>
 HTML;
 
+/* ── Dashboard — replaces dead [dokan-dashboard] shortcode ──── */
+$bodies['dashboard'] = <<<HTML
+<div class="taf-page">
+  <div class="taf-hero">
+    <span class="taf-eyebrow">Your Art HQ</span>
+    <h1>My Dashboard</h1>
+    <p class="taf-sub">Orders, downloads, tracking, and account settings — everything in one place.</p>
+  </div>
+  [af_dashboard]
+</div>
+HTML;
+
 /* ── Apply ──────────────────────────────────────────────────── */
 echo "=== Restyle spec pages (v{$STYLE_VERSION}) ===\n\n";
 $done = 0; $skipped = 0;
-$classic_render = array( 'faqs', 'contact' );
+$classic_render = array( 'faqs', 'contact', 'dashboard' );
 
 foreach ( $bodies as $slug => $body ) {
     $page = get_page_by_path( $slug );

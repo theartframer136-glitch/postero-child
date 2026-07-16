@@ -1815,3 +1815,11 @@ body:has(.taf-page) .site-main{max-width:none;}
 .taf-artists .taf-artist-card .taf-badge{margin:6px 24px 10px;align-self:flex-start;}
 .taf-artist-actions{margin-top:auto;padding-top:14px !important;}
 .taf-artist-actions .taf-btn,.taf-artist-actions .taf-btn-alt{margin:4px 6px 0 0;padding:11px 22px;font-size:13.5px;}
+
+/* Phase 13.8 — dashboard greeting bar */
+.taf-dash-hi{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  background:#141414;border-top:3px solid var(--taf-gold);padding:26px 28px;margin:6px 0 26px;}
+.taf-dash-hi h2{color:#fff;font-size:24px;font-weight:800;margin:0 0 4px;}
+.taf-dash-hi p{color:#b8b2a2;margin:0;font-size:14px;}
+.taf-dash-logout{border-color:var(--taf-gold) !important;color:var(--taf-gold) !important;background:transparent !important;}
+.taf-dash-logout:hover{background:var(--taf-gold) !important;color:#141414 !important;}
