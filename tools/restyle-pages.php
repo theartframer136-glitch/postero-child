@@ -7,7 +7,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$STYLE_VERSION = '13.1';
+$STYLE_VERSION = '13.2';
 $EMAIL = 'theartframer136@gmail.com';
 $PHONE = '+1 (610) 470-7280';
 $TEL   = 'tel:+16104707280';
@@ -913,6 +913,22 @@ $bodies['contact'] = <<<HTML
         <div class="taf-card"><span class="taf-ico">✉️</span><h3>Email</h3><p><a href="mailto:{$EMAIL}">{$EMAIL}</a><br>Best for custom photo orders and attachments.</p></div>
         <div class="taf-card"><span class="taf-ico">📍</span><h3>Studio &amp; Delivery</h3><p>Operating from Delaware, USA.<br>Free delivery: Delaware, Pennsylvania, Maryland, New Jersey &amp; nearby areas. Nationwide shipping available.</p></div>
         <div class="taf-card"><span class="taf-ico">🕘</span><h3>Response Times</h3><p>Calls &amp; WhatsApp — right away in business hours.<br>Form &amp; email — within 24 hours.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Find Us</h2>
+    <p class="taf-lead">Our studio operates from Delaware, USA — with free delivery across Delaware, Pennsylvania, Maryland, New Jersey and nearby areas.</p>
+    <div class="taf-map">
+      <iframe src="https://www.google.com/maps?q=The%20Art%20Framer%2C%20Delaware%2C%20USA&z=9&output=embed"
+              loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"
+              title="The Art Framer — Delaware, USA"></iframe>
+      <div class="taf-map-card">
+        <h3>📍 The Art Framer</h3>
+        <p>Delaware, USA<br>Mon–Sat: 9am – 7pm ET</p>
+        <p><a href="{$TEL}">{$PHONE}</a><br><a href="mailto:{$EMAIL}">{$EMAIL}</a></p>
+        <a class="taf-map-btn" href="https://www.google.com/maps/search/?api=1&query=The+Art+Framer+Delaware+USA" target="_blank" rel="noopener">Get Directions ➜</a>
       </div>
     </div>
   </div>

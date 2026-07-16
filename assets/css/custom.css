@@ -1737,3 +1737,21 @@ body:has(.taf-page) .site-main{max-width:none;}
 .taf-form-msg.ok{background:#eef7ee;color:#256d2c;border:1px solid #bfe3c2;}
 .taf-form-msg.err{background:#fbeeee;color:#a13232;border:1px solid #efc7c7;}
 @media(max-width:640px){.taf-form-row{grid-template-columns:1fr;}.taf-form{padding:22px 18px;}}
+
+/* Phase 13.4 — contact page map (.taf-map) */
+.taf-map{position:relative;border:1px solid #ece5d4;box-shadow:0 4px 18px rgba(20,20,20,.08);margin:6px 0 8px;}
+.taf-map iframe{width:100%;height:460px;border:0;display:block;filter:grayscale(.85) contrast(1.04);transition:filter .45s ease;}
+.taf-map:hover iframe,.taf-map:focus-within iframe{filter:none;}
+.taf-map-card{position:absolute;left:26px;top:26px;background:#141414;color:#e9e4d6;padding:22px 24px;max-width:290px;
+  border-top:3px solid var(--taf-gold);box-shadow:0 10px 30px rgba(0,0,0,.35);}
+.taf-map-card h3{color:#fff;font-size:17px;font-weight:800;margin:0 0 8px;}
+.taf-map-card p{margin:0 0 10px;font-size:13.5px;line-height:1.7;}
+.taf-map-card a{color:var(--taf-gold);text-decoration:none;}
+.taf-map-card a:hover{color:#fff;}
+.taf-map-btn{display:inline-block;background:var(--taf-gold);color:#141414 !important;font-weight:700;font-size:13px;
+  padding:10px 18px;margin-top:2px;transition:background .2s;}
+.taf-map-btn:hover{background:#fff;}
+@media(max-width:700px){
+  .taf-map iframe{height:320px;filter:none;}
+  .taf-map-card{position:static;max-width:none;}
+}
