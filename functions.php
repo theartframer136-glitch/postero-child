@@ -6435,6 +6435,35 @@ add_action('wp_footer', function() { ?>
     e.preventDefault(); e.stopPropagation();
     toggle(parseInt(b.dataset.id, 10));
   });
+
+  // The Elementor/Postero product grid doesn't fire the WooCommerce loop
+  // hooks, so inject compare buttons from the cards' data-product_id.
+  function makeBtn(id, cls){
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'af-cmp-btn' + (cls ? ' ' + cls : '');
+    b.dataset.id = id; b.textContent = '⇄ Compare';
+    return b;
+  }
+  function inject(){
+    document.querySelectorAll('a[data-product_id]').forEach(function(a){
+      var card = a.closest('li.product, .type-product, .product');
+      if (!card || card.querySelector('.af-cmp-btn')) return;
+      var id = parseInt(a.getAttribute('data-product_id'), 10);
+      if (!id) return;
+      (a.parentElement || card).appendChild(makeBtn(id));
+    });
+    if (document.body.classList.contains('single-product')) {
+      var m = document.body.className.match(/postid-(\d+)/);
+      var host = document.querySelector('.summary form.cart, .summary .cart, .summary');
+      if (m && host && !host.querySelector('.af-cmp-btn') && !document.querySelector('.af-cmp-single')) {
+        host.appendChild(makeBtn(parseInt(m[1], 10), 'af-cmp-single'));
+      }
+    }
+    refresh();
+  }
+  document.addEventListener('DOMContentLoaded', inject);
+  window.addEventListener('load', inject);
+  setTimeout(inject, 800); setTimeout(inject, 2000);
   refresh();
 
   // Compare page renderer
