@@ -139,7 +139,7 @@ foreach ( $rows as $row ) {
     };
     $append( $data );
 
-    if ( $fixed || $added ) {
+    if ( $fixed || $added || $removed ) {
         update_post_meta( $row->post_id, '_elementor_data', wp_slash( wp_json_encode( $data ) ) );
         echo "  SAVED: {$fixed} fixed, {$added} added\n";
     } else {
