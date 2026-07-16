@@ -7,7 +7,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$STYLE_VERSION = '13.6';
+$STYLE_VERSION = '13.7';
 $EMAIL = 'theartframer136@gmail.com';
 $PHONE = '+1 (610) 470-7280';
 $TEL   = 'tel:+16104707280';
@@ -536,20 +536,8 @@ $bodies['artists'] = <<<HTML
 
   <div class="taf-section">
     <h2 class="taf-h2">Meet Our Artists</h2>
-    <div class="taf-grid">
-      <div class="taf-card">
-        <span class="taf-ico">🕉️</span>
-        <h3>Ananya Sengupta</h3>
-        <p>Spiritual and devotional canvas art rooted in Indian tradition — Radha Krishna, Pichwai motifs, and sacred iconography reimagined for contemporary homes.</p>
-        <p style="margin-top:14px;"><a class="taf-btn" href="/artists/ananya-sengupta/">View Profile</a></p>
-      </div>
-      <div class="taf-card">
-        <span class="taf-ico">🎨</span>
-        <h3>Tanmay Choudhary</h3>
-        <p>Bold abstracts, landscapes, and contemporary compositions — art designed to anchor a modern living room, office, or studio wall.</p>
-        <p style="margin-top:14px;"><a class="taf-btn" href="/artists/tanmay-choudhary/">View Profile</a></p>
-      </div>
-    </div>
+    <p class="taf-lead">This list updates automatically — every artist added under Products → Categories → Direct from Artists appears here.</p>
+    [af_artists]
     <p style="text-align:center;margin-top:24px;">
       <a class="taf-btn-alt" href="/product-category/direct-from-artists/">Shop All Artist Collections</a>
     </p>
@@ -1210,6 +1198,152 @@ $bodies['safe-easy-payments'] = <<<HTML
     <p>Browse the collection and check out securely in minutes.</p>
     <a class="taf-btn" href="/shop/">Shop the Collection</a>
     <a class="taf-btn-alt" href="/contact/">Ask a Payment Question</a>
+  </div>
+</div>
+HTML;
+
+/* ── Content & Ethics Policy ────────────────────────────────── */
+$bodies['content-ethics-policy'] = <<<HTML
+<div class="taf-page">
+  <div class="taf-hero">
+    <span class="taf-eyebrow">Art With Integrity</span>
+    <h1>Content &amp; Ethics Policy</h1>
+    <p class="taf-sub">Respectful, authentic, and culturally sensitive artwork — the standards every piece we sell must meet.</p>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Our Commitments</h2>
+    <div class="taf-grid">
+      <div class="taf-card"><span class="taf-ico">🙏</span><h3>Cultural Respect</h3><p>Our spiritual and cultural artworks are created with reverence. Devotional imagery — Radha Krishna, Shiva, Buddha, Sikh art, and more — is rendered to honour the traditions it represents, never to trivialise them.</p></div>
+      <div class="taf-card"><span class="taf-ico">🎨</span><h3>Artist Rights</h3><p>We work directly with artists and respect their intellectual property. Original creators are credited on their work and fairly compensated on every sale — see our <a href="/artists/">Artists &amp; Creators</a> program.</p></div>
+      <div class="taf-card"><span class="taf-ico">✅</span><h3>Authenticity</h3><p>No misleading imagery. Product previews represent the actual artwork you will receive — same composition, same colours, same finish.</p></div>
+    </div>
+  </div>
+
+  <div class="taf-section taf-two">
+    <div>
+      <h2 class="taf-h2">What We Won't Sell</h2>
+      <ul class="taf-check">
+        <li>Artwork that mocks or misappropriates sacred imagery</li>
+        <li>Unlicensed reproductions of another artist's work</li>
+        <li>Content that promotes hatred or discrimination</li>
+        <li>Copyrighted characters or brands without permission</li>
+      </ul>
+      <p style="margin-top:14px;">Custom orders are reviewed against the same standards — we'll decline respectfully if a request crosses these lines.</p>
+    </div>
+    <div class="taf-card">
+      <span class="taf-ico">🚩</span>
+      <h3>See something wrong?</h3>
+      <p>If you believe any artwork on our site infringes rights or misrepresents a tradition, tell us. Write to <a href="mailto:{$EMAIL}?subject=Content%20Concern">{$EMAIL}</a> with a link to the piece — every report is reviewed within two business days, and verified issues are removed promptly.</p>
+    </div>
+  </div>
+
+  <div class="taf-cta">
+    <h2>Questions About Our Standards?</h2>
+    <p>We're happy to explain how any piece was sourced and licensed.</p>
+    <a class="taf-btn" href="mailto:{$EMAIL}?subject=Content%20Ethics%20Question">Email {$EMAIL}</a>
+    <a class="taf-btn-alt" href="/artists/">Meet Our Artists</a>
+  </div>
+</div>
+HTML;
+
+/* ── Terms & Conditions ─────────────────────────────────────── */
+$bodies['terms-conditions'] = <<<HTML
+<div class="taf-page taf-legal">
+  <div class="taf-hero">
+    <span class="taf-eyebrow">The Fine Print, Made Readable</span>
+    <h1>Terms &amp; Conditions</h1>
+    <p class="taf-sub">By accessing and purchasing from The Art Framer, you agree to the terms below.</p>
+  </div>
+
+  <p><span class="taf-updated">Last updated: 15 July 2026</span></p>
+
+  <h2>1. Products</h2>
+  <p>We make every effort to display product colours and details accurately. Slight variations may occur due to screen settings and the made-to-order nature of our products; these are not defects. One dimension-reference image is provided per product so you can judge real-world size.</p>
+
+  <h2>2. Pricing &amp; Currency</h2>
+  <p>Prices are listed in USD, with CAD available via the currency selector; your order is charged in the currency you check out with. Prices are subject to change without notice, and we reserve the right to correct pricing errors — if an error affects an order you've already placed, we'll contact you before proceeding.</p>
+
+  <h2>3. Orders &amp; Production</h2>
+  <p>Most items are printed, stretched, and framed to order. Orders can be modified or cancelled free of charge any time before production begins — after that, made-to-order items follow our <a href="/returns-exchanges/">Returns &amp; Exchanges</a> policy.</p>
+
+  <h2>4. Shipping &amp; Delivery</h2>
+  <p>Production and delivery timelines, free-delivery areas, and packaging standards are described in our <a href="/shipping-delivery/">Shipping &amp; Delivery</a> policy, which forms part of these terms.</p>
+
+  <h2>5. Returns &amp; Refunds</h2>
+  <p>Returns are governed by our <a href="/returns-exchanges/">Returns &amp; Exchanges</a> policy and refunds by our <a href="/refund-policy/">Refund Policy</a>. In short: damaged, defective, or incorrect items are replaced or refunded in full; personalised items are non-returnable unless damaged.</p>
+
+  <h2>6. Custom &amp; Personalised Orders</h2>
+  <p>By submitting a photo or design for a custom order you confirm you have the right to use it. We review custom requests against our <a href="/content-ethics-policy/">Content &amp; Ethics Policy</a> and may respectfully decline work that infringes rights or misrepresents cultural imagery. Your uploads are used solely to produce your order (see our <a href="/privacy-policy/">Privacy Policy</a>).</p>
+
+  <h2>7. Intellectual Property</h2>
+  <p>All artwork, images, and content on this site are the property of The Art Framer or its contributing artists and may not be reproduced without written permission. Purchasing a print grants you ownership of the physical piece, not reproduction rights to the artwork.</p>
+
+  <h2>8. Accounts</h2>
+  <p>You're responsible for keeping your account credentials secure. We may suspend accounts used fraudulently or in breach of these terms.</p>
+
+  <h2>9. Limitation of Liability</h2>
+  <p>To the fullest extent permitted by law, our liability for any claim related to an order is limited to the amount you paid for that order. Nothing in these terms limits liability that cannot be limited by law.</p>
+
+  <h2>10. Changes to These Terms</h2>
+  <p>We may update these terms as the store evolves. Material changes are announced on this page with an updated date; continued use of the site after changes means acceptance.</p>
+
+  <h2>11. Contact</h2>
+  <p>Questions about these terms? Email <a href="mailto:{$EMAIL}">{$EMAIL}</a> or call <a href="{$TEL}">{$PHONE}</a>.</p>
+
+  <p class="taf-note">This is a starter template. Please have it reviewed by a legal professional for your jurisdiction.</p>
+</div>
+HTML;
+
+/* ── Wholesale & Corporate ──────────────────────────────────── */
+$bodies['wholesale-corporate'] = <<<HTML
+<div class="taf-page">
+  <div class="taf-hero">
+    <span class="taf-eyebrow">Trade &amp; Volume Orders</span>
+    <h1>Wholesale &amp; Corporate</h1>
+    <p class="taf-sub">Volume pricing, custom production, and dedicated support — for designers, businesses, and bulk gifting.</p>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Who It's For</h2>
+    <div class="taf-grid">
+      <div class="taf-card"><span class="taf-ico">🛋️</span><h3>Interior Designers</h3><p>Trade pricing on statement pieces, art sets, and custom sizes matched to your project boards.</p></div>
+      <div class="taf-card"><span class="taf-ico">🏨</span><h3>Hotels &amp; Hospitality</h3><p>Room-by-room art programs, lobby statements, and durable framing built for high-traffic spaces.</p></div>
+      <div class="taf-card"><span class="taf-ico">☕</span><h3>Cafés &amp; Restaurants</h3><p>Branded interiors and rotating wall collections that give your space its personality.</p></div>
+      <div class="taf-card"><span class="taf-ico">🏢</span><h3>Offices &amp; Retail</h3><p>Reception branding, conference-room art, and corporate signage — see <a href="/exhibitions-events/">Exhibitions &amp; Events</a> for event formats.</p></div>
+      <div class="taf-card"><span class="taf-ico">🎁</span><h3>Corporate Gifting</h3><p>Personalised canvas gifts for clients and teams — logos, portraits, and milestone prints at volume prices.</p></div>
+      <div class="taf-card"><span class="taf-ico">🏪</span><h3>Retailers &amp; Resellers</h3><p>Wholesale canvas and frame supply with OEM/ODM options and flexible SKUs.</p></div>
+    </div>
+  </div>
+
+  <div class="taf-section taf-media">
+    <img src="https://theartframer.us/wp-content/uploads/2026/03/Cafe-Decor.webp" alt="Corporate cafe interior decorated with The Art Framer canvases" loading="lazy">
+    <div>
+      <h2 class="taf-h2">What You Get</h2>
+      <ul class="taf-check">
+        <li><b>Volume-based pricing</b> — the more walls, the better the rate</li>
+        <li><b>Custom sizes and framing</b> — from desk prints to 4×6 ft statements</li>
+        <li><b>Dedicated support</b> — one contact from quote to installation</li>
+        <li><b>Branding options</b> — logos, colours, and co-branded packaging</li>
+        <li><b>Priority production</b> — deadlines built into the schedule</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">How It Works</h2>
+    <ol class="taf-steps">
+      <li><b>Tell us the project</b> — spaces, quantities, sizes, and your deadline. Rough ideas are fine; we'll help you spec it.</li>
+      <li><b>Get your quote within 1 business day</b> — itemised pricing with volume discounts applied, plus mockups on request.</li>
+      <li><b>We produce &amp; deliver</b> — priority production, secure bulk packaging, and delivery scheduled around your opening or event.</li>
+    </ol>
+  </div>
+
+  <div class="taf-cta">
+    <h2>Get a Custom Quote</h2>
+    <p>Send your requirements today — quotes are prepared within one business day.</p>
+    <a class="taf-btn" href="mailto:{$EMAIL}?subject=Wholesale%20/%20Corporate%20Quote">Email Your Requirements</a>
+    <a class="taf-btn-alt" href="{$TEL}">Call {$PHONE}</a>
   </div>
 </div>
 HTML;

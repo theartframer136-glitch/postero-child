@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.9.8');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '2.9.9');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -6097,4 +6097,50 @@ add_shortcode('af_delivery_checker', function() {
 })();
 </script>
 <?php return ob_get_clean();
+});
+
+// ── 12h. [af_artists] — dynamic artist cards from the admin panel ─
+// Renders one card per child category of "Direct from Artists"
+// (Products → Categories in wp-admin). Add a new artist category there
+// and it appears on /artists/ automatically: name, description, category
+// thumbnail, product count, links to the profile page (if one exists at
+// /artists/<slug>/) and the shop archive.
+add_shortcode('af_artists', function() {
+    $parent = get_term_by('slug', 'direct-from-artists', 'product_cat');
+    if (!$parent) return '<p>No artists found yet — check back soon.</p>';
+    $terms = get_terms(array(
+        'taxonomy'   => 'product_cat',
+        'parent'     => $parent->term_id,
+        'hide_empty' => false,
+        'orderby'    => 'name',
+    ));
+    if (is_wp_error($terms) || empty($terms)) return '<p>No artists found yet — check back soon.</p>';
+
+    $fallback_img = 'https://theartframer.us/wp-content/uploads/2026/04/works-of-artist-69da11c3d9a55.webp';
+    $out = '<div class="taf-grid taf-artists">';
+    foreach ($terms as $t) {
+        $thumb_id = get_term_meta($t->term_id, 'thumbnail_id', true);
+        $img      = $thumb_id ? wp_get_attachment_image_url($thumb_id, 'large') : '';
+        if (!$img) $img = $fallback_img;
+        $desc = trim($t->description);
+        if ($desc === '') $desc = 'Original artworks by ' . $t->name . ', printed and framed by The Art Framer.';
+        $archive = get_term_link($t);
+        if (is_wp_error($archive)) $archive = '/product-category/direct-from-artists/';
+        $profile = get_page_by_path('artists/' . $t->slug);
+        $count   = (int) $t->count;
+
+        $out .= '<div class="taf-card taf-artist-card">';
+        $out .= '<img class="taf-artist-img" loading="lazy" src="' . esc_url($img) . '" alt="' . esc_attr('Artwork by ' . $t->name) . '">';
+        $out .= '<h3>' . esc_html($t->name) . '</h3>';
+        if ($count) $out .= '<span class="taf-badge">' . $count . ' artwork' . ($count === 1 ? '' : 's') . '</span>';
+        $out .= '<p>' . esc_html(wp_trim_words($desc, 28, '…')) . '</p>';
+        $out .= '<p class="taf-artist-actions">';
+        if ($profile && $profile->post_status === 'publish') {
+            $out .= '<a class="taf-btn" href="' . esc_url(get_permalink($profile)) . '">View Profile</a> ';
+        }
+        $out .= '<a class="taf-btn-alt" href="' . esc_url($archive) . '">Shop Artworks</a>';
+        $out .= '</p></div>';
+    }
+    $out .= '</div>';
+    return $out;
 });
