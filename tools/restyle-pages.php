@@ -7,7 +7,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$STYLE_VERSION = '13.5';
+$STYLE_VERSION = '13.6';
 $EMAIL = 'theartframer136@gmail.com';
 $PHONE = '+1 (610) 470-7280';
 $TEL   = 'tel:+16104707280';
@@ -1085,41 +1085,57 @@ $bodies['refund-policy'] = <<<HTML
   <div class="taf-hero">
     <span class="taf-eyebrow">Fair &amp; Fast</span>
     <h1>Refund Policy</h1>
-    <p class="taf-sub">Approved refunds go back to your original payment method within 5–7 business days — here's how the process works.</p>
+    <p class="taf-sub">Approved refunds go back to your original payment method within 5–7 business days — tracked and confirmed at every step.</p>
   </div>
 
   <div class="taf-section">
-    <h2 class="taf-h2">How Refunds Work</h2>
-    <ol class="taf-steps">
-      <li><b>Return approved</b> — after your <a href="/returns-exchanges/">return request</a> is reviewed (usually the same day), we confirm the refund by email.</li>
-      <li><b>Inspection &amp; processing</b> — once the approved return is received and inspected, your refund is issued to the <b>original payment method</b>.</li>
-      <li><b>Money back in 5–7 business days</b> — depending on your bank or card issuer, it may take a little extra time to appear on your statement.</li>
-    </ol>
-  </div>
-
-  <div class="taf-section">
-    <h2 class="taf-h2">What You Can Expect</h2>
-    <div class="taf-grid">
-      <div class="taf-card"><span class="taf-ico">📦</span><h3>Damaged or Incorrect Items</h3><p>Your choice of a <b>free replacement</b> or a <b>full refund</b> — no extra cost, and damaged items never need to be shipped back.</p></div>
-      <div class="taf-card"><span class="taf-ico">💳</span><h3>Original Payment Method</h3><p>Refunds always return to the card or account you paid with — no store-credit-only tricks.</p></div>
-      <div class="taf-card"><span class="taf-ico">📧</span><h3>Status Updates</h3><p>You're notified by email at every step: approval, inspection, and the moment the refund is issued.</p></div>
+    <div class="taf-stats">
+      <div class="taf-stat"><span class="num">5–7</span><span class="lbl">Business days to refund</span></div>
+      <div class="taf-stat"><span class="num">100%</span><span class="lbl">Original payment method</span></div>
+      <div class="taf-stat"><span class="num">\$0</span><span class="lbl">Restocking fees</span></div>
+      <div class="taf-stat"><span class="num">48h</span><span class="lbl">Damage claim window</span></div>
     </div>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Track Your Refund's Journey</h2>
+    <p class="taf-lead">Every refund follows the same four steps — and you're emailed at each one.</p>
+    <ul class="taf-track">
+      <li><b>Request Approved</b><span>Your return request is reviewed — usually the same day.</span></li>
+      <li><b>Item Inspected</b><span>The approved return is received and checked by our studio.</span></li>
+      <li><b>Refund Issued</b><span>Sent to your original payment method within 5–7 business days.</span></li>
+      <li><b>In Your Account</b><span>Bank posting can add 2–5 days depending on your card issuer.</span></li>
+    </ul>
+  </div>
+
+  <div class="taf-section">
+    <h2 class="taf-h2">What Happens in Each Case</h2>
+    <table class="taf-table">
+      <thead><tr><th>Situation</th><th>Replacement</th><th>Full Refund</th><th>What We Need</th></tr></thead>
+      <tbody>
+        <tr><td>🔨 Arrived damaged</td><td><span class="taf-yes">✓ Free</span></td><td><span class="taf-yes">✓ Yes</span></td><td>Photos of item &amp; packaging within 48 hours — no return shipping</td></tr>
+        <tr><td>🖨️ Print or frame defect</td><td><span class="taf-yes">✓ Free</span></td><td><span class="taf-yes">✓ Yes</span></td><td>Photos of the defect within 7 days of delivery</td></tr>
+        <tr><td>📦 Wrong item delivered</td><td><span class="taf-yes">✓ Free</span></td><td><span class="taf-yes">✓ Yes</span></td><td>Order number and a photo of what arrived</td></tr>
+        <tr><td>💭 Changed my mind</td><td><span class="taf-no">✗ Custom items</span></td><td><span class="taf-no">✗ Custom items</span></td><td>Made-to-order pieces can't be restocked — contact us before production starts and we'll change or cancel free</td></tr>
+        <tr><td>💾 Digital download issue</td><td><span class="taf-yes">✓ File replaced</span></td><td>Case by case</td><td>Tell us what's wrong — we fix or replace the file right away</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <div class="taf-section taf-two">
     <div>
-      <h2 class="taf-h2">Refund Timeline at a Glance</h2>
+      <h2 class="taf-h2">Good to Know</h2>
       <ul class="taf-check">
-        <li>Return request reviewed — <b>same day</b> in most cases</li>
-        <li>Refund issued after inspection — <b>within 5–7 business days</b></li>
-        <li>Bank/card posting time — varies by issuer, typically 2–5 days more</li>
-        <li>Gift card purchases — refunded back to the gift card balance</li>
+        <li>Refunds always return to the <b>card or account you paid with</b> — no store-credit-only tricks</li>
+        <li>Gift card purchases are refunded back to the <b>gift card balance</b></li>
+        <li>You're notified by email at <b>every step</b>: approval, inspection, and issue</li>
+        <li>Full return rules are in our <a href="/returns-exchanges/">Returns &amp; Exchanges</a> policy</li>
       </ul>
     </div>
     <div class="taf-card">
       <span class="taf-ico">⏳</span>
       <h3>Refund taking longer?</h3>
-      <p>First check with your bank or card issuer — pending refunds often sit on their side. Still nothing after 10 business days? Contact us with your order number and we'll trace it with the payment processor right away.</p>
+      <p>First check with your bank or card issuer — pending refunds often sit on their side for a few days. Still nothing after 10 business days? Send us your order number and we'll trace it with the payment processor right away.</p>
     </div>
   </div>
 
