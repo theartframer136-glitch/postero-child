@@ -212,4 +212,46 @@ foreach ($q->posts as $aid) {
 }
 $log("alt text backfilled for $n_alt images");
 
+// ── 6. Social share image (og:image) ────────────────────────────────
+// The current og:image is a scanned business card. Build a proper
+// 1200x630 JPG from the live hero banner (the store's own branded
+// artwork) and set it for the front page + as the sitewide default.
+$uploads = wp_get_upload_dir();
+$og_path = trailingslashit($uploads['basedir']) . 'og-home-1200x630.jpg';
+$og_url  = trailingslashit($uploads['baseurl']) . 'og-home-1200x630.jpg';
+if (!file_exists($og_path)) {
+    $src = trailingslashit($uploads['basedir']) . '2026/04/Banner-1-1.webp';
+    if (file_exists($src)) {
+        $editor = wp_get_image_editor($src);
+        if (!is_wp_error($editor)) {
+            $editor->resize(1200, 630, true); // center hard-crop
+            $saved = $editor->save($og_path, 'image/jpeg');
+            if (!is_wp_error($saved)) $log('og:image built from hero banner');
+            else $log('og:image save failed: ' . $saved->get_error_message());
+        } else {
+            $log('og:image editor failed: ' . $editor->get_error_message());
+        }
+    } else {
+        $log('og:image source banner not found — skipped');
+    }
+}
+if (file_exists($og_path)) {
+    $card_scan = function ($cur) { return stripos($cur, 'Business-Cards') !== false; };
+    if ($front_id && $set_meta($front_id, 'rank_math_facebook_image', $og_url, $card_scan)) {
+        $log('front page og:image set');
+    }
+    // sitewide default social image (used by pages with no image of
+    // their own) — only replace nothing-or-business-card.
+    $titles = get_option('rank-math-options-titles', array());
+    if (is_array($titles)) {
+        $cur = isset($titles['open_graph_image']) ? (string) $titles['open_graph_image'] : '';
+        if ($cur === '' || stripos($cur, 'Business-Cards') !== false) {
+            $titles['open_graph_image']    = $og_url;
+            $titles['open_graph_image_id'] = '';
+            update_option('rank-math-options-titles', $titles);
+            $log('sitewide default og:image set');
+        }
+    }
+}
+
 $log('done');
