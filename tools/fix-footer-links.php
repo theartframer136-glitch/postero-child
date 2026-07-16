@@ -36,6 +36,9 @@ $map = array(
     'track your order'      => '/track-your-order/',
 );
 
+/* Items to remove from the footer entirely (normalized text) */
+$removals = array( 'return policy' );
+
 /* Items to append if absent: anchor-text => [url, list-locator-text] */
 $additions = array(
     'Reviews & Press'        => array( '/reviews-press/',          'gift cards' ),    // Customer Service list
@@ -66,13 +69,24 @@ foreach ( $rows as $row ) {
     $data = json_decode( $raw, true );
     if ( ! is_array( $data ) ) { echo "  SKIP: cannot decode _elementor_data\n"; continue; }
 
-    $fixed = 0; $added = 0; $existing_texts = array();
+    $fixed = 0; $added = 0; $removed = 0; $existing_texts = array();
 
-    $walk = function ( &$elements ) use ( &$walk, &$fixed, &$existing_texts, $map ) {
+    $walk = function ( &$elements ) use ( &$walk, &$fixed, &$removed, &$existing_texts, $map, $removals ) {
         foreach ( $elements as &$el ) {
             if ( isset( $el['elements'] ) && is_array( $el['elements'] ) ) $walk( $el['elements'] );
             if ( ( $el['widgetType'] ?? '' ) !== 'icon-list' ) continue;
             if ( empty( $el['settings']['icon_list'] ) || ! is_array( $el['settings']['icon_list'] ) ) continue;
+            // Drop items slated for removal (e.g. the duplicate-looking "Return Policy")
+            $kept = array();
+            foreach ( $el['settings']['icon_list'] as $it ) {
+                if ( in_array( taf_norm( $it['text'] ?? '' ), $removals, true ) ) {
+                    $removed++;
+                    echo '  DROP "' . ( $it['text'] ?? '' ) . "\"\n";
+                    continue;
+                }
+                $kept[] = $it;
+            }
+            $el['settings']['icon_list'] = $kept;
             foreach ( $el['settings']['icon_list'] as &$item ) {
                 $key = taf_norm( $item['text'] ?? '' );
                 $existing_texts[ $key ] = true;
