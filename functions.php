@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.0.3');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.1.0');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -3563,7 +3563,7 @@ add_action('wp_footer', function() {
           <a href="/track-your-order/" class="af-ub-link">🚚 Track Order</a>
           <a href="/help-support/" class="af-ub-link">❓ Help</a>
           <a href="tel:+16104707280" class="af-ub-link af-ub-phone">📞 +1 (610) 470-7280</a>
-          <span class="af-ub-cur">USD $</span>
+          <?php echo do_shortcode('[af_country_selector]'); ?>
         </nav>
       </div>
     </div>
@@ -6012,6 +6012,13 @@ function af_contact_admin_page() {
             ? '<a href="' . esc_url($base . '&af_action=read') . '">Mark read</a>'
             : '<a href="' . esc_url($base . '&af_action=unread') . '">Mark unread</a>';
         echo ' | <a href="' . esc_url($base . '&af_action=delete') . '" onclick="return confirm(\'Delete this message?\');" style="color:#b32d2e;">Delete</a>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" style="margin-top:8px;display:flex;flex-direction:column;gap:5px;min-width:200px;">';
+        echo '<input type="hidden" name="action" value="af_msg_reply">';
+        echo '<input type="hidden" name="parent_id" value="' . (int) $r->id . '">';
+        wp_nonce_field('af_msg_reply');
+        echo '<textarea name="reply" rows="2" placeholder="Reply (emails the customer)"></textarea>';
+        echo '<button class="button button-primary">Send reply</button>';
+        echo '</form>';
         echo '</td></tr>';
     }
     echo '</tbody></table>';
@@ -6799,3 +6806,791 @@ add_filter('rank_math/json_ld', function ($data, $jsonld) {
     }
     return $data;
 }, 20, 2);
+
+/* ============================================================
+   PHASE 15 — Gift Cards: purchasable product + code redemption
+   Table {prefix}af_gift_cards holds code, balance, recipient.
+   Buy: amount + recipient fields on the gift-card product page.
+   Redeem: code field in cart/checkout applies balance as a discount;
+   balance decrements on order completion (partial use supported).
+   ============================================================ */
+
+function af_gc_table() { global $wpdb; return $wpdb->prefix . 'af_gift_cards'; }
+function af_gc_product_id() { return (int) get_option('af_gc_product_id', 0); }
+function af_gc_amounts() { return array(25, 50, 100, 200); }
+
+add_action('init', function() {
+    if (get_option('af_gc_db_ver') === '1') return;
+    global $wpdb;
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    $t = af_gc_table();
+    dbDelta("CREATE TABLE {$t} (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        code VARCHAR(24) NOT NULL,
+        initial_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
+        balance DECIMAL(10,2) NOT NULL DEFAULT 0,
+        currency VARCHAR(6) NOT NULL DEFAULT 'USD',
+        buyer_email VARCHAR(190) DEFAULT '',
+        recipient_email VARCHAR(190) DEFAULT '',
+        recipient_name VARCHAR(120) DEFAULT '',
+        message TEXT,
+        order_id BIGINT UNSIGNED DEFAULT 0,
+        status VARCHAR(12) NOT NULL DEFAULT 'active',
+        created_at DATETIME NOT NULL,
+        used_at DATETIME DEFAULT NULL,
+        PRIMARY KEY  (id),
+        UNIQUE KEY code (code),
+        KEY status (status)
+    ) " . $wpdb->get_charset_collate() . ";");
+    update_option('af_gc_db_ver', '1');
+}, 6);
+
+function af_gc_generate_code() {
+    global $wpdb;
+    $t = af_gc_table();
+    do {
+        $raw  = strtoupper(substr(str_replace(array('0','O','1','I'), '', strtoupper(wp_generate_password(24, false, false))), 0, 12));
+        $code = 'TAF-' . substr($raw, 0, 4) . '-' . substr($raw, 4, 4) . '-' . substr($raw, 8, 4);
+        $hit  = $wpdb->get_var($wpdb->prepare("SELECT id FROM {$t} WHERE code = %s", $code));
+    } while ($hit);
+    return $code;
+}
+
+function af_gc_get($code) {
+    global $wpdb;
+    $code = strtoupper(trim($code));
+    return $wpdb->get_row($wpdb->prepare("SELECT * FROM " . af_gc_table() . " WHERE code = %s", $code));
+}
+
+// ── Product page: amount + recipient fields ──────────────────
+add_action('woocommerce_before_add_to_cart_button', function() {
+    global $product;
+    if (!$product || $product->get_id() !== af_gc_product_id()) return;
+    ?>
+    <div class="af-gc-fields">
+      <p class="af-gc-label">Choose an amount</p>
+      <div class="af-gc-amounts">
+        <?php foreach (af_gc_amounts() as $i => $a) : ?>
+          <label class="af-gc-amt">
+            <input type="radio" name="af_gc_amount" value="<?php echo esc_attr($a); ?>" <?php checked($i, 1); ?>>
+            <span>$<?php echo esc_html($a); ?></span>
+          </label>
+        <?php endforeach; ?>
+        <label class="af-gc-amt af-gc-amt-custom">
+          <input type="radio" name="af_gc_amount" value="custom">
+          <span>Custom</span>
+        </label>
+      </div>
+      <p class="af-gc-custom-wrap" style="display:none;">
+        <label>Custom amount (USD 10–1000)
+          <input type="number" name="af_gc_custom" min="10" max="1000" step="1" value="75">
+        </label>
+      </p>
+      <div class="af-gc-row">
+        <label>Recipient name <input type="text" name="af_gc_rname" maxlength="120" placeholder="Who is it for?"></label>
+        <label>Recipient email <input type="email" name="af_gc_remail" maxlength="190" placeholder="Leave blank to send it to yourself"></label>
+      </div>
+      <label>Personal message (optional)
+        <textarea name="af_gc_message" rows="3" maxlength="300" placeholder="Happy birthday! Pick something beautiful for your wall."></textarea>
+      </label>
+      <p class="af-gc-note">🎁 Delivered by email within a few hours · never expires · works on every product</p>
+    </div>
+    <script>
+    (function(){
+      var wrap = document.querySelector('.af-gc-custom-wrap');
+      document.querySelectorAll('input[name="af_gc_amount"]').forEach(function(r){
+        r.addEventListener('change', function(){
+          wrap.style.display = (document.querySelector('input[name="af_gc_amount"]:checked').value === 'custom') ? 'block' : 'none';
+        });
+      });
+    })();
+    </script>
+    <?php
+}, 20);
+
+// ── Cart: carry gift-card data + price ───────────────────────
+add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
+    if ((int) $pid !== af_gc_product_id()) return $data;
+    $sel = isset($_POST['af_gc_amount']) ? sanitize_text_field(wp_unslash($_POST['af_gc_amount'])) : '50';
+    if ($sel === 'custom') {
+        $amt = isset($_POST['af_gc_custom']) ? (float) $_POST['af_gc_custom'] : 0;
+        $amt = min(1000, max(10, $amt));
+    } else {
+        $amt = in_array((int) $sel, af_gc_amounts(), true) ? (float) $sel : 50.0;
+    }
+    $data['af_gc'] = array(
+        'amount'  => $amt,
+        'rname'   => isset($_POST['af_gc_rname'])   ? sanitize_text_field(wp_unslash($_POST['af_gc_rname'])) : '',
+        'remail'  => isset($_POST['af_gc_remail'])  ? sanitize_email(wp_unslash($_POST['af_gc_remail'])) : '',
+        'message' => isset($_POST['af_gc_message']) ? sanitize_textarea_field(wp_unslash($_POST['af_gc_message'])) : '',
+    );
+    $data['unique_key'] = md5(microtime() . wp_rand());
+    return $data;
+}, 10, 2);
+
+add_action('woocommerce_before_calculate_totals', function($cart) {
+    if (is_admin() && !defined('DOING_AJAX')) return;
+    foreach ($cart->get_cart() as $item) {
+        if (!empty($item['af_gc']['amount'])) $item['data']->set_price((float) $item['af_gc']['amount']);
+    }
+}, 25);
+
+add_filter('woocommerce_get_item_data', function($data, $item) {
+    if (!empty($item['af_gc'])) {
+        $data[] = array('name' => 'Gift card value', 'value' => wc_price($item['af_gc']['amount']));
+        if (!empty($item['af_gc']['rname']))  $data[] = array('name' => 'For', 'value' => esc_html($item['af_gc']['rname']));
+        if (!empty($item['af_gc']['remail'])) $data[] = array('name' => 'Send to', 'value' => esc_html($item['af_gc']['remail']));
+    }
+    return $data;
+}, 10, 2);
+
+add_action('woocommerce_checkout_create_order_line_item', function($item, $key, $values) {
+    if (!empty($values['af_gc'])) $item->add_meta_data('_af_gc', $values['af_gc']);
+}, 10, 3);
+
+// ── Issue codes when the order is paid ───────────────────────
+function af_gc_issue_for_order($order_id) {
+    $order = wc_get_order($order_id);
+    if (!$order || $order->get_meta('_af_gc_issued')) return;
+    global $wpdb;
+    $issued = 0;
+    foreach ($order->get_items() as $item) {
+        $gc = $item->get_meta('_af_gc');
+        if (empty($gc['amount'])) continue;
+        for ($i = 0; $i < max(1, $item->get_quantity()); $i++) {
+            $code = af_gc_generate_code();
+            $wpdb->insert(af_gc_table(), array(
+                'code'            => $code,
+                'initial_amount'  => (float) $gc['amount'],
+                'balance'         => (float) $gc['amount'],
+                'currency'        => $order->get_currency(),
+                'buyer_email'     => $order->get_billing_email(),
+                'recipient_email' => !empty($gc['remail']) ? $gc['remail'] : $order->get_billing_email(),
+                'recipient_name'  => isset($gc['rname']) ? $gc['rname'] : '',
+                'message'         => isset($gc['message']) ? $gc['message'] : '',
+                'order_id'        => $order_id,
+                'status'          => 'active',
+                'created_at'      => current_time('mysql'),
+            ));
+            $to   = !empty($gc['remail']) ? $gc['remail'] : $order->get_billing_email();
+            $name = !empty($gc['rname']) ? $gc['rname'] : 'there';
+            $body  = "Hi {$name},\n\n";
+            $body .= trim($order->get_billing_first_name() . ' ' . $order->get_billing_last_name()) . " has sent you a The Art Framer gift card!\n\n";
+            $body .= "Gift card code: {$code}\n";
+            $body .= "Value: " . strip_tags(wc_price($gc['amount'], array('currency' => $order->get_currency()))) . "\n\n";
+            if (!empty($gc['message'])) $body .= "Their message:\n\"{$gc['message']}\"\n\n";
+            $body .= "How to use it: shop at " . home_url('/shop/') . ", then enter the code in the \"Have a gift card?\" box at checkout.\n";
+            $body .= "It never expires, and any unused balance stays on the card.\n\nEnjoy!\nThe Art Framer\n";
+            wp_mail($to, '🎁 You have received a The Art Framer gift card', $body);
+            $issued++;
+        }
+    }
+    if ($issued) {
+        $order->update_meta_data('_af_gc_issued', current_time('mysql'));
+        $order->add_order_note(sprintf('%d gift card code(s) generated and emailed.', $issued));
+        $order->save();
+    }
+}
+add_action('woocommerce_payment_complete', 'af_gc_issue_for_order');
+add_action('woocommerce_order_status_completed', 'af_gc_issue_for_order');
+add_action('woocommerce_order_status_processing', 'af_gc_issue_for_order');
+
+// ── Redemption ───────────────────────────────────────────────
+function af_gc_applied() {
+    if (!function_exists('WC') || !WC()->session) return null;
+    $code = WC()->session->get('af_gc_code');
+    if (!$code) return null;
+    $gc = af_gc_get($code);
+    if (!$gc || $gc->status !== 'active' || (float) $gc->balance <= 0) {
+        WC()->session->set('af_gc_code', null);
+        return null;
+    }
+    return $gc;
+}
+
+function af_gc_apply_handler() {
+    check_ajax_referer('af_gc_apply', 'nonce');
+    $code = isset($_POST['code']) ? strtoupper(sanitize_text_field(wp_unslash($_POST['code']))) : '';
+    if ($code === 'REMOVE') {
+        WC()->session->set('af_gc_code', null);
+        wp_send_json_success(array('message' => 'Gift card removed.'));
+    }
+    $gc = af_gc_get($code);
+    if (!$gc)                          wp_send_json_error(array('message' => 'That gift card code was not found — please check and try again.'));
+    if ($gc->status !== 'active')      wp_send_json_error(array('message' => 'This gift card is no longer active.'));
+    if ((float) $gc->balance <= 0)     wp_send_json_error(array('message' => 'This gift card has no remaining balance.'));
+    WC()->session->set('af_gc_code', $gc->code);
+    wp_send_json_success(array('message' => 'Gift card applied — balance ' . strip_tags(wc_price($gc->balance)) . '.'));
+}
+add_action('wp_ajax_af_gc_apply',        'af_gc_apply_handler');
+add_action('wp_ajax_nopriv_af_gc_apply', 'af_gc_apply_handler');
+
+// Apply the balance as a negative fee (never below zero, never on gift cards themselves)
+add_action('woocommerce_cart_calculate_fees', function($cart) {
+    if (is_admin() && !defined('DOING_AJAX')) return;
+    $gc = af_gc_applied();
+    if (!$gc) return;
+    $eligible = 0.0;
+    foreach ($cart->get_cart() as $item) {
+        if (!empty($item['af_gc'])) continue; // can't buy gift cards with gift cards
+        $eligible += (float) $item['line_total'] + (float) $item['line_tax'];
+    }
+    if ($eligible <= 0) return;
+    $use = min((float) $gc->balance, $eligible);
+    if ($use > 0) $cart->add_fee('Gift card (' . $gc->code . ')', -$use, false);
+}, 20);
+
+// Deduct the used balance when the order is placed
+add_action('woocommerce_checkout_create_order', function($order) {
+    $gc = af_gc_applied();
+    if (!$gc) return;
+    $used = 0.0;
+    foreach ($order->get_fees() as $fee) {
+        if (strpos($fee->get_name(), 'Gift card (') === 0) $used += abs((float) $fee->get_total());
+    }
+    if ($used <= 0) return;
+    global $wpdb;
+    $new = max(0, (float) $gc->balance - $used);
+    $wpdb->update(af_gc_table(), array(
+        'balance' => $new,
+        'status'  => $new <= 0 ? 'used' : 'active',
+        'used_at' => current_time('mysql'),
+    ), array('id' => $gc->id));
+    $order->update_meta_data('_af_gc_code', $gc->code);
+    $order->update_meta_data('_af_gc_used', $used);
+    $order->add_order_note(sprintf('Gift card %s redeemed: %s (remaining %s).', $gc->code, strip_tags(wc_price($used)), strip_tags(wc_price($new))));
+    WC()->session->set('af_gc_code', null);
+}, 20);
+
+// Redemption UI on cart + checkout
+add_action('woocommerce_cart_totals_before_order_total', 'af_gc_redeem_box');
+add_action('woocommerce_review_order_before_order_total', 'af_gc_redeem_box');
+function af_gc_redeem_box() {
+    static $done = false;
+    if ($done) return;
+    $done = true;
+    $gc = af_gc_applied();
+    ?>
+    <tr class="af-gc-redeem-row"><td colspan="2">
+      <div class="af-gc-redeem" data-ajax="<?php echo esc_url(admin_url('admin-ajax.php')); ?>"
+           data-nonce="<?php echo esc_attr(wp_create_nonce('af_gc_apply')); ?>">
+        <?php if ($gc) : ?>
+          <p class="af-gc-on">🎁 Gift card <b><?php echo esc_html($gc->code); ?></b> applied —
+            balance <?php echo wp_kses_post(wc_price($gc->balance)); ?>
+            <button type="button" class="af-gc-remove">Remove</button></p>
+        <?php else : ?>
+          <label class="af-gc-redeem-label">🎁 Have a gift card?</label>
+          <div class="af-gc-redeem-row-inner">
+            <input type="text" class="af-gc-input" placeholder="TAF-XXXX-XXXX-XXXX" autocomplete="off">
+            <button type="button" class="af-gc-apply">Apply</button>
+          </div>
+        <?php endif; ?>
+        <p class="af-gc-msg" role="status" aria-live="polite" style="display:none;"></p>
+      </div>
+    </td></tr>
+    <script>
+    (function(){
+      var box = document.querySelector('.af-gc-redeem');
+      if (!box || box.dataset.bound) return;
+      box.dataset.bound = '1';
+      function send(code){
+        var msg = box.querySelector('.af-gc-msg'), fd = new FormData();
+        fd.append('action', 'af_gc_apply'); fd.append('nonce', box.dataset.nonce); fd.append('code', code);
+        fetch(box.dataset.ajax, { method:'POST', credentials:'same-origin', body: fd })
+          .then(function(r){ return r.json(); })
+          .then(function(res){
+            msg.style.display = 'block';
+            msg.className = 'af-gc-msg ' + (res.success ? 'ok' : 'err');
+            msg.textContent = res.data.message;
+            if (res.success) location.reload();
+          });
+      }
+      var applyBtn = box.querySelector('.af-gc-apply'), rmBtn = box.querySelector('.af-gc-remove');
+      if (applyBtn) applyBtn.addEventListener('click', function(){ send(box.querySelector('.af-gc-input').value.trim()); });
+      if (rmBtn) rmBtn.addEventListener('click', function(){ send('REMOVE'); });
+    })();
+    </script>
+    <?php
+}
+
+// ── Admin: Gift Cards list ───────────────────────────────────
+add_action('admin_menu', function() {
+    add_menu_page('Gift Cards', 'Gift Cards', 'manage_woocommerce', 'af-gift-cards', 'af_gc_admin_page', 'dashicons-tickets-alt', 27);
+});
+function af_gc_admin_page() {
+    if (!current_user_can('manage_woocommerce')) return;
+    global $wpdb;
+    $t = af_gc_table();
+    if (isset($_GET['gc_action'], $_GET['id'], $_GET['_wpnonce']) && wp_verify_nonce($_GET['_wpnonce'], 'af_gc_' . (int) $_GET['id'])) {
+        $id = (int) $_GET['id'];
+        if ($_GET['gc_action'] === 'void')   $wpdb->update($t, array('status' => 'void'),   array('id' => $id));
+        if ($_GET['gc_action'] === 'active') $wpdb->update($t, array('status' => 'active'), array('id' => $id));
+        echo '<script>location.replace("' . esc_url_raw(admin_url('admin.php?page=af-gift-cards')) . '");</script>';
+        return;
+    }
+    $rows  = $wpdb->get_results("SELECT * FROM {$t} ORDER BY id DESC LIMIT 100");
+    $total = (float) $wpdb->get_var("SELECT SUM(balance) FROM {$t} WHERE status='active'");
+    echo '<div class="wrap"><h1>Gift Cards</h1>';
+    echo '<p>Outstanding active balance: <b>' . wp_kses_post(wc_price($total ?: 0)) . '</b></p>';
+    if (!$rows) { echo '<p><em>No gift cards issued yet.</em></p></div>'; return; }
+    echo '<table class="widefat striped"><thead><tr><th>Code</th><th>Value</th><th>Balance</th><th>Recipient</th><th>Order</th><th>Issued</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+    foreach ($rows as $r) {
+        $n = wp_create_nonce('af_gc_' . $r->id);
+        $base = admin_url('admin.php?page=af-gift-cards&id=' . $r->id . '&_wpnonce=' . $n);
+        echo '<tr><td><code>' . esc_html($r->code) . '</code></td>';
+        echo '<td>' . wp_kses_post(wc_price($r->initial_amount)) . '</td>';
+        echo '<td><b>' . wp_kses_post(wc_price($r->balance)) . '</b></td>';
+        echo '<td>' . esc_html($r->recipient_name ? $r->recipient_name . ' <' . $r->recipient_email . '>' : $r->recipient_email) . '</td>';
+        echo '<td>' . ($r->order_id ? '<a href="' . esc_url(admin_url('post.php?post=' . $r->order_id . '&action=edit')) . '">#' . (int) $r->order_id . '</a>' : '—') . '</td>';
+        echo '<td>' . esc_html(mysql2date('M j, Y', $r->created_at)) . '</td>';
+        echo '<td>' . esc_html($r->status) . '</td>';
+        echo '<td>' . ($r->status === 'void'
+            ? '<a href="' . esc_url($base . '&gc_action=active') . '">Reactivate</a>'
+            : '<a href="' . esc_url($base . '&gc_action=void') . '" style="color:#b32d2e;">Void</a>') . '</td></tr>';
+    }
+    echo '</tbody></table></div>';
+}
+
+/* ============================================================
+   PHASE 16 — country selector, infinite scroll, messages inbox, RMA
+   ============================================================ */
+
+// ── 16a. Flag-based country selector (spec §3 Layer 1) ───────
+function af_countries() {
+    return array(
+        'US' => array('flag' => '🇺🇸', 'name' => 'United States', 'cur' => 'USD', 'note' => 'Free delivery in DE, PA, MD, NJ &amp; nearby'),
+        'CA' => array('flag' => '🇨🇦', 'name' => 'Canada',        'cur' => 'CAD', 'note' => 'Shipping calculated at checkout'),
+        'GB' => array('flag' => '🇬🇧', 'name' => 'United Kingdom','cur' => 'USD', 'note' => 'International — contact us for a quote'),
+        'AU' => array('flag' => '🇦🇺', 'name' => 'Australia',     'cur' => 'USD', 'note' => 'International — contact us for a quote'),
+        'IN' => array('flag' => '🇮🇳', 'name' => 'India',         'cur' => 'USD', 'note' => 'International — contact us for a quote'),
+    );
+}
+function af_active_country() {
+    $c = isset($_COOKIE['af_country']) ? strtoupper(sanitize_text_field(wp_unslash($_COOKIE['af_country']))) : '';
+    return array_key_exists($c, af_countries()) ? $c : 'US';
+}
+
+add_shortcode('af_country_selector', function() {
+    $list = af_countries();
+    $cur  = af_active_country();
+    $sel  = $list[$cur];
+    ob_start(); ?>
+<div class="af-cty" id="afCty">
+  <button type="button" class="af-cty-btn" aria-haspopup="true" aria-expanded="false">
+    <span class="af-cty-flag"><?php echo $sel['flag']; ?></span>
+    <span class="af-cty-code"><?php echo esc_html($cur); ?></span>
+    <span class="af-cty-caret">▾</span>
+  </button>
+  <div class="af-cty-menu" role="menu">
+    <p class="af-cty-head">Ship to</p>
+    <?php foreach ($list as $code => $c) : ?>
+      <button type="button" class="af-cty-item<?php echo $code === $cur ? ' on' : ''; ?>" role="menuitem"
+              data-code="<?php echo esc_attr($code); ?>" data-cur="<?php echo esc_attr($c['cur']); ?>">
+        <span class="af-cty-flag"><?php echo $c['flag']; ?></span>
+        <span class="af-cty-nm"><?php echo esc_html($c['name']); ?><small><?php echo wp_kses_post($c['note']); ?></small></span>
+        <span class="af-cty-cur"><?php echo esc_html($c['cur']); ?></span>
+      </button>
+    <?php endforeach; ?>
+    <p class="af-cty-foot">Shipping elsewhere? <a href="/contact/">Ask for a quote →</a></p>
+  </div>
+</div>
+<script>
+(function(){
+  var w = document.getElementById('afCty');
+  if (!w || w.dataset.bound) return;
+  w.dataset.bound = '1';
+  var btn = w.querySelector('.af-cty-btn');
+  btn.addEventListener('click', function(e){
+    e.stopPropagation();
+    var open = w.classList.toggle('open');
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  document.addEventListener('click', function(){ w.classList.remove('open'); });
+  w.querySelectorAll('.af-cty-item').forEach(function(b){
+    b.addEventListener('click', function(){
+      document.cookie = 'af_country=' + b.dataset.code + '; path=/; max-age=' + (86400*365);
+      var u = new URL(location.href);
+      u.searchParams.set('currency', b.dataset.cur);
+      location.href = u.toString();
+    });
+  });
+})();
+</script>
+<?php return ob_get_clean();
+});
+
+// ── 16b. Infinite scroll on shop/category (spec §6) ──────────
+add_action('wp_footer', function() {
+    if (!function_exists('is_shop')) return;
+    if (!is_shop() && !is_product_category() && !is_product_tag()) return;
+    ?>
+<script>
+(function(){
+  var loading = false, done = false;
+  function nextUrl(){
+    var n = document.querySelector('.woocommerce-pagination a.next, .next.page-numbers, a.next');
+    return n ? n.href : null;
+  }
+  function grid(){
+    return document.querySelector('ul.products') ||
+           document.querySelector('.elementor-widget-wc-archive-products ul') ||
+           document.querySelector('.products');
+  }
+  var g = grid();
+  if (!g || !nextUrl()) return;
+
+  var bar = document.createElement('div');
+  bar.className = 'af-inf-bar';
+  bar.innerHTML = '<button type="button" class="af-inf-btn">Load More Artworks</button>' +
+                  '<span class="af-inf-status" style="display:none;">Loading more artworks…</span>';
+  (g.parentElement || document.body).insertBefore(bar, g.nextSibling);
+  var btn = bar.querySelector('.af-inf-btn'), status = bar.querySelector('.af-inf-status');
+
+  function load(){
+    if (loading || done) return;
+    var url = nextUrl();
+    if (!url) { done = true; bar.innerHTML = '<span class="af-inf-end">✦ You have seen every artwork in this collection ✦</span>'; return; }
+    loading = true;
+    btn.style.display = 'none'; status.style.display = 'inline';
+    fetch(url, { credentials: 'same-origin' })
+      .then(function(r){ return r.text(); })
+      .then(function(html){
+        var doc = new DOMParser().parseFromString(html, 'text/html');
+        var ng = doc.querySelector('ul.products') || doc.querySelector('.products');
+        var items = ng ? ng.children : [];
+        var gnow = grid();
+        Array.prototype.slice.call(items).forEach(function(li){ gnow.appendChild(document.importNode(li, true)); });
+        var oldPag = document.querySelector('.woocommerce-pagination'),
+            newPag = doc.querySelector('.woocommerce-pagination');
+        if (oldPag && newPag) oldPag.replaceWith(document.importNode(newPag, true));
+        else if (oldPag) oldPag.remove();
+        // hide native pagination; keep it in DOM as the next-URL source
+        var p = document.querySelector('.woocommerce-pagination');
+        if (p) p.style.display = 'none';
+        loading = false;
+        status.style.display = 'none';
+        if (nextUrl()) { btn.style.display = 'inline-block'; }
+        else { done = true; bar.innerHTML = '<span class="af-inf-end">✦ You have seen every artwork in this collection ✦</span>'; }
+        document.dispatchEvent(new Event('af_products_appended'));
+        if (window.jQuery) jQuery(document.body).trigger('wc_fragments_refreshed');
+      })
+      .catch(function(){ loading = false; status.style.display = 'none'; btn.style.display = 'inline-block'; });
+  }
+  btn.addEventListener('click', load);
+  var pag = document.querySelector('.woocommerce-pagination');
+  if (pag) pag.style.display = 'none';
+
+  // Auto-load when the bar scrolls into view (after the first manual click)
+  var auto = false;
+  btn.addEventListener('click', function(){ auto = true; });
+  if ('IntersectionObserver' in window) {
+    new IntersectionObserver(function(entries){
+      if (entries[0].isIntersecting && auto) load();
+    }, { rootMargin: '400px' }).observe(bar);
+  }
+})();
+</script>
+<?php }, 40);
+
+// ── 16c. My Account: Messages inbox (spec §3) ────────────────
+// Threads live in the af_contact_messages table (direction in/out).
+add_action('init', function() {
+    if (get_option('af_contact_db_ver') === '2') return;
+    global $wpdb;
+    $t = af_contact_table();
+    foreach (array(
+        'user_id'   => "ALTER TABLE {$t} ADD COLUMN user_id BIGINT UNSIGNED DEFAULT 0",
+        'parent_id' => "ALTER TABLE {$t} ADD COLUMN parent_id BIGINT UNSIGNED DEFAULT 0",
+        'direction' => "ALTER TABLE {$t} ADD COLUMN direction VARCHAR(4) DEFAULT 'in'",
+    ) as $col => $sql) {
+        $has = $wpdb->get_var($wpdb->prepare("SHOW COLUMNS FROM {$t} LIKE %s", $col));
+        if (!$has) $wpdb->query($sql);
+    }
+    update_option('af_contact_db_ver', '2');
+}, 7);
+
+add_action('init', function() { add_rewrite_endpoint('messages', EP_ROOT | EP_PAGES); }, 8);
+add_action('init', function() { add_rewrite_endpoint('returns',  EP_ROOT | EP_PAGES); }, 8);
+
+add_filter('woocommerce_account_menu_items', function($items) {
+    $new = array();
+    foreach ($items as $k => $v) {
+        $new[$k] = $v;
+        if ($k === 'orders') {
+            $new['messages'] = 'Messages';
+            $new['returns']  = 'Returns';
+        }
+    }
+    if (!isset($new['messages'])) { $new['messages'] = 'Messages'; $new['returns'] = 'Returns'; }
+    return $new;
+});
+
+add_action('woocommerce_account_messages_endpoint', function() {
+    $uid   = get_current_user_id();
+    $user  = wp_get_current_user();
+    global $wpdb;
+    $t = af_contact_table();
+    $threads = $wpdb->get_results($wpdb->prepare(
+        "SELECT * FROM {$t} WHERE (user_id = %d OR email = %s) AND (parent_id = 0 OR parent_id IS NULL)
+         ORDER BY id DESC LIMIT 25", $uid, $user->user_email
+    ));
+    echo '<div class="taf-page" style="padding:0;">';
+    echo '<p>Messages between you and our studio team. Replies also arrive by email at <b>' . esc_html($user->user_email) . '</b>.</p>';
+    echo '<div class="af-msg-new taf-card" style="margin:18px 0 26px;">';
+    echo '<h3 style="margin-top:0;">Send a new message</h3>';
+    echo '<form class="taf-form" method="post" style="box-shadow:none;padding:0;border:0;background:transparent;">';
+    wp_nonce_field('af_msg_send', 'af_msg_nonce');
+    echo '<label>Subject<input type="text" name="af_msg_subject" required maxlength="120" placeholder="What is this about?"></label>';
+    echo '<label>Message<textarea name="af_msg_body" rows="4" required maxlength="3000" placeholder="How can we help?"></textarea></label>';
+    echo '<button type="submit" class="taf-form-submit" name="af_msg_send" value="1">Send Message</button>';
+    echo '</form></div>';
+    if (!$threads) {
+        echo '<div class="taf-card" style="text-align:center;"><span class="taf-ico">💬</span><h3>No messages yet</h3><p>Send us a message above — we usually reply within 24 hours.</p></div>';
+    } else {
+        foreach ($threads as $th) {
+            $replies = $wpdb->get_results($wpdb->prepare("SELECT * FROM {$t} WHERE parent_id = %d ORDER BY id ASC", $th->id));
+            echo '<div class="af-msg-thread taf-card" style="margin-bottom:16px;">';
+            echo '<h3 style="margin-top:0;">' . esc_html($th->subject ?: 'Message') . '</h3>';
+            echo '<div class="af-msg-bubble you"><b>You</b> · ' . esc_html(mysql2date('M j, g:ia', $th->created_at)) . '<p>' . nl2br(esc_html($th->message)) . '</p></div>';
+            foreach ($replies as $r) {
+                $cls = $r->direction === 'out' ? 'studio' : 'you';
+                $who = $r->direction === 'out' ? 'The Art Framer' : 'You';
+                echo '<div class="af-msg-bubble ' . $cls . '"><b>' . $who . '</b> · ' . esc_html(mysql2date('M j, g:ia', $r->created_at)) . '<p>' . nl2br(esc_html($r->message)) . '</p></div>';
+            }
+            echo '<form method="post" class="af-msg-reply">';
+            wp_nonce_field('af_msg_send', 'af_msg_nonce');
+            echo '<input type="hidden" name="af_msg_parent" value="' . (int) $th->id . '">';
+            echo '<textarea name="af_msg_body" rows="2" required placeholder="Write a reply…"></textarea>';
+            echo '<button type="submit" class="taf-form-submit" name="af_msg_send" value="1">Reply</button>';
+            echo '</form></div>';
+        }
+    }
+    echo '</div>';
+});
+
+// Handle customer message/reply submissions
+add_action('template_redirect', function() {
+    if (empty($_POST['af_msg_send']) || !is_user_logged_in()) return;
+    if (!isset($_POST['af_msg_nonce']) || !wp_verify_nonce($_POST['af_msg_nonce'], 'af_msg_send')) return;
+    $user = wp_get_current_user();
+    $body = sanitize_textarea_field(wp_unslash($_POST['af_msg_body'] ?? ''));
+    if (mb_strlen($body) < 2) { wc_add_notice('Please write a message.', 'error'); return; }
+    $parent  = (int) ($_POST['af_msg_parent'] ?? 0);
+    $subject = $parent ? 'Re: thread #' . $parent : sanitize_text_field(wp_unslash($_POST['af_msg_subject'] ?? 'Message'));
+    global $wpdb;
+    $wpdb->insert(af_contact_table(), array(
+        'created_at' => current_time('mysql'),
+        'name'       => $user->display_name,
+        'email'      => $user->user_email,
+        'phone'      => '',
+        'subject'    => $subject,
+        'message'    => $body,
+        'ip'         => isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '',
+        'status'     => 'new',
+        'user_id'    => $user->ID,
+        'parent_id'  => $parent,
+        'direction'  => 'in',
+    ));
+    wp_mail(get_option('admin_email'), '[The Art Framer] Customer message: ' . $subject,
+        "From: {$user->display_name} <{$user->user_email}>\n\n{$body}\n\nReply in wp-admin → Contact Messages.");
+    wc_add_notice('Message sent — we usually reply within 24 hours.', 'success');
+    wp_safe_redirect(wc_get_account_endpoint_url('messages'));
+    exit;
+});
+
+// Admin: reply to a customer message (adds an 'out' message + emails them)
+add_action('admin_post_af_msg_reply', function() {
+    if (!current_user_can('manage_options') && !current_user_can('af_view_contact_messages')) wp_die('Denied');
+    check_admin_referer('af_msg_reply');
+    $parent = (int) ($_POST['parent_id'] ?? 0);
+    $body   = sanitize_textarea_field(wp_unslash($_POST['reply'] ?? ''));
+    global $wpdb;
+    $t   = af_contact_table();
+    $src = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t} WHERE id = %d", $parent));
+    if ($src && $body !== '') {
+        $wpdb->insert($t, array(
+            'created_at' => current_time('mysql'),
+            'name'       => 'The Art Framer',
+            'email'      => $src->email,
+            'subject'    => 'Re: ' . $src->subject,
+            'message'    => $body,
+            'status'     => 'read',
+            'user_id'    => (int) $src->user_id,
+            'parent_id'  => $parent,
+            'direction'  => 'out',
+        ));
+        $wpdb->update($t, array('status' => 'read'), array('id' => $parent));
+        wp_mail($src->email, 'Re: ' . $src->subject . ' — The Art Framer',
+            "Hi " . $src->name . ",\n\n{$body}\n\n— The Art Framer\nView the conversation: " . wc_get_account_endpoint_url('messages'));
+    }
+    wp_safe_redirect(admin_url('admin.php?page=af-contact-messages'));
+    exit;
+});
+
+// ── 16d. Self-service RMA / returns portal (spec §12) ────────
+function af_rma_table() { global $wpdb; return $wpdb->prefix . 'af_rma_requests'; }
+
+add_action('init', function() {
+    if (get_option('af_rma_db_ver') === '1') return;
+    global $wpdb;
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    dbDelta("CREATE TABLE " . af_rma_table() . " (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        order_id BIGINT UNSIGNED NOT NULL,
+        user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+        email VARCHAR(190) DEFAULT '',
+        reason VARCHAR(60) NOT NULL,
+        resolution VARCHAR(20) NOT NULL DEFAULT 'replacement',
+        details TEXT,
+        status VARCHAR(16) NOT NULL DEFAULT 'pending',
+        admin_note TEXT,
+        created_at DATETIME NOT NULL,
+        updated_at DATETIME DEFAULT NULL,
+        PRIMARY KEY  (id),
+        KEY order_id (order_id),
+        KEY status (status)
+    ) " . $wpdb->get_charset_collate() . ";");
+    update_option('af_rma_db_ver', '1');
+}, 9);
+
+function af_rma_reasons() {
+    return array(
+        'damaged'   => 'Arrived damaged',
+        'defect'    => 'Printing or framing defect',
+        'wrong'     => 'Wrong item delivered',
+        'not_as'    => 'Not as described',
+        'other'     => 'Something else',
+    );
+}
+
+add_action('woocommerce_account_returns_endpoint', function() {
+    $uid = get_current_user_id();
+    global $wpdb;
+    $rows = $wpdb->get_results($wpdb->prepare("SELECT * FROM " . af_rma_table() . " WHERE user_id = %d ORDER BY id DESC", $uid));
+    $orders = wc_get_orders(array('customer_id' => $uid, 'limit' => 20, 'status' => array('processing', 'completed')));
+    echo '<div class="taf-page" style="padding:0;">';
+    echo '<p>Request a replacement or refund for an order. See our <a href="/returns-exchanges/">Returns &amp; Exchanges</a> policy — damaged items never need to be shipped back.</p>';
+
+    if ($rows) {
+        echo '<h3>Your Requests</h3><table class="taf-table"><thead><tr><th>#</th><th>Order</th><th>Reason</th><th>Resolution</th><th>Status</th><th>Submitted</th></tr></thead><tbody>';
+        $reasons = af_rma_reasons();
+        foreach ($rows as $r) {
+            $badge = array('pending' => '#8a6d1f', 'approved' => '#256d2c', 'rejected' => '#a13232', 'resolved' => '#256d2c');
+            echo '<tr><td>RMA-' . (int) $r->id . '</td><td>#' . (int) $r->order_id . '</td>';
+            echo '<td>' . esc_html($reasons[$r->reason] ?? $r->reason) . '</td>';
+            echo '<td>' . esc_html(ucfirst($r->resolution)) . '</td>';
+            echo '<td><b style="color:' . esc_attr($badge[$r->status] ?? '#555') . ';">' . esc_html(ucfirst($r->status)) . '</b>';
+            if ($r->admin_note) echo '<br><small>' . esc_html($r->admin_note) . '</small>';
+            echo '</td><td>' . esc_html(mysql2date('M j, Y', $r->created_at)) . '</td></tr>';
+        }
+        echo '</tbody></table>';
+    }
+
+    echo '<h3 style="margin-top:26px;">Start a New Request</h3>';
+    if (!$orders) {
+        echo '<div class="taf-card"><span class="taf-ico">📦</span><h3>No eligible orders</h3><p>Returns can be requested on paid orders. <a href="/shop/">Browse the collection →</a></p></div></div>';
+        return;
+    }
+    echo '<form method="post" class="taf-form">';
+    wp_nonce_field('af_rma_submit', 'af_rma_nonce');
+    echo '<div class="taf-form-row">';
+    echo '<label>Order *<select name="af_rma_order" required>';
+    foreach ($orders as $o) {
+        echo '<option value="' . (int) $o->get_id() . '">#' . esc_html($o->get_order_number()) . ' — ' . esc_html(wc_format_datetime($o->get_date_created(), 'M j, Y')) . ' — ' . wp_strip_all_tags($o->get_formatted_order_total()) . '</option>';
+    }
+    echo '</select></label>';
+    echo '<label>Reason *<select name="af_rma_reason" required>';
+    foreach (af_rma_reasons() as $k => $v) echo '<option value="' . esc_attr($k) . '">' . esc_html($v) . '</option>';
+    echo '</select></label></div>';
+    echo '<label>Preferred resolution *<select name="af_rma_resolution" required><option value="replacement">Free replacement</option><option value="refund">Refund</option><option value="advice">Just need advice</option></select></label>';
+    echo '<label>Tell us what happened *<textarea name="af_rma_details" rows="4" required maxlength="2000" placeholder="Describe the issue. For damage, mention which part is affected — we may ask for photos by email."></textarea></label>';
+    echo '<button type="submit" class="taf-form-submit" name="af_rma_submit" value="1">Submit Request</button>';
+    echo '</form></div>';
+});
+
+add_action('template_redirect', function() {
+    if (empty($_POST['af_rma_submit']) || !is_user_logged_in()) return;
+    if (!isset($_POST['af_rma_nonce']) || !wp_verify_nonce($_POST['af_rma_nonce'], 'af_rma_submit')) return;
+    $user  = wp_get_current_user();
+    $oid   = (int) ($_POST['af_rma_order'] ?? 0);
+    $order = wc_get_order($oid);
+    if (!$order || (int) $order->get_customer_id() !== (int) $user->ID) {
+        wc_add_notice('That order could not be verified.', 'error');
+        return;
+    }
+    global $wpdb;
+    $wpdb->insert(af_rma_table(), array(
+        'order_id'   => $oid,
+        'user_id'    => $user->ID,
+        'email'      => $user->user_email,
+        'reason'     => sanitize_text_field(wp_unslash($_POST['af_rma_reason'] ?? 'other')),
+        'resolution' => sanitize_text_field(wp_unslash($_POST['af_rma_resolution'] ?? 'replacement')),
+        'details'    => sanitize_textarea_field(wp_unslash($_POST['af_rma_details'] ?? '')),
+        'status'     => 'pending',
+        'created_at' => current_time('mysql'),
+    ));
+    $rid = (int) $wpdb->insert_id;
+    $order->add_order_note(sprintf('Customer opened return request RMA-%d.', $rid));
+    wp_mail(get_option('admin_email'), "[The Art Framer] New return request RMA-{$rid} (order #{$oid})",
+        "Customer: {$user->display_name} <{$user->user_email}>\nOrder: #{$oid}\nReason: " . sanitize_text_field($_POST['af_rma_reason'] ?? '') .
+        "\nWants: " . sanitize_text_field($_POST['af_rma_resolution'] ?? '') . "\n\n" . sanitize_textarea_field($_POST['af_rma_details'] ?? '') .
+        "\n\nManage: " . admin_url('admin.php?page=af-returns'));
+    wp_mail($user->user_email, "Return request received — RMA-{$rid}",
+        "Hi {$user->display_name},\n\nWe've received your return request (RMA-{$rid}) for order #{$oid} and will review it within one business day.\n\nTrack it here: " . wc_get_account_endpoint_url('returns') . "\n\n— The Art Framer");
+    wc_add_notice('Return request submitted — we will review it within one business day.', 'success');
+    wp_safe_redirect(wc_get_account_endpoint_url('returns'));
+    exit;
+});
+
+// Admin: RMA dashboard
+add_action('admin_menu', function() {
+    global $wpdb;
+    $pending = (int) $wpdb->get_var("SELECT COUNT(*) FROM " . af_rma_table() . " WHERE status='pending'");
+    $badge   = $pending ? " <span class='awaiting-mod'>{$pending}</span>" : '';
+    add_menu_page('Returns (RMA)', 'Returns (RMA)' . $badge, 'manage_woocommerce', 'af-returns', 'af_rma_admin_page', 'dashicons-undo', 28);
+});
+function af_rma_admin_page() {
+    if (!current_user_can('manage_woocommerce')) return;
+    global $wpdb;
+    $t = af_rma_table();
+    if (isset($_POST['af_rma_admin_nonce']) && wp_verify_nonce($_POST['af_rma_admin_nonce'], 'af_rma_admin')) {
+        $id     = (int) $_POST['rma_id'];
+        $status = sanitize_text_field($_POST['status']);
+        $note   = sanitize_textarea_field(wp_unslash($_POST['admin_note'] ?? ''));
+        $row    = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t} WHERE id = %d", $id));
+        $wpdb->update($t, array('status' => $status, 'admin_note' => $note, 'updated_at' => current_time('mysql')), array('id' => $id));
+        if ($row && $row->email) {
+            wp_mail($row->email, "Update on your return request RMA-{$id}",
+                "Your return request RMA-{$id} is now: " . strtoupper($status) . "\n\n" . ($note ?: '') .
+                "\n\nDetails: " . wc_get_account_endpoint_url('returns') . "\n\n— The Art Framer");
+        }
+        echo '<div class="notice notice-success"><p>RMA-' . $id . ' updated and the customer was emailed.</p></div>';
+    }
+    $rows    = $wpdb->get_results("SELECT * FROM {$t} ORDER BY FIELD(status,'pending','approved','rejected','resolved'), id DESC LIMIT 100");
+    $reasons = af_rma_reasons();
+    echo '<div class="wrap"><h1>Returns (RMA)</h1>';
+    if (!$rows) { echo '<p><em>No return requests yet.</em></p></div>'; return; }
+    echo '<table class="widefat striped"><thead><tr><th>RMA</th><th>Order</th><th>Customer</th><th>Reason</th><th>Wants</th><th>Details</th><th>Status</th><th>Action</th></tr></thead><tbody>';
+    foreach ($rows as $r) {
+        echo '<tr' . ($r->status === 'pending' ? ' style="font-weight:600;"' : '') . '>';
+        echo '<td>RMA-' . (int) $r->id . '<br><small>' . esc_html(mysql2date('M j', $r->created_at)) . '</small></td>';
+        echo '<td><a href="' . esc_url(admin_url('post.php?post=' . $r->order_id . '&action=edit')) . '">#' . (int) $r->order_id . '</a></td>';
+        echo '<td>' . esc_html($r->email) . '</td>';
+        echo '<td>' . esc_html($reasons[$r->reason] ?? $r->reason) . '</td>';
+        echo '<td>' . esc_html(ucfirst($r->resolution)) . '</td>';
+        echo '<td style="max-width:280px;">' . esc_html(mb_strimwidth((string) $r->details, 0, 180, '…')) . '</td>';
+        echo '<td>' . esc_html(ucfirst($r->status)) . '</td>';
+        echo '<td><form method="post" style="display:flex;flex-direction:column;gap:5px;min-width:190px;">';
+        wp_nonce_field('af_rma_admin', 'af_rma_admin_nonce');
+        echo '<input type="hidden" name="rma_id" value="' . (int) $r->id . '">';
+        echo '<select name="status">';
+        foreach (array('pending', 'approved', 'rejected', 'resolved') as $s) {
+            echo '<option value="' . $s . '"' . selected($r->status, $s, false) . '>' . ucfirst($s) . '</option>';
+        }
+        echo '</select>';
+        echo '<textarea name="admin_note" rows="2" placeholder="Note emailed to customer">' . esc_textarea((string) $r->admin_note) . '</textarea>';
+        echo '<button class="button button-primary">Update &amp; email</button>';
+        echo '</form></td></tr>';
+    }
+    echo '</tbody></table></div>';
+}
