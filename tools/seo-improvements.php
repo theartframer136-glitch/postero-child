@@ -23,6 +23,8 @@ $robots_path = ABSPATH . 'robots.txt';
 $robots = function_exists('af_seo_robots_txt') ? af_seo_robots_txt() : '';
 if ($robots !== '') {
     $existing = file_exists($robots_path) ? (string) file_get_contents($robots_path) : '';
+    // Ours (or absent) => rewrite. This also strips the old
+    // "Disallow: /items/" tourniquet from the pre-cleanup version.
     if ($existing === '' || strpos($existing, '# theartframer-seo') !== false) {
         if ($existing !== $robots) {
             file_put_contents($robots_path, $robots);

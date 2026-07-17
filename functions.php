@@ -6284,10 +6284,11 @@ add_action('init', function () {
 
 // 24b. robots.txt content. Served two ways: WP's virtual robots.txt
 // (filter below) and a physical file written on deploy, because the
-// web server currently 404s /robots.txt before WordPress sees it.
-// NOTE: the "Disallow: /items/" line is a tourniquet while the spam
-// sitemap hack is live — REMOVE it after cleanup so Google can crawl
-// those URLs and see their 404s.
+// web server 404s /robots.txt before WordPress sees it.
+// The "Disallow: /items/" tourniquet was REMOVED 2026-07-16 once the
+// cloaking hack was confirmed cleaned (sitemaps serve real URLs, all
+// /items/ 404 to Googlebot). Google must be able to crawl those URLs
+// to see the 404s and drop them from the index — do NOT re-add it.
 function af_seo_robots_txt() {
     $lines = array(
         '# theartframer-seo',
@@ -6298,7 +6299,6 @@ function af_seo_robots_txt() {
         'Disallow: /checkout/',
         'Disallow: /my-account/',
         'Disallow: /?s=',
-        'Disallow: /items/',
         '',
         'Sitemap: https://theartframer.us/sitemap_index.xml',
     );
