@@ -7829,3 +7829,122 @@ add_action('admin_menu', function() {
         <?php
     });
 });
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 24j — "Shop related art" internal-link block on blog posts.
+// The 17 long-form posts (4k-5k words) carried ZERO body links to
+// products/categories, so their crawl authority never reached the
+// commercial pages. This appends an editorial related-products strip
+// (does not touch the post prose). Relevance = title-keyword overlap
+// with product titles/categories, fallback to featured then recent.
+// Result cached per-post in a transient (products change rarely).
+// ─────────────────────────────────────────────────────────────
+function af_related_products_for_post($post_id, $limit = 4) {
+    $cache_key = 'af_relprod_' . $post_id;
+    $cached = get_transient($cache_key);
+    if (is_array($cached)) return $cached;
+
+    if (!function_exists('wc_get_products')) return array();
+
+    // Keywords from the post title (drop stopwords / short tokens).
+    $title = get_the_title($post_id);
+    $stop = array('the','and','for','your','with','how','you','are','from','that','this','when','what','their','our','of','to','in','a','an','on','it','by','or','is');
+    $words = array_filter(preg_split('/[^a-z]+/', strtolower($title)), function ($w) use ($stop) {
+        return strlen($w) >= 4 && !in_array($w, $stop, true);
+    });
+
+    $scored = array();
+    if ($words) {
+        $q = wc_get_products(array('status' => 'publish', 'limit' => 60, 'orderby' => 'date', 'order' => 'DESC'));
+        foreach ($q as $p) {
+            $hay = strtolower($p->get_name());
+            foreach (wp_get_post_terms($p->get_id(), 'product_cat', array('fields' => 'names')) as $cn) {
+                $hay .= ' ' . strtolower($cn);
+            }
+            $score = 0;
+            foreach ($words as $w) {
+                if (strpos($hay, $w) !== false) $score++;
+            }
+            if ($score > 0 && $p->get_image_id()) $scored[$p->get_id()] = $score;
+        }
+        arsort($scored);
+    }
+
+    $ids = array_slice(array_keys($scored), 0, $limit);
+
+    // Fallback: featured, then most recent with an image.
+    if (count($ids) < $limit) {
+        $need = $limit - count($ids);
+        $fb = wc_get_products(array(
+            'status' => 'publish', 'limit' => $need + count($ids) + 4,
+            'featured' => true, 'orderby' => 'date', 'order' => 'DESC',
+        ));
+        if (count($fb) < $need) {
+            $fb = array_merge($fb, wc_get_products(array(
+                'status' => 'publish', 'limit' => $need + count($ids) + 6,
+                'orderby' => 'date', 'order' => 'DESC',
+            )));
+        }
+        foreach ($fb as $p) {
+            if (count($ids) >= $limit) break;
+            if (!in_array($p->get_id(), $ids, true) && $p->get_image_id()) $ids[] = $p->get_id();
+        }
+    }
+
+    set_transient($cache_key, $ids, DAY_IN_SECONDS);
+    return $ids;
+}
+
+add_filter('the_content', function ($content) {
+    if (is_admin() || !is_singular('post') || !in_the_loop() || !is_main_query()) return $content;
+    if (strpos($content, 'af-relprod') !== false) return $content;
+    if (!function_exists('wc_get_product')) return $content;
+
+    $ids = af_related_products_for_post(get_the_ID(), 4);
+    if (!$ids) return $content;
+
+    $cards = '';
+    foreach ($ids as $pid) {
+        $p = wc_get_product($pid);
+        if (!$p) continue;
+        $img = wp_get_attachment_image($p->get_image_id(), 'woocommerce_thumbnail', false, array('loading' => 'lazy', 'alt' => esc_attr($p->get_name())));
+        $cards .= '<a class="af-relprod-card" href="' . esc_url(get_permalink($pid)) . '">'
+                . '<span class="af-relprod-img">' . $img . '</span>'
+                . '<span class="af-relprod-name">' . esc_html($p->get_name()) . '</span>'
+                . '<span class="af-relprod-price">' . wp_kses_post($p->get_price_html()) . '</span>'
+                . '</a>';
+    }
+    if ($cards === '') return $content;
+
+    $block  = '<section class="af-relprod" aria-label="Related art from The Art Framer">';
+    $block .= '<h2 class="af-relprod-h">Shop Related Art</h2>';
+    $block .= '<div class="af-relprod-grid">' . $cards . '</div>';
+    $block .= '<p class="af-relprod-more"><a href="' . esc_url(get_permalink(wc_get_page_id('shop'))) . '">Browse the full collection &rarr;</a></p>';
+    $block .= '</section>';
+
+    return $content . $block;
+}, 50);
+
+add_action('wp_head', function () {
+    if (!is_singular('post')) return;
+    echo '<style>'
+       . '.af-relprod{margin:42px 0 10px;padding-top:28px;border-top:1px solid #ece7dd;}'
+       . '.af-relprod-h{font-size:22px;font-weight:700;color:#1a1a1a;margin:0 0 18px;}'
+       . '.af-relprod-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;}'
+       . '.af-relprod-card{display:flex;flex-direction:column;text-decoration:none;color:inherit;background:#fff;border:1px solid #ece7dd;border-radius:10px;overflow:hidden;transition:box-shadow .2s,transform .2s;}'
+       . '.af-relprod-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.1);transform:translateY(-3px);}'
+       . '.af-relprod-img img{display:block;width:100%;height:auto;aspect-ratio:1/1;object-fit:cover;}'
+       . '.af-relprod-name{padding:10px 12px 4px;font-size:14px;font-weight:600;line-height:1.35;}'
+       . '.af-relprod-price{padding:0 12px 12px;font-size:14px;color:#c9a84c;font-weight:700;}'
+       . '.af-relprod-more{margin:18px 0 0;}'
+       . '.af-relprod-more a{color:#c9a84c;font-weight:600;text-decoration:none;}'
+       . '@media(max-width:900px){.af-relprod-grid{grid-template-columns:repeat(2,1fr);}}'
+       . '@media(max-width:480px){.af-relprod-grid{grid-template-columns:repeat(2,1fr);gap:12px;}.af-relprod-name{font-size:13px;}}'
+       . '</style>';
+});
+
+// Bust the related-products cache whenever a product is saved/removed.
+add_action('save_post_product', function () {
+    global $wpdb;
+    $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '\_transient\_af_relprod\_%' OR option_name LIKE '\_transient\_timeout\_af_relprod\_%'");
+});
