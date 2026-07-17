@@ -7,7 +7,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$STYLE_VERSION = '14.0';
+$STYLE_VERSION = '15.0';
 $EMAIL = 'theartframer136@gmail.com';
 $PHONE = '+1 (610) 470-7280';
 $TEL   = 'tel:+16104707280';
@@ -186,6 +186,12 @@ $bodies['reviews-press'] = <<<HTML
     </div>
   </div>
 
+
+  <div class="taf-section">
+    <h2 class="taf-h2">Video Testimonials</h2>
+    <p class="taf-lead">Hear it from our customers — installations, unboxings, and finished walls.</p>
+    [af_video_testimonials]
+  </div>
 
   <div class="taf-section taf-media">
     <div>

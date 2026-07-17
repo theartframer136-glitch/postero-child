@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.1.0');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.2.0');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -7594,3 +7594,189 @@ function af_rma_admin_page() {
     }
     echo '</tbody></table></div>';
 }
+
+/* ============================================================
+   PHASE 17 — video testimonials (§13) + maintenance mode (§4)
+   ============================================================ */
+
+// ── 17a. [af_video_testimonials] — customer video wall ───────
+// Video pool: option 'af_testimonial_videos' (one YouTube URL/ID per
+// line). Falls back to the cached channel pool. Rendered on the
+// Reviews & Press page — deliberately NOT the homepage, where
+// "Products In Motion" already covers video.
+add_shortcode('af_video_testimonials', function() {
+    $ids = array();
+    $opt = trim((string) get_option('af_testimonial_videos', ''));
+    if ($opt !== '') {
+        foreach (preg_split('/[\r\n,]+/', $opt) as $line) {
+            $line = trim($line);
+            if ($line === '') continue;
+            if (preg_match('#(?:youtube(?:-nocookie)?\.com/(?:watch\?(?:[^&\s]*&)*v=|embed/|shorts/|v/)|youtu\.be/)([A-Za-z0-9_-]{11})#i', $line, $m)) {
+                $ids[] = $m[1];
+            } elseif (preg_match('/^[A-Za-z0-9_-]{11}$/', $line)) {
+                $ids[] = $line;
+            }
+        }
+    }
+    if (empty($ids)) {
+        $pool = get_transient('af_yt_ids3_UC_GX4vXRQrN4GsvSfgmZxYw');
+        if (is_array($pool)) $ids = $pool;
+    }
+    $ids = array_slice(array_values(array_unique(array_filter($ids))), 0, 8);
+    if (empty($ids)) return '';
+    ob_start(); ?>
+<div class="taf-vids" id="afVids">
+  <div class="taf-vids-row">
+    <?php foreach ($ids as $vid) : ?>
+      <button type="button" class="taf-vid" data-vid="<?php echo esc_attr($vid); ?>" aria-label="Play customer video">
+        <img loading="lazy" src="https://i.ytimg.com/vi/<?php echo esc_attr($vid); ?>/hqdefault.jpg" alt="Customer video testimonial">
+        <span class="taf-vid-play"></span>
+      </button>
+    <?php endforeach; ?>
+  </div>
+  <p class="taf-vids-note">🎥 Real customers, real walls — filmed in their own homes.
+    <a href="https://www.youtube.com/channel/UC_GX4vXRQrN4GsvSfgmZxYw" target="_blank" rel="noopener">See more on YouTube →</a></p>
+</div>
+<div class="taf-vid-lb" id="afVidLb">
+  <button class="taf-vid-x" id="afVidX" aria-label="Close video">&times;</button>
+  <iframe id="afVidFrame" allow="autoplay; encrypted-media" allowfullscreen title="Customer video"></iframe>
+</div>
+<script>
+(function(){
+  var lb = document.getElementById('afVidLb'), fr = document.getElementById('afVidFrame'), x = document.getElementById('afVidX');
+  if (!lb) return;
+  document.querySelectorAll('.taf-vid').forEach(function(b){
+    b.addEventListener('click', function(){
+      fr.src = 'https://www.youtube-nocookie.com/embed/' + b.dataset.vid + '?autoplay=1&rel=0&playsinline=1';
+      lb.classList.add('open');
+    });
+  });
+  function close(){ lb.classList.remove('open'); fr.src = ''; }
+  x.onclick = close;
+  lb.addEventListener('click', function(e){ if (e.target === lb) close(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+})();
+</script>
+<?php return ob_get_clean();
+});
+
+// ── 17b. Maintenance mode (spec §4) ──────────────────────────
+// Toggle: option 'af_maintenance' = 'on'. Logged-in admins/shop
+// managers always bypass it, so you can work on the live site.
+// Optional end time: option 'af_maintenance_until' ("YYYY-MM-DD HH:MM").
+add_action('template_redirect', function() {
+    if (get_option('af_maintenance') !== 'on') return;
+    if (is_admin() || wp_doing_ajax() || (defined('WP_CLI') && WP_CLI)) return;
+    if (current_user_can('manage_options') || current_user_can('manage_woocommerce')) return;
+    // Let people still log in
+    if (function_exists('wc_get_page_id') && is_page(wc_get_page_id('myaccount'))) return;
+    if (isset($GLOBALS['pagenow']) && $GLOBALS['pagenow'] === 'wp-login.php') return;
+
+    $until = trim((string) get_option('af_maintenance_until', ''));
+    $back  = '';
+    if ($until !== '') {
+        $d = date_create($until, wp_timezone());
+        if ($d) $back = $d->format('l j F, g:ia T');
+    }
+    nocache_headers();
+    header('HTTP/1.1 503 Service Temporarily Unavailable');
+    header('Status: 503 Service Temporarily Unavailable');
+    header('Retry-After: 3600');
+    ?>
+<!doctype html>
+<html <?php language_attributes(); ?>>
+<head>
+<meta charset="<?php bloginfo('charset'); ?>">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>We'll be right back — The Art Framer</title>
+<style>
+*{box-sizing:border-box;}
+body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:30px;
+  background:linear-gradient(135deg,#141414 0%,#2a2318 60%,#3a2f16 100%);color:#e9e4d6;
+  font-family:'Fredoka',system-ui,-apple-system,'Segoe UI',sans-serif;text-align:center;}
+.wrap{max-width:560px;}
+.ico{font-size:64px;line-height:1;margin-bottom:18px;}
+h1{font-size:38px;font-weight:800;color:#fff;margin:0 0 14px;line-height:1.15;}
+.gold{color:#c9a84c;}
+p{font-size:16px;line-height:1.75;color:#b8b2a2;margin:0 0 14px;}
+.back{display:inline-block;background:rgba(201,168,76,.14);border:1px solid #8a6d1f;color:#e6d9ae;
+  padding:11px 20px;font-size:14px;font-weight:700;margin:8px 0 22px;}
+.links{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:8px;}
+.btn{background:#c9a84c;color:#141414;text-decoration:none;font-weight:800;font-size:14px;padding:13px 26px;}
+.btn:hover{background:#dcb85a;}
+.btn-alt{background:transparent;color:#c9a84c;border:1px solid #c9a84c;text-decoration:none;font-weight:700;font-size:14px;padding:12px 26px;}
+.btn-alt:hover{background:#c9a84c;color:#141414;}
+.foot{margin-top:34px;font-size:12.5px;color:#8a8375;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="ico">🖼️</div>
+    <h1>We're hanging some<br><span class="gold">new art</span></h1>
+    <p>The Art Framer is briefly offline for scheduled maintenance. Your orders and files are safe — we'll be back very soon.</p>
+    <?php if ($back) : ?><p class="back">⏱ Expected back: <?php echo esc_html($back); ?></p><?php endif; ?>
+    <p>Need something urgently? We're still reachable:</p>
+    <div class="links">
+      <a class="btn" href="mailto:theartframer136@gmail.com">Email Us</a>
+      <a class="btn-alt" href="tel:+16104707280">Call +1 (610) 470-7280</a>
+    </div>
+    <p class="foot">© <?php echo date('Y'); ?> The Art Framer · theartframer.us</p>
+  </div>
+</body>
+</html>
+    <?php
+    exit;
+}, 0);
+
+// Admin bar notice so maintenance mode is never left on by accident
+add_action('admin_bar_menu', function($bar) {
+    if (get_option('af_maintenance') !== 'on') return;
+    if (!current_user_can('manage_options')) return;
+    $bar->add_node(array(
+        'id'    => 'af-maint',
+        'title' => '⚠️ Maintenance mode ON',
+        'href'  => admin_url('options-general.php?page=af-maintenance'),
+        'meta'  => array('title' => 'The site is showing the maintenance page to visitors'),
+    ));
+}, 100);
+
+// Settings screen: toggle + expected-return time
+add_action('admin_menu', function() {
+    add_options_page('Maintenance Mode', 'Maintenance Mode', 'manage_options', 'af-maintenance', function() {
+        if (!current_user_can('manage_options')) return;
+        if (isset($_POST['af_maint_nonce']) && wp_verify_nonce($_POST['af_maint_nonce'], 'af_maint')) {
+            update_option('af_maintenance', isset($_POST['af_maintenance']) ? 'on' : 'off');
+            update_option('af_maintenance_until', sanitize_text_field(wp_unslash($_POST['af_maintenance_until'] ?? '')));
+            echo '<div class="notice notice-success"><p>Saved.</p></div>';
+        }
+        $on    = get_option('af_maintenance') === 'on';
+        $until = (string) get_option('af_maintenance_until', '');
+        ?>
+        <div class="wrap">
+          <h1>Maintenance Mode</h1>
+          <p>When enabled, visitors see a branded "we'll be right back" page (HTTP 503, safe for SEO).
+             Administrators and shop managers keep full access, so you can keep working on the live site.</p>
+          <form method="post">
+            <?php wp_nonce_field('af_maint', 'af_maint_nonce'); ?>
+            <table class="form-table">
+              <tr>
+                <th scope="row">Maintenance mode</th>
+                <td><label><input type="checkbox" name="af_maintenance" <?php checked($on); ?>>
+                    Show the maintenance page to visitors</label></td>
+              </tr>
+              <tr>
+                <th scope="row">Expected back (optional)</th>
+                <td><input type="text" name="af_maintenance_until" class="regular-text"
+                      value="<?php echo esc_attr($until); ?>" placeholder="2026-07-20 14:30">
+                    <p class="description">Shown on the page as "Expected back: …". Leave blank to omit.</p></td>
+              </tr>
+            </table>
+            <?php submit_button('Save'); ?>
+          </form>
+          <p><a href="<?php echo esc_url(home_url('/?af_maint_preview=1')); ?>" target="_blank">Preview the maintenance page →</a>
+             <em>(admins bypass it, so use a private window to see it as a visitor)</em></p>
+        </div>
+        <?php
+    });
+});
