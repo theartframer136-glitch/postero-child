@@ -7948,3 +7948,77 @@ add_action('save_post_product', function () {
     global $wpdb;
     $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '\_transient\_af_relprod\_%' OR option_name LIKE '\_transient\_timeout\_af_relprod\_%'");
 });
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 24k — Product schema: shipping, returns, brand.
+// Values mirror the store's PUBLISHED policies (shipping page: free
+// US shipping, ~5 business days production + up to 10 days transit;
+// refund page: 7-day return window). returnFees intentionally
+// omitted — free returns are only promised for damaged/wrong-item,
+// so claiming FreeReturn store-wide would overstate. Makes products
+// eligible for "free shipping / returns" treatment in US results.
+// Keep these in sync with the policy pages if they change.
+// ─────────────────────────────────────────────────────────────
+function af_offer_shipping_details() {
+    return array(
+        '@type' => 'OfferShippingDetails',
+        'shippingRate' => array('@type' => 'MonetaryAmount', 'value' => '0', 'currency' => 'USD'),
+        'shippingDestination' => array('@type' => 'DefinedRegion', 'addressCountry' => 'US'),
+        'deliveryTime' => array(
+            '@type' => 'ShippingDeliveryTime',
+            'handlingTime' => array('@type' => 'QuantitativeValue', 'minValue' => 1, 'maxValue' => 5, 'unitCode' => 'DAY'),
+            'transitTime'  => array('@type' => 'QuantitativeValue', 'minValue' => 3, 'maxValue' => 10, 'unitCode' => 'DAY'),
+        ),
+    );
+}
+function af_merchant_return_policy() {
+    return array(
+        '@type' => 'MerchantReturnPolicy',
+        'applicableCountry' => 'US',
+        'returnPolicyCategory' => 'https://schema.org/MerchantReturnFiniteReturnWindow',
+        'merchantReturnDays' => 7,
+        'returnMethod' => 'https://schema.org/ReturnByMail',
+    );
+}
+function af_enrich_product_offer($offer) {
+    if (empty($offer['shippingDetails'])) $offer['shippingDetails'] = af_offer_shipping_details();
+    if (empty($offer['hasMerchantReturnPolicy'])) $offer['hasMerchantReturnPolicy'] = af_merchant_return_policy();
+    return $offer;
+}
+
+// Rank Math pipeline (its graph carries the Product node on this site).
+add_filter('rank_math/json_ld', function ($data, $jsonld) {
+    if (!function_exists('is_product') || !is_product()) return $data;
+    foreach ($data as $k => $node) {
+        $types = isset($node['@type']) ? (array) $node['@type'] : array();
+        if (!in_array('Product', $types, true)) continue;
+        if (empty($node['brand'])) {
+            $data[$k]['brand'] = array('@type' => 'Brand', 'name' => 'The Art Framer');
+        }
+        if (!empty($node['offers'])) {
+            $offers = $node['offers'];
+            if (isset($offers['@type'])) {
+                $data[$k]['offers'] = af_enrich_product_offer($offers);
+            } elseif (is_array($offers)) {
+                foreach ($offers as $i => $o) {
+                    if (is_array($o)) $offers[$i] = af_enrich_product_offer($o);
+                }
+                $data[$k]['offers'] = $offers;
+            }
+        }
+    }
+    return $data;
+}, 20, 2);
+
+// WooCommerce pipeline (covered too in case its JSON-LD is active).
+add_filter('woocommerce_structured_data_product', function ($markup, $product) {
+    if (empty($markup['brand'])) {
+        $markup['brand'] = array('@type' => 'Brand', 'name' => 'The Art Framer');
+    }
+    if (!empty($markup['offers']) && is_array($markup['offers'])) {
+        foreach ($markup['offers'] as $i => $o) {
+            if (is_array($o)) $markup['offers'][$i] = af_enrich_product_offer($o);
+        }
+    }
+    return $markup;
+}, 20, 2);
