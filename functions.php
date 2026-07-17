@@ -6649,17 +6649,42 @@ add_action('woocommerce_checkout_create_order', function($order) {
 // For downloadable products, the product-page gallery serves a downscaled
 // copy stamped with a diagonal watermark. Generated once with GD and
 // cached in uploads/af-wm/. The paid file remains the clean original.
+// Returns array( url, width, height ) for the cached preview, or false.
+// Callers need the real dimensions: the gallery advertises them to the zoom,
+// which upscales a smaller file if they describe the original master instead.
 function af_wm_preview_url($attachment_id) {
     if (!function_exists('imagecreatetruecolor')) return false; // GD unavailable
     $src_path = get_attached_file($attachment_id);
     if (!$src_path || !file_exists($src_path)) return false;
 
+    // Keep the preview in its source format. Re-encoding a WebP or PNG master
+    // to JPEG adds ringing around the flat colour and hard edges this artwork
+    // is built from, and silently flattens transparency onto black.
+    $ext = strtolower(pathinfo($src_path, PATHINFO_EXTENSION));
+    if     ($ext === 'webp' && function_exists('imagewebp')) $out = 'webp';
+    elseif ($ext === 'png'  && function_exists('imagepng'))  $out = 'png';
+    else                                                     $out = 'jpg';
+
+    // Previews are shown at ~600 CSS px but zoomed to the full frame, and are
+    // served to 2x/3x screens, so the cap has to leave the master untouched at
+    // typical sizes rather than halving it.
+    $max     = (int) apply_filters('af_wm_max_dimension', 1600);
+    $quality = (int) apply_filters('af_wm_quality', 90);
+
     $up   = wp_get_upload_dir();
     $dir  = trailingslashit($up['basedir']) . 'af-wm';
-    $name = 'wm-' . $attachment_id . '-' . substr(md5($src_path . filemtime($src_path)), 0, 8) . '.jpg';
+    // The rendering settings are part of the cache key: previews are generated
+    // once and never revisited, so without this every change below would only
+    // reach products whose master image happens to change afterwards.
+    $key  = 'v2|' . $max . '|' . $quality . '|' . $out . '|' . $src_path . '|' . filemtime($src_path);
+    $name = 'wm-' . $attachment_id . '-' . substr(md5($key), 0, 8) . '.' . $out;
     $dest = $dir . '/' . $name;
     $url  = trailingslashit($up['baseurl']) . 'af-wm/' . $name;
-    if (file_exists($dest)) return $url;
+    if (file_exists($dest)) {
+        $sz = @getimagesize($dest);
+        if ($sz) return array('url' => $url, 'width' => $sz[0], 'height' => $sz[1]);
+        @unlink($dest); // unreadable/truncated cache entry — rebuild it
+    }
 
     if (!wp_mkdir_p($dir)) return false;
     $raw = @file_get_contents($src_path);
@@ -6667,20 +6692,26 @@ function af_wm_preview_url($attachment_id) {
     $img = @imagecreatefromstring($raw);
     if (!$img) return false;
 
-    // Downscale to max 900px
     $w = imagesx($img); $h = imagesy($img);
-    $max = 900;
     if ($w > $max || $h > $max) {
         $ratio = min($max / $w, $max / $h);
         $nw = (int) round($w * $ratio); $nh = (int) round($h * $ratio);
         $tmp = imagecreatetruecolor($nw, $nh);
+        if ($out !== 'jpg') {
+            imagealphablending($tmp, false);
+            imagesavealpha($tmp, true);
+            imagefill($tmp, 0, 0, imagecolorallocatealpha($tmp, 0, 0, 0, 127));
+        }
         imagecopyresampled($tmp, $img, 0, 0, 0, 0, $nw, $nh, $w, $h);
         imagedestroy($img);
         $img = $tmp; $w = $nw; $h = $nh;
     }
+    imagealphablending($img, true); // composite the stamp, don't overwrite pixels
 
-    // Diagonal repeating watermark (built-in font — no TTF dependency)
-    $text  = '© THE ART FRAMER · PREVIEW';
+    // Diagonal repeating watermark (built-in font — no TTF dependency).
+    // imagestring() only speaks ASCII: a UTF-8 "©" or "·" arrives as its raw
+    // bytes and prints as "Â©" / "Â·", so spell them out in ASCII instead.
+    $text  = '(C) THE ART FRAMER - PREVIEW';
     $font  = 5;
     $tw    = imagefontwidth($font) * strlen($text);
     $th    = imagefontheight($font);
@@ -6700,9 +6731,14 @@ function af_wm_preview_url($attachment_id) {
     }
     imagedestroy($rot);
 
-    $ok = imagejpeg($img, $dest, 82);
+    if ($out !== 'jpg') imagesavealpha($img, true);
+    switch ($out) {
+        case 'webp': $ok = imagewebp($img, $dest, $quality); break;
+        case 'png':  $ok = imagepng($img, $dest);            break; // lossless
+        default:     $ok = imagejpeg($img, $dest, $quality); break;
+    }
     imagedestroy($img);
-    return $ok ? $url : false;
+    return $ok ? array('url' => $url, 'width' => $w, 'height' => $h) : false;
 }
 
 // Swap gallery images for watermarked previews on downloadable products
@@ -6712,15 +6748,28 @@ add_filter('woocommerce_single_product_image_thumbnail_html', function($html, $a
     if (!$product || !$product->is_downloadable()) return $html;
     $wm = af_wm_preview_url($attachment_id);
     if (!$wm) return $html;
-    // Point every size variant, zoom target, and lightbox link at the preview
+    // Point every size variant, zoom target, and lightbox link at the preview.
+    // This must cover the thumbnail sizes too: they appear in data-thumb-srcset,
+    // so leaving them out published the un-watermarked original right next to
+    // the preview that exists to protect it.
     $urls = array();
-    foreach (array('full', 'large', 'woocommerce_single', 'medium_large', 'medium') as $size) {
+    foreach (array(
+        'full', 'large', 'woocommerce_single', 'medium_large', 'medium',
+        'woocommerce_thumbnail', 'woocommerce_gallery_thumbnail', 'thumbnail',
+    ) as $size) {
         $s = wp_get_attachment_image_src($attachment_id, $size);
         if ($s && !empty($s[0])) $urls[$s[0]] = true;
     }
-    $html = str_replace(array_keys($urls), $wm, $html);
+    $html = str_replace(array_keys($urls), $wm['url'], $html);
     $html = preg_replace('/\ssrcset="[^"]*"/', '', $html);
     $html = preg_replace('/\ssizes="[^"]*"/', '', $html);
+    // Restate the dimensions to match the file actually being served. WooCommerce's
+    // zoom magnifies to data-large_image_*, so the master's numbers here make it
+    // upscale the preview and render a blurred crop instead of refusing to zoom.
+    $html = preg_replace('/\sdata-large_image_width="\d+"/',  ' data-large_image_width="'  . $wm['width']  . '"', $html);
+    $html = preg_replace('/\sdata-large_image_height="\d+"/', ' data-large_image_height="' . $wm['height'] . '"', $html);
+    $html = preg_replace('/\swidth="\d+"/',  ' width="'  . $wm['width']  . '"', $html, 1);
+    $html = preg_replace('/\sheight="\d+"/', ' height="' . $wm['height'] . '"', $html, 1);
     return $html;
 }, 20, 2);
 
