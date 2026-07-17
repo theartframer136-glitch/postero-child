@@ -148,12 +148,6 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/fix-featured-images.php --allow-root 2>&1" \
             || true
 
-          echo "Instagram video/feed + nonce diagnostic..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-instagram.php --allow-root 2>&1" \
-            || true
-
           echo "Buy Now diagnostic (simple vs variable + links)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -232,11 +226,13 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/diag-cat-dom.php --allow-root 2>&1" \
             || true
 
-          echo "Disabling LiteSpeed image lazy-load (source of vanishing images)..."
+          echo "Disabling LiteSpeed image lazy-load + JS defer/combine (keep Instagram embed + products visible)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp litespeed-option set media-lazy false --allow-root 2>&1; \
              wp litespeed-option set media-iframe_lazy false --allow-root 2>&1; \
+             wp litespeed-option set optm-js_defer 0 --allow-root 2>&1; \
+             wp litespeed-option set optm-js_comb false --allow-root 2>&1; \
              wp litespeed-option get media-lazy --allow-root 2>&1" \
             || true
 
