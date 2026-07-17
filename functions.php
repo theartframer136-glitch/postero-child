@@ -6576,3 +6576,157 @@ add_action('wp_footer', function(){
     </script>
     <?php
 }, 105);
+
+// ── 12k. Digital downloads: license acceptance + watermarked previews ─
+// Spec §9: download limits (set by tools/enable-digital-downloads.php),
+// license acceptance at checkout, watermarked product-page previews.
+
+// Does the cart contain any digital download?
+function af_cart_has_digital() {
+    if (!function_exists('WC') || !WC()->cart) return false;
+    foreach (WC()->cart->get_cart() as $item) {
+        if (!empty($item['af_digital'])) return true;
+        if (!empty($item['data']) && is_object($item['data']) && $item['data']->is_downloadable()) return true;
+    }
+    return false;
+}
+
+// Checkout: required license checkbox when a digital item is in the cart
+add_action('woocommerce_review_order_before_submit', function() {
+    if (!af_cart_has_digital()) return;
+    ?>
+    <p class="form-row af-dl-license-row" style="background:#faf7f0;border:1px solid #e0d5b8;padding:14px 16px;">
+        <label class="woocommerce-form__label woocommerce-form__label-for-checkbox checkbox" style="display:flex;gap:10px;align-items:flex-start;">
+            <input type="checkbox" class="woocommerce-form__input woocommerce-form__input-checkbox" name="af_dl_license" id="af_dl_license" style="margin-top:4px;">
+            <span>Your order includes a digital download. I accept the
+            <a href="/digital-download-license/" target="_blank" rel="noopener">Digital Download License</a>
+            (personal use only — no resale or redistribution). <abbr class="required" title="required">*</abbr></span>
+        </label>
+    </p>
+    <?php
+});
+
+add_action('woocommerce_checkout_process', function() {
+    if (af_cart_has_digital() && empty($_POST['af_dl_license'])) {
+        wc_add_notice(__('Please accept the Digital Download License to complete your purchase.'), 'error');
+    }
+});
+
+add_action('woocommerce_checkout_create_order', function($order) {
+    if (!empty($_POST['af_dl_license'])) {
+        $order->update_meta_data('_af_dl_license_accepted', current_time('mysql'));
+    }
+}, 10, 1);
+
+// ── Watermarked previews ─────────────────────────────────────
+// For downloadable products, the product-page gallery serves a downscaled
+// copy stamped with a diagonal watermark. Generated once with GD and
+// cached in uploads/af-wm/. The paid file remains the clean original.
+function af_wm_preview_url($attachment_id) {
+    if (!function_exists('imagecreatetruecolor')) return false; // GD unavailable
+    $src_path = get_attached_file($attachment_id);
+    if (!$src_path || !file_exists($src_path)) return false;
+
+    $up   = wp_get_upload_dir();
+    $dir  = trailingslashit($up['basedir']) . 'af-wm';
+    $name = 'wm-' . $attachment_id . '-' . substr(md5($src_path . filemtime($src_path)), 0, 8) . '.jpg';
+    $dest = $dir . '/' . $name;
+    $url  = trailingslashit($up['baseurl']) . 'af-wm/' . $name;
+    if (file_exists($dest)) return $url;
+
+    if (!wp_mkdir_p($dir)) return false;
+    $raw = @file_get_contents($src_path);
+    if (!$raw) return false;
+    $img = @imagecreatefromstring($raw);
+    if (!$img) return false;
+
+    // Downscale to max 900px
+    $w = imagesx($img); $h = imagesy($img);
+    $max = 900;
+    if ($w > $max || $h > $max) {
+        $ratio = min($max / $w, $max / $h);
+        $nw = (int) round($w * $ratio); $nh = (int) round($h * $ratio);
+        $tmp = imagecreatetruecolor($nw, $nh);
+        imagecopyresampled($tmp, $img, 0, 0, 0, 0, $nw, $nh, $w, $h);
+        imagedestroy($img);
+        $img = $tmp; $w = $nw; $h = $nh;
+    }
+
+    // Diagonal repeating watermark (built-in font — no TTF dependency)
+    $text  = '© THE ART FRAMER · PREVIEW';
+    $font  = 5;
+    $tw    = imagefontwidth($font) * strlen($text);
+    $th    = imagefontheight($font);
+    $stamp = imagecreatetruecolor($tw + 40, $th + 24);
+    imagesavealpha($stamp, true);
+    imagefill($stamp, 0, 0, imagecolorallocatealpha($stamp, 0, 0, 0, 127));
+    imagestring($stamp, $font, 20, 12, $text, imagecolorallocatealpha($stamp, 255, 255, 255, 78));
+    imagestring($stamp, $font, 19, 11, $text, imagecolorallocatealpha($stamp, 20, 20, 20, 96));
+    $rot = imagerotate($stamp, 30, imagecolorallocatealpha($stamp, 0, 0, 0, 127));
+    imagesavealpha($rot, true);
+    imagedestroy($stamp);
+    $rw = imagesx($rot); $rh = imagesy($rot);
+    for ($y = -$rh; $y < $h + $rh; $y += (int) ($rh * 1.6)) {
+        for ($x = -$rw; $x < $w + $rw; $x += (int) ($rw * 1.15)) {
+            imagecopy($img, $rot, $x, $y, 0, 0, $rw, $rh);
+        }
+    }
+    imagedestroy($rot);
+
+    $ok = imagejpeg($img, $dest, 82);
+    imagedestroy($img);
+    return $ok ? $url : false;
+}
+
+// Swap gallery images for watermarked previews on downloadable products
+add_filter('woocommerce_single_product_image_thumbnail_html', function($html, $attachment_id) {
+    if (!is_product()) return $html;
+    global $product;
+    if (!$product || !$product->is_downloadable()) return $html;
+    $wm = af_wm_preview_url($attachment_id);
+    if (!$wm) return $html;
+    // Point every size variant, zoom target, and lightbox link at the preview
+    $urls = array();
+    foreach (array('full', 'large', 'woocommerce_single', 'medium_large', 'medium') as $size) {
+        $s = wp_get_attachment_image_src($attachment_id, $size);
+        if ($s && !empty($s[0])) $urls[$s[0]] = true;
+    }
+    $html = str_replace(array_keys($urls), $wm, $html);
+    $html = preg_replace('/\ssrcset="[^"]*"/', '', $html);
+    $html = preg_replace('/\ssizes="[^"]*"/', '', $html);
+    return $html;
+}, 20, 2);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 24h — Review request in the "order completed" email.
+// Every future buyer gets asked to review what they bought;
+// star (aggregateRating) schema appears automatically once real
+// reviews exist. No fake reviews — that's an FTC/Google violation.
+// ─────────────────────────────────────────────────────────────
+add_action('woocommerce_email_after_order_table', function ($order, $sent_to_admin, $plain_text, $email) {
+    if ($sent_to_admin || !$email || $email->id !== 'customer_completed_order') return;
+    if (!($order instanceof WC_Order)) return;
+    $items = array_slice($order->get_items(), 0, 3);
+    if (!$items) return;
+    if ($plain_text) {
+        echo "\n== How did we do? ==\n";
+        echo "Reviews from customers like you help other art lovers choose with confidence.\n";
+        foreach ($items as $item) {
+            $pid = $item->get_product_id();
+            $url = get_permalink($pid);
+            if ($url) echo '- Review "' . $item->get_name() . '": ' . $url . "#reviews\n";
+        }
+        echo "\n";
+        return;
+    }
+    echo '<div style="margin:24px 0;padding:18px 20px;border:1px solid #e5e0d8;border-radius:10px;background:#faf8f4;">';
+    echo '<h3 style="margin:0 0 8px;font-size:16px;color:#1a1a1a;">How did we do?</h3>';
+    echo '<p style="margin:0 0 12px;color:#555;font-size:14px;">Reviews from customers like you help other art lovers choose with confidence — it takes under a minute.</p>';
+    foreach ($items as $item) {
+        $pid = $item->get_product_id();
+        $url = get_permalink($pid);
+        if (!$url) continue;
+        echo '<p style="margin:6px 0;"><a href="' . esc_url($url . '#reviews') . '" style="color:#c9a84c;font-weight:600;text-decoration:none;">&#9733; Review &ldquo;' . esc_html($item->get_name()) . '&rdquo;</a></p>';
+    }
+    echo '</div>';
+}, 10, 4);

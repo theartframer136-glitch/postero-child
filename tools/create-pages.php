@@ -95,6 +95,10 @@ $pages = array(
 <h3>What You Get</h3><ul><li>Volume-based pricing</li><li>Custom sizes and framing</li><li>Dedicated support</li><li>Corporate gifting &amp; branding options</li></ul>
 <h3>Get a Quote</h3><p>Email <a href=\"mailto:{$EMAIL}\">{$EMAIL}</a> or call {$PHONE} with your requirements and we'll prepare a custom quote.</p>",
     ),
+    'digital-download-license' => array(
+        'title' => 'Digital Download License',
+        'body'  => "<h2>Digital Download License</h2><p>License terms for digital files purchased from {$BRAND}.</p>",
+    ),
     'compare' => array(
         'title' => 'Compare Products',
         'body'  => "<h2>Compare Products</h2><p>Select artworks in the shop with the Compare button, then review them side by side here.</p>",

@@ -12,8 +12,13 @@ if ( ! function_exists( 'wc_get_product' ) ) { echo "WooCommerce not active\n"; 
 update_option('woocommerce_downloads_grant_access_after_payment', 'yes');
 update_option('woocommerce_downloads_require_login', 'no');
 
+// Per-purchase limits (spec §9) — tune via options without redeploying
+$limit  = (int) get_option('af_dl_limit', 5);        // downloads per purchase
+$expiry = (int) get_option('af_dl_expiry_days', 30); // days until link expires
+
 $ids = get_posts(array('post_type'=>'product','post_status'=>'publish','posts_per_page'=>-1,'fields'=>'ids'));
 echo "=== ENABLE DIGITAL DOWNLOADS (" . count($ids) . " products) ===\n";
+echo "Limits: {$limit} downloads, {$expiry}-day expiry (options af_dl_limit / af_dl_expiry_days)\n";
 
 $done = 0; $skip = 0; $err = 0;
 foreach ($ids as $pid) {
@@ -34,8 +39,8 @@ foreach ($ids as $pid) {
         );
         update_post_meta($pid, '_downloadable', 'yes');
         update_post_meta($pid, '_downloadable_files', $files);
-        update_post_meta($pid, '_download_limit', -1);
-        update_post_meta($pid, '_download_expiry', -1);
+        update_post_meta($pid, '_download_limit', $limit);
+        update_post_meta($pid, '_download_expiry', $expiry);
 
         clean_post_cache($pid);
         if (function_exists('wc_delete_product_transients')) wc_delete_product_transients($pid);

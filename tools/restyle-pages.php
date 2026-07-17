@@ -7,7 +7,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$STYLE_VERSION = '13.9';
+$STYLE_VERSION = '14.0';
 $EMAIL = 'theartframer136@gmail.com';
 $PHONE = '+1 (610) 470-7280';
 $TEL   = 'tel:+16104707280';
@@ -1424,6 +1424,51 @@ $bodies['compare'] = <<<HTML
       <li><b>Decide with confidence</b> — every size, frame, and price side by side. Still unsure? Preview any piece with <a href="/try-on-wall/">Try It on Your Wall</a>.</li>
     </ol>
   </div>
+</div>
+HTML;
+
+/* ── Digital Download License ───────────────────────────────── */
+$bodies['digital-download-license'] = <<<HTML
+<div class="taf-page taf-legal">
+  <div class="taf-hero">
+    <span class="taf-eyebrow">Personal Use License</span>
+    <h1>Digital Download License</h1>
+    <p class="taf-sub">What you can — and can't — do with digital files purchased from The Art Framer.</p>
+  </div>
+
+  <p><span class="taf-updated">Last updated: 16 July 2026</span></p>
+  <p>When you buy a digital download from The Art Framer, you're buying a <b>personal-use license</b> to the artwork file — not the copyright. Here's what that means in plain language.</p>
+
+  <h2>✓ You May</h2>
+  <ul>
+    <li>Print the artwork for <b>your own home, office, or personal space</b> — any size, any number of personal copies</li>
+    <li>Use it as a personal device wallpaper or in private photo books</li>
+    <li>Gift a single printed copy to a friend or family member</li>
+    <li>Have a third-party print shop produce your personal copies</li>
+  </ul>
+
+  <h2>✗ You May Not</h2>
+  <ul>
+    <li><b>Resell, license, or redistribute</b> the file or prints of it in any form</li>
+    <li>Use the artwork <b>commercially</b> — merchandise, marketing, publications, client projects</li>
+    <li>Share the file publicly, upload it to stock/print-on-demand platforms, or mint it as an NFT</li>
+    <li>Claim authorship of the artwork or remove artist credits</li>
+    <li>Modify the artwork and distribute the result</li>
+  </ul>
+
+  <h2>Download Limits</h2>
+  <p>Each purchase includes <b>5 downloads</b> of the high-resolution file, and download links remain active for <b>30 days</b> after purchase. Lost your file later? Contact us with your order number and we'll restore access.</p>
+
+  <h2>Commercial Licensing</h2>
+  <p>Need the artwork for a business, publication, or product? Commercial licenses are available — email <a href="mailto:{$EMAIL}?subject=Commercial%20License">{$EMAIL}</a> with your use case for a quote.</p>
+
+  <h2>Enforcement</h2>
+  <p>The artwork remains the intellectual property of The Art Framer or its contributing artists. Violations of this license may result in revoked access and legal action. Chargebacks on delivered digital orders void this license immediately.</p>
+
+  <h2>Questions</h2>
+  <p>Not sure whether your use is covered? Just ask: <a href="mailto:{$EMAIL}">{$EMAIL}</a> — we're happy to clarify before you buy.</p>
+
+  <p class="taf-note">This license is provided as a starting point and should be reviewed by a legal professional for your jurisdiction.</p>
 </div>
 HTML;
 
