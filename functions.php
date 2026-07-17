@@ -6645,6 +6645,15 @@ add_action('woocommerce_checkout_create_order', function($order) {
     }
 }, 10, 1);
 
+// ── Resized-copy quality ─────────────────────────────────────
+// WordPress re-encodes every registered size at quality 82. That is tuned for
+// photographs; this catalogue is flat-colour, hard-edged artwork, where 82
+// leaves visible ringing along the colour boundaries. 90 costs ~30% more bytes
+// for images that are already 70-220KB. Only affects copies generated from here
+// on — existing sizes keep their current quality until thumbnails are regenerated.
+add_filter('jpeg_quality',          function() { return 90; }, 10, 0);
+add_filter('wp_editor_set_quality', function() { return 90; }, 10, 0);
+
 // ── Watermarked previews ─────────────────────────────────────
 // For downloadable products, the product-page gallery serves a downscaled
 // copy stamped with a diagonal watermark. Generated once with GD and
@@ -6741,9 +6750,22 @@ function af_wm_preview_url($attachment_id) {
     return $ok ? array('url' => $url, 'width' => $w, 'height' => $h) : false;
 }
 
+// Watermarked previews are OFF by default. They stamp the artwork and cost real
+// resolution on every product page, and they protect nothing: WordPress serves
+// the untouched master from its own public uploads URL, which this site already
+// publishes in og:image, twitter:image and the product's JSON-LD. Every product
+// is also currently flagged downloadable by tools/enable-digital-downloads.php,
+// so leaving this on watermarks the whole catalogue of physical prints.
+// Re-enable once genuine download-only products exist, and only for those:
+//   wp option update af_wm_enabled yes
+function af_wm_enabled() {
+    return apply_filters('af_wm_enabled', get_option('af_wm_enabled', 'no') === 'yes');
+}
+
 // Swap gallery images for watermarked previews on downloadable products
 add_filter('woocommerce_single_product_image_thumbnail_html', function($html, $attachment_id) {
     if (!is_product()) return $html;
+    if (!af_wm_enabled()) return $html;
     global $product;
     if (!$product || !$product->is_downloadable()) return $html;
     $wm = af_wm_preview_url($attachment_id);
