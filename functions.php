@@ -6730,3 +6730,52 @@ add_action('woocommerce_email_after_order_table', function ($order, $sent_to_adm
     }
     echo '</div>';
 }, 10, 4);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 24i — Organization schema enrichment for US entity SEO.
+// Adds sameAs (real social profiles published in the footer),
+// areaServed and currenciesAccepted. Filters Rank Math's existing
+// Organization node rather than emitting a competing one.
+//
+// The postal address is intentionally NOT hard-coded: it activates
+// only once the real address is stored in the `af_business_address`
+// option (see tools/set-business-address.php). Never invent one —
+// a wrong NAP is worse than none for local SEO.
+// ─────────────────────────────────────────────────────────────
+add_filter('rank_math/json_ld', function ($data, $jsonld) {
+    foreach ($data as $key => $node) {
+        if (!isset($node['@type'])) continue;
+        $type = is_array($node['@type']) ? $node['@type'] : array($node['@type']);
+        if (!in_array('Organization', $type, true)) continue;
+
+        if (empty($node['sameAs'])) {
+            $data[$key]['sameAs'] = array(
+                'https://www.facebook.com/theartframer',
+                'https://www.instagram.com/theartframer136/',
+            );
+        }
+        if (empty($node['areaServed'])) {
+            $data[$key]['areaServed'] = array(
+                array('@type' => 'Country', 'name' => 'United States'),
+                array('@type' => 'Country', 'name' => 'Canada'),
+            );
+        }
+        if (empty($node['currenciesAccepted'])) {
+            $data[$key]['currenciesAccepted'] = 'USD, CAD';
+        }
+
+        $addr = get_option('af_business_address', array());
+        if (is_array($addr) && !empty($addr['street']) && !empty($addr['city'])
+            && !empty($addr['region']) && !empty($addr['postal'])) {
+            $data[$key]['address'] = array(
+                '@type'           => 'PostalAddress',
+                'streetAddress'   => $addr['street'],
+                'addressLocality' => $addr['city'],
+                'addressRegion'   => $addr['region'],
+                'postalCode'      => $addr['postal'],
+                'addressCountry'  => 'US',
+            );
+        }
+    }
+    return $data;
+}, 20, 2);

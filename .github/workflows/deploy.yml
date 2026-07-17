@@ -109,6 +109,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/restyle-pages.php --allow-root 2>&1" \
             || true
 
+          echo "Applying business address / GSC token (no-op until supplied)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/set-business-address.php --allow-root 2>&1" \
+            || true
+
           echo "Enabling product reviews store-wide..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
