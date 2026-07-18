@@ -2078,8 +2078,10 @@ html body .woocommerce ul.products li.product .product-transition .onsale{
 .trending-card .trending-image .custom-product-card{position:absolute !important;top:0;left:0;right:0;z-index:3;pointer-events:none;}
 .trending-card .trending-image .custom-product-card .wishlist-btn{pointer-events:auto;}
 
-/* ── .product-image-wrapper: fixed image height cap (per request) ── */
+/* ── .product-image-wrapper: FIXED image height so every slider card
+      image is identical (max-height alone let natural heights vary) ── */
 .product-image-wrapper{
+  height:400px !important;
   max-height:400px !important;
   overflow:hidden !important;
   position:relative !important;
@@ -2091,4 +2093,12 @@ html body .woocommerce ul.products li.product .product-transition .onsale{
   object-fit:cover !important;
   object-position:center !important;
   display:block !important;
+}
+@media(max-width:900px){
+  .product-image-wrapper{height:320px !important;max-height:320px !important;}
+  .product-image-wrapper img{max-height:320px !important;}
+}
+@media(max-width:560px){
+  .product-image-wrapper{height:250px !important;max-height:250px !important;}
+  .product-image-wrapper img{max-height:250px !important;}
 }
