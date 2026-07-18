@@ -112,6 +112,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/restyle-pages.php --allow-root 2>&1" \
             || true
 
+          echo "Repairing product SEO meta (titles, descriptions, focus keywords)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/fix-product-seo-meta.php --allow-root 2>&1" \
+            || true
+
           echo "Optimizing assets via LiteSpeed (safe pass)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

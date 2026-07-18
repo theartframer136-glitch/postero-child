@@ -114,17 +114,14 @@ foreach ( $ids as $pid ) {
     $product->save();
     echo "   attrs set: " . count($attr_objs) . "\n";
 
-    /* 2. SEO meta (only if missing) */
-    if ( ! get_post_meta( $pid, 'rank_math_title', true ) ) {
-        $seo_title = $title . ' | Premium Canvas Wall Art – The Art Framer';
-        $seo_desc  = 'Shop ' . $title . ' — premium digital canvas wall art by The Art Framer. Archival inks, eco-friendly, multiple sizes & frames, ready to hang.';
-        update_post_meta( $pid, 'rank_math_title', $seo_title );
-        update_post_meta( $pid, 'rank_math_description', $seo_desc );
-        update_post_meta( $pid, 'rank_math_focus_keyword', $title );
-        echo "   SEO meta written\n";
-    } else {
-        echo "   SEO meta already present (skipped)\n";
-    }
+    /* 2. SEO meta — owned by tools/fix-product-seo-meta.php.
+       This block used to append the full product title to a brand
+       suffix (145-165 char titles, truncated by Google) and set the
+       focus keyword to the ENTIRE title, which can never match the
+       slug — that is what dragged Rank Math scores to ~65/100.
+       fix-product-seo-meta.php runs later in the same deploy and
+       builds short, correct meta from the product's own name. */
+    echo "   SEO meta: delegated to fix-product-seo-meta.php\n";
 
     /* 3. FAQ is no longer stored in post_content — it is rendered as a
           styled accordion via a theme hook (see functions.php af_product_faqs).
