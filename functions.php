@@ -182,8 +182,21 @@ delete_transient('af_yt_ids_UC_GX4vXRQrN4GsvSfgmZxYw');
 add_action('wp_ajax_af_yt_feed',        'af_yt_feed_handler');
 add_action('wp_ajax_nopriv_af_yt_feed', 'af_yt_feed_handler');
 function af_yt_feed_handler() {
+    // Rate limit: 30 requests/hour per IP — this endpoint is nopriv and each
+    // distinct id writes a transient, so cap it to prevent DB/cache bloat.
+    $af_yt_ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '';
+    $af_yt_rl = 'af_yt_rl_' . md5($af_yt_ip);
+    $af_yt_n  = (int) get_transient($af_yt_rl);
+    if ($af_yt_n >= 30) { wp_send_json_error('rate limited'); return; }
+    set_transient($af_yt_rl, $af_yt_n + 1, HOUR_IN_SECONDS);
+
     $list_id    = sanitize_text_field($_GET['list']    ?? '');
     $channel_id = sanitize_text_field($_GET['channel'] ?? '');
+
+    // Whitelist the YouTube id charset. Blocks query-string injection into the
+    // upstream feed URL and stops attacker-chosen transient cache keys.
+    if ($list_id !== ''    && !preg_match('/^[A-Za-z0-9_-]{10,64}$/', $list_id))    { wp_send_json_error('bad id'); return; }
+    if ($channel_id !== '' && !preg_match('/^[A-Za-z0-9_-]{10,64}$/', $channel_id)) { wp_send_json_error('bad id'); return; }
 
     if ($list_id) {
         $url = 'https://www.youtube.com/feeds/videos.xml?playlist_id=' . $list_id;
@@ -5753,6 +5766,15 @@ add_action('wp_footer', function() {
 // the admin. Swap for Klaviyo/Mailchimp later without touching the form.
 function af_nl_subscribe_handler() {
     check_ajax_referer('af_nl_subscribe', 'nonce');
+    // Rate limit: 10 attempts/hour per IP — each new subscriber triggers an
+    // admin wp_mail and grows the af_newsletter_subscribers option.
+    $af_nl_ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '';
+    $af_nl_rl = 'af_nl_rl_' . md5($af_nl_ip);
+    $af_nl_n  = (int) get_transient($af_nl_rl);
+    if ($af_nl_n >= 10) {
+        wp_send_json_error(array('message' => 'Too many attempts — please try again later.'));
+    }
+    set_transient($af_nl_rl, $af_nl_n + 1, HOUR_IN_SECONDS);
     if (!empty($_POST['af_nl_hp'])) { // honeypot
         wp_send_json_success(array('message' => 'Thanks — you are subscribed!'));
     }
@@ -8063,3 +8085,55 @@ add_filter('woocommerce_structured_data_product', function ($markup, $product) {
     }
     return $markup;
 }, 20, 2);
+
+// ═══════════════════════════════════════════════════════════════
+// PHASE 25 — Security hardening (added 2026-07-18, security audit)
+// Covers: REST user enumeration, software-version disclosure,
+// XML-RPC amplification, and missing HTTP security headers.
+// ═══════════════════════════════════════════════════════════════
+
+// 25a. Block unauthenticated REST user enumeration.
+// /wp/v2/users leaks real login names to anonymous callers. Logged-in
+// users (Gutenberg author pickers, etc.) keep access; anon is removed.
+add_filter('rest_endpoints', function ($endpoints) {
+    if (!is_user_logged_in()) {
+        unset($endpoints['/wp/v2/users']);
+        unset($endpoints['/wp/v2/users/(?P<id>[\d]+)']);
+    }
+    return $endpoints;
+});
+
+// 25b. Stop software-version disclosure (harder to fingerprint CVEs).
+remove_action('wp_head', 'wp_generator');
+add_filter('the_generator', '__return_empty_string');
+
+// 25c. XML-RPC: disable unless explicitly re-enabled via the
+// 'af_xmlrpc_enabled' option (set to 'yes' if Jetpack / the WP mobile
+// app ever needs it — no redeploy required). Pingback methods and the
+// X-Pingback header are ALWAYS removed (DDoS-amplification vector,
+// no legitimate use on this store).
+if (get_option('af_xmlrpc_enabled') !== 'yes') {
+    add_filter('xmlrpc_enabled', '__return_false');
+}
+add_filter('xmlrpc_methods', function ($methods) {
+    unset($methods['pingback.ping'], $methods['pingback.extensions.getPingbacks']);
+    return $methods;
+});
+add_filter('wp_headers', function ($headers) {
+    unset($headers['X-Pingback']);
+    return $headers;
+});
+
+// 25d. HTTP security headers on the front end.
+// CSP is intentionally omitted — Elementor's inline CSS/JS needs a
+// report-only rollout first; adding it blind would break rendering.
+add_action('send_headers', function () {
+    if (is_admin()) return;
+    header('X-Frame-Options: SAMEORIGIN');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: geolocation=(), camera=(), microphone=()');
+    if (is_ssl()) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+    }
+});

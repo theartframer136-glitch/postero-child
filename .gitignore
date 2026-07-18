@@ -1,0 +1,21 @@
+# OS / editor cruft
+.DS_Store
+Thumbs.db
+*.swp
+*~
+
+# Dependencies / build
+node_modules/
+vendor/
+
+# Local env & secrets — never commit
+.env
+.env.*
+*.pem
+*.key
+id_rsa
+id_ed25519
+
+# Logs
+*.log
+debug.log
