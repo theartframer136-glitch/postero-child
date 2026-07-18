@@ -2042,3 +2042,28 @@ html body .woocommerce ul.products li.product .woocommerce-loop-product__link im
 html body .woocommerce ul.products li.product .product-transition .onsale{
   position:absolute !important;top:10px !important;left:10px !important;z-index:3 !important;
 }
+
+/* ============================================================
+   New Arrivals / Trending cards (.trending-card): main image and
+   hover (gallery) image locked to ONE identical box. The two imgs
+   have different natural ratios (portrait main, landscape hover),
+   so without a fixed box the card changed height on hover. Pure
+   CSS — no dependency on lazy-loaded natural sizes.
+   ============================================================ */
+.trending-card .trending-image{position:relative !important;overflow:hidden !important;background:#f5f2ed;}
+.trending-card .trending-image > a{
+  position:relative !important;display:block !important;width:100% !important;
+  aspect-ratio:4/5 !important;height:auto !important;overflow:hidden !important;
+}
+.trending-card .trending-image img.main-img,
+.trending-card .trending-image img.hover-img{
+  position:absolute !important;top:0 !important;left:0 !important;
+  width:100% !important;height:100% !important;max-width:none !important;
+  object-fit:cover !important;object-position:center !important;
+  display:block !important;margin:0 !important;
+}
+.trending-card .trending-image img.hover-img{opacity:0 !important;transition:opacity .35s ease !important;z-index:2 !important;}
+.trending-card:hover .trending-image img.hover-img{opacity:1 !important;}
+/* wishlist heart stays pinned above the image */
+.trending-card .trending-image .custom-product-card{position:absolute !important;top:0;left:0;right:0;z-index:3;pointer-events:none;}
+.trending-card .trending-image .custom-product-card .wishlist-btn{pointer-events:auto;}
