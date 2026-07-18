@@ -2020,3 +2020,25 @@ body:has(.taf-page) .site-main{max-width:none;}
 .taf-vid-x{position:absolute;top:18px;right:22px;width:42px;height:42px;border-radius:50%;background:var(--taf-gold);
   color:#141414;border:none;font-size:22px;font-weight:800;cursor:pointer;line-height:1;}
 @media(max-width:520px){.taf-vid img{height:130px;}}
+
+/* ============================================================
+   Uniform product-card image size across product listings.
+   Both the main image and the hover/gallery image share ONE
+   fixed square box (object-fit:cover), so grid rows line up
+   regardless of the artwork's own portrait/landscape ratio.
+   ============================================================ */
+html body .woocommerce ul.products li.product .product-block .product-transition,
+html body .woocommerce ul.products li.product .woocommerce-loop-product__link{
+  position:relative !important;width:100% !important;
+  aspect-ratio:1/1 !important;height:auto !important;min-height:0 !important;
+  overflow:hidden !important;background:#f5f2ed;display:block !important;
+}
+html body .woocommerce ul.products li.product .product-block .product-transition img,
+html body .woocommerce ul.products li.product .woocommerce-loop-product__link img{
+  width:100% !important;height:100% !important;object-fit:cover !important;
+  display:block !important;max-width:none !important;
+}
+/* keep the sale ribbon pinned inside the square box */
+html body .woocommerce ul.products li.product .product-transition .onsale{
+  position:absolute !important;top:10px !important;left:10px !important;z-index:3 !important;
+}
