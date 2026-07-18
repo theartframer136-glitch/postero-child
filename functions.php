@@ -1010,15 +1010,34 @@ html body .product-card .woocommerce-loop-product__link {
   border-radius:0 !important;
   flex-shrink:0 !important;
 }
+/* All images (main AND hover/gallery) fill the exact same 4:3 box so a card
+   never changes size on hover — main image and gallery image share one box. */
 html body .product-card .product-image img,
 html body .product-card .image-wrapper img,
 html body .product-card .woocommerce-loop-product__link img {
-  width:100% !important; height:100% !important;
+  position:absolute !important; top:0 !important; left:0 !important;
+  width:100% !important; height:100% !important; max-width:none !important;
   object-fit:cover !important; display:block !important;
-  transition:transform .4s !important;
+  transition:transform .4s,opacity .3s !important;
 }
 html body .product-card:hover .product-image img,
-html body .product-card:hover .image-wrapper img { transform:scale(1.05) !important; }
+html body .product-card:hover .image-wrapper img,
+html body .product-card:hover .woocommerce-loop-product__link img { transform:scale(1.05) !important; }
+/* gallery (2nd) image hidden at rest, fades in on hover — same box as main */
+html body .product-card .product-image img + img,
+html body .product-card .image-wrapper img + img,
+html body .product-card .woocommerce-loop-product__link img + img,
+html body .product-card .woocommerce-loop-product__link img:nth-child(2),
+html body .product-card .secondary-image {
+  opacity:0 !important; z-index:2 !important;
+}
+html body .product-card:hover .product-image img + img,
+html body .product-card:hover .image-wrapper img + img,
+html body .product-card:hover .woocommerce-loop-product__link img + img,
+html body .product-card:hover .woocommerce-loop-product__link img:nth-child(2),
+html body .product-card:hover .secondary-image {
+  opacity:1 !important;
+}
 
 /* SALE ribbon */
 html body .product-card .onsale,
