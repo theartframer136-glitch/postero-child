@@ -2077,3 +2077,18 @@ html body .woocommerce ul.products li.product .product-transition .onsale{
 /* wishlist heart stays pinned above the image */
 .trending-card .trending-image .custom-product-card{position:absolute !important;top:0;left:0;right:0;z-index:3;pointer-events:none;}
 .trending-card .trending-image .custom-product-card .wishlist-btn{pointer-events:auto;}
+
+/* ── .product-image-wrapper: fixed image height cap (per request) ── */
+.product-image-wrapper{
+  max-height:400px !important;
+  overflow:hidden !important;
+  position:relative !important;
+}
+.product-image-wrapper img{
+  width:100% !important;
+  height:100% !important;
+  max-height:400px !important;
+  object-fit:cover !important;
+  object-position:center !important;
+  display:block !important;
+}
