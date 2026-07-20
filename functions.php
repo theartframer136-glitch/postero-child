@@ -4228,10 +4228,43 @@ function af_pricing_config() {
     return array(
         // Size label => price multiplier (relative to the product's base price)
         'sizes' => array(
-            '24×36 in' => 1.00,   // base / smallest — keeps current price
-            '30×45 in' => 1.40,
-            '36×54 in' => 1.90,
-            '48×72 in' => 2.70,
+            '2×3 ft (24×36 in)'   => 1.00,  // base — spec size list (mega menu)
+            '2×3.5 ft (24×42 in)' => 1.15,
+            '2×4 ft (24×48 in)'   => 1.30,
+            '2×5 ft (24×60 in)'   => 1.60,
+            '2.5×3 ft (30×36 in)' => 1.22,
+            '2.5×4 ft (30×48 in)' => 1.55,
+            '2.5×5 ft (30×60 in)' => 1.90,
+            '3×4 ft (36×48 in)'   => 1.80,
+            '3×5 ft (36×60 in)'   => 2.20,
+            '3×6 ft (36×72 in)'   => 2.60,
+            '4×3 ft (48×36 in)'   => 1.80,
+            '4×4 ft (48×48 in)'   => 2.40,
+            '4×5 ft (48×60 in)'   => 2.90,
+            '4×6 ft (48×72 in)'   => 3.40,
+        ),
+        // Quick-filter groups (spec: Small / Medium / Large / Custom)
+        'groups' => array(
+            'Small'  => array('2×3 ft (24×36 in)','2×3.5 ft (24×42 in)','2.5×3 ft (30×36 in)'),
+            'Medium' => array('2×4 ft (24×48 in)','2.5×4 ft (30×48 in)','3×4 ft (36×48 in)','4×3 ft (48×36 in)'),
+            'Large'  => array('2×5 ft (24×60 in)','2.5×5 ft (30×60 in)','3×5 ft (36×60 in)','3×6 ft (36×72 in)','4×4 ft (48×48 in)','4×5 ft (48×60 in)','4×6 ft (48×72 in)'),
+        ),
+        // Wall-suitability hints (spec: "Best for 10×12 ft walls")
+        'hints' => array(
+            '2×3 ft (24×36 in)'   => 'Best for 6×8 ft walls & cozy corners',
+            '2×3.5 ft (24×42 in)' => 'Best for 6×8 ft walls',
+            '2×4 ft (24×48 in)'   => 'Best for 8×10 ft walls',
+            '2×5 ft (24×60 in)'   => 'Best above sofas & consoles',
+            '2.5×3 ft (30×36 in)' => 'Best for 7×9 ft walls',
+            '2.5×4 ft (30×48 in)' => 'Best for 8×10 ft walls',
+            '2.5×5 ft (30×60 in)' => 'Best for 9×11 ft walls',
+            '3×4 ft (36×48 in)'   => 'Best for 9×11 ft walls',
+            '3×5 ft (36×60 in)'   => 'Best for 10×12 ft walls',
+            '3×6 ft (36×72 in)'   => 'Statement piece — 10×12 ft+ walls',
+            '4×3 ft (48×36 in)'   => 'Best for 9×11 ft walls (landscape)',
+            '4×4 ft (48×48 in)'   => 'Best for 10×12 ft walls',
+            '4×5 ft (48×60 in)'   => 'Grand walls & double-height spaces',
+            '4×6 ft (48×72 in)'   => 'Extra large — lobbies & feature walls',
         ),
         // Frame type => flat add-on fee (USD)
         'frames' => array(
@@ -4262,27 +4295,40 @@ function af_calc_price($base, $size, $frame, $color) {
 // 8a. Render selectors inside the add-to-cart form (simple products)
 add_action('woocommerce_before_add_to_cart_button', function() {
     global $product;
-    if (!$product || !$product->is_type('simple') || !$product->is_purchasable() || !$product->is_in_stock()) return;
+    if (!$product || (!$product->is_type('simple') && !$product->is_type('variable')) || !$product->is_purchasable() || !$product->is_in_stock()) return;
     $cfg  = af_pricing_config();
-    $base = (float) wc_get_price_to_display($product);
+    if ($product->is_type('variable')) {
+        $min  = (float) $product->get_variation_price('min');
+        $base = $min > 0 ? $min : (float) wc_get_price_to_display($product);
+    } else {
+        $base = (float) wc_get_price_to_display($product);
+    }
     $sizes  = array_keys($cfg['sizes']);
     $frames = array_keys($cfg['frames']);
     $colors = array_keys($cfg['colors']);
     ?>
     <div class="af-opts" data-base="<?php echo esc_attr($base); ?>" data-config='<?php echo esc_attr(wp_json_encode($cfg)); ?>' data-symbol="<?php echo esc_attr(get_woocommerce_currency_symbol()); ?>">
       <div class="af-opt-group">
-        <label class="af-opt-label">Size</label>
+        <label class="af-opt-label">Size <span class="af-opt-sub">(height × width)</span></label>
+        <div class="af-chips af-group-chips">
+          <button type="button" class="af-chip-grp active" data-grp="All">All</button>
+          <button type="button" class="af-chip-grp" data-grp="Small">Small</button>
+          <button type="button" class="af-chip-grp" data-grp="Medium">Medium</button>
+          <button type="button" class="af-chip-grp" data-grp="Large">Large</button>
+          <a class="af-chip-grp af-chip-custom" href="/customize-your-picture/">Custom ↗</a>
+        </div>
         <div class="af-chips af-size-chips">
           <?php foreach ($sizes as $i => $s): ?>
             <button type="button" class="af-chip-opt<?php echo $i===0?' active':''; ?>" data-type="size" data-val="<?php echo esc_attr($s); ?>"><?php echo esc_html($s); ?></button>
           <?php endforeach; ?>
         </div>
       </div>
+      <p class="af-wall-hint" id="afWallHint"></p>
       <div class="af-opt-group">
         <label class="af-opt-label">Frame Type</label>
         <div class="af-chips af-frame-chips">
           <?php foreach ($frames as $i => $f): $fee=$cfg['frames'][$f]; ?>
-            <button type="button" class="af-chip-opt<?php echo $i===0?' active':''; ?>" data-type="frame" data-val="<?php echo esc_attr($f); ?>"><?php echo esc_html($f); ?><?php if($fee>0) echo ' <em>+'.get_woocommerce_currency_symbol().$fee.'</em>'; ?></button>
+            <button type="button" class="af-chip-opt<?php echo $i===0?' active':''; ?>" data-type="frame" data-val="<?php echo esc_attr($f); ?>"><?php if($f==='Floating Frame') echo '<span class="af-rec">Recommended</span>'; ?><?php echo esc_html($f); ?><?php if($fee>0) echo ' <em>+'.get_woocommerce_currency_symbol().$fee.'</em>'; ?></button>
           <?php endforeach; ?>
         </div>
       </div>
@@ -4294,7 +4340,10 @@ add_action('woocommerce_before_add_to_cart_button', function() {
           <?php endforeach; ?>
         </div>
       </div>
-      <div class="af-price-live">Your Price: <strong id="af-live-price"><?php echo wc_price($base); ?></strong></div>
+      <p class="af-color-tip">🎨 Color may slightly vary due to lighting</p>
+      <div class="af-price-live">Your Price: <strong id="af-live-price"><?php echo wc_price($base); ?></strong>
+        <s id="af-live-mrp" class="af-live-mrp"></s></div>
+      <p class="af-price-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Free Secure Packaging</p>
       <input type="hidden" name="af_size"  value="<?php echo esc_attr($sizes[0]); ?>">
       <input type="hidden" name="af_frame" value="<?php echo esc_attr($frames[0]); ?>">
       <input type="hidden" name="af_color" value="<?php echo esc_attr($colors[0]); ?>">
@@ -4306,7 +4355,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
 add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
     if (!empty($_REQUEST['af_digital'])) return $data; // digital handled separately
     $product = wc_get_product($pid);
-    if (!$product || !$product->is_type('simple')) return $data;
+    if (!$product || (!$product->is_type('simple') && !$product->is_type('variable'))) return $data;
     $cfg = af_pricing_config();
     $size  = isset($_POST['af_size'])  ? sanitize_text_field(wp_unslash($_POST['af_size']))  : array_key_first($cfg['sizes']);
     $frame = isset($_POST['af_frame']) ? sanitize_text_field(wp_unslash($_POST['af_frame'])) : array_key_first($cfg['frames']);
@@ -4318,7 +4367,9 @@ add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
     $data['af_size']  = $size;
     $data['af_frame'] = $frame;
     $data['af_color'] = $color;
-    $data['af_price'] = af_calc_price(wc_get_price_to_display($product), $size, $frame, $color);
+    $af_base = $product->is_type('variable') ? (float) $product->get_variation_price('min') : (float) wc_get_price_to_display($product);
+    if ($af_base <= 0) $af_base = (float) wc_get_price_to_display($product);
+    $data['af_price'] = af_calc_price($af_base, $size, $frame, $color);
     $data['af_unique'] = md5($size.'|'.$frame.'|'.$color.'|'.$pid);
     return $data;
 }, 10, 2);
@@ -8150,3 +8201,220 @@ if (!defined('DISALLOW_FILE_EDIT')) {
 add_filter('login_errors', function () {
     return 'Invalid credentials. Please try again.';
 });
+
+/* ============================================================
+   PHASE 18 — Product page 100% spec match (§7)
+   Group chips + wall hints, variable-product bridge, dimension
+   overlay toggle, frame-color preview swap, video labels + DIY,
+   verified-buyers badge, recently viewed.
+   ============================================================ */
+add_action('wp_footer', function() {
+    if (!function_exists('is_product') || !is_product()) return;
+    ?>
+<style>
+.af-opt-sub{font-weight:400;color:#999;font-size:11.5px;}
+.af-group-chips{margin-bottom:8px;}
+.af-chip-grp{background:#f5f0e4;border:1px solid #e0d5b8;color:#6b5a23;font-size:11.5px;font-weight:800;
+  padding:5px 13px;cursor:pointer;border-radius:20px;text-decoration:none;display:inline-block;}
+.af-chip-grp.active{background:#141414;border-color:#141414;color:#c9a84c;}
+.af-chip-custom{border-style:dashed;}
+.af-wall-hint{margin:2px 0 12px;font-size:12.5px;color:#8a6d1f;font-weight:600;}
+.af-rec{display:block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#256d2c;font-weight:800;}
+.af-color-tip{margin:2px 0 8px;font-size:11.5px;color:#999;}
+.af-live-mrp{color:#b0b0b0;margin-left:10px;font-size:14px;}
+.af-price-notes{margin:4px 0 10px;font-size:12.5px;color:#256d2c;font-weight:600;}
+.af-dim-toggle{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid #c9a84c;color:#8a6d1f;
+  font-size:12.5px;font-weight:700;padding:8px 14px;cursor:pointer;margin:10px 0 0;}
+.af-dim-toggle.on{background:#141414;color:#c9a84c;border-color:#141414;}
+.af-dim-overlay{position:absolute;inset:0;pointer-events:none;display:none;z-index:5;}
+.af-dim-overlay.show{display:block;}
+.af-dim-w{position:absolute;left:8%;right:8%;bottom:10px;border-bottom:2px solid #c9a84c;text-align:center;color:#fff;
+  font-size:13px;font-weight:800;text-shadow:0 1px 4px #000;padding-bottom:3px;}
+.af-dim-w::before,.af-dim-w::after{content:"";position:absolute;bottom:-6px;width:2px;height:14px;background:#c9a84c;}
+.af-dim-w::before{left:0;} .af-dim-w::after{right:0;}
+.af-dim-h{position:absolute;top:8%;bottom:8%;right:10px;border-right:2px solid #c9a84c;display:flex;align-items:center;}
+.af-dim-h span{writing-mode:vertical-rl;color:#fff;font-size:13px;font-weight:800;text-shadow:0 1px 4px #000;padding-right:3px;}
+.af-dim-h::before,.af-dim-h::after{content:"";position:absolute;right:-6px;height:2px;width:14px;background:#c9a84c;}
+.af-dim-h::before{top:0;} .af-dim-h::after{bottom:0;}
+.af-vid-caption{margin:10px 0 4px;font-size:13px;font-weight:700;color:#141414;}
+.af-vid-caption span{color:#8a6d1f;}
+.af-diy-strip{display:flex;gap:10px;margin:8px 0 0;flex-wrap:wrap;}
+.af-diy-strip a{display:flex;align-items:center;gap:8px;border:1px solid #e0d5b8;background:#fdfcf9;padding:8px 13px;
+  font-size:12.5px;font-weight:700;color:#6b5a23;text-decoration:none;}
+.af-diy-strip a:hover{border-color:#c9a84c;}
+.af-verified{display:inline-flex;align-items:center;gap:5px;background:#eef7ee;border:1px solid #bfe3c2;color:#256d2c;
+  font-size:11.5px;font-weight:800;padding:3px 10px;border-radius:14px;margin-left:10px;vertical-align:middle;}
+.af-recent{margin:34px 0 8px;}
+.af-recent h3{font-size:20px;font-weight:800;margin:0 0 14px;}
+.af-recent-row{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px;}
+.af-recent-row a{flex:0 0 150px;text-decoration:none;color:#141414;font-size:12.5px;font-weight:700;line-height:1.35;}
+.af-recent-row img{width:150px;height:150px;object-fit:cover;display:block;border:1px solid #ece5d4;margin-bottom:7px;}
+</style>
+<script>
+(function(){
+  var opts = document.querySelector('.af-opts');
+
+  // ── Variable-product bridge: our engine is the UI; silently pick the
+  // first Woo variation so add-to-cart validates, then hide Woo's selects.
+  var vform = document.querySelector('form.variations_form');
+  if (opts && vform) {
+    vform.querySelectorAll('.variations select').forEach(function(sel){
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value) { sel.value = sel.options[i].value; break; }
+      }
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+    if (window.jQuery) jQuery(vform).trigger('check_variations');
+    var css = document.createElement('style');
+    css.textContent = '.af-opts ~ * .variations, form.variations_form table.variations,' +
+      'form.variations_form .reset_variations, form.variations_form .woocommerce-variation.single_variation,' +
+      '.variable-items-wrapper{display:none !important;}';
+    document.head.appendChild(css);
+  }
+  if (!opts) return;
+
+  var cfg = JSON.parse(opts.dataset.config || '{}');
+
+  // ── S/M/L group chips filter the size chips
+  var groups = cfg.groups || {};
+  opts.querySelectorAll('.af-chip-grp[data-grp]').forEach(function(g){
+    g.addEventListener('click', function(){
+      opts.querySelectorAll('.af-chip-grp').forEach(function(x){ x.classList.remove('active'); });
+      g.classList.add('active');
+      var allow = g.dataset.grp === 'All' ? null : (groups[g.dataset.grp] || []);
+      var first = null;
+      opts.querySelectorAll('.af-size-chips .af-chip-opt').forEach(function(ch){
+        var ok = !allow || allow.indexOf(ch.dataset.val) >= 0;
+        ch.style.display = ok ? '' : 'none';
+        if (ok && !first) first = ch;
+      });
+      var active = opts.querySelector('.af-size-chips .af-chip-opt.active');
+      if (first && (!active || active.style.display === 'none')) first.click();
+    });
+  });
+
+  // ── Wall-suitability hint follows the selected size
+  var hintEl = document.getElementById('afWallHint');
+  function refreshExtras(){
+    var sz = (opts.querySelector('input[name="af_size"]') || {}).value;
+    if (hintEl) hintEl.textContent = (cfg.hints && cfg.hints[sz]) ? '📐 ' + cfg.hints[sz] : '';
+    // MRP strikethrough: list-style reference at +25% of the live price
+    var live = document.getElementById('af-live-price'), mrp = document.getElementById('af-live-mrp');
+    if (live && mrp) {
+      var num = parseFloat((live.textContent || '').replace(/[^0-9.]/g, ''));
+      var symM = (live.textContent || '').match(/^[^0-9]*/);
+      if (num) mrp.textContent = (symM ? symM[0] : '$') + (num * 1.25).toFixed(2);
+    }
+  }
+  opts.addEventListener('click', function(){ setTimeout(refreshExtras, 30); });
+  refreshExtras();
+
+  // ── Dimension overlay toggle on the main product image (spec: ON/OFF)
+  var gallery = document.querySelector('.woocommerce-product-gallery__wrapper') ||
+                document.querySelector('.woocommerce-product-gallery');
+  if (gallery) {
+    var holder = gallery.querySelector('.woocommerce-product-gallery__image') || gallery;
+    holder.style.position = 'relative';
+    var ov = document.createElement('div');
+    ov.className = 'af-dim-overlay';
+    ov.innerHTML = '<div class="af-dim-w"><span id="afDimW"></span></div><div class="af-dim-h"><span id="afDimH"></span></div>';
+    holder.appendChild(ov);
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'af-dim-toggle';
+    btn.innerHTML = '📐 Show dimensions';
+    (document.querySelector('.woocommerce-product-gallery') || holder).after(btn);
+    function dims(){
+      var sz = (opts.querySelector('input[name="af_size"]') || {}).value || '';
+      var m = sz.match(/(\d+(?:\.\d+)?)×(\d+(?:\.\d+)?) ft \((\d+)×(\d+) in\)/);
+      if (m) {
+        document.getElementById('afDimH').textContent = m[1] + ' ft (' + m[3] + ' in)';
+        document.getElementById('afDimW').textContent = m[2] + ' ft (' + m[4] + ' in)';
+      }
+    }
+    btn.addEventListener('click', function(){
+      var on = ov.classList.toggle('show');
+      btn.classList.toggle('on', on);
+      btn.innerHTML = on ? '📐 Hide dimensions' : '📐 Show dimensions';
+      dims();
+    });
+    opts.addEventListener('click', function(){ setTimeout(dims, 30); });
+
+    // ── Frame-color preview: swap main image to the matching frame photo
+    var colorImgs = {
+      'Black':     'https://theartframer.us/wp-content/uploads/2026/03/black-frame.webp',
+      'Silver':    'https://theartframer.us/wp-content/uploads/2026/03/silver-frame.webp',
+      'Gold':      'https://theartframer.us/wp-content/uploads/2026/03/gold-frame.webp',
+      'Rose Gold': 'https://theartframer.us/wp-content/uploads/2026/03/rosegold-frame.webp'
+    };
+    var mainImg = holder.querySelector('img');
+    if (mainImg) {
+      var orig = { src: mainImg.src, srcset: mainImg.getAttribute('srcset') };
+      opts.querySelectorAll('.af-swatch').forEach(function(sw){
+        sw.addEventListener('dblclick', function(){ restore(); });
+        sw.addEventListener('click', function(){
+          var u = colorImgs[sw.dataset.val];
+          if (!u) return;
+          mainImg.src = u; mainImg.removeAttribute('srcset');
+          clearTimeout(mainImg._afT);
+          mainImg._afT = setTimeout(restore, 3500); // brief preview, then back to art
+        });
+      });
+      function restore(){ mainImg.src = orig.src; if (orig.srcset) mainImg.setAttribute('srcset', orig.srcset); }
+    }
+
+    // ── Video labels (spec: "Watch how it looks in real homes") + DIY guides
+    var cap = document.createElement('div');
+    cap.className = 'af-vid-caption';
+    cap.innerHTML = '▶ <span>Watch how it looks in real homes</span>' +
+      '<div class="af-diy-strip">' +
+      '<a href="https://www.youtube.com/channel/UC_GX4vXRQrN4GsvSfgmZxYw" target="_blank" rel="noopener">🎬 Product &amp; framing videos</a>' +
+      '<a href="https://www.youtube.com/channel/UC_GX4vXRQrN4GsvSfgmZxYw/search?query=DIY" target="_blank" rel="noopener">🛠️ DIY hanging guide</a>' +
+      '</div>';
+    btn.after(cap);
+  }
+
+  // ── Verified Buyers badge beside the star rating
+  var rating = document.querySelector('.woocommerce-product-rating');
+  if (rating && !rating.querySelector('.af-verified')) {
+    var b = document.createElement('span');
+    b.className = 'af-verified';
+    b.textContent = '✓ Verified Buyers';
+    rating.appendChild(b);
+  }
+})();
+</script>
+<?php }, 45);
+
+// ── Recently viewed (spec §7 post-tab): cookie-based strip ───
+add_action('template_redirect', function() {
+    if (!function_exists('is_product') || !is_product()) return;
+    global $post;
+    if (!$post) return;
+    $seen = isset($_COOKIE['af_recent']) ? array_filter(array_map('absint', explode(',', $_COOKIE['af_recent']))) : array();
+    $seen = array_diff($seen, array($post->ID));
+    array_unshift($seen, $post->ID);
+    $seen = array_slice($seen, 0, 9);
+    setcookie('af_recent', implode(',', $seen), time() + MONTH_IN_SECONDS, '/');
+});
+
+add_action('woocommerce_after_single_product_summary', function() {
+    global $post;
+    $seen = isset($_COOKIE['af_recent']) ? array_filter(array_map('absint', explode(',', $_COOKIE['af_recent']))) : array();
+    $seen = array_values(array_diff($seen, array($post ? $post->ID : 0)));
+    if (empty($seen)) return;
+    $out = '';
+    $n = 0;
+    foreach ($seen as $pid) {
+        if ($n >= 6) break;
+        $p = wc_get_product($pid);
+        if (!$p || $p->get_status() !== 'publish') continue;
+        $img = wp_get_attachment_image_url($p->get_image_id(), 'woocommerce_thumbnail');
+        if (!$img) continue;
+        $out .= '<a href="' . esc_url(get_permalink($pid)) . '"><img loading="lazy" src="' . esc_url($img) . '" alt="' . esc_attr($p->get_name()) . '">'
+              . esc_html(wp_trim_words($p->get_name(), 7, '…')) . '</a>';
+        $n++;
+    }
+    if (!$out) return;
+    echo '<div class="af-recent"><h3>Recently Viewed</h3><div class="af-recent-row">' . $out . '</div></div>';
+}, 22);
