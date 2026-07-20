@@ -2281,3 +2281,38 @@ body.post-type-archive-product ul.products li.product .product-img-wrap img{
 @media(max-width:520px){
   body.tax-product_cat ul.products li.product .product-img-wrap{height:260px !important;max-height:260px !important;min-height:260px !important;}
 }
+
+/* ============================================================
+   Shop / category toolbar row — space out the grid/list toggle,
+   result count, sorting and "Show N" controls (they were jammed
+   together with no gaps). Margin-based so it works regardless of
+   the theme's wrapper markup.
+   ============================================================ */
+body.woocommerce .woocommerce-result-count,
+body.tax-product_cat .woocommerce-result-count,
+body.post-type-archive-product .woocommerce-result-count{
+  display:inline-block !important;vertical-align:middle !important;
+  margin:0 22px 0 12px !important;padding:6px 0 !important;
+  font-size:13.5px !important;color:#7b7365 !important;line-height:1.5 !important;background:transparent !important;
+}
+body.woocommerce .woocommerce-ordering,
+body.tax-product_cat .woocommerce-ordering,
+body.post-type-archive-product .woocommerce-ordering{
+  display:inline-block !important;vertical-align:middle !important;margin:0 20px 0 0 !important;
+}
+/* the theme's "Show N" per-page control (sits after sorting) */
+body.woocommerce .woocommerce-ordering + *,
+body.tax-product_cat .woocommerce-ordering + *,
+body.post-type-archive-product .woocommerce-ordering + *{
+  display:inline-block !important;vertical-align:middle !important;margin-left:6px !important;
+}
+/* grid/list view switcher spacing */
+body.woocommerce .woocommerce-ordering select,
+body.tax-product_cat .woocommerce-ordering select{margin:0 !important;}
+body.woocommerce [class*="view-switch"],
+body.woocommerce [class*="grid-list"],
+body.woocommerce [class*="display-mode"]{margin-right:16px !important;vertical-align:middle !important;}
+@media(max-width:600px){
+  body.woocommerce .woocommerce-result-count{display:block !important;margin:6px 0 10px !important;}
+  body.woocommerce .woocommerce-ordering{margin:0 12px 8px 0 !important;}
+}
