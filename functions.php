@@ -4224,6 +4224,29 @@ add_action('wp_head', function() {
 // ─────────────────────────────────────────────────────────────
 
 // ---- Pricing configuration (edit these numbers anytime) ----
+// Which products get the size/frame/color engine: every purchasable
+// simple or variable product EXCEPT the gift card and non-canvas
+// categories (accessories, banners) that have their own option sets.
+function af_pricing_applies($product) {
+    if (!$product) return false;
+    if (!$product->is_type('simple') && !$product->is_type('variable')) return false;
+    if (function_exists('af_gc_product_id') && (int) $product->get_id() === af_gc_product_id()) return false;
+    $excluded = array('art-accessories', 'banners-signage');
+    $terms = get_the_terms($product->get_id(), 'product_cat');
+    if ($terms && !is_wp_error($terms)) {
+        foreach ($terms as $t) {
+            if (in_array($t->slug, $excluded, true)) return false;
+            // also honour excluded parents (e.g. child cats of accessories)
+            $anc = get_ancestors($t->term_id, 'product_cat');
+            foreach ($anc as $aid) {
+                $at = get_term($aid, 'product_cat');
+                if ($at && !is_wp_error($at) && in_array($at->slug, $excluded, true)) return false;
+            }
+        }
+    }
+    return true;
+}
+
 function af_pricing_config() {
     return array(
         // Size label => price multiplier (relative to the product's base price)
@@ -4295,7 +4318,7 @@ function af_calc_price($base, $size, $frame, $color) {
 // 8a. Render selectors inside the add-to-cart form (simple products)
 add_action('woocommerce_before_add_to_cart_button', function() {
     global $product;
-    if (!$product || (!$product->is_type('simple') && !$product->is_type('variable')) || !$product->is_purchasable() || !$product->is_in_stock()) return;
+    if (!$product || !af_pricing_applies($product) || !$product->is_purchasable() || !$product->is_in_stock()) return;
     $cfg  = af_pricing_config();
     if ($product->is_type('variable')) {
         $min  = (float) $product->get_variation_price('min');
@@ -4355,7 +4378,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
 add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
     if (!empty($_REQUEST['af_digital'])) return $data; // digital handled separately
     $product = wc_get_product($pid);
-    if (!$product || (!$product->is_type('simple') && !$product->is_type('variable'))) return $data;
+    if (!$product || !af_pricing_applies($product)) return $data;
     $cfg = af_pricing_config();
     $size  = isset($_POST['af_size'])  ? sanitize_text_field(wp_unslash($_POST['af_size']))  : array_key_first($cfg['sizes']);
     $frame = isset($_POST['af_frame']) ? sanitize_text_field(wp_unslash($_POST['af_frame'])) : array_key_first($cfg['frames']);
