@@ -8355,7 +8355,10 @@ add_action('wp_footer', function() {
     btn.type = 'button';
     btn.className = 'af-dim-toggle';
     btn.innerHTML = '📐 Show dimensions';
-    (document.querySelector('.woocommerce-product-gallery') || holder).after(btn);
+    // Place after the categories/tags meta block (user request), with fallbacks
+    var metaEl = document.querySelector('.summary .product_meta') ||
+                 document.querySelector('.product_meta');
+    (metaEl || document.querySelector('.woocommerce-product-gallery') || holder).after(btn);
     function dims(){
       var sz = (opts.querySelector('input[name="af_size"]') || {}).value || '';
       var m = sz.match(/(\d+(?:\.\d+)?)×(\d+(?:\.\d+)?) ft \((\d+)×(\d+) in\)/);
