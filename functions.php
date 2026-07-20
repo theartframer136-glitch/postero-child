@@ -4231,6 +4231,8 @@ function af_pricing_applies($product) {
     if (!$product) return false;
     if (!$product->is_type('simple') && !$product->is_type('variable')) return false;
     if (function_exists('af_gc_product_id') && (int) $product->get_id() === af_gc_product_id()) return false;
+    if (get_post_meta($product->get_id(), '_af_is_gift_card', true) === 'yes') return false;
+    if ($product->get_slug() === 'the-art-framer-gift-card') return false;
     $excluded = array('art-accessories', 'banners-signage');
     $terms = get_the_terms($product->get_id(), 'product_cat');
     if ($terms && !is_wp_error($terms)) {
