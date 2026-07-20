@@ -165,6 +165,18 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/diag-newarrivals.php --allow-root 2>&1" \
             || true
 
+          echo "Removing duplicate product categories..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/dedupe-categories.php --allow-root 2>&1" \
+            || true
+
+          echo "Category card + sidebar markup diagnostic..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-catcard.php --allow-root 2>&1" \
+            || true
+
           echo "Buy Now diagnostic (simple vs variable + links)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
