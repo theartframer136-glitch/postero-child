@@ -2252,25 +2252,32 @@ body.post-type-archive-product .woocommerce-result-count{
 }
 body.tax-product_cat .woocommerce-notices-wrapper + .woocommerce-result-count{background:transparent !important;}
 
-/* Category cards: the real image lives in .product-transition > .product-img-wrap
-   > .inner > .product-image > img (deeply nested), so pin the box on
-   .product-img-wrap and make the whole chain fill it. Uniform 300px height. */
+/* Category cards: BOTH the main image AND the hover/gallery image (.image-main
+   and .image-hover) must fill the exact same fixed box. The image area is
+   .product-transition > .product-img-wrap > .inner > .product-image(.image-main
+   /.image-hover) > img. Pin the box on .product-img-wrap; make .inner a relative
+   300px box and force EVERY child (both image layers) to absolutely fill it. */
 body.tax-product_cat ul.products li.product .product-img-wrap,
 body.post-type-archive-product ul.products li.product .product-img-wrap{
-  height:300px !important;max-height:300px !important;overflow:hidden !important;
-  position:relative !important;display:block !important;width:100% !important;
+  height:300px !important;max-height:300px !important;min-height:300px !important;
+  overflow:hidden !important;position:relative !important;display:block !important;width:100% !important;
 }
 body.tax-product_cat ul.products li.product .product-img-wrap .inner,
-body.tax-product_cat ul.products li.product .product-img-wrap .product-image,
-body.post-type-archive-product ul.products li.product .product-img-wrap .inner,
-body.post-type-archive-product ul.products li.product .product-img-wrap .product-image{
-  height:100% !important;width:100% !important;display:block !important;
+body.post-type-archive-product ul.products li.product .product-img-wrap .inner{
+  position:relative !important;height:100% !important;width:100% !important;display:block !important;
 }
-body.tax-product_cat ul.products li.product .product-img-wrap .product-image{position:absolute !important;top:0;left:0;}
+/* every direct child of .inner = a stacked image layer -> absolutely fill box */
+body.tax-product_cat ul.products li.product .product-img-wrap .inner > *,
+body.post-type-archive-product ul.products li.product .product-img-wrap .inner > *{
+  position:absolute !important;top:0 !important;left:0 !important;right:0 !important;bottom:0 !important;
+  height:100% !important;width:100% !important;margin:0 !important;display:block !important;
+}
 body.tax-product_cat ul.products li.product .product-img-wrap img,
 body.post-type-archive-product ul.products li.product .product-img-wrap img{
-  width:100% !important;height:100% !important;object-fit:cover !important;display:block !important;max-width:none !important;
+  position:absolute !important;top:0 !important;left:0 !important;
+  width:100% !important;height:100% !important;object-fit:cover !important;
+  display:block !important;max-width:none !important;max-height:100% !important;margin:0 !important;
 }
 @media(max-width:520px){
-  body.tax-product_cat ul.products li.product .product-img-wrap{height:260px !important;max-height:260px !important;}
+  body.tax-product_cat ul.products li.product .product-img-wrap{height:260px !important;max-height:260px !important;min-height:260px !important;}
 }
