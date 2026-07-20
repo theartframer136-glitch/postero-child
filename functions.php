@@ -8556,7 +8556,10 @@ add_action('wp_footer', function() {
 // ─────────────────────────────────────────────────────────────
 add_action('pre_get_posts', function($q){
     if ($q->is_main_query()) return;
-    if ($q->get('post_type') !== 'product') return;
+    // post_type may be a string or an array — accept both
+    $pt = $q->get('post_type');
+    $is_product = ($pt === 'product') || (is_array($pt) && in_array('product', $pt, true));
+    if (!$is_product) return;
 
     // Case 1: collection tab switch (theme AJAX)
     if (wp_doing_ajax() && isset($_REQUEST['action']) && $_REQUEST['action'] === 'load_products') {
@@ -8564,16 +8567,17 @@ add_action('pre_get_posts', function($q){
         return;
     }
 
-    // Case 2: initial homepage grid render
+    // Case 2: initial homepage grid render — 12-per-page product query filtered
+    // by category (tax_query OR the product_cat/category query-var shortcuts)
     if (!is_admin() && is_front_page() && (int) $q->get('posts_per_page') === 12) {
+        $has_cat = false;
         $tax = $q->get('tax_query');
         if (is_array($tax)) {
             foreach ($tax as $t) {
-                if (is_array($t) && isset($t['taxonomy']) && $t['taxonomy'] === 'product_cat') {
-                    $q->set('posts_per_page', -1);
-                    return;
-                }
+                if (is_array($t) && isset($t['taxonomy']) && $t['taxonomy'] === 'product_cat') { $has_cat = true; break; }
             }
         }
+        if (!$has_cat && ($q->get('product_cat') || $q->get('category_name'))) $has_cat = true;
+        if ($has_cat) $q->set('posts_per_page', -1);
     }
 });
