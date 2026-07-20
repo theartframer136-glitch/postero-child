@@ -2288,23 +2288,33 @@ body.post-type-archive-product ul.products li.product .product-img-wrap img{
    together with no gaps). Margin-based so it works regardless of
    the theme's wrapper markup.
    ============================================================ */
+/* Make the toolbar row a flex line: count on the left, sorting + "Show" on the
+   right. :has() targets whatever wrapper holds the result count. */
+body.woocommerce *:has(> .woocommerce-result-count):has(> .woocommerce-ordering),
+body.tax-product_cat *:has(> .woocommerce-result-count):has(> .woocommerce-ordering),
+body.post-type-archive-product *:has(> .woocommerce-result-count):has(> .woocommerce-ordering){
+  display:flex !important;align-items:center !important;flex-wrap:wrap !important;gap:10px 18px !important;width:100% !important;
+}
 body.woocommerce .woocommerce-result-count,
 body.tax-product_cat .woocommerce-result-count,
 body.post-type-archive-product .woocommerce-result-count{
   display:inline-block !important;vertical-align:middle !important;
-  margin:0 22px 0 12px !important;padding:6px 0 !important;
+  margin:0 auto 0 0 !important;padding:6px 0 !important;   /* margin-right:auto pushes the rest right */
   font-size:13.5px !important;color:#7b7365 !important;line-height:1.5 !important;background:transparent !important;
+  float:left !important;
 }
 body.woocommerce .woocommerce-ordering,
 body.tax-product_cat .woocommerce-ordering,
 body.post-type-archive-product .woocommerce-ordering{
-  display:inline-block !important;vertical-align:middle !important;margin:0 20px 0 0 !important;
+  display:inline-block !important;vertical-align:middle !important;margin:0 0 0 auto !important;
+  float:right !important;order:9 !important;
 }
-/* the theme's "Show N" per-page control (sits after sorting) */
+/* the theme's "Show N" per-page control (sits after sorting) — keep it far right */
 body.woocommerce .woocommerce-ordering + *,
 body.tax-product_cat .woocommerce-ordering + *,
 body.post-type-archive-product .woocommerce-ordering + *{
-  display:inline-block !important;vertical-align:middle !important;margin-left:6px !important;
+  display:inline-block !important;vertical-align:middle !important;margin-left:14px !important;
+  float:right !important;order:10 !important;
 }
 /* grid/list view switcher spacing */
 body.woocommerce .woocommerce-ordering select,
@@ -2313,6 +2323,6 @@ body.woocommerce [class*="view-switch"],
 body.woocommerce [class*="grid-list"],
 body.woocommerce [class*="display-mode"]{margin-right:16px !important;vertical-align:middle !important;}
 @media(max-width:600px){
-  body.woocommerce .woocommerce-result-count{display:block !important;margin:6px 0 10px !important;}
-  body.woocommerce .woocommerce-ordering{margin:0 12px 8px 0 !important;}
+  body.woocommerce .woocommerce-result-count{margin:6px 0 !important;float:none !important;}
+  body.woocommerce .woocommerce-ordering{margin:0 12px 8px 0 !important;float:none !important;}
 }
