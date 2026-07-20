@@ -8200,11 +8200,26 @@ add_filter('wp_headers', function ($headers) {
     return $headers;
 });
 
-// 25d. HTTP security headers are set at the DOCROOT .htaccess layer instead
-// of here — PHP send_headers() headers do NOT appear on LiteSpeed cache HITS
-// (PHP is skipped). See tools/set-security-headers.php, which runs each deploy
-// and writes an <IfModule mod_headers.c> block so headers apply to every
-// response, cached or not. (CSP still deferred — Elementor needs report-only.)
+// 25d. HTTP security headers.
+// On this LiteSpeed+hcdn host, headers do NOT reach *cached* pages (LiteSpeed
+// serves cache hits without running PHP, and does not bake PHP-set headers
+// into the cache; the docroot-.htaccess mod_headers path also isn't honored
+// here). So we set them via PHP for every UNCACHED / dynamic response —
+// which is exactly where they matter: checkout, cart, my-account, login,
+// search, REST, 404. Cached marketing pages (home/shop/product) need the
+// header added at the LiteSpeed/CDN layer (hPanel) — tracked as a manual item.
+// tools/set-security-headers.php still writes the .htaccess block in case a
+// future server config honors it. (CSP deferred — Elementor needs report-only.)
+add_action('send_headers', function () {
+    if (is_admin()) return;
+    header('X-Frame-Options: SAMEORIGIN');
+    header('X-Content-Type-Options: nosniff');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    header('Permissions-Policy: geolocation=(), camera=(), microphone=()');
+    if (is_ssl()) {
+        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+    }
+});
 
 // 25e. Disable the in-dashboard theme/plugin file editor. If an admin
 // account is ever compromised, this stops the attacker editing PHP to
