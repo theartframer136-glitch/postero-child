@@ -4330,7 +4330,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
     $frames = array_keys($cfg['frames']);
     $colors = array_keys($cfg['colors']);
     ?>
-    <div class="af-opts" data-base="<?php echo esc_attr($base); ?>" data-config='<?php echo esc_attr(wp_json_encode($cfg)); ?>' data-symbol="<?php echo esc_attr(get_woocommerce_currency_symbol()); ?>">
+    <div class="af-opts" id="af-opts" data-base="<?php echo esc_attr($base); ?>" data-config='<?php echo esc_attr(wp_json_encode($cfg)); ?>' data-symbol="<?php echo esc_attr(get_woocommerce_currency_symbol()); ?>">
       <div class="af-opt-group">
         <label class="af-opt-label">Size <span class="af-opt-sub">(height × width)</span></label>
         <div class="af-chips af-group-chips">
@@ -8441,3 +8441,84 @@ add_action('woocommerce_after_single_product_summary', function() {
     if (!$out) return;
     echo '<div class="af-recent"><h3>Recently Viewed</h3><div class="af-recent-row">' . $out . '</div></div>';
 }, 22);
+
+// ── 18c. Variation strips on shop/category product cards ─────
+// One batched endpoint tells the page which visible products get the
+// size/frame/color engine and their from-price; JS injects a compact
+// swatch strip on each eligible card, deep-linking to #af-opts.
+function af_card_variations_handler() {
+    $raw = isset($_POST['ids']) ? (array) $_POST['ids'] : array();
+    $ids = array_slice(array_filter(array_map('absint', $raw)), 0, 48);
+    $cfg = af_pricing_config();
+    $meta = array('sizes' => count($cfg['sizes']), 'frames' => count($cfg['frames']));
+    $out = array();
+    foreach ($ids as $id) {
+        $p = wc_get_product($id);
+        if (!$p || $p->get_status() !== 'publish') continue;
+        if (!af_pricing_applies($p) || !$p->is_purchasable()) { $out[$id] = array('ok' => 0); continue; }
+        $base = $p->is_type('variable') ? (float) $p->get_variation_price('min') : (float) wc_get_price_to_display($p);
+        $out[$id] = array(
+            'ok'   => 1,
+            'from' => wp_strip_all_tags(wc_price($base)),
+            'url'  => get_permalink($id) . '#af-opts',
+        );
+    }
+    wp_send_json_success(array('meta' => $meta, 'items' => $out));
+}
+add_action('wp_ajax_af_card_variations',        'af_card_variations_handler');
+add_action('wp_ajax_nopriv_af_card_variations', 'af_card_variations_handler');
+
+add_action('wp_footer', function() {
+    if (!function_exists('is_shop')) return;
+    if (!is_shop() && !is_product_category() && !is_product_tag() && !is_front_page()) return;
+    ?>
+<style>
+.af-card-vars{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:7px 0 4px;font-size:11.5px;color:#8a6d1f;font-weight:700;}
+.af-card-dots{display:inline-flex;gap:4px;}
+.af-card-dots i{width:14px;height:14px;border-radius:50%;border:1.5px solid #fff;box-shadow:0 0 0 1px #d9d0bd;display:inline-block;}
+.af-card-vars a{color:#8a6d1f;text-decoration:none;display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.af-card-vars a:hover{color:#141414;}
+.af-card-from{color:#141414;font-weight:800;}
+</style>
+<script>
+(function(){
+  var dots = {'Black':'#1a1a1a','Silver':'#c0c0c0','Gold':'#d4af37','Rose Gold':'#b76e79'};
+  function inject(){
+    var cards = {};
+    document.querySelectorAll('a[data-product_id]').forEach(function(a){
+      var card = a.closest('li.product, .type-product, .product');
+      var id = parseInt(a.getAttribute('data-product_id'), 10);
+      if (card && id && !card.querySelector('.af-card-vars') && !card.dataset.afVarsDone) cards[id] = card;
+    });
+    var ids = Object.keys(cards);
+    if (!ids.length) return;
+    var fd = new FormData();
+    fd.append('action', 'af_card_variations');
+    ids.forEach(function(id){ fd.append('ids[]', id); });
+    fetch('<?php echo esc_url(admin_url('admin-ajax.php')); ?>', { method:'POST', credentials:'same-origin', body: fd })
+      .then(function(r){ return r.json(); })
+      .then(function(res){
+        if (!res || !res.success) return;
+        var meta = res.data.meta, items = res.data.items || {};
+        ids.forEach(function(id){
+          var card = cards[id], info = items[id];
+          card.dataset.afVarsDone = '1';
+          if (!info || !info.ok) return;
+          var strip = document.createElement('div');
+          strip.className = 'af-card-vars';
+          var d = Object.keys(dots).map(function(c){ return '<i title="' + c + '" style="background:' + dots[c] + '"></i>'; }).join('');
+          strip.innerHTML = '<a href="' + info.url + '"><span class="af-card-dots">' + d + '</span>' +
+            '<span>' + meta.sizes + ' sizes · ' + meta.frames + ' frames</span>' +
+            '<span class="af-card-from">From ' + info.from + '</span></a>';
+          var anchor = card.querySelector('.price') || card.querySelector('.woocommerce-loop-product__title') || card;
+          anchor.parentElement ? anchor.parentElement.insertBefore(strip, anchor.nextSibling) : card.appendChild(strip);
+        });
+      });
+  }
+  document.addEventListener('DOMContentLoaded', inject);
+  window.addEventListener('load', inject);
+  setTimeout(inject, 900); setTimeout(inject, 2200);
+  document.addEventListener('af_products_appended', function(){ setTimeout(inject, 300); }); // infinite scroll
+})();
+</script>
+<?php }, 46);
