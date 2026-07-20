@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.2.8');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.2.9');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -335,6 +335,13 @@ add_action('wp_head', function() {
     .widget_postero_product_themes { display: none !important; }
     </style>';
 }, 999);
+
+// 8b. Trim the sidebar "Categories" widget — hide empty categories so the list
+//     isn't the entire 90-item site tree (functional cleanup on archives).
+add_filter('woocommerce_product_categories_widget_args', function($args){
+    $args['hide_empty'] = 1;
+    return $args;
+});
 
 // 9. Subcategory circles fix
 add_action('wp_footer', function() { ?>
@@ -8500,7 +8507,7 @@ add_action('wp_footer', function() {
     document.querySelectorAll('a[data-product_id]').forEach(function(a){
       var card = a.closest('li.product, .type-product, .product');
       var id = parseInt(a.getAttribute('data-product_id'), 10);
-      if (card && id && !card.querySelector('.af-card-vars') && !card.dataset.afVarsDone) cards[id] = card;
+      if (card && id && !card.querySelector('.af-card-vars') && !card.dataset.afVarsDone) { card.dataset.afVarsDone = '1'; cards[id] = card; }
     });
     var ids = Object.keys(cards);
     if (!ids.length) return;

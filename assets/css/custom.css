@@ -2251,3 +2251,26 @@ body.post-type-archive-product .woocommerce-result-count{
   background:transparent !important;box-shadow:none !important;padding:6px 0 !important;color:#7b7365 !important;
 }
 body.tax-product_cat .woocommerce-notices-wrapper + .woocommerce-result-count{background:transparent !important;}
+
+/* Category cards: the real image lives in .product-transition > .product-img-wrap
+   > .inner > .product-image > img (deeply nested), so pin the box on
+   .product-img-wrap and make the whole chain fill it. Uniform 300px height. */
+body.tax-product_cat ul.products li.product .product-img-wrap,
+body.post-type-archive-product ul.products li.product .product-img-wrap{
+  height:300px !important;max-height:300px !important;overflow:hidden !important;
+  position:relative !important;display:block !important;width:100% !important;
+}
+body.tax-product_cat ul.products li.product .product-img-wrap .inner,
+body.tax-product_cat ul.products li.product .product-img-wrap .product-image,
+body.post-type-archive-product ul.products li.product .product-img-wrap .inner,
+body.post-type-archive-product ul.products li.product .product-img-wrap .product-image{
+  height:100% !important;width:100% !important;display:block !important;
+}
+body.tax-product_cat ul.products li.product .product-img-wrap .product-image{position:absolute !important;top:0;left:0;}
+body.tax-product_cat ul.products li.product .product-img-wrap img,
+body.post-type-archive-product ul.products li.product .product-img-wrap img{
+  width:100% !important;height:100% !important;object-fit:cover !important;display:block !important;max-width:none !important;
+}
+@media(max-width:520px){
+  body.tax-product_cat ul.products li.product .product-img-wrap{height:260px !important;max-height:260px !important;}
+}
