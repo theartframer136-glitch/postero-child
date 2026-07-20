@@ -31,6 +31,11 @@ jobs:
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
           echo "Deploying to: ${TARGET}"
 
+          echo "EMERGENCY: clearing any stuck WordPress maintenance-mode flag..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html 2>/dev/null && rm -f .maintenance && (wp maintenance-mode deactivate --allow-root 2>&1 || true)" \
+            || echo "  (early clear skipped — will retry via recover-maintenance.php after rsync)"
+
           echo "Waiting 90s for any SSH throttle to clear..."
           sleep 90
 
@@ -248,10 +253,10 @@ jobs:
              wp litespeed-option get media-lazy --allow-root 2>&1" \
             || true
 
-          echo "Enabling auto-updates for all plugins + themes (security)..."
+          echo "Recovery: clear maintenance flag + disable blanket auto-updates..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/enable-auto-updates.php --allow-root 2>&1" \
+             wp eval-file wp-content/themes/postero-child/tools/recover-maintenance.php --allow-root 2>&1" \
             || true
 
           echo "Clearing caches after all updates..."
