@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Restore the ORIGINAL theme (Elementor) About page design from a revision,
  * undoing the earlier custom-content replacement. Reports what it finds so we

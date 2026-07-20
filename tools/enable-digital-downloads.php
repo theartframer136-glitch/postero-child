@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Make products downloadable so a paid Digital Download delivers a file.
  * Uses raw post meta (avoids WC_Product::save() download-URL validation that

@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Replace the default theme "About Us" content with The Art Framer's own.
  * Styling is loaded from the child theme (functions.php), NOT inline, because

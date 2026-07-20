@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Give every non-empty product_cat term that has no thumbnail a sensible one:
  * the featured image of its first product. Fixes the broken/placeholder icons

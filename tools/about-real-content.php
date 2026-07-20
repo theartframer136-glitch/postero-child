@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Make the (restored) theme Elementor About page show REAL Art Framer content
  * instead of the demo "Postero / Copenhagen" placeholder text — WITHOUT

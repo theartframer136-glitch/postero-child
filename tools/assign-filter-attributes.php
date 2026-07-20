@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Assign filterable global attributes (pa_size, pa_colors, pa_frame) to every
  * published product so the shop/category filters actually work.

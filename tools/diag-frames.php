@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Diagnose the frame / accessory products that show $0.00 and missing images
  * on the homepage, plus locate the stray "Academy of Alameda" demo image and

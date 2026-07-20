@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Granular admin roles (spec §2): Order Manager, Content Manager,
  * Customer Support Executive. Also grants the af_view_contact_messages

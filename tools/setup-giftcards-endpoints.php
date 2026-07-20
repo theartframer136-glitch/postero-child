@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Creates the purchasable Gift Card product, links it from the Gift Cards
  * page, and flushes rewrite rules so the new My Account endpoints

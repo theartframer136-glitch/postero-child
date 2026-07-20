@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Diagnostic: does the child theme's footer/header markup actually render?
  * Simulates the wp_footer + wp_body_open hooks server-side and reports

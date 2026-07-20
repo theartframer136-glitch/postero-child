@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Diagnostic for "Products In Motion": how many YouTube IDs are found from
  * (a) the homepage Elementor content and (b) the channel RSS. Read-only.

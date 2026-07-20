@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Update Radha Krishna Sacred Bond Canvas Art (#11578)
  * Content loaded from external HTML files to keep this PHP file small.

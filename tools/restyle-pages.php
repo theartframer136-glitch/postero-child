@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Phase 13 — rich, styled content for the 12 spec pages.
  * Replaces the plain starter copy with structured HTML that uses the

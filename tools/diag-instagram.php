@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Locate the Instagram video/feed on the site and what renders it, plus report
  * REST-nonce / cache signals behind "rest_cookie_invalid_nonce". Read-only.

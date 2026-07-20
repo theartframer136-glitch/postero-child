@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * EMERGENCY RECOVERY (added 2026-07-20)
  * 1. Clears a stuck WordPress maintenance-mode flag (.maintenance in the WP

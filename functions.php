@@ -8200,19 +8200,11 @@ add_filter('wp_headers', function ($headers) {
     return $headers;
 });
 
-// 25d. HTTP security headers on the front end.
-// CSP is intentionally omitted — Elementor's inline CSS/JS needs a
-// report-only rollout first; adding it blind would break rendering.
-add_action('send_headers', function () {
-    if (is_admin()) return;
-    header('X-Frame-Options: SAMEORIGIN');
-    header('X-Content-Type-Options: nosniff');
-    header('Referrer-Policy: strict-origin-when-cross-origin');
-    header('Permissions-Policy: geolocation=(), camera=(), microphone=()');
-    if (is_ssl()) {
-        header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
-    }
-});
+// 25d. HTTP security headers are set at the DOCROOT .htaccess layer instead
+// of here — PHP send_headers() headers do NOT appear on LiteSpeed cache HITS
+// (PHP is skipped). See tools/set-security-headers.php, which runs each deploy
+// and writes an <IfModule mod_headers.c> block so headers apply to every
+// response, cached or not. (CSP still deferred — Elementor needs report-only.)
 
 // 25e. Disable the in-dashboard theme/plugin file editor. If an admin
 // account is ever compromised, this stops the attacker editing PHP to

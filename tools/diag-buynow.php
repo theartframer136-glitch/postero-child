@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Diagnostic: list simple vs variable products + sample permalinks,
  * and confirm the Buy Now hook conditions. Read-only.

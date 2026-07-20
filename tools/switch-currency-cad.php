@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Switch storefront currencies to USD + CAD (spec requirement).
  * Removes INR from the FOX/WOOCS switcher, adds CAD, keeps USD as base.

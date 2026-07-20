@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Ensure every published product has at least one gallery image so the theme's
  * card hover swap never shows its "Gallery image not present" placeholder.

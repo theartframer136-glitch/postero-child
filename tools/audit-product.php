@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Audit a WooCommerce product — dumps all fields to CLI output.
  * Usage: wp eval-file tools/audit-product.php --allow-root

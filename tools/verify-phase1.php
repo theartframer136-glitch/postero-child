@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * READ-ONLY verification of Phase 1 (product template rollout).
  * Reports, per published product, whether attributes/FAQ/SEO are present.

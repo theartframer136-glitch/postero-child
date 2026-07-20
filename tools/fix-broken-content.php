@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Remove broken <img> tags from product descriptions so dead images (e.g. the
  * "canvas wall art care instructions" graphic, and the broken image near the

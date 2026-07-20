@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Fetch the live category + shop + home pages from the server (loopback) and
  * report the product-grid DOM structure, body classes, and which of our

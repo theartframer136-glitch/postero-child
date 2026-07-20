@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Populate deity/theme subcategories by assigning each product to the correct
  * subcategory based on its title. Fixes near-empty subcategories (Lakshmi

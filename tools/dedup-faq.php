@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Remove FAQ blocks from product post_content (both the theme-appended
  * <!--taf-faq--> block and any pre-existing "Frequently Asked Questions"
