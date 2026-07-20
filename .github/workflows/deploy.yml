@@ -177,12 +177,6 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/diag-catcard.php --allow-root 2>&1" \
             || true
 
-          echo "Theme grid (Shop by Collection) limit diagnostic..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-theme-grid.php --allow-root 2>&1" \
-            || true
-
           echo "Buy Now diagnostic (simple vs variable + links)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

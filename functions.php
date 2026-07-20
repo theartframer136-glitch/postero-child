@@ -8541,3 +8541,39 @@ add_action('wp_footer', function() {
 })();
 </script>
 <?php }, 46);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 25 — Shop by Collection: show ALL products per collection.
+// The parent theme caps its homepage collection grid at 12 in TWO
+// hardcoded WP_Query calls (initial render ~line 813 and the
+// load_products AJAX tab handler ~line 186). Both are secondary
+// queries, so pre_get_posts can lift the cap from the child theme
+// without touching parent files. Strictly scoped:
+//   • never main queries (shop archive keeps its own per-page)
+//   • AJAX: only action=load_products
+//   • render: only front-page product queries with the exact
+//     signature posts_per_page==12 + a product_cat tax filter
+// ─────────────────────────────────────────────────────────────
+add_action('pre_get_posts', function($q){
+    if ($q->is_main_query()) return;
+    if ($q->get('post_type') !== 'product') return;
+
+    // Case 1: collection tab switch (theme AJAX)
+    if (wp_doing_ajax() && isset($_REQUEST['action']) && $_REQUEST['action'] === 'load_products') {
+        $q->set('posts_per_page', -1);
+        return;
+    }
+
+    // Case 2: initial homepage grid render
+    if (!is_admin() && is_front_page() && (int) $q->get('posts_per_page') === 12) {
+        $tax = $q->get('tax_query');
+        if (is_array($tax)) {
+            foreach ($tax as $t) {
+                if (is_array($t) && isset($t['taxonomy']) && $t['taxonomy'] === 'product_cat') {
+                    $q->set('posts_per_page', -1);
+                    return;
+                }
+            }
+        }
+    }
+});
