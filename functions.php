@@ -8137,3 +8137,16 @@ add_action('send_headers', function () {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
     }
 });
+
+// 25e. Disable the in-dashboard theme/plugin file editor. If an admin
+// account is ever compromised, this stops the attacker editing PHP to
+// plant a backdoor straight from wp-admin.
+if (!defined('DISALLOW_FILE_EDIT')) {
+    define('DISALLOW_FILE_EDIT', true);
+}
+
+// 25f. Generic login error — never reveal whether a username exists
+// (the 4 admin usernames are already known; don't confirm passwords too).
+add_filter('login_errors', function () {
+    return 'Invalid credentials. Please try again.';
+});
