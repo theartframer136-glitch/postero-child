@@ -57,16 +57,13 @@ foreach ($ids as $pid) {
     $product = wc_get_product($pid);
     if (!$product) continue;
 
-    // Real size from title, else standard set
-    $title = $product->get_name();
-    $size_names = array();
-    if (preg_match('/(\d+(?:\.\d+)?)\s*[×xX*]\s*(\d+(?:\.\d+)?)/u', $title, $m)) {
-        $w = rtrim(rtrim($m[1],'0'),'.'); $h = rtrim(rtrim($m[2],'0'),'.');
-        $unit = (stripos($title,'ft')!==false || stripos($title,'feet')!==false) ? ' ft' : ' in';
-        $size_names = array($w.'×'.$h.$unit);
-    } else {
-        $size_names = $STD_SIZES;
-    }
+    // Every canvas is offered in ALL configured sizes (that's the pricing model
+    // shown on the product page), so assign the FULL size list from
+    // af_pricing_config. This makes the shop/category "Size" sidebar filter
+    // list every size — matching the product page — instead of one parsed size.
+    $size_names = (function_exists('af_pricing_config'))
+        ? array_keys(af_pricing_config()['sizes'])
+        : $STD_SIZES;
     $size_ids = array(); foreach ($size_names as $s) $size_ids[] = af_term_id($tax_size, $s);
     $size_ids = array_filter($size_ids);
 
