@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.3.2');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.3.3');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1790,21 +1790,23 @@ add_action('wp_head', function() { ?>
 
     function build() {
       if (card.dataset.hoverFixed6) return;
-      var nw = mainImg.naturalWidth, nh = mainImg.naturalHeight;
-      if (!nw || !nh) return; // not loaded yet
 
       card.dataset.hoverFixed6 = '1';
       mainImg.classList.add('af-main-img');
       hoverImg.classList.add('af-hover-img');
 
-      var ratio = (nh / nw * 100).toFixed(4); // e.g. 133.33 for portrait
+      // UNIFORM box: fixed height for every card. The old per-image natural
+      // ratio (padding-bottom) made each card a different height, so grids
+      // (New Arrivals, etc.) staggered and hover images misaligned.
+      var H = (window.innerWidth <= 520) ? 260 : 300;
 
       var wrap = document.createElement('div');
       wrap.className = 'af-img-ratio';
       wrap.style.setProperty('position',       'relative',    'important');
       wrap.style.setProperty('width',          '100%',        'important');
-      wrap.style.setProperty('height',         '0',           'important');
-      wrap.style.setProperty('padding-bottom', ratio + '%',   'important');
+      wrap.style.setProperty('height',         H + 'px',      'important');
+      wrap.style.setProperty('max-height',     H + 'px',      'important');
+      wrap.style.setProperty('padding-bottom', '0',           'important');
       wrap.style.setProperty('overflow',       'hidden',      'important');
       wrap.style.setProperty('display',        'block',       'important');
       wrap.style.setProperty('margin',         '0',           'important');
@@ -1847,14 +1849,8 @@ add_action('wp_head', function() { ?>
       });
     }
 
-    if (mainImg.complete && mainImg.naturalWidth) {
-      build();
-    } else {
-      mainImg.addEventListener('load', build);
-      // also retry after short delay in case load already fired
-      setTimeout(build, 300);
-      setTimeout(build, 800);
-    }
+    // Fixed-height box needs no natural dimensions — build immediately.
+    build();
   }
 
   function fixProductHoverImages() {
