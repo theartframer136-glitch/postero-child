@@ -8621,10 +8621,13 @@ add_action('pre_get_posts', function($q){
 // ─────────────────────────────────────────────────────────────
 // PHASE 26 — "What Clients Say" review cards overlapped the next
 // section's heading (Corporate Signages & Large Format Printing)
-// on the homepage: the Embedder-for-Google-Reviews widget
-// (#g-review) keeps its container shorter than its cards, so the
-// following Elementor section flows up underneath them.
-// Scoped strictly to #g-review and its Elementor container:
+// on the homepage.
+// ROOT CAUSE (from post-75 Elementor CSS): the container that
+// wraps the reviews widget (elementor-element-2596335) carries
+// --margin-bottom:-141px (desktop) / -110px (smaller breakpoint),
+// which pulls the next section up underneath the cards. Neutralise
+// that margin — scoped to this one container on page 75 only.
+// Also keep a widget-scoped safety net (#g-review):
 //   • CSS: let the swiper track/slides size to their content
 //   • JS : if the widget (or its container) still reports less
 //     height than its content occupies, pin min-height to the
@@ -8633,6 +8636,11 @@ add_action('pre_get_posts', function($q){
 add_action('wp_footer', function () {
     ?>
 <style id="af-review-overlap-fix">
+.elementor-75 .elementor-element.elementor-element-2596335,
+.elementor-element.elementor-element-2596335 {
+  --margin-bottom: 0px !important;
+  margin-bottom: 0 !important;
+}
 @media (min-width: 601px) {
   #g-review .swiper,
   #g-review .swiper-container { height: auto !important; max-height: none !important; }

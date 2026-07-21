@@ -283,10 +283,10 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/warm-yt-feed.php --allow-root 2>&1" \
             || true
 
-          echo "Reviews overlap root-cause diagnostic..."
+          echo "Verifying reviews overlap fix..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-overlap2.php --allow-root 2>&1" \
+             wp eval-file wp-content/themes/postero-child/tools/verify-overlap-fix.php --allow-root 2>&1" \
             || true
 
           echo "Clearing caches after all updates..."
