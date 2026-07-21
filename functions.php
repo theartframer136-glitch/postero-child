@@ -174,9 +174,9 @@ add_action('init', function() {
     update_option('woocommerce_registration_generate_username', 'no');
 });
 
-// Clear cached YouTube feeds on deploys
-delete_transient('af_yt_UC_GX4vXRQrN4GsvSfgmZxYw');
-delete_transient('af_yt_ids_UC_GX4vXRQrN4GsvSfgmZxYw');
+// NOTE: previous top-level delete_transient('af_yt_*') calls ran on EVERY
+// request (not just deploys), nuking the feed cache and getting the server
+// rate-limited by YouTube. Removed — the transient's own TTL handles freshness.
 
 // 4. AJAX proxy: fetch YouTube playlist/channel RSS — no API key needed
 add_action('wp_ajax_af_yt_feed',        'af_yt_feed_handler');
@@ -209,11 +209,17 @@ function af_yt_feed_handler() {
     $cached = get_transient('af_yt_' . ($list_id ?: $channel_id));
     if ($cached) { wp_send_json_success($cached); return; }
 
+    $af_yt_key = $list_id ?: $channel_id;
     $resp = wp_remote_get($url, ['timeout' => 10]);
-    if (is_wp_error($resp)) { wp_send_json_error($resp->get_error_message()); return; }
-
-    $xml = simplexml_load_string(wp_remote_retrieve_body($resp));
-    if (!$xml) { wp_send_json_error('bad xml'); return; }
+    $af_yt_body = is_wp_error($resp) ? '' : wp_remote_retrieve_body($resp);
+    $xml = $af_yt_body ? simplexml_load_string($af_yt_body) : false;
+    if (!$xml) {
+        // YouTube failed/blocked us — serve the last-known-good list so the
+        // section never collapses to a single video.
+        $fallback = get_option('af_yt_lastgood_' . $af_yt_key);
+        if (is_array($fallback) && $fallback) { wp_send_json_success($fallback); return; }
+        wp_send_json_error(is_wp_error($resp) ? $resp->get_error_message() : 'bad xml'); return;
+    }
 
     $xml->registerXPathNamespace('yt', 'http://www.youtube.com/xml/schemas/2015');
     $xml->registerXPathNamespace('media', 'http://search.yahoo.com/mrss/');
@@ -237,7 +243,13 @@ function af_yt_feed_handler() {
         }
     }
 
-    set_transient('af_yt_' . ($list_id ?: $channel_id), $videos, 2 * HOUR_IN_SECONDS);
+    if ($videos) {
+        set_transient('af_yt_' . $af_yt_key, $videos, 2 * HOUR_IN_SECONDS);
+        update_option('af_yt_lastgood_' . $af_yt_key, $videos, false); // durable fallback
+    } else {
+        $fallback = get_option('af_yt_lastgood_' . $af_yt_key);
+        if (is_array($fallback) && $fallback) { wp_send_json_success($fallback); return; }
+    }
     wp_send_json_success($videos);
 }
 
