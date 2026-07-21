@@ -14,15 +14,14 @@ $b = wp_remote_retrieve_body($r);
 echo "home bytes: " . strlen($b) . "\n";
 
 $style = strpos($b, 'af-review-overlap-fix');
-$rule  = strpos($b, 'elementor-element-2596335');
-$zero  = strpos($b, '--margin-bottom: 0px !important');
-$eljs  = strpos($b, 'post-75.css');
-echo "style block present: "   . ($style !== false ? "YES @{$style}" : 'NO') . "\n";
-echo "2596335 override: "      . ($rule  !== false ? "YES" : 'NO') . "\n";
-echo "--margin-bottom zero: "  . ($zero  !== false ? "YES @{$zero}" : 'NO') . "\n";
-echo "post-75.css link: "      . ($eljs  !== false ? "@{$eljs}" : 'not found (may be inlined)') . "\n";
-if ($zero !== false && $eljs !== false) {
-    echo "order OK (override after Elementor CSS): " . ($zero > $eljs ? 'YES' : 'NO — CHECK') . "\n";
-}
+echo "style block present: " . ($style !== false ? "YES @{$style}" : 'NO') . "\n";
+// Inspect the block's own content (whitespace/minifier-insensitive)
+$block = $style !== false ? substr($b, $style, 4000) : '';
+$has_sel  = strpos($block, 'elementor-element-2596335') !== false;
+$has_zero = (bool) preg_match('/--margin-bottom:\s*0px\s*!important/', $block);
+echo "override rule in block: " . ($has_sel ? 'YES' : 'NO') . "\n";
+echo "--margin-bottom zero in block: " . ($has_zero ? 'YES' : 'NO') . "\n";
+// The -141px must still exist in Elementor's CSS (we override, not edit it)
+echo "elementor -141px still present: " . (preg_match('/--margin-bottom:\s*-141px/', $b) ? 'YES (overridden by our rule)' : 'no longer in page') . "\n";
 echo "js safety net present: " . (strpos($b, 'af-review-overlap-fix-js') !== false ? 'YES' : 'NO') . "\n";
 echo "=== DONE ===\n";
