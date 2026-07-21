@@ -283,16 +283,10 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/warm-yt-feed.php --allow-root 2>&1" \
             || true
 
-          echo "Sidebar filter source diagnostic..."
+          echo "Reviews overlap root-cause diagnostic..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-sidebar-src.php --allow-root 2>&1" \
-            || true
-
-          echo "Reviews overlap diagnostic..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-overlap.php --allow-root 2>&1" \
+             wp eval-file wp-content/themes/postero-child/tools/diag-overlap2.php --allow-root 2>&1" \
             || true
 
           echo "Clearing caches after all updates..."

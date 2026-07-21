@@ -8617,3 +8617,55 @@ add_action('pre_get_posts', function($q){
         if ($has_cat) $q->set('posts_per_page', -1);
     }
 });
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 26 — "What Clients Say" review cards overlapped the next
+// section's heading (Corporate Signages & Large Format Printing)
+// on the homepage: the Embedder-for-Google-Reviews widget
+// (#g-review) keeps its container shorter than its cards, so the
+// following Elementor section flows up underneath them.
+// Scoped strictly to #g-review and its Elementor container:
+//   • CSS: let the swiper track/slides size to their content
+//   • JS : if the widget (or its container) still reports less
+//     height than its content occupies, pin min-height to the
+//     real content height; re-check on resize and late loads
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function () {
+    ?>
+<style id="af-review-overlap-fix">
+@media (min-width: 601px) {
+  #g-review .swiper,
+  #g-review .swiper-container { height: auto !important; max-height: none !important; }
+  #g-review .swiper-wrapper   { height: auto !important; align-items: stretch !important; }
+  #g-review .swiper-slide     { height: auto !important; }
+  #g-review .swiper-slide .g-review { height: 100% !important; }
+}
+</style>
+<script id="af-review-overlap-fix-js">
+(function () {
+  function fit(el) {
+    if (!el) return;
+    el.style.removeProperty('min-height');
+    var need = el.scrollHeight, have = el.clientHeight;
+    if (need > have + 8) {
+      el.style.setProperty('height', 'auto', 'important');
+      el.style.setProperty('min-height', need + 'px', 'important');
+    }
+  }
+  function run() {
+    var w = document.getElementById('g-review');
+    if (!w) return;
+    fit(w.querySelector('.grwp_body'));
+    fit(w);
+    fit(w.closest('.e-con, .e-container, section.elementor-section'));
+  }
+  if (document.readyState === 'complete') run();
+  else window.addEventListener('load', run);
+  setTimeout(run, 1200);
+  setTimeout(run, 3000);
+  var rt;
+  window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(run, 250); });
+})();
+</script>
+    <?php
+}, 99);
