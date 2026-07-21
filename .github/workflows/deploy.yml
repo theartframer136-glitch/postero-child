@@ -277,6 +277,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/set-security-headers.php --allow-root 2>&1" \
             || true
 
+          echo "Warming Products In Motion YouTube feed cache..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/warm-yt-feed.php --allow-root 2>&1" \
+            || true
+
           echo "Clearing caches after all updates..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
