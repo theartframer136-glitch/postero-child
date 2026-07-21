@@ -978,6 +978,16 @@ add_action('wp_footer', function() { ?>
         init();
         setTimeout(init, 500);
     });
+    // The theme fills #productGrid via AJAX; since the collection now loads ALL
+    // products the response can land well after the retries above — keep
+    // retrying until the cards exist (up to ~30s), then stop.
+    (function(){
+        var tries = 0;
+        var poll = setInterval(function(){
+            if (_sliderInitDone || ++tries > 60) { clearInterval(poll); return; }
+            init();
+        }, 500);
+    })();
 
     // Safety net: never leave a product grid hidden unless a slider shell is
     // actually showing its cards. Guarantees products stay visible everywhere.
