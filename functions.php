@@ -2375,7 +2375,10 @@ add_action('wp_footer', function() {
     // Fetch video IDs, cached 1 hour. (Key bumped to _ids3_ to bypass stale cache.)
     $channel = 'UC_GX4vXRQrN4GsvSfgmZxYw';
     $ids = get_transient('af_yt_ids3_' . $channel);
-    if (!is_array($ids) || empty($ids)) {
+    // Treat a too-small cached list (e.g. only the single Elementor video, left
+    // over from a moment when the YouTube RSS fetch was blocked) as needing a
+    // rebuild — otherwise the 1-hour transient pins the row to one video.
+    if (!is_array($ids) || count($ids) < 3) {
         $ids = [];
 
         // 1) PRIMARY: pull the YouTube video IDs already placed in the homepage's
@@ -2406,7 +2409,22 @@ add_action('wp_footer', function() {
         }
 
         $ids = array_values(array_unique(array_filter($ids)));
-        if (!empty($ids)) set_transient('af_yt_ids3_' . $channel, $ids, HOUR_IN_SECONDS);
+
+        // 3) DURABLE FALLBACK: merge the last-known-good list so a blocked RSS
+        //    fetch can never shrink the row back to a single video. Cap the
+        //    total so it can't grow unbounded as videos are added over time.
+        $lastgood = get_option('af_yt_ids3_lastgood_' . $channel);
+        if (is_array($lastgood) && $lastgood) {
+            $ids = array_values(array_unique(array_merge($ids, $lastgood)));
+        }
+        $ids = array_slice($ids, 0, 30);
+
+        // Only persist / update last-good once we actually have the full row,
+        // so a bad fetch never overwrites a good saved list.
+        if (count($ids) >= 3) {
+            set_transient('af_yt_ids3_' . $channel, $ids, HOUR_IN_SECONDS);
+            update_option('af_yt_ids3_lastgood_' . $channel, $ids, false);
+        }
     }
 
     // Nothing to show
