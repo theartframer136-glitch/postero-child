@@ -2361,3 +2361,25 @@ body.af-front-page ul.products li.product .product-img-wrap img{
   body.af-front-page ul.products li.product .product-img-wrap{height:260px !important;max-height:260px !important;min-height:260px !important;}
   .af-img-ratio{height:260px !important;max-height:260px !important;}
 }
+
+/* ============================================================
+   Card titles (theme AJAX cards: h3.trending-title): clean 2-line
+   clamp with ellipsis. The theme caps the title box at a fixed
+   height (~2.5 lines), so long titles showed a half-cut third
+   line colliding with the rating row below. Uniform box height
+   keeps grid rows aligned.
+   ============================================================ */
+h3.trending-title,
+.trending-content h3.trending-title,
+.product-card h3.trending-title{
+  display:-webkit-box !important;
+  -webkit-line-clamp:2 !important;
+  -webkit-box-orient:vertical !important;
+  overflow:hidden !important;
+  height:auto !important;
+  line-height:1.4 !important;
+  min-height:calc(1.4em * 2) !important;
+  max-height:calc(1.4em * 2 + 2px) !important;
+  margin:0 0 6px !important;
+}
+h3.trending-title a{display:inline !important;}
