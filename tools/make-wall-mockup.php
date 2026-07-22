@@ -17,12 +17,10 @@ $burl = $up['baseurl'];
 $outdir = $base . '/mockups';
 if (!is_dir($outdir)) wp_mkdir_p($outdir);
 
+// Source lifestyle photo used as the Try-On-Wall backdrop (bright modern
+// living room; its centre frame is inpainted to blank wall).
 $cands = array(
-    '2026/06/TAF-RADHA-KRISHNA-18530-room-1.jpg',
-    '2026/06/Radha-Krishna_Wall-Art_-Living-Room.webp',
     '2026/06/Radha-Krishna-Canvas-Wall-Art-Placement_Living-Room.webp',
-    '2026/06/Radha-Krishna-Abstract-Wall-Art_living-room.webp',
-    '2026/03/Living-Room-Decor.webp',
 );
 
 function load_img($path){
@@ -49,7 +47,6 @@ foreach ($cands as $rel){
     $im = load_img($p);
     if(!$im){ echo "MOCK {$rel} :: MISSING\n"; continue; }
     $W=imagesx($im); $H=imagesy($im);
-    $before = b64thumb($im,240);
 
     // Detect the dark framed-art bbox within the central band only
     $bx0=(int)($W*0.30); $bx1=(int)($W*0.70); $by0=(int)($H*0.03); $by1=(int)($H*0.86);
@@ -75,12 +72,9 @@ foreach ($cands as $rel){
             imagesetpixel($im,$x,$y,$col);
         }
     }
-    $after=b64thumb($im,240);
     $outname=preg_replace('/\.[a-z]+$/i','',basename($rel)).'-blankwall.jpg';
     imagejpeg($im,$outdir.'/'.$outname,88);
     imagedestroy($im);
     echo "MOCK {$rel} [{$W}x{$H}] box=[{$minx},{$miny},{$maxx},{$maxy}] => {$burl}/mockups/{$outname}\n";
-    echo "BEFORE {$rel} :: {$before}\n";
-    echo "AFTER  {$rel} :: {$after}\n";
 }
 echo "=== DONE ===\n";

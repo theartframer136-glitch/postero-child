@@ -5088,11 +5088,12 @@ add_action('template_redirect', function(){
         +'</svg>';
         return 'data:image/svg+xml;charset=utf8,'+encodeURIComponent(svg);
       }
+      var MOCKBASE=<?php echo wp_json_encode( wp_get_upload_dir()['baseurl'] . '/mockups/' ); ?>;
       var SCENES=[
+        {name:'Living Room', photo:1, bg:MOCKBASE+'Radha-Krishna-Canvas-Wall-Art-Placement_Living-Room-blankwall.jpg', focus:'50% 46%'},
         {name:'Modern Grey', bg:room({wall:'#edeef0',wall2:'#e2e4e7',floor:'#e7d6bd',floor2:'#d8c3a0',sofa:'#d4d5d7',sofa2:'#c6c7ca',rug:'#d9ccb2',curtain:'#e7e2d6',pot:'#d6cec1',pillow:'#c3b7a0'})},
         {name:'Warm Oak', bg:room({wall:'#efe9dd',wall2:'#e4dccb',floor:'#ddc39a',floor2:'#caa877',sofa:'#cabfa8',sofa2:'#bcb098',rug:'#d7c6a4',curtain:'#efe6d2',pot:'#c9a06f',pillow:'#a98b63'})},
-        {name:'Soft Sage', bg:room({wall:'#e7ece5',wall2:'#d9e0d5',floor:'#e3d7c0',floor2:'#d1c0a0',sofa:'#cdd3c9',sofa2:'#bfc6ba',rug:'#d5cdb6',curtain:'#e4e6da',pot:'#b9c0ad',pillow:'#a9b39c'})},
-        {name:'Gallery White', bg:room({wall:'#f6f5f2',wall2:'#eceae4',floor:'#d7cdb9',floor2:'#c3b79f',sofa:'#dcdcd9',sofa2:'#cfcfcb',rug:'#e0dacd',curtain:'#f0ece2',pot:'#d4cdbe',pillow:'#c7bfab'})}
+        {name:'Soft Sage', bg:room({wall:'#e7ece5',wall2:'#d9e0d5',floor:'#e3d7c0',floor2:'#d1c0a0',sofa:'#cdd3c9',sofa2:'#bfc6ba',rug:'#d5cdb6',curtain:'#e4e6da',pot:'#b9c0ad',pillow:'#a9b39c'})}
       ];
       var sceneWrap=$('tow-scenes');
       SCENES.forEach(function(s,i){
@@ -5107,6 +5108,7 @@ add_action('template_redirect', function(){
         usingUpload=false;
         sceneWrap.querySelectorAll('.af-tow-scene').forEach(function(x,j){ x.classList.toggle('on', j===i); });
         var im=$('tow-wallimg'); im.src=SCENES[i].bg; im.style.display='block';
+        im.style.objectPosition = SCENES[i].focus || '50% 50%';
         $('tow-placeholder').style.display = current() ? 'none' : 'flex';
       }
 
