@@ -283,10 +283,10 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/warm-yt-feed.php --allow-root 2>&1" \
             || true
 
-          echo "Verifying reviews overlap fix..."
+          echo "Building blank-wall room mockups for Try-On-Wall..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/verify-overlap-fix.php --allow-root 2>&1" \
+             wp eval-file wp-content/themes/postero-child/tools/make-wall-mockup.php --allow-root 2>&1" \
             || true
 
           echo "Clearing caches after all updates..."
