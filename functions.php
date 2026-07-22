@@ -4971,104 +4971,128 @@ add_action('template_redirect', function(){
       })();
 
       // ── Photorealistic room scenes (SVG data-URIs, no external assets) ──
-      // One-point perspective: back wall + receding wood floor, window
-      // daylight with light-beam, wall/wood texture, ambient occlusion,
-      // soft furniture with contact shadows, and a picture light.
+      // Bright modern living room styled like a real product mockup:
+      // floor-to-ceiling window on the right casting a soft light patch on
+      // the wall, curtains, pale wood floor in perspective, woven rug,
+      // light sofa cropped at the left with a throw pillow + side table,
+      // slim floor lamp, and a fiddle-leaf fig on the right.
       function room(o){
-        var W=1600,H=1000,FLOOR=632;              // wall/floor split line
+        var W=1600,H=1000,FLOOR=690;              // wall/floor split line
         var wall=o.wall, wall2=o.wall2, floor=o.floor, floor2=o.floor2;
-        var base=o.base, sofa=o.sofa, sofa2=o.sofa2, accent=o.accent;
+        var sofa=o.sofa, sofa2=o.sofa2, rug=o.rug, curtain=o.curtain, pot=o.pot;
         // Receding floor plank seams (converge outward toward viewer)
         var seams='';
-        for(var sx=-400; sx<=2000; sx+=180){
-          var nx=800+(sx-800)*2.25;
+        for(var sx=-500; sx<=2100; sx+=150){
+          var nx=800+(sx-800)*2.3;
           seams+='<line x1="'+sx+'" y1="'+FLOOR+'" x2="'+nx.toFixed(0)+'" y2="'+H+'"/>';
         }
-        // Perspective plank rows (closer together toward the back)
-        var rungs=''; var n=7;
-        for(var i=1;i<=n;i++){
-          var t=Math.pow(i/n,2.0);
-          var y=(FLOOR+(H-FLOOR)*t).toFixed(1);
-          rungs+='<line x1="0" y1="'+y+'" x2="'+W+'" y2="'+y+'"/>';
-        }
+        var rungs=''; var n=6;
+        for(var i=1;i<=n;i++){ var t=Math.pow(i/n,2.1); var y=(FLOOR+(H-FLOOR)*t).toFixed(1);
+          rungs+='<line x1="0" y1="'+y+'" x2="'+W+'" y2="'+y+'"/>'; }
+        // fiddle-leaf helper
+        function leaf(cx,cy,rx,ry,rot,fill){ return '<ellipse cx="'+cx+'" cy="'+cy+'" rx="'+rx+'" ry="'+ry+'" fill="'+fill+'" transform="rotate('+rot+' '+cx+' '+cy+')"/>'; }
         var svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+W+'" height="'+H+'" viewBox="0 0 '+W+' '+H+'">'
         +'<defs>'
-        // wall vertical shade + warm window light from upper-left
-        +'<linearGradient id="wg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+wall+'"/><stop offset="100%" stop-color="'+wall2+'"/></linearGradient>'
-        +'<radialGradient id="wl" cx="26%" cy="8%" r="85%"><stop offset="0%" stop-color="#fff6e2" stop-opacity=".55"/><stop offset="48%" stop-color="#fff6e2" stop-opacity=".10"/><stop offset="100%" stop-color="#fff6e2" stop-opacity="0"/></radialGradient>'
-        +'<radialGradient id="vig" cx="50%" cy="44%" r="75%"><stop offset="55%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".28"/></radialGradient>'
-        // floor depth: darker at back, brighter (light spill) toward front
-        +'<linearGradient id="fg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+floor2+'"/><stop offset="42%" stop-color="'+floor+'"/><stop offset="100%" stop-color="'+floor2+'"/></linearGradient>'
-        +'<linearGradient id="aocc" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#000" stop-opacity=".33"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></linearGradient>'
-        // subtle textures
-        +'<filter id="wt"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .05 0"/></filter>'
-        +'<filter id="wood"><feTurbulence type="fractalNoise" baseFrequency="0.014 0.16" numOctaves="3" seed="3" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .18 0"/></filter>'
-        +'<filter id="soft" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="14"/></filter>'
-        +'<filter id="soft2" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="26"/></filter>'
+        +'<linearGradient id="wg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="'+wall+'"/><stop offset="100%" stop-color="'+wall2+'"/></linearGradient>'
+        +'<linearGradient id="fg" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="'+floor2+'"/><stop offset="46%" stop-color="'+floor+'"/><stop offset="100%" stop-color="'+floor+'"/></linearGradient>'
+        +'<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#d6e7ef"/><stop offset="60%" stop-color="#eaf3f7"/><stop offset="100%" stop-color="#f3f8fa"/></linearGradient>'
+        +'<linearGradient id="drape" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="'+curtain+'"/><stop offset="50%" stop-color="#ffffff" stop-opacity=".5"/><stop offset="100%" stop-color="'+curtain+'"/></linearGradient>'
+        +'<linearGradient id="aocc" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#000" stop-opacity=".22"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></linearGradient>'
+        +'<radialGradient id="vig" cx="50%" cy="42%" r="78%"><stop offset="62%" stop-color="#000" stop-opacity="0"/><stop offset="100%" stop-color="#000" stop-opacity=".16"/></radialGradient>'
+        +'<filter id="wt"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="7" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .03 0"/></filter>'
+        +'<filter id="wood"><feTurbulence type="fractalNoise" baseFrequency="0.012 0.15" numOctaves="3" seed="3" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .10 0"/></filter>'
+        +'<filter id="rugt"><feTurbulence type="turbulence" baseFrequency="0.5 0.5" numOctaves="2" seed="5" result="n"/><feColorMatrix in="n" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .10 0"/></filter>'
+        +'<filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="16"/></filter>'
+        +'<filter id="lightblur" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="18"/></filter>'
         +'<clipPath id="fc"><rect x="0" y="'+FLOOR+'" width="'+W+'" height="'+(H-FLOOR)+'"/></clipPath>'
+        +'<clipPath id="wc"><rect x="0" y="0" width="'+W+'" height="'+FLOOR+'"/></clipPath>'
         +'</defs>'
         // WALL
         +'<rect width="'+W+'" height="'+FLOOR+'" fill="url(#wg)"/>'
-        +'<rect width="'+W+'" height="'+FLOOR+'" fill="url(#wl)"/>'
         +'<rect width="'+W+'" height="'+FLOOR+'" filter="url(#wt)"/>'
-        // window on the left with sky + light beam onto the floor
-        +'<g>'
-        +'<rect x="70" y="86" width="250" height="330" rx="6" fill="#0e0e12"/>'
-        +'<rect x="82" y="98" width="226" height="306" fill="#cfe6f2"/>'
-        +'<rect x="82" y="98" width="226" height="306" fill="#eaf5fb" opacity=".5"/>'
-        +'<rect x="188" y="98" width="14" height="306" fill="#0e0e12"/>'
-        +'<rect x="82" y="242" width="226" height="14" fill="#0e0e12"/>'
-        +'<rect x="60" y="76" width="270" height="14" rx="4" fill="#1a1a1f"/>'
+        // soft window-light patch projected on the wall (signature look)
+        +'<g clip-path="url(#wc)">'
+        +'<polygon points="1030,150 1230,120 1250,540 1040,560" fill="#ffffff" opacity=".34" filter="url(#lightblur)"/>'
+        +'<g stroke="#c9cdd2" stroke-opacity=".5" stroke-width="6" filter="url(#lightblur)"><line x1="1140" y1="130" x2="1150" y2="552"/><line x1="1035" y1="345" x2="1245" y2="330"/></g>'
         +'</g>'
-        +'<polygon points="90,416 320,416 720,'+H+' -120,'+H+'" fill="#fff6e0" opacity=".16" filter="url(#soft2)" clip-path="url(#fc)"/>'
+        // floor-to-ceiling WINDOW on the right
+        +'<g>'
+        +'<rect x="1430" y="30" width="200" height="'+(FLOOR-30)+'" fill="url(#sky)"/>'
+        +'<rect x="1430" y="30" width="200" height="'+(FLOOR-30)+'" fill="none" stroke="#3a3d42" stroke-width="12"/>'
+        +'<line x1="1524" y1="36" x2="1524" y2="'+(FLOOR-6)+'" stroke="#3a3d42" stroke-width="9"/>'
+        +'<line x1="1436" y1="330" x2="1624" y2="330" stroke="#3a3d42" stroke-width="9"/>'
+        // curtain drape on the left edge of the window
+        +'<rect x="1360" y="24" width="86" height="'+(FLOOR-10)+'" fill="url(#drape)"/>'
+        +'<g stroke="#000" stroke-opacity=".06" stroke-width="10"><line x1="1378" y1="30" x2="1378" y2="'+FLOOR+'"/><line x1="1404" y1="30" x2="1404" y2="'+FLOOR+'"/><line x1="1430" y1="30" x2="1430" y2="'+FLOOR+'"/></g>'
+        +'</g>'
         // baseboard
-        +'<rect x="0" y="'+(FLOOR-18)+'" width="'+W+'" height="20" fill="'+base+'"/>'
-        +'<rect x="0" y="'+(FLOOR-18)+'" width="'+W+'" height="4" fill="#ffffff" opacity=".18"/>'
-        // FLOOR
+        +'<rect x="0" y="'+(FLOOR-16)+'" width="'+W+'" height="18" fill="#f4f4f2"/>'
+        +'<rect x="0" y="'+(FLOOR-16)+'" width="'+W+'" height="3" fill="#000" opacity=".05"/>'
+        // FLOOR (pale wood, perspective)
         +'<g clip-path="url(#fc)">'
         +'<rect x="0" y="'+FLOOR+'" width="'+W+'" height="'+(H-FLOOR)+'" fill="url(#fg)"/>'
         +'<rect x="0" y="'+FLOOR+'" width="'+W+'" height="'+(H-FLOOR)+'" filter="url(#wood)"/>'
-        +'<g stroke="#000" stroke-opacity=".14" stroke-width="2">'+seams+'</g>'
-        +'<g stroke="#000" stroke-opacity=".10" stroke-width="2">'+rungs+'</g>'
-        +'<g stroke="#fff" stroke-opacity=".05" stroke-width="1">'+rungs+'</g>'
-        +'<rect x="0" y="'+FLOOR+'" width="'+W+'" height="90" fill="url(#aocc)"/>'   // wall-floor contact shadow
+        +'<g stroke="#000" stroke-opacity=".08" stroke-width="2">'+seams+'</g>'
+        +'<g stroke="#000" stroke-opacity=".06" stroke-width="2">'+rungs+'</g>'
+        +'<rect x="0" y="'+FLOOR+'" width="'+W+'" height="70" fill="url(#aocc)"/>'
+        // reflected window light on the floor
+        +'<polygon points="1180,'+FLOOR+' 1360,'+FLOOR+' 1520,'+H+' 1150,'+H+'" fill="#ffffff" opacity=".10" filter="url(#soft)"/>'
         +'</g>'
-        // area rug (perspective)
-        +'<polygon points="470,'+(H-70)+' 1130,'+(H-70)+' 1300,'+H+' 300,'+H+'" fill="'+o.rug+'" opacity=".92"/>'
-        +'<polygon points="470,'+(H-70)+' 1130,'+(H-70)+' 1300,'+H+' 300,'+H+'" fill="none" stroke="#000" stroke-opacity=".12" stroke-width="3"/>'
-        // SOFA with contact shadow
-        +'<ellipse cx="800" cy="'+(FLOOR+150)+'" rx="360" ry="42" fill="#000" opacity=".28" filter="url(#soft)"/>'
+        // woven area RUG (perspective)
+        +'<polygon points="430,'+(H-140)+' 1150,'+(H-140)+' 1360,'+H+' 250,'+H+'" fill="'+rug+'"/>'
+        +'<g clip-path="url(#fc)"><polygon points="430,'+(H-140)+' 1150,'+(H-140)+' 1360,'+H+' 250,'+H+'" filter="url(#rugt)"/></g>'
+        +'<polygon points="430,'+(H-140)+' 1150,'+(H-140)+' 1360,'+H+' 250,'+H+'" fill="none" stroke="#000" stroke-opacity=".08" stroke-width="4"/>'
+        // slim black FLOOR LAMP (left) — drawn behind the sofa
+        +'<ellipse cx="384" cy="'+(FLOOR+120)+'" rx="40" ry="12" fill="#000" opacity=".16" filter="url(#soft)"/>'
+        +'<rect x="380" y="'+(FLOOR-350)+'" width="9" height="480" fill="#26282b"/>'
+        +'<rect x="360" y="'+(FLOOR+118)+'" width="50" height="12" rx="4" fill="#26282b"/>'   // foot
+        +'<path d="M318 '+(FLOOR-408)+' h150 l-20 84 h-110 z" fill="#f0ebde"/>'                // drum shade
+        +'<ellipse cx="393" cy="'+(FLOOR-408)+'" rx="75" ry="15" fill="#f7f3e8"/>'
+        +'<ellipse cx="393" cy="'+(FLOOR-408)+'" rx="55" ry="10" fill="#fffdf5" opacity=".7"/>'
+        // SOFA cropped at the left (light, modern) + contact shadow
+        +'<ellipse cx="250" cy="'+(FLOOR+152)+'" rx="380" ry="48" fill="#000" opacity=".22" filter="url(#soft)"/>'
         +'<g>'
-        +'<rect x="452" y="'+(FLOOR-78)+'" width="696" height="150" rx="30" fill="'+sofa+'"/>'          // seat base
-        +'<rect x="452" y="'+(FLOOR-150)+'" width="696" height="104" rx="26" fill="'+sofa2+'"/>'        // backrest
-        +'<rect x="470" y="'+(FLOOR-92)+'" width="196" height="86" rx="20" fill="#ffffff" opacity=".08"/>'
-        +'<rect x="690" y="'+(FLOOR-92)+'" width="196" height="86" rx="20" fill="#ffffff" opacity=".05"/>'
-        +'<rect x="910" y="'+(FLOOR-92)+'" width="196" height="86" rx="20" fill="#000" opacity=".06"/>'
-        +'<rect x="436" y="'+(FLOOR-104)+'" width="52" height="180" rx="22" fill="'+sofa2+'"/>'          // arm L
-        +'<rect x="1112" y="'+(FLOOR-104)+'" width="52" height="180" rx="22" fill="'+sofa2+'"/>'         // arm R
-        +'<rect x="470" y="'+(FLOOR+58)+'" width="18" height="26" fill="#2a221c"/><rect x="1112" y="'+(FLOOR+58)+'" width="18" height="26" fill="#2a221c"/>'
+        +'<rect x="-70" y="'+(FLOOR-160)+'" width="580" height="164" rx="30" fill="'+sofa2+'"/>'          // backrest
+        +'<rect x="-70" y="'+(FLOOR-150)+'" width="580" height="30" rx="16" fill="#ffffff" opacity=".22"/>' // back top highlight
+        +'<rect x="-80" y="'+(FLOOR-130)+'" width="150" height="290" rx="30" fill="'+sofa2+'"/>'          // arm L (cropped)
+        +'<rect x="440" y="'+(FLOOR-130)+'" width="96" height="290" rx="26" fill="'+sofa+'"/>'            // arm R
+        +'<rect x="60" y="'+(FLOOR-40)+'" width="400" height="190" rx="26" fill="'+sofa+'"/>'             // seat
+        +'<rect x="60" y="'+(FLOOR+96)+'" width="400" height="54" rx="24" fill="#000" opacity=".10"/>'    // seat under-shadow
+        +'<line x1="262" y1="'+(FLOOR-30)+'" x2="262" y2="'+(FLOOR+120)+'" stroke="#000" stroke-opacity=".08" stroke-width="6"/>' // cushion split
+        +'<rect x="80" y="'+(FLOOR-30)+'" width="360" height="20" rx="10" fill="#ffffff" opacity=".14"/>' // seat top highlight
+        // throw pillow
+        +'<rect x="86" y="'+(FLOOR-128)+'" width="140" height="128" rx="22" fill="'+o.pillow+'" transform="rotate(-8 156 '+(FLOOR-64)+')"/>'
+        +'<rect x="104" y="'+(FLOOR-110)+'" width="104" height="20" rx="10" fill="#ffffff" opacity=".18" transform="rotate(-8 156 '+(FLOOR-64)+')"/>'
+        +'<rect x="452" y="'+(FLOOR+120)+'" width="18" height="34" fill="#2a221c"/>'
         +'</g>'
-        // potted plant (right)
-        +'<ellipse cx="1300" cy="'+(FLOOR+140)+'" rx="90" ry="20" fill="#000" opacity=".22" filter="url(#soft)"/>'
-        +'<path d="M1300 '+(FLOOR+96)+' C 1230 '+(FLOOR-40)+' 1268 '+(FLOOR-260)+' 1300 '+(FLOOR-200)+' C 1332 '+(FLOOR-260)+' 1370 '+(FLOOR-40)+' 1300 '+(FLOOR+96)+' Z" fill="#5a7d52"/>'
-        +'<path d="M1300 '+(FLOOR+96)+' C 1360 '+(FLOOR-30)+' 1392 '+(FLOOR-120)+' 1372 '+(FLOOR-190)+' C 1320 '+(FLOOR-150)+' 1306 '+(FLOOR-40)+' 1300 '+(FLOOR+96)+' Z" fill="#6f9463"/>'
-        +'<path d="M1300 '+(FLOOR+96)+' C 1240 '+(FLOOR-30)+' 1208 '+(FLOOR-120)+' 1228 '+(FLOOR-190)+' C 1280 '+(FLOOR-150)+' 1294 '+(FLOOR-40)+' 1300 '+(FLOOR+96)+' Z" fill="#517a49"/>'
-        +'<path d="M1262 '+(FLOOR+96)+' h76 l-12 96 h-52 z" fill="'+accent+'"/>'
-        // floor lamp (left)
-        +'<g stroke="'+accent+'" stroke-width="7" fill="none"><line x1="250" y1="'+(FLOOR+150)+'" x2="250" y2="'+(FLOOR-250)+'"/></g>'
-        +'<ellipse cx="250" cy="'+(FLOOR+150)+'" rx="46" ry="12" fill="#000" opacity=".2" filter="url(#soft)"/>'
-        +'<path d="M206 '+(FLOOR-250)+' h88 l-16 76 h-56 z" fill="#f7eccf"/>'
-        +'<ellipse cx="250" cy="'+(FLOOR-256)+'" rx="52" ry="14" fill="#fff3d0"/>'
-        // GLOBAL vignette
+        // low side TABLE with books (front-left)
+        +'<ellipse cx="250" cy="'+(H-64)+'" rx="150" ry="26" fill="#000" opacity=".14" filter="url(#soft)"/>'
+        +'<rect x="120" y="'+(H-150)+'" width="240" height="30" rx="6" fill="#8a6a48"/>'
+        +'<rect x="140" y="'+(H-120)+'" width="16" height="120" fill="#6f5236"/><rect x="324" y="'+(H-120)+'" width="16" height="120" fill="#6f5236"/>'
+        +'<rect x="150" y="'+(H-172)+'" width="120" height="22" rx="4" fill="#c9bfa8"/><rect x="164" y="'+(H-190)+'" width="96" height="20" rx="4" fill="#b7ac93"/>'
+        // FIDDLE-LEAF fig on the right
+        +'<ellipse cx="1300" cy="'+(FLOOR+140)+'" rx="90" ry="22" fill="#000" opacity=".18" filter="url(#soft)"/>'
+        +'<rect x="1250" y="'+(FLOOR+40)+'" width="110" height="120" rx="12" fill="'+pot+'"/>'
+        +'<rect x="1250" y="'+(FLOOR+40)+'" width="110" height="18" rx="8" fill="#000" opacity=".06"/>'
+        +'<g stroke="#5a4632" stroke-width="7" fill="none"><path d="M1305 '+(FLOOR+40)+' C 1300 '+(FLOOR-120)+' 1300 '+(FLOOR-220)+' 1305 '+(FLOOR-300)+'"/></g>'
+        +leaf(1305,(FLOOR-300),34,58,4,'#3f6b3a')
+        +leaf(1240,(FLOOR-250),30,52,-38,'#4b7d43')
+        +leaf(1372,(FLOOR-250),30,52,38,'#356035')
+        +leaf(1235,(FLOOR-140),30,50,-58,'#4b7d43')
+        +leaf(1378,(FLOOR-140),30,50,58,'#3f6b3a')
+        +leaf(1305,(FLOOR-210),30,52,0,'#57904c')
+        +leaf(1258,(FLOOR-60),26,44,-72,'#3f6b3a')
+        +leaf(1352,(FLOOR-60),26,44,72,'#4b7d43')
+        // GLOBAL soft vignette
         +'<rect width="'+W+'" height="'+H+'" fill="url(#vig)"/>'
         +'</svg>';
         return 'data:image/svg+xml;charset=utf8,'+encodeURIComponent(svg);
       }
       var SCENES=[
-        {name:'Living Room', bg:room({wall:'#eadfc9',wall2:'#d7c8ab',floor:'#c69a63',floor2:'#a97e4c',base:'#efe6cf',sofa:'#8a6f57',sofa2:'#7a614b',accent:'#6f5844',rug:'#cbb894'})},
-        {name:'Modern Loft', bg:room({wall:'#dcdee1',wall2:'#c3c6cb',floor:'#a29a8c',floor2:'#867e70',base:'#e7e8ea',sofa:'#5f6672',sofa2:'#4f5560',accent:'#6b7280',rug:'#b9bcc2'})},
-        {name:'Warm Bedroom', bg:room({wall:'#f0dccf',wall2:'#e2c4b3',floor:'#bd8f6e',floor2:'#9c7356',base:'#f2e5da',sofa:'#a5726a',sofa2:'#8f6058',accent:'#7d5850',rug:'#e0c3b4'})},
-        {name:'Gallery White', bg:room({wall:'#f6f4f0',wall2:'#e6e2da',floor:'#c8c0b1',floor2:'#aca391',base:'#efece5',sofa:'#c9c2b4',sofa2:'#b6afa0',accent:'#b0a897',rug:'#ded8cb'})}
+        {name:'Modern Grey', bg:room({wall:'#edeef0',wall2:'#e2e4e7',floor:'#e7d6bd',floor2:'#d8c3a0',sofa:'#d4d5d7',sofa2:'#c6c7ca',rug:'#d9ccb2',curtain:'#e7e2d6',pot:'#d6cec1',pillow:'#c3b7a0'})},
+        {name:'Warm Oak', bg:room({wall:'#efe9dd',wall2:'#e4dccb',floor:'#ddc39a',floor2:'#caa877',sofa:'#cabfa8',sofa2:'#bcb098',rug:'#d7c6a4',curtain:'#efe6d2',pot:'#c9a06f',pillow:'#a98b63'})},
+        {name:'Soft Sage', bg:room({wall:'#e7ece5',wall2:'#d9e0d5',floor:'#e3d7c0',floor2:'#d1c0a0',sofa:'#cdd3c9',sofa2:'#bfc6ba',rug:'#d5cdb6',curtain:'#e4e6da',pot:'#b9c0ad',pillow:'#a9b39c'})},
+        {name:'Gallery White', bg:room({wall:'#f6f5f2',wall2:'#eceae4',floor:'#d7cdb9',floor2:'#c3b79f',sofa:'#dcdcd9',sofa2:'#cfcfcb',rug:'#e0dacd',curtain:'#f0ece2',pot:'#d4cdbe',pillow:'#c7bfab'})}
       ];
       var sceneWrap=$('tow-scenes');
       SCENES.forEach(function(s,i){
