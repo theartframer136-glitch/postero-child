@@ -4924,8 +4924,9 @@ add_action('template_redirect', function(){
                 </div>
                 <span class="af-tow-hint">✥ drag</span>
               </div>
+              <div id="tow-toast" class="af-tow-toast"></div>
             </div>
-            <p class="af-tow-tip">Tip: drag the artwork to line it up with your furniture, then hit <strong>Save Preview</strong> to download the image.</p>
+            <p class="af-tow-tip">Tip: drag the artwork to line it up with your furniture, then hit <strong>Save Preview</strong> — the image downloads to your device.</p>
           </div>
         </div>
       </div>
@@ -5197,9 +5198,16 @@ add_action('template_redirect', function(){
       document.addEventListener('pointerup', function(){ drag=false; box.classList.remove('dragging'); });
 
       // Save preview
+      var toastTimer;
+      function toast(msg){
+        var t=$('tow-toast'); if(!t) return;
+        t.textContent=msg; t.classList.add('show');
+        clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.classList.remove('show'); }, 3200);
+      }
       $('tow-save').addEventListener('click', function(){
         var wall=$('tow-wallimg');
-        if(!wall.src || wall.style.display==='none'){ alert('Please upload a wall photo first.'); return; }
+        if(!current()){ toast('Please choose a product first'); return; }
+        if(!wall.src || wall.style.display==='none'){ toast('Please pick a room or upload a wall photo'); return; }
         try{
           var stage=$('tow-stage'), r=stage.getBoundingClientRect();
           var cv=document.createElement('canvas'); cv.width=Math.round(r.width); cv.height=Math.round(r.height); var ctx=cv.getContext('2d');
@@ -5214,8 +5222,11 @@ add_action('template_redirect', function(){
           var mt=rect($('tow-mat')); var st=getComputedStyle($('tow-mat'));
           if(parseFloat(st.paddingTop)>0){ ctx.fillStyle=(st.backgroundColor&&st.backgroundColor!=='rgba(0, 0, 0, 0)')?st.backgroundColor:'#f6f1e6'; ctx.fillRect(mt.x,mt.y,mt.w,mt.h); }
           var ar=rect($('tow-art')); ctx.drawImage($('tow-art'), ar.x, ar.y, ar.w, ar.h);
-          var a=document.createElement('a'); a.download='my-wall-preview.png'; a.href=cv.toDataURL('image/png'); a.click();
-        }catch(err){ alert('Could not save (image may be cross-origin). Please screenshot instead.'); }
+          var p=current(); var fname=((p&&p.name)?p.name.replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase():'my')+'-on-wall.png';
+          var url=cv.toDataURL('image/png');
+          var a=document.createElement('a'); a.download=fname; a.href=url; document.body.appendChild(a); a.click(); a.remove();
+          toast('✓ Saved to your downloads: '+fname);
+        }catch(err){ toast('Couldn’t save automatically — right-click the preview to save it'); }
       });
 
       window.addEventListener('resize', applyScale);
@@ -5277,12 +5288,14 @@ add_action('template_redirect', function(){
     .af-tow-price{display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid #f0e8d6;font-size:13px;color:#6b6250;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
     .af-tow-price strong{font-size:26px;color:#1a1a1a;letter-spacing:-.5px;}
     .af-tow-actions{display:flex;gap:10px;margin-top:16px;}
-    .af-tow-btn{flex:1;text-align:center;padding:13px;border-radius:11px;font-weight:800;font-size:13px;cursor:pointer;text-decoration:none;border:none;transition:transform .12s,background .2s;}
+    .af-tow-btn{flex:1 1 0;min-width:0;box-sizing:border-box;height:46px;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;border-radius:11px;font-weight:700 !important;font-size:13px !important;line-height:1 !important;white-space:nowrap !important;text-transform:none !important;letter-spacing:0 !important;cursor:pointer;text-decoration:none;border:none;transition:transform .12s,background .2s;}
     .af-tow-btn:hover{transform:translateY(-1px);}
     .af-tow-btn.ghost{background:#f2ecdd;color:#5a5140;}
     .af-tow-btn.ghost:hover{background:#e9e0cc;}
     .af-tow-btn.solid{background:#c9a84c;color:#fff;box-shadow:0 6px 16px rgba(201,168,76,.35);}
     .af-tow-btn.solid:hover{background:#b8973c;}
+    .af-tow-toast{position:absolute;left:50%;bottom:18px;transform:translateX(-50%) translateY(12px);background:#1a1a1a;color:#fff;font-size:13px;font-weight:600;padding:11px 18px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:20;white-space:nowrap;}
+    .af-tow-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
     .af-tow-stagewrap{position:relative;}
     .af-tow-stage{position:relative;width:100%;height:600px;border-radius:18px;overflow:hidden;background:#e9e4d8;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 60px rgba(0,0,0,.10);}
     .af-tow-wallimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;}
