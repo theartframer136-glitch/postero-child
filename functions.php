@@ -8990,3 +8990,44 @@ add_action('wp_head', function() { ?>
 .af-art-code--single strong{color:#8a6d3b;letter-spacing:.06em;}
 </style>
 <?php });
+
+// PHASE 25b — shop CARD Art Code via JS (the Postero loop doesn't fire the
+// standard woocommerce_after_shop_loop_item_title hook, so inject client-side).
+add_action('wp_footer', function() {
+  if (!function_exists('is_shop')) return;
+  if (!(is_shop() || is_product_taxonomy() || is_product_category() || is_product_tag())) return;
+  global $wpdb;
+  $rows = $wpdb->get_results(
+    "SELECT post_id, meta_value FROM {$wpdb->postmeta}
+     WHERE meta_key='_taf_art_code' AND meta_value<>''");
+  if (!$rows) return;
+  $map = array();
+  foreach ($rows as $r) { $map[(string)$r->post_id] = $r->meta_value; }
+  ?>
+<script>
+(function(){
+  var CODES = <?php echo wp_json_encode($map); ?>;
+  function inject(){
+    document.querySelectorAll('li.product').forEach(function(li){
+      if (li.getAttribute('data-af-code')) return;
+      var m = (li.className||'').match(/post-(\d+)/);
+      if (!m) return;
+      var code = CODES[m[1]];
+      if (!code) return;
+      li.setAttribute('data-af-code','1');
+      var span = document.createElement('span');
+      span.className = 'af-art-code af-art-code--card';
+      span.textContent = 'Art Code: ' + code;
+      span.style.setProperty('display','block','important');
+      var title = li.querySelector('.woocommerce-loop-product__title');
+      if (title && title.parentNode) title.parentNode.insertBefore(span, title.nextSibling);
+      else li.appendChild(span);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', inject);
+  window.addEventListener('load', inject);
+  [400,1000,2200,4000].forEach(function(d){ setTimeout(inject, d); });
+})();
+</script>
+  <?php
+}, 210);
