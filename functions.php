@@ -9004,11 +9004,13 @@ add_action('wp_head', function() { ?>
 </style>
 <?php });
 
-// PHASE 25b — shop CARD Art Code via JS (the Postero loop doesn't fire the
-// standard woocommerce_after_shop_loop_item_title hook, so inject client-side).
+// PHASE 25b — product CARD Art Code via JS, SITE-WIDE (homepage carousels,
+// related products, up-sells, search, category grids). The Postero loop and
+// Elementor product widgets don't fire the standard WooCommerce card hook, so
+// inject client-side. Runs on every front-end page; the query only executes on
+// a LiteSpeed cache-miss, and the JS no-ops where there are no product cards.
 add_action('wp_footer', function() {
-  if (!function_exists('is_shop')) return;
-  if (!(is_shop() || is_product_taxonomy() || is_product_category() || is_product_tag())) return;
+  if (is_admin()) return;
   global $wpdb;
   $rows = $wpdb->get_results(
     "SELECT post_id, meta_value FROM {$wpdb->postmeta}
@@ -9020,26 +9022,44 @@ add_action('wp_footer', function() {
 <script>
 (function(){
   var CODES = <?php echo wp_json_encode($map); ?>;
-  function inject(){
-    document.querySelectorAll('li.product').forEach(function(li){
-      if (li.getAttribute('data-af-code')) return;
-      var m = (li.className||'').match(/post-(\d+)/);
-      if (!m) return;
-      var code = CODES[m[1]];
-      if (!code) return;
-      li.setAttribute('data-af-code','1');
-      var span = document.createElement('span');
-      span.className = 'af-art-code af-art-code--card';
-      span.textContent = 'Art Code: ' + code;
-      span.style.setProperty('display','block','important');
-      var title = li.querySelector('.woocommerce-loop-product__title');
-      if (title && title.parentNode) title.parentNode.insertBefore(span, title.nextSibling);
-      else li.appendChild(span);
+  function place(card, code){
+    if (card.getAttribute('data-af-code')) return;
+    card.setAttribute('data-af-code','1');
+    var span = document.createElement('span');
+    span.className = 'af-art-code af-art-code--card';
+    span.textContent = 'Art Code: ' + code;
+    span.style.setProperty('display','block','important');
+    // prefer to sit right under the product title, else after the card's link
+    var title = card.querySelector('.woocommerce-loop-product__title, .product-title, h2, h3, .elementor-heading-title');
+    if (title && title.parentNode) { title.parentNode.insertBefore(span, title.nextSibling); return; }
+    card.appendChild(span);
+  }
+  function inject(root){
+    (root||document).querySelectorAll(
+      'li.product, .product[class*="post-"], [class*="type-product"]'
+    ).forEach(function(card){
+      var m = (card.className||'').match(/post-(\d+)/);
+      var id = m ? m[1] : null;
+      if (!id) {                       // fallback: add-to-cart data on the card
+        var b = card.querySelector('[data-product_id]');
+        if (b) id = b.getAttribute('data-product_id');
+      }
+      if (!id) return;
+      var code = CODES[id];
+      if (code) place(card, code);
     });
   }
-  document.addEventListener('DOMContentLoaded', inject);
-  window.addEventListener('load', inject);
-  [400,1000,2200,4000].forEach(function(d){ setTimeout(inject, d); });
+  function run(){ inject(document); }
+  document.addEventListener('DOMContentLoaded', run);
+  window.addEventListener('load', run);
+  [400,1000,2200,4000].forEach(function(d){ setTimeout(run, d); });
+  // catch carousels / AJAX / lazy-loaded product cards
+  try {
+    var obs = new MutationObserver(function(muts){
+      for (var i=0;i<muts.length;i++){ if (muts[i].addedNodes && muts[i].addedNodes.length){ run(); break; } }
+    });
+    obs.observe(document.body, {childList:true, subtree:true});
+  } catch(e){}
 })();
 </script>
   <?php
