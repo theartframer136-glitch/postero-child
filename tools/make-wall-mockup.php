@@ -15,15 +15,15 @@ if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit
 $up = wp_get_upload_dir(); $base=$up['basedir']; $burl=$up['baseurl'];
 $outdir = $base.'/mockups'; if(!is_dir($outdir)) wp_mkdir_p($outdir);
 
-// rel => explicit [x0,y0,x1,y1] fractions, or null for auto-detect
+// rel => explicit [x0,y0,x1,y1] fractions (frame region to inpaint to blank
+// wall), or null for auto-detect. Explicit boxes are oversized horizontally
+// on purpose (filling already-blank wall is harmless) so the tool's centred
+// frame always lands on clean wall.
 $cands = array(
-    '2026/06/Radha-Krishna-Canvas-Wall-Art-Placement_Living-Room.webp' => null,
-    '2026/06/Radha-Krishna-Abstract-Wall-Art_living-room.webp'         => null,
-    '2026/06/Radha-Krishna_Wall-Art_-Living-Room.webp'                 => null,
-    '2026/03/Cafe-Decor.webp'                                          => null,
-    '2026/03/kids-room-decor.webp'                                     => null,
-    '2026/03/Living-Room-Decor.webp'                                   => null,
-    '2026/06/TAF-RADHA-KRISHNA-18530-room-1.jpg'                       => null,
+    '2026/06/Radha-Krishna-Canvas-Wall-Art-Placement_Living-Room.webp' => array(0.41,0.12,0.64,0.72),
+    '2026/06/Radha-Krishna-Abstract-Wall-Art_living-room.webp'         => array(0.40,0.12,0.72,0.72),
+    '2026/06/Radha-Krishna_Wall-Art_-Living-Room.webp'                 => array(0.29,0.15,0.73,0.60),
+    '2026/06/TAF-RADHA-KRISHNA-18530-room-1.jpg'                       => array(0.20,0.19,0.76,0.65),
 );
 
 function load_img($p){ if(!file_exists($p)) return null; $d=@file_get_contents($p); if($d===false) return null; $im=@imagecreatefromstring($d); return $im?:null; }
