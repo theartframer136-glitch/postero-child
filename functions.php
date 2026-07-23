@@ -8939,3 +8939,54 @@ add_action('wp_footer', function () {
 </script>
     <?php
 }, 99);
+
+// ---------------------------------------------------------------------------
+// PHASE 25 — Brochure "Art Code" (e.g. RK 01) shown on shop card + product page
+// so an incoming order can be matched back to the printed collection book.
+// Value lives in product meta `_taf_art_code` (set by tools/product-importer/
+// apply_art_codes.py). Products without a code simply show nothing.
+// ---------------------------------------------------------------------------
+function af_get_art_code($product = null) {
+  if (!$product) { global $product; }
+  if (!$product) return '';
+  $code = get_post_meta($product->get_id(), '_taf_art_code', true);
+  return is_string($code) ? trim($code) : '';
+}
+
+// Shop/archive card: small code line under the title
+add_action('woocommerce_after_shop_loop_item_title', function() {
+  global $product;
+  $code = af_get_art_code($product);
+  if ($code === '') return;
+  echo '<span class="af-art-code af-art-code--card">Art Code: '
+     . esc_html($code) . '</span>';
+}, 9);
+
+// Single product page: code line in the summary, just under the title
+add_action('woocommerce_single_product_summary', function() {
+  global $product;
+  $code = af_get_art_code($product);
+  if ($code === '') return;
+  echo '<p class="af-art-code af-art-code--single">Art Code: <strong>'
+     . esc_html($code) . '</strong></p>';
+}, 6);
+
+// Show the code on admin order line items so fulfilment can read it off an order.
+add_filter('woocommerce_display_item_meta', function($html, $item, $args) {
+  $pid = method_exists($item, 'get_product_id') ? $item->get_product_id() : 0;
+  $code = $pid ? get_post_meta($pid, '_taf_art_code', true) : '';
+  if ($code) {
+    $html .= '<br><small>Art Code: ' . esc_html($code) . '</small>';
+  }
+  return $html;
+}, 10, 3);
+
+add_action('wp_head', function() { ?>
+<style>
+.af-art-code--card{display:block;margin:2px 0 4px;font-size:12px;letter-spacing:.04em;
+  color:#8a6d3b;font-weight:600;text-transform:uppercase;}
+.af-art-code--single{margin:.4em 0 .8em;font-size:14px;color:#6b6b6b;
+  letter-spacing:.03em;}
+.af-art-code--single strong{color:#8a6d3b;letter-spacing:.06em;}
+</style>
+<?php });
