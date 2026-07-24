@@ -9040,18 +9040,30 @@ add_action('wp_footer', function() {
     card.appendChild(span);
   }
   function inject(root){
-    (root||document).querySelectorAll(
-      'li.product, .product[class*="post-"], [class*="type-product"]'
-    ).forEach(function(card){
-      var m = (card.className||'').match(/post-(\d+)/);
-      var id = m ? m[1] : null;
-      if (!id) {                       // fallback: add-to-cart data on the card
+    root = root || document;
+    // Cast a wide net: standard Woo cards, any element carrying a post-<id>
+    // class (Elementor product widgets, "Shop by Collection" tiles, carousel
+    // slides), and any add-to-cart button that exposes data-product_id.
+    var cards = root.querySelectorAll(
+      'li.product, [class*="type-product"], [class*="post-"], [data-product_id]'
+    );
+    cards.forEach(function(card){
+      var id = null;
+      var m = (card.className||'').match(/(?:^|\s)post-(\d+)/);
+      if (m) id = m[1];
+      if (!id && card.hasAttribute('data-product_id')) id = card.getAttribute('data-product_id');
+      if (!id) {
         var b = card.querySelector('[data-product_id]');
         if (b) id = b.getAttribute('data-product_id');
       }
-      if (!id) return;
-      var code = CODES[id];
-      if (code) place(card, code);
+      if (!id || !CODES[id]) return;
+      // climb to the nearest sensible card container so the label sits with
+      // the title, not buried inside a button
+      var host = card;
+      if (card.hasAttribute('data-product_id') && card.tagName === 'A') {
+        host = card.closest('li, .product, [class*="post-"], article, .elementor-widget, div') || card;
+      }
+      place(host, CODES[id]);
     });
   }
   function run(){ inject(document); }
