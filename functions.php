@@ -9045,12 +9045,16 @@ add_action('wp_footer', function() {
     if (title && title.parentNode) { title.parentNode.insertBefore(span, title.nextSibling); return; }
     card.appendChild(span);
   }
-  // Resolve a product slug from any product permalink inside the card
+  // Resolve the Art Code from any link in the card whose URL ends in a known
+  // product slug — works for /product/<slug>/ and flat /<slug>/ permalinks.
+  // SLUGS only holds real product post_names, so a false match is impossible.
   function slugFrom(card){
-    var links = card.querySelectorAll('a[href*="/product/"]');
+    var links = card.querySelectorAll('a[href]');
     for (var i=0;i<links.length;i++){
-      var mm = links[i].getAttribute('href').match(/\/product\/([^\/?#]+)/);
-      if (mm && SLUGS[mm[1]]) return SLUGS[mm[1]];
+      var href = links[i].getAttribute('href') || '';
+      var path = href.split('#')[0].split('?')[0].replace(/\/+$/,'');
+      var seg = path.substring(path.lastIndexOf('/')+1);
+      if (seg && SLUGS[seg]) return SLUGS[seg];
     }
     return null;
   }
