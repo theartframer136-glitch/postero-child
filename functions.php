@@ -1085,16 +1085,17 @@ html body .product-card:hover .secondary-image {
 html body .product-card .onsale,
 html body .product-card .sale-ribbon {
   position:absolute !important;
-  top:12px !important; left:12px !important; right:auto !important;
-  z-index:12 !important;
-  background:linear-gradient(135deg,#d4b458,#a8872e) !important; color:#fff !important;
-  font-size:11px !important; font-weight:800 !important;
-  padding:5px 12px !important;
-  text-transform:uppercase !important; letter-spacing:.06em !important;
-  transform:none !important;
-  box-shadow:0 3px 10px rgba(0,0,0,.25) !important;
-  min-width:0 !important; width:auto !important; text-align:center !important;
-  line-height:1.2 !important; border-radius:7px !important; margin:0 !important;
+  top:24px !important; left:-46px !important; right:auto !important;
+  z-index:10 !important;
+  background:linear-gradient(135deg,#ecc768,#cf9f2e) !important; color:#fff !important;
+  font-size:12px !important; font-weight:800 !important;
+  padding:7px 0 !important;
+  text-transform:uppercase !important; letter-spacing:.12em !important;
+  transform:rotate(-45deg) !important;
+  text-shadow:0 1px 2px rgba(0,0,0,.25) !important;
+  box-shadow:0 3px 8px rgba(0,0,0,.28) !important;
+  min-width:0 !important; width:160px !important; text-align:center !important;
+  line-height:1.3 !important; border-radius:0 !important; margin:0 !important;
 }
 
 /* wishlist */
@@ -3191,26 +3192,30 @@ add_action('wp_footer', function() {
       var ribbon=mainLink.querySelector('.onsale');
       if (!ribbon) ribbon=wrap.querySelector('.onsale');
       if (ribbon) {
+        // Diagonal corner ribbon across the top-left corner. The band's ends
+        // run off the card and are clipped by .af-img-wrap (overflow:hidden),
+        // leaving a clean gold "SALE!" banner across the corner.
         sp(ribbon,'position',      'absolute');
-        sp(ribbon,'top',           '18px');
-        sp(ribbon,'left',          '-22px');
-        sp(ribbon,'width',         '90px');
-        sp(ribbon,'background',    '#c9a84c');
+        sp(ribbon,'top',           '24px');
+        sp(ribbon,'left',          '-46px');
+        sp(ribbon,'width',         '160px');
+        sp(ribbon,'background',    'linear-gradient(135deg,#ecc768,#cf9f2e)');
         sp(ribbon,'color',         '#fff');
-        sp(ribbon,'font-size',     '10px');
+        sp(ribbon,'font-size',     '12px');
         sp(ribbon,'font-weight',   '800');
         sp(ribbon,'text-align',    'center');
-        sp(ribbon,'padding',       '5px 0');
+        sp(ribbon,'padding',       '7px 0');
         sp(ribbon,'transform',     'rotate(-45deg)');
         sp(ribbon,'z-index',       '10');
-        sp(ribbon,'letter-spacing','0.10em');
+        sp(ribbon,'letter-spacing','0.12em');
         sp(ribbon,'text-transform','uppercase');
-        sp(ribbon,'line-height',   '1.4');
+        sp(ribbon,'text-shadow',   '0 1px 2px rgba(0,0,0,.25)');
+        sp(ribbon,'line-height',   '1.3');
         sp(ribbon,'min-width',     'unset');
         sp(ribbon,'border-radius', '0');
         sp(ribbon,'margin',        '0');
         sp(ribbon,'display',       'block');
-        sp(ribbon,'box-shadow',    '0 2px 6px rgba(0,0,0,.20)');
+        sp(ribbon,'box-shadow',    '0 3px 8px rgba(0,0,0,.28)');
       }
 
       // Custom overlay — sibling of mainLink inside wrap (NOT nested in <a>)
