@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.3.4');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.3.5');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -1085,16 +1085,16 @@ html body .product-card:hover .secondary-image {
 html body .product-card .onsale,
 html body .product-card .sale-ribbon {
   position:absolute !important;
-  top:20px !important; left:-26px !important;
-  z-index:10 !important;
-  background:#c9a84c !important; color:#fff !important;
+  top:12px !important; left:12px !important; right:auto !important;
+  z-index:12 !important;
+  background:linear-gradient(135deg,#d4b458,#a8872e) !important; color:#fff !important;
   font-size:11px !important; font-weight:800 !important;
-  padding:5px 38px !important;
-  text-transform:uppercase !important; letter-spacing:.08em !important;
-  transform:rotate(-45deg) !important;
-  box-shadow:0 2px 6px rgba(0,0,0,.22) !important;
-  min-width:110px !important; text-align:center !important;
-  line-height:1.4 !important; border-radius:0 !important; margin:0 !important;
+  padding:5px 12px !important;
+  text-transform:uppercase !important; letter-spacing:.06em !important;
+  transform:none !important;
+  box-shadow:0 3px 10px rgba(0,0,0,.25) !important;
+  min-width:0 !important; width:auto !important; text-align:center !important;
+  line-height:1.2 !important; border-radius:7px !important; margin:0 !important;
 }
 
 /* wishlist */

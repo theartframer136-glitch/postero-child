@@ -1452,31 +1452,33 @@ body.woocommerce-page ul.products li.product a.woocommerce-loop-product__link im
   transition: transform .5s cubic-bezier(.25,.46,.45,.94) !important;
 }
 
-/* Sale ribbon — diagonal, absolute, zero layout impact */
+/* Sale badge — clean rounded gold pill, inset in the top-left corner
+   (the card has overflow:hidden, so a diagonal ribbon gets clipped) */
 body.tax-product_cat ul.products li.product .onsale,
 body.woocommerce-page ul.products li.product .onsale {
   position: absolute !important;
-  top: 18px !important;
-  left: -22px !important;
+  top: 12px !important;
+  left: 12px !important;
   right: auto !important;
   bottom: auto !important;
-  width: 90px !important;
-  min-width: unset !important;
-  background: #c9a84c !important;
+  width: auto !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  background: linear-gradient(135deg,#d4b458,#a8872e) !important;
   color: #fff !important;
-  font-size: 10px !important;
+  font-size: 11px !important;
   font-weight: 800 !important;
   text-align: center !important;
-  padding: 5px 0 !important;
-  transform: rotate(-45deg) !important;
-  z-index: 10 !important;
-  letter-spacing: 0.10em !important;
+  padding: 5px 12px !important;
+  transform: none !important;
+  z-index: 12 !important;
+  letter-spacing: 0.06em !important;
   text-transform: uppercase !important;
-  line-height: 1.4 !important;
-  border-radius: 0 !important;
+  line-height: 1.2 !important;
+  border-radius: 7px !important;
   margin: 0 !important;
-  display: block !important;
-  box-shadow: 0 2px 6px rgba(0,0,0,.20) !important;
+  display: inline-block !important;
+  box-shadow: 0 3px 10px rgba(0,0,0,.25) !important;
 }
 
 /* Hover overlay — absolutely positioned over image, zero layout impact */
@@ -1581,6 +1583,37 @@ body.woocommerce-page ul.products li.product .af-shop-discount-badge,
 body.tax-product_cat ul.products li.product .af-atc-btn,
 body.woocommerce-page ul.products li.product .af-atc-btn {
   display: none !important;
+}
+
+/* ── Uniform left/right gap for EVERY card content row ──
+   Title, rating and price already inset 16px; the injected Art Code and
+   the colour-swatch / sizes row were flush (0). Align them all to 16px so
+   every element shares the same gap from the card's left and right edge. */
+body.tax-product_cat ul.products li.product .woocommerce-product-rating,
+body.woocommerce-page ul.products li.product .woocommerce-product-rating {
+  padding: 6px 16px 2px !important; margin: 0 !important; box-sizing: border-box !important;
+}
+body.tax-product_cat ul.products li.product > .star-rating,
+body.woocommerce-page ul.products li.product > .star-rating {
+  margin: 8px 16px 2px !important; padding: 0 !important;
+}
+body.tax-product_cat ul.products li.product .af-art-code--card,
+body.woocommerce-page ul.products li.product .af-art-code--card {
+  padding: 0 16px !important; margin: 2px 0 4px !important; box-sizing: border-box !important; width: 100% !important;
+}
+body.tax-product_cat ul.products li.product .af-card-vars,
+body.woocommerce-page ul.products li.product .af-card-vars {
+  padding: 4px 16px 14px !important; margin: 2px 0 0 !important; box-sizing: border-box !important; width: 100% !important;
+}
+@media (max-width: 640px) {
+  body.tax-product_cat ul.products li.product .woocommerce-product-rating,
+  body.woocommerce-page ul.products li.product .woocommerce-product-rating { padding: 5px 12px 2px !important; }
+  body.tax-product_cat ul.products li.product > .star-rating,
+  body.woocommerce-page ul.products li.product > .star-rating { margin: 6px 12px 2px !important; }
+  body.tax-product_cat ul.products li.product .af-art-code--card,
+  body.woocommerce-page ul.products li.product .af-art-code--card { padding: 0 12px !important; }
+  body.tax-product_cat ul.products li.product .af-card-vars,
+  body.woocommerce-page ul.products li.product .af-card-vars { padding: 4px 12px 12px !important; }
 }
 
 /* Mobile */
