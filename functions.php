@@ -9018,15 +9018,21 @@ add_action('wp_footer', function() {
   if (is_admin()) return;
   global $wpdb;
   $rows = $wpdb->get_results(
-    "SELECT post_id, meta_value FROM {$wpdb->postmeta}
-     WHERE meta_key='_taf_art_code' AND meta_value<>''");
+    "SELECT p.ID, p.post_name, m.meta_value
+       FROM {$wpdb->postmeta} m
+       JOIN {$wpdb->posts} p ON p.ID = m.post_id
+      WHERE m.meta_key='_taf_art_code' AND m.meta_value<>''");
   if (!$rows) return;
-  $map = array();
-  foreach ($rows as $r) { $map[(string)$r->post_id] = $r->meta_value; }
+  $map = array(); $slugmap = array();
+  foreach ($rows as $r) {
+    $map[(string)$r->ID] = $r->meta_value;
+    if ($r->post_name) $slugmap[$r->post_name] = $r->meta_value;
+  }
   ?>
 <script>
 (function(){
   var CODES = <?php echo wp_json_encode($map); ?>;
+  var SLUGS = <?php echo wp_json_encode($slugmap); ?>;
   function place(card, code){
     if (card.getAttribute('data-af-code')) return;
     card.setAttribute('data-af-code','1');
@@ -9035,9 +9041,18 @@ add_action('wp_footer', function() {
     span.textContent = 'Art Code: ' + code;
     span.style.setProperty('display','block','important');
     // prefer to sit right under the product title, else after the card's link
-    var title = card.querySelector('.woocommerce-loop-product__title, .product-title, h2, h3, .elementor-heading-title');
+    var title = card.querySelector('.woocommerce-loop-product__title, .product-title, .trending-title, h2, h3, h4, .elementor-heading-title');
     if (title && title.parentNode) { title.parentNode.insertBefore(span, title.nextSibling); return; }
     card.appendChild(span);
+  }
+  // Resolve a product slug from any product permalink inside the card
+  function slugFrom(card){
+    var links = card.querySelectorAll('a[href*="/product/"]');
+    for (var i=0;i<links.length;i++){
+      var mm = links[i].getAttribute('href').match(/\/product\/([^\/?#]+)/);
+      if (mm && SLUGS[mm[1]]) return SLUGS[mm[1]];
+    }
+    return null;
   }
   function inject(root){
     root = root || document;
@@ -9046,7 +9061,7 @@ add_action('wp_footer', function() {
     // (Elementor product widgets, carousel slides), and any add-to-cart button
     // that exposes data-product_id.
     var cards = root.querySelectorAll(
-      'li.product, .product-card, [class*="type-product"], [class*="post-"], [data-product_id]'
+      'li.product, .product-card, .trending-card, [class*="type-product"], [class*="post-"], [data-product_id]'
     );
     cards.forEach(function(card){
       if (card.getAttribute('data-af-code')) return;
@@ -9062,14 +9077,15 @@ add_action('wp_footer', function() {
         var lk = card.querySelector('a[href*="add-to-cart="]');
         if (lk) { var mm = lk.href.match(/add-to-cart=(\d+)/); if (mm) id = mm[1]; }
       }
-      if (!id || !CODES[id]) return;
+      var code = (id && CODES[id]) ? CODES[id] : slugFrom(card);   // slug fallback
+      if (!code) return;
       // climb to the nearest sensible card container so the label sits with
       // the title, not buried inside a button
       var host = card;
-      if (card.hasAttribute('data-product_id') && card.tagName === 'A') {
-        host = card.closest('li.product, .product-card, .product, [class*="post-"], article, .elementor-widget') || card;
+      if ((card.hasAttribute('data-product_id') || card.tagName === 'A')) {
+        host = card.closest('li.product, .product-card, .trending-card, .product, [class*="post-"], article, .elementor-widget') || card;
       }
-      place(host, CODES[id]);
+      place(host, code);
     });
   }
   function run(){ inject(document); }
