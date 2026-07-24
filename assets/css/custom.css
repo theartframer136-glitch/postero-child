@@ -1590,13 +1590,20 @@ body.woocommerce-page ul.products li.product .af-atc-btn {
    Title, rating and price already inset 16px; the injected Art Code and
    the colour-swatch / sizes row were flush (0). Align them all to 16px so
    every element shares the same gap from the card's left and right edge. */
+/* Rating row: force a 16px left inset on the stars no matter how the theme
+   nests them (bare .star-rating, .woocommerce-product-rating wrapper, or
+   .rating). Zero the wrapper's own left padding so the offset isn't doubled. */
 body.tax-product_cat ul.products li.product .woocommerce-product-rating,
-body.woocommerce-page ul.products li.product .woocommerce-product-rating {
-  padding: 6px 16px 2px !important; margin: 0 !important; box-sizing: border-box !important;
+body.woocommerce-page ul.products li.product .woocommerce-product-rating,
+body.tax-product_cat ul.products li.product .rating,
+body.woocommerce-page ul.products li.product .rating {
+  padding-left: 0 !important; padding-right: 16px !important;
+  margin: 8px 0 2px !important; box-sizing: border-box !important;
+  display: flex !important; align-items: center !important;
 }
-body.tax-product_cat ul.products li.product > .star-rating,
-body.woocommerce-page ul.products li.product > .star-rating {
-  margin: 8px 16px 2px !important; padding: 0 !important;
+body.tax-product_cat ul.products li.product .star-rating,
+body.woocommerce-page ul.products li.product .star-rating {
+  margin: 0 0 0 16px !important; padding: 0 !important; float: none !important;
 }
 body.tax-product_cat ul.products li.product .af-art-code--card,
 body.woocommerce-page ul.products li.product .af-art-code--card {
@@ -1608,9 +1615,11 @@ body.woocommerce-page ul.products li.product .af-card-vars {
 }
 @media (max-width: 640px) {
   body.tax-product_cat ul.products li.product .woocommerce-product-rating,
-  body.woocommerce-page ul.products li.product .woocommerce-product-rating { padding: 5px 12px 2px !important; }
-  body.tax-product_cat ul.products li.product > .star-rating,
-  body.woocommerce-page ul.products li.product > .star-rating { margin: 6px 12px 2px !important; }
+  body.woocommerce-page ul.products li.product .woocommerce-product-rating,
+  body.tax-product_cat ul.products li.product .rating,
+  body.woocommerce-page ul.products li.product .rating { padding: 5px 12px 2px 0 !important; }
+  body.tax-product_cat ul.products li.product .star-rating,
+  body.woocommerce-page ul.products li.product .star-rating { margin-left: 12px !important; }
   body.tax-product_cat ul.products li.product .af-art-code--card,
   body.woocommerce-page ul.products li.product .af-art-code--card { padding: 0 12px !important; }
   body.tax-product_cat ul.products li.product .af-card-vars,

@@ -289,12 +289,6 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/make-wall-mockup.php --allow-root 2>&1" \
             || true
 
-          echo "Dumping category card DOM (rating alignment)..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-card-dom.php --allow-root 2>&1" \
-            || true
-
           echo "Clearing caches after all updates..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
