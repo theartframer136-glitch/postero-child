@@ -9041,13 +9041,15 @@ add_action('wp_footer', function() {
   }
   function inject(root){
     root = root || document;
-    // Cast a wide net: standard Woo cards, any element carrying a post-<id>
-    // class (Elementor product widgets, "Shop by Collection" tiles, carousel
-    // slides), and any add-to-cart button that exposes data-product_id.
+    // Cast a wide net: standard Woo cards, the homepage "Shop by Collection"
+    // slider tiles (.product-card), any element carrying a post-<id> class
+    // (Elementor product widgets, carousel slides), and any add-to-cart button
+    // that exposes data-product_id.
     var cards = root.querySelectorAll(
-      'li.product, [class*="type-product"], [class*="post-"], [data-product_id]'
+      'li.product, .product-card, [class*="type-product"], [class*="post-"], [data-product_id]'
     );
     cards.forEach(function(card){
+      if (card.getAttribute('data-af-code')) return;
       var id = null;
       var m = (card.className||'').match(/(?:^|\s)post-(\d+)/);
       if (m) id = m[1];
@@ -9056,12 +9058,16 @@ add_action('wp_footer', function() {
         var b = card.querySelector('[data-product_id]');
         if (b) id = b.getAttribute('data-product_id');
       }
+      if (!id) {                       // fallback: add-to-cart URL
+        var lk = card.querySelector('a[href*="add-to-cart="]');
+        if (lk) { var mm = lk.href.match(/add-to-cart=(\d+)/); if (mm) id = mm[1]; }
+      }
       if (!id || !CODES[id]) return;
       // climb to the nearest sensible card container so the label sits with
       // the title, not buried inside a button
       var host = card;
       if (card.hasAttribute('data-product_id') && card.tagName === 'A') {
-        host = card.closest('li, .product, [class*="post-"], article, .elementor-widget, div') || card;
+        host = card.closest('li.product, .product-card, .product, [class*="post-"], article, .elementor-widget') || card;
       }
       place(host, CODES[id]);
     });
