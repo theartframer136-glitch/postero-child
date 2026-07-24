@@ -1457,7 +1457,7 @@ body.woocommerce-page ul.products li.product a.woocommerce-loop-product__link im
 body.tax-product_cat ul.products li.product .onsale,
 body.woocommerce-page ul.products li.product .onsale {
   position: absolute !important;
-  top: 24px !important;
+  top: 15px !important;
   left: -46px !important;
   right: auto !important;
   bottom: auto !important;

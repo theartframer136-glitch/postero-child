@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.3.6');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.3.7');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -3196,7 +3196,7 @@ add_action('wp_footer', function() {
         // run off the card and are clipped by .af-img-wrap (overflow:hidden),
         // leaving a clean gold "SALE!" banner across the corner.
         sp(ribbon,'position',      'absolute');
-        sp(ribbon,'top',           '24px');
+        sp(ribbon,'top',           '15px');
         sp(ribbon,'left',          '-46px');
         sp(ribbon,'width',         '160px');
         sp(ribbon,'background',    'linear-gradient(135deg,#ecc768,#cf9f2e)');
