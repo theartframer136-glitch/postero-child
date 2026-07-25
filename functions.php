@@ -9009,6 +9009,34 @@ add_action('wp_head', function() { ?>
 </style>
 <?php });
 
+// Remove the "Themes" filter widget from the shop / category sidebar.
+add_action('wp_footer', function() {
+  if (!function_exists('is_shop')) return;
+  if (!(is_shop() || is_product_taxonomy() || is_product_category() || is_product_tag())) return;
+  ?>
+<script>
+(function(){
+  function hideThemes(){
+    var heads = document.querySelectorAll(
+      '.widget-title, .widgettitle, .widget h2, .widget h3, .widget h4, aside h2, aside h3, aside h4, #secondary h2, #secondary h3, .elementor-heading-title'
+    );
+    heads.forEach(function(t){
+      if (!/^\s*themes\s*$/i.test((t.textContent||'').trim())) return;
+      var w = t.closest('.widget, li.widget, section.widget, .elementor-widget, .wp-block-group, .sidebar-widget');
+      if (w) { w.style.setProperty('display','none','important'); return; }
+      // fallback: hide the heading and the list that follows it
+      t.style.setProperty('display','none','important');
+      var nx = t.nextElementSibling; if (nx) nx.style.setProperty('display','none','important');
+    });
+  }
+  document.addEventListener('DOMContentLoaded', hideThemes);
+  window.addEventListener('load', hideThemes);
+  [300,900,2000].forEach(function(d){ setTimeout(hideThemes, d); });
+})();
+</script>
+  <?php
+}, 50);
+
 // PHASE 25b — product CARD Art Code via JS, SITE-WIDE (homepage carousels,
 // related products, up-sells, search, category grids). The Postero loop and
 // Elementor product widgets don't fire the standard WooCommerce card hook, so
@@ -9035,6 +9063,11 @@ add_action('wp_footer', function() {
   var SLUGS = <?php echo wp_json_encode($slugmap); ?>;
   function place(card, code){
     if (card.getAttribute('data-af-code')) return;
+    // Dedupe at the visual-card level: if the nearest product container
+    // already shows an Art Code (from the PHP hook or a previous run), skip —
+    // never add a second one.
+    var box = card.closest('li.product, .product-card, .trending-card, .product, article') || card;
+    if (box.querySelector('.af-art-code--card')) { card.setAttribute('data-af-code','1'); box.setAttribute('data-af-code','1'); return; }
     card.setAttribute('data-af-code','1');
     var span = document.createElement('span');
     span.className = 'af-art-code af-art-code--card';
