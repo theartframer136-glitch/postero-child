@@ -1420,8 +1420,19 @@ body.woocommerce-page ul.products li.product {
   display: flex !important;
   flex-direction: column !important;
   transition: box-shadow .25s ease, transform .25s ease !important;
-  padding: 0 !important;
+  padding: 0 0 4px !important;
   margin-bottom: 24px !important;
+}
+/* Equal-height cards: pin the price + swatch/from-price rows to the bottom so
+   every card in a row lines up, whether or not it has an Art Code line or a
+   longer title (removes the ragged empty space at the bottom of shorter cards). */
+body.tax-product_cat ul.products li.product .price,
+body.woocommerce-page ul.products li.product .price {
+  margin-top: auto !important;
+}
+body.tax-product_cat ul.products li.product .af-card-vars,
+body.woocommerce-page ul.products li.product .af-card-vars {
+  margin-top: 2px !important;
 }
 
 /* Image wrapper created by JS — padding-top:100% gives bulletproof 1:1 ratio */
