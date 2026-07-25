@@ -289,12 +289,6 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/make-wall-mockup.php --allow-root 2>&1" \
             || true
 
-          echo "Product type diagnostic (Buy Now / ATC)..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-product-types.php --allow-root 2>&1" \
-            || true
-
           echo "Clearing caches after all updates..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

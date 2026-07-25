@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.3.9');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.4.0');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -4415,7 +4415,8 @@ add_action('woocommerce_before_add_to_cart_button', function() {
       </div>
       <p class="af-color-tip">🎨 Color may slightly vary due to lighting</p>
       <div class="af-price-live">Your Price: <strong id="af-live-price"><?php echo wc_price($base); ?></strong>
-        <s id="af-live-mrp" class="af-live-mrp"></s></div>
+        <s id="af-live-mrp" class="af-live-mrp"></s>
+        <span id="af-live-disc" class="af-live-disc"></span></div>
       <p class="af-price-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Free Secure Packaging</p>
       <input type="hidden" name="af_size"  value="<?php echo esc_attr($sizes[0]); ?>">
       <input type="hidden" name="af_frame" value="<?php echo esc_attr($frames[0]); ?>">
@@ -8576,7 +8577,8 @@ add_action('wp_footer', function() {
 .af-wall-hint{margin:2px 0 12px;font-size:12.5px;color:#8a6d1f;font-weight:600;}
 .af-rec{display:block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#256d2c;font-weight:800;}
 .af-color-tip{margin:2px 0 8px;font-size:11.5px;color:#999;}
-.af-live-mrp{color:#b0b0b0;margin-left:10px;font-size:14px;}
+.af-live-mrp{color:#9a9a9a;margin-left:10px;font-size:15px;text-decoration:line-through;text-decoration-color:#9a9a9a;text-decoration-thickness:2px;}
+.af-live-disc{margin-left:8px;font-size:13.5px;font-weight:700;color:#4caf2f;}
 .af-price-notes{margin:4px 0 10px;font-size:12.5px;color:#256d2c;font-weight:600;}
 .af-dim-toggle{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid #c9a84c;color:#8a6d1f;
   font-size:12.5px;font-weight:700;padding:8px 14px;cursor:pointer;margin:10px 0 0;}
@@ -8653,12 +8655,22 @@ add_action('wp_footer', function() {
   function refreshExtras(){
     var sz = (opts.querySelector('input[name="af_size"]') || {}).value;
     if (hintEl) hintEl.textContent = (cfg.hints && cfg.hints[sz]) ? '📐 ' + cfg.hints[sz] : '';
-    // MRP strikethrough: list-style reference at +25% of the live price
-    var live = document.getElementById('af-live-price'), mrp = document.getElementById('af-live-mrp');
+    // MRP strikethrough (reference list price = +25% of the live price) plus
+    // the matching discount badge, so the product page shows the saving too.
+    var live = document.getElementById('af-live-price'),
+        mrp  = document.getElementById('af-live-mrp'),
+        disc = document.getElementById('af-live-disc');
     if (live && mrp) {
       var num = parseFloat((live.textContent || '').replace(/[^0-9.]/g, ''));
       var symM = (live.textContent || '').match(/^[^0-9]*/);
-      if (num) mrp.textContent = (symM ? symM[0] : '$') + (num * 1.25).toFixed(2);
+      if (num) {
+        var mrpVal = num * 1.25;
+        mrp.textContent = (symM ? symM[0] : '$') + mrpVal.toFixed(2);
+        if (disc) {
+          var pct = Math.round((mrpVal - num) / mrpVal * 100);
+          disc.textContent = pct > 0 ? '(' + pct + '% OFF)' : '';
+        }
+      }
     }
   }
   opts.addEventListener('click', function(){ setTimeout(refreshExtras, 30); });
