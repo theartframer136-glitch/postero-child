@@ -1626,6 +1626,40 @@ body.woocommerce-page ul.products li.product .af-card-vars {
   body.woocommerce-page ul.products li.product .af-card-vars { padding: 4px 12px 12px !important; }
 }
 
+/* ── Original (pre-sale) price must be struck through on ALL card variants so
+   "$179.00  $348.00 (49% off)" reads as sale + crossed original, not a range.
+   Covers <del>, .old-price and .price-section markup on homepage sliders,
+   trending, new arrivals and archive cards. ── */
+html body .product-card .price del,
+html body .product-card .price del *,
+html body .product-card .old-price,
+html body .product-card .old-price *,
+html body .product-card .price-section del,
+html body .trending-card .old-price,
+html body .trending-card .old-price *,
+html body .trending-card .price del,
+html body .af-new-arrivals li.product .price del,
+html body li.product .price del,
+html body li.product .price del *,
+html body li.product .old-price,
+html body ul.products li.product .price del {
+  text-decoration: line-through !important;
+  text-decoration-color: #9a9a9a !important;
+  text-decoration-thickness: 1.5px !important;
+  color: #9a9a9a !important;
+  font-weight: 400 !important;
+}
+/* the sale/current price stays solid black, no strike */
+html body .product-card .price ins,
+html body .trending-card .price ins,
+html body li.product .price ins,
+html body .product-card .current-price,
+html body .trending-card .current-price {
+  text-decoration: none !important;
+  font-weight: 700 !important;
+  color: #1a1a1a !important;
+}
+
 /* Mobile */
 @media (max-width: 640px) {
   body.tax-product_cat ul.products li.product,
