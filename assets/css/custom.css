@@ -1659,6 +1659,20 @@ html body .trending-card .current-price {
   font-weight: 700 !important;
   color: #1a1a1a !important;
 }
+/* Bulletproof: .old-price is ALWAYS the original price — strike it everywhere
+   (confirmed markup: <span class="old-price"><span class="woocommerce-Price-amount">
+   $348.00</span></span> next to the sale price and a .discount "(49% off)"). */
+html body .old-price,
+html body .old-price *,
+html body .old-price .woocommerce-Price-amount,
+html body .old-price bdi {
+  text-decoration: line-through !important;
+  text-decoration-color: #9a9a9a !important;
+  text-decoration-thickness: 1.5px !important;
+  color: #9a9a9a !important;
+  font-weight: 400 !important;
+}
+html body .discount { color: #4caf2f !important; font-weight: 600 !important; }
 
 /* Mobile */
 @media (max-width: 640px) {
