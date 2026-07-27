@@ -295,10 +295,16 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/convert-variable-to-simple.php --allow-root 2>&1" \
             || true
 
-          echo "Art Code source diagnostic (recoverable from filenames?)..."
+          echo "Art Code audit + CSV export..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-artcode-source.php --allow-root 2>&1" \
+             wp eval-file wp-content/themes/postero-child/tools/report-artcodes.php --allow-root 2>&1" \
+            || true
+
+          echo "Art Code import (applies uploads/taf-reports/artcode-import.csv when present)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/import-artcodes.php --allow-root 2>&1" \
             || true
 
           echo "Clearing caches after all updates..."
