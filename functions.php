@@ -4921,6 +4921,7 @@ add_action('template_redirect', function(){
 
             <label class="af-tow-upload"><input type="file" id="tow-wall" accept="image/*" hidden><span>⬆ Upload your own wall photo</span></label>
 
+            <p class="af-tow-scalenote">📏 Shown true to scale on a 10&nbsp;ft wall</p>
             <label>Adjust Size <span id="tow-scaleval">100%</span></label>
             <input type="range" id="tow-scale" min="40" max="160" value="100">
 
@@ -5188,25 +5189,52 @@ add_action('template_redirect', function(){
       }
       ['tow-prod','tow-frame','tow-size','tow-color'].forEach(function(id){ $(id).addEventListener('change', refresh); });
 
+      // ── TRUE-TO-SCALE preview ──────────────────────────────────────────
+      // The room photos are shot against a wall we treat as WALL_FT high, and
+      // the wall occupies WALL_FRAC of the stage's height (the rest is floor).
+      // A size label like "3×5 ft (36×60 in)" is HEIGHT × WIDTH in feet, so the
+      // artwork is drawn at (height_ft / WALL_FT) of the wall — e.g. 3 ft on a
+      // 10 ft wall = 30% of the wall height — and its width follows from the
+      // real aspect ratio, not from the price multiplier.
+      var WALL_FT = 10;      // assumed real wall height in the room scenes
+      var WALL_FRAC = 0.78;  // portion of the stage height that is wall
+      function sizeFeet(label){
+        // "3×5 ft (36×60 in)" → {h:3, w:5}   (also accepts x / X / ×)
+        var m = String(label||'').match(/(\d+(?:\.\d+)?)\s*[x×X]\s*(\d+(?:\.\d+)?)/);
+        if(!m) return null;
+        return { h: parseFloat(m[1]), w: parseFloat(m[2]) };
+      }
       function applyScale(){
-        var stage=$('tow-stage'), box=$('tow-framebox');
+        var stage=$('tow-stage'), box=$('tow-framebox'), art=$('tow-art');
         var r=stage.getBoundingClientRect(), sw=r.width||500, sh=r.height||560;
-        // CFG.sizes holds PRICE multipliers (up to ~2.7). Using them raw made
-        // big sizes swallow the whole room photo. Grow gently (sqrt) instead,
-        // then clamp so the artwork always stays a believable wall piece.
-        var sizeMult=CFG.sizes[$('tow-size').value]||1;
-        var vis=Math.sqrt(sizeMult);
+        var label=$('tow-size').value;
+        var ft=sizeFeet(label);
         var slider=parseFloat($('tow-scale').value)/100;
-        var w=Math.max(60, sw*0.28*vis*slider);
-        w=Math.min(w, sw*0.60);                       // never wider than ~60% of the room
-        box.style.width=w+'px';
-        $('tow-art').style.width='100%'; $('tow-art').style.height='auto'; $('tow-art').style.display='block';
-        // after layout, also cap the HEIGHT (landscape vs portrait art differ)
-        requestAnimationFrame(function(){
-          var bh=box.getBoundingClientRect().height;
-          var maxH=sh*0.52;                           // keep it on the wall, above the sofa
-          if(bh>maxH && bh>0){ box.style.width=(w*maxH/bh)+'px'; }
-        });
+        art.style.width='100%'; art.style.height='auto'; art.style.display='block';
+
+        if(ft && ft.h>0 && ft.w>0){
+          // pixels-per-foot from the wall height in this scene
+          var pxPerFt = (sh * WALL_FRAC) / WALL_FT;
+          var targetH = ft.h * pxPerFt * slider;         // true height on the wall
+          var targetW = ft.w * pxPerFt * slider;         // true width  on the wall
+          // Set width first, then correct so the RENDERED box (frame + mat +
+          // art, whose own ratio may differ) matches the real footprint.
+          box.style.width = Math.max(40, targetW) + 'px';
+          requestAnimationFrame(function(){
+            var b = box.getBoundingClientRect();
+            if(b.height>0){
+              // scale so height matches the real feet, keeping it on the wall
+              var corrected = Math.max(40, targetW * (targetH / b.height));
+              // never exceed the wall itself
+              corrected = Math.min(corrected, sw*0.92);
+              box.style.width = corrected + 'px';
+            }
+          });
+          return;
+        }
+        // Fallback (unparsable label): previous gentle scaling
+        var sizeMult=CFG.sizes[label]||1;
+        box.style.width=Math.max(60, sw*0.28*Math.sqrt(sizeMult)*slider)+'px';
       }
       $('tow-scale').addEventListener('input', function(){ $('tow-scaleval').textContent=this.value+'%'; applyScale(); });
 
@@ -5333,6 +5361,7 @@ add_action('template_redirect', function(){
     .af-tow-wallimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;}
     .af-tow-ph{position:relative;z-index:2;color:#8a8170;font-size:14.5px;text-align:center;max-width:360px;line-height:1.65;padding:24px;display:flex;flex-direction:column;align-items:center;gap:12px;background:rgba(255,255,255,.78);border-radius:14px;backdrop-filter:blur(2px);}
     .af-tow-ph-ic{font-size:34px;}
+    .af-tow-scalenote{margin:10px 0 0;font-size:11.5px;color:#8a6d1f;font-weight:600;}
     .af-tow-framebox{position:absolute;top:42%;left:50%;transform:translate(-50%,-50%);cursor:grab;touch-action:none;z-index:5;}
     .af-tow-framebox.dragging{cursor:grabbing;}
     .af-tow-framebox:hover .af-tow-hint{opacity:1;}
