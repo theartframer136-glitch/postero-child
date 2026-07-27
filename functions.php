@@ -4837,10 +4837,24 @@ add_action('template_redirect', function(){
     if (!function_exists('is_page') || !is_page(array('try-on-wall','try-it-on-your-wall'))) return;
     if (!function_exists('wc_get_products')) return;
 
-    // Build catalog data
+    // Build catalog data. Skip utility categories that aren't real shopping
+    // groups: size cats ("3x4 ft"), frame-color/size/type cats and their
+    // children (Black/Gold/Silver…), uncategorized.
     $cats = get_terms(array('taxonomy'=>'product_cat','hide_empty'=>true,'orderby'=>'name'));
     $cat_items = array();
-    if (!is_wp_error($cats)) foreach ($cats as $c) $cat_items[] = array('slug'=>$c->slug,'name'=>$c->name);
+    $skip_slugs = array('frame-colors','frame-sizes','frame-types','black','gold','silver','rose-gold','uncategorized');
+    $skip_parents = array();
+    if (!is_wp_error($cats)) {
+        foreach ($cats as $c) {
+            if (in_array($c->slug, array('frame-colors','frame-sizes','frame-types'), true)) $skip_parents[] = (int) $c->term_id;
+        }
+        foreach ($cats as $c) {
+            if (in_array($c->slug, $skip_slugs, true)) continue;
+            if (in_array((int) $c->parent, $skip_parents, true)) continue;
+            if (preg_match('/^\d+(?:\.\d+)?\s*[x×]\s*\d+/i', $c->name)) continue;   // "3x4 ft" size cats
+            $cat_items[] = array('slug'=>$c->slug,'name'=>$c->name);
+        }
+    }
 
     $ids = wc_get_products(array('status'=>'publish','limit'=>-1,'return'=>'ids'));
     $prod_items = array();
@@ -5176,11 +5190,23 @@ add_action('template_redirect', function(){
 
       function applyScale(){
         var stage=$('tow-stage'), box=$('tow-framebox');
+        var r=stage.getBoundingClientRect(), sw=r.width||500, sh=r.height||560;
+        // CFG.sizes holds PRICE multipliers (up to ~2.7). Using them raw made
+        // big sizes swallow the whole room photo. Grow gently (sqrt) instead,
+        // then clamp so the artwork always stays a believable wall piece.
         var sizeMult=CFG.sizes[$('tow-size').value]||1;
-        var base=(stage.getBoundingClientRect().width||500)*0.32;
+        var vis=Math.sqrt(sizeMult);
         var slider=parseFloat($('tow-scale').value)/100;
-        box.style.width=Math.max(60, base*sizeMult*slider)+'px';
+        var w=Math.max(60, sw*0.28*vis*slider);
+        w=Math.min(w, sw*0.60);                       // never wider than ~60% of the room
+        box.style.width=w+'px';
         $('tow-art').style.width='100%'; $('tow-art').style.height='auto'; $('tow-art').style.display='block';
+        // after layout, also cap the HEIGHT (landscape vs portrait art differ)
+        requestAnimationFrame(function(){
+          var bh=box.getBoundingClientRect().height;
+          var maxH=sh*0.52;                           // keep it on the wall, above the sofa
+          if(bh>maxH && bh>0){ box.style.width=(w*maxH/bh)+'px'; }
+        });
       }
       $('tow-scale').addEventListener('input', function(){ $('tow-scaleval').textContent=this.value+'%'; applyScale(); });
 
@@ -5307,7 +5333,7 @@ add_action('template_redirect', function(){
     .af-tow-wallimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;}
     .af-tow-ph{position:relative;z-index:2;color:#8a8170;font-size:14.5px;text-align:center;max-width:360px;line-height:1.65;padding:24px;display:flex;flex-direction:column;align-items:center;gap:12px;background:rgba(255,255,255,.78);border-radius:14px;backdrop-filter:blur(2px);}
     .af-tow-ph-ic{font-size:34px;}
-    .af-tow-framebox{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);cursor:grab;touch-action:none;z-index:5;}
+    .af-tow-framebox{position:absolute;top:42%;left:50%;transform:translate(-50%,-50%);cursor:grab;touch-action:none;z-index:5;}
     .af-tow-framebox.dragging{cursor:grabbing;}
     .af-tow-framebox:hover .af-tow-hint{opacity:1;}
     .af-tow-frame{position:relative;box-sizing:border-box;}
