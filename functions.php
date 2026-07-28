@@ -2608,10 +2608,13 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         $thumb_hq  = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
         $thumb_max = "https://img.youtube.com/vi/{$vid}/maxresdefault.jpg";
         $embed     = "https://www.youtube-nocookie.com/embed/{$vid}?autoplay=1&mute=1&loop=1&playlist={$vid}&controls=0&rel=0&playsinline=1";
+        // NOTE: no <iframe> here. Embedding ~20 autoplaying YouTube players at
+        // once made the browser throttle them, leaving several circles black
+        // with a spinner (and cost seconds of load time). We render only the
+        // thumbnail; the player is created on hover/tap by the JS below.
         $circles_html .= "
-<div class=\"af-pim-circle\" data-vid=\"{$vid}\">
-  <iframe src=\"{$embed}\" allow=\"autoplay; encrypted-media\" frameborder=\"0\" loading=\"lazy\"></iframe>
-  <img class=\"af-pim-thumb\" src=\"{$thumb_max}\" onerror=\"this.src='{$thumb_hq}';this.onerror=null\" alt=\"\">
+<div class=\"af-pim-circle\" data-vid=\"{$vid}\" data-embed=\"" . esc_attr($embed) . "\">
+  <img class=\"af-pim-thumb\" src=\"{$thumb_max}\" onerror=\"this.src='{$thumb_hq}';this.onerror=null\" alt=\"\" loading=\"lazy\" decoding=\"async\">
   <div class=\"af-pim-play\"><svg viewBox=\"0 0 24 24\"><path d=\"M8 5v14l11-7z\"/></svg></div>
   <div class=\"af-pim-overlay\"></div>
 </div>";
@@ -2662,17 +2665,40 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
     document.getElementById('afPimNext').onclick = function(){ go(idx + vis()); };
     window.addEventListener('resize', function(){ idx = 0; go(0); });
 
-    // After iframe loads, fade out the thumbnail overlay
-    circles.forEach(function(c) {
+    // Players are created ON DEMAND (hover on desktop, tap on touch). Only ONE
+    // preview plays at a time, so the browser never throttles them — that is
+    // what left several circles black with a loading spinner before.
+    var playing = null;
+    function stopPreview(c){
+        if (!c) return;
         var fr = c.querySelector('iframe');
-        var th = c.querySelector('.af-pim-thumb');
-        var pl = c.querySelector('.af-pim-play');
-        if (fr && th) {
-            fr.addEventListener('load', function(){
-                setTimeout(function(){ th.style.opacity = '0'; if(pl) pl.style.opacity='0'; }, 1800);
-            });
+        if (fr) fr.remove();
+        var th = c.querySelector('.af-pim-thumb'), pl = c.querySelector('.af-pim-play');
+        if (th) th.style.opacity = '1';
+        if (pl) pl.style.opacity = '';
+        if (playing === c) playing = null;
+    }
+    function startPreview(c){
+        if (!c || c.querySelector('iframe')) return;
+        if (playing && playing !== c) stopPreview(playing);
+        playing = c;
+        var fr = document.createElement('iframe');
+        fr.src = c.getAttribute('data-embed');
+        fr.setAttribute('allow', 'autoplay; encrypted-media');
+        fr.setAttribute('frameborder', '0');
+        var th = c.querySelector('.af-pim-thumb'), pl = c.querySelector('.af-pim-play');
+        fr.addEventListener('load', function(){
+            setTimeout(function(){ if (th) th.style.opacity = '0'; if (pl) pl.style.opacity = '0'; }, 600);
+        });
+        c.insertBefore(fr, c.firstChild);
+    }
+    var isTouch = window.matchMedia('(hover: none)').matches;
+    circles.forEach(function(c) {
+        if (!isTouch) {
+            c.addEventListener('mouseenter', function(){ startPreview(c); });
+            c.addEventListener('mouseleave', function(){ stopPreview(c); });
         }
-        // Click: open lightbox with sound
+        // Click: open the lightbox with sound
         var ov = c.querySelector('.af-pim-overlay');
         if (ov) {
             ov.addEventListener('click', function(){
@@ -2683,6 +2709,17 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
             });
         }
     });
+    // Autoplay just the first visible circle so the row still feels alive
+    if (!isTouch && circles.length) {
+        try {
+            var io = new IntersectionObserver(function(en){
+                en.forEach(function(e){
+                    if (e.isIntersecting) { startPreview(circles[0]); io.disconnect(); }
+                });
+            }, { threshold: 0.4 });
+            io.observe(circles[0]);
+        } catch(e){}
+    }
 
     function closeLb() {
         lb.classList.remove('open');
