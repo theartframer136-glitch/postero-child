@@ -9207,3 +9207,411 @@ add_action('wp_footer', function() {
 </script>
   <?php
 }, 210);
+
+// ─────────────────────────────────────────────────────────────
+// PHASE 27 — "Frame The Moment" (/frame-the-moment/)
+// The Elementor version rendered a dead preview panel (an empty grey
+// box) and an unstyled browser file input. Replace it with a working,
+// styled builder — same proven approach as /try-on-wall/:
+//   • upload your own photo (drag & drop or click)
+//   • pick product type, size, frame type and frame colour
+//   • LIVE realistic preview: bevelled moulding + mat + glass glare,
+//     true-to-size aspect ratio, shown on a wall
+//   • live price from af_pricing_config()
+//   • download the preview, or send the whole spec via WhatsApp
+// ─────────────────────────────────────────────────────────────
+add_action('template_redirect', function () {
+    if (!function_exists('is_page') || !is_page(array('frame-the-moment','frame-the-moments'))) return;
+
+    $cfg = function_exists('af_pricing_config') ? af_pricing_config() : array(
+        'sizes'  => array('2×3 ft (24×36 in)'=>1.0),
+        'frames' => array('Without Frame'=>0,'Fibre Frame'=>25,'Floating Frame'=>40,'Aluminium Frame'=>55),
+        'colors' => array('Black'=>0,'Silver'=>0,'Gold'=>10,'Rose Gold'=>10),
+    );
+    $sym  = function_exists('get_woocommerce_currency_symbol') ? get_woocommerce_currency_symbol() : '$';
+    $base = 179.0;   // starting price for a customer-supplied photo print
+
+    // Product types this service prints on
+    $types = array(
+        'Canvas Print'        => 0,
+        'Framed Canvas'       => 20,
+        'Gallery Print'       => 15,
+        'Personalised Gift'   => 10,
+    );
+    $wa = '16104707280';
+
+    get_header();
+    ?>
+    <div class="af-ftm-wrap">
+      <div class="af-ftm-card">
+        <a class="af-ftm-home" href="<?php echo esc_url(home_url('/')); ?>">← Back to Home</a>
+        <span class="af-ftm-badge">Your Photo · Our Craft</span>
+        <h1 class="af-ftm-title">Frame The Moment</h1>
+        <p class="af-ftm-sub">Upload a photo you love, choose the size and frame, and see it become gallery-quality wall art — previewed instantly, before you order.</p>
+
+        <div class="af-ftm-grid">
+          <!-- ── controls ── -->
+          <div class="af-ftm-panel">
+            <div class="af-ftm-step"><span class="af-ftm-num">1</span><span class="af-ftm-steptitle">Upload your photo</span></div>
+            <label for="ftm-file" class="af-ftm-drop" id="ftm-drop">
+              <input type="file" id="ftm-file" accept="image/*" hidden>
+              <span class="af-ftm-dropic">🖼️</span>
+              <strong id="ftm-dropmain">Click to choose a photo</strong>
+              <small id="ftm-dropsub">or drag &amp; drop it here · JPG or PNG</small>
+            </label>
+            <p class="af-ftm-hint" id="ftm-quality"></p>
+
+            <div class="af-ftm-step"><span class="af-ftm-num">2</span><span class="af-ftm-steptitle">Choose your print</span></div>
+            <label>Product Type</label>
+            <select id="ftm-type">
+              <?php foreach ($types as $t => $fee): ?>
+                <option value="<?php echo esc_attr($t); ?>" data-fee="<?php echo esc_attr($fee); ?>"><?php echo esc_html($t); ?><?php if($fee>0) echo ' (+'.$sym.$fee.')'; ?></option>
+              <?php endforeach; ?>
+            </select>
+
+            <label>Frame Size</label>
+            <select id="ftm-size">
+              <?php foreach (array_keys($cfg['sizes']) as $i => $s): ?>
+                <option value="<?php echo esc_attr($s); ?>" data-mult="<?php echo esc_attr($cfg['sizes'][$s]); ?>"<?php echo $i===0?' selected':''; ?>><?php echo esc_html($s); ?></option>
+              <?php endforeach; ?>
+            </select>
+
+            <div class="af-ftm-step"><span class="af-ftm-num">3</span><span class="af-ftm-steptitle">Style the frame</span></div>
+            <label>Frame Type</label>
+            <select id="ftm-frame">
+              <?php foreach ($cfg['frames'] as $f => $fee): ?>
+                <option value="<?php echo esc_attr($f); ?>" data-fee="<?php echo esc_attr($fee); ?>"><?php echo esc_html($f); ?><?php if($fee>0) echo ' (+'.$sym.$fee.')'; ?></option>
+              <?php endforeach; ?>
+            </select>
+
+            <label>Frame Colour</label>
+            <div class="af-ftm-swatches" id="ftm-swatches"></div>
+            <select id="ftm-color" class="af-ftm-hidden">
+              <?php foreach ($cfg['colors'] as $c => $fee): ?>
+                <option value="<?php echo esc_attr($c); ?>" data-fee="<?php echo esc_attr($fee); ?>"><?php echo esc_html($c); ?></option>
+              <?php endforeach; ?>
+            </select>
+
+            <div class="af-ftm-price"><span>Your price</span><strong id="ftm-price">—</strong></div>
+            <p class="af-ftm-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Free secure packaging</p>
+
+            <div class="af-ftm-actions">
+              <button type="button" id="ftm-save" class="af-ftm-btn ghost">⤓ Save Preview</button>
+              <a href="#" id="ftm-send" class="af-ftm-btn solid" target="_blank" rel="noopener">Confirm &amp; Send</a>
+            </div>
+            <p class="af-ftm-fine">“Confirm &amp; Send” opens WhatsApp with your choices ready — just attach the saved preview and hit send.</p>
+          </div>
+
+          <!-- ── live preview ── -->
+          <div class="af-ftm-stagewrap">
+            <div id="ftm-stage" class="af-ftm-stage">
+              <div id="ftm-empty" class="af-ftm-empty">
+                <span class="af-ftm-emptyic">📷</span>
+                <strong>Your photo appears here</strong>
+                <small>Upload a photo to see it framed on a wall, true to size.</small>
+              </div>
+              <div id="ftm-framebox" class="af-ftm-framebox" style="display:none">
+                <div id="ftm-moulding" class="af-ftm-moulding">
+                  <div id="ftm-mat" class="af-ftm-mat">
+                    <div id="ftm-art" class="af-ftm-art"></div>
+                    <span class="af-ftm-glass"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p class="af-ftm-tip" id="ftm-tip">Shown true to scale on a 10&nbsp;ft wall — change the size to compare.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+    (function(){
+      var $ = function(id){ return document.getElementById(id); };
+      var SYM = <?php echo wp_json_encode($sym); ?>;
+      var BASE = <?php echo (float) $base; ?>;
+      var WA = <?php echo wp_json_encode($wa); ?>;
+      var SWATCH = {'Black':'#1e1e1e','Silver':'#c0c0c0','Gold':'#d4af37','Rose Gold':'#b76e79'};
+      var MAT = {
+        'Black':'linear-gradient(135deg,#4a4a4a 0%,#1c1c1c 42%,#050505 58%,#333 100%)',
+        'Silver':'linear-gradient(135deg,#fdfdfd 0%,#c4c4c4 42%,#8f8f8f 58%,#e6e6e6 100%)',
+        'Gold':'linear-gradient(135deg,#fbe7ad 0%,#d8b445 42%,#a67c1e 58%,#f2d879 100%)',
+        'Rose Gold':'linear-gradient(135deg,#f7d3c8 0%,#dca596 42%,#b76e79 58%,#efbcae 100%)'
+      };
+      var photoURL = null, photoW = 0, photoH = 0, photoName = '';
+
+      // ── colour swatches drive the hidden select ──
+      (function(){
+        var sel = $('ftm-color'), wrap = $('ftm-swatches');
+        Array.prototype.forEach.call(sel.options, function(o, i){
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'af-ftm-sw' + (i===0 ? ' on' : '');
+          b.style.background = SWATCH[o.value] || '#1a1a1a';
+          b.title = o.textContent;
+          b.innerHTML = '<span>' + o.value + '</span>';
+          b.addEventListener('click', function(){
+            wrap.querySelectorAll('.af-ftm-sw').forEach(function(x){ x.classList.remove('on'); });
+            b.classList.add('on'); sel.selectedIndex = i; render();
+          });
+          wrap.appendChild(b);
+        });
+      })();
+
+      // ── size → real feet, for true-to-scale rendering ──
+      function sizeFeet(label){
+        var m = String(label).match(/([\d.]+)\s*[x×]\s*([\d.]+)\s*ft/i);
+        if (m) return { h: parseFloat(m[1]), w: parseFloat(m[2]) };
+        var inch = String(label).match(/(\d+)\s*[x×]\s*(\d+)\s*in/i);
+        if (inch) return { h: parseFloat(inch[1])/12, w: parseFloat(inch[2])/12 };
+        return { h: 3, w: 2 };
+      }
+
+      function price(){
+        var mult = parseFloat($('ftm-size').selectedOptions[0].dataset.mult) || 1;
+        var fee  = (parseFloat($('ftm-frame').selectedOptions[0].dataset.fee) || 0)
+                 + (parseFloat($('ftm-color').selectedOptions[0].dataset.fee) || 0)
+                 + (parseFloat($('ftm-type').selectedOptions[0].dataset.fee)  || 0);
+        return Math.round((BASE * mult + fee) * 100) / 100;
+      }
+
+      function render(){
+        var p = price();
+        $('ftm-price').textContent = SYM + p.toFixed(2);
+        buildSendLink(p);
+        if (!photoURL) return;
+
+        $('ftm-empty').style.display = 'none';
+        $('ftm-framebox').style.display = 'block';
+
+        var frame = $('ftm-frame').value, color = $('ftm-color').value;
+        var mould = $('ftm-moulding'), mat = $('ftm-mat'), art = $('ftm-art'), box = $('ftm-framebox');
+
+        // frame profile
+        var prof, matw, matbg = '#f6f1e6';
+        if (frame === 'Without Frame')          { prof = 0; matw = 0; }
+        else if (frame === 'Floating Frame')    { prof = 5; matw = 6; matbg = '#161616'; }
+        else if (frame === 'Aluminium Frame')   { prof = 4; matw = 7; }
+        else                                    { prof = 7; matw = 9; }
+
+        mould.style.padding      = prof ? prof + '%' : '0';
+        mould.style.background   = prof ? (MAT[color] || MAT['Black']) : 'transparent';
+        mould.style.borderRadius = (frame === 'Aluminium Frame') ? '3px' : '2px';
+        mould.style.boxShadow    = prof
+          ? 'inset 2px 2px 3px rgba(255,255,255,.45), inset -3px -3px 5px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.25)'
+          : 'none';
+        mat.style.padding    = matw ? matw + '%' : '0';
+        mat.style.background = matw ? matbg : 'transparent';
+        mat.style.boxShadow  = matw ? 'inset 0 0 8px rgba(0,0,0,.28)' : 'none';
+
+        // artwork fills the mat, cropped to the frame's aspect ratio
+        var ft = sizeFeet($('ftm-size').value);
+        art.style.backgroundImage = 'url("' + photoURL + '")';
+        art.style.paddingBottom   = (ft.h / ft.w * 100) + '%';
+
+        // true-to-scale against a 10 ft wall
+        var stage = $('ftm-stage').getBoundingClientRect();
+        var WALL_FT = 10;
+        var h = stage.height * (ft.h / WALL_FT);
+        var w = h * (ft.w / ft.h);
+        var maxW = stage.width * 0.62, maxH = stage.height * 0.60;
+        if (w > maxW) { h *= maxW / w; w = maxW; }
+        if (h > maxH) { w *= maxH / h; h = maxH; }
+        box.style.width = Math.max(70, w) + 'px';
+
+        $('ftm-tip').textContent = 'Shown true to scale on a 10 ft wall — ' +
+          ft.h.toFixed(1).replace(/\.0$/,'') + '×' + ft.w.toFixed(1).replace(/\.0$/,'') + ' ft print.';
+      }
+
+      function buildSendLink(p){
+        var msg = 'Hi The Art Framer! I would like to order a *Frame The Moment* custom print:%0A%0A' +
+          '• Product: ' + encodeURIComponent($('ftm-type').value) + '%0A' +
+          '• Size: '    + encodeURIComponent($('ftm-size').value) + '%0A' +
+          '• Frame: '   + encodeURIComponent($('ftm-frame').value) + '%0A' +
+          '• Colour: '  + encodeURIComponent($('ftm-color').value) + '%0A' +
+          '• Price: '   + encodeURIComponent(SYM + p.toFixed(2)) + '%0A' +
+          (photoName ? ('• Photo: ' + encodeURIComponent(photoName) + '%0A') : '') +
+          '%0A(I will attach my photo here.)';
+        $('ftm-send').href = 'https://wa.me/' + WA + '?text=' + msg;
+      }
+
+      // ── upload: click, change and drag & drop ──
+      function loadFile(file){
+        if (!file || !/^image\//.test(file.type)) { alert('Please choose an image file (JPG or PNG).'); return; }
+        photoName = file.name;
+        var r = new FileReader();
+        r.onload = function(e){
+          photoURL = e.target.result;
+          var im = new Image();
+          im.onload = function(){
+            photoW = im.naturalWidth; photoH = im.naturalHeight;
+            var mp = (photoW * photoH) / 1000000;
+            $('ftm-quality').textContent = photoW + '×' + photoH + 'px · ' +
+              (mp >= 4 ? '✓ great quality for large prints'
+                       : mp >= 1.5 ? '✓ good for prints up to 3 ft'
+                                   : '⚠ low resolution — best kept small');
+            $('ftm-quality').className = 'af-ftm-hint' + (mp < 1.5 ? ' warn' : ' ok');
+            render();
+          };
+          im.src = photoURL;
+          $('ftm-dropmain').textContent = file.name.length > 34 ? file.name.slice(0,31) + '…' : file.name;
+          $('ftm-dropsub').textContent  = 'Click to choose a different photo';
+          $('ftm-drop').classList.add('has');
+        };
+        r.readAsDataURL(file);
+      }
+      $('ftm-file').addEventListener('change', function(){ loadFile(this.files && this.files[0]); });
+      var drop = $('ftm-drop');
+      ['dragenter','dragover'].forEach(function(ev){
+        drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('over'); });
+      });
+      ['dragleave','drop'].forEach(function(ev){
+        drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('over'); });
+      });
+      drop.addEventListener('drop', function(e){
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]) loadFile(e.dataTransfer.files[0]);
+      });
+
+      ['ftm-type','ftm-size','ftm-frame','ftm-color'].forEach(function(id){
+        $(id).addEventListener('change', render);
+      });
+      window.addEventListener('resize', render);
+
+      // ── save the composed preview ──
+      $('ftm-save').addEventListener('click', function(){
+        if (!photoURL) { alert('Please upload a photo first.'); return; }
+        var box = $('ftm-framebox').getBoundingClientRect();
+        var scale = Math.max(1, 1200 / box.width);
+        var cv = document.createElement('canvas');
+        cv.width = Math.round(box.width * scale); cv.height = Math.round(box.height * scale);
+        var ctx = cv.getContext('2d');
+
+        var mould = $('ftm-moulding').getBoundingClientRect();
+        var matR  = $('ftm-mat').getBoundingClientRect();
+        var artR  = $('ftm-art').getBoundingClientRect();
+        function rel(r){ return { x:(r.left-box.left)*scale, y:(r.top-box.top)*scale, w:r.width*scale, h:r.height*scale }; }
+
+        ctx.fillStyle = SWATCH[$('ftm-color').value] || '#1a1a1a';
+        var m = rel(mould); ctx.fillRect(m.x, m.y, m.w, m.h);
+        var mt = rel(matR);
+        var matStyle = getComputedStyle($('ftm-mat'));
+        if (parseFloat(matStyle.paddingTop) > 0) {
+          ctx.fillStyle = (matStyle.backgroundColor && matStyle.backgroundColor !== 'rgba(0, 0, 0, 0)') ? matStyle.backgroundColor : '#f6f1e6';
+          ctx.fillRect(mt.x, mt.y, mt.w, mt.h);
+        }
+        var img = new Image();
+        img.onload = function(){
+          var a = rel(artR);
+          // cover-crop the photo into the art area
+          var s = Math.max(a.w / img.width, a.h / img.height);
+          var dw = img.width * s, dh = img.height * s;
+          ctx.save(); ctx.beginPath(); ctx.rect(a.x, a.y, a.w, a.h); ctx.clip();
+          ctx.drawImage(img, a.x + (a.w - dw)/2, a.y + (a.h - dh)/2, dw, dh);
+          ctx.restore();
+          var link = document.createElement('a');
+          link.download = 'frame-the-moment-preview.png';
+          link.href = cv.toDataURL('image/png');
+          document.body.appendChild(link); link.click(); link.remove();
+        };
+        img.src = photoURL;
+      });
+
+      render();
+    })();
+    </script>
+
+    <style>
+    .af-ftm-wrap{background:linear-gradient(180deg,#f6f1e6 0%,#efe7d6 100%);padding:44px 16px 70px;}
+    .af-ftm-card{max-width:1220px;margin:0 auto;background:#fffdf8;border:1px solid #efe6d2;border-radius:24px;
+      padding:44px 34px 40px;position:relative;box-shadow:0 24px 60px rgba(70,54,26,.10);}
+    .af-ftm-home{position:absolute;top:26px;left:26px;background:#1a1a1a;color:#fff;text-decoration:none;font-weight:700;
+      font-size:12.5px;padding:10px 16px;border-radius:9px;transition:background .2s;}
+    .af-ftm-home:hover{background:#c9a84c;color:#fff;}
+    .af-ftm-badge{position:absolute;top:26px;right:26px;background:#f3ead2;color:#a8801f;font-weight:800;font-size:11px;
+      letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;border-radius:999px;border:1px solid #e6d7ad;}
+    .af-ftm-title{text-align:center;font-size:46px;font-weight:800;color:#1a1a1a;margin:16px 0 10px;letter-spacing:-.5px;
+      font-family:'Playfair Display',Georgia,serif;}
+    .af-ftm-sub{text-align:center;color:#6b6250;font-size:15.5px;max-width:660px;margin:0 auto 34px;line-height:1.65;}
+    .af-ftm-grid{display:grid;grid-template-columns:380px 1fr;gap:30px;align-items:start;}
+    .af-ftm-panel{background:#fff;border:1px solid #ece4cf;border-radius:18px;padding:24px;display:flex;flex-direction:column;
+      gap:6px;box-shadow:0 8px 26px rgba(70,54,26,.05);position:sticky;top:20px;}
+    .af-ftm-step{display:flex;align-items:center;gap:10px;margin:18px 0 6px;}
+    .af-ftm-step:first-child{margin-top:0;}
+    .af-ftm-num{width:24px;height:24px;border-radius:50%;background:#c9a84c;color:#fff;font-weight:800;font-size:13px;
+      display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+    .af-ftm-steptitle{font-size:14px;font-weight:800;color:#1a1a1a;}
+    .af-ftm-panel label{font-size:11.5px;font-weight:800;color:#6b6250;text-transform:uppercase;letter-spacing:.05em;margin-top:12px;}
+    .af-ftm-panel select{width:100%;padding:12px;border:1px solid #e2d9c4;border-radius:10px;font-size:14px;background:#fffdf8;
+      color:#1a1a1a;cursor:pointer;transition:border-color .15s;}
+    .af-ftm-panel select:focus{outline:none;border-color:#c9a84c;}
+    .af-ftm-hidden{display:none !important;}
+    /* upload drop zone */
+    .af-ftm-drop{display:flex !important;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+      padding:26px 16px;border:2px dashed #c9a84c;border-radius:14px;background:#fdfaf2;cursor:pointer;text-align:center;
+      transition:background .15s,border-color .15s;margin-top:2px;text-transform:none !important;letter-spacing:0 !important;}
+    .af-ftm-drop:hover,.af-ftm-drop.over{background:#faf3e0;border-color:#a8872e;}
+    .af-ftm-drop.has{border-style:solid;background:#f7fdf5;border-color:#5aa85a;}
+    .af-ftm-dropic{font-size:30px;line-height:1;}
+    .af-ftm-drop strong{font-size:14px;font-weight:800;color:#1a1a1a;text-transform:none;letter-spacing:0;}
+    .af-ftm-drop small{font-size:12px;color:#8a8170;}
+    .af-ftm-hint{margin:8px 0 0;font-size:12px;font-weight:600;min-height:16px;}
+    .af-ftm-hint.ok{color:#2e7d32;} .af-ftm-hint.warn{color:#c07a12;}
+    /* swatches */
+    .af-ftm-swatches{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px;}
+    .af-ftm-sw{position:relative;width:34px;height:34px;border-radius:50%;border:2px solid #fff;
+      box-shadow:0 0 0 1px #d8cdb3,0 2px 5px rgba(0,0,0,.15);cursor:pointer;padding:0;transition:transform .12s;}
+    .af-ftm-sw:hover{transform:scale(1.08);}
+    .af-ftm-sw.on{box-shadow:0 0 0 2px #c9a84c,0 2px 6px rgba(0,0,0,.2);}
+    .af-ftm-sw span{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;
+      font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;}
+    .af-ftm-sw:hover span{opacity:1;}
+    /* price + actions */
+    .af-ftm-price{display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-top:16px;
+      border-top:1px solid #f0e8d6;font-size:13px;color:#6b6250;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+    .af-ftm-price strong{font-size:26px;color:#1a1a1a;letter-spacing:-.5px;}
+    .af-ftm-notes{margin:6px 0 0;font-size:12.5px;color:#256d2c;font-weight:600;}
+    .af-ftm-actions{display:flex;gap:10px;margin-top:16px;}
+    .af-ftm-btn{flex:1 1 0;min-width:0;box-sizing:border-box;height:46px;display:flex;align-items:center;justify-content:center;
+      gap:6px;padding:0 12px;border-radius:11px;font-weight:700 !important;font-size:13px !important;line-height:1 !important;
+      white-space:nowrap !important;text-transform:none !important;letter-spacing:0 !important;cursor:pointer;text-decoration:none;
+      border:none;transition:transform .12s,background .2s;}
+    .af-ftm-btn:hover{transform:translateY(-1px);}
+    .af-ftm-btn.ghost{background:#f2ecdd;color:#5a5140;}
+    .af-ftm-btn.ghost:hover{background:#e9e0cc;}
+    .af-ftm-btn.solid{background:#25a366;color:#fff;box-shadow:0 6px 16px rgba(37,163,102,.30);}
+    .af-ftm-btn.solid:hover{background:#1e8b56;color:#fff;}
+    .af-ftm-fine{margin:10px 0 0;font-size:11.5px;color:#8a8170;line-height:1.5;}
+    /* stage */
+    .af-ftm-stagewrap{position:relative;}
+    .af-ftm-stage{position:relative;width:100%;height:600px;border-radius:18px;overflow:hidden;display:flex;
+      align-items:center;justify-content:center;box-shadow:inset 0 0 60px rgba(0,0,0,.10);
+      background:linear-gradient(180deg,#efeeea 0%,#e6e4de 62%,#cbbfa8 62%,#bfae90 100%);}
+    .af-ftm-empty{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;
+      background:rgba(255,255,255,.82);border-radius:14px;padding:26px 30px;max-width:340px;}
+    .af-ftm-emptyic{font-size:34px;}
+    .af-ftm-empty strong{font-size:15px;color:#1a1a1a;}
+    .af-ftm-empty small{font-size:13px;color:#8a8170;line-height:1.55;}
+    .af-ftm-framebox{position:relative;z-index:5;filter:drop-shadow(10px 16px 22px rgba(0,0,0,.34));transform:translateY(-6%);}
+    .af-ftm-moulding{position:relative;box-sizing:border-box;}
+    .af-ftm-mat{position:relative;box-sizing:border-box;}
+    .af-ftm-art{width:100%;background-size:cover;background-position:center;background-repeat:no-repeat;}
+    .af-ftm-glass{position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(125deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,.05) 22%,rgba(255,255,255,0) 42%);}
+    .af-ftm-tip{text-align:center;color:#8a8170;font-size:13px;margin:14px 0 0;}
+    @media(max-width:900px){
+      .af-ftm-grid{grid-template-columns:1fr;}
+      .af-ftm-panel{position:static;}
+      .af-ftm-stage{height:460px;}
+      .af-ftm-title{font-size:34px;}
+      .af-ftm-card{padding:64px 20px 30px;}
+    }
+    @media(max-width:480px){
+      .af-ftm-title{font-size:27px;}
+      .af-ftm-stage{height:390px;}
+      .af-ftm-badge{display:none;}
+    }
+    </style>
+    <?php
+    get_footer();
+    exit;
+}, 1);
