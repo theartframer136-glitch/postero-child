@@ -295,6 +295,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/convert-variable-to-simple.php --allow-root 2>&1" \
             || true
 
+          echo "Performance diagnostic..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-performance.php --allow-root 2>&1" \
+            || true
+
           echo "Art Code audit + CSV export..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
