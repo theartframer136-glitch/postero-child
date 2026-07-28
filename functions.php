@@ -9292,6 +9292,10 @@ add_action('template_redirect', function () {
               <?php endforeach; ?>
             </select>
 
+            <div class="af-ftm-step"><span class="af-ftm-num">4</span><span class="af-ftm-steptitle">Set the room</span></div>
+            <label>Room Scene</label>
+            <div class="af-ftm-scenes" id="ftm-scenes"></div>
+
             <div class="af-ftm-price"><span>Your price</span><strong id="ftm-price">—</strong></div>
             <p class="af-ftm-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Free secure packaging</p>
 
@@ -9305,6 +9309,7 @@ add_action('template_redirect', function () {
           <!-- ── live preview ── -->
           <div class="af-ftm-stagewrap">
             <div id="ftm-stage" class="af-ftm-stage">
+              <img id="ftm-wall" class="af-ftm-wall" alt="" src="<?php echo esc_url( wp_get_upload_dir()['baseurl'] . '/mockups/Radha-Krishna-Canvas-Wall-Art-Placement_Living-Room-blankwall.jpg' ); ?>">
               <div id="ftm-empty" class="af-ftm-empty">
                 <span class="af-ftm-emptyic">📷</span>
                 <strong>Your photo appears here</strong>
@@ -9339,6 +9344,45 @@ add_action('template_redirect', function () {
         'Rose Gold':'linear-gradient(135deg,#f7d3c8 0%,#dca596 42%,#b76e79 58%,#efbcae 100%)'
       };
       var photoURL = null, photoW = 0, photoH = 0, photoName = '';
+
+      // ── real photographic rooms (same cleaned blank-wall mockups the
+      //    Try-On-Wall tool uses). focusY = where the wall centre sits, so the
+      //    frame always hangs on clean wall above the furniture.
+      var MOCK = <?php echo wp_json_encode( wp_get_upload_dir()['baseurl'] . '/mockups/' ); ?>;
+      var SCENES = [
+        { name:'Living Room', file:'Radha-Krishna-Canvas-Wall-Art-Placement_Living-Room-blankwall.jpg', focus:'52% 50%', top:'40%', left:'52%' },
+        { name:'Lounge',      file:'Radha-Krishna_Wall-Art_-Living-Room-blankwall.jpg',                 focus:'51% 50%', top:'38%', left:'51%' },
+        { name:'Bright Loft', file:'Radha-Krishna-Abstract-Wall-Art_living-room-blankwall.jpg',         focus:'56% 50%', top:'40%', left:'56%' },
+        { name:'Studio',      file:'TAF-RADHA-KRISHNA-18530-room-1-blankwall.jpg',                      focus:'48% 50%', top:'44%', left:'48%' }
+      ];
+      var scene = SCENES[0];
+      (function(){
+        var wrap = $('ftm-scenes');
+        SCENES.forEach(function(s, i){
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.className = 'af-ftm-scene' + (i === 0 ? ' on' : '');
+          b.style.backgroundImage = 'url("' + MOCK + s.file + '")';
+          b.title = s.name;
+          b.innerHTML = '<span>' + s.name + '</span>';
+          b.addEventListener('click', function(){
+            wrap.querySelectorAll('.af-ftm-scene').forEach(function(x){ x.classList.remove('on'); });
+            b.classList.add('on');
+            setScene(i);
+          });
+          wrap.appendChild(b);
+        });
+      })();
+      function setScene(i){
+        scene = SCENES[i];
+        var im = $('ftm-wall');
+        im.src = MOCK + scene.file;
+        im.style.objectPosition = scene.focus;
+        var box = $('ftm-framebox');
+        box.style.top  = scene.top;
+        box.style.left = scene.left;
+        render();
+      }
 
       // ── colour swatches drive the hidden select ──
       (function(){
@@ -9584,14 +9628,24 @@ add_action('template_redirect', function () {
     /* stage */
     .af-ftm-stagewrap{position:relative;}
     .af-ftm-stage{position:relative;width:100%;height:600px;border-radius:18px;overflow:hidden;display:flex;
-      align-items:center;justify-content:center;box-shadow:inset 0 0 60px rgba(0,0,0,.10);
-      background:linear-gradient(180deg,#efeeea 0%,#e6e4de 62%,#cbbfa8 62%,#bfae90 100%);}
-    .af-ftm-empty{position:relative;z-index:2;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;
-      background:rgba(255,255,255,.82);border-radius:14px;padding:26px 30px;max-width:340px;}
+      align-items:center;justify-content:center;box-shadow:inset 0 0 60px rgba(0,0,0,.10);background:#e9e4d8;}
+    /* real photographic room behind the frame */
+    .af-ftm-wall{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:52% 50%;display:block;}
+    .af-ftm-empty{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;
+      background:rgba(255,255,255,.86);border-radius:14px;padding:26px 30px;max-width:340px;backdrop-filter:blur(2px);}
     .af-ftm-emptyic{font-size:34px;}
     .af-ftm-empty strong{font-size:15px;color:#1a1a1a;}
     .af-ftm-empty small{font-size:13px;color:#8a8170;line-height:1.55;}
-    .af-ftm-framebox{position:relative;z-index:5;filter:drop-shadow(10px 16px 22px rgba(0,0,0,.34));transform:translateY(-6%);}
+    .af-ftm-framebox{position:absolute;top:40%;left:52%;transform:translate(-50%,-50%);z-index:5;
+      filter:drop-shadow(10px 16px 22px rgba(0,0,0,.34));}
+    /* room scene thumbnails */
+    .af-ftm-scenes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
+    .af-ftm-scene{position:relative;height:52px;border-radius:10px;border:2px solid #e2d9c4;background-size:cover;
+      background-position:center;cursor:pointer;overflow:hidden;padding:0;transition:border-color .15s,transform .12s;}
+    .af-ftm-scene:hover{transform:translateY(-1px);}
+    .af-ftm-scene.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
+    .af-ftm-scene span{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.6));
+      color:#fff;font-size:10.5px;font-weight:700;padding:8px 6px 4px;text-align:center;}
     .af-ftm-moulding{position:relative;box-sizing:border-box;}
     .af-ftm-mat{position:relative;box-sizing:border-box;}
     .af-ftm-art{width:100%;background-size:cover;background-position:center;background-repeat:no-repeat;}
