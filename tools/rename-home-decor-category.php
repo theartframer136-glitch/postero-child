@@ -1,15 +1,15 @@
 <?php
 /* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
- * Rename the "Home Decor" product category to "Home Decors".
+ * Rename the "Home Decors" product category back to "Home Decor".
  * Slug (home-decor) is left untouched so the existing URL keeps working.
- * Also updates any nav-menu item whose custom title is exactly "Home Decor".
+ * Also updates any nav-menu item whose custom title is exactly "Home Decors".
  * Idempotent. Run: wp eval-file tools/rename-home-decor-category.php --allow-root
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$old = 'Home Decor';
-$new = 'Home Decors';
+$old = 'Home Decors';
+$new = 'Home Decor';
 
 $term = get_term_by( 'slug', 'home-decor', 'product_cat' );
 if ( ! $term ) { $term = get_term_by( 'name', $old, 'product_cat' ); }
