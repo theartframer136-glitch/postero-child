@@ -83,6 +83,55 @@ jQuery(document).ready(function($) {
 
   initProductSliders();
 
+  // ---- Subcategory row: click-and-hold to drag left/right ----
+  // Touch devices already scroll natively via overflow-x:auto; this adds
+  // the same "click and drag" gesture for mouse users so every subcategory
+  // can be reached without relying only on the arrow buttons.
+  function initDragScroll(el) {
+    if (el.dataset.dragInit) return;
+    el.dataset.dragInit = '1';
+    var isDown = false, startX = 0, startScroll = 0, moved = false;
+    el.classList.add('af-drag-scroll');
+
+    el.addEventListener('pointerdown', function(e) {
+      if (e.pointerType !== 'mouse') return; // let touch keep native momentum scroll
+      isDown = true;
+      moved = false;
+      startX = e.clientX;
+      startScroll = el.scrollLeft;
+      el.classList.add('af-dragging');
+      if (el.setPointerCapture) { try { el.setPointerCapture(e.pointerId); } catch (err) {} }
+    });
+
+    el.addEventListener('pointermove', function(e) {
+      if (!isDown) return;
+      var dx = e.clientX - startX;
+      if (Math.abs(dx) > 3) moved = true;
+      el.scrollLeft = startScroll - dx;
+    });
+
+    function stopDrag() {
+      isDown = false;
+      el.classList.remove('af-dragging');
+    }
+    el.addEventListener('pointerup', stopDrag);
+    el.addEventListener('pointerleave', stopDrag);
+    el.addEventListener('pointercancel', stopDrag);
+
+    // A real drag shouldn't also trigger the subcategory link underneath the pointer
+    el.addEventListener('click', function(e) {
+      if (moved) { e.preventDefault(); e.stopPropagation(); moved = false; }
+    }, true);
+  }
+
+  function initSubcategoryDragScroll() {
+    document.querySelectorAll('ul.postero-scroll-content').forEach(initDragScroll);
+  }
+  initSubcategoryDragScroll();
+  try {
+    new MutationObserver(initSubcategoryDragScroll).observe(document.body, { childList: true, subtree: true });
+  } catch (e) {}
+
   // ---- Pre-set USD currency cookie so plugin initialises with USD ----
   (function() {
     var opts = '; path=/; max-age=' + (86400 * 365);
