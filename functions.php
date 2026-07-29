@@ -5239,7 +5239,7 @@ add_action('template_redirect', function(){
       });
       var usingUpload=false, sceneIdx=0;
       function setScene(i){
-        usingUpload=false; sceneIdx=i; stopCam();
+        usingUpload=false; sceneIdx=i; savedURL=''; stopCam();
         sceneWrap.querySelectorAll('.af-tow-scene').forEach(function(x,j){ x.classList.toggle('on', j===i); });
         var im=$('tow-wallimg'); im.src=SCENES[i].bg; im.style.display='block';
         im.style.objectPosition = SCENES[i].focus || '50% 50%';
@@ -5534,7 +5534,7 @@ add_action('template_redirect', function(){
         var f=this.files&&this.files[0]; if(!f) return;
         var r=new FileReader();
         r.onload=function(e){
-          usingUpload=true; stopCam();
+          usingUpload=true; savedURL=''; stopCam();
           sceneWrap.querySelectorAll('.af-tow-scene').forEach(function(x){x.classList.remove('on');});
           var im=$('tow-wallimg'); im.src=e.target.result; im.style.display='block';
           im.style.objectPosition='50% 50%';
@@ -10100,6 +10100,9 @@ add_action('template_redirect', function () {
       // ── upload: click, change and drag & drop ──
       function loadFile(file){
         if (!file || !/^image\//.test(file.type)) { alert('Please choose an image file (JPG or PNG).'); return; }
+        // a different photo means the saved image is no longer what is on screen;
+        // set here rather than on the picker so drag-and-drop is covered too
+        savedURL = '';
         photoName = file.name;
         var r = new FileReader();
         r.onload = function(e){
@@ -10553,7 +10556,14 @@ function af_save_preview_handler() {
     $att_id = wp_insert_attachment(array(
         'post_mime_type' => $mime,
         'post_title'     => $title . ' — wall preview',
-        'post_status'    => 'inherit',
+        // NOT 'inherit'. An orphaned inherit attachment is public: it renders at
+        // ?attachment_id=N and, worse, the anonymous /wp-json/wp/v2/media listing
+        // hands out every attachment's source_url. Attachment ids are sequential,
+        // so that walks straight past the unguessable filename — and a Frame The
+        // Moment preview contains the customer's own photograph. 'private' keeps
+        // it out of both, while the direct file URL still works, which is all the
+        // share links and the account thumbnails actually use.
+        'post_status'    => 'private',
         'post_author'    => $uid,
     ), $file['file']);
     if (is_wp_error($att_id) || !$att_id) {

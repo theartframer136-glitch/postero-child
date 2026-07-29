@@ -111,6 +111,29 @@ if (function_exists('wc_get_endpoint_url') && function_exists('wc_get_page_perma
 }
 $menu = has_filter('woocommerce_account_menu_items') ? 'registered' : 'MISSING <<<';
 echo "  account menu filter: {$menu}\n";
+// Saved preview images must never be listed by the anonymous media endpoint —
+// attachment ids are sequential, so that would walk past the secret filename.
+$prev = get_posts(array('post_type'=>'af_preview','posts_per_page'=>20,'fields'=>'ids','post_status'=>'any'));
+if ($prev) {
+    $leaky = 0;
+    foreach ($prev as $pv) {
+        $att = get_post_thumbnail_id($pv);
+        if ($att && get_post_status($att) !== 'private') $leaky++;
+    }
+    echo "  preview images private: " . ($leaky ? "{$leaky} of " . count($prev) . " PUBLIC  <<<" : 'all ' . count($prev) . ' OK') . "\n";
+    if ($leaky) $fail++;
+
+    $rest = wp_remote_get(home_url('/wp-json/wp/v2/media?per_page=100&search=wall+preview'),
+                          array('timeout'=>45,'sslverify'=>false,'headers'=>array('User-Agent'=>'AF-Verify')));
+    if (!is_wp_error($rest)) {
+        $hits = json_decode(wp_remote_retrieve_body($rest), true);
+        $n    = is_array($hits) ? count($hits) : 0;
+        echo "  media REST leaks previews: " . ($n ? "{$n} EXPOSED  <<<" : 'none OK') . "\n";
+        if ($n) $fail++;
+    }
+} else {
+    echo "  preview images private: (none saved yet)\n";
+}
 echo "  CPT af_preview: " . (post_type_exists('af_preview') ? 'registered' : 'MISSING <<<') . "\n";
 if (!post_type_exists('af_preview')) $fail++;
 echo "  save handler: " . (has_action('wp_ajax_af_save_preview') ? 'registered' : 'MISSING <<<') . "\n";
