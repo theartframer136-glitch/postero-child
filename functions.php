@@ -5645,7 +5645,13 @@ add_action('template_redirect', function(){
       });
 
       // ── SAVE TO ACCOUNT + SHARE (spec §8) ────────────────────────────
-      var savedURL='';                    // set once the preview is in the account
+      // Cleared whenever the configuration changes, so sharing never sends the
+      // image of a preview the visitor has already moved on from.
+      var savedURL='';
+      ['tow-prod','tow-frame','tow-size','tow-color','tow-scale'].forEach(function(id){
+        $(id).addEventListener('change', function(){ savedURL=''; });
+      });
+      $('tow-layouts').addEventListener('click', function(){ savedURL=''; });
       function shareTarget(){
         // share the saved image when there is one, otherwise the configured product
         if(savedURL) return savedURL;
@@ -5675,7 +5681,7 @@ add_action('template_redirect', function(){
             toast(msg);
             if(fallback && !AFPreview.cfg.logged){
               var l=$('tow-acctlink');
-              if(l){ l.href=fallback+'?redirect_to='+encodeURIComponent(location.href); l.textContent='Sign in →'; l.style.display='inline'; }
+              if(l){ l.href=AFPreview.withRedirect(fallback); l.textContent='Sign in →'; l.style.display='inline'; }
             }
           }
         });
@@ -10228,7 +10234,14 @@ add_action('template_redirect', function () {
       });
 
       // ── SAVE TO ACCOUNT + SHARE (spec §8) ────────────────────────────
+      // Cleared whenever the configuration changes, so sharing never sends the
+      // image of a preview the visitor has already moved on from.
       var savedURL = '';
+      ['ftm-type','ftm-size','ftm-frame','ftm-color'].forEach(function(id){
+        $(id).addEventListener('change', function(){ savedURL = ''; });
+      });
+      $('ftm-layouts').addEventListener('click', function(){ savedURL = ''; });
+      $('ftm-file').addEventListener('change', function(){ savedURL = ''; });
       function shareTarget(){ return savedURL || location.href.split('#')[0]; }
       function shareText(){
         return 'My photo framed by The Art Framer — ' + $('ftm-type').value + ', ' + $('ftm-size').value +
@@ -10251,7 +10264,7 @@ add_action('template_redirect', function () {
               alert('✓ ' + msg);
             } else {
               if (fallback && !AFPreview.cfg.logged && link) {
-                link.href = fallback + '?redirect_to=' + encodeURIComponent(location.href);
+                link.href = AFPreview.withRedirect(fallback);
                 link.textContent = 'Sign in →';
                 link.style.display = 'inline';
               }
@@ -10504,6 +10517,16 @@ function af_save_preview_handler() {
         wp_send_json_error(array('message' => 'You have reached ' . af_preview_max_per_user() . ' saved previews — please delete one first.'));
     }
 
+    // Saving is cheap for the customer and expensive for us, so cap the rate as
+    // well as the total — a stuck script should not be able to fill the disk.
+    $bucket = (array) get_transient('af_preview_rate_' . $uid);
+    $bucket = array_values(array_filter($bucket, function($t) { return $t > (time() - 600); }));
+    if (count($bucket) >= 12) {
+        wp_send_json_error(array('message' => 'That is a lot of previews at once — please wait a few minutes and try again.'), 429);
+    }
+    $bucket[] = time();
+    set_transient('af_preview_rate_' . $uid, $bucket, 900);
+
     $pid = isset($_POST['product']) ? absint($_POST['product']) : 0;
     // only a real, published product — otherwise a crafted id would pull the
     // title of someone's draft into this customer's account page
@@ -10560,24 +10583,41 @@ function af_save_preview_handler() {
     wp_send_json_success(array(
         'message' => 'Saved to your account.',
         'url'     => wp_get_attachment_url($att_id),
-        'account' => wc_get_endpoint_url('saved-previews', '', wc_get_page_permalink('myaccount')),
+        'account' => af_preview_account_url(),
     ));
 }
 add_action('wp_ajax_af_save_preview',        'af_save_preview_handler');
 add_action('wp_ajax_nopriv_af_save_preview', 'af_save_preview_handler');
+
+/** Where the Saved Previews list lives (falls back if WooCommerce is off). */
+function af_preview_account_url() {
+    if (function_exists('wc_get_endpoint_url') && function_exists('wc_get_page_permalink')) {
+        return wc_get_endpoint_url('saved-previews', '', wc_get_page_permalink('myaccount'));
+    }
+    return home_url('/my-account/');
+}
 
 // Delete one of my own saved previews (posted from the account page).
 add_action('template_redirect', function() {
     if (empty($_POST['af_preview_delete'])) return;
     $id = absint($_POST['af_preview_delete']);
     if (!$id || !is_user_logged_in()) return;
-    if (!isset($_POST['af_preview_nonce']) || !wp_verify_nonce(wp_unslash($_POST['af_preview_nonce']), 'af_preview_delete_' . $id)) return;
+
+    // Say so rather than appearing to work — an expired nonce is common on a
+    // page left open, and a silent no-op looks like the delete button is broken.
+    if (!isset($_POST['af_preview_nonce']) || !wp_verify_nonce(wp_unslash($_POST['af_preview_nonce']), 'af_preview_delete_' . $id)) {
+        wp_safe_redirect(add_query_arg('af_deleted', 'expired', af_preview_account_url()));
+        exit;
+    }
     $post = get_post($id);
-    if (!$post || $post->post_type !== 'af_preview' || (int) $post->post_author !== get_current_user_id()) return;
+    if (!$post || $post->post_type !== 'af_preview' || (int) $post->post_author !== get_current_user_id()) {
+        wp_safe_redirect(add_query_arg('af_deleted', 'denied', af_preview_account_url()));
+        exit;
+    }
     $thumb = get_post_thumbnail_id($id);
     if ($thumb) wp_delete_attachment($thumb, true);
     wp_delete_post($id, true);
-    wp_safe_redirect(add_query_arg('af_deleted', '1', wc_get_endpoint_url('saved-previews', '', wc_get_page_permalink('myaccount'))));
+    wp_safe_redirect(add_query_arg('af_deleted', '1', af_preview_account_url()));
     exit;
 });
 
@@ -10604,7 +10644,14 @@ add_action('woocommerce_account_saved-previews_endpoint', function() {
     ));
 
     if (!empty($_GET['af_deleted'])) {
-        echo '<div class="woocommerce-message" role="alert">Preview deleted.</div>';
+        $what = sanitize_key(wp_unslash($_GET['af_deleted']));
+        if ($what === 'expired') {
+            echo '<div class="woocommerce-error" role="alert">That page had been open a while, so the delete was not accepted. Please try again.</div>';
+        } elseif ($what === 'denied') {
+            echo '<div class="woocommerce-error" role="alert">That preview could not be deleted.</div>';
+        } else {
+            echo '<div class="woocommerce-message" role="alert">Preview deleted.</div>';
+        }
     }
 
     echo '<p>Previews you saved from <a href="' . esc_url(home_url('/try-on-wall/')) . '">Try It On Your Wall</a> and '
@@ -10633,7 +10680,9 @@ add_action('woocommerce_account_saved-previews_endpoint', function() {
                 'af_color' => rawurlencode($color),
             ), $link);
         }
-        $bits = array_filter(array($size, $frame, $color, $lay > 1 ? $lay . '-panel set' : ''));
+        $src   = get_post_meta($p->ID, '_af_preview_source', true);
+        $cta   = ($pid && $src !== 'frame-the-moment') ? 'View product' : 'Open in Frame The Moment';
+        $bits  = array_filter(array($size, $frame, $color, $lay > 1 ? $lay . '-panel set' : ''));
         $wa   = 'https://wa.me/?text=' . rawurlencode(get_the_title($p) . ' — my wall preview: ' . $full);
         $mail = 'mailto:?subject=' . rawurlencode('My wall preview — ' . get_the_title($p))
               . '&body=' . rawurlencode("Here is the preview I saved:\n" . $full . "\n\n" . $link);
@@ -10645,7 +10694,7 @@ add_action('woocommerce_account_saved-previews_endpoint', function() {
         if ($bits) echo '<small>' . esc_html(implode(' · ', $bits)) . '</small>';
         echo '<small>' . esc_html(get_the_date('', $p)) . '</small>';
         echo '<div class="af-sp-actions">';
-        echo '<a class="af-sp-btn" href="' . esc_url($link) . '">View product</a>';
+        echo '<a class="af-sp-btn" href="' . esc_url($link) . '">' . esc_html($cta) . '</a>';
         echo '<a class="af-sp-btn" href="' . esc_url($full) . '" download>Download</a>';
         echo '<a class="af-sp-btn" href="' . esc_url($wa) . '" target="_blank" rel="noopener">WhatsApp</a>';
         echo '<a class="af-sp-btn" href="' . esc_url($mail) . '">Email</a>';
@@ -10712,6 +10761,11 @@ function af_preview_share_assets() {
           })
           .catch(function(){ cb(false, 'Could not reach the server — please try again.', null, CFG.login); });
       }
+      // Send them back to where they were after signing in. Plain permalinks put
+      // a query string on the account URL already, so pick the separator.
+      function withRedirect(url){
+        return url + (url.indexOf('?') > -1 ? '&' : '?') + 'redirect_to=' + encodeURIComponent(location.href);
+      }
       function whatsapp(text, url){ return 'https://wa.me/?text=' + encodeURIComponent(text + ' ' + url); }
       function email(subject, text, url){
         return 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(text + '\n\n' + url);
@@ -10733,7 +10787,7 @@ function af_preview_share_assets() {
         navigator.share({ title:title, text:text, url:url }).catch(function(){});
         return true;
       }
-      return { save:save, whatsapp:whatsapp, email:email, copy:copy, native:native, cfg:CFG };
+      return { save:save, whatsapp:whatsapp, email:email, copy:copy, native:native, withRedirect:withRedirect, cfg:CFG };
     })();
     </script>
     <style>
