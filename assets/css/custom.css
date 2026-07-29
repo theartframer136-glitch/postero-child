@@ -124,8 +124,10 @@ ul.postero-scroll-content > li.cat-item {
   flex-direction: column !important;
   align-items: center !important;
   text-align: center !important;
-  flex: 0 0 auto !important;
-  width: auto !important;
+  flex: 0 0 92px !important;
+  width: 92px !important;
+  min-width: 92px !important;
+  max-width: 92px !important;
   float: none !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -159,8 +161,10 @@ ul.postero-scroll-content .cat-item a {
   font-weight: 600 !important;
   color: #333 !important;
   line-height: 1.3 !important;
-  white-space: nowrap !important;
+  white-space: normal !important;
+  word-break: break-word !important;
   display: block !important;
+  width: 100% !important;
 }
 
 /* ---- Hide leftover subcategory nav arrows only ---- */
@@ -506,6 +510,21 @@ ul.postero-scroll-content .cat-item a {
   min-height: calc(1.45em * 3) !important;
 }
 
+/* ── Art Code line — only products with a code show it (see functions.php
+   af_get_art_code). Reserve its space either way so rating/price/desc stay
+   pinned at the exact same row across every card, whether a neighbour has
+   the code or not. ── */
+.af-shell-track .product-card .af-art-code--card,
+.product-slider .product-card .af-art-code--card,
+.woocommerce ul.products li.product .af-art-code--card {
+  margin: 2px 0 4px !important;
+}
+.af-shell-track .product-card .product-info:not(:has(.af-art-code--card)) .rating,
+.product-slider .product-card .product-info:not(:has(.af-art-code--card)) .rating,
+.woocommerce ul.products li.product .product-info:not(:has(.af-art-code--card)) .rating {
+  margin-top: 21px !important;
+}
+
 /* ── Rating row ── */
 .af-shell-track .product-card .rating,
 .product-slider .product-card .rating,
@@ -686,6 +705,12 @@ ul.postero-scroll-content .cat-item a {
   #subcategorySlider .cat-item img,
   .subcategory-slider .sub-cat img,
   li.cat-item img { width: 44px !important; height: 44px !important; max-width: 44px !important; max-height: 44px !important; }
+  ul.postero-scroll-content > li.cat-item {
+    flex: 0 0 78px !important;
+    width: 78px !important;
+    min-width: 78px !important;
+    max-width: 78px !important;
+  }
   .woocommerce .products.columns-4 {
     grid-template-columns: repeat(2, 1fr) !important;
   }
@@ -841,6 +866,12 @@ ul.postero-scroll-content .cat-item a {
   #subcategorySlider .cat-item img,
   .subcategory-slider .sub-cat img,
   li.cat-item img { width: 40px !important; height: 40px !important; max-width: 40px !important; max-height: 40px !important; }
+  ul.postero-scroll-content > li.cat-item {
+    flex: 0 0 72px !important;
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+  }
 
   /* Product slider — 1 card on mobile */
   .af-shell-btn { flex: 0 0 28px !important; width: 28px !important; height: 28px !important; font-size: 18px !important; }
