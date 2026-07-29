@@ -10383,6 +10383,19 @@ add_action('template_redirect', function () {
     exit;
 }, 1);
 
+
+/* ================================================================
+ * PHASE 29 — CART, CHECKOUT & PAYMENTS  (requirements §11)
+ * Abandoned cart recovery, address validation, fraud screening and
+ * invoice / packing-slip generation. Kept in inc/ so this file does
+ * not grow another few thousand lines.
+ * ================================================================ */
+foreach (array('abandoned-cart', 'address-validation', 'fraud-detection', 'documents') as $af_mod) {
+    $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
+    if (file_exists($af_path)) require_once $af_path;
+}
+unset($af_mod, $af_path);
+
 /* ================================================================
  * PHASE 28 — SAVE PREVIEW TO ACCOUNT + SHARE  (spec §8, and the
  * "Save and share preview" line of the §7 AR block)
@@ -10415,6 +10428,15 @@ add_action('init', function() {
     add_rewrite_endpoint('saved-previews', EP_ROOT | EP_PAGES);
 }, 8);
 
+// A new endpoint only resolves once rewrites are rebuilt. Deploy does this, but
+// flush once per version here too so the account link can never quietly 404.
+add_action('wp_loaded', function() {
+    $ver = '1';
+    if (get_option('af_preview_rewrite_ver') === $ver) return;
+    flush_rewrite_rules(false);
+    update_option('af_preview_rewrite_ver', $ver);
+});
+
 function af_preview_max_per_user() { return 60; }
 
 // Store a composed preview sent from the AR pages.
@@ -10430,7 +10452,6 @@ function af_save_preview_handler() {
     if (!preg_match('#^data:image/(png|jpeg);base64,#i', $raw, $m)) {
         wp_send_json_error(array('message' => 'That preview could not be read.'));
     }
-    $ext    = (strtolower($m[1]) === 'png') ? 'png' : 'jpg';
     $base64 = substr($raw, strpos($raw, ',') + 1);
     if (strlen($base64) > 12 * 1024 * 1024) {
         wp_send_json_error(array('message' => 'That preview is too large to save.'));
@@ -10444,13 +10465,27 @@ function af_save_preview_handler() {
     if (!$probe || !in_array($probe[2], array(IMAGETYPE_PNG, IMAGETYPE_JPEG), true)) {
         wp_send_json_error(array('message' => 'That preview could not be read.'));
     }
+    // A few compressed megabytes can still decode to hundreds of megapixels and
+    // exhaust the worker when thumbnails are generated, so bound the raster too.
+    $w = (int) $probe[0]; $h = (int) $probe[1];
+    if ($w < 1 || $h < 1 || $w > 6000 || $h > 6000 || ($w * $h) > 30000000) {
+        wp_send_json_error(array('message' => 'That preview is too large to save.'));
+    }
+    // Trust the decoded bytes for the type, never the client's data-URL header
+    $ext  = ($probe[2] === IMAGETYPE_PNG) ? 'png' : 'jpg';
+    $mime = ($probe[2] === IMAGETYPE_PNG) ? 'image/png' : 'image/jpeg';
 
     $count = (int) count_user_posts($uid, 'af_preview', true);
     if ($count >= af_preview_max_per_user()) {
         wp_send_json_error(array('message' => 'You have reached ' . af_preview_max_per_user() . ' saved previews — please delete one first.'));
     }
 
-    $pid    = isset($_POST['product']) ? absint($_POST['product']) : 0;
+    $pid = isset($_POST['product']) ? absint($_POST['product']) : 0;
+    // only a real, published product — otherwise a crafted id would pull the
+    // title of someone's draft into this customer's account page
+    if ($pid && (get_post_type($pid) !== 'product' || get_post_status($pid) !== 'publish')) {
+        $pid = 0;
+    }
     $source = isset($_POST['source']) && $_POST['source'] === 'frame-the-moment' ? 'frame-the-moment' : 'try-on-wall';
     $size   = isset($_POST['size'])   ? sanitize_text_field(wp_unslash($_POST['size']))   : '';
     $frame  = isset($_POST['frame'])  ? sanitize_text_field(wp_unslash($_POST['frame']))  : '';
@@ -10459,14 +10494,17 @@ function af_save_preview_handler() {
     $title  = $pid ? get_the_title($pid) : 'My framed photo';
     if ($title === '') $title = 'Wall preview';
 
-    $file = wp_upload_bits('af-preview-' . $uid . '-' . time() . '.' . $ext, null, $bin);
+    // The uploads folder is public — it has to be, since sharing hands someone a
+    // link to this image. So the filename carries the secrecy: a random suffix
+    // makes previews unguessable rather than walkable by user id and timestamp.
+    $file = wp_upload_bits('af-preview-' . $uid . '-' . wp_generate_password(24, false, false) . '.' . $ext, null, $bin);
     if (!empty($file['error'])) {
         wp_send_json_error(array('message' => 'Could not save that preview right now.'));
     }
 
     require_once ABSPATH . 'wp-admin/includes/image.php';
     $att_id = wp_insert_attachment(array(
-        'post_mime_type' => $ext === 'png' ? 'image/png' : 'image/jpeg',
+        'post_mime_type' => $mime,
         'post_title'     => $title . ' — wall preview',
         'post_status'    => 'inherit',
         'post_author'    => $uid,
@@ -10531,6 +10569,8 @@ add_filter('woocommerce_account_menu_items', function($items) {
 }, 20);
 
 add_action('woocommerce_account_saved-previews_endpoint', function() {
+    // WP_Query drops an author clause of 0, which would list everyone's previews
+    if (!is_user_logged_in()) { echo '<p>Please sign in to see your saved previews.</p>'; return; }
     $previews = get_posts(array(
         'post_type'      => 'af_preview',
         'author'         => get_current_user_id(),
