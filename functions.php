@@ -5167,9 +5167,9 @@ add_action('template_redirect', function(){
         b.addEventListener('click',function(){ setScene(i); });
         sceneWrap.appendChild(b);
       });
-      var usingUpload=false;
+      var usingUpload=false, sceneIdx=0;
       function setScene(i){
-        usingUpload=false; stopCam();
+        usingUpload=false; sceneIdx=i; stopCam();
         sceneWrap.querySelectorAll('.af-tow-scene').forEach(function(x,j){ x.classList.toggle('on', j===i); });
         var im=$('tow-wallimg'); im.src=SCENES[i].bg; im.style.display='block';
         im.style.objectPosition = SCENES[i].focus || '50% 50%';
@@ -5178,14 +5178,25 @@ add_action('template_redirect', function(){
 
       // ── LIVE CAMERA (spec §8): point the camera at your wall and the framed
       //    artwork is overlaid in real time. Uses the rear camera on phones.
-      var camOn=false, camStream=null;
+      var camOn=false, camStream=null, camSeq=0, camStarting=false;
       function startCam(){
+        if(camOn || camStarting) return;            // ignore impatient double clicks
         if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
           toast('Camera not supported on this browser'); return;
         }
+        var seq=++camSeq; camStarting=true;
         navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080} }, audio:false })
           .then(function(stream){
+            camStarting=false;
+            // The visitor moved on while the permission prompt was open —
+            // throw the stream away instead of hijacking the stage back.
+            if(seq!==camSeq){ stream.getTracks().forEach(function(t){ t.stop(); }); return; }
             camStream=stream; camOn=true;
+            // if the track dies on its own (call, app switch, revoked permission)
+            // fall back to the room photo instead of freezing on a dead frame
+            stream.getTracks().forEach(function(t){
+              t.addEventListener('ended', function(){ if(camStream===stream) stopCam(); });
+            });
             var v=$('tow-cam'); v.srcObject=stream; v.style.display='block';
             $('tow-wallimg').style.display='none';
             $('tow-camstop').style.display='block';
@@ -5194,21 +5205,27 @@ add_action('template_redirect', function(){
             toast('🎥 Live camera on — point it at your wall');
           })
           .catch(function(err){
+            camStarting=false;
+            if(seq!==camSeq) return;
             toast(err && err.name==='NotAllowedError' ? 'Camera permission was denied' : 'Could not start the camera');
           });
       }
       function stopCam(){
+        camSeq++; camStarting=false;              // cancels any start still in flight
         if(camStream){ camStream.getTracks().forEach(function(t){ t.stop(); }); camStream=null; }
         camOn=false;
         var v=$('tow-cam'); v.srcObject=null; v.style.display='none';
         $('tow-camstop').style.display='none';
-        // bring the room photo (or the uploaded wall) back
+        // bring the room photo (or the uploaded wall) back, and re-highlight
+        // the thumbnail that matches what is now on the stage
         var im=$('tow-wallimg');
-        if(im.getAttribute('src')) im.style.display='block';
+        if(im.getAttribute('src')){
+          im.style.display='block';
+          if(!usingUpload) sceneWrap.querySelectorAll('.af-tow-scene').forEach(function(x,j){ x.classList.toggle('on', j===sceneIdx); });
+        }
       }
       $('tow-cambtn').addEventListener('click', function(){
-        if(camOn){ stopCam(); if(!$('tow-wallimg').getAttribute('src')) setScene(0); }
-        else { startCam(); }
+        if(camOn || camStarting) stopCam(); else startCam();
       });
       $('tow-camstop').addEventListener('click', function(){ stopCam(); });
       window.addEventListener('pagehide', stopCam);
@@ -5225,8 +5242,8 @@ add_action('template_redirect', function(){
         buildPanels(); applyFrame(); applyScale();
       });
       function buildPanels(){
+        var p=current(); if(!p) return;      // never wipe the wall when there is nothing to rebuild
         var wrap=$('tow-panels'); wrap.innerHTML='';
-        var p=current(); if(!p) return;
         for(var i=0;i<LAYOUT;i++){
           var panel=document.createElement('div'); panel.className='af-tow-wpanel';
           var frame=document.createElement('div'); frame.className='af-tow-pframe';
@@ -5253,7 +5270,9 @@ add_action('template_redirect', function(){
                 .forEach(function(p){ var o=document.createElement('option'); o.value=p.id; o.textContent=p.name; sel.appendChild(o); });
       }
       fillProducts('');
-      $('tow-cat').addEventListener('change', function(){ fillProducts(this.value); });
+      // changing category clears the product selection — put the stage back to
+      // its prompt rather than leaving the previous artwork stranded on the wall
+      $('tow-cat').addEventListener('change', function(){ fillProducts(this.value); refresh(); });
 
       function current(){ return PRODUCTS.filter(function(p){ return String(p.id)===String($('tow-prod').value); })[0]; }
 
@@ -5294,6 +5313,14 @@ add_action('template_redirect', function(){
       }
       function refresh(){
         var p=current();
+        if(!p){
+          $('tow-panels').innerHTML='';
+          $('tow-framebox').style.display='none';
+          $('tow-placeholder').style.display='flex';
+          $('tow-price').textContent='—';
+          $('tow-view').removeAttribute('href');
+          return;
+        }
         if(p){
           // load once to learn the artwork's real aspect ratio (and for canvas save)
           artImg=new Image(); artImg.crossOrigin='anonymous';
@@ -9701,30 +9728,46 @@ add_action('template_redirect', function () {
       }
 
       // ── live camera backdrop (spec §8) ──
-      var camOn = false, camStream = null;
+      var camOn = false, camStream = null, camSeq = 0, camStarting = false;
       function stopCam(){
+        camSeq++; camStarting = false;          // cancels any start still in flight
         if (camStream){ camStream.getTracks().forEach(function(t){ t.stop(); }); camStream = null; }
         camOn = false;
         var v = $('ftm-camv'); v.srcObject = null; v.style.display = 'none';
         $('ftm-camstop').style.display = 'none';
         $('ftm-wall').style.display = 'block';
+        // re-highlight the room thumbnail that matches the photo now showing
+        var idx = SCENES.indexOf(scene);
+        document.querySelectorAll('#ftm-scenes .af-ftm-scene').forEach(function(x, j){ x.classList.toggle('on', j === idx); });
       }
-      $('ftm-cambtn').addEventListener('click', function(){
-        if (camOn){ stopCam(); return; }
+      function startCam(){
+        if (camOn || camStarting) return;        // ignore impatient double clicks
         if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
           alert('Camera is not supported on this browser.'); return;
         }
+        var seq = ++camSeq; camStarting = true;
         navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080} }, audio:false })
           .then(function(stream){
+            camStarting = false;
+            // the visitor picked a room while the permission prompt was open
+            if (seq !== camSeq){ stream.getTracks().forEach(function(t){ t.stop(); }); return; }
             camStream = stream; camOn = true;
+            stream.getTracks().forEach(function(t){
+              t.addEventListener('ended', function(){ if (camStream === stream) stopCam(); });
+            });
             var v = $('ftm-camv'); v.srcObject = stream; v.style.display = 'block';
             $('ftm-wall').style.display = 'none';
             $('ftm-camstop').style.display = 'block';
             document.querySelectorAll('#ftm-scenes .af-ftm-scene').forEach(function(x){ x.classList.remove('on'); });
           })
           .catch(function(err){
+            camStarting = false;
+            if (seq !== camSeq) return;
             alert(err && err.name === 'NotAllowedError' ? 'Camera permission was denied.' : 'Could not start the camera.');
           });
+      }
+      $('ftm-cambtn').addEventListener('click', function(){
+        if (camOn || camStarting) stopCam(); else startCam();
       });
       $('ftm-camstop').addEventListener('click', stopCam);
       window.addEventListener('pagehide', stopCam);
