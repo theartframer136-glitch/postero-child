@@ -105,6 +105,12 @@ ul.postero-scroll-content {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
+  /* Spread items across the full row width when they fit (short subcategory
+     lists), instead of clumping at the left with the rest of the row blank.
+     Has no visible effect once there are enough items to overflow — that
+     case still falls back to the fixed 16px gap + horizontal scroll below,
+     which is the expected behaviour for a scrollable rail. */
+  justify-content: space-between !important;
   overflow-x: auto !important;
   overflow-y: visible !important;
   gap: 16px !important;
