@@ -4949,6 +4949,13 @@ add_action('template_redirect', function(){
             <div id="tow-colorsw" class="af-tow-swatches"></div>
             <select id="tow-color" class="af-tow-hiddensel"></select>
 
+            <label>Wall Layout</label>
+            <div class="af-tow-layouts" id="tow-layouts">
+              <button type="button" class="af-tow-lay on" data-n="1"><i></i><span>Single</span></button>
+              <button type="button" class="af-tow-lay" data-n="2"><i></i><i></i><span>2 Panels</span></button>
+              <button type="button" class="af-tow-lay" data-n="4"><i></i><i></i><i></i><i></i><span>4 Panels</span></button>
+            </div>
+
             <div class="af-tow-step">
               <span class="af-tow-stepnum">3</span>
               <span class="af-tow-steptitle">Set the room</span>
@@ -4957,6 +4964,7 @@ add_action('template_redirect', function(){
             <div id="tow-scenes" class="af-tow-scenes"></div>
 
             <label class="af-tow-upload"><input type="file" id="tow-wall" accept="image/*" hidden><span>⬆ Upload your own wall photo</span></label>
+            <button type="button" id="tow-cambtn" class="af-tow-cambtn">🎥 Use live camera <em>point it at your wall</em></button>
 
             <p class="af-tow-scalenote">📏 Shown true to scale on a 10&nbsp;ft wall</p>
             <label>Adjust Size <span id="tow-scaleval">100%</span></label>
@@ -4972,16 +4980,13 @@ add_action('template_redirect', function(){
           <div class="af-tow-stagewrap">
             <div id="tow-stage" class="af-tow-stage">
               <img id="tow-wallimg" class="af-tow-wallimg" alt="">
+              <video id="tow-cam" class="af-tow-cam" autoplay playsinline muted></video>
               <div id="tow-placeholder" class="af-tow-ph"><span class="af-tow-ph-ic">🖼️</span>Choose a product on the left to preview it on the wall. Drag to reposition, and use the slider to resize.</div>
               <div id="tow-framebox" class="af-tow-framebox" style="display:none">
-                <div id="tow-moulding" class="af-tow-frame">
-                  <div id="tow-mat" class="af-tow-mat">
-                    <img id="tow-art" class="af-tow-art" alt="" crossorigin="anonymous">
-                    <span class="af-tow-glass"></span>
-                  </div>
-                </div>
+                <div id="tow-panels" class="af-tow-panels"></div>
                 <span class="af-tow-hint">✥ drag</span>
               </div>
+              <button type="button" id="tow-camstop" class="af-tow-camstop" style="display:none">✕ Stop camera</button>
               <div id="tow-toast" class="af-tow-toast"></div>
             </div>
             <p class="af-tow-tip">Tip: drag the artwork to line it up with your furniture, then hit <strong>Save Preview</strong> — the image downloads to your device.</p>
@@ -5164,11 +5169,82 @@ add_action('template_redirect', function(){
       });
       var usingUpload=false;
       function setScene(i){
-        usingUpload=false;
+        usingUpload=false; stopCam();
         sceneWrap.querySelectorAll('.af-tow-scene').forEach(function(x,j){ x.classList.toggle('on', j===i); });
         var im=$('tow-wallimg'); im.src=SCENES[i].bg; im.style.display='block';
         im.style.objectPosition = SCENES[i].focus || '50% 50%';
         $('tow-placeholder').style.display = current() ? 'none' : 'flex';
+      }
+
+      // ── LIVE CAMERA (spec §8): point the camera at your wall and the framed
+      //    artwork is overlaid in real time. Uses the rear camera on phones.
+      var camOn=false, camStream=null;
+      function startCam(){
+        if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
+          toast('Camera not supported on this browser'); return;
+        }
+        navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080} }, audio:false })
+          .then(function(stream){
+            camStream=stream; camOn=true;
+            var v=$('tow-cam'); v.srcObject=stream; v.style.display='block';
+            $('tow-wallimg').style.display='none';
+            $('tow-camstop').style.display='block';
+            sceneWrap.querySelectorAll('.af-tow-scene').forEach(function(x){x.classList.remove('on');});
+            $('tow-placeholder').style.display = current() ? 'none' : 'flex';
+            toast('🎥 Live camera on — point it at your wall');
+          })
+          .catch(function(err){
+            toast(err && err.name==='NotAllowedError' ? 'Camera permission was denied' : 'Could not start the camera');
+          });
+      }
+      function stopCam(){
+        if(camStream){ camStream.getTracks().forEach(function(t){ t.stop(); }); camStream=null; }
+        camOn=false;
+        var v=$('tow-cam'); v.srcObject=null; v.style.display='none';
+        $('tow-camstop').style.display='none';
+        // bring the room photo (or the uploaded wall) back
+        var im=$('tow-wallimg');
+        if(im.getAttribute('src')) im.style.display='block';
+      }
+      $('tow-cambtn').addEventListener('click', function(){
+        if(camOn){ stopCam(); if(!$('tow-wallimg').getAttribute('src')) setScene(0); }
+        else { startCam(); }
+      });
+      $('tow-camstop').addEventListener('click', function(){ stopCam(); });
+      window.addEventListener('pagehide', stopCam);
+
+      // ── 1 / 2 / 4 PANEL WALL LAYOUTS (spec §8) ─────────────────────────
+      // 2 and 4 render the artwork as a split multi-panel set (vertical
+      // slices), each slice in its own frame — the classic gallery-wall look.
+      var LAYOUT=1, artImg=null, artRatio=1.33;   // ratio = h/w of the artwork
+      $('tow-layouts').addEventListener('click', function(e){
+        var b=e.target.closest('.af-tow-lay'); if(!b) return;
+        this.querySelectorAll('.af-tow-lay').forEach(function(x){x.classList.remove('on');});
+        b.classList.add('on');
+        LAYOUT=parseInt(b.getAttribute('data-n'),10)||1;
+        buildPanels(); applyFrame(); applyScale();
+      });
+      function buildPanels(){
+        var wrap=$('tow-panels'); wrap.innerHTML='';
+        var p=current(); if(!p) return;
+        for(var i=0;i<LAYOUT;i++){
+          var panel=document.createElement('div'); panel.className='af-tow-wpanel';
+          var frame=document.createElement('div'); frame.className='af-tow-pframe';
+          var mat=document.createElement('div'); mat.className='af-tow-pmat';
+          var art=document.createElement('div'); art.className='af-tow-part';
+          art.style.backgroundImage='url("'+p.img+'")';
+          if(LAYOUT===1){
+            art.style.backgroundSize='100% 100%';
+            art.style.backgroundPosition='0 0';
+          }else{
+            art.style.backgroundSize=(LAYOUT*100)+'% 100%';
+            art.style.backgroundPosition=(i/(LAYOUT-1)*100)+'% 0';
+          }
+          art.style.paddingBottom=(artRatio*LAYOUT*100)+'%';
+          var glass=document.createElement('span'); glass.className='af-tow-glass';
+          mat.appendChild(art); mat.appendChild(glass);
+          frame.appendChild(mat); panel.appendChild(frame); wrap.appendChild(panel);
+        }
       }
 
       function fillProducts(cat){
@@ -5183,26 +5259,29 @@ add_action('template_redirect', function(){
 
       function applyFrame(){
         var frame=$('tow-frame').value, color=$('tow-color').value;
-        var mat=$('tow-mat'), fb=$('tow-framebox');
-        var frEl=$('tow-moulding');
+        var fb=$('tow-framebox');
         var mats=MAT[color]||MAT['Black'];
-        // Frame profile thickness (% of artwork width so it scales) + mat width
+        // Frame profile thickness (% of panel width so it scales) + mat width
         var prof, matw, matbg='#f6f1e6';
         if(frame==='Without Frame'){ prof=0; matw=0; }         // gallery-wrapped canvas
         else if(frame==='Floating Frame'){ prof=5; matw=6; matbg='#161616'; }
         else if(frame==='Aluminium Frame'){ prof=4; matw=7; }
         else { prof=7; matw=9; }                                // Fibre / default wood
-        // Outer frame moulding with beveled highlight/shadow
-        frEl.style.padding = prof>0 ? (prof+'%') : '0';
-        frEl.style.background = prof>0 ? mats : 'transparent';
-        frEl.style.borderRadius = frame==='Aluminium Frame' ? '3px' : '2px';
-        frEl.style.boxShadow = prof>0
-          ? 'inset 2px 2px 3px rgba(255,255,255,.45), inset -3px -3px 5px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.25)'
-          : 'none';
-        // Mat (recessed cream border; dark backing for floating frames)
-        mat.style.padding = matw>0 ? (matw+'%') : '0';
-        mat.style.background = matw>0 ? matbg : 'transparent';
-        mat.style.boxShadow = matw>0 ? 'inset 0 0 8px rgba(0,0,0,.28)' : 'none';
+        // Multi-panel sets use slimmer mats so the slices read as one artwork
+        if(LAYOUT>1){ matw=Math.max(0, matw-4); }
+        fb.querySelectorAll('.af-tow-pframe').forEach(function(frEl){
+          frEl.style.padding = prof>0 ? (prof+'%') : '0';
+          frEl.style.background = prof>0 ? mats : 'transparent';
+          frEl.style.borderRadius = frame==='Aluminium Frame' ? '3px' : '2px';
+          frEl.style.boxShadow = prof>0
+            ? 'inset 2px 2px 3px rgba(255,255,255,.45), inset -3px -3px 5px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.25)'
+            : 'none';
+        });
+        fb.querySelectorAll('.af-tow-pmat').forEach(function(mat){
+          mat.style.padding = matw>0 ? (matw+'%') : '0';
+          mat.style.background = matw>0 ? matbg : 'transparent';
+          mat.style.boxShadow = matw>0 ? 'inset 0 0 8px rgba(0,0,0,.28)' : 'none';
+        });
         // Cast shadow on the wall (soft, light from top-left)
         fb.style.filter = 'drop-shadow(10px 16px 22px rgba(0,0,0,.38))';
       }
@@ -5216,7 +5295,14 @@ add_action('template_redirect', function(){
       function refresh(){
         var p=current();
         if(p){
-          $('tow-art').src=p.img;
+          // load once to learn the artwork's real aspect ratio (and for canvas save)
+          artImg=new Image(); artImg.crossOrigin='anonymous';
+          artImg.onload=function(){
+            if(artImg.naturalWidth>0) artRatio=artImg.naturalHeight/artImg.naturalWidth;
+            buildPanels(); applyFrame(); applyScale();
+          };
+          artImg.src=p.img;
+          buildPanels();
           $('tow-framebox').style.display='inline-block';
           $('tow-placeholder').style.display='none';
           $('tow-view').href=p.url;
@@ -5242,12 +5328,11 @@ add_action('template_redirect', function(){
         return { h: parseFloat(m[1]), w: parseFloat(m[2]) };
       }
       function applyScale(){
-        var stage=$('tow-stage'), box=$('tow-framebox'), art=$('tow-art');
+        var stage=$('tow-stage'), box=$('tow-framebox');
         var r=stage.getBoundingClientRect(), sw=r.width||500, sh=r.height||560;
         var label=$('tow-size').value;
         var ft=sizeFeet(label);
         var slider=parseFloat($('tow-scale').value)/100;
-        art.style.width='100%'; art.style.height='auto'; art.style.display='block';
 
         if(ft && ft.h>0 && ft.w>0){
           // pixels-per-foot from the wall height in this scene
@@ -5280,9 +5365,10 @@ add_action('template_redirect', function(){
         var f=this.files&&this.files[0]; if(!f) return;
         var r=new FileReader();
         r.onload=function(e){
-          usingUpload=true;
+          usingUpload=true; stopCam();
           sceneWrap.querySelectorAll('.af-tow-scene').forEach(function(x){x.classList.remove('on');});
           var im=$('tow-wallimg'); im.src=e.target.result; im.style.display='block';
+          im.style.objectPosition='50% 50%';
           $('tow-placeholder').style.display = current() ? 'none' : 'flex';
         };
         r.readAsDataURL(f);
@@ -5304,21 +5390,39 @@ add_action('template_redirect', function(){
       $('tow-save').addEventListener('click', function(){
         var wall=$('tow-wallimg');
         if(!current()){ toast('Please choose a product first'); return; }
-        if(!wall.src || wall.style.display==='none'){ toast('Please pick a room or upload a wall photo'); return; }
+        var haveWall = camOn || (wall.src && wall.style.display!=='none');
+        if(!haveWall){ toast('Please pick a room, use the camera, or upload a wall photo'); return; }
         try{
           var stage=$('tow-stage'), r=stage.getBoundingClientRect();
           var cv=document.createElement('canvas'); cv.width=Math.round(r.width); cv.height=Math.round(r.height); var ctx=cv.getContext('2d');
-          var iw=wall.naturalWidth||r.width, ih=wall.naturalHeight||r.height, sc=Math.max(r.width/iw,r.height/ih);
-          ctx.drawImage(wall,(r.width-iw*sc)/2,(r.height-ih*sc)/2,iw*sc,ih*sc);
+          // background: live camera frame, or the wall image (cover-fit)
+          if(camOn){
+            var v=$('tow-cam'), vw=v.videoWidth||r.width, vh=v.videoHeight||r.height;
+            var vsc=Math.max(r.width/vw, r.height/vh);
+            ctx.drawImage(v,(r.width-vw*vsc)/2,(r.height-vh*vsc)/2,vw*vsc,vh*vsc);
+          }else{
+            var iw=wall.naturalWidth||r.width, ih=wall.naturalHeight||r.height, sc=Math.max(r.width/iw,r.height/ih);
+            ctx.drawImage(wall,(r.width-iw*sc)/2,(r.height-ih*sc)/2,iw*sc,ih*sc);
+          }
           function rect(el){ var b=el.getBoundingClientRect(); return {x:b.left-r.left,y:b.top-r.top,w:b.width,h:b.height}; }
           var color=$('tow-color').value, hex=SWATCH[color]||'#1a1a1a';
-          // soft cast shadow
-          ctx.save(); ctx.shadowColor='rgba(0,0,0,.4)'; ctx.shadowBlur=26; ctx.shadowOffsetX=10; ctx.shadowOffsetY=16;
-          var fr=rect($('tow-moulding')); ctx.fillStyle=hex; ctx.fillRect(fr.x,fr.y,fr.w,fr.h); ctx.restore();
-          // mat + art
-          var mt=rect($('tow-mat')); var st=getComputedStyle($('tow-mat'));
-          if(parseFloat(st.paddingTop)>0){ ctx.fillStyle=(st.backgroundColor&&st.backgroundColor!=='rgba(0, 0, 0, 0)')?st.backgroundColor:'#f6f1e6'; ctx.fillRect(mt.x,mt.y,mt.w,mt.h); }
-          var ar=rect($('tow-art')); ctx.drawImage($('tow-art'), ar.x, ar.y, ar.w, ar.h);
+          // draw every panel: moulding, mat, then its slice of the artwork
+          var panels=$('tow-framebox').querySelectorAll('.af-tow-wpanel');
+          var N=panels.length||1, idx=0;
+          panels.forEach(function(panel){
+            var frEl=panel.querySelector('.af-tow-pframe'), matEl=panel.querySelector('.af-tow-pmat'), artEl=panel.querySelector('.af-tow-part');
+            var fr=rect(frEl);
+            ctx.save(); ctx.shadowColor='rgba(0,0,0,.4)'; ctx.shadowBlur=26; ctx.shadowOffsetX=10; ctx.shadowOffsetY=16;
+            ctx.fillStyle=hex; ctx.fillRect(fr.x,fr.y,fr.w,fr.h); ctx.restore();
+            var mt=rect(matEl); var st=getComputedStyle(matEl);
+            if(parseFloat(st.paddingTop)>0){ ctx.fillStyle=(st.backgroundColor&&st.backgroundColor!=='rgba(0, 0, 0, 0)')?st.backgroundColor:'#f6f1e6'; ctx.fillRect(mt.x,mt.y,mt.w,mt.h); }
+            var ar=rect(artEl);
+            if(artImg && artImg.naturalWidth>0){
+              var siw=artImg.naturalWidth/N;
+              ctx.drawImage(artImg, idx*siw, 0, siw, artImg.naturalHeight, ar.x, ar.y, ar.w, ar.h);
+            }
+            idx++;
+          });
           var p=current(); var fname=((p&&p.name)?p.name.replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase():'my')+'-on-wall.png';
           var url=cv.toDataURL('image/png');
           var a=document.createElement('a'); a.download=fname; a.href=url; document.body.appendChild(a); a.click(); a.remove();
@@ -5402,6 +5506,30 @@ add_action('template_redirect', function(){
     .af-tow-framebox{position:absolute;top:42%;left:50%;transform:translate(-50%,-50%);cursor:grab;touch-action:none;z-index:5;}
     .af-tow-framebox.dragging{cursor:grabbing;}
     .af-tow-framebox:hover .af-tow-hint{opacity:1;}
+    /* multi-panel layouts */
+    .af-tow-panels{display:flex;gap:2.5%;align-items:flex-start;}
+    .af-tow-wpanel{flex:1 1 0;min-width:0;}
+    .af-tow-pframe{position:relative;box-sizing:border-box;}
+    .af-tow-pmat{position:relative;box-sizing:border-box;}
+    .af-tow-part{width:100%;background-repeat:no-repeat;}
+    /* layout chips */
+    .af-tow-layouts{display:flex;gap:8px;margin-top:6px;}
+    .af-tow-lay{position:relative;flex:1;display:flex;gap:3px;align-items:stretch;justify-content:center;height:44px;padding:7px 6px 16px;
+      border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;cursor:pointer;transition:border-color .15s;}
+    .af-tow-lay i{display:block;width:9px;background:#c9b98f;border-radius:2px;}
+    .af-tow-lay[data-n="1"] i{width:22px;}
+    .af-tow-lay span{position:absolute;left:0;right:0;bottom:2px;font-size:9.5px;font-weight:700;color:#8a8170;text-align:center;letter-spacing:.02em;}
+    .af-tow-lay.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
+    .af-tow-lay.on i{background:#c9a84c;}
+    /* live camera */
+    .af-tow-cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1;}
+    .af-tow-cambtn{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;margin-top:8px;padding:11px 12px;
+      border:2px solid #1a1a1a;border-radius:11px;background:#1a1a1a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;
+      text-transform:none;letter-spacing:0;transition:background .2s;}
+    .af-tow-cambtn:hover{background:#000;}
+    .af-tow-cambtn em{font-style:normal;font-weight:500;font-size:10.5px;color:#cbc2ac;}
+    .af-tow-camstop{position:absolute;top:12px;right:12px;z-index:8;background:rgba(20,20,20,.85);color:#fff;border:none;
+      border-radius:999px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;}
     .af-tow-frame{position:relative;box-sizing:border-box;}
     .af-tow-mat{position:relative;box-sizing:border-box;}
     .af-tow-art{display:block;width:100%;height:auto;}
@@ -8631,7 +8759,9 @@ add_action('send_headers', function () {
     header('X-Frame-Options: SAMEORIGIN');
     header('X-Content-Type-Options: nosniff');
     header('Referrer-Policy: strict-origin-when-cross-origin');
-    header('Permissions-Policy: geolocation=(), camera=(), microphone=()');
+    // camera=(self) so the Try-On-Wall / Frame-The-Moment live camera preview
+    // can request it (spec §8 "AR – live camera"); still blocked for iframes.
+    header('Permissions-Policy: geolocation=(), camera=(self), microphone=()');
     if (is_ssl()) {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
     }
@@ -9329,9 +9459,17 @@ add_action('template_redirect', function () {
               <?php endforeach; ?>
             </select>
 
+            <label>Wall Layout</label>
+            <div class="af-ftm-layouts" id="ftm-layouts">
+              <button type="button" class="af-ftm-lay on" data-n="1"><i></i><span>Single</span></button>
+              <button type="button" class="af-ftm-lay" data-n="2"><i></i><i></i><span>2 Panels</span></button>
+              <button type="button" class="af-ftm-lay" data-n="4"><i></i><i></i><i></i><i></i><span>4 Panels</span></button>
+            </div>
+
             <div class="af-ftm-step"><span class="af-ftm-num">4</span><span class="af-ftm-steptitle">Set the room</span></div>
             <label>Room Scene</label>
             <div class="af-ftm-scenes" id="ftm-scenes"></div>
+            <button type="button" id="ftm-cambtn" class="af-ftm-cambtn">🎥 Use live camera <em>point it at your wall</em></button>
 
             <div class="af-ftm-price"><span>Your price</span><strong id="ftm-price">—</strong></div>
             <p class="af-ftm-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Free secure packaging</p>
@@ -9352,13 +9490,10 @@ add_action('template_redirect', function () {
                 <strong>Your photo appears here</strong>
                 <small>Upload a photo to see it framed on a wall, true to size.</small>
               </div>
+              <video id="ftm-camv" class="af-ftm-camv" autoplay playsinline muted></video>
+              <button type="button" id="ftm-camstop" class="af-ftm-camstop" style="display:none">✕ Stop camera</button>
               <div id="ftm-framebox" class="af-ftm-framebox" style="display:none">
-                <div id="ftm-moulding" class="af-ftm-moulding">
-                  <div id="ftm-mat" class="af-ftm-mat">
-                    <div id="ftm-art" class="af-ftm-art"></div>
-                    <span class="af-ftm-glass"></span>
-                  </div>
-                </div>
+                <div id="ftm-panels" class="af-ftm-panels"></div>
               </div>
             </div>
             <p class="af-ftm-tip" id="ftm-tip">Shown true to scale on a 10&nbsp;ft wall — change the size to compare.</p>
@@ -9412,6 +9547,7 @@ add_action('template_redirect', function () {
       })();
       function setScene(i){
         scene = SCENES[i];
+        if (typeof stopCam === 'function') stopCam();
         var im = $('ftm-wall');
         im.src = MOCK + scene.file;
         im.style.objectPosition = scene.focus;
@@ -9456,6 +9592,63 @@ add_action('template_redirect', function () {
         return Math.round((BASE * mult + fee) * 100) / 100;
       }
 
+      // ── 1 / 2 / 4 panel layouts (spec §8) ──
+      var LAYOUT = 1;
+      $('ftm-layouts').addEventListener('click', function(e){
+        var b = e.target.closest('.af-ftm-lay'); if (!b) return;
+        this.querySelectorAll('.af-ftm-lay').forEach(function(x){ x.classList.remove('on'); });
+        b.classList.add('on');
+        LAYOUT = parseInt(b.getAttribute('data-n'), 10) || 1;
+        cropKey = '';           // slices depend on layout-independent crop, but force re-render
+        render();
+      });
+
+      // Cover-crop the photo once to the frame's aspect ratio so multi-panel
+      // slices are distortion-free (CSS percentage slicing would stretch).
+      var cropKey = '', cropURL = null, cropImg = null;
+      function ensureCrop(ratio, cb){
+        var key = photoURL ? (photoURL.length + ':' + photoW + 'x' + photoH + ':' + ratio.toFixed(4)) : '';
+        if (key && key === cropKey && cropURL) { cb(); return; }
+        var im = new Image();
+        im.onload = function(){
+          var sw = im.naturalWidth, sh = im.naturalHeight;
+          var tw = Math.min(sw, 1600), th = Math.round(tw * ratio);
+          var cv = document.createElement('canvas'); cv.width = tw; cv.height = th;
+          var cx = cv.getContext('2d');
+          var s = Math.max(tw / sw, th / sh);
+          cx.drawImage(im, (tw - sw * s) / 2, (th - sh * s) / 2, sw * s, sh * s);
+          cropURL = cv.toDataURL('image/jpeg', 0.92);
+          cropImg = new Image(); cropImg.src = cropURL;
+          cropKey = key;
+          cb();
+        };
+        im.src = photoURL;
+      }
+
+      function stylePanels(){
+        var frame = $('ftm-frame').value, color = $('ftm-color').value;
+        var prof, matw, matbg = '#f6f1e6';
+        if (frame === 'Without Frame')          { prof = 0; matw = 0; }
+        else if (frame === 'Floating Frame')    { prof = 5; matw = 6; matbg = '#161616'; }
+        else if (frame === 'Aluminium Frame')   { prof = 4; matw = 7; }
+        else                                    { prof = 7; matw = 9; }
+        if (LAYOUT > 1) { matw = Math.max(0, matw - 4); }
+        var wrap = $('ftm-panels');
+        wrap.querySelectorAll('.af-ftm-pframe').forEach(function(m){
+          m.style.padding      = prof ? prof + '%' : '0';
+          m.style.background   = prof ? (MAT[color] || MAT['Black']) : 'transparent';
+          m.style.borderRadius = (frame === 'Aluminium Frame') ? '3px' : '2px';
+          m.style.boxShadow    = prof
+            ? 'inset 2px 2px 3px rgba(255,255,255,.45), inset -3px -3px 5px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.25)'
+            : 'none';
+        });
+        wrap.querySelectorAll('.af-ftm-pmat').forEach(function(m){
+          m.style.padding    = matw ? matw + '%' : '0';
+          m.style.background = matw ? matbg : 'transparent';
+          m.style.boxShadow  = matw ? 'inset 0 0 8px rgba(0,0,0,.28)' : 'none';
+        });
+      }
+
       function render(){
         var p = price();
         $('ftm-price').textContent = SYM + p.toFixed(2);
@@ -9465,30 +9658,32 @@ add_action('template_redirect', function () {
         $('ftm-empty').style.display = 'none';
         $('ftm-framebox').style.display = 'block';
 
-        var frame = $('ftm-frame').value, color = $('ftm-color').value;
-        var mould = $('ftm-moulding'), mat = $('ftm-mat'), art = $('ftm-art'), box = $('ftm-framebox');
-
-        // frame profile
-        var prof, matw, matbg = '#f6f1e6';
-        if (frame === 'Without Frame')          { prof = 0; matw = 0; }
-        else if (frame === 'Floating Frame')    { prof = 5; matw = 6; matbg = '#161616'; }
-        else if (frame === 'Aluminium Frame')   { prof = 4; matw = 7; }
-        else                                    { prof = 7; matw = 9; }
-
-        mould.style.padding      = prof ? prof + '%' : '0';
-        mould.style.background   = prof ? (MAT[color] || MAT['Black']) : 'transparent';
-        mould.style.borderRadius = (frame === 'Aluminium Frame') ? '3px' : '2px';
-        mould.style.boxShadow    = prof
-          ? 'inset 2px 2px 3px rgba(255,255,255,.45), inset -3px -3px 5px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.25)'
-          : 'none';
-        mat.style.padding    = matw ? matw + '%' : '0';
-        mat.style.background = matw ? matbg : 'transparent';
-        mat.style.boxShadow  = matw ? 'inset 0 0 8px rgba(0,0,0,.28)' : 'none';
-
-        // artwork fills the mat, cropped to the frame's aspect ratio
         var ft = sizeFeet($('ftm-size').value);
-        art.style.backgroundImage = 'url("' + photoURL + '")';
-        art.style.paddingBottom   = (ft.h / ft.w * 100) + '%';
+        var ratio = ft.h / ft.w;
+
+        ensureCrop(ratio, function(){
+          // (re)build the panel set
+          var wrap = $('ftm-panels'); wrap.innerHTML = '';
+          for (var i = 0; i < LAYOUT; i++){
+            var panel = document.createElement('div'); panel.className = 'af-ftm-wpanel';
+            var fr = document.createElement('div'); fr.className = 'af-ftm-pframe';
+            var mt = document.createElement('div'); mt.className = 'af-ftm-pmat';
+            var art = document.createElement('div'); art.className = 'af-ftm-part';
+            art.style.backgroundImage = 'url("' + cropURL + '")';
+            if (LAYOUT === 1){
+              art.style.backgroundSize = '100% 100%';
+              art.style.backgroundPosition = '0 0';
+            } else {
+              art.style.backgroundSize = (LAYOUT * 100) + '% 100%';
+              art.style.backgroundPosition = (i / (LAYOUT - 1) * 100) + '% 0';
+            }
+            art.style.paddingBottom = (ratio * LAYOUT * 100) + '%';
+            var glass = document.createElement('span'); glass.className = 'af-ftm-glass';
+            mt.appendChild(art); mt.appendChild(glass);
+            fr.appendChild(mt); panel.appendChild(fr); wrap.appendChild(panel);
+          }
+          stylePanels();
+        });
 
         // true-to-scale against a 10 ft wall
         var stage = $('ftm-stage').getBoundingClientRect();
@@ -9498,11 +9693,41 @@ add_action('template_redirect', function () {
         var maxW = stage.width * 0.62, maxH = stage.height * 0.60;
         if (w > maxW) { h *= maxW / w; w = maxW; }
         if (h > maxH) { w *= maxH / h; h = maxH; }
-        box.style.width = Math.max(70, w) + 'px';
+        $('ftm-framebox').style.width = Math.max(70, w) + 'px';
 
         $('ftm-tip').textContent = 'Shown true to scale on a 10 ft wall — ' +
-          ft.h.toFixed(1).replace(/\.0$/,'') + '×' + ft.w.toFixed(1).replace(/\.0$/,'') + ' ft print.';
+          ft.h.toFixed(1).replace(/\.0$/,'') + '×' + ft.w.toFixed(1).replace(/\.0$/,'') + ' ft print' +
+          (LAYOUT > 1 ? ' as a ' + LAYOUT + '-panel set.' : '.');
       }
+
+      // ── live camera backdrop (spec §8) ──
+      var camOn = false, camStream = null;
+      function stopCam(){
+        if (camStream){ camStream.getTracks().forEach(function(t){ t.stop(); }); camStream = null; }
+        camOn = false;
+        var v = $('ftm-camv'); v.srcObject = null; v.style.display = 'none';
+        $('ftm-camstop').style.display = 'none';
+        $('ftm-wall').style.display = 'block';
+      }
+      $('ftm-cambtn').addEventListener('click', function(){
+        if (camOn){ stopCam(); return; }
+        if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)){
+          alert('Camera is not supported on this browser.'); return;
+        }
+        navigator.mediaDevices.getUserMedia({ video:{ facingMode:'environment', width:{ideal:1920}, height:{ideal:1080} }, audio:false })
+          .then(function(stream){
+            camStream = stream; camOn = true;
+            var v = $('ftm-camv'); v.srcObject = stream; v.style.display = 'block';
+            $('ftm-wall').style.display = 'none';
+            $('ftm-camstop').style.display = 'block';
+            document.querySelectorAll('#ftm-scenes .af-ftm-scene').forEach(function(x){ x.classList.remove('on'); });
+          })
+          .catch(function(err){
+            alert(err && err.name === 'NotAllowedError' ? 'Camera permission was denied.' : 'Could not start the camera.');
+          });
+      });
+      $('ftm-camstop').addEventListener('click', stopCam);
+      window.addEventListener('pagehide', stopCam);
 
       function buildSendLink(p){
         var msg = 'Hi The Art Framer! I would like to order a *Frame The Moment* custom print:%0A%0A' +
@@ -9558,43 +9783,52 @@ add_action('template_redirect', function () {
       });
       window.addEventListener('resize', render);
 
-      // ── save the composed preview ──
+      // ── save the composed preview (all panels) ──
       $('ftm-save').addEventListener('click', function(){
         if (!photoURL) { alert('Please upload a photo first.'); return; }
-        var box = $('ftm-framebox').getBoundingClientRect();
+        var boxEl = $('ftm-framebox');
+        var box = boxEl.getBoundingClientRect();
+        if (!(box.width > 0)) { alert('Nothing to save yet.'); return; }
         var scale = Math.max(1, 1200 / box.width);
         var cv = document.createElement('canvas');
         cv.width = Math.round(box.width * scale); cv.height = Math.round(box.height * scale);
         var ctx = cv.getContext('2d');
-
-        var mould = $('ftm-moulding').getBoundingClientRect();
-        var matR  = $('ftm-mat').getBoundingClientRect();
-        var artR  = $('ftm-art').getBoundingClientRect();
         function rel(r){ return { x:(r.left-box.left)*scale, y:(r.top-box.top)*scale, w:r.width*scale, h:r.height*scale }; }
 
-        ctx.fillStyle = SWATCH[$('ftm-color').value] || '#1a1a1a';
-        var m = rel(mould); ctx.fillRect(m.x, m.y, m.w, m.h);
-        var mt = rel(matR);
-        var matStyle = getComputedStyle($('ftm-mat'));
-        if (parseFloat(matStyle.paddingTop) > 0) {
-          ctx.fillStyle = (matStyle.backgroundColor && matStyle.backgroundColor !== 'rgba(0, 0, 0, 0)') ? matStyle.backgroundColor : '#f6f1e6';
-          ctx.fillRect(mt.x, mt.y, mt.w, mt.h);
-        }
-        var img = new Image();
-        img.onload = function(){
-          var a = rel(artR);
-          // cover-crop the photo into the art area
-          var s = Math.max(a.w / img.width, a.h / img.height);
-          var dw = img.width * s, dh = img.height * s;
-          ctx.save(); ctx.beginPath(); ctx.rect(a.x, a.y, a.w, a.h); ctx.clip();
-          ctx.drawImage(img, a.x + (a.w - dw)/2, a.y + (a.h - dh)/2, dw, dh);
-          ctx.restore();
+        var hex = SWATCH[$('ftm-color').value] || '#1a1a1a';
+        var panels = boxEl.querySelectorAll('.af-ftm-wpanel');
+        var N = panels.length || 1;
+        function draw(img){
+          var idx = 0;
+          panels.forEach(function(panel){
+            var frEl = panel.querySelector('.af-ftm-pframe');
+            var mtEl = panel.querySelector('.af-ftm-pmat');
+            var arEl = panel.querySelector('.af-ftm-part');
+            var m = rel(frEl.getBoundingClientRect());
+            ctx.fillStyle = hex; ctx.fillRect(m.x, m.y, m.w, m.h);
+            var matStyle = getComputedStyle(mtEl);
+            if (parseFloat(matStyle.paddingTop) > 0) {
+              var mt = rel(mtEl.getBoundingClientRect());
+              ctx.fillStyle = (matStyle.backgroundColor && matStyle.backgroundColor !== 'rgba(0, 0, 0, 0)') ? matStyle.backgroundColor : '#f6f1e6';
+              ctx.fillRect(mt.x, mt.y, mt.w, mt.h);
+            }
+            var a = rel(arEl.getBoundingClientRect());
+            var siw = img.width / N;
+            ctx.drawImage(img, idx * siw, 0, siw, img.height, a.x, a.y, a.w, a.h);
+            idx++;
+          });
           var link = document.createElement('a');
           link.download = 'frame-the-moment-preview.png';
           link.href = cv.toDataURL('image/png');
           document.body.appendChild(link); link.click(); link.remove();
-        };
-        img.src = photoURL;
+        }
+        // use the cover-cropped image so panel slices match the preview exactly
+        if (cropImg && cropImg.complete && cropImg.naturalWidth > 0) { draw(cropImg); }
+        else {
+          var img = new Image();
+          img.onload = function(){ draw(img); };
+          img.src = cropURL || photoURL;
+        }
       });
 
       render();
@@ -9686,6 +9920,30 @@ add_action('template_redirect', function () {
     .af-ftm-moulding{position:relative;box-sizing:border-box;}
     .af-ftm-mat{position:relative;box-sizing:border-box;}
     .af-ftm-art{width:100%;background-size:cover;background-position:center;background-repeat:no-repeat;}
+    /* multi-panel layouts (1 / 2 / 4 prints on the wall) */
+    .af-ftm-panels{display:flex;gap:2.5%;align-items:flex-start;}
+    .af-ftm-wpanel{flex:1 1 0;min-width:0;}
+    .af-ftm-pframe{position:relative;box-sizing:border-box;}
+    .af-ftm-pmat{position:relative;box-sizing:border-box;}
+    .af-ftm-part{width:100%;background-repeat:no-repeat;}
+    /* layout chips */
+    .af-ftm-layouts{display:flex;gap:8px;margin-top:6px;}
+    .af-ftm-lay{position:relative;flex:1;display:flex;gap:3px;align-items:stretch;justify-content:center;height:44px;padding:7px 6px 16px;
+      border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;cursor:pointer;transition:border-color .15s;}
+    .af-ftm-lay i{display:block;width:9px;background:#c9b98f;border-radius:2px;}
+    .af-ftm-lay[data-n="1"] i{width:22px;}
+    .af-ftm-lay span{position:absolute;left:0;right:0;bottom:2px;font-size:9.5px;font-weight:700;color:#8a8170;text-align:center;letter-spacing:.02em;}
+    .af-ftm-lay.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
+    .af-ftm-lay.on i{background:#c9a84c;}
+    /* live camera backdrop */
+    .af-ftm-camv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1;}
+    .af-ftm-cambtn{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;margin-top:8px;padding:11px 12px;
+      border:2px solid #1a1a1a;border-radius:11px;background:#1a1a1a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;
+      text-transform:none;letter-spacing:0;transition:background .2s;}
+    .af-ftm-cambtn:hover{background:#000;}
+    .af-ftm-cambtn em{font-style:normal;font-weight:500;font-size:10.5px;color:#cbc2ac;}
+    .af-ftm-camstop{position:absolute;top:12px;right:12px;z-index:8;background:rgba(20,20,20,.85);color:#fff;border:none;
+      border-radius:999px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;}
     .af-ftm-glass{position:absolute;inset:0;pointer-events:none;
       background:linear-gradient(125deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,.05) 22%,rgba(255,255,255,0) 42%);}
     .af-ftm-tip{text-align:center;color:#8a8170;font-size:13px;margin:14px 0 0;}
