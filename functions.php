@@ -9658,7 +9658,7 @@ add_action('template_redirect', function () {
         this.querySelectorAll('.af-ftm-lay').forEach(function(x){ x.classList.remove('on'); });
         b.classList.add('on');
         LAYOUT = parseInt(b.getAttribute('data-n'), 10) || 1;
-        cropKey = '';           // slices depend on layout-independent crop, but force re-render
+        // the crop only depends on the print ratio, so switching layout reuses it
         render();
       });
 
@@ -9738,6 +9738,19 @@ add_action('template_redirect', function () {
         var ft = sizeFeet($('ftm-size').value);
         var ratio = ft.h / ft.w;
 
+        // Work out the true-to-scale target BEFORE building the panels: when the
+        // crop is already cached ensureCrop() calls back synchronously, and
+        // fitToWall() would otherwise still be aiming at the previous size.
+        var stage = $('ftm-stage').getBoundingClientRect();
+        var WALL_FT = 10;
+        var h = stage.height * (ft.h / WALL_FT);
+        var w = h * (ft.w / ft.h);
+        var maxW = stage.width * 0.62, maxH = stage.height * 0.60;
+        if (w > maxW) { h *= maxW / w; w = maxW; }
+        if (h > maxH) { w *= maxH / h; h = maxH; }
+        $('ftm-framebox').style.width = Math.max(70, w) + 'px';
+        wantH = h;
+
         ensureCrop(ratio, function(){
           // (re)build the panel set
           var wrap = $('ftm-panels'); wrap.innerHTML = '';
@@ -9762,17 +9775,6 @@ add_action('template_redirect', function () {
           stylePanels();
           fitToWall();     // panels exist now, so the box can be measured
         });
-
-        // true-to-scale against a 10 ft wall
-        var stage = $('ftm-stage').getBoundingClientRect();
-        var WALL_FT = 10;
-        var h = stage.height * (ft.h / WALL_FT);
-        var w = h * (ft.w / ft.h);
-        var maxW = stage.width * 0.62, maxH = stage.height * 0.60;
-        if (w > maxW) { h *= maxW / w; w = maxW; }
-        if (h > maxH) { w *= maxH / h; h = maxH; }
-        $('ftm-framebox').style.width = Math.max(70, w) + 'px';
-        wantH = h;      // the panels are built asynchronously; fitToWall() runs after
 
         $('ftm-tip').textContent = 'Shown true to scale on a 10 ft wall — ' +
           ft.h.toFixed(1).replace(/\.0$/,'') + '×' + ft.w.toFixed(1).replace(/\.0$/,'') + ' ft print' +
@@ -9830,6 +9832,7 @@ add_action('template_redirect', function () {
           '• Size: '    + encodeURIComponent($('ftm-size').value) + '%0A' +
           '• Frame: '   + encodeURIComponent($('ftm-frame').value) + '%0A' +
           '• Colour: '  + encodeURIComponent($('ftm-color').value) + '%0A' +
+          '• Layout: '  + encodeURIComponent(LAYOUT > 1 ? LAYOUT + '-panel split set' : 'Single print') + '%0A' +
           '• Price: '   + encodeURIComponent(SYM + p.toFixed(2)) + '%0A' +
           (photoName ? ('• Photo: ' + encodeURIComponent(photoName) + '%0A') : '') +
           '%0A(I will attach my photo here.)';
