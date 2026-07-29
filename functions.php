@@ -4946,6 +4946,7 @@ add_action('template_redirect', function(){
     $sym = get_woocommerce_currency_symbol();
 
     get_header();
+    af_preview_share_assets();
     ?>
     <div class="af-tow-wrap">
       <div class="af-tow-card">
@@ -5006,6 +5007,20 @@ add_action('template_redirect', function(){
               <button type="button" id="tow-save" class="af-tow-btn ghost">⤓ Save Preview</button>
               <a href="#" id="tow-view" class="af-tow-btn solid">View Product</a>
             </div>
+
+            <p class="af-sharelabel">Keep it &amp; share it</p>
+            <div class="af-share">
+              <button type="button" id="tow-saveacct">💾 Save to my account</button>
+            </div>
+            <div class="af-share">
+              <button type="button" id="tow-share-wa" class="af-share-wa">WhatsApp</button>
+              <button type="button" id="tow-share-mail">Email</button>
+              <button type="button" id="tow-share-copy">Copy link</button>
+            </div>
+            <p class="af-tow-fine">
+              Saved previews live in your account.
+              <a href="#" id="tow-acctlink" style="display:none">View saved previews →</a>
+            </p>
           </div>
 
           <div class="af-tow-stagewrap">
@@ -5539,16 +5554,18 @@ add_action('template_redirect', function(){
         t.textContent=msg; t.classList.add('show');
         clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.classList.remove('show'); }, 3200);
       }
-      $('tow-save').addEventListener('click', function(){
+      // Compose the wall + framed artwork onto a canvas. Returns {url,name} or
+      // null (having explained why). Shared by download, save-to-account and share.
+      function composePreview(){
         var wall=$('tow-wallimg');
-        if(!current()){ toast('Please choose a product first'); return; }
+        if(!current()){ toast('Please choose a product first'); return null; }
         var haveWall = camOn || (wall.src && wall.style.display!=='none');
-        if(!haveWall){ toast('Please pick a room, use the camera, or upload a wall photo'); return; }
+        if(!haveWall){ toast('Please pick a room, use the camera, or upload a wall photo'); return null; }
         var panels=$('tow-framebox').querySelectorAll('.af-tow-wpanel');
-        if(!panels.length){ toast('Still preparing the preview — try again in a moment'); return; }
+        if(!panels.length){ toast('Still preparing the preview — try again in a moment'); return null; }
         // draw from the same cropped image the panels display, so the file matches
         var artSrc=(cropImg && cropImg.complete && cropImg.naturalWidth>0) ? cropImg : artImg;
-        if(!(artSrc && artSrc.naturalWidth>0)){ toast('Artwork is still loading — try again in a moment'); return; }
+        if(!(artSrc && artSrc.naturalWidth>0)){ toast('Artwork is still loading — try again in a moment'); return null; }
         try{
           var stage=$('tow-stage'), r=stage.getBoundingClientRect();
           var cv=document.createElement('canvas'); cv.width=Math.round(r.width); cv.height=Math.round(r.height); var ctx=cv.getContext('2d');
@@ -5592,10 +5609,64 @@ add_action('template_redirect', function(){
             idx++;
           });
           var p=current(); var fname=((p&&p.name)?p.name.replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase():'my')+'-on-wall.png';
-          var url=cv.toDataURL('image/png');
-          var a=document.createElement('a'); a.download=fname; a.href=url; document.body.appendChild(a); a.click(); a.remove();
-          toast('✓ Saved to your downloads: '+fname);
-        }catch(err){ toast('Couldn’t save automatically — right-click the preview to save it'); }
+          return { url: cv.toDataURL('image/png'), name: fname };
+        }catch(err){ toast('Couldn’t build the preview — right-click the wall to save it'); return null; }
+      }
+
+      $('tow-save').addEventListener('click', function(){
+        var out=composePreview(); if(!out) return;
+        var a=document.createElement('a'); a.download=out.name; a.href=out.url;
+        document.body.appendChild(a); a.click(); a.remove();
+        toast('✓ Saved to your downloads: '+out.name);
+      });
+
+      // ── SAVE TO ACCOUNT + SHARE (spec §8) ────────────────────────────
+      var savedURL='';                    // set once the preview is in the account
+      function shareTarget(){
+        // share the saved image when there is one, otherwise the configured product
+        if(savedURL) return savedURL;
+        var p=current();
+        return p ? ($('tow-view').getAttribute('href')||p.url) : location.href;
+      }
+      function shareText(){
+        var p=current();
+        return (p?('“'+p.name+'” '):'') + 'on my wall — from The Art Framer';
+      }
+      $('tow-saveacct').addEventListener('click', function(){
+        var btn=this, out=composePreview(); if(!out) return;
+        btn.disabled=true; toast('Saving to your account…');
+        var p=current();
+        AFPreview.save(out.url, {
+          product: p?p.id:0, source:'try-on-wall',
+          size: $('tow-size').value, frame: $('tow-frame').value,
+          color: $('tow-color').value, layout: LAYOUT
+        }, function(ok, msg, url, fallback){
+          btn.disabled=false;
+          if(ok){
+            savedURL=url||'';
+            toast('✓ '+msg);
+            var link=$('tow-acctlink');
+            if(link && fallback){ link.href=fallback; link.style.display='inline'; }
+          }else{
+            toast(msg);
+            if(fallback && !AFPreview.cfg.logged){
+              var l=$('tow-acctlink');
+              if(l){ l.href=fallback+'?redirect_to='+encodeURIComponent(location.href); l.textContent='Sign in →'; l.style.display='inline'; }
+            }
+          }
+        });
+      });
+      $('tow-share-wa').addEventListener('click', function(){
+        if(AFPreview.native('The Art Framer', shareText(), shareTarget())) return;
+        window.open(AFPreview.whatsapp(shareText(), shareTarget()), '_blank', 'noopener');
+      });
+      $('tow-share-mail').addEventListener('click', function(){
+        location.href = AFPreview.email('My wall preview — The Art Framer', shareText(), shareTarget());
+      });
+      $('tow-share-copy').addEventListener('click', function(){
+        AFPreview.copy(shareTarget(), function(ok){
+          toast(ok ? '✓ Link copied' : 'Could not copy — long-press the link to copy it');
+        });
       });
 
       window.addEventListener('resize', applyScale);
@@ -9593,6 +9664,7 @@ add_action('template_redirect', function () {
     $wa = '16104707280';
 
     get_header();
+    af_preview_share_assets();
     ?>
     <div class="af-ftm-wrap">
       <div class="af-ftm-card">
@@ -9664,6 +9736,20 @@ add_action('template_redirect', function () {
               <a href="#" id="ftm-send" class="af-ftm-btn solid" target="_blank" rel="noopener">Confirm &amp; Send</a>
             </div>
             <p class="af-ftm-fine">“Confirm &amp; Send” opens WhatsApp with your choices ready — just attach the saved preview and hit send.</p>
+
+            <p class="af-sharelabel">Keep it &amp; share it</p>
+            <div class="af-share">
+              <button type="button" id="ftm-saveacct">💾 Save to my account</button>
+            </div>
+            <div class="af-share">
+              <button type="button" id="ftm-share-wa" class="af-share-wa">WhatsApp</button>
+              <button type="button" id="ftm-share-mail">Email</button>
+              <button type="button" id="ftm-share-copy">Copy link</button>
+            </div>
+            <p class="af-ftm-fine">
+              Saved previews live in your account.
+              <a href="#" id="ftm-acctlink" style="display:none">View saved previews →</a>
+            </p>
           </div>
 
           <!-- ── live preview ── -->
@@ -10023,8 +10109,10 @@ add_action('template_redirect', function () {
       });
       window.addEventListener('resize', render);
 
-      // ── save the composed preview: the whole wall, not just the frames ──
-      $('ftm-save').addEventListener('click', function(){
+      // ── compose the preview: the whole wall, not just the frames ──
+      // done(dataURL) receives the finished PNG; used by download, save-to-account
+      // and share alike. Composition is async because the crop may still be loading.
+      function composePreview(done){
         if (!photoURL) { alert('Please upload a photo first.'); return; }
         var boxEl = $('ftm-framebox');
         var panels = boxEl.querySelectorAll('.af-ftm-wpanel');
@@ -10094,10 +10182,7 @@ add_action('template_redirect', function () {
             alert('Could not save automatically — right-click the preview and choose “Save image as…”.');
             return;
           }
-          var link = document.createElement('a');
-          link.download = 'frame-the-moment-preview.png';
-          link.href = url;
-          document.body.appendChild(link); link.click(); link.remove();
+          done(url);
         }
         // use the cover-cropped image so panel slices match the preview exactly
         if (cropImg && cropImg.complete && cropImg.naturalWidth > 0) { draw(cropImg); }
@@ -10107,6 +10192,61 @@ add_action('template_redirect', function () {
           img.onerror = function(){ alert('The preview is still rendering — please try again in a moment.'); };
           img.src = cropURL || photoURL;
         }
+      }
+
+      $('ftm-save').addEventListener('click', function(){
+        composePreview(function(url){
+          var link = document.createElement('a');
+          link.download = 'frame-the-moment-preview.png';
+          link.href = url;
+          document.body.appendChild(link); link.click(); link.remove();
+        });
+      });
+
+      // ── SAVE TO ACCOUNT + SHARE (spec §8) ────────────────────────────
+      var savedURL = '';
+      function shareTarget(){ return savedURL || location.href.split('#')[0]; }
+      function shareText(){
+        return 'My photo framed by The Art Framer — ' + $('ftm-type').value + ', ' + $('ftm-size').value +
+               (LAYOUT > 1 ? ', ' + LAYOUT + '-panel set' : '');
+      }
+      $('ftm-saveacct').addEventListener('click', function(){
+        var btn = this;
+        composePreview(function(url){
+          btn.disabled = true;
+          AFPreview.save(url, {
+            product: 0, source: 'frame-the-moment',
+            size: $('ftm-size').value, frame: $('ftm-frame').value,
+            color: $('ftm-color').value, layout: LAYOUT
+          }, function(ok, msg, saved, fallback){
+            btn.disabled = false;
+            var link = $('ftm-acctlink');
+            if (ok) {
+              savedURL = saved || '';
+              if (link && fallback){ link.href = fallback; link.style.display = 'inline'; }
+              alert('✓ ' + msg);
+            } else {
+              if (fallback && !AFPreview.cfg.logged && link) {
+                link.href = fallback + '?redirect_to=' + encodeURIComponent(location.href);
+                link.textContent = 'Sign in →';
+                link.style.display = 'inline';
+              }
+              alert(msg);
+            }
+          });
+        });
+      });
+      $('ftm-share-wa').addEventListener('click', function(){
+        if (AFPreview.native('The Art Framer', shareText(), shareTarget())) return;
+        window.open(AFPreview.whatsapp(shareText(), shareTarget()), '_blank', 'noopener');
+      });
+      $('ftm-share-mail').addEventListener('click', function(){
+        location.href = AFPreview.email('My framed photo — The Art Framer', shareText(), shareTarget());
+      });
+      $('ftm-share-copy').addEventListener('click', function(){
+        AFPreview.copy(shareTarget(), function(ok){
+          alert(ok ? '✓ Link copied' : 'Could not copy — please copy the address bar link.');
+        });
       });
 
       render();
@@ -10242,3 +10382,305 @@ add_action('template_redirect', function () {
     get_footer();
     exit;
 }, 1);
+
+/* ================================================================
+ * PHASE 28 — SAVE PREVIEW TO ACCOUNT + SHARE  (spec §8, and the
+ * "Save and share preview" line of the §7 AR block)
+ *
+ * The AR pages can compose a preview of the artwork on a wall. This
+ * stores that composition against the customer's account so they can
+ * come back to it, and gives them WhatsApp / Email / copy-link share
+ * targets. Guests can still share their configuration — the link
+ * carries size / frame / colour, which the product page pre-selects.
+ * ================================================================ */
+
+// Saved previews live as a private CPT owned by the customer, with the
+// composed PNG as its featured image.
+add_action('init', function() {
+    register_post_type('af_preview', array(
+        'labels' => array(
+            'name'          => 'Saved Previews',
+            'singular_name' => 'Saved Preview',
+        ),
+        'public'              => false,
+        'show_ui'             => true,
+        'show_in_menu'        => 'edit.php?post_type=product',
+        'capability_type'     => 'post',
+        'map_meta_cap'        => true,
+        'supports'            => array('title', 'author', 'thumbnail'),
+        'exclude_from_search' => true,
+        'has_archive'         => false,
+        'rewrite'             => false,
+    ));
+    add_rewrite_endpoint('saved-previews', EP_ROOT | EP_PAGES);
+}, 8);
+
+function af_preview_max_per_user() { return 60; }
+
+// Store a composed preview sent from the AR pages.
+function af_save_preview_handler() {
+    check_ajax_referer('af_preview', 'nonce');
+
+    if (!is_user_logged_in()) {
+        wp_send_json_error(array('code' => 'login', 'message' => 'Please sign in to save previews to your account.'), 401);
+    }
+    $uid = get_current_user_id();
+
+    $raw = isset($_POST['image']) ? wp_unslash($_POST['image']) : '';
+    if (!preg_match('#^data:image/(png|jpeg);base64,#i', $raw, $m)) {
+        wp_send_json_error(array('message' => 'That preview could not be read.'));
+    }
+    $ext    = (strtolower($m[1]) === 'png') ? 'png' : 'jpg';
+    $base64 = substr($raw, strpos($raw, ',') + 1);
+    if (strlen($base64) > 12 * 1024 * 1024) {
+        wp_send_json_error(array('message' => 'That preview is too large to save.'));
+    }
+    $bin = base64_decode($base64, true);
+    if ($bin === false || strlen($bin) < 512) {
+        wp_send_json_error(array('message' => 'That preview could not be read.'));
+    }
+    // Confirm the bytes really are an image, not just a well-formed data URL
+    $probe = @getimagesizefromstring($bin);
+    if (!$probe || !in_array($probe[2], array(IMAGETYPE_PNG, IMAGETYPE_JPEG), true)) {
+        wp_send_json_error(array('message' => 'That preview could not be read.'));
+    }
+
+    $count = (int) count_user_posts($uid, 'af_preview', true);
+    if ($count >= af_preview_max_per_user()) {
+        wp_send_json_error(array('message' => 'You have reached ' . af_preview_max_per_user() . ' saved previews — please delete one first.'));
+    }
+
+    $pid    = isset($_POST['product']) ? absint($_POST['product']) : 0;
+    $source = isset($_POST['source']) && $_POST['source'] === 'frame-the-moment' ? 'frame-the-moment' : 'try-on-wall';
+    $size   = isset($_POST['size'])   ? sanitize_text_field(wp_unslash($_POST['size']))   : '';
+    $frame  = isset($_POST['frame'])  ? sanitize_text_field(wp_unslash($_POST['frame']))  : '';
+    $color  = isset($_POST['color'])  ? sanitize_text_field(wp_unslash($_POST['color']))  : '';
+    $layout = isset($_POST['layout']) ? max(1, absint($_POST['layout'])) : 1;
+    $title  = $pid ? get_the_title($pid) : 'My framed photo';
+    if ($title === '') $title = 'Wall preview';
+
+    $file = wp_upload_bits('af-preview-' . $uid . '-' . time() . '.' . $ext, null, $bin);
+    if (!empty($file['error'])) {
+        wp_send_json_error(array('message' => 'Could not save that preview right now.'));
+    }
+
+    require_once ABSPATH . 'wp-admin/includes/image.php';
+    $att_id = wp_insert_attachment(array(
+        'post_mime_type' => $ext === 'png' ? 'image/png' : 'image/jpeg',
+        'post_title'     => $title . ' — wall preview',
+        'post_status'    => 'inherit',
+        'post_author'    => $uid,
+    ), $file['file']);
+    if (is_wp_error($att_id) || !$att_id) {
+        @unlink($file['file']);
+        wp_send_json_error(array('message' => 'Could not save that preview right now.'));
+    }
+    wp_update_attachment_metadata($att_id, wp_generate_attachment_metadata($att_id, $file['file']));
+
+    $post_id = wp_insert_post(array(
+        'post_type'   => 'af_preview',
+        'post_status' => 'publish',
+        'post_title'  => $title,
+        'post_author' => $uid,
+    ), true);
+    if (is_wp_error($post_id)) {
+        wp_delete_attachment($att_id, true);
+        wp_send_json_error(array('message' => 'Could not save that preview right now.'));
+    }
+    set_post_thumbnail($post_id, $att_id);
+    update_post_meta($post_id, '_af_preview_product', $pid);
+    update_post_meta($post_id, '_af_preview_source',  $source);
+    update_post_meta($post_id, '_af_preview_size',    $size);
+    update_post_meta($post_id, '_af_preview_frame',   $frame);
+    update_post_meta($post_id, '_af_preview_color',   $color);
+    update_post_meta($post_id, '_af_preview_layout',  $layout);
+
+    wp_send_json_success(array(
+        'message' => 'Saved to your account.',
+        'url'     => wp_get_attachment_url($att_id),
+        'account' => wc_get_endpoint_url('saved-previews', '', wc_get_page_permalink('myaccount')),
+    ));
+}
+add_action('wp_ajax_af_save_preview',        'af_save_preview_handler');
+add_action('wp_ajax_nopriv_af_save_preview', 'af_save_preview_handler');
+
+// Delete one of my own saved previews (posted from the account page).
+add_action('template_redirect', function() {
+    if (empty($_POST['af_preview_delete'])) return;
+    $id = absint($_POST['af_preview_delete']);
+    if (!$id || !is_user_logged_in()) return;
+    if (!isset($_POST['af_preview_nonce']) || !wp_verify_nonce(wp_unslash($_POST['af_preview_nonce']), 'af_preview_delete_' . $id)) return;
+    $post = get_post($id);
+    if (!$post || $post->post_type !== 'af_preview' || (int) $post->post_author !== get_current_user_id()) return;
+    $thumb = get_post_thumbnail_id($id);
+    if ($thumb) wp_delete_attachment($thumb, true);
+    wp_delete_post($id, true);
+    wp_safe_redirect(add_query_arg('af_deleted', '1', wc_get_endpoint_url('saved-previews', '', wc_get_page_permalink('myaccount'))));
+    exit;
+});
+
+// ── My Account → Saved Previews ──────────────────────────────────
+add_filter('woocommerce_account_menu_items', function($items) {
+    $new = array();
+    foreach ($items as $k => $v) {
+        $new[$k] = $v;
+        if ($k === 'orders') $new['saved-previews'] = 'Saved Previews';
+    }
+    if (!isset($new['saved-previews'])) $new['saved-previews'] = 'Saved Previews';
+    return $new;
+}, 20);
+
+add_action('woocommerce_account_saved-previews_endpoint', function() {
+    $previews = get_posts(array(
+        'post_type'      => 'af_preview',
+        'author'         => get_current_user_id(),
+        'posts_per_page' => af_preview_max_per_user(),
+        'orderby'        => 'date',
+        'order'          => 'DESC',
+    ));
+
+    if (!empty($_GET['af_deleted'])) {
+        echo '<div class="woocommerce-message" role="alert">Preview deleted.</div>';
+    }
+
+    echo '<p>Previews you saved from <a href="' . esc_url(home_url('/try-on-wall/')) . '">Try It On Your Wall</a> and '
+       . '<a href="' . esc_url(home_url('/frame-the-moment/')) . '">Frame The Moment</a>.</p>';
+
+    if (!$previews) {
+        echo '<div class="af-sp-empty"><p>You have not saved any previews yet.</p>'
+           . '<p><a class="button" href="' . esc_url(home_url('/try-on-wall/')) . '">Try art on your wall</a></p></div>';
+        return;
+    }
+
+    echo '<div class="af-sp-grid">';
+    foreach ($previews as $p) {
+        $img   = get_the_post_thumbnail_url($p->ID, 'large');
+        $full  = get_the_post_thumbnail_url($p->ID, 'full');
+        $pid   = (int) get_post_meta($p->ID, '_af_preview_product', true);
+        $size  = get_post_meta($p->ID, '_af_preview_size',  true);
+        $frame = get_post_meta($p->ID, '_af_preview_frame', true);
+        $color = get_post_meta($p->ID, '_af_preview_color', true);
+        $lay   = (int) get_post_meta($p->ID, '_af_preview_layout', true);
+        $link  = $pid ? get_permalink($pid) : home_url('/frame-the-moment/');
+        if ($pid && ($size || $frame || $color)) {
+            $link = add_query_arg(array(
+                'af_size'  => rawurlencode($size),
+                'af_frame' => rawurlencode($frame),
+                'af_color' => rawurlencode($color),
+            ), $link);
+        }
+        $bits = array_filter(array($size, $frame, $color, $lay > 1 ? $lay . '-panel set' : ''));
+        $wa   = 'https://wa.me/?text=' . rawurlencode(get_the_title($p) . ' — my wall preview: ' . $full);
+        $mail = 'mailto:?subject=' . rawurlencode('My wall preview — ' . get_the_title($p))
+              . '&body=' . rawurlencode("Here is the preview I saved:\n" . $full . "\n\n" . $link);
+
+        echo '<div class="af-sp-card">';
+        if ($img) echo '<a href="' . esc_url($full) . '" target="_blank" rel="noopener"><img src="' . esc_url($img) . '" alt="' . esc_attr(get_the_title($p)) . '"></a>';
+        echo '<div class="af-sp-body">';
+        echo '<strong>' . esc_html(get_the_title($p)) . '</strong>';
+        if ($bits) echo '<small>' . esc_html(implode(' · ', $bits)) . '</small>';
+        echo '<small>' . esc_html(get_the_date('', $p)) . '</small>';
+        echo '<div class="af-sp-actions">';
+        echo '<a class="af-sp-btn" href="' . esc_url($link) . '">View product</a>';
+        echo '<a class="af-sp-btn" href="' . esc_url($full) . '" download>Download</a>';
+        echo '<a class="af-sp-btn" href="' . esc_url($wa) . '" target="_blank" rel="noopener">WhatsApp</a>';
+        echo '<a class="af-sp-btn" href="' . esc_url($mail) . '">Email</a>';
+        echo '</div>';
+        echo '<form method="post" onsubmit="return confirm(\'Delete this saved preview?\');">';
+        wp_nonce_field('af_preview_delete_' . $p->ID, 'af_preview_nonce');
+        echo '<button type="submit" name="af_preview_delete" value="' . esc_attr($p->ID) . '" class="af-sp-del">Delete</button>';
+        echo '</form>';
+        echo '</div></div>';
+    }
+    echo '</div>';
+
+    echo '<style>
+    .af-sp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px;margin-top:18px;}
+    .af-sp-card{border:1px solid #ece4cf;border-radius:14px;overflow:hidden;background:#fffdf8;display:flex;flex-direction:column;}
+    .af-sp-card img{width:100%;height:170px;object-fit:cover;display:block;}
+    .af-sp-body{padding:12px 14px 14px;display:flex;flex-direction:column;gap:4px;}
+    .af-sp-body strong{font-size:14px;line-height:1.35;}
+    .af-sp-body small{font-size:11.5px;color:#8a8170;}
+    .af-sp-actions{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px;}
+    .af-sp-btn{font-size:11.5px;font-weight:700;padding:6px 10px;border-radius:8px;background:#f2ecdd;color:#5a5140;text-decoration:none;}
+    .af-sp-btn:hover{background:#e9e0cc;color:#3d342a;}
+    .af-sp-del{background:none;border:none;padding:0;font-size:11.5px;color:#a33;cursor:pointer;text-align:left;}
+    .af-sp-empty{padding:22px 0;}
+    </style>';
+});
+
+/**
+ * Shared front-end helper for the AR pages: saving a composed canvas to
+ * the account, and the WhatsApp / Email / copy-link share targets.
+ * Echoed inside the page templates, before their own scripts run.
+ */
+function af_preview_share_assets() {
+    $account = function_exists('wc_get_endpoint_url')
+        ? wc_get_endpoint_url('saved-previews', '', wc_get_page_permalink('myaccount'))
+        : home_url('/my-account/');
+    $login = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : home_url('/my-account/');
+    ?>
+    <script>
+    window.AFPreview = (function(){
+      var CFG = {
+        ajax:    <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>,
+        nonce:   <?php echo wp_json_encode(wp_create_nonce('af_preview')); ?>,
+        logged:  <?php echo is_user_logged_in() ? 'true' : 'false'; ?>,
+        account: <?php echo wp_json_encode($account); ?>,
+        login:   <?php echo wp_json_encode($login); ?>
+      };
+      // POST a composed canvas to the account. cb(ok, message, url)
+      function save(dataURL, meta, cb){
+        if(!CFG.logged){
+          cb(false, 'Please sign in to save previews to your account.', null, CFG.login);
+          return;
+        }
+        var body = new URLSearchParams();
+        body.set('action','af_save_preview');
+        body.set('nonce', CFG.nonce);
+        body.set('image', dataURL);
+        Object.keys(meta||{}).forEach(function(k){ body.set(k, meta[k]); });
+        fetch(CFG.ajax, { method:'POST', credentials:'same-origin', body:body })
+          .then(function(r){ return r.json().catch(function(){ return {success:false,data:{message:'Could not save that preview.'}}; }); })
+          .then(function(j){
+            if(j && j.success) cb(true, (j.data&&j.data.message)||'Saved to your account.', j.data&&j.data.url, (j.data&&j.data.account)||CFG.account);
+            else cb(false, (j&&j.data&&j.data.message)||'Could not save that preview.', null, CFG.login);
+          })
+          .catch(function(){ cb(false, 'Could not reach the server — please try again.', null, CFG.login); });
+      }
+      function whatsapp(text, url){ return 'https://wa.me/?text=' + encodeURIComponent(text + ' ' + url); }
+      function email(subject, text, url){
+        return 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(text + '\n\n' + url);
+      }
+      function copy(url, cb){
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(url).then(function(){ cb(true); }, function(){ cb(false); });
+          return;
+        }
+        try{
+          var t=document.createElement('textarea'); t.value=url; t.setAttribute('readonly','');
+          t.style.position='fixed'; t.style.opacity='0'; document.body.appendChild(t);
+          t.select(); document.execCommand('copy'); t.remove(); cb(true);
+        }catch(err){ cb(false); }
+      }
+      // Native share sheet on phones, when the browser offers one
+      function native(title, text, url){
+        if(!navigator.share) return false;
+        navigator.share({ title:title, text:text, url:url }).catch(function(){});
+        return true;
+      }
+      return { save:save, whatsapp:whatsapp, email:email, copy:copy, native:native, cfg:CFG };
+    })();
+    </script>
+    <style>
+    .af-share{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
+    .af-share button,.af-share a{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;
+      height:40px;padding:0 10px;border-radius:10px;border:1.5px solid #e2d9c4;background:#fffdf8;color:#5a5140;
+      font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap;transition:border-color .15s,background .2s;}
+    .af-share button:hover,.af-share a:hover{border-color:#c9a84c;background:#fdf9ef;color:#5a5140;}
+    .af-share .af-share-wa{border-color:#25a366;color:#1e8b56;}
+    .af-share .af-share-wa:hover{background:#eefaf3;border-color:#25a366;color:#1e8b56;}
+    .af-sharelabel{margin:16px 0 0;font-size:11.5px;font-weight:800;color:#6b6250;text-transform:uppercase;letter-spacing:.05em;}
+    </style>
+    <?php
+}

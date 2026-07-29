@@ -24,6 +24,11 @@ $checks = array(
             'rear camera'       => "facingMode:'environment'",
             'panel CSS'         => '.af-tow-panels{',
             'camera CSS'        => '.af-tow-cam{',
+            'save to account'   => 'id="tow-saveacct"',
+            'share whatsapp'    => 'id="tow-share-wa"',
+            'share email'       => 'id="tow-share-mail"',
+            'share copy'        => 'id="tow-share-copy"',
+            'share helper'      => 'window.AFPreview',
         ),
         'gone'   => array(
             'old single art node' => 'id="tow-art"',
@@ -44,6 +49,11 @@ $checks = array(
             'cover-crop'        => 'function ensureCrop',
             'panel CSS'         => '.af-ftm-panels{',
             'camera CSS'        => '.af-ftm-camv{',
+            'save to account'   => 'id="ftm-saveacct"',
+            'share whatsapp'    => 'id="ftm-share-wa"',
+            'share email'       => 'id="ftm-share-mail"',
+            'share copy'        => 'id="ftm-share-copy"',
+            'share helper'      => 'window.AFPreview',
         ),
         'gone'   => array(
             'old single art node' => 'id="ftm-art"',
@@ -81,5 +91,29 @@ foreach ($checks as $label => $spec) {
         if ($hit) $fail++;
     }
 }
+
+// The Saved Previews account endpoint only resolves once rewrites are flushed.
+echo "\n=== saved previews (my account) ===\n";
+if (function_exists('wc_get_endpoint_url') && function_exists('wc_get_page_permalink')) {
+    $url = wc_get_endpoint_url('saved-previews', '', wc_get_page_permalink('myaccount'));
+    echo "  endpoint URL: {$url}\n";
+    $r = wp_remote_get($url, array('timeout'=>45,'sslverify'=>false,'headers'=>array('User-Agent'=>'AF-Verify')));
+    if (is_wp_error($r)) { echo "  FETCH FAILED: ".$r->get_error_message()."\n"; $fail++; }
+    else {
+        $code = wp_remote_retrieve_response_code($r);
+        // logged out it renders the account login form, which is a 200 — a 404
+        // means the rewrite rule never registered
+        printf("  HTTP %d %s\n", $code, $code === 404 ? ' <<< endpoint not registered (needs rewrite flush)' : 'OK');
+        if ($code === 404) $fail++;
+    }
+} else {
+    echo "  WooCommerce helpers unavailable — skipped\n";
+}
+$menu = has_filter('woocommerce_account_menu_items') ? 'registered' : 'MISSING <<<';
+echo "  account menu filter: {$menu}\n";
+echo "  CPT af_preview: " . (post_type_exists('af_preview') ? 'registered' : 'MISSING <<<') . "\n";
+if (!post_type_exists('af_preview')) $fail++;
+echo "  save handler: " . (has_action('wp_ajax_af_save_preview') ? 'registered' : 'MISSING <<<') . "\n";
+if (!has_action('wp_ajax_af_save_preview')) $fail++;
 
 echo "\n=== RESULT: " . ($fail ? "{$fail} PROBLEM(S)" : "ALL CHECKS PASSED") . " ===\n";
