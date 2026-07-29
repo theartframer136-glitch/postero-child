@@ -125,6 +125,19 @@ ul.postero-scroll-content {
 }
 ul.postero-scroll-content::-webkit-scrollbar { display: none !important; }
 
+/* ---- Click-and-drag scrolling (see custom.js initDragScroll) ---- */
+ul.postero-scroll-content.af-drag-scroll {
+  cursor: grab !important;
+  scroll-behavior: auto !important;
+  touch-action: pan-x !important;
+}
+ul.postero-scroll-content.af-drag-scroll.af-dragging {
+  cursor: grabbing !important;
+}
+ul.postero-scroll-content.af-drag-scroll.af-dragging * {
+  pointer-events: none !important;
+}
+
 ul.postero-scroll-content > li.cat-item {
   display: flex !important;
   flex-direction: column !important;
