@@ -4393,12 +4393,16 @@ function af_pricing_config() {
     );
 }
 
-// Authoritative server-side price calculation
+// Authoritative server-side price calculation.
+// The colour fee pays for the frame's finish, so an unframed (gallery-wrapped)
+// print is never charged for one — there is no moulding to finish.
 function af_calc_price($base, $size, $frame, $color) {
     $cfg = af_pricing_config();
     $mult = isset($cfg['sizes'][$size]) ? (float)$cfg['sizes'][$size] : 1.0;
-    $fee  = (isset($cfg['frames'][$frame]) ? (float)$cfg['frames'][$frame] : 0)
-          + (isset($cfg['colors'][$color]) ? (float)$cfg['colors'][$color] : 0);
+    $fee  = (isset($cfg['frames'][$frame]) ? (float)$cfg['frames'][$frame] : 0);
+    if ($frame !== 'Without Frame') {
+        $fee += (isset($cfg['colors'][$color]) ? (float)$cfg['colors'][$color] : 0);
+    }
     return round(((float)$base * $mult) + $fee, 2);
 }
 
@@ -4555,12 +4559,39 @@ add_action('wp_head', function() {
         var frame= wrap.querySelector('[data-type="frame"].active');
         var color= wrap.querySelector('[data-type="color"].active');
         var mult = size ? (cfg.sizes[size.getAttribute('data-val')]||1) : 1;
-        var fee  = (frame ? (cfg.frames[frame.getAttribute('data-val')]||0) : 0)
-                 + (color ? (cfg.colors[color.getAttribute('data-val')]||0) : 0);
+        var frameVal = frame ? frame.getAttribute('data-val') : '';
+        // no frame means no frame-finish surcharge (matches af_calc_price)
+        var fee  = (frame ? (cfg.frames[frameVal]||0) : 0)
+                 + ((color && frameVal !== 'Without Frame') ? (cfg.colors[color.getAttribute('data-val')]||0) : 0);
         var price = Math.round((base*mult + fee)*100)/100;
         var el = wrap.querySelector('#af-live-price');
         if(el) el.innerHTML = '<span class="amount">'+money(sym,price)+'</span>';
       }
+
+      // Arriving from Try On Wall? Pre-select what the visitor configured there,
+      // so the price they were shown is the price they land on.
+      function preselect(){
+        var q = new URLSearchParams(location.search);
+        var want = { size:q.get('af_size'), frame:q.get('af_frame'), color:q.get('af_color') };
+        if(!(want.size || want.frame || want.color)) return;
+        document.querySelectorAll('.af-opts').forEach(function(wrap){
+          Object.keys(want).forEach(function(type){
+            if(!want[type]) return;
+            var target = null;
+            wrap.querySelectorAll('[data-type="'+type+'"]').forEach(function(x){
+              if(x.getAttribute('data-val') === want[type]) target = x;
+            });
+            if(!target) return;
+            wrap.querySelectorAll('[data-type="'+type+'"]').forEach(function(x){ x.classList.remove('active'); });
+            target.classList.add('active');
+            var input = wrap.parentNode.querySelector('input[name="af_'+type+'"]') || document.querySelector('input[name="af_'+type+'"]');
+            if(input) input.value = want[type];
+          });
+          recalc(wrap);
+        });
+      }
+      if(document.readyState !== 'loading') preselect();
+      else document.addEventListener('DOMContentLoaded', preselect);
     })();
     </script>
     <?php
@@ -5202,10 +5233,11 @@ add_action('template_redirect', function(){
             $('tow-camstop').style.display='block';
             sceneWrap.querySelectorAll('.af-tow-scene').forEach(function(x){x.classList.remove('on');});
             $('tow-placeholder').style.display = current() ? 'none' : 'flex';
+            camLabel();
             toast('🎥 Live camera on — point it at your wall');
           })
           .catch(function(err){
-            camStarting=false;
+            camStarting=false; camLabel();
             if(seq!==camSeq) return;
             toast(err && err.name==='NotAllowedError' ? 'Camera permission was denied' : 'Could not start the camera');
           });
@@ -5223,9 +5255,17 @@ add_action('template_redirect', function(){
           im.style.display='block';
           if(!usingUpload) sceneWrap.querySelectorAll('.af-tow-scene').forEach(function(x,j){ x.classList.toggle('on', j===sceneIdx); });
         }
+        camLabel();
+      }
+      // the button is a toggle, so it has to say which way it will go
+      function camLabel(){
+        $('tow-cambtn').innerHTML = (camOn || camStarting)
+          ? '⏹ Stop live camera <em>back to the room photo</em>'
+          : '🎥 Use live camera <em>point it at your wall</em>';
       }
       $('tow-cambtn').addEventListener('click', function(){
         if(camOn || camStarting) stopCam(); else startCam();
+        camLabel();
       });
       $('tow-camstop').addEventListener('click', function(){ stopCam(); });
       window.addEventListener('pagehide', stopCam);
@@ -5239,17 +5279,52 @@ add_action('template_redirect', function(){
         this.querySelectorAll('.af-tow-lay').forEach(function(x){x.classList.remove('on');});
         b.classList.add('on');
         LAYOUT=parseInt(b.getAttribute('data-n'),10)||1;
-        buildPanels(); applyFrame(); applyScale();
+        rebuild();
       });
+
+      // A print is produced at the SIZE the visitor chose, so the artwork is
+      // cover-cropped to that ratio. Without this the frame keeps the photo's
+      // own shape and every size with the same height (2×3, 2×4, 2×5 ft) draws
+      // exactly the same box while the price moves — the width does nothing.
+      var cropKey='', cropURL='', cropImg=null;
+      function printRatio(){
+        var ft=sizeFeet($('tow-size').value);
+        return (ft && ft.h>0 && ft.w>0) ? (ft.h/ft.w) : artRatio;
+      }
+      function ensureCrop(cb){
+        var p=current();
+        if(!p || !(artImg && artImg.naturalWidth>0)){ cb(); return; }
+        var ratio=printRatio(), key=p.img+'|'+ratio.toFixed(4);
+        if(key===cropKey && cropURL){ cb(); return; }
+        try{
+          var iw=artImg.naturalWidth, ih=artImg.naturalHeight;
+          var tw=Math.min(iw,1600), th=Math.max(1, Math.round(tw*ratio));
+          var cv=document.createElement('canvas'); cv.width=tw; cv.height=th;
+          var cx=cv.getContext('2d');
+          var s=Math.max(tw/iw, th/ih);
+          cx.drawImage(artImg,(tw-iw*s)/2,(th-ih*s)/2,iw*s,ih*s);
+          cropURL=cv.toDataURL('image/jpeg',0.92);
+          cropImg=new Image(); cropImg.src=cropURL;
+          cropKey=key;
+        }catch(err){
+          // image host without CORS headers taints the canvas — keep the
+          // uncropped artwork rather than losing the preview
+          cropURL=''; cropImg=null; cropKey='';
+        }
+        cb();
+      }
+      function rebuild(){ ensureCrop(function(){ buildPanels(); applyFrame(); applyScale(); }); }
+
       function buildPanels(){
         var p=current(); if(!p) return;      // never wipe the wall when there is nothing to rebuild
+        var src=cropURL||p.img, ratio=cropURL?printRatio():artRatio;
         var wrap=$('tow-panels'); wrap.innerHTML='';
         for(var i=0;i<LAYOUT;i++){
           var panel=document.createElement('div'); panel.className='af-tow-wpanel';
           var frame=document.createElement('div'); frame.className='af-tow-pframe';
           var mat=document.createElement('div'); mat.className='af-tow-pmat';
           var art=document.createElement('div'); art.className='af-tow-part';
-          art.style.backgroundImage='url("'+p.img+'")';
+          art.style.backgroundImage='url("'+src+'")';
           if(LAYOUT===1){
             art.style.backgroundSize='100% 100%';
             art.style.backgroundPosition='0 0';
@@ -5257,7 +5332,7 @@ add_action('template_redirect', function(){
             art.style.backgroundSize=(LAYOUT*100)+'% 100%';
             art.style.backgroundPosition=(i/(LAYOUT-1)*100)+'% 0';
           }
-          art.style.paddingBottom=(artRatio*LAYOUT*100)+'%';
+          art.style.paddingBottom=(ratio*LAYOUT*100)+'%';
           var glass=document.createElement('span'); glass.className='af-tow-glass';
           mat.appendChild(art); mat.appendChild(glass);
           frame.appendChild(mat); panel.appendChild(frame); wrap.appendChild(panel);
@@ -5308,7 +5383,9 @@ add_action('template_redirect', function(){
       function calcPrice(){
         var p=current(); if(!p) return null;
         var mult=CFG.sizes[$('tow-size').value]||1;
-        var fee=(CFG.frames[$('tow-frame').value]||0)+(CFG.colors[$('tow-color').value]||0);
+        var frameVal=$('tow-frame').value;
+        // no frame means no frame-finish surcharge (matches af_calc_price)
+        var fee=(CFG.frames[frameVal]||0)+(frameVal!=='Without Frame' ? (CFG.colors[$('tow-color').value]||0) : 0);
         return Math.round((p.price*mult+fee)*100)/100;
       }
       function refresh(){
@@ -5322,29 +5399,37 @@ add_action('template_redirect', function(){
           return;
         }
         if(p){
-          // load once to learn the artwork's real aspect ratio (and for canvas save)
-          artImg=new Image(); artImg.crossOrigin='anonymous';
-          artImg.onload=function(){
-            if(artImg.naturalWidth>0) artRatio=artImg.naturalHeight/artImg.naturalWidth;
-            buildPanels(); applyFrame(); applyScale();
-          };
-          // If the image host doesn't answer with CORS headers the anonymous
-          // request fails outright — retry plainly so the preview still works.
-          artImg.onerror=function(){
-            var plain=new Image();
-            plain.onload=function(){
-              artImg=plain;
-              if(plain.naturalWidth>0) artRatio=plain.naturalHeight/plain.naturalWidth;
-              buildPanels(); applyFrame(); applyScale();
+          // (re)load only when the product changed — the same artwork is reused
+          // across size / frame / colour changes so the crop cache stays warm
+          if(!artImg || artImg.getAttribute('data-src')!==p.img){
+            artImg=new Image(); artImg.crossOrigin='anonymous';
+            artImg.setAttribute('data-src', p.img);
+            artImg.onload=function(){
+              if(artImg.naturalWidth>0) artRatio=artImg.naturalHeight/artImg.naturalWidth;
+              cropKey=''; rebuild();
             };
-            plain.src=p.img;
-          };
-          artImg.src=p.img;
-          buildPanels();
+            // If the image host doesn't answer with CORS headers the anonymous
+            // request fails outright — retry plainly so the preview still works.
+            artImg.onerror=function(){
+              var plain=new Image();
+              plain.setAttribute('data-src', p.img);
+              plain.onload=function(){
+                artImg=plain;
+                if(plain.naturalWidth>0) artRatio=plain.naturalHeight/plain.naturalWidth;
+                cropKey=''; rebuild();
+              };
+              plain.src=p.img;
+            };
+            artImg.src=p.img;
+          }
           $('tow-framebox').style.display='inline-block';
           $('tow-placeholder').style.display='none';
-          $('tow-view').href=p.url;
-          applyFrame(); applyScale();
+          // carry the visitor's choices through to the product page
+          $('tow-view').href=p.url + (p.url.indexOf('?')>-1?'&':'?') +
+            'af_size='  + encodeURIComponent($('tow-size').value) +
+            '&af_frame='+ encodeURIComponent($('tow-frame').value) +
+            '&af_color='+ encodeURIComponent($('tow-color').value);
+          rebuild();
           var pr=calcPrice(); $('tow-price').textContent = pr!=null ? (SYM+pr.toFixed(2)) : '—';
         }
       }
@@ -5421,9 +5506,31 @@ add_action('template_redirect', function(){
 
       // Drag artwork
       var box=$('tow-framebox'), drag=false,sx,sy,ox,oy;
-      box.addEventListener('pointerdown', function(e){ drag=true; box.classList.add('dragging'); var st=getComputedStyle(box); sx=e.clientX; sy=e.clientY; ox=parseFloat(st.left)||box.offsetLeft; oy=parseFloat(st.top)||box.offsetTop; box.style.left=ox+'px'; box.style.top=oy+'px'; box.style.transform='none'; e.preventDefault(); });
-      document.addEventListener('pointermove', function(e){ if(!drag) return; box.style.left=(ox+(e.clientX-sx))+'px'; box.style.top=(oy+(e.clientY-sy))+'px'; });
-      document.addEventListener('pointerup', function(){ drag=false; box.classList.remove('dragging'); });
+      box.addEventListener('pointerdown', function(e){
+        // The box is centred with translate(-50%,-50%); read where it ACTUALLY
+        // is before dropping that transform, or it jumps half its own size.
+        var sr=$('tow-stage').getBoundingClientRect(), br=box.getBoundingClientRect();
+        ox=br.left-sr.left; oy=br.top-sr.top;
+        box.style.left=ox+'px'; box.style.top=oy+'px'; box.style.transform='none';
+        sx=e.clientX; sy=e.clientY;
+        drag=true; box.classList.add('dragging');
+        if(box.setPointerCapture){ try{ box.setPointerCapture(e.pointerId); }catch(err){} }
+        e.preventDefault();
+      });
+      document.addEventListener('pointermove', function(e){
+        if(!drag) return;
+        var sr=$('tow-stage').getBoundingClientRect(), br=box.getBoundingClientRect();
+        var nx=ox+(e.clientX-sx), ny=oy+(e.clientY-sy);
+        // always leave a grabbable piece of the artwork on the wall
+        var keepX=Math.min(70, br.width*0.5), keepY=Math.min(70, br.height*0.5);
+        nx=Math.max(keepX-br.width, Math.min(nx, sr.width-keepX));
+        ny=Math.max(keepY-br.height, Math.min(ny, sr.height-keepY));
+        box.style.left=nx+'px'; box.style.top=ny+'px';
+      });
+      function endDrag(){ if(!drag) return; drag=false; box.classList.remove('dragging'); }
+      document.addEventListener('pointerup', endDrag);
+      document.addEventListener('pointercancel', endDrag);
+      window.addEventListener('blur', endDrag);
 
       // Save preview
       var toastTimer;
@@ -5439,7 +5546,9 @@ add_action('template_redirect', function(){
         if(!haveWall){ toast('Please pick a room, use the camera, or upload a wall photo'); return; }
         var panels=$('tow-framebox').querySelectorAll('.af-tow-wpanel');
         if(!panels.length){ toast('Still preparing the preview — try again in a moment'); return; }
-        if(!(artImg && artImg.naturalWidth>0)){ toast('Artwork is still loading — try again in a moment'); return; }
+        // draw from the same cropped image the panels display, so the file matches
+        var artSrc=(cropImg && cropImg.complete && cropImg.naturalWidth>0) ? cropImg : artImg;
+        if(!(artSrc && artSrc.naturalWidth>0)){ toast('Artwork is still loading — try again in a moment'); return; }
         try{
           var stage=$('tow-stage'), r=stage.getBoundingClientRect();
           var cv=document.createElement('canvas'); cv.width=Math.round(r.width); cv.height=Math.round(r.height); var ctx=cv.getContext('2d');
@@ -5478,8 +5587,8 @@ add_action('template_redirect', function(){
             var mt=rect(matEl); var st=getComputedStyle(matEl);
             if(parseFloat(st.paddingTop)>0){ ctx.fillStyle=(st.backgroundColor&&st.backgroundColor!=='rgba(0, 0, 0, 0)')?st.backgroundColor:'#f6f1e6'; ctx.fillRect(mt.x,mt.y,mt.w,mt.h); }
             var ar=rect(artEl);
-            var siw=artImg.naturalWidth/N;
-            ctx.drawImage(artImg, idx*siw, 0, siw, artImg.naturalHeight, ar.x, ar.y, ar.w, ar.h);
+            var siw=artSrc.naturalWidth/N;
+            ctx.drawImage(artSrc, idx*siw, 0, siw, artSrc.naturalHeight, ar.x, ar.y, ar.w, ar.h);
             idx++;
           });
           var p=current(); var fname=((p&&p.name)?p.name.replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase():'my')+'-on-wall.png';
@@ -9645,8 +9754,10 @@ add_action('template_redirect', function () {
 
       function price(){
         var mult = parseFloat($('ftm-size').selectedOptions[0].dataset.mult) || 1;
+        // no frame means no frame-finish surcharge (matches af_calc_price)
+        var noFrame = $('ftm-frame').value === 'Without Frame';
         var fee  = (parseFloat($('ftm-frame').selectedOptions[0].dataset.fee) || 0)
-                 + (parseFloat($('ftm-color').selectedOptions[0].dataset.fee) || 0)
+                 + (noFrame ? 0 : (parseFloat($('ftm-color').selectedOptions[0].dataset.fee) || 0))
                  + (parseFloat($('ftm-type').selectedOptions[0].dataset.fee)  || 0);
         return Math.round((BASE * mult + fee) * 100) / 100;
       }
@@ -9742,10 +9853,13 @@ add_action('template_redirect', function () {
         // crop is already cached ensureCrop() calls back synchronously, and
         // fitToWall() would otherwise still be aiming at the previous size.
         var stage = $('ftm-stage').getBoundingClientRect();
-        var WALL_FT = 10;
-        var h = stage.height * (ft.h / WALL_FT);
+        var WALL_FT = 10;      // assumed real wall height in the room photos
+        var WALL_FRAC = 0.78;  // …of which this much of the stage is wall, not floor
+        var h = stage.height * WALL_FRAC * (ft.h / WALL_FT);
         var w = h * (ft.w / ft.h);
-        var maxW = stage.width * 0.62, maxH = stage.height * 0.60;
+        // Cap generously, so a larger print never renders smaller than a smaller
+        // one just because it hit the limit first on a narrow phone.
+        var maxW = stage.width * 0.92, maxH = stage.height * 0.86;
         if (w > maxW) { h *= maxW / w; w = maxW; }
         if (h > maxH) { w *= maxH / h; h = maxH; }
         $('ftm-framebox').style.width = Math.max(70, w) + 'px';
@@ -9778,7 +9892,9 @@ add_action('template_redirect', function () {
 
         $('ftm-tip').textContent = 'Shown true to scale on a 10 ft wall — ' +
           ft.h.toFixed(1).replace(/\.0$/,'') + '×' + ft.w.toFixed(1).replace(/\.0$/,'') + ' ft print' +
-          (LAYOUT > 1 ? ' as a ' + LAYOUT + '-panel set.' : '.');
+          (LAYOUT > 1
+            ? ' as a ' + LAYOUT + '-panel set. Split sets are quoted on WhatsApp — the price above is for the single print.'
+            : '.');
       }
 
       // ── live camera backdrop (spec §8) ──
@@ -9793,6 +9909,13 @@ add_action('template_redirect', function () {
         // re-highlight the room thumbnail that matches the photo now showing
         var idx = SCENES.indexOf(scene);
         document.querySelectorAll('#ftm-scenes .af-ftm-scene').forEach(function(x, j){ x.classList.toggle('on', j === idx); });
+        camLabel();
+      }
+      // the button is a toggle, so it has to say which way it will go
+      function camLabel(){
+        $('ftm-cambtn').innerHTML = (camOn || camStarting)
+          ? '⏹ Stop live camera <em>back to the room photo</em>'
+          : '🎥 Use live camera <em>point it at your wall</em>';
       }
       function startCam(){
         if (camOn || camStarting) return;        // ignore impatient double clicks
@@ -9813,15 +9936,17 @@ add_action('template_redirect', function () {
             $('ftm-wall').style.display = 'none';
             $('ftm-camstop').style.display = 'block';
             document.querySelectorAll('#ftm-scenes .af-ftm-scene').forEach(function(x){ x.classList.remove('on'); });
+            camLabel();
           })
           .catch(function(err){
-            camStarting = false;
+            camStarting = false; camLabel();
             if (seq !== camSeq) return;
             alert(err && err.name === 'NotAllowedError' ? 'Camera permission was denied.' : 'Could not start the camera.');
           });
       }
       $('ftm-cambtn').addEventListener('click', function(){
         if (camOn || camStarting) stopCam(); else startCam();
+        camLabel();
       });
       $('ftm-camstop').addEventListener('click', stopCam);
       window.addEventListener('pagehide', stopCam);
@@ -9832,7 +9957,7 @@ add_action('template_redirect', function () {
           '• Size: '    + encodeURIComponent($('ftm-size').value) + '%0A' +
           '• Frame: '   + encodeURIComponent($('ftm-frame').value) + '%0A' +
           '• Colour: '  + encodeURIComponent($('ftm-color').value) + '%0A' +
-          '• Layout: '  + encodeURIComponent(LAYOUT > 1 ? LAYOUT + '-panel split set' : 'Single print') + '%0A' +
+          '• Layout: '  + encodeURIComponent(LAYOUT > 1 ? LAYOUT + '-panel split set (please confirm the price for a split set)' : 'Single print') + '%0A' +
           '• Price: '   + encodeURIComponent(SYM + p.toFixed(2)) + '%0A' +
           (photoName ? ('• Photo: ' + encodeURIComponent(photoName) + '%0A') : '') +
           '%0A(I will attach my photo here.)';
@@ -9944,9 +10069,17 @@ add_action('template_redirect', function () {
             ctx.drawImage(img, idx * siw, 0, siw, img.height, a.x, a.y, a.w, a.h);
             idx++;
           });
+          var url;
+          try { url = cv.toDataURL('image/png'); }
+          catch (err) {
+            // the room photo came from another host without CORS headers, so the
+            // canvas is tainted and cannot be exported
+            alert('Could not save automatically — right-click the preview and choose “Save image as…”.');
+            return;
+          }
           var link = document.createElement('a');
           link.download = 'frame-the-moment-preview.png';
-          link.href = cv.toDataURL('image/png');
+          link.href = url;
           document.body.appendChild(link); link.click(); link.remove();
         }
         // use the cover-cropped image so panel slices match the preview exactly
