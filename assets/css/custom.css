@@ -506,6 +506,21 @@ ul.postero-scroll-content .cat-item a {
   min-height: calc(1.45em * 3) !important;
 }
 
+/* ── Art Code line — only products with a code show it (see functions.php
+   af_get_art_code). Reserve its space either way so rating/price/desc stay
+   pinned at the exact same row across every card, whether a neighbour has
+   the code or not. ── */
+.af-shell-track .product-card .af-art-code--card,
+.product-slider .product-card .af-art-code--card,
+.woocommerce ul.products li.product .af-art-code--card {
+  margin: 2px 0 4px !important;
+}
+.af-shell-track .product-card .product-info:not(:has(.af-art-code--card)) .rating,
+.product-slider .product-card .product-info:not(:has(.af-art-code--card)) .rating,
+.woocommerce ul.products li.product .product-info:not(:has(.af-art-code--card)) .rating {
+  margin-top: 21px !important;
+}
+
 /* ── Rating row ── */
 .af-shell-track .product-card .rating,
 .product-slider .product-card .rating,
