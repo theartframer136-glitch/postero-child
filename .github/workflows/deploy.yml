@@ -5,6 +5,14 @@ on:
     branches: [ main ]
   workflow_dispatch:
 
+# One deploy at a time. Two overlapping runs each rsync --delete the theme and
+# fire a dozen WP-CLI processes at the same shared host, which is enough to hit
+# Hostinger's resource limit and take the site to HTTP 508 while they run.
+# Queue instead of cancelling: every pushed commit still gets deployed.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest

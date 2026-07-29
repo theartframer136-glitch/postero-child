@@ -15,6 +15,23 @@ function af_chk($label, $ok, &$fail, $extra = '') {
     if (!$ok) $fail++;
 }
 
+/**
+ * Fetch, retrying once past a transient host error. A 508 is Hostinger saying
+ * "resource limit reached", which tells us nothing about the code under test —
+ * counting it as a failure would make this report lie.
+ */
+function af_get($url) {
+    $args = array('timeout'=>45,'sslverify'=>false,'headers'=>array('User-Agent'=>'AF-Verify'));
+    for ($i = 0; $i < 3; $i++) {
+        $r = wp_remote_get($url, $args);
+        if (is_wp_error($r)) { sleep(3); continue; }
+        $code = (int) wp_remote_retrieve_response_code($r);
+        if ($code !== 508 && $code !== 503 && $code !== 429) return $r;
+        sleep(4);
+    }
+    return $r;
+}
+
 echo "=== 1. ABANDONED CART RECOVERY ===\n";
 $t = af_ac_table();
 $has_table = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $t)) === $t;
@@ -80,7 +97,7 @@ $latest = wc_get_orders(array('limit' => 1, 'return' => 'ids', 'orderby' => 'dat
 if ($latest) {
     $order = wc_get_order($latest[0]);
     $url   = add_query_arg(array('af_doc'=>'invoice','order'=>$order->get_id(),'key'=>$order->get_order_key()), home_url('/'));
-    $r     = wp_remote_get($url, array('timeout'=>45,'sslverify'=>false,'headers'=>array('User-Agent'=>'AF-Verify')));
+    $r     = af_get($url);
     if (is_wp_error($r)) { echo "  invoice fetch FAILED: " . $r->get_error_message() . "\n"; $fail++; }
     else {
         $body = wp_remote_retrieve_body($r);
@@ -89,14 +106,12 @@ if ($latest) {
         af_chk('shows the order number', strpos($body, (string) $order->get_order_number()) !== false, $fail);
     }
     // same document, no key, not signed in => must be refused
-    $bad = wp_remote_get(add_query_arg(array('af_doc'=>'invoice','order'=>$order->get_id()), home_url('/')),
-                         array('timeout'=>45,'sslverify'=>false,'headers'=>array('User-Agent'=>'AF-Verify')));
+    $bad = af_get(add_query_arg(array('af_doc'=>'invoice','order'=>$order->get_id()), home_url('/')));
     if (!is_wp_error($bad)) {
         $bc = wp_remote_retrieve_response_code($bad);
         af_chk('refuses without the order key', $bc === 403, $fail, "HTTP {$bc}");
     }
-    $slip = wp_remote_get(add_query_arg(array('af_doc'=>'packing-slip','order'=>$order->get_id(),'key'=>$order->get_order_key()), home_url('/')),
-                          array('timeout'=>45,'sslverify'=>false,'headers'=>array('User-Agent'=>'AF-Verify')));
+    $slip = af_get(add_query_arg(array('af_doc'=>'packing-slip','order'=>$order->get_id(),'key'=>$order->get_order_key()), home_url('/')));
     if (!is_wp_error($slip)) {
         $sc = wp_remote_retrieve_response_code($slip);
         af_chk('packing slip is staff-only', $sc === 403, $fail, "HTTP {$sc}");
