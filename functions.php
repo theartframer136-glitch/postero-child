@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.4.3');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.4.4');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.1', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -9373,11 +9373,17 @@ function af_get_art_code($product = null) {
   return is_string($code) ? trim($code) : '';
 }
 
-// Shop/archive card: small code line under the title
+// Shop/archive card: small code line under the title. Always output the span
+// (even when a product has no code) so every card reserves the same row
+// height — otherwise cards with a code grow taller than their neighbours and
+// the rows below (rating, price, description, buttons) fall out of alignment.
 add_action('woocommerce_after_shop_loop_item_title', function() {
   global $product;
   $code = af_get_art_code($product);
-  if ($code === '') return;
+  if ($code === '') {
+    echo '<span class="af-art-code af-art-code--card af-art-code--empty" aria-hidden="true">&nbsp;</span>';
+    return;
+  }
   echo '<span class="af-art-code af-art-code--card">Art Code: '
      . esc_html($code) . '</span>';
 }, 9);
@@ -9405,6 +9411,7 @@ add_action('wp_head', function() { ?>
 <style>
 .af-art-code--card{display:block;margin:2px 0 4px;font-size:12px;letter-spacing:.04em;
   color:#8a6d3b;font-weight:600;text-transform:uppercase;}
+.af-art-code--empty{visibility:hidden;}
 .af-art-code--single{margin:.4em 0 .8em;font-size:14px;color:#6b6b6b;
   letter-spacing:.03em;}
 .af-art-code--single strong{color:#8a6d3b;letter-spacing:.06em;}
@@ -9472,8 +9479,18 @@ add_action('wp_footer', function() {
     if (box.querySelector('.af-art-code--card')) { card.setAttribute('data-af-code','1'); box.setAttribute('data-af-code','1'); return; }
     card.setAttribute('data-af-code','1');
     var span = document.createElement('span');
-    span.className = 'af-art-code af-art-code--card';
-    span.textContent = 'Art Code: ' + code;
+    if (code) {
+      span.className = 'af-art-code af-art-code--card';
+      span.textContent = 'Art Code: ' + code;
+    } else {
+      // No code on this product — insert an empty line of the same class so
+      // it still reserves the row's height. Without this, cards that DO have
+      // a code grow taller than their neighbours and every row below (rating,
+      // price, description, buttons) drifts out of alignment across the row.
+      span.className = 'af-art-code af-art-code--card af-art-code--empty';
+      span.setAttribute('aria-hidden', 'true');
+      span.innerHTML = '&nbsp;';
+    }
     span.style.setProperty('display','block','important');
     // prefer to sit right under the product title, else after the card's link
     var title = card.querySelector('.woocommerce-loop-product__title, .product-title, .trending-title, h2, h3, h4, .elementor-heading-title');
@@ -9517,14 +9534,14 @@ add_action('wp_footer', function() {
         if (lk) { var mm = lk.href.match(/add-to-cart=(\d+)/); if (mm) id = mm[1]; }
       }
       var code = (id && CODES[id]) ? CODES[id] : slugFrom(card);   // slug fallback
-      if (!code) return;
+      if (!code && !id) return;   // couldn't confirm this is a real product card — skip
       // climb to the nearest sensible card container so the label sits with
       // the title, not buried inside a button
       var host = card;
       if ((card.hasAttribute('data-product_id') || card.tagName === 'A')) {
         host = card.closest('li.product, .product-card, .trending-card, .product, [class*="post-"], article, .elementor-widget') || card;
       }
-      place(host, code);
+      place(host, code || null);
     });
   }
   function run(){ inject(document); }
