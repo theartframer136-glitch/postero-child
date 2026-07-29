@@ -125,7 +125,10 @@ jQuery(document).ready(function($) {
   }
 
   function initSubcategoryDragScroll() {
-    document.querySelectorAll('ul.postero-scroll-content').forEach(initDragScroll);
+    // #subcategorySlider / .subcategory-slider is how the parent theme
+    // actually renders this row on most pages; ul.postero-scroll-content is
+    // a fallback markup seen elsewhere. Cover both.
+    document.querySelectorAll('ul.postero-scroll-content, #subcategorySlider, .subcategory-slider').forEach(initDragScroll);
   }
   initSubcategoryDragScroll();
   try {
