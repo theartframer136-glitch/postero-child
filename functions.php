@@ -5328,6 +5328,17 @@ add_action('template_redirect', function(){
             if(artImg.naturalWidth>0) artRatio=artImg.naturalHeight/artImg.naturalWidth;
             buildPanels(); applyFrame(); applyScale();
           };
+          // If the image host doesn't answer with CORS headers the anonymous
+          // request fails outright — retry plainly so the preview still works.
+          artImg.onerror=function(){
+            var plain=new Image();
+            plain.onload=function(){
+              artImg=plain;
+              if(plain.naturalWidth>0) artRatio=plain.naturalHeight/plain.naturalWidth;
+              buildPanels(); applyFrame(); applyScale();
+            };
+            plain.src=p.img;
+          };
           artImg.src=p.img;
           buildPanels();
           $('tow-framebox').style.display='inline-block';
@@ -5348,6 +5359,7 @@ add_action('template_redirect', function(){
       // real aspect ratio, not from the price multiplier.
       var WALL_FT = 10;      // assumed real wall height in the room scenes
       var WALL_FRAC = 0.78;  // portion of the stage height that is wall
+      var scaleSeq = 0;      // guards the deferred size correction below
       function sizeFeet(label){
         // "3×5 ft (36×60 in)" → {h:3, w:5}   (also accepts x / X / ×)
         var m = String(label||'').match(/(\d+(?:\.\d+)?)\s*[x×X]\s*(\d+(?:\.\d+)?)/);
@@ -5369,11 +5381,17 @@ add_action('template_redirect', function(){
           // Set width first, then correct so the RENDERED box (frame + mat +
           // art, whose own ratio may differ) matches the real footprint.
           box.style.width = Math.max(40, targetW) + 'px';
+          // Only the newest correction may run: two applyScale() calls in one
+          // frame (refresh() then the artwork's onload) used to have the second
+          // measure the already-corrected box and undo the correction.
+          var seq = ++scaleSeq;
           requestAnimationFrame(function(){
+            if(seq!==scaleSeq) return;
             var b = box.getBoundingClientRect();
-            if(b.height>0){
-              // scale so height matches the real feet, keeping it on the wall
-              var corrected = Math.max(40, targetW * (targetH / b.height));
+            if(b.height>0 && b.width>0){
+              // Scale from what is actually on screen, so this is idempotent and
+              // works for any panel count: once the height matches, it is a no-op.
+              var corrected = Math.max(40, b.width * (targetH / b.height));
               // never exceed the wall itself
               corrected = Math.min(corrected, sw*0.92);
               box.style.width = corrected + 'px';
@@ -5419,35 +5437,49 @@ add_action('template_redirect', function(){
         if(!current()){ toast('Please choose a product first'); return; }
         var haveWall = camOn || (wall.src && wall.style.display!=='none');
         if(!haveWall){ toast('Please pick a room, use the camera, or upload a wall photo'); return; }
+        var panels=$('tow-framebox').querySelectorAll('.af-tow-wpanel');
+        if(!panels.length){ toast('Still preparing the preview — try again in a moment'); return; }
+        if(!(artImg && artImg.naturalWidth>0)){ toast('Artwork is still loading — try again in a moment'); return; }
         try{
           var stage=$('tow-stage'), r=stage.getBoundingClientRect();
           var cv=document.createElement('canvas'); cv.width=Math.round(r.width); cv.height=Math.round(r.height); var ctx=cv.getContext('2d');
-          // background: live camera frame, or the wall image (cover-fit)
+          // Cover-fit like CSS object-fit:cover, honouring object-position so the
+          // export frames the room exactly the way the preview does.
+          function cover(src, nw, nh, pos){
+            var sc=Math.max(r.width/nw, r.height/nh), dw=nw*sc, dh=nh*sc;
+            var m=String(pos||'50% 50%').match(/([\d.]+)%\s+([\d.]+)%/);
+            var px=m?parseFloat(m[1])/100:0.5, py=m?parseFloat(m[2])/100:0.5;
+            ctx.drawImage(src, (r.width-dw)*px, (r.height-dh)*py, dw, dh);
+          }
           if(camOn){
-            var v=$('tow-cam'), vw=v.videoWidth||r.width, vh=v.videoHeight||r.height;
-            var vsc=Math.max(r.width/vw, r.height/vh);
-            ctx.drawImage(v,(r.width-vw*vsc)/2,(r.height-vh*vsc)/2,vw*vsc,vh*vsc);
+            var v=$('tow-cam');
+            cover(v, v.videoWidth||r.width, v.videoHeight||r.height, '50% 50%');
           }else{
-            var iw=wall.naturalWidth||r.width, ih=wall.naturalHeight||r.height, sc=Math.max(r.width/iw,r.height/ih);
-            ctx.drawImage(wall,(r.width-iw*sc)/2,(r.height-ih*sc)/2,iw*sc,ih*sc);
+            cover(wall, wall.naturalWidth||r.width, wall.naturalHeight||r.height, getComputedStyle(wall).objectPosition);
           }
           function rect(el){ var b=el.getBoundingClientRect(); return {x:b.left-r.left,y:b.top-r.top,w:b.width,h:b.height}; }
           var color=$('tow-color').value, hex=SWATCH[color]||'#1a1a1a';
-          // draw every panel: moulding, mat, then its slice of the artwork
-          var panels=$('tow-framebox').querySelectorAll('.af-tow-wpanel');
-          var N=panels.length||1, idx=0;
+          var N=panels.length||1;
+          // Pass 1: cast every panel's shadow on the wall first, so a later
+          // panel's shadow can never fall across an already-drawn frame.
+          ctx.save(); ctx.shadowColor='rgba(0,0,0,.4)'; ctx.shadowBlur=26; ctx.shadowOffsetX=10; ctx.shadowOffsetY=16;
+          ctx.fillStyle=hex;
+          panels.forEach(function(panel){
+            var fr=rect(panel.querySelector('.af-tow-pframe'));
+            ctx.fillRect(fr.x,fr.y,fr.w,fr.h);
+          });
+          ctx.restore();
+          // Pass 2: moulding, mat and each panel's slice of the artwork
+          var idx=0;
           panels.forEach(function(panel){
             var frEl=panel.querySelector('.af-tow-pframe'), matEl=panel.querySelector('.af-tow-pmat'), artEl=panel.querySelector('.af-tow-part');
             var fr=rect(frEl);
-            ctx.save(); ctx.shadowColor='rgba(0,0,0,.4)'; ctx.shadowBlur=26; ctx.shadowOffsetX=10; ctx.shadowOffsetY=16;
-            ctx.fillStyle=hex; ctx.fillRect(fr.x,fr.y,fr.w,fr.h); ctx.restore();
+            ctx.fillStyle=hex; ctx.fillRect(fr.x,fr.y,fr.w,fr.h);
             var mt=rect(matEl); var st=getComputedStyle(matEl);
             if(parseFloat(st.paddingTop)>0){ ctx.fillStyle=(st.backgroundColor&&st.backgroundColor!=='rgba(0, 0, 0, 0)')?st.backgroundColor:'#f6f1e6'; ctx.fillRect(mt.x,mt.y,mt.w,mt.h); }
             var ar=rect(artEl);
-            if(artImg && artImg.naturalWidth>0){
-              var siw=artImg.naturalWidth/N;
-              ctx.drawImage(artImg, idx*siw, 0, siw, artImg.naturalHeight, ar.x, ar.y, ar.w, ar.h);
-            }
+            var siw=artImg.naturalWidth/N;
+            ctx.drawImage(artImg, idx*siw, 0, siw, artImg.naturalHeight, ar.x, ar.y, ar.w, ar.h);
             idx++;
           });
           var p=current(); var fname=((p&&p.name)?p.name.replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase():'my')+'-on-wall.png';
@@ -9676,6 +9708,24 @@ add_action('template_redirect', function () {
         });
       }
 
+      // The rendered box is taller than the artwork alone (moulding + mat), and a
+      // 2/4-panel set has a different overall ratio again, so nudge the width
+      // until the box really occupies `wantH` on the wall. Idempotent — once the
+      // height matches it is a no-op — and sequenced so only the newest wins.
+      var wantH = 0, scaleSeq = 0;
+      function fitToWall(){
+        if (!(wantH > 0)) return;
+        var boxEl = $('ftm-framebox'), stage = $('ftm-stage').getBoundingClientRect();
+        var targetH = wantH, seq = ++scaleSeq;
+        requestAnimationFrame(function(){
+          if (seq !== scaleSeq) return;
+          var b = boxEl.getBoundingClientRect();
+          if (b.height > 0 && b.width > 0) {
+            boxEl.style.width = Math.max(70, Math.min(b.width * (targetH / b.height), stage.width * 0.92)) + 'px';
+          }
+        });
+      }
+
       function render(){
         var p = price();
         $('ftm-price').textContent = SYM + p.toFixed(2);
@@ -9710,6 +9760,7 @@ add_action('template_redirect', function () {
             fr.appendChild(mt); panel.appendChild(fr); wrap.appendChild(panel);
           }
           stylePanels();
+          fitToWall();     // panels exist now, so the box can be measured
         });
 
         // true-to-scale against a 10 ft wall
@@ -9721,6 +9772,7 @@ add_action('template_redirect', function () {
         if (w > maxW) { h *= maxW / w; w = maxW; }
         if (h > maxH) { w *= maxH / h; h = maxH; }
         $('ftm-framebox').style.width = Math.max(70, w) + 'px';
+        wantH = h;      // the panels are built asynchronously; fitToWall() runs after
 
         $('ftm-tip').textContent = 'Shown true to scale on a 10 ft wall — ' +
           ft.h.toFixed(1).replace(/\.0$/,'') + '×' + ft.w.toFixed(1).replace(/\.0$/,'') + ' ft print' +
@@ -9826,22 +9878,51 @@ add_action('template_redirect', function () {
       });
       window.addEventListener('resize', render);
 
-      // ── save the composed preview (all panels) ──
+      // ── save the composed preview: the whole wall, not just the frames ──
       $('ftm-save').addEventListener('click', function(){
         if (!photoURL) { alert('Please upload a photo first.'); return; }
         var boxEl = $('ftm-framebox');
+        var panels = boxEl.querySelectorAll('.af-ftm-wpanel');
         var box = boxEl.getBoundingClientRect();
-        if (!(box.width > 0)) { alert('Nothing to save yet.'); return; }
-        var scale = Math.max(1, 1200 / box.width);
+        if (!panels.length || !(box.width > 0 && box.height > 0)) {
+          alert('The preview is still rendering — please try again in a moment.'); return;
+        }
+        var stageEl = $('ftm-stage'), st = stageEl.getBoundingClientRect();
+        var scale = Math.max(1, 1200 / st.width);
         var cv = document.createElement('canvas');
-        cv.width = Math.round(box.width * scale); cv.height = Math.round(box.height * scale);
+        cv.width = Math.round(st.width * scale); cv.height = Math.round(st.height * scale);
         var ctx = cv.getContext('2d');
-        function rel(r){ return { x:(r.left-box.left)*scale, y:(r.top-box.top)*scale, w:r.width*scale, h:r.height*scale }; }
+        function rel(r){ return { x:(r.left-st.left)*scale, y:(r.top-st.top)*scale, w:r.width*scale, h:r.height*scale }; }
+        // cover-fit the backdrop exactly as CSS object-fit/object-position do
+        function cover(src, nw, nh, pos){
+          if (!(nw > 0 && nh > 0)) return;
+          var sc = Math.max(cv.width / nw, cv.height / nh), dw = nw * sc, dh = nh * sc;
+          var m = String(pos || '50% 50%').match(/([\d.]+)%\s+([\d.]+)%/);
+          var px = m ? parseFloat(m[1]) / 100 : 0.5, py = m ? parseFloat(m[2]) / 100 : 0.5;
+          ctx.drawImage(src, (cv.width - dw) * px, (cv.height - dh) * py, dw, dh);
+        }
 
         var hex = SWATCH[$('ftm-color').value] || '#1a1a1a';
-        var panels = boxEl.querySelectorAll('.af-ftm-wpanel');
         var N = panels.length || 1;
         function draw(img){
+          // backdrop first: the live camera frame, or the room photo
+          if (camOn) {
+            var v = $('ftm-camv');
+            cover(v, v.videoWidth, v.videoHeight, '50% 50%');
+          } else {
+            var wall = $('ftm-wall');
+            cover(wall, wall.naturalWidth, wall.naturalHeight, getComputedStyle(wall).objectPosition);
+          }
+          // every panel's shadow first, so none falls across an adjacent frame
+          ctx.save();
+          ctx.shadowColor = 'rgba(0,0,0,.34)'; ctx.shadowBlur = 22 * scale;
+          ctx.shadowOffsetX = 10 * scale; ctx.shadowOffsetY = 16 * scale;
+          ctx.fillStyle = hex;
+          panels.forEach(function(panel){
+            var m = rel(panel.querySelector('.af-ftm-pframe').getBoundingClientRect());
+            ctx.fillRect(m.x, m.y, m.w, m.h);
+          });
+          ctx.restore();
           var idx = 0;
           panels.forEach(function(panel){
             var frEl = panel.querySelector('.af-ftm-pframe');
@@ -9870,6 +9951,7 @@ add_action('template_redirect', function () {
         else {
           var img = new Image();
           img.onload = function(){ draw(img); };
+          img.onerror = function(){ alert('The preview is still rendering — please try again in a moment.'); };
           img.src = cropURL || photoURL;
         }
       });
