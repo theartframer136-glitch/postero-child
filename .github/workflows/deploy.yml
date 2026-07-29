@@ -322,4 +322,10 @@ jobs:
              wp cache flush --allow-root 2>/dev/null || true; \
              echo 'Cache cleared'" || echo "Cache clear skipped"
 
+          echo "Verifying live-camera AR + wall layouts on the preview pages..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/verify-ar-layouts.php --allow-root 2>&1" \
+            || true
+
           echo "Deploy complete"
