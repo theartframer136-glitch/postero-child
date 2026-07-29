@@ -100,8 +100,14 @@
 }
 
 /* ---- Subcategory circles: single horizontal scrollable row ----
-   Confirmed selector: ul.postero-scroll-content > li.cat-item        */
-ul.postero-scroll-content {
+   The parent theme renders this row two different ways depending on the
+   template: a plain #subcategorySlider / .subcategory-slider div (confirmed
+   the actual live container in most places — see functions.php "Subcategory
+   circles fix"), or a ul.postero-scroll-content. Every rule below covers
+   both so the fix lands regardless of which one a given page uses. */
+ul.postero-scroll-content,
+#subcategorySlider,
+.subcategory-slider {
   display: flex !important;
   flex-direction: row !important;
   flex-wrap: nowrap !important;
@@ -123,22 +129,34 @@ ul.postero-scroll-content {
   transform: none !important;
   transition: none !important;
 }
-ul.postero-scroll-content::-webkit-scrollbar { display: none !important; }
+ul.postero-scroll-content::-webkit-scrollbar,
+#subcategorySlider::-webkit-scrollbar,
+.subcategory-slider::-webkit-scrollbar { display: none !important; }
 
 /* ---- Click-and-drag scrolling (see custom.js initDragScroll) ---- */
-ul.postero-scroll-content.af-drag-scroll {
+ul.postero-scroll-content.af-drag-scroll,
+#subcategorySlider.af-drag-scroll,
+.subcategory-slider.af-drag-scroll {
   cursor: grab !important;
   scroll-behavior: auto !important;
   touch-action: pan-x !important;
 }
-ul.postero-scroll-content.af-drag-scroll.af-dragging {
+ul.postero-scroll-content.af-drag-scroll.af-dragging,
+#subcategorySlider.af-drag-scroll.af-dragging,
+.subcategory-slider.af-drag-scroll.af-dragging {
   cursor: grabbing !important;
 }
-ul.postero-scroll-content.af-drag-scroll.af-dragging * {
+ul.postero-scroll-content.af-drag-scroll.af-dragging *,
+#subcategorySlider.af-drag-scroll.af-dragging *,
+.subcategory-slider.af-drag-scroll.af-dragging * {
   pointer-events: none !important;
 }
 
-ul.postero-scroll-content > li.cat-item {
+ul.postero-scroll-content > li.cat-item,
+#subcategorySlider > .cat-item,
+#subcategorySlider > .sub-cat,
+.subcategory-slider > .cat-item,
+.subcategory-slider > .sub-cat {
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
@@ -157,6 +175,7 @@ ul.postero-scroll-content > li.cat-item {
 }
 ul.postero-scroll-content .cat-item img,
 #subcategorySlider .cat-item img,
+#subcategorySlider .sub-cat img,
 .subcategory-slider .cat-item img,
 .subcategory-slider .sub-cat img,
 li.cat-item img {
@@ -173,9 +192,21 @@ li.cat-item img {
   display: block !important;
   transition: transform 0.3s ease !important;
 }
-ul.postero-scroll-content .cat-item:hover img { transform: scale(1.08) !important; }
+ul.postero-scroll-content .cat-item:hover img,
+#subcategorySlider .cat-item:hover img,
+#subcategorySlider .sub-cat:hover img,
+.subcategory-slider .cat-item:hover img,
+.subcategory-slider .sub-cat:hover img { transform: scale(1.08) !important; }
 ul.postero-scroll-content .cat-item span,
-ul.postero-scroll-content .cat-item a {
+ul.postero-scroll-content .cat-item a,
+#subcategorySlider .cat-item span,
+#subcategorySlider .cat-item a,
+#subcategorySlider .sub-cat span,
+#subcategorySlider .sub-cat a,
+.subcategory-slider .cat-item span,
+.subcategory-slider .cat-item a,
+.subcategory-slider .sub-cat span,
+.subcategory-slider .sub-cat a {
   font-size: 12px !important;
   font-weight: 600 !important;
   color: #333 !important;
@@ -719,7 +750,11 @@ ul.postero-scroll-content .cat-item a {
   #subcategorySlider .cat-item img,
   .subcategory-slider .sub-cat img,
   li.cat-item img { width: 44px !important; height: 44px !important; max-width: 44px !important; max-height: 44px !important; }
-  ul.postero-scroll-content > li.cat-item {
+  ul.postero-scroll-content > li.cat-item,
+  #subcategorySlider > .cat-item,
+  #subcategorySlider > .sub-cat,
+  .subcategory-slider > .cat-item,
+  .subcategory-slider > .sub-cat {
     flex: 0 0 78px !important;
     width: 78px !important;
     min-width: 78px !important;
@@ -880,7 +915,11 @@ ul.postero-scroll-content .cat-item a {
   #subcategorySlider .cat-item img,
   .subcategory-slider .sub-cat img,
   li.cat-item img { width: 40px !important; height: 40px !important; max-width: 40px !important; max-height: 40px !important; }
-  ul.postero-scroll-content > li.cat-item {
+  ul.postero-scroll-content > li.cat-item,
+  #subcategorySlider > .cat-item,
+  #subcategorySlider > .sub-cat,
+  .subcategory-slider > .cat-item,
+  .subcategory-slider > .sub-cat {
     flex: 0 0 72px !important;
     width: 72px !important;
     min-width: 72px !important;

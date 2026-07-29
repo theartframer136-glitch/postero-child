@@ -8,8 +8,8 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.4.6');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.2', true);
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.4.7');
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.3', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
 
@@ -421,10 +421,25 @@ div.list-wrapper.postero-scroll {
 <script>
 (function() {
     var _busy = false;
+    var _fixedEl = null;
+
+    // Fixed-width columns — matches the breakpoints in assets/css/custom.css —
+    // so every subcategory item is the same size regardless of its label
+    // length. Must be applied here (not left to the stylesheet alone):
+    // this script previously set width:auto inline with !important, and an
+    // inline !important always wins over an external stylesheet's
+    // !important, so the stylesheet's fixed-width rule was silently losing.
+    function itemWidth() {
+        var w = window.innerWidth;
+        if (w <= 576) return 72;
+        if (w <= 991) return 78;
+        return 92;
+    }
 
     function fixEl(el) {
         if (!el) return;
         _busy = true;
+        _fixedEl = el;
         el.style.setProperty('display',               'flex',    'important');
         el.style.setProperty('flex-direction',        'row',     'important');
         el.style.setProperty('flex-wrap',             'nowrap',  'important');
@@ -434,10 +449,11 @@ div.list-wrapper.postero-scroll {
         el.style.setProperty('width',                 '100%',    'important');
         el.style.setProperty('grid-template-columns', 'unset',   'important');
         el.style.setProperty('grid-template-rows',    'unset',   'important');
+        var w = itemWidth() + 'px';
         Array.from(el.children).forEach(function(child) {
-            child.style.setProperty('flex',      '0 0 auto', 'important');
+            child.style.setProperty('flex',      '0 0 ' + w, 'important');
             child.style.setProperty('position',  'static',   'important');
-            child.style.setProperty('width',     'auto',     'important');
+            child.style.setProperty('width',     w,          'important');
             child.style.setProperty('transform', 'none',     'important');
         });
         if (el.parentElement) {
@@ -485,6 +501,14 @@ div.list-wrapper.postero-scroll {
         init();
         setTimeout(init, 300);
         setTimeout(init, 1000);
+    });
+
+    // Keep the item width current across breakpoint changes (e.g. rotating
+    // a tablet, resizing a desktop browser window).
+    var _resizeTimer = null;
+    window.addEventListener('resize', function() {
+        clearTimeout(_resizeTimer);
+        _resizeTimer = setTimeout(function() { if (_fixedEl) fixEl(_fixedEl); }, 150);
     });
 }());
 </script>
