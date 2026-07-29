@@ -323,6 +323,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/import-artcodes.php --allow-root 2>&1" \
             || true
 
+          echo "Art Code: full list of products still missing a code (read-only)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-artcode-missing-full.php --allow-root 2>&1" \
+            || true
+
           echo "Flushing rewrites (My Account endpoints: saved-previews, messages, returns)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
