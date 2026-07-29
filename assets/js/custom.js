@@ -135,6 +135,64 @@ jQuery(document).ready(function($) {
     new MutationObserver(initSubcategoryDragScroll).observe(document.body, { childList: true, subtree: true });
   } catch (e) {}
 
+  // ---- Archive/category product cards: unify wishlist + add-to-cart +
+  // compare into one straight icon row over the image, icon-only with a
+  // hover/focus tooltip for the label (see [data-tooltip] CSS). Skips the
+  // homepage carousel cards (.product-slider/.af-shell-track/#productGrid),
+  // which already have their own always-visible Add to Cart / Quick View row.
+  function initArchiveCardIcons() {
+    document.querySelectorAll('.woocommerce ul.products li.product, .woocommerce-page ul.products li.product').forEach(function(card) {
+      if (card.dataset.iconRowInit) return;
+      if (card.closest('.product-slider, .af-shell-track, #productGrid')) return;
+
+      var cart = card.querySelector('a.add_to_cart_button, button.add_to_cart_button');
+      var cmp  = card.querySelector('.af-cmp-btn:not(.af-cmp-single)');
+      var wish = card.querySelector('a.add_to_wishlist, .yith-wcwl-add-to-wishlist a, .yith-wcwl-add-button a, [class*="wishlist"] a, [class*="wishlist"] button');
+      if (!cart && !cmp && !wish) return; // buttons not rendered into this card yet — retry on the next pass
+
+      card.dataset.iconRowInit = '1';
+
+      var imgWrap = card.querySelector('.product-img-wrap') || card.querySelector('.woocommerce-loop-product__link') || card;
+      if (getComputedStyle(imgWrap).position === 'static') {
+        imgWrap.style.setProperty('position', 'relative', 'important');
+      }
+      var row = document.createElement('div');
+      row.className = 'af-icon-row';
+      imgWrap.appendChild(row);
+
+      // Add to Cart: hide its visible label behind a tooltip, keep whatever
+      // icon it already has (or add a simple one if it has none at all).
+      if (cart) {
+        var label = (cart.textContent || '').trim() || 'Add to Cart';
+        Array.from(cart.childNodes)
+          .filter(function(n) { return n.nodeType === 3 && n.textContent.trim() !== ''; })
+          .forEach(function(n) { cart.removeChild(n); });
+        if (!cart.querySelector('.af-icon-label')) {
+          var labelSpan = document.createElement('span');
+          labelSpan.className = 'af-icon-label';
+          labelSpan.textContent = label;
+          cart.appendChild(labelSpan);
+        }
+        cart.setAttribute('data-tooltip', label);
+        cart.setAttribute('aria-label', label);
+        if (!cart.querySelector('svg, img, i, .dashicons, .af-icon-glyph')) {
+          var glyph = document.createElement('span');
+          glyph.className = 'af-icon-glyph';
+          glyph.setAttribute('aria-hidden', 'true');
+          glyph.textContent = '🛍'; // shopping bag
+          cart.insertBefore(glyph, cart.firstChild);
+        }
+        row.appendChild(cart);
+      }
+      if (wish) row.appendChild(wish.closest('a, button') || wish);
+      if (cmp)  row.appendChild(cmp);
+    });
+  }
+  initArchiveCardIcons();
+  try {
+    new MutationObserver(initArchiveCardIcons).observe(document.body, { childList: true, subtree: true });
+  } catch (e) {}
+
   // ---- Pre-set USD currency cookie so plugin initialises with USD ----
   (function() {
     var opts = '; path=/; max-age=' + (86400 * 365);
