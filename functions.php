@@ -3817,10 +3817,16 @@ add_action('wp_footer', function() {
     .af-quickpanel{position:fixed;right:16px;bottom:20px;z-index:9998;display:flex;flex-direction:column;gap:12px;}
     .af-qp-btn{
       width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;
+      /* padding:0 !important — the theme's global button padding (14px 40px) otherwise
+         collapses the border-box content area to 0, hiding the SVG icon. */
+      padding:0 !important;
       display:flex;align-items:center;justify-content:center;
       box-shadow:0 4px 14px rgba(0,0,0,.22);transition:transform .2s,box-shadow .2s;
       position:relative;color:#fff;text-decoration:none;
     }
+    /* Live-chat launcher (#af-chat is injected as a site snippet, not from this theme):
+       same global-button-padding bug turns the 56px circle into an icon-less black oval. */
+    .af-chat-bub{padding:0 !important;}
     .af-qp-btn:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(0,0,0,.3);}
     .af-qp-btn svg{width:24px;height:24px;}
     .af-qp-wa{background:#25d366;}
