@@ -16,8 +16,9 @@ function af_blog_reading_time($post) {
 add_action('template_redirect', function() {
     $req = trim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '', '/');
     if ($req !== 'blog') return;
-    // if a real Posts page is configured at /blog/, WordPress already owns it
-    if ((int) get_option('page_for_posts') && get_post_field('post_name', (int) get_option('page_for_posts')) === 'blog') return;
+    // The hub owns /blog/ outright. A WordPress Posts page configured here
+    // would otherwise render the theme's default archive — bare titles, no
+    // topics, no reading times — which is exactly what §4 asks us to replace.
 
     $paged = max(1, absint($_GET['bpage'] ?? 1));
     $cat   = isset($_GET['topic']) ? sanitize_key(wp_unslash($_GET['topic'])) : '';
