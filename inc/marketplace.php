@@ -168,7 +168,8 @@ function af_mk_row($product, $channel) {
     $reg   = (float) $product->get_regular_price();
     $imgs  = array();
     if ($product->get_image_id()) $imgs[] = wp_get_attachment_image_url($product->get_image_id(), 'full');
-    foreach (array_slice($product->get_gallery_image_ids(), 0, 10) as $gid) {
+    // three extras is plenty for every channel and saves ~2,400 lookups per build
+    foreach (array_slice($product->get_gallery_image_ids(), 0, 3) as $gid) {
         $u = wp_get_attachment_image_url($gid, 'full');
         if ($u) $imgs[] = $u;
     }

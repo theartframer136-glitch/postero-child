@@ -348,6 +348,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/verify-shipping.php --allow-root 2>&1" \
             || true
 
+          echo "Warming marketplace feed caches (avoids on-demand rebuild cost)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/warm-marketplace-feeds.php --allow-root 2>&1" \
+            || true
+
           echo "Verifying marketplace feeds (Google, Meta, Pinterest, bulk exports)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
