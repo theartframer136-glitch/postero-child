@@ -342,6 +342,12 @@ jobs:
              wp cache flush --allow-root 2>/dev/null || true; \
              echo 'Cache cleared'" || echo "Cache clear skipped"
 
+          echo "Verifying cookie consent + masonry layout..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/verify-consent-masonry.php --allow-root 2>&1" \
+            || true
+
           echo "Verifying reels commerce (post type, tagging, tracking, /reels/)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
