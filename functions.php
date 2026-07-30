@@ -8,8 +8,8 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.4.11');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.5', true);
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.4.12');
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.6', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
 
@@ -7332,14 +7332,15 @@ function af_compare_data_handler() {
 add_action('wp_ajax_af_compare_data',        'af_compare_data_handler');
 add_action('wp_ajax_nopriv_af_compare_data', 'af_compare_data_handler');
 
-// Compare toggle button on product cards — icon only, label shows as a hover
-// tooltip (see [data-tooltip] CSS). The single-product "Add to Compare" CTA
-// below keeps its full text; only the card-level icon is condensed.
+// Compare toggle button on product cards — icon only, label shows as a
+// native title tooltip, same as the wishlist/quick-view icons already use.
+// The single-product "Add to Compare" CTA below keeps its full text; only
+// the card-level icon is condensed.
 add_action('woocommerce_after_shop_loop_item', function() {
     global $product;
     if (!$product) return;
     echo '<button type="button" class="af-cmp-btn" data-id="' . esc_attr($product->get_id())
-        . '" data-tooltip="Compare" aria-label="Add to compare">'
+        . '" title="Compare" aria-label="Add to compare">'
         . '<span class="af-cmp-icon" aria-hidden="true">⇄</span></button>';
 }, 25);
 
@@ -7411,7 +7412,7 @@ add_action('wp_footer', function() { ?>
     if (cls === 'af-cmp-single') {
       b.textContent = '⇄ Add to Compare';
     } else {
-      b.setAttribute('data-tooltip', 'Compare');
+      b.setAttribute('title', 'Compare');
       b.setAttribute('aria-label', 'Add to compare');
       var icon = document.createElement('span');
       icon.className = 'af-cmp-icon';
