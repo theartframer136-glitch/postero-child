@@ -71,6 +71,11 @@ jobs:
             DELAY=$((DELAY + 90))
           done
 
+          echo "Restarting PHP workers (opcache holds modified files until lsphp restarts)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "killall lsphp 2>/dev/null; killall lsphp8.2 2>/dev/null; killall lsphp8.1 2>/dev/null; echo 'lsphp restarted'" \
+            || true
+
           echo "Applying product template to ALL canvas products..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -434,7 +439,7 @@ jobs:
           # briefly before failing the deploy.
           CODE=000
           for i in 1 2 3 4 5; do
-            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 45 https://theartframer.us/ || echo 000)
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 45 -A 'Mozilla/5.0 (X11; Linux x86_64) AF-DeployGate' https://theartframer.us/ || echo 000)
             echo "homepage HTTP $CODE (attempt $i)"
             case "$CODE" in 200|301|302) break ;; esac
             sleep 15
