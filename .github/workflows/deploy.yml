@@ -342,6 +342,12 @@ jobs:
              wp cache flush --allow-root 2>/dev/null || true; \
              echo 'Cache cleared'" || echo "Cache clear skipped"
 
+          echo "Verifying reels commerce (post type, tagging, tracking, /reels/)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/verify-reels.php --allow-root 2>&1" \
+            || true
+
           echo "Verifying shipping, customs, partial shipments and RMA..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
