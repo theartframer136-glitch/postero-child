@@ -2030,6 +2030,19 @@ body:has(.taf-page) .site-main{max-width:none;}
   border:0 !important;padding:0 !important;margin:-1px !important;
 }
 
+/* ---- Archive product cards: Add to Cart, Compare, Wishlist and Quick View
+   grouped side by side in the bottom-right corner of the image (see
+   custom.js initCardIconCorner). ---- */
+.af-icon-corner{
+  position:absolute !important;right:10px !important;bottom:10px !important;left:auto !important;top:auto !important;
+  z-index:20 !important;display:flex !important;flex-direction:row !important;
+  align-items:center !important;justify-content:flex-end !important;gap:8px !important;
+  pointer-events:none !important;
+}
+.af-icon-corner > *{
+  position:static !important;pointer-events:auto !important;flex:0 0 auto !important;margin:0 !important;
+}
+
 /* Generic hover/focus tooltip for any [data-tooltip] element */
 [data-tooltip]{position:relative !important;}
 [data-tooltip]::after{

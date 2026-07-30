@@ -190,6 +190,43 @@ jQuery(document).ready(function($) {
     new MutationObserver(initCartIconOnly).observe(document.body, { childList: true, subtree: true });
   } catch (e) {}
 
+  // ---- Archive/category product cards: group Add to Cart, Compare,
+  // Wishlist and Quick View together, side by side, in the bottom-right
+  // corner of the image. Cart/Compare are already icon-only (see above and
+  // functions.php); wishlist/quick-view are left as whatever the theme/
+  // plugin already renders — only their position moves.
+  function initCardIconCorner() {
+    document.querySelectorAll('.woocommerce ul.products li.product, .woocommerce-page ul.products li.product').forEach(function(card) {
+      if (card.dataset.iconCornerInit) return;
+      if (card.closest('.product-slider, .af-shell-track, #productGrid')) return;
+
+      var cart = card.querySelector('a.add_to_cart_button, button.add_to_cart_button');
+      var cmp  = card.querySelector('.af-cmp-btn:not(.af-cmp-single)');
+      var wish = card.querySelector('a.add_to_wishlist, .yith-wcwl-add-to-wishlist a, .yith-wcwl-add-button a, [class*="wishlist"] a, [class*="wishlist"] button');
+      var qv   = card.querySelector('.yith-wcqv-button, [class*="quick-view"], [class*="quickview"], [data-quick-view]');
+      if (!cart && !cmp && !wish && !qv) return; // nothing rendered into this card yet — retry on the next pass
+
+      card.dataset.iconCornerInit = '1';
+
+      var imgWrap = card.querySelector('.af-img-wrap') || card.querySelector('.product-img-wrap') || card.querySelector('.woocommerce-loop-product__link') || card;
+      if (getComputedStyle(imgWrap).position === 'static') {
+        imgWrap.style.setProperty('position', 'relative', 'important');
+      }
+      var row = document.createElement('div');
+      row.className = 'af-icon-corner';
+      imgWrap.appendChild(row);
+
+      [cart, cmp, wish, qv].forEach(function(el) {
+        if (!el) return;
+        row.appendChild(el.closest('a, button') || el);
+      });
+    });
+  }
+  initCardIconCorner();
+  try {
+    new MutationObserver(initCardIconCorner).observe(document.body, { childList: true, subtree: true });
+  } catch (e) {}
+
   // ---- Pre-set USD currency cookie so plugin initialises with USD ----
   (function() {
     var opts = '; path=/; max-age=' + (86400 * 365);
