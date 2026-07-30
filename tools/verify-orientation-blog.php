@@ -34,9 +34,13 @@ if ($terms && !is_wp_error($terms)) {
     $r = af_obv_get(add_query_arg('nocache', time(), $url));
     if (!is_wp_error($r)) {
         $b = wp_remote_retrieve_body($r);
-        $gate = strpos($b, 'af-orient:loaded') !== false ? 'loaded'
-              : (strpos($b, 'af-orient:missing') !== false ? 'missing' : 'marker absent');
+        $gate = strpos($b, 'data-g="loaded"') !== false ? 'loaded'
+              : (strpos($b, 'data-g="missing"') !== false ? 'missing' : 'marker absent');
         echo "    render gate: {$gate}\n";
+        // does the toolbar itself render on this page at all?
+        foreach (array('af-listing-toolbar', 'class="af-lt-controls"', 'Frame Type', 'af-lt-dbtn"') as $needle) {
+            echo '    page has [' . $needle . ']: ' . (strpos($b, $needle) !== false ? 'yes' : 'NO') . "\n";
+        }
         af_obv('dropdown on category page', strpos($b, 'Orientation') !== false, $fail);
         if (strpos($b, 'Orientation') === false) {
             $i = strpos($b, 'af-lt-controls');

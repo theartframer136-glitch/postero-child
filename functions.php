@@ -3982,7 +3982,8 @@ add_action('woocommerce_before_shop_loop', function() {
         </div>
         <?php endif; ?>
 
-        <?php echo '<!-- af-orient:' . (function_exists('af_orientation_current') ? 'loaded' : 'missing') . ' -->'; ?>
+        <?php // minify-proof render marker (HTML comments get stripped by the optimizer)
+        echo '<i class="af-orient-gate" data-g="' . (function_exists('af_orientation_current') ? 'loaded' : 'missing') . '" hidden></i>'; ?>
         <?php if (function_exists('af_orientation_current')):
           $cur_o = af_orientation_current();
           $olink = function($val) use ($keep) { $q = $keep; $q['orientation'] = $val; return '?' . http_build_query($q); };
