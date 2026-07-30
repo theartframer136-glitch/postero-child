@@ -8,7 +8,7 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.4.8');
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.4.9');
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.4', true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
@@ -7317,12 +7317,15 @@ function af_compare_data_handler() {
 add_action('wp_ajax_af_compare_data',        'af_compare_data_handler');
 add_action('wp_ajax_nopriv_af_compare_data', 'af_compare_data_handler');
 
-// Compare toggle button on product cards
+// Compare toggle button on product cards — icon only, label shows as a hover
+// tooltip (see [data-tooltip] CSS). The single-product "Add to Compare" CTA
+// below keeps its full text; only the card-level icon is condensed.
 add_action('woocommerce_after_shop_loop_item', function() {
     global $product;
     if (!$product) return;
     echo '<button type="button" class="af-cmp-btn" data-id="' . esc_attr($product->get_id())
-        . '" aria-label="Add to compare">⇄ Compare</button>';
+        . '" data-tooltip="Compare" aria-label="Add to compare">'
+        . '<span class="af-cmp-icon" aria-hidden="true">⇄</span></button>';
 }, 25);
 
 // Compare toggle on single product pages
@@ -7389,7 +7392,18 @@ add_action('wp_footer', function() { ?>
   function makeBtn(id, cls){
     var b = document.createElement('button');
     b.type = 'button'; b.className = 'af-cmp-btn' + (cls ? ' ' + cls : '');
-    b.dataset.id = id; b.textContent = '⇄ Compare';
+    b.dataset.id = id;
+    if (cls === 'af-cmp-single') {
+      b.textContent = '⇄ Add to Compare';
+    } else {
+      b.setAttribute('data-tooltip', 'Compare');
+      b.setAttribute('aria-label', 'Add to compare');
+      var icon = document.createElement('span');
+      icon.className = 'af-cmp-icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = '⇄';
+      b.appendChild(icon);
+    }
     return b;
   }
   function inject(){
