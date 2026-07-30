@@ -100,23 +100,42 @@ jQuery(document).ready(function($) {
       startX = e.clientX;
       startScroll = el.scrollLeft;
       el.classList.add('af-dragging');
-      if (el.setPointerCapture) { try { el.setPointerCapture(e.pointerId); } catch (err) {} }
+      // Deliberately NO setPointerCapture here. Capturing on pointerdown
+      // retargets the follow-up click to this container, so a plain click on
+      // a subcategory circle never reached its link and products stopped
+      // loading. Capture only once real dragging starts (below).
     });
 
     el.addEventListener('pointermove', function(e) {
       if (!isDown) return;
       var dx = e.clientX - startX;
-      if (Math.abs(dx) > 3) moved = true;
-      el.scrollLeft = startScroll - dx;
+      if (!moved && Math.abs(dx) > 3) {
+        moved = true;
+        // now it is a drag, not a click — safe to capture so the drag
+        // survives the cursor leaving the row
+        if (el.setPointerCapture) { try { el.setPointerCapture(e.pointerId); } catch (err) {} }
+      }
+      if (moved) el.scrollLeft = startScroll - dx;
     });
 
-    function stopDrag() {
+    function stopDrag(e) {
       isDown = false;
       el.classList.remove('af-dragging');
+      if (e && el.hasPointerCapture && el.hasPointerCapture(e.pointerId)) {
+        try { el.releasePointerCapture(e.pointerId); } catch (err) {}
+      }
     }
     el.addEventListener('pointerup', stopDrag);
     el.addEventListener('pointerleave', stopDrag);
     el.addEventListener('pointercancel', stopDrag);
+
+    // The circles are links, and links are natively draggable: without this the
+    // browser starts a link-drag on the first few pixels of movement, fires
+    // pointercancel, and kills the scroll gesture. (Capturing on pointerdown
+    // used to suppress that as a side effect — but it also swallowed clicks.)
+    el.addEventListener('dragstart', function(e) {
+      if (isDown || moved) e.preventDefault();
+    });
 
     // A real drag shouldn't also trigger the subcategory link underneath the pointer
     el.addEventListener('click', function(e) {
