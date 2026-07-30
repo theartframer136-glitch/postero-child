@@ -9,12 +9,16 @@
  */
 if (!defined('ABSPATH')) exit;
 
-/** Inches of the printed piece, read from a size label like "3×5 ft (36×60 in)". */
+/**
+ * Inches of the printed piece, read from a size label like "3×5 ft (36×60 in)".
+ * The /u flag is essential: × is multibyte UTF-8, and without it the character
+ * class matches a single byte and the pattern never fires at all.
+ */
 function af_ship_inches($size_label) {
-    if (preg_match('/\((\d+(?:\.\d+)?)\s*[x×X]\s*(\d+(?:\.\d+)?)\s*in\)/', (string) $size_label, $m)) {
+    if (preg_match('/\((\d+(?:\.\d+)?)\s*[x×X]\s*(\d+(?:\.\d+)?)\s*in\)/u', (string) $size_label, $m)) {
         return array((float) $m[1], (float) $m[2]);
     }
-    if (preg_match('/(\d+(?:\.\d+)?)\s*[x×X]\s*(\d+(?:\.\d+)?)\s*ft/', (string) $size_label, $m)) {
+    if (preg_match('/(\d+(?:\.\d+)?)\s*[x×X]\s*(\d+(?:\.\d+)?)\s*ft/u', (string) $size_label, $m)) {
         return array((float) $m[1] * 12, (float) $m[2] * 12);
     }
     return null;

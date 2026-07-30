@@ -36,7 +36,11 @@ af_mkv('inventory REST route', (bool) rest_get_server()->get_routes('af-marketpl
 af_mkv('outbound stock hook', (bool) has_action('woocommerce_product_set_stock'), $fail);
 af_mkv('per-product settings saved', (bool) has_action('save_post_product'), $fail);
 
+$first = true;
 foreach (af_mk_channels() as $ch => $meta) {
+    // six full-catalogue feeds back to back is what tripped the host limit
+    if (!$first) sleep(3);
+    $first = false;
     echo "\n--- {$meta['label']} ({$ch}) ---\n";
     $count = count(af_mk_products($ch));
     echo "  products included: {$count}\n";

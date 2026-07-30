@@ -79,7 +79,7 @@ function af_cart_has_oversized() {
     if (!function_exists('WC') || !WC()->cart) return false;
     foreach (WC()->cart->get_cart() as $item) {
         if (empty($item['af_size'])) continue;
-        if (preg_match('/(\d+(?:\.\d+)?)\s*[x×X]\s*(\d+(?:\.\d+)?)/', $item['af_size'], $m)) {
+        if (preg_match('/(\d+(?:\.\d+)?)\s*[x×X]\s*(\d+(?:\.\d+)?)/u', $item['af_size'], $m)) {
             if (max((float) $m[1], (float) $m[2]) >= 4) return true;
         }
     }

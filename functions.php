@@ -4943,7 +4943,7 @@ add_action('template_redirect', function(){
         foreach ($cats as $c) {
             if (in_array($c->slug, $skip_slugs, true)) continue;
             if (in_array((int) $c->parent, $skip_parents, true)) continue;
-            if (preg_match('/^\d+(?:\.\d+)?\s*[x×]\s*\d+/i', $c->name)) continue;   // "3x4 ft" size cats
+            if (preg_match('/^\d+(?:\.\d+)?\s*[x×]\s*\d+/iu', $c->name)) continue;   // "3x4 ft" size cats
             $cat_items[] = array('slug'=>$c->slug,'name'=>$c->name);
         }
     }

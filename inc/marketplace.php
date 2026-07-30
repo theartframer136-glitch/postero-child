@@ -194,12 +194,23 @@ function af_mk_row($product, $channel) {
 }
 
 /**
- * XML 1.0 forbids most control characters outright, and one of them anywhere in
- * a product description makes the whole feed unparseable — so strip them before
- * escaping rather than serving a document no channel can read.
+ * Product text, made safe to put in XML.
+ *
+ * Two traps. XML 1.0 forbids most control characters outright, and one anywhere
+ * in a description makes the whole feed unparseable. And XML predefines only
+ * five entities — a title stored with a named HTML entity like &ndash; is a
+ * fatal parse error, which esc_html() will not save you from because it does
+ * not double-encode: it leaves an existing &ndash; exactly as it found it.
+ * So decode named entities to real characters first, then strip control bytes.
  */
 function af_mk_xml_text($s) {
-    return preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', (string) $s);
+    $s = html_entity_decode((string) $s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    return preg_replace('/[\x{0000}-\x{0008}\x{000B}\x{000C}\x{000E}-\x{001F}\x{007F}]/u', '', $s);
+}
+
+/** Escape for an XML text node, always double-encoding so & becomes &amp;. */
+function af_mk_xml_esc($s) {
+    return htmlspecialchars((string) $s, ENT_QUOTES | ENT_XML1, 'UTF-8', true);
 }
 
 /** Nothing may precede the XML declaration — discard anything already buffered. */
@@ -210,13 +221,11 @@ function af_mk_clean_output() {
 /** Google / Meta / Pinterest all read RSS 2.0 with the g: namespace. */
 function af_mk_render_feed($channel) {
     $products = af_mk_products($channel);
-    af_mk_clean_output();
-    header('Content-Type: application/xml; charset=utf-8');
     echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
     echo '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0"><channel>' . "\n";
-    echo '<title>' . esc_html(get_bloginfo('name')) . "</title>\n";
+    echo '<title>' . af_mk_xml_esc(af_mk_xml_text(get_bloginfo('name'))) . "</title>\n";
     echo '<link>' . esc_url(home_url('/')) . "</link>\n";
-    echo '<description>' . esc_html(get_bloginfo('description')) . "</description>\n";
+    echo '<description>' . af_mk_xml_esc(af_mk_xml_text(get_bloginfo('description'))) . "</description>\n";
 
     foreach ($products as $product) {
         $r = af_mk_row($product, $channel);
@@ -227,30 +236,30 @@ function af_mk_render_feed($channel) {
             : ($channel === 'meta' ? 'out of stock' : 'out_of_stock');
 
         echo "<item>\n";
-        echo '  <g:id>' . esc_html($r['id']) . "</g:id>\n";
-        echo '  <g:title>' . esc_html($r['title']) . "</g:title>\n";
-        echo '  <g:description>' . esc_html($r['description']) . "</g:description>\n";
+        echo '  <g:id>' . af_mk_xml_esc($r['id']) . "</g:id>\n";
+        echo '  <g:title>' . af_mk_xml_esc($r['title']) . "</g:title>\n";
+        echo '  <g:description>' . af_mk_xml_esc($r['description']) . "</g:description>\n";
         echo '  <g:link>' . esc_url($r['link']) . "</g:link>\n";
         echo '  <g:image_link>' . esc_url($r['images'][0]) . "</g:image_link>\n";
         foreach (array_slice($r['images'], 1, 10) as $extra) {
             echo '  <g:additional_image_link>' . esc_url($extra) . "</g:additional_image_link>\n";
         }
-        echo '  <g:availability>' . esc_html($avail) . "</g:availability>\n";
+        echo '  <g:availability>' . af_mk_xml_esc($avail) . "</g:availability>\n";
         echo '  <g:condition>new</g:condition>' . "\n";
-        echo '  <g:price>' . esc_html(number_format($r['regular'], 2, '.', '') . ' ' . $r['currency']) . "</g:price>\n";
+        echo '  <g:price>' . af_mk_xml_esc(number_format($r['regular'], 2, '.', '') . ' ' . $r['currency']) . "</g:price>\n";
         if ($r['price'] < $r['regular']) {
-            echo '  <g:sale_price>' . esc_html(number_format($r['price'], 2, '.', '') . ' ' . $r['currency']) . "</g:sale_price>\n";
+            echo '  <g:sale_price>' . af_mk_xml_esc(number_format($r['price'], 2, '.', '') . ' ' . $r['currency']) . "</g:sale_price>\n";
         }
-        echo '  <g:brand>' . esc_html($r['brand']) . "</g:brand>\n";
+        echo '  <g:brand>' . af_mk_xml_esc($r['brand']) . "</g:brand>\n";
         if ($r['gtin']) {
-            echo '  <g:gtin>' . esc_html($r['gtin']) . "</g:gtin>\n";
+            echo '  <g:gtin>' . af_mk_xml_esc($r['gtin']) . "</g:gtin>\n";
         } else {
             // original art has no barcode; saying so stops Google rejecting the item
             echo '  <g:identifier_exists>no</g:identifier_exists>' . "\n";
         }
-        if ($r['sku']) echo '  <g:mpn>' . esc_html($r['sku']) . "</g:mpn>\n";
-        if ($r['gcat']) echo '  <g:google_product_category>' . esc_html($r['gcat']) . "</g:google_product_category>\n";
-        echo '  <g:product_type>' . esc_html($r['type']) . "</g:product_type>\n";
+        if ($r['sku']) echo '  <g:mpn>' . af_mk_xml_esc($r['sku']) . "</g:mpn>\n";
+        if ($r['gcat']) echo '  <g:google_product_category>' . af_mk_xml_esc($r['gcat']) . "</g:google_product_category>\n";
+        echo '  <g:product_type>' . af_mk_xml_esc($r['type']) . "</g:product_type>\n";
         echo "</item>\n";
     }
     echo '</channel></rss>';
@@ -297,9 +306,6 @@ function af_mk_csv_row($r, $channel) {
 
 function af_mk_render_csv($channel) {
     $products = af_mk_products($channel);
-    af_mk_clean_output();
-    header('Content-Type: text/csv; charset=utf-8');
-    header('Content-Disposition: attachment; filename="' . $channel . '-listings-' . gmdate('Y-m-d') . '.csv"');
     $out = fopen('php://output', 'w');
     fputcsv($out, af_mk_csv_columns($channel));
     foreach ($products as $product) {
@@ -322,12 +328,46 @@ add_action('template_redirect', function() {
         wp_die('Invalid feed key.', 'Forbidden', array('response' => 403));
     }
 
+    $cached = af_mk_feed_cached($channel, $channels[$channel]['kind']);
+
+    af_mk_clean_output();
     nocache_headers();
-    if ($channels[$channel]['kind'] === 'csv') af_mk_render_csv($channel);
-    else af_mk_render_feed($channel);
-    af_mk_log($channel, 'out', 'feed_served');
+    if ($channels[$channel]['kind'] === 'csv') {
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="' . $channel . '-listings-' . gmdate('Y-m-d') . '.csv"');
+    } else {
+        header('Content-Type: application/xml; charset=utf-8');
+    }
+    echo $cached;
+    af_mk_log($channel, 'out', 'feed_served', 0, strlen($cached) . ' bytes');
     exit;
 });
+
+/**
+ * Build once, serve many. Every request was rebuilding the whole catalogue —
+ * 341 products with permalinks and image lookups each — and several feeds
+ * fetched back to back was enough to push the host into its resource limit.
+ * Channels poll on their own schedule, so an hour-old document is fine.
+ */
+function af_mk_feed_cached($channel, $kind) {
+    $key = 'af_mk_feed_' . $channel;
+    $out = get_transient($key);
+    if ($out !== false && $out !== '') return $out;
+
+    ob_start();
+    if ($kind === 'csv') af_mk_render_csv($channel); else af_mk_render_feed($channel);
+    $out = ob_get_clean();
+    set_transient($key, $out, HOUR_IN_SECONDS);
+    return $out;
+}
+
+/** A catalogue change makes every feed stale. */
+function af_mk_flush_feeds() {
+    foreach (array_keys(af_mk_channels()) as $c) delete_transient('af_mk_feed_' . $c);
+}
+add_action('save_post_product', 'af_mk_flush_feeds');
+add_action('woocommerce_update_product', 'af_mk_flush_feeds');
+add_action('woocommerce_product_set_stock', 'af_mk_flush_feeds');
 
 // ── inventory sync: inbound ──────────────────────────────────────────
 add_action('rest_api_init', function() {
