@@ -56,12 +56,13 @@ af_sv('shipment recorder', function_exists('af_ship_add_shipment'), $fail);
 af_sv('shipped-qty accounting', function_exists('af_ship_shipped_qty'), $fail);
 af_sv('order screen metabox', (bool) has_action('add_meta_boxes'), $fail);
 
-echo "\n--- returns / RMA ---\n";
+echo "\n--- returns / RMA (extends the existing system) ---\n";
 global $wpdb;
 $t = af_rma_table();
 af_sv('rma table', $wpdb->get_var("SHOW TABLES LIKE '{$t}'") === $t, $fail, $t);
-af_sv('customer request form', (bool) has_action('woocommerce_order_details_after_order_table'), $fail);
-af_sv('admin dashboard', function_exists('af_rma_admin_page'), $fail);
+af_sv('single rma implementation', function_exists('af_rma_admin_page'), $fail);
+af_sv('pickup field hooked in', (bool) has_action('af_rma_admin_extra'), $fail);
+af_sv('pickup save hooked in', (bool) has_action('af_rma_admin_saved'), $fail);
 $open = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$t}");
 echo "    returns on file: {$open}\n";
 

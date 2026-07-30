@@ -366,4 +366,25 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/verify-ar-layouts.php --allow-root 2>&1" \
             || true
 
+          echo "GATE: the theme must actually boot..."
+          BOOT=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && wp eval 'echo \"AF_BOOT_OK\";' --allow-root 2>&1")
+          echo "$BOOT"
+          if echo "$BOOT" | grep -qi "Fatal error\|critical error"; then
+            echo "::error::The theme fatals on load — the site is down. See the error above."
+            exit 1
+          fi
+          if ! echo "$BOOT" | grep -q "AF_BOOT_OK"; then
+            echo "::error::WordPress could not bootstrap with this theme."
+            exit 1
+          fi
+
+          echo "GATE: the site must serve 200..."
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 45 https://theartframer.us/ || echo 000)
+          echo "homepage HTTP $CODE"
+          case "$CODE" in
+            200|301|302) : ;;
+            *) echo "::error::Homepage returned $CODE after deploy."; exit 1 ;;
+          esac
+
           echo "Deploy complete"

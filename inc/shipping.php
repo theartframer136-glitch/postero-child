@@ -348,182 +348,34 @@ add_action('template_redirect', function() {
 });
 
 // ── returns / RMA ────────────────────────────────────────────────────
-function af_rma_table() { global $wpdb; return $wpdb->prefix . 'af_rma'; }
+// A full RMA system already lives in functions.php (table af_rma_requests,
+// customer request form, admin dashboard at af-returns). Rather than stand up a
+// second one, §12's missing piece — scheduling the collection — is added to it.
 
-add_action('after_setup_theme', function() {
-    if (get_option('af_rma_db_ver') === '1') return;
-    global $wpdb;
-    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
-    dbDelta("CREATE TABLE " . af_rma_table() . " (
-        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-        order_id BIGINT UNSIGNED NOT NULL,
-        user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
-        email VARCHAR(190) NOT NULL,
-        items TEXT NULL,
-        reason VARCHAR(60) NOT NULL,
-        detail TEXT NULL,
-        status VARCHAR(20) NOT NULL DEFAULT 'requested',
-        resolution VARCHAR(30) NOT NULL DEFAULT '',
-        pickup_at DATETIME NULL,
-        created_at DATETIME NOT NULL,
-        updated_at DATETIME NOT NULL,
-        PRIMARY KEY (id),
-        KEY order_id (order_id),
-        KEY status (status)
-    ) " . $wpdb->get_charset_collate() . ";");
-    update_option('af_rma_db_ver', '1');
-}, 7);
+/** Pickup slot for an existing return request. */
+add_action('af_rma_admin_extra', function($row) {
+    $slot = get_option('af_rma_pickup_' . (int) $row->id, '');
+    echo '<label style="display:block;margin-top:6px;font-size:12px;">Pickup<br>';
+    echo '<input type="datetime-local" name="af_rma_pickup" value="' . esc_attr($slot ? str_replace(' ', 'T', $slot) : '') . '">';
+    echo '</label>';
+}, 10, 1);
 
-function af_rma_reasons() {
-    return array(
-        'damaged'   => 'Arrived damaged',
-        'wrong'     => 'Wrong item or size',
-        'quality'   => 'Print quality',
-        'not_as'    => 'Not as pictured',
-        'changed'   => 'Changed my mind',
-        'other'     => 'Something else',
-    );
-}
-
-/** Customers raise a return from the order they are looking at. */
-add_action('woocommerce_order_details_after_order_table', function($order) {
-    if (!is_user_logged_in() || (int) $order->get_customer_id() !== get_current_user_id()) return;
-    if (!in_array($order->get_status(), array('completed', 'processing'), true)) return;
+add_action('af_rma_admin_saved', function($id) {
+    if (!isset($_POST['af_rma_pickup'])) return;
+    $slot = sanitize_text_field(wp_unslash($_POST['af_rma_pickup']));
+    $slot = $slot ? str_replace('T', ' ', $slot) : '';
+    if ($slot === '') { delete_option('af_rma_pickup_' . (int) $id); return; }
+    update_option('af_rma_pickup_' . (int) $id, $slot, false);
 
     global $wpdb;
-    $existing = $wpdb->get_row($wpdb->prepare(
-        "SELECT * FROM " . af_rma_table() . " WHERE order_id = %d ORDER BY id DESC LIMIT 1", $order->get_id()
-    ));
-    if ($existing) {
-        echo '<div class="woocommerce-info">Return <strong>#' . (int) $existing->id . '</strong> — '
-           . esc_html(ucfirst($existing->status))
-           . ($existing->pickup_at ? ' · pickup ' . esc_html($existing->pickup_at) : '') . '</div>';
-        return;
-    }
-    ?>
-    <h3 style="margin-top:26px;">Need to return something?</h3>
-    <form method="post" class="af-rma-form">
-      <?php wp_nonce_field('af_rma_' . $order->get_id(), 'af_rma_nonce'); ?>
-      <input type="hidden" name="af_rma_order" value="<?php echo (int) $order->get_id(); ?>">
-      <p><label>Which items?<br>
-        <?php foreach ($order->get_items() as $item_id => $item): ?>
-          <label style="display:block;font-weight:400;margin:4px 0;">
-            <input type="checkbox" name="af_rma_items[]" value="<?php echo (int) $item_id; ?>">
-            <?php echo esc_html($item->get_name()); ?>
-          </label>
-        <?php endforeach; ?>
-      </label></p>
-      <p><label>Reason<br><select name="af_rma_reason" required>
-        <?php foreach (af_rma_reasons() as $k => $v): ?><option value="<?php echo esc_attr($k); ?>"><?php echo esc_html($v); ?></option><?php endforeach; ?>
-      </select></label></p>
-      <p><label>Anything we should know?<br><textarea name="af_rma_detail" rows="3" maxlength="1000" style="width:100%"></textarea></label></p>
-      <p><button type="submit" class="button">Request a return</button></p>
-    </form>
-    <?php
-});
-
-add_action('template_redirect', function() {
-    if (empty($_POST['af_rma_order'])) return;
-    $order_id = absint($_POST['af_rma_order']);
-    if (!isset($_POST['af_rma_nonce']) || !wp_verify_nonce(wp_unslash($_POST['af_rma_nonce']), 'af_rma_' . $order_id)) return;
-    $order = wc_get_order($order_id);
-    if (!$order || !is_user_logged_in() || (int) $order->get_customer_id() !== get_current_user_id()) return;
-
-    global $wpdb;
-    $items = array_map('absint', (array) ($_POST['af_rma_items'] ?? array()));
-    $wpdb->insert(af_rma_table(), array(
-        'order_id'   => $order_id,
-        'user_id'    => get_current_user_id(),
-        'email'      => $order->get_billing_email(),
-        'items'      => wp_json_encode($items),
-        'reason'     => sanitize_text_field(wp_unslash($_POST['af_rma_reason'] ?? 'other')),
-        'detail'     => sanitize_textarea_field(wp_unslash($_POST['af_rma_detail'] ?? '')),
-        'status'     => 'requested',
-        'created_at' => current_time('mysql'),
-        'updated_at' => current_time('mysql'),
-    ));
-    $rma = (int) $wpdb->insert_id;
-    $order->add_order_note(sprintf('Return #%d requested by the customer.', $rma));
-    $order->save();
-
-    wp_mail(get_option('admin_email'),
-        sprintf('[%s] Return #%d requested on order #%s', get_bloginfo('name'), $rma, $order->get_order_number()),
-        sprintf("A return has been requested.\n\nOrder: %s\nReason: %s\n\nReview: %s\n",
-            $order->get_order_number(),
-            sanitize_text_field(wp_unslash($_POST['af_rma_reason'] ?? '')),
-            admin_url('admin.php?page=af-returns')));
-
-    wc_add_notice('Your return request has been logged — we will email you within one working day.', 'success');
-    wp_safe_redirect(wp_get_referer() ?: wc_get_account_endpoint_url('orders'));
-    exit;
-});
-
-add_action('admin_menu', function() {
-    add_submenu_page('woocommerce', 'Returns (RMA)', 'Returns (RMA)', 'manage_woocommerce', 'af-returns', 'af_rma_admin_page');
-});
-
-function af_rma_admin_page() {
-    if (!current_user_can('manage_woocommerce')) return;
-    global $wpdb;
-    $t = af_rma_table();
-
-    if (isset($_POST['af_rma_update']) && check_admin_referer('af_rma_admin')) {
-        $id = absint($_POST['af_rma_update']);
-        $wpdb->update($t, array(
-            'status'     => sanitize_text_field(wp_unslash($_POST['status'])),
-            'resolution' => sanitize_text_field(wp_unslash($_POST['resolution'])),
-            'pickup_at'  => $_POST['pickup_at'] ? sanitize_text_field(wp_unslash($_POST['pickup_at'])) : null,
-            'updated_at' => current_time('mysql'),
-        ), array('id' => $id));
-        $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM {$t} WHERE id = %d", $id));
-        if ($row && $row->email) {
-            wp_mail($row->email,
-                sprintf('[%s] Return #%d — %s', get_bloginfo('name'), $id, ucfirst($row->status)),
-                sprintf("Your return is now: %s\n%s%s\n",
-                    ucfirst($row->status),
-                    $row->resolution ? "Resolution: {$row->resolution}\n" : '',
-                    $row->pickup_at ? "Pickup scheduled: {$row->pickup_at}\n" : ''));
-        }
-        echo '<div class="notice notice-success"><p>Return updated and the customer notified.</p></div>';
-    }
-
-    $rows = $wpdb->get_results("SELECT * FROM {$t} ORDER BY id DESC LIMIT 100");
-    $counts = $wpdb->get_results("SELECT status, COUNT(*) n FROM {$t} GROUP BY status");
-
-    echo '<div class="wrap"><h1>Returns (RMA)</h1>';
-    echo '<div style="display:flex;gap:12px;margin:16px 0 20px;flex-wrap:wrap;">';
-    foreach ($counts as $c) {
-        echo '<div style="background:#fff;border:1px solid #dcdcde;border-radius:8px;padding:12px 16px;">'
-           . '<div style="font-size:12px;color:#646970;text-transform:uppercase;">' . esc_html($c->status) . '</div>'
-           . '<div style="font-size:20px;font-weight:700;">' . (int) $c->n . '</div></div>';
-    }
-    if (!$counts) echo '<p>No returns yet.</p>';
-    echo '</div>';
-
-    echo '<table class="widefat striped"><thead><tr><th>#</th><th>Order</th><th>Customer</th><th>Reason</th><th>Status</th><th>Update</th></tr></thead><tbody>';
-    foreach ($rows as $r) {
-        echo '<tr><td>' . (int) $r->id . '</td>';
-        echo '<td><a href="' . esc_url(get_edit_post_link($r->order_id)) . '">#' . (int) $r->order_id . '</a></td>';
-        echo '<td>' . esc_html($r->email) . '<br><small>' . esc_html($r->detail) . '</small></td>';
-        echo '<td>' . esc_html(af_rma_reasons()[$r->reason] ?? $r->reason) . '</td>';
-        echo '<td><strong>' . esc_html(ucfirst($r->status)) . '</strong>'
-           . ($r->pickup_at ? '<br><small>pickup ' . esc_html($r->pickup_at) . '</small>' : '') . '</td>';
-        echo '<td><form method="post" style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;">';
-        wp_nonce_field('af_rma_admin');
-        echo '<select name="status">';
-        foreach (array('requested','approved','in_transit','received','refunded','rejected') as $s) {
-            echo '<option value="' . esc_attr($s) . '"' . selected($r->status, $s, false) . '>' . esc_html(ucfirst(str_replace('_',' ',$s))) . '</option>';
-        }
-        echo '</select>';
-        echo '<select name="resolution"><option value="">—</option>';
-        foreach (array('refund','replacement','store_credit','repair') as $s) {
-            echo '<option value="' . esc_attr($s) . '"' . selected($r->resolution, $s, false) . '>' . esc_html(ucfirst(str_replace('_',' ',$s))) . '</option>';
-        }
-        echo '</select>';
-        echo '<input type="datetime-local" name="pickup_at" value="' . esc_attr($r->pickup_at ? str_replace(' ', 'T', $r->pickup_at) : '') . '">';
-        echo '<button class="button button-small" name="af_rma_update" value="' . (int) $r->id . '">Save</button>';
-        echo '</form></td></tr>';
-    }
-    if (!$rows) echo '<tr><td colspan="6">Nothing yet.</td></tr>';
-    echo '</tbody></table></div>';
-}
+    $row = $wpdb->get_row($wpdb->prepare("SELECT * FROM " . af_rma_table() . " WHERE id = %d", (int) $id));
+    if (!$row) return;
+    $user = $row->user_id ? get_userdata($row->user_id) : null;
+    $to   = $user ? $user->user_email : '';
+    if (!$to) return;
+    wp_mail($to,
+        sprintf('[%s] Collection booked for return #%d', get_bloginfo('name'), (int) $id),
+        sprintf("We have booked the collection for your return.\n\nWhen: %s\n\n"
+              . "Please have the piece packed in its original carton if you still have it — "
+              . "a large canvas needs its corner protection to travel safely.\n", $slot));
+}, 10, 1);

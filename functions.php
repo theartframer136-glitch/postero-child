@@ -8565,6 +8565,7 @@ function af_rma_admin_page() {
                 "Your return request RMA-{$id} is now: " . strtoupper($status) . "\n\n" . ($note ?: '') .
                 "\n\nDetails: " . wc_get_account_endpoint_url('returns') . "\n\n— The Art Framer");
         }
+        do_action('af_rma_admin_saved', $id);
         echo '<div class="notice notice-success"><p>RMA-' . $id . ' updated and the customer was emailed.</p></div>';
     }
     $rows    = $wpdb->get_results("SELECT * FROM {$t} ORDER BY FIELD(status,'pending','approved','rejected','resolved'), id DESC LIMIT 100");
@@ -8590,6 +8591,7 @@ function af_rma_admin_page() {
         }
         echo '</select>';
         echo '<textarea name="admin_note" rows="2" placeholder="Note emailed to customer">' . esc_textarea((string) $r->admin_note) . '</textarea>';
+        do_action('af_rma_admin_extra', $r);
         echo '<button class="button button-primary">Update &amp; email</button>';
         echo '</form></td></tr>';
     }
