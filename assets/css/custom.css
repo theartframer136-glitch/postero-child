@@ -2002,27 +2002,29 @@ body:has(.taf-page) .site-main{max-width:none;}
 .af-cmp-btn:hover{background:#c9a84c;color:#141414;}
 .af-cmp-btn.on{background:#141414;border-color:#141414;color:#c9a84c;}
 
-/* Card-level Compare + Add to Cart: icon-only, no background circle. Stays
-   in its existing position — only the size/shape/label change.
-   .af-cmp-single (the single-product "Add to Compare" CTA) is untouched
-   and keeps its full-text pill style. */
+/* Card-level Compare + Add to Cart: icon-only. Stays in its existing
+   position — only the size/shape/label change. .af-cmp-single (the
+   single-product "Add to Compare" CTA) is untouched and keeps its
+   full-text pill style.
+   A plain white glyph with no backdrop (tried previously) turned invisible
+   against light product photos / the cream card background — a subtle
+   dark backdrop guarantees contrast against any image. */
 .af-cmp-btn:not(.af-cmp-single),
 .add_to_cart_button.af-icon-only{
   display:inline-flex !important;align-items:center !important;justify-content:center !important;
   width:36px !important;height:36px !important;min-width:0 !important;
   padding:0 !important;margin:0 !important;border:none !important;
-  border-radius:50% !important;background:transparent !important;color:#fff !important;
+  border-radius:50% !important;background:rgba(20,20,20,.55) !important;color:#fff !important;
   font-size:18px !important;line-height:1 !important;
-  box-shadow:none !important;cursor:pointer !important;
-  transition:color .2s !important;white-space:nowrap !important;overflow:visible !important;
+  box-shadow:0 1px 4px rgba(0,0,0,.3) !important;cursor:pointer !important;
+  transition:background .2s !important;white-space:nowrap !important;overflow:visible !important;
 }
 .af-cmp-btn:not(.af-cmp-single):hover,
 .af-cmp-btn:not(.af-cmp-single).on,
-.add_to_cart_button.af-icon-only:hover{color:#c9a84c !important;}
+.add_to_cart_button.af-icon-only:hover{background:#c9a84c !important;}
 .af-cmp-icon,
 .af-icon-glyph{
-  pointer-events:none !important;font-size:18px !important;line-height:1 !important;
-  filter:drop-shadow(0 1px 3px rgba(0,0,0,.65)) !important;
+  pointer-events:none !important;font-size:16px !important;line-height:1 !important;
 }
 .af-icon-label{
   position:absolute !important;width:1px !important;height:1px !important;overflow:hidden !important;
