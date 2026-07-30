@@ -3982,13 +3982,11 @@ add_action('woocommerce_before_shop_loop', function() {
         </div>
         <?php endif; ?>
 
-        <?php // minify-proof render marker (HTML comments get stripped by the optimizer)
-        echo '<i class="af-orient-gate" data-g="' . (function_exists('af_orientation_current') ? 'loaded' : 'missing') . '" hidden></i>'; ?>
         <?php if (function_exists('af_orientation_current')):
           $cur_o = af_orientation_current();
           $olink = function($val) use ($keep) { $q = $keep; $q['orientation'] = $val; return '?' . http_build_query($q); };
         ?>
-        <div class="af-lt-drop">
+        <div class="af-lt-drop" data-af-orient="1">
           <button type="button" class="af-lt-dbtn"><?php echo $cur_o ? esc_html(ucfirst($cur_o)) : 'Orientation'; ?> ▾</button>
           <div class="af-lt-menu">
             <a href="<?php echo esc_url($olink('portrait')); ?>">▯ Portrait</a>

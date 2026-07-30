@@ -34,19 +34,9 @@ if ($terms && !is_wp_error($terms)) {
     $r = af_obv_get(add_query_arg('nocache', time(), $url));
     if (!is_wp_error($r)) {
         $b = wp_remote_retrieve_body($r);
-        $gate = (strpos($b, 'data-g="loaded"') !== false || strpos($b, 'data-g=loaded') !== false) ? 'loaded'
-              : ((strpos($b, 'data-g="missing"') !== false || strpos($b, 'data-g=missing') !== false) ? 'missing' : 'marker absent');
-        echo "    render gate: {$gate}\n";
-        // does the toolbar itself render on this page at all?
-        foreach (array('af-listing-toolbar', 'class="af-lt-controls"', 'Frame Type', 'af-lt-dbtn"') as $needle) {
-            echo '    page has [' . $needle . ']: ' . (strpos($b, $needle) !== false ? 'yes' : 'NO') . "\n";
-        }
-        af_obv('dropdown on category page', strpos($b, 'Orientation') !== false, $fail);
-        if (strpos($b, 'Orientation') === false) {
-            $i = strpos($b, 'af-lt-controls');
-            echo '    toolbar window: ' . ($i === false ? '(af-lt-controls NOT in page)'
-                : str_replace("\n", ' ', substr($b, $i, 400))) . "\n";
-        }
+        // the dropdown ships either server-side (/shop/) or via the footer
+        // fallback (category pages, whose template never fires the toolbar hook)
+        af_obv('dropdown ships on category page', strpos($b, 'data-af-orient') !== false, $fail);
         af_obv('all three options linked',
             strpos($b, 'orientation=portrait') !== false &&
             strpos($b, 'orientation=landscape') !== false &&

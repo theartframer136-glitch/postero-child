@@ -48,3 +48,58 @@ add_action('pre_get_posts', function($q) {
     $mq[] = array('key' => '_af_orientation', 'value' => $o);
     $q->set('meta_query', $mq);
 });
+
+/**
+ * The shop toolbar renders through woocommerce_before_shop_loop, which the
+ * parent theme's product-category template never fires — so a server-side
+ * dropdown there exists only on /shop/. On every other listing page this
+ * footer fallback inserts the same dropdown next to the toolbar the page
+ * actually has (the masonry toggle earns its position the same way).
+ * The [data-af-orient] guard keeps /shop/ from getting it twice.
+ */
+add_action('wp_footer', function() {
+    if (is_admin()) return;
+    if (!function_exists('is_shop') || !(is_shop() || is_product_taxonomy())) return;
+    $cur  = af_orientation_current();
+    $keep = $_GET; unset($keep['paged']);
+    $links = array();
+    foreach (array('portrait' => '▯ Portrait', 'landscape' => '▭ Landscape', 'square' => '□ Square') as $val => $label) {
+        $q = $keep; $q['orientation'] = $val;
+        $links[] = '<a href="' . esc_url('?' . http_build_query($q)) . '">' . esc_html($label) . '</a>';
+    }
+    if ($cur !== '') {
+        $q = $keep; unset($q['orientation']);
+        $links[] = '<a href="' . esc_url($q ? '?' . http_build_query($q) : strtok($_SERVER['REQUEST_URI'] ?? '/', '?')) . '">✕ Any orientation</a>';
+    }
+    ?>
+    <template id="af-orient-tpl">
+      <span class="af-lt-drop af-orient-drop" data-af-orient="1">
+        <button type="button" class="af-lt-dbtn"><?php echo $cur ? esc_html(ucfirst($cur)) : 'Orientation'; ?> ▾</button>
+        <span class="af-lt-menu"><?php echo implode('', $links); ?></span>
+      </span>
+    </template>
+    <style>
+    .af-orient-drop{display:inline-block;vertical-align:middle;margin:0 0 14px 10px;}
+    .af-orient-drop .af-lt-menu{display:none;}
+    .af-orient-drop .af-lt-menu.open{display:block;}
+    .af-orient-drop .af-lt-menu a{display:block;}
+    </style>
+    <script>
+    (function(){
+      if (document.querySelector('[data-af-orient]')) return;   // /shop/ renders it server-side
+      var tpl = document.getElementById('af-orient-tpl');
+      if (!tpl) return;
+      var host = document.querySelector('.af-layout-toggle') ||
+                 document.querySelector('.woocommerce-result-count, .woocommerce-ordering');
+      var grid = document.querySelector('ul.products');
+      var node = tpl.content.firstElementChild.cloneNode(true);
+      if (host && host.parentNode) host.parentNode.insertBefore(node, host.nextSibling);
+      else if (grid && grid.parentNode) grid.parentNode.insertBefore(node, grid);
+      else return;
+      var btn = node.querySelector('.af-lt-dbtn'), menu = node.querySelector('.af-lt-menu');
+      btn.addEventListener('click', function(e){ e.stopPropagation(); menu.classList.toggle('open'); });
+      document.addEventListener('click', function(){ menu.classList.remove('open'); });
+    })();
+    </script>
+    <?php
+}, 65);
