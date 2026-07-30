@@ -342,6 +342,24 @@ jobs:
              wp cache flush --allow-root 2>/dev/null || true; \
              echo 'Cache cleared'" || echo "Cache clear skipped"
 
+          echo "Hardening digital downloads (limits + expiry)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/harden-downloads.php --allow-root 2>&1" \
+            || true
+
+          echo "Creating Terms of Use / Terms of Service pages (once)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/setup-terms-pages.php --allow-root 2>&1" \
+            || true
+
+          echo "Verifying polish items 13-20..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/verify-polish.php --allow-root 2>&1" \
+            || true
+
           echo "Backfilling product orientation (portrait/landscape/square)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

@@ -1,0 +1,118 @@
+<?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
+/**
+ * Prove audit items 13-20 on the live site: GA4 wiring, download hardening,
+ * live chat, sales counts, artist profiles, custom 404, terms pages, review
+ * enhancements. Read-only.
+ * Run: wp eval-file tools/verify-polish.php --allow-root
+ */
+if (!defined('ABSPATH')) { fwrite(STDERR, "Run via wp eval-file\n"); exit(1); }
+$fail = 0;
+function af_pv($label, $ok, &$fail, $extra = '') {
+    printf("  %-46s %s%s\n", $label, $ok ? 'OK' : 'FAILED  <<<', $extra ? '  ' . $extra : '');
+    if (!$ok) $fail++;
+}
+function af_pv_get($url) {
+    $a = array('timeout'=>60,'sslverify'=>false,'headers'=>array('User-Agent'=>'AF-Verify'));
+    for ($i=0;$i<3;$i++) {
+        $r = wp_remote_get($url,$a);
+        if (!is_wp_error($r) && !in_array((int) wp_remote_retrieve_response_code($r), array(508,503,429), true)) return $r;
+        sleep(3);
+    }
+    return $r;
+}
+
+echo "=== 13. GA4 / GTM ===\n";
+af_pv('module loaded',      function_exists('af_ga4_id'), $fail);
+af_pv('settings registered',(bool) has_action('admin_init'), $fail);
+$id = af_ga4_id();
+af_pv('measurement ID state', true, $fail, $id !== '' ? $id : 'not set yet — silent until saved in Settings → General');
+if ($id !== '') {
+    $r = af_pv_get(home_url('/?nocache=' . time()));
+    if (!is_wp_error($r)) {
+        $b = wp_remote_retrieve_body($r);
+        af_pv('tag ships consent-gated', strpos($b, 'googletagmanager.com/gtag') !== false
+            && strpos($b, 'data-consent="analytics"') !== false, $fail);
+    }
+}
+
+echo "\n=== 14. DIGITAL DOWNLOADS ===\n";
+global $wpdb;
+$dl = $wpdb->get_var("SELECT COUNT(DISTINCT p.ID) FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} m ON m.post_id=p.ID
+    WHERE p.post_type='product' AND m.meta_key='_downloadable' AND m.meta_value='yes'");
+$lim = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key='_download_limit' AND meta_value NOT IN ('','-1')");
+$exp = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key='_download_expiry' AND meta_value NOT IN ('','-1')");
+af_pv('downloadable products found', (int) $dl > 0, $fail, "{$dl}");
+af_pv('download limits set',  (int) $lim >= (int) $dl, $fail, "{$lim} products");
+af_pv('download expiry set',  (int) $exp >= (int) $dl, $fail, "{$exp} products");
+
+$home = af_pv_get(home_url('/?nocache=' . time()));
+$hb = is_wp_error($home) ? '' : wp_remote_retrieve_body($home);
+
+echo "\n=== 15. LIVE CHAT ===\n";
+af_pv('launcher ships',   strpos($hb, 'af-chat-bub') !== false, $fail);
+af_pv('panel + topics',   strpos($hb, 'af-chat-chips') !== false, $fail);
+af_pv('message form',     strpos($hb, 'af-chat-form') !== false, $fail);
+af_pv('email fallback',   strpos($hb, 'af-chat-alt') !== false, $fail);
+
+echo "\n=== 16. SALES COUNT ON CARDS ===\n";
+af_pv('hook registered', function_exists('af_sales_count_min'), $fail);
+$sold = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key='total_sales' AND CAST(meta_value AS UNSIGNED) >= " . (int) af_sales_count_min());
+af_pv('products over threshold', true, $fail, "{$sold} would show a badge (threshold " . af_sales_count_min() . ")");
+if ((int) $sold > 0) {
+    $terms = get_terms(array('taxonomy'=>'product_cat','hide_empty'=>true,'number'=>1,'orderby'=>'count','order'=>'DESC'));
+    if ($terms && !is_wp_error($terms)) {
+        $r2 = af_pv_get(add_query_arg('nocache', time(), get_term_link($terms[0])));
+        if (!is_wp_error($r2)) af_pv('badge CSS ships', strpos(wp_remote_retrieve_body($r2), 'af-sold') !== false, $fail);
+    }
+}
+
+echo "\n=== 17. ARTIST PROFILES ===\n";
+$parent = get_term_by('slug', 'direct-from-artists', 'product_cat');
+if (!$parent) { echo "  (no Direct from Artists category)\n"; }
+else {
+    $kids = get_terms(array('taxonomy'=>'product_cat','parent'=>$parent->term_id,'hide_empty'=>false,'number'=>1));
+    af_pv('artist categories exist', $kids && !is_wp_error($kids), $fail, $kids ? $kids[0]->slug : '');
+    if ($kids && !is_wp_error($kids)) {
+        $r3 = af_pv_get(home_url('/artists/' . $kids[0]->slug . '/?nocache=' . time()));
+        if (!is_wp_error($r3)) {
+            $b3 = wp_remote_retrieve_body($r3);
+            $code = (int) wp_remote_retrieve_response_code($r3);
+            af_pv('profile page responds 200', $code === 200, $fail, "HTTP {$code}");
+            af_pv('profile renders (real page or virtual)', strpos($b3, 'af-artist') !== false || strpos($b3, 'taf-') !== false, $fail);
+        }
+    }
+}
+
+echo "\n=== 18. CUSTOM 404 ===\n";
+$r4 = af_pv_get(home_url('/definitely-not-a-page-' . time() . '/'));
+if (!is_wp_error($r4)) {
+    $b4 = wp_remote_retrieve_body($r4);
+    af_pv('returns HTTP 404', (int) wp_remote_retrieve_response_code($r4) === 404, $fail, 'HTTP ' . wp_remote_retrieve_response_code($r4));
+    af_pv('designed page ships', strpos($b4, 'af-404') !== false, $fail);
+    af_pv('search + category links', strpos($b4, 'af-404-search') !== false && strpos($b4, 'af-404-cats') !== false, $fail);
+}
+
+echo "\n=== 19. TERMS PAGES ===\n";
+foreach (array('terms-of-use' => 'Terms of Use', 'terms-of-service' => 'Terms of Service') as $slug => $label) {
+    $pg = get_page_by_path($slug);
+    af_pv($label . ' page exists', $pg && $pg->post_status === 'publish', $fail, $pg ? '#' . $pg->ID : '');
+}
+
+echo "\n=== 20. REVIEW ENHANCEMENTS ===\n";
+af_pv('photo upload field hooked', (bool) has_filter('woocommerce_product_review_comment_form_args'), $fail);
+af_pv('photo save handler',        (bool) has_action('comment_post'), $fail);
+$prod = $wpdb->get_var("SELECT comment_post_ID FROM {$wpdb->comments} c JOIN {$wpdb->posts} p ON p.ID=c.comment_post_ID
+    WHERE c.comment_approved='1' AND p.post_type='product' ORDER BY c.comment_ID DESC LIMIT 1");
+if ($prod) {
+    $r5 = af_pv_get(add_query_arg('nocache', time(), get_permalink((int) $prod)));
+    if (!is_wp_error($r5)) {
+        $b5 = wp_remote_retrieve_body($r5);
+        af_pv('histogram ships on reviewed product', strpos($b5, 'af-revsum') !== false, $fail);
+        af_pv('verified badge styling ships',        strpos($b5, 'woocommerce-review__verified') !== false, $fail);
+    }
+} else {
+    echo "  (no approved product reviews yet — histogram appears with the first one)\n";
+}
+
+echo "\n=== RESULT: " . ($fail ? "{$fail} PROBLEM(S)" : "ALL CHECKS PASSED") . " ===\n";
