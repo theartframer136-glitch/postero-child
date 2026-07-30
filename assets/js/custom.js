@@ -156,9 +156,10 @@ jQuery(document).ready(function($) {
 
   // ---- Archive/category product cards: strip the "Add to Cart" label so it
   // matches the icon-only wishlist/quick-view buttons, in its existing
-  // position — no repositioning. The label reappears as a hover/focus
-  // tooltip (see [data-tooltip] CSS). Skips the homepage carousel, which
-  // already shows its own always-visible "Add to Cart" text button.
+  // position — no repositioning. The label reappears as a native title
+  // tooltip, same as the wishlist/quick-view icons already use. Skips the
+  // homepage carousel, which already shows its own always-visible
+  // "Add to Cart" text button.
   function initCartIconOnly() {
     document.querySelectorAll('a.add_to_cart_button, button.add_to_cart_button').forEach(function(cart) {
       if (cart.dataset.iconOnlyInit) return;
@@ -173,7 +174,7 @@ jQuery(document).ready(function($) {
       labelSpan.className = 'af-icon-label';
       labelSpan.textContent = label;
       cart.appendChild(labelSpan);
-      cart.setAttribute('data-tooltip', label);
+      cart.setAttribute('title', label);
       cart.setAttribute('aria-label', label);
       if (!cart.querySelector('svg, img, i, .dashicons, .af-icon-glyph')) {
         var glyph = document.createElement('span');
