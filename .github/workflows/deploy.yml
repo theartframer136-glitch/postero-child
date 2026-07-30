@@ -410,11 +410,20 @@ jobs:
           fi
 
           echo "GATE: the site must serve 200..."
-          CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 45 https://theartframer.us/ || echo 000)
-          echo "homepage HTTP $CODE"
+          # The pipeline itself just fired ~25 WP-CLI processes at the shared
+          # host, so the first probe can catch a momentary 508. Distinguish
+          # "still catching its breath" from "actually down" by retrying
+          # briefly before failing the deploy.
+          CODE=000
+          for i in 1 2 3 4 5; do
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 45 https://theartframer.us/ || echo 000)
+            echo "homepage HTTP $CODE (attempt $i)"
+            case "$CODE" in 200|301|302) break ;; esac
+            sleep 15
+          done
           case "$CODE" in
             200|301|302) : ;;
-            *) echo "::error::Homepage returned $CODE after deploy."; exit 1 ;;
+            *) echo "::error::Homepage still returned $CODE after 5 attempts over ~1 minute."; exit 1 ;;
           esac
 
           echo "Deploy complete"
