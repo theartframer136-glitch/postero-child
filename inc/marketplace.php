@@ -175,27 +175,42 @@ function af_mk_row($product, $channel) {
     $cats = wp_get_post_terms($product->get_id(), 'product_cat', array('fields' => 'names'));
 
     return array(
-        'id'          => af_mk_sku($product, $channel),
-        'title'       => wp_strip_all_tags(af_mk_field($product, $channel, 'title', $product->get_name())),
-        'description' => wp_trim_words(wp_strip_all_tags($product->get_description() ?: $product->get_short_description() ?: $product->get_name()), 150, ''),
+        'id'          => af_mk_xml_text(af_mk_sku($product, $channel)),
+        'title'       => af_mk_xml_text(wp_strip_all_tags(af_mk_field($product, $channel, 'title', $product->get_name()))),
+        'description' => af_mk_xml_text(wp_trim_words(wp_strip_all_tags($product->get_description() ?: $product->get_short_description() ?: $product->get_name()), 150, '')),
         'link'        => get_permalink($product->get_id()),
         'images'      => $imgs,
         'price'       => $price,
         'regular'     => $reg > 0 ? $reg : $price,
         'currency'    => get_woocommerce_currency(),
         'stock'       => $product->is_in_stock(),
-        'brand'       => get_post_meta($product->get_id(), '_af_mk_brand', true) ?: get_bloginfo('name'),
-        'gtin'        => get_post_meta($product->get_id(), '_af_mk_gtin', true),
-        'gcat'        => get_post_meta($product->get_id(), '_af_mk_gcat', true),
-        'type'        => $cats ? implode(' > ', $cats) : 'Wall Art',
-        'sku'         => $product->get_sku(),
+        'brand'       => af_mk_xml_text(get_post_meta($product->get_id(), '_af_mk_brand', true) ?: get_bloginfo('name')),
+        'gtin'        => af_mk_xml_text(get_post_meta($product->get_id(), '_af_mk_gtin', true)),
+        'gcat'        => af_mk_xml_text(get_post_meta($product->get_id(), '_af_mk_gcat', true)),
+        'type'        => af_mk_xml_text($cats ? implode(' > ', $cats) : 'Wall Art'),
+        'sku'         => af_mk_xml_text($product->get_sku()),
         'qty'         => $product->get_stock_quantity(),
     );
+}
+
+/**
+ * XML 1.0 forbids most control characters outright, and one of them anywhere in
+ * a product description makes the whole feed unparseable — so strip them before
+ * escaping rather than serving a document no channel can read.
+ */
+function af_mk_xml_text($s) {
+    return preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', (string) $s);
+}
+
+/** Nothing may precede the XML declaration — discard anything already buffered. */
+function af_mk_clean_output() {
+    while (ob_get_level() > 0) { @ob_end_clean(); }
 }
 
 /** Google / Meta / Pinterest all read RSS 2.0 with the g: namespace. */
 function af_mk_render_feed($channel) {
     $products = af_mk_products($channel);
+    af_mk_clean_output();
     header('Content-Type: application/xml; charset=utf-8');
     echo '<?xml version="1.0" encoding="UTF-8"?>' . "\n";
     echo '<rss version="2.0" xmlns:g="http://base.google.com/ns/1.0"><channel>' . "\n";
@@ -282,6 +297,7 @@ function af_mk_csv_row($r, $channel) {
 
 function af_mk_render_csv($channel) {
     $products = af_mk_products($channel);
+    af_mk_clean_output();
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $channel . '-listings-' . gmdate('Y-m-d') . '.csv"');
     $out = fopen('php://output', 'w');

@@ -49,9 +49,19 @@ foreach (af_mk_channels() as $ch => $meta) {
     if ($code !== 200) continue;
 
     if ($meta['kind'] === 'feed') {
-        $xml = @simplexml_load_string($body);
+        libxml_use_internal_errors(true);
+        libxml_clear_errors();
+        $xml  = @simplexml_load_string($body);
+        $errs = libxml_get_errors();
         af_mkv('valid XML', $xml !== false, $fail);
-        if ($xml === false) continue;
+        if ($xml === false) {
+            foreach (array_slice($errs, 0, 3) as $e) {
+                printf("      line %d col %d: %s\n", $e->line, $e->column, trim($e->message));
+            }
+            printf("      first 220 bytes: %s\n", str_replace("\n", '\n', substr($body, 0, 220)));
+            printf("      last 120 bytes:  %s\n", str_replace("\n", '\n', substr($body, -120)));
+            continue;
+        }
         $items = $xml->channel->item;
         $n = $items ? count($items) : 0;
         af_mkv('items present', $n > 0, $fail, "{$n} items");
