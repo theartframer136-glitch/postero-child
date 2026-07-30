@@ -3920,7 +3920,7 @@ add_action('woocommerce_before_shop_loop', function() {
         $q = $keep; $q[$key] = $val; $q['query_type_'.str_replace('filter_','',$key)] = 'or';
         return '?' . http_build_query($q);
     };
-    $has_filters = !empty($_GET['filter_colors']) || !empty($_GET['filter_size']) || !empty($_GET['filter_frame']) || $cur_min !== '' || $cur_max !== '';
+    $has_filters = !empty($_GET['filter_colors']) || !empty($_GET['filter_size']) || !empty($_GET['filter_frame']) || !empty($_GET['orientation']) || $cur_min !== '' || $cur_max !== '';
     ?>
     <div class="af-listing-toolbar">
       <?php if (!is_wp_error($chips) && $chips): ?>
@@ -3978,6 +3978,20 @@ add_action('woocommerce_before_shop_loop', function() {
             <?php foreach ($frames as $t): ?>
               <a href="<?php echo esc_url($flink('filter_frame',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
             <?php endforeach; ?>
+          </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (function_exists('af_orientation_current')):
+          $cur_o = af_orientation_current();
+          $olink = function($val) use ($keep) { $q = $keep; $q['orientation'] = $val; return '?' . http_build_query($q); };
+        ?>
+        <div class="af-lt-drop">
+          <button type="button" class="af-lt-dbtn"><?php echo $cur_o ? esc_html(ucfirst($cur_o)) : 'Orientation'; ?> ▾</button>
+          <div class="af-lt-menu">
+            <a href="<?php echo esc_url($olink('portrait')); ?>">▯ Portrait</a>
+            <a href="<?php echo esc_url($olink('landscape')); ?>">▭ Landscape</a>
+            <a href="<?php echo esc_url($olink('square')); ?>">□ Square</a>
           </div>
         </div>
         <?php endif; ?>
@@ -10446,7 +10460,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'reels', 'cookie-consent', 'masonry') as $af_mod) {
+foreach (array('abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'reels', 'cookie-consent', 'masonry', 'orientation-filter', 'blog-hub') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }
