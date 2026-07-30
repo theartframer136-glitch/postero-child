@@ -2001,6 +2001,43 @@ body:has(.taf-page) .site-main{max-width:none;}
   font-size:12px;font-weight:700;padding:7px 14px;cursor:pointer;transition:all .2s;}
 .af-cmp-btn:hover{background:#c9a84c;color:#141414;}
 .af-cmp-btn.on{background:#141414;border-color:#141414;color:#c9a84c;}
+
+/* Card-level Compare + Add to Cart: icon-only dark circle, same look as the
+   wishlist/quick-view icon buttons. Stays in its existing position — only
+   the size/shape/label change. .af-cmp-single (the single-product "Add to
+   Compare" CTA) is untouched and keeps its full-text pill style. */
+.af-cmp-btn:not(.af-cmp-single),
+.add_to_cart_button.af-icon-only{
+  display:inline-flex !important;align-items:center !important;justify-content:center !important;
+  width:36px !important;height:36px !important;min-width:0 !important;
+  padding:0 !important;margin:0 !important;border:none !important;
+  border-radius:50% !important;background:#1a1a1a !important;color:#fff !important;
+  font-size:16px !important;line-height:1 !important;
+  box-shadow:0 2px 8px rgba(0,0,0,.22) !important;cursor:pointer !important;
+  transition:background .2s !important;white-space:nowrap !important;overflow:hidden !important;
+}
+.af-cmp-btn:not(.af-cmp-single):hover,
+.af-cmp-btn:not(.af-cmp-single).on,
+.add_to_cart_button.af-icon-only:hover{background:#c9a84c !important;}
+.af-cmp-icon,
+.af-icon-glyph{pointer-events:none !important;font-size:16px !important;line-height:1 !important;}
+.af-icon-label{
+  position:absolute !important;width:1px !important;height:1px !important;overflow:hidden !important;
+  clip:rect(0 0 0 0) !important;clip-path:inset(50%) !important;white-space:nowrap !important;
+  border:0 !important;padding:0 !important;margin:-1px !important;
+}
+
+/* Generic hover/focus tooltip for any [data-tooltip] element */
+[data-tooltip]{position:relative !important;}
+[data-tooltip]::after{
+  content:attr(data-tooltip);position:absolute;bottom:calc(100% + 8px);left:50%;
+  transform:translateX(-50%) translateY(4px);background:#1a1a1a;color:#fff;
+  font-size:11px;font-weight:600;white-space:nowrap;padding:5px 10px;border-radius:6px;
+  opacity:0;visibility:hidden;pointer-events:none;
+  transition:opacity .15s ease,transform .15s ease;z-index:50;
+}
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after{opacity:1;visibility:visible;transform:translateX(-50%) translateY(0);}
 .af-cmp-single{margin:10px 0 0 8px;padding:11px 20px;font-size:13px;}
 #afCmpBar{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:99990;display:flex;align-items:center;
   gap:16px;background:#141414;color:#fff;padding:13px 22px;border-radius:40px;box-shadow:0 8px 30px rgba(0,0,0,.35);
@@ -2427,6 +2464,13 @@ body.tax-product_cat ul.products li.product a.add_to_cart_button,
 body.tax-product_cat ul.products li.product .product_type_variable{
   white-space:nowrap !important;overflow:visible !important;text-overflow:clip !important;
   width:auto !important;min-width:0 !important;max-width:none !important;
+}
+/* ...except the icon-only version: force it back to a fixed circle (higher
+   specificity than the "must not clip" rule above, which would otherwise
+   win and stretch it to an oval). */
+body.tax-product_cat ul.products li.product a.add_to_cart_button.af-icon-only,
+body.woocommerce-page ul.products li.product a.add_to_cart_button.af-icon-only{
+  width:36px !important;min-width:0 !important;max-width:36px !important;overflow:hidden !important;
 }
 /* Toolbar: remove the stray gold highlight behind result count / sort / show */
 body.tax-product_cat .woocommerce-result-count,

@@ -154,6 +154,42 @@ jQuery(document).ready(function($) {
     new MutationObserver(initSubcategoryDragScroll).observe(document.body, { childList: true, subtree: true });
   } catch (e) {}
 
+  // ---- Archive/category product cards: strip the "Add to Cart" label so it
+  // matches the icon-only wishlist/quick-view buttons, in its existing
+  // position — no repositioning. The label reappears as a hover/focus
+  // tooltip (see [data-tooltip] CSS). Skips the homepage carousel, which
+  // already shows its own always-visible "Add to Cart" text button.
+  function initCartIconOnly() {
+    document.querySelectorAll('a.add_to_cart_button, button.add_to_cart_button').forEach(function(cart) {
+      if (cart.dataset.iconOnlyInit) return;
+      if (cart.closest('.product-slider, .af-shell-track, #productGrid')) return;
+      cart.dataset.iconOnlyInit = '1';
+
+      var label = (cart.textContent || '').trim() || 'Add to Cart';
+      Array.from(cart.childNodes)
+        .filter(function(n) { return n.nodeType === 3 && n.textContent.trim() !== ''; })
+        .forEach(function(n) { cart.removeChild(n); });
+      var labelSpan = document.createElement('span');
+      labelSpan.className = 'af-icon-label';
+      labelSpan.textContent = label;
+      cart.appendChild(labelSpan);
+      cart.setAttribute('data-tooltip', label);
+      cart.setAttribute('aria-label', label);
+      if (!cart.querySelector('svg, img, i, .dashicons, .af-icon-glyph')) {
+        var glyph = document.createElement('span');
+        glyph.className = 'af-icon-glyph';
+        glyph.setAttribute('aria-hidden', 'true');
+        glyph.textContent = '🛍'; // shopping bag
+        cart.insertBefore(glyph, cart.firstChild);
+      }
+      cart.classList.add('af-icon-only');
+    });
+  }
+  initCartIconOnly();
+  try {
+    new MutationObserver(initCartIconOnly).observe(document.body, { childList: true, subtree: true });
+  } catch (e) {}
+
   // ---- Pre-set USD currency cookie so plugin initialises with USD ----
   (function() {
     var opts = '; path=/; max-age=' + (86400 * 365);
