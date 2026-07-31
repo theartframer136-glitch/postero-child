@@ -19,10 +19,18 @@ add_action('wp_footer', function() {
     (function(){
       var DEST = <?php echo wp_json_encode($dest); ?>;
       function findBanner(){
-        var nodes = document.querySelectorAll('h1,h2,h3,.elementor-heading-title');
+        var nodes = document.querySelectorAll('h1,h2,h3,h4,.elementor-heading-title');
         for (var i = 0; i < nodes.length; i++) {
           if (/discover\s+original\s+works/i.test(nodes[i].textContent || '')) {
             return nodes[i].closest('.elementor-section, .e-con, section') || nodes[i].parentElement;
+          }
+        }
+        // the text may be baked into the banner artwork itself — find it by alt
+        var imgs = document.images;
+        for (var j = 0; j < imgs.length; j++) {
+          var alt = (imgs[j].alt || '') + ' ' + (imgs[j].src || '');
+          if (/discover[-_\s]?original|works[-_\s]?of[-_\s]?artists?/i.test(alt)) {
+            return imgs[j].closest('.elementor-section, .e-con, section') || imgs[j].parentElement;
           }
         }
         return null;
