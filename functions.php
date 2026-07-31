@@ -6013,6 +6013,19 @@ function af_dd_preview_handler() {
 add_action('wp_ajax_af_dd_preview',        'af_dd_preview_handler');
 add_action('wp_ajax_nopriv_af_dd_preview', 'af_dd_preview_handler');
 
+// Some theme-built cards carry no data-product_id at all — but they do link to
+// the product page. Resolve the slug so those cards can still sell properly
+// instead of falling into the not-available state.
+function af_dd_resolve_handler() {
+    $slug = isset($_GET['slug']) ? sanitize_title(wp_unslash($_GET['slug'])) : '';
+    if ($slug === '') wp_send_json_error();
+    $post = get_page_by_path($slug, OBJECT, 'product');
+    if (!$post || $post->post_status !== 'publish') wp_send_json_error();
+    wp_send_json_success(array('pid' => (int) $post->ID, 'name' => get_the_title($post)));
+}
+add_action('wp_ajax_af_dd_resolve',        'af_dd_resolve_handler');
+add_action('wp_ajax_nopriv_af_dd_resolve', 'af_dd_resolve_handler');
+
 // Render the Digital Download modal on homepage / shop / category
 add_action('wp_footer', function() {
     if (is_admin()) return;
@@ -6081,8 +6094,27 @@ add_action('wp_footer', function() {
         }
         var im = card.querySelector('img');
         var t  = card.querySelector('.product-title, h2, h3, .woocommerce-loop-product__title');
-        var lnk= card.querySelector('a[href]');
-        var name = t ? t.textContent.trim() : '';
+        var lnk= card.querySelector('a[href*="/product/"]') || card.querySelector('a[href]');
+        var name = t ? t.textContent.trim() : (lnk && lnk.title ? lnk.title.trim() : '');
+        // No id on the card? Its product link still knows who it is.
+        if(!curPid && lnk && /\/product\/([^\/?#]+)/.test(lnk.href)){
+          var slug = lnk.href.match(/\/product\/([^\/?#]+)/)[1];
+          fetch(<?php echo wp_json_encode(admin_url('admin-ajax.php')); ?> + '?action=af_dd_resolve&slug=' + encodeURIComponent(slug), {credentials:'same-origin'})
+            .then(function(r){ return r.json(); })
+            .then(function(j){
+              if(j && j.success && j.data && j.data.pid){
+                curPid = String(j.data.pid);
+                if(!name && j.data.name){ name = j.data.name; titleEl.textContent = name + ' — Digital Download'; }
+                if(addEl) addEl.style.display = '';
+                msgEl.textContent = '';
+                imgEl.removeAttribute('src'); imgEl.style.opacity = '.35';
+                fetch(<?php echo wp_json_encode(admin_url('admin-ajax.php')); ?> + '?action=af_dd_preview&pid=' + encodeURIComponent(curPid), {credentials:'same-origin'})
+                  .then(function(r2){ return r2.json(); })
+                  .then(function(j2){ imgEl.src = (j2 && j2.success && j2.data && j2.data.url) ? j2.data.url : ''; imgEl.style.opacity = '1'; })
+                  .catch(function(){ imgEl.style.opacity = '1'; });
+              }
+            }).catch(function(){});
+        }
         // Ghost guard: a product with no image or no name must not sell blind —
         // the recording showed exactly that (blank title, broken image, Add to Cart).
         if(!curPid || !im || !name){
