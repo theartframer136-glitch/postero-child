@@ -33,7 +33,7 @@ jobs:
           printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-      - name: Deploy + reset caches
+      - name: Deploy (rsync + opcache + mode decision)
         timeout-minutes: 30
         run: |
           set -uo pipefail
@@ -107,8 +107,19 @@ jobs:
           else
             echo "LIGHT deploy (theme code only): skipping the script suite. Put [full-deploy] in the commit message to force it."
           fi
+          echo "RUN_SUITE=$RUN_SUITE" >> "$GITHUB_ENV"
 
-          if [ "$RUN_SUITE" = "1" ]; then
+      - name: Script suite 1 — catalogue & content
+        if: env.RUN_SUITE == '1'
+        timeout-minutes: 15
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          THEME="postero-child"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
+          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           echo "Applying product template to ALL canvas products..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
@@ -302,8 +313,18 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/diag-cat-dom.php --allow-root 2>&1" \
             || true
 
-          fi
           # ── always run: LiteSpeed safety enforcement, recovery, headers ──
+
+      - name: Safety enforcement (always)
+        timeout-minutes: 10
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          THEME="postero-child"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
+          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           echo "Disabling LiteSpeed image lazy-load + JS defer/combine (keep Instagram embed + products visible)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
@@ -327,7 +348,17 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/set-security-headers.php --allow-root 2>&1" \
             || true
 
-          if [ "$RUN_SUITE" = "1" ]; then
+      - name: Script suite 2 — media & data
+        if: env.RUN_SUITE == '1'
+        timeout-minutes: 15
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          THEME="postero-child"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
+          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           echo "Warming Products In Motion YouTube feed cache..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
@@ -397,8 +428,18 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/link-artist-banner.php --allow-root 2>&1" \
             || true
 
-          fi
           # ── always run: cache clear ──
+
+      - name: Cache clear (always)
+        timeout-minutes: 10
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          THEME="postero-child"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
+          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           echo "Clearing caches after all updates..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
@@ -407,7 +448,17 @@ jobs:
              wp cache flush --allow-root 2>/dev/null || true; \
              echo 'Cache cleared'" || echo "Cache clear skipped"
 
-          if [ "$RUN_SUITE" = "1" ]; then
+      - name: Script suite 3 — verifiers & audit
+        if: env.RUN_SUITE == '1'
+        timeout-minutes: 20
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          THEME="postero-child"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
+          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           echo "Hardening digital downloads (limits + expiry)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
@@ -493,8 +544,18 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/audit-live-site.php --allow-root 2>&1" \
             || true
 
-          fi
           # ── always run: boot gate, 200 gate, cache warm ──
+
+      - name: Gates & warm (always)
+        timeout-minutes: 10
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          THEME="postero-child"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
+          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           echo "GATE: the theme must actually boot..."
           BOOT=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
