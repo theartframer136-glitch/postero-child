@@ -45,6 +45,30 @@ $exp = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key='_d
 af_pv('downloadable products found', (int) $dl > 0, $fail, "{$dl}");
 af_pv('download limits set',  (int) $lim >= (int) $dl, $fail, "{$lim} products");
 af_pv('download expiry set',  (int) $exp >= (int) $dl, $fail, "{$exp} products");
+af_pv('watermarks enabled',   get_option('af_wm_enabled') === 'yes', $fail);
+af_pv('watermark gate is category-based', function_exists('af_wm_applies'), $fail);
+// the modal must fetch its preview from the endpoint, never reuse the card image
+$hp = af_pv_get(home_url('/?nocache=' . time()));
+if (!is_wp_error($hp)) {
+    $hb = wp_remote_retrieve_body($hp);
+    af_pv('dd modal uses preview endpoint', strpos($hb, 'af_dd_preview') !== false, $fail);
+    af_pv('dd modal image shield ships',    strpos($hb, 'af-dd-shield') !== false, $fail);
+    af_pv('image save-guard ships',         strpos($hb, 'dragstart') !== false, $fail);
+}
+// the endpoint itself: watermarked URL, and never the raw master
+$probe = get_posts(array('post_type'=>'product','post_status'=>'publish','fields'=>'ids','posts_per_page'=>1,
+    'meta_query'=>array(array('key'=>'_thumbnail_id','compare'=>'EXISTS'))));
+if ($probe) {
+    $r = af_pv_get(admin_url('admin-ajax.php') . '?action=af_dd_preview&pid=' . $probe[0]);
+    if (!is_wp_error($r)) {
+        $j = json_decode(wp_remote_retrieve_body($r), true);
+        $u = isset($j['data']['url']) ? $j['data']['url'] : '';
+        $master = wp_get_attachment_url(get_post_thumbnail_id($probe[0]));
+        af_pv('preview endpoint answers', !empty($j['success']) && $u !== '', $fail,
+              !empty($j['data']['wm']) ? 'watermarked' : 'small fallback');
+        af_pv('endpoint never serves the master', $u !== '' && $u !== $master, $fail);
+    }
+}
 
 $home = af_pv_get(home_url('/?nocache=' . time()));
 $hb = is_wp_error($home) ? '' : wp_remote_retrieve_body($home);

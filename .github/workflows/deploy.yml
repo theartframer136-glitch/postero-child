@@ -346,6 +346,12 @@ jobs:
              wp rewrite flush --hard --allow-root 2>&1" \
             || true
 
+          echo "Enabling watermarked previews for digital-download products..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/enable-watermarks.php --allow-root 2>&1" \
+            || true
+
           echo "Linking the artist banner to Direct from Artists..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

@@ -5987,6 +5987,24 @@ add_action('woocommerce_checkout_create_order_line_item', function($item, $key, 
     if (!empty($values['af_digital'])) $item->add_meta_data('Format', 'Digital Download');
 }, 20, 3);
 
+// The modal used to display the card's raw image, which a right-click saved
+// cleanly — the exact leak shown in the screen recording. It now asks the
+// server for a WATERMARKED preview of the product's artwork instead.
+function af_dd_preview_handler() {
+    $pid = isset($_GET['pid']) ? absint($_GET['pid']) : 0;
+    if (!$pid || get_post_type($pid) !== 'product') wp_send_json_error();
+    $thumb = get_post_thumbnail_id($pid);
+    if (!$thumb) wp_send_json_error();
+    $wm = function_exists('af_wm_preview_url') ? af_wm_preview_url($thumb) : false;
+    if ($wm && !empty($wm['url'])) wp_send_json_success(array('url' => $wm['url'], 'wm' => 1));
+    // watermarking unavailable — serve only a small size, never the master
+    $small = wp_get_attachment_image_src($thumb, 'medium');
+    if ($small && !empty($small[0])) wp_send_json_success(array('url' => $small[0], 'wm' => 0));
+    wp_send_json_error();
+}
+add_action('wp_ajax_af_dd_preview',        'af_dd_preview_handler');
+add_action('wp_ajax_nopriv_af_dd_preview', 'af_dd_preview_handler');
+
 // Render the Digital Download modal on homepage / shop / category
 add_action('wp_footer', function() {
     if (is_admin()) return;
@@ -5998,7 +6016,7 @@ add_action('wp_footer', function() {
       <div class="af-dd-modal">
         <button class="af-dd-x" data-dd-close aria-label="Close">&times;</button>
         <div class="af-dd-flex">
-          <div class="af-dd-imgwrap"><img id="af-dd-img" alt=""></div>
+          <div class="af-dd-imgwrap"><img id="af-dd-img" alt="" draggable="false"><span class="af-dd-shield" aria-hidden="true"></span></div>
           <div class="af-dd-info">
             <span class="af-dd-tag">⬇ Instant Digital Download</span>
             <h3 id="af-dd-title">Digital Download</h3>
@@ -6056,8 +6074,29 @@ add_action('wp_footer', function() {
         var im = card.querySelector('img');
         var t  = card.querySelector('.product-title, h2, h3, .woocommerce-loop-product__title');
         var lnk= card.querySelector('a[href]');
-        imgEl.src = im ? (im.currentSrc||im.src||im.getAttribute('data-src')||'') : '';
-        titleEl.textContent = (t?t.textContent.trim():'This Artwork') + ' — Digital Download';
+        var name = t ? t.textContent.trim() : '';
+        // Ghost guard: a product with no image or no name must not sell blind —
+        // the recording showed exactly that (blank title, broken image, Add to Cart).
+        if(!curPid || !im || !name){
+          imgEl.removeAttribute('src');
+          titleEl.textContent = 'Not available for instant download';
+          if(addEl) addEl.style.display = 'none';
+          msgEl.textContent = 'This item cannot be purchased as a digital download.';
+          open(); return;
+        }
+        if(addEl) addEl.style.display = '';
+        // never show the raw artwork here: ask the server for the watermarked
+        // preview (the raw file was one right-click away in the old modal)
+        imgEl.removeAttribute('src');
+        imgEl.style.opacity = '.35';
+        fetch(<?php echo wp_json_encode(admin_url('admin-ajax.php')); ?> + '?action=af_dd_preview&pid=' + encodeURIComponent(curPid), {credentials:'same-origin'})
+          .then(function(r){ return r.json(); })
+          .then(function(j){
+            imgEl.src = (j && j.success && j.data && j.data.url) ? j.data.url : '';
+            imgEl.style.opacity = '1';
+          })
+          .catch(function(){ imgEl.style.opacity = '1'; });
+        titleEl.textContent = name + ' — Digital Download';
         viewEl.href = lnk ? lnk.href : '#';
         msgEl.textContent='';
         open();
@@ -6088,7 +6127,9 @@ add_action('wp_footer', function() {
     .af-dd-x{position:absolute;top:12px;right:14px;background:none;border:none;font-size:28px;line-height:1;color:#888;cursor:pointer;z-index:2;}
     .af-dd-x:hover{color:#1a1a1a;}
     .af-dd-flex{display:flex;flex-wrap:wrap;}
-    .af-dd-imgwrap{flex:1 1 260px;min-height:240px;background:#f4f4f4;}
+    .af-dd-imgwrap{flex:1 1 260px;min-height:240px;background:#f4f4f4;position:relative;}
+    .af-dd-shield{position:absolute;inset:0;z-index:2;}
+    .af-dd-imgwrap img{-webkit-user-drag:none;user-select:none;}
     .af-dd-imgwrap img{width:100%;height:100%;object-fit:cover;display:block;}
     .af-dd-info{flex:1 1 300px;padding:26px 24px;}
     .af-dd-tag{display:inline-block;background:#faf2df;color:#a8872e;font-weight:800;font-size:12px;padding:5px 11px;border-radius:14px;letter-spacing:.03em;}
@@ -7727,12 +7768,32 @@ function af_wm_enabled() {
     return apply_filters('af_wm_enabled', get_option('af_wm_enabled', 'no') === 'yes');
 }
 
+/**
+ * Watermarks belong on products SOLD as files, not on the whole catalogue
+ * (every product is flagged downloadable for the add-on option, so
+ * is_downloadable() cannot be the gate). Digital-download categories and
+ * their children are the honest signal.
+ */
+function af_wm_applies($product) {
+    if (!$product) return false;
+    $ids = array();
+    foreach (array('digital-downloads', 'instant-downloads', 'printable-art') as $slug) {
+        $t = get_term_by('slug', $slug, 'product_cat');
+        if (!$t) continue;
+        $ids[] = (int) $t->term_id;
+        $kids = get_term_children($t->term_id, 'product_cat');
+        if (!is_wp_error($kids)) $ids = array_merge($ids, array_map('intval', $kids));
+    }
+    if (!$ids) return false;
+    return has_term($ids, 'product_cat', $product->get_id());
+}
+
 // Swap gallery images for watermarked previews on downloadable products
 add_filter('woocommerce_single_product_image_thumbnail_html', function($html, $attachment_id) {
     if (!is_product()) return $html;
     if (!af_wm_enabled()) return $html;
     global $product;
-    if (!$product || !$product->is_downloadable()) return $html;
+    if (!$product || !af_wm_applies($product)) return $html;
     $wm = af_wm_preview_url($attachment_id);
     if (!$wm) return $html;
     // Point every size variant, zoom target, and lightbox link at the preview.
@@ -10467,7 +10528,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'reels', 'cookie-consent', 'masonry', 'orientation-filter', 'blog-hub', 'analytics', 'live-chat', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page') as $af_mod) {
+foreach (array('abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'reels', 'cookie-consent', 'masonry', 'orientation-filter', 'blog-hub', 'analytics', 'live-chat', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }
