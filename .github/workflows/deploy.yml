@@ -618,7 +618,12 @@ jobs:
             echo "  warmed $URL -> $CODE"
             WARMED=$((WARMED + 1))
             sleep 2
-          done < <(awk '!seen[$0]++' "$WARM_LIST")
+          done < <(
+            # Homepage first, then category archives (the money pages — their
+            # sitemap sits last in the index and got crowded out by the page
+            # list before this reorder), then everything else, deduped.
+            { head -1 "$WARM_LIST"; grep '/product-category/' "$WARM_LIST"; tail -n +2 "$WARM_LIST" | grep -v '/product-category/'; } | awk '!seen[$0]++'
+          )
           echo "Warmed $WARMED pages."
 
           echo "Deploy complete"
