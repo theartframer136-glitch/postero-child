@@ -45,7 +45,15 @@ function af_ab_inventory($el, $depth = 0) {
     }
 }
 
-/** Walk a subtree, linking every element shape that can carry a link. */
+/**
+ * The banner turned out to be nested flex containers with the whole design as
+ * one background image — and the inner container already linked to /shop/,
+ * the wrong destination. Exactly one container may carry the link (nested
+ * anchors are invalid HTML and the inner one wins anyway), so: the container
+ * that owns the background image gets the Direct from Artists link, and every
+ * other container link inside the banner is cleared. Widgets keep the earlier
+ * behaviour. Idempotent.
+ */
 function af_ab_link(&$el, $dest, &$stats) {
     $set = array('url' => $dest, 'is_external' => '', 'nofollow' => '', 'custom_attributes' => '');
     $w   = isset($el['widgetType']) ? $el['widgetType'] : '';
@@ -53,7 +61,6 @@ function af_ab_link(&$el, $dest, &$stats) {
     if ($w === 'button') {
         $cur = isset($el['settings']['link']['url']) ? $el['settings']['link']['url'] : '';
         if ($cur === '' || $cur === '#') { $el['settings']['link'] = $set; $stats['button']++; }
-        else $stats['button_kept']++;
     } elseif ($w === 'image') {
         $to  = isset($el['settings']['link_to']) ? $el['settings']['link_to'] : 'none';
         $cur = isset($el['settings']['link']['url']) ? $el['settings']['link']['url'] : '';
@@ -61,24 +68,25 @@ function af_ab_link(&$el, $dest, &$stats) {
             $el['settings']['link_to'] = 'custom';
             $el['settings']['link']    = $set;
             $stats['image']++;
-        } else $stats['image_kept']++;
-    } elseif ($w !== '') {
-        // any other widget that exposes a link-shaped setting (call-to-action,
-        // image-box, theme widgets…): fill every empty one it has
-        if (!empty($el['settings']) && is_array($el['settings'])) {
-            foreach ($el['settings'] as $k => $v) {
-                if ($k !== 'link' && substr($k, -5) !== '_link') continue;
-                if (is_array($v) && (!isset($v['url']) || $v['url'] === '' || $v['url'] === '#')) {
-                    $el['settings'][$k] = $set; $stats['other']++;
-                }
+        }
+    } elseif ($w !== '' && !empty($el['settings']) && is_array($el['settings'])) {
+        foreach ($el['settings'] as $k => $v) {
+            if ($k !== 'link' && substr($k, -5) !== '_link') continue;
+            if (is_array($v) && (!isset($v['url']) || $v['url'] === '' || $v['url'] === '#')) {
+                $el['settings'][$k] = $set; $stats['other']++;
             }
         }
-    } elseif (isset($el['elType']) && in_array($el['elType'], array('container', 'section', 'column'), true)) {
-        // flex containers can be links themselves — use it only when the
-        // banner has no linkable widgets at all (decided by the caller)
-        $cur = isset($el['settings']['link']['url']) ? $el['settings']['link']['url'] : '';
-        if ($cur === '' && $el['elType'] === 'container' && empty($stats['container_done'])) {
-            $el['settings']['link'] = $set; $stats['container']++; $stats['container_done'] = 1;
+    } elseif ($w === '' && isset($el['elType']) && in_array($el['elType'], array('container', 'section', 'column'), true)) {
+        $has_bg = !empty($el['settings']['background_image']['url']);
+        $cur    = isset($el['settings']['link']['url']) ? $el['settings']['link']['url'] : '';
+        if ($has_bg && empty($stats['bg_done'])) {
+            if ($cur !== $dest) { $el['settings']['link'] = $set; $stats['bg_set']++; }
+            else $stats['bg_kept']++;
+            $stats['bg_done'] = 1;
+        } elseif ($cur !== '') {
+            // any other linked container inside the banner would nest anchors
+            $el['settings']['link'] = array('url' => '', 'is_external' => '', 'nofollow' => '', 'custom_attributes' => '');
+            $stats['cleared']++;
         }
     }
     if (!empty($el['elements']) && is_array($el['elements'])) {
@@ -87,7 +95,7 @@ function af_ab_link(&$el, $dest, &$stats) {
     }
 }
 
-$stats = array('button' => 0, 'image' => 0, 'other' => 0, 'container' => 0, 'button_kept' => 0, 'image_kept' => 0);
+$stats = array('button' => 0, 'image' => 0, 'other' => 0, 'bg_set' => 0, 'bg_kept' => 0, 'cleared' => 0);
 $found = false;
 foreach ($tree as &$top) {
     if (!af_ab_contains($top, 'Discover Original Works')) continue;
@@ -99,13 +107,13 @@ foreach ($tree as &$top) {
 unset($top);
 
 if (!$found) { echo "Banner section not found in Elementor data — nothing changed.\n"; return; }
-if ($stats['button'] + $stats['image'] + $stats['other'] + $stats['container'] > 0) {
+if ($stats['button'] + $stats['image'] + $stats['other'] + $stats['bg_set'] + $stats['cleared'] > 0) {
     update_post_meta($front, '_elementor_data', wp_slash(wp_json_encode($tree)));
     if (class_exists('\Elementor\Plugin')) {
         try { \Elementor\Plugin::$instance->files_manager->clear_cache(); } catch (\Throwable $t) {}
     }
     if (function_exists('do_action')) do_action('litespeed_purge_all');
 }
-printf("banner found — buttons: %d, images: %d, other widgets: %d, container: %d (kept existing: %d)\n",
-    $stats['button'], $stats['image'], $stats['other'], $stats['container'], $stats['button_kept'] + $stats['image_kept']);
+printf("banner found — bg container linked: %d (already correct: %d), stray container links cleared: %d, buttons: %d, images: %d, other: %d\n",
+    $stats['bg_set'], $stats['bg_kept'], $stats['cleared'], $stats['button'], $stats['image'], $stats['other']);
 echo "=== DONE ===\n";
