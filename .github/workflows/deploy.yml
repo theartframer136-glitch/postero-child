@@ -479,4 +479,28 @@ jobs:
             *) echo "::error::Homepage still returned $CODE after 5 attempts over ~1 minute."; exit 1 ;;
           esac
 
+          echo "Re-warming page cache (the mid-pipeline purge left every page cold — without this, real visitors pay the cold-render cost and hit 508s while the host is still busy)..."
+          # Sequential, one request at a time, so warming itself never adds
+          # concurrent-PHP pressure. Warms the default (anonymous desktop)
+          # cache variant — the one first-time visitors get.
+          WARM_LIST=/tmp/warm-urls.txt
+          echo "https://theartframer.us/" > "$WARM_LIST"
+          for SITEMAP in "https://theartframer.us/sitemap_index.xml" "https://theartframer.us/wp-sitemap.xml"; do
+            SUBMAPS=$(curl -s --max-time 30 "$SITEMAP" | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | grep -i 'product_cat\|product-cat\|category\|page' | head -4)
+            [ -n "$SUBMAPS" ] || continue
+            for SM in $SUBMAPS; do
+              curl -s --max-time 30 "$SM" | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' >> "$WARM_LIST"
+            done
+            break
+          done
+          WARMED=0
+          while read -r URL; do
+            [ $WARMED -ge 30 ] && break
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 45 -A 'Mozilla/5.0 (X11; Linux x86_64) AF-CacheWarmer' "$URL" || echo 000)
+            echo "  warmed $URL -> $CODE"
+            WARMED=$((WARMED + 1))
+            sleep 2
+          done < <(awk '!seen[$0]++' "$WARM_LIST")
+          echo "Warmed $WARMED pages."
+
           echo "Deploy complete"
