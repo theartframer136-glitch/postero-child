@@ -65,9 +65,14 @@ $pages = array(
 );
 
 echo "=== FULL LIVE-SITE AUDIT ===\n";
+$first = true;
 foreach ($pages as $label => $def) {
     list($url, $markers) = $def;
     if (!$url || is_wp_error($url)) { printf("%-20s SKIP (no url)\n", $label); continue; }
+    // 20+ uncached fetches back to back can trip the host's own resource
+    // limit and 508 a page that is perfectly healthy — pace them out
+    if (!$first) sleep(2);
+    $first = false;
     $r = af_au_get(add_query_arg('nocache', time(), $url));
     if (is_wp_error($r)) { printf("%-20s FETCH FAILED %s\n", $label, $r->get_error_message()); $fail++; continue; }
     $code = (int) wp_remote_retrieve_response_code($r);

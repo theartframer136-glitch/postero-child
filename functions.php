@@ -5997,9 +5997,17 @@ function af_dd_preview_handler() {
     if (!$thumb) wp_send_json_error();
     $wm = function_exists('af_wm_preview_url') ? af_wm_preview_url($thumb) : false;
     if ($wm && !empty($wm['url'])) wp_send_json_success(array('url' => $wm['url'], 'wm' => 1));
-    // watermarking unavailable — serve only a small size, never the master
-    $small = wp_get_attachment_image_src($thumb, 'medium');
-    if ($small && !empty($small[0])) wp_send_json_success(array('url' => $small[0], 'wm' => 0));
+    // Watermarking unavailable (GD can choke on the very large masters).
+    // Fall back to a genuinely small size — and never the master: WordPress
+    // returns the ORIGINAL file for any size an image never generated, which
+    // is exactly the leak this endpoint exists to close. No small size, no image.
+    $master = wp_get_attachment_url($thumb);
+    foreach (array('medium', 'woocommerce_thumbnail', 'thumbnail') as $size) {
+        $small = wp_get_attachment_image_src($thumb, $size);
+        if ($small && !empty($small[0]) && $small[0] !== $master) {
+            wp_send_json_success(array('url' => $small[0], 'wm' => 0));
+        }
+    }
     wp_send_json_error();
 }
 add_action('wp_ajax_af_dd_preview',        'af_dd_preview_handler');
