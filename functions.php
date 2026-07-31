@@ -7432,6 +7432,12 @@ add_action('template_redirect', function () {
 add_action('wp_head', function () {
     echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
     echo '<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>' . "\n";
+    // Correct Instrument Sans stylesheet, printed by us because LiteSpeed's
+    // CSS optimizer runs AFTER the 24c-2 buffer (PHP buffers flush
+    // innermost-first) and mangles the original link into an HTTP-400 URL
+    // that the buffer therefore cannot see, let alone repair.
+    // data-no-optimize keeps LiteSpeed's optimizer off this one.
+    echo '<link rel="stylesheet" data-no-optimize="1" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600&display=swap">' . "\n";
 }, 2);
 
 // 24c-4. AJAX-rendered product cards (Trending Today / More Like This
