@@ -61,7 +61,14 @@ add_action('wp_footer', function() {
     .af-ck-btn.solid{background:#1a1a1a;border-color:#1a1a1a;color:#fff;}
     .af-ck-btn.solid:hover{background:#000;}
     .af-ck-btn.ghost{background:transparent;}
-    .af-ck-foot{font-size:12px;color:inherit;opacity:.85;text-decoration:underline;cursor:pointer;background:none;border:0;padding:0;}
+    /* footer reopen links — pills, not bare underlined text */
+    .af-ck-footwrap{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;
+      margin:18px auto 6px;padding:14px 16px 0;border-top:1px solid rgba(150,135,100,.18);max-width:720px;}
+    .af-ck-foot{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.02em;
+      color:#6b6250;background:#fffdf8;border:1.5px solid #e2d9c4;border-radius:999px;padding:9px 16px;cursor:pointer;
+      text-transform:none;text-decoration:none;line-height:1;transition:border-color .15s,color .15s,box-shadow .15s;}
+    .af-ck-foot:hover{border-color:#c9a84c;color:#a8872e;box-shadow:0 4px 14px rgba(70,54,26,.10);}
+    .af-ck-foot .af-ck-ico{font-size:14px;line-height:1;}
     @media(max-width:600px){.af-ck-card{padding:14px;}.af-ck-actions{width:100%;}}
     </style>
     <script>
@@ -119,12 +126,7 @@ add_action('wp_footer', function() {
         if (document.getElementById('af-ck-reopen')) return;
         var host = document.querySelector('.site-footer .footer-bottom, footer .copyright, footer');
         if (!host) return;
-        var p = document.createElement('p');
-        p.style.cssText = 'text-align:center;margin:8px 0 0;';
-        var b = document.createElement('button');
-        b.type = 'button'; b.id = 'af-ck-reopen'; b.className = 'af-ck-foot';
-        b.textContent = 'Cookie preferences · Do Not Sell or Share My Personal Information';
-        b.addEventListener('click', function(){
+        function reopen(){
           var c = read() || {};
           document.getElementById('af-ck-analytics').checked = !!c.analytics;
           document.getElementById('af-ck-marketing').checked = !!c.marketing;
@@ -132,8 +134,19 @@ add_action('wp_footer', function() {
           document.getElementById('af-ck-prefs').hidden = true;
           document.getElementById('af-ck-save').hidden = false;
           box.hidden = false;
-        });
-        p.appendChild(b); host.appendChild(p);
+        }
+        function pill(id, icon, label){
+          var b = document.createElement('button');
+          b.type = 'button'; b.id = id; b.className = 'af-ck-foot';
+          b.innerHTML = '<span class="af-ck-ico" aria-hidden="true">' + icon + '</span>' + label;
+          b.addEventListener('click', reopen);
+          return b;
+        }
+        var wrap = document.createElement('div');
+        wrap.className = 'af-ck-footwrap';
+        wrap.appendChild(pill('af-ck-reopen', '🍪', 'Cookie Preferences'));
+        wrap.appendChild(pill('af-ck-ccpa', '🔒', 'Do Not Sell or Share My Personal Information'));
+        host.appendChild(wrap);
       }
       hookFooter();
     })();
