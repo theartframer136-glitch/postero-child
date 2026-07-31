@@ -32,10 +32,14 @@ $anchors = array(
 );
 $pos = array();
 foreach ($anchors as $label => $needle) {
-    $p = stripos($html, $needle);
-    if ($p !== false) $pos[$label] = $p;
+    // headings carry markup inside the text ("Shop <span>by</span> Collection"),
+    // so match the words with tags/entities allowed between them
+    $words = array_map(function($w){ return preg_quote($w, '#'); }, explode(' ', $needle));
+    $re    = '#' . implode('(?:\s|&nbsp;|<[^>]+>)+', $words) . '#i';
+    if (preg_match($re, $html, $m, PREG_OFFSET_CAPTURE)) $pos[$label] = $m[0][1];
 }
 asort($pos);
+if (!$pos) { echo "NO section headings matched — homepage markup changed?\n"; return; }
 $labels = array_keys($pos);
 $slices = array();
 for ($i = 0; $i < count($labels); $i++) {

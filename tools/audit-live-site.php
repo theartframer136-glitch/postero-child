@@ -12,10 +12,11 @@ $fail = 0; $warn = 0;
 
 function af_au_get($url) {
     $a = array('timeout'=>60,'sslverify'=>false,'headers'=>array('User-Agent'=>'Mozilla/5.0 (X11; Linux x86_64) AF-Audit'));
-    for ($i=0;$i<3;$i++) {
+    // the host's 508 waves can outlast a short retry burst — back off longer
+    foreach (array(0, 4, 8, 15) as $wait) {
+        if ($wait) sleep($wait);
         $r = wp_remote_get($url,$a);
         if (!is_wp_error($r) && !in_array((int) wp_remote_retrieve_response_code($r), array(508,503,429), true)) return $r;
-        sleep(3);
     }
     return $r;
 }
