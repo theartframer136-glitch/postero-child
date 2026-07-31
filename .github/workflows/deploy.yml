@@ -35,11 +35,21 @@ jobs:
 
       - name: Deploy (rsync + opcache + mode decision)
         timeout-minutes: 30
+        # All ${{ }} live here, NOT in the run block: a run block containing
+        # any expression is compiled as one template capped at 21000 chars,
+        # and this script is far past that.
+        env:
+          H_USER: ${{ secrets.HOSTINGER_USERNAME }}
+          H_HOST: ${{ secrets.HOSTINGER_HOST }}
+          H_PORT: ${{ secrets.HOSTINGER_PORT }}
+          GH_EVENT_NAME: ${{ github.event_name }}
+          GH_BEFORE: ${{ github.event.before }}
+          GH_SHA: ${{ github.sha }}
         run: |
           set -uo pipefail
-          USER="${{ secrets.HOSTINGER_USERNAME }}"
-          HOST="${{ secrets.HOSTINGER_HOST }}"
-          PORT="${{ secrets.HOSTINGER_PORT }}"
+          USER="$H_USER"
+          HOST="$H_HOST"
+          PORT="$H_PORT"
           THEME="postero-child"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
@@ -89,13 +99,13 @@ jobs:
           # the commit message contains [full-deploy], or the range is unknown
           # (manual runs, force pushes).
           RUN_SUITE=1
-          BEFORE="${{ github.event.before }}"
-          if [ "${{ github.event_name }}" = "push" ] \
+          BEFORE="$GH_BEFORE"
+          if [ "$GH_EVENT_NAME" = "push" ] \
              && [ -n "$BEFORE" ] \
              && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
              && git cat-file -e "$BEFORE" 2>/dev/null; then
-            CHANGED=$(git diff --name-only "$BEFORE" "${{ github.sha }}" 2>/dev/null)
-            MSGS=$(git log --format=%B "$BEFORE..${{ github.sha }}" 2>/dev/null)
+            CHANGED=$(git diff --name-only "$BEFORE" "$GH_SHA" 2>/dev/null)
+            MSGS=$(git log --format=%B "$BEFORE..$GH_SHA" 2>/dev/null)
             if [ -n "$CHANGED" ] \
                && ! printf '%s\n' "$CHANGED" | grep -q '^tools/' \
                && ! printf '%s\n' "$MSGS" | grep -qi '\[full-deploy\]'; then
