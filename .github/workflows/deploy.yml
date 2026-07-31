@@ -437,6 +437,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/verify-ar-layouts.php --allow-root 2>&1" \
             || true
 
+          echo "Homepage card-section function parity..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-card-parity.php --allow-root 2>&1" \
+            || true
+
           echo "FULL LIVE-SITE AUDIT (all key pages)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
