@@ -2659,7 +2659,9 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
 <!-- Lightbox -->
 <div class="af-pim-lb" id="afPimLb">
   <button class="af-pim-lb-x" id="afPimLbX">&times;</button>
-  <iframe id="afPimLbFrame" src="" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>
+  <!-- No src attribute: src="" resolves to the page's own URL, which made
+       every page load a full hidden copy of itself inside this lightbox. -->
+  <iframe id="afPimLbFrame" allow="autoplay; fullscreen; encrypted-media" allowfullscreen></iframe>
 </div>
 
 <script>
@@ -2747,7 +2749,9 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
 
     function closeLb() {
         lb.classList.remove('open');
-        lbFr.src = '';
+        // 'about:blank', not '': an empty src navigates the iframe to the
+        // page's own URL, silently re-downloading the whole page.
+        lbFr.src = 'about:blank';
     }
     lbX.onclick = closeLb;
     lb.addEventListener('click', function(e){ if (e.target === lb) closeLb(); });
@@ -7350,6 +7354,168 @@ add_action('template_redirect', function () {
         return preg_replace('#<link\b[^>]*\bhreflang=[^>]*>\s*#i', '', $html);
     });
 }, 0);
+
+// 24c-2. PERF: restore lazy-loading at the HTML layer + repair two bugs
+// found in the 2026-07-31 speed audit (homepage: 250 requests / 6.4 MB
+// visible payload + ~8 hidden YouTube embeds, full load 13.7s).
+//
+// Background: LiteSpeed's JS lazy-loader (data-src placeholder swap) broke
+// carousel/AJAX images, so deploy.yml force-disables it — which also left
+// every below-fold image loading eagerly. Browser-native loading="lazy"
+// is a different mechanism (no placeholder, no JS) and is already present
+// on ~60 images per page via WP core without issues, so extending it is
+// safe where the JS variant was not.
+//
+// What this buffer does:
+//  1) Repairs the LiteSpeed-mangled Google Fonts link. It ships as
+//     family=Instrument+Sans:<local-css-url>, which HTTP-400s — a wasted
+//     render-blocking request AND the reason Instrument Sans never loads.
+//     (The local CSS file glued into the URL is a 0-byte artifact; nothing
+//     is lost by dropping it.)
+//  2) Adds loading="lazy" to YouTube embed iframes. The Products In Motion
+//     section hides its 8 playlist embeds behind the circle slider, but
+//     they still download in full (~1 MB each). Lazy + hidden = the
+//     browser never fetches them; if the slider ever fails to place, they
+//     still load on scroll as a fallback.
+//  3) Adds loading="lazy" decoding="async" to below-fold <img> tags.
+//     Skips: the first 7 images (header logos + revslider hero — the LCP
+//     must stay eager), anything already declaring loading=, slider-
+//     managed images (revslider/swiper run their own loaders), and
+//     data-URI placeholders.
+add_action('template_redirect', function () {
+    if (is_admin() || is_feed() || is_customize_preview()) return;
+    // Insurance: skip AJAX-fragment-heavy WooCommerce pages (the original
+    // LiteSpeed breakage was lazy images inside AJAX-replaced markup).
+    if (function_exists('is_cart') && (is_cart() || is_checkout() || is_account_page())) return;
+    ob_start(function ($html) {
+        if (stripos($html, '</html>') === false) return $html; // only full pages
+
+        // (1) broken Google Fonts href -> correct one
+        $html = preg_replace(
+            '#<link\b[^>]*href=["\'](?:https?:)?//fonts\.googleapis\.com/css2\?family=Instrument\+Sans:https?[^"\']*["\'][^>]*/?>#i',
+            '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600&display=swap">',
+            $html
+        );
+
+        // (2) YouTube embeds
+        $html = preg_replace_callback('#<iframe\b[^>]*>#i', function ($m) {
+            $tag = $m[0];
+            if (stripos($tag, 'youtube.com/embed') === false) return $tag;
+            if (stripos($tag, 'loading=') !== false) return $tag;
+            return '<iframe loading="lazy"' . substr($tag, 7);
+        }, $html);
+
+        // (3) below-fold images
+        $seen = 0;
+        $html = preg_replace_callback('#<img\b[^>]*>#i', function ($m) use (&$seen) {
+            $tag = $m[0];
+            $seen++;
+            if ($seen <= 7) return $tag;                                   // logos + hero (LCP)
+            if (stripos($tag, 'loading=') !== false) return $tag;          // already lazy/eager by choice
+            if (stripos($tag, 'data-src') !== false || stripos($tag, 'data-lazy') !== false) return $tag;
+            if (stripos($tag, '/revslider/') !== false) return $tag;       // slider's own loader
+            if (preg_match('#class=["\'][^"\']*(?:\brs-|\bsr7|\btp-|swiper-slide-image)#i', $tag)) return $tag;
+            if (stripos($tag, 'src="data:') !== false || stripos($tag, "src='data:") !== false) return $tag;
+            $ins = ' loading="lazy"';
+            if (stripos($tag, 'decoding=') === false) $ins .= ' decoding="async"';
+            return '<img' . $ins . substr($tag, 4);
+        }, $html);
+
+        return $html;
+    });
+}, 0);
+
+// 24c-3. PERF: preconnect to the font/icon CDNs the page actually uses —
+// fonts.gstatic.com serves the Instrument Sans woff2 files (see 24c-2),
+// cdnjs.cloudflare.com serves the chat launcher's Font Awesome. Shaves a
+// DNS+TLS round-trip off each first fetch.
+add_action('wp_head', function () {
+    echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
+    echo '<link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>' . "\n";
+}, 2);
+
+// 24c-4. AJAX-rendered product cards (Trending Today / More Like This
+// sections arrive via admin-ajax) bypass the 24c-2 output buffer, so give
+// their images native lazy-loading here. AJAX fragments are injected after
+// first paint and are never the LCP, so blanket lazy is safe there.
+add_filter('wp_get_attachment_image_attributes', function ($attr) {
+    if (wp_doing_ajax() && empty($attr['loading'])) {
+        $attr['loading'] = 'lazy';
+        if (empty($attr['decoding'])) $attr['decoding'] = 'async';
+    }
+    return $attr;
+}, 20);
+
+// 24c-5. QUICK VIEW RELIABILITY: the stock quick-view binder (inline
+// script outside this theme) has a success handler but NO error handler,
+// so when the shared host's process cap returns a transient 508 the modal
+// sits on "Loading..." forever (user-reported 2026-07-31 with a screen
+// recording; reproduced live — admin-ajax load_quick_product answered
+// 508). Intercept the click in the capture phase (fires before jQuery's
+// delegated handler), run the same loader with a timeout, retry up to 3
+// attempts with backoff — the 508s are burst-transient — and fall back to
+// a link to the full product page if the host stays saturated.
+add_action('wp_footer', function () {
+    ?>
+<script>
+(function () {
+  if (!window.jQuery) return;
+  var $ = window.jQuery;
+  var AJAX_URL = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
+
+  function productUrl(btn) {
+    var card = btn.closest('.product-card, li.product, .product');
+    var a = card ? card.querySelector('a[href*="/product/"]') : null;
+    if (a) return a.href;
+    var pid = btn.getAttribute('data-product-id');
+    return pid ? '/?post_type=product&p=' + encodeURIComponent(pid) : null;
+  }
+
+  function load(btn, attempt) {
+    $.ajax({
+      url: AJAX_URL,
+      type: 'POST',
+      timeout: 20000,
+      data: { action: 'load_quick_product', product_id: btn.getAttribute('data-product-id') },
+      success: function (response) {
+        $('#quickViewContent').html(response);
+        // same follow-up the stock handler performs
+        setTimeout(function () {
+          if (typeof $.fn.wc_product_gallery !== 'undefined') {
+            $('.woocommerce-product-gallery').each(function () { $(this).wc_product_gallery(); });
+          }
+        }, 400);
+      },
+      error: function () {
+        if (attempt < 3) {
+          setTimeout(function () { load(btn, attempt + 1); }, 800 * attempt);
+          return;
+        }
+        var url = productUrl(btn);
+        $('#quickViewContent').html(
+          '<div style="padding:28px;text-align:center">' +
+          '<p style="margin:0 0 14px">Sorry &mdash; the quick preview could not load right now.</p>' +
+          (url ? '<a href="' + url + '" style="display:inline-block;padding:10px 22px;background:#1f1f1f;color:#fff;border-radius:6px;text-decoration:none">Open the product page</a>' : '') +
+          '</div>'
+        );
+      }
+    });
+  }
+
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest ? e.target.closest('.quick-view-btn') : null;
+    if (!btn) return;
+    e.preventDefault();
+    e.stopImmediatePropagation(); // keep the error-blind stock handler out of the way
+    $('#quickViewContent').html('Loading...');
+    $('#quickViewModal').fadeIn();
+    $('body').addClass('modal-open');
+    load(btn, 1);
+  }, true);
+})();
+</script>
+    <?php
+}, 99);
 
 // 24d. REMOVED 2026-07-16 per request — the front-page H1 intro strip
 // ("Custom Canvas Prints, Wall Art & Picture Framing") was removed at

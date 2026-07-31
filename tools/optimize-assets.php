@@ -32,21 +32,24 @@ $safe = array(
     'optm-css_min'   => array(1, 'minify CSS'),
     'optm-js_min'    => array(1, 'minify JS'),
     'optm-html_min'  => array(1, 'minify HTML'),
-    'media-lazy'     => array(1, 'lazy-load images'),
-    'media-lazy_placeholder_resp' => array(1, 'responsive lazy placeholders (prevents layout shift)'),
-    'media-iframe_lazy' => array(1, 'lazy-load iframes'),
     'optm-qs_rm'     => array(1, 'remove query strings from static assets'),
     'optm-emoji_rm'  => array(1, 'remove WordPress emoji script'),
 );
 
 // Explicitly assert the risky ones stay OFF, so a future deploy or a
 // stray admin click can't silently turn them on and break the store.
+// media-lazy / media-iframe_lazy: LiteSpeed's JS placeholder-swap lazy
+// broke carousel + AJAX images (the blank-image incident). The theme now
+// adds browser-native loading="lazy" itself (functions.php §24c-2), so
+// LiteSpeed's variant must stay off or the two would fight.
 $keep_off = array(
     'optm-css_comb'  => 'combine CSS',
     'optm-js_comb'   => 'combine JS',
     'optm-ucss'      => 'unique CSS (UCSS)',
     'optm-css_async' => 'async/critical CSS',
     'optm-js_defer'  => 'defer JS',
+    'media-lazy'     => 'LiteSpeed JS lazy-load (theme does native lazy)',
+    'media-iframe_lazy' => 'LiteSpeed iframe lazy (theme does native lazy)',
 );
 
 $changed = 0;
