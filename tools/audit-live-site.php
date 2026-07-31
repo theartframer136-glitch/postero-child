@@ -59,6 +59,7 @@ $pages = array(
     'Terms of Service'    => array(home_url('/terms-of-service/'), array('Terms of Service' => 'content')),
     'Privacy Policy'      => array(home_url('/privacy-policy/'), array('privacy|Privacy' => 'content')),
     'Contact'             => array(home_url('/contact/'), array('af_name|taf-form|contact' => 'contact form')),
+    'About'               => array(home_url('/about/'), array('af-about-hero' => 'designed about page', 'af-about-cats' => 'category cards', 'af-about-contact' => 'contact band')),
     'Gift Cards'          => array(home_url('/gift-cards/'), array('gift' => 'content')),
     'FAQs'                => array(home_url('/faqs/'), array('faq|FAQ' => 'content')),
 );
