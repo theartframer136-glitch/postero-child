@@ -19,6 +19,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v5
+        with:
+          # Full history so the light-deploy guard can diff the pushed range
+          fetch-depth: 0
 
       - name: Setup SSH
         run: |
@@ -75,6 +78,34 @@ jobs:
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "killall lsphp 2>/dev/null; killall lsphp8.2 2>/dev/null; killall lsphp8.1 2>/dev/null; echo 'lsphp restarted'" \
             || true
+
+          # ── Light-deploy guard ─────────────────────────────────────────────
+          # The full script suite below (~45 wp-cli blocks) saturates the shared
+          # host's PHP pool and 508s real visitors for the whole run. Skip it
+          # when the push only touched theme code; run it when tools/ changed,
+          # the commit message contains [full-deploy], or the range is unknown
+          # (manual runs, force pushes).
+          RUN_SUITE=1
+          BEFORE="${{ github.event.before }}"
+          if [ "${{ github.event_name }}" = "push" ] \
+             && [ -n "$BEFORE" ] \
+             && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+             && git cat-file -e "$BEFORE" 2>/dev/null; then
+            CHANGED=$(git diff --name-only "$BEFORE" "${{ github.sha }}" 2>/dev/null)
+            MSGS=$(git log --format=%B "$BEFORE..${{ github.sha }}" 2>/dev/null)
+            if [ -n "$CHANGED" ] \
+               && ! printf '%s\n' "$CHANGED" | grep -q '^tools/' \
+               && ! printf '%s\n' "$MSGS" | grep -qi '\[full-deploy\]'; then
+              RUN_SUITE=0
+            fi
+          fi
+          if [ "$RUN_SUITE" = "1" ]; then
+            echo "FULL deploy: running the complete script suite."
+          else
+            echo "LIGHT deploy (theme code only): skipping the script suite. Put [full-deploy] in the commit message to force it."
+          fi
+
+          if [ "$RUN_SUITE" = "1" ]; then
 
           echo "Applying product template to ALL canvas products..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
@@ -268,6 +299,9 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/diag-cat-dom.php --allow-root 2>&1" \
             || true
 
+          fi
+          # ── always run: LiteSpeed safety enforcement, recovery, headers ──
+
           echo "Disabling LiteSpeed image lazy-load + JS defer/combine (keep Instagram embed + products visible)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -289,6 +323,8 @@ jobs:
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/set-security-headers.php --allow-root 2>&1" \
             || true
+
+          if [ "$RUN_SUITE" = "1" ]; then
 
           echo "Warming Products In Motion YouTube feed cache..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
@@ -358,12 +394,17 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/link-artist-banner.php --allow-root 2>&1" \
             || true
 
+          fi
+          # ── always run: cache clear ──
+
           echo "Clearing caches after all updates..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp litespeed-purge all --allow-root 2>/dev/null || true; \
              wp cache flush --allow-root 2>/dev/null || true; \
              echo 'Cache cleared'" || echo "Cache clear skipped"
+
+          if [ "$RUN_SUITE" = "1" ]; then
 
           echo "Hardening digital downloads (limits + expiry)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
@@ -448,6 +489,9 @@ jobs:
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/audit-live-site.php --allow-root 2>&1" \
             || true
+
+          fi
+          # ── always run: boot gate, 200 gate, cache warm ──
 
           echo "GATE: the theme must actually boot..."
           BOOT=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
