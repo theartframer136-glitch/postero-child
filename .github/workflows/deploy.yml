@@ -366,14 +366,31 @@ jobs:
 
           echo "Crawl guard: spam-URL 410s, headerless-search 403s, cheap static 404s (the CPU fix)..."
           # Unlike the other scripts, a silent failure here means the CPU fix
-          # is NOT live while the deploy shows green — so surface its markers.
-          GUARD_OUT=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/ops/harden-crawl-budget.php --allow-root 2>&1") \
-            || true
-          printf '%s\n' "$GUARD_OUT"
-          if printf '%s' "$GUARD_OUT" | grep -q "AF-GUARD-FAIL:"; then
-            echo "::error::Crawl guard did not apply cleanly — see the AF-GUARD-FAIL line above."
+          # is NOT live while the deploy shows green. Run #526 proved grepping
+          # for the FAIL marker is not enough: Hostinger's SSH throttle refused
+          # the connection outright, GUARD_OUT held only an ssh error, and the
+          # step passed. So also require the script's own completion marker,
+          # retrying across the throttle window before failing the deploy.
+          GUARD_OK=0
+          for a in 1 2 3; do
+            GUARD_OUT=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+              "cd ~/websites/OPu0sKi4J/public_html && \
+               wp eval-file wp-content/themes/postero-child/ops/harden-crawl-budget.php --allow-root 2>&1") \
+              || true
+            printf '%s\n' "$GUARD_OUT"
+            if printf '%s' "$GUARD_OUT" | grep -q "AF-GUARD-FAIL:"; then
+              echo "::error::Crawl guard did not apply cleanly — see the AF-GUARD-FAIL line above."
+              exit 1
+            fi
+            if printf '%s' "$GUARD_OUT" | grep -q "=== DONE ==="; then
+              GUARD_OK=1
+              break
+            fi
+            echo "Crawl guard did not run to completion (attempt $a of 3) — likely SSH throttle; waiting 75s..."
+            sleep 75
+          done
+          if [ "$GUARD_OK" != "1" ]; then
+            echo "::error::Crawl guard never ran to completion after 3 attempts — the CPU fix is NOT live."
             exit 1
           fi
           if printf '%s' "$GUARD_OUT" | grep -q "AF-GUARD-WARN:"; then
