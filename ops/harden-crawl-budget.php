@@ -200,16 +200,26 @@ if ( ! $mu_dir_existed && ! mkdir( $mu_dir, 0755, true ) ) {
     $e = error_get_last();
     echo "AF-GUARD-FAIL: cannot create {$mu_dir} — " . ( $e['message'] ?? 'unknown error' ) . "\n"; exit(1);
 }
+// A pre-existing, unwritable mu-plugins dir means the hosting platform owns
+// it (confirmed on this host: perms 0755, owner uid 0). No amount of retrying
+// from here fixes that — it needs a hosting-side chown/grant. Skip the write
+// with a WARN instead of hard-failing every deploy indefinitely; the
+// effectiveness probes below already report (via WARN) that the guard isn't
+// actually protecting the site, which is the accurate state until that's done.
+$mu_unwritable = false;
 if ( $mu_dir_existed ) {
     $owner = function_exists( 'posix_getpwuid' ) ? ( posix_getpwuid( fileowner( $mu_dir ) )['name'] ?? fileowner( $mu_dir ) ) : fileowner( $mu_dir );
     $me    = function_exists( 'posix_getpwuid' ) ? ( posix_getpwuid( posix_geteuid() )['name'] ?? posix_geteuid() ) : 'unknown';
+    $mu_unwritable = ! is_writable( $mu_dir );
     echo "mu-plugins dir exists: perms " . substr( sprintf( '%o', fileperms( $mu_dir ) ), -4 )
-        . ", owner {$owner}, running as {$me}, writable=" . ( is_writable( $mu_dir ) ? 'yes' : 'no' ) . "\n";
+        . ", owner {$owner}, running as {$me}, writable=" . ( $mu_unwritable ? 'no' : 'yes' ) . "\n";
 }
 $mu_prev = file_exists( $mu_dst ) ? file_get_contents( $mu_dst ) : null;
 if ( $mu_prev === false ) { $mu_prev = null; } // unreadable = treat as absent, never "restore" an empty file
 $mu_changed = false;
-if ( $mu_prev === $mu_want ) {
+if ( $mu_unwritable ) {
+    echo "AF-GUARD-WARN: mu-plugins dir is not writable by this account — likely platform-owned on this managed host. Skipping the mu-plugin install; ask hosting support to grant the deploy account write access to wp-content/mu-plugins. The crawl guard is NOT active until then.\n";
+} elseif ( $mu_prev === $mu_want ) {
     echo "mu-plugin already current" . ( $want_search ? '' : ' (search rule stripped)' ) . ".\n";
 } elseif ( ! af_guard_write( $mu_dst, $mu_want ) ) {
     $reason = $GLOBALS['af_guard_err'] ?? 'unknown error';
