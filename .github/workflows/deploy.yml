@@ -233,6 +233,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/fix-image-orientation.php --allow-root 2>&1" \
             || true
 
+          echo "Rotating RK 18 (Radha Krishna Mosaic Art) photo 90 deg left..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/rotate-rk18-image.php --allow-root 2>&1" \
+            || true
+
           echo "New Arrivals card markup diagnostic..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
