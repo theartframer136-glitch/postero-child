@@ -84,13 +84,23 @@ RewriteRule ^xmlrpc\.php$ - [F,L]
 # END Art Framer Crawl Guard
 HT;
 
-/** Atomic write: tmp + rename so a live request never reads a partial file. */
+/** Atomic write: tmp + rename so a live request never reads a partial file.
+ *  On failure, stashes the real PHP error in $GLOBALS['af_guard_err'] so the
+ *  caller can report *why*, not just *that*, the write failed. */
 function af_guard_write( $path, $content ) {
     if ( ! is_string( $content ) ) { return false; }
     $tmp = $path . '.af-tmp';
-    if ( file_put_contents( $tmp, $content ) === false ) { @unlink( $tmp ); return false; }
+    if ( file_put_contents( $tmp, $content ) === false ) {
+        $e = error_get_last();
+        $GLOBALS['af_guard_err'] = 'write ' . $tmp . ' failed: ' . ( $e['message'] ?? 'unknown error' );
+        @unlink( $tmp ); return false;
+    }
     @chmod( $tmp, file_exists( $path ) ? ( fileperms( $path ) & 0777 ) : 0644 );
-    if ( ! rename( $tmp, $path ) ) { @unlink( $tmp ); return false; }
+    if ( ! rename( $tmp, $path ) ) {
+        $e = error_get_last();
+        $GLOBALS['af_guard_err'] = 'rename ' . $tmp . ' -> ' . $path . ' failed: ' . ( $e['message'] ?? 'unknown error' );
+        @unlink( $tmp ); return false;
+    }
     return true;
 }
 
@@ -185,8 +195,16 @@ if ( $ht_new === $ht_prev ) {
 }
 
 // ── Layer 2: the mu-plugin (the layer that actually fires) ──────────────────
-if ( ! is_dir( $mu_dir ) && ! mkdir( $mu_dir, 0755, true ) ) {
-    echo "AF-GUARD-FAIL: cannot create {$mu_dir}\n"; exit(1);
+$mu_dir_existed = is_dir( $mu_dir );
+if ( ! $mu_dir_existed && ! mkdir( $mu_dir, 0755, true ) ) {
+    $e = error_get_last();
+    echo "AF-GUARD-FAIL: cannot create {$mu_dir} — " . ( $e['message'] ?? 'unknown error' ) . "\n"; exit(1);
+}
+if ( $mu_dir_existed ) {
+    $owner = function_exists( 'posix_getpwuid' ) ? ( posix_getpwuid( fileowner( $mu_dir ) )['name'] ?? fileowner( $mu_dir ) ) : fileowner( $mu_dir );
+    $me    = function_exists( 'posix_getpwuid' ) ? ( posix_getpwuid( posix_geteuid() )['name'] ?? posix_geteuid() ) : 'unknown';
+    echo "mu-plugins dir exists: perms " . substr( sprintf( '%o', fileperms( $mu_dir ) ), -4 )
+        . ", owner {$owner}, running as {$me}, writable=" . ( is_writable( $mu_dir ) ? 'yes' : 'no' ) . "\n";
 }
 $mu_prev = file_exists( $mu_dst ) ? file_get_contents( $mu_dst ) : null;
 if ( $mu_prev === false ) { $mu_prev = null; } // unreadable = treat as absent, never "restore" an empty file
@@ -194,7 +212,8 @@ $mu_changed = false;
 if ( $mu_prev === $mu_want ) {
     echo "mu-plugin already current" . ( $want_search ? '' : ' (search rule stripped)' ) . ".\n";
 } elseif ( ! af_guard_write( $mu_dst, $mu_want ) ) {
-    echo "AF-GUARD-FAIL: could not write {$mu_dst}\n"; exit(1);
+    $reason = $GLOBALS['af_guard_err'] ?? 'unknown error';
+    echo "AF-GUARD-FAIL: could not write {$mu_dst} — {$reason}\n"; exit(1);
 } else {
     $mu_changed = true;
     echo "mu-plugin installed" . ( $want_search ? '' : ' (search rule stripped)' ) . ": {$mu_dst}\n";
