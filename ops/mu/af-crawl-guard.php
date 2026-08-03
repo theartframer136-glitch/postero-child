@@ -1,11 +1,12 @@
 <?php
 /**
  * Plugin Name: AF Crawl Guard (early bot short-circuit)
- * Description: Answers bot junk (hack-era spam URLs, headerless search, missing statics, bulk crawlers) before plugins/Elementor/WooCommerce load. Installed into wp-content/mu-plugins/ by ops/harden-crawl-budget.php because this host ignores custom .htaccess rewrite rules on the public path.
+ * Description: Answers bot junk (hack-era spam URLs, headerless search, missing statics, bulk crawlers) before WordPress loads. Copied to wp-content/af-crawl-guard.php and hooked from wp-config.php (or a fallback loader plugin) by ops/harden-crawl-budget.php — this host ignores custom .htaccess rewrite rules on the public path AND its mu-plugins dir is root-owned (platform-managed WP, run #532).
  *
- * Runs as a must-use plugin: after WP core config, BEFORE all plugins and the
- * theme. A blocked request costs ~0.2s instead of the ~3s full page build.
- * LiteSpeed cache HITs never reach PHP, so real cached traffic is untouched.
+ * Loaded from wp-config.php: BEFORE WordPress, so a blocked request costs
+ * ~10ms instead of the ~3s full page build. Must therefore use NO WordPress
+ * functions/constants (ABSPATH may not exist yet). LiteSpeed cache HITs never
+ * reach PHP, so real cached traffic is untouched.
  *
  * Every response sets an explicit Cache-Control: hCDN caches error responses
  * that lack one (verified live 2026-08-03: a bare 404 came back with Age: 23),
@@ -18,6 +19,8 @@
  */
 
 if ( PHP_SAPI === 'cli' || ( defined( 'WP_CLI' ) && WP_CLI ) ) { return; }
+if ( defined( 'AF_CRAWL_GUARD_RAN' ) ) { return; } // wp-config hook + fallback plugin may both exist
+define( 'AF_CRAWL_GUARD_RAN', true );
 
 $af_path = parse_url( $_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH );
 if ( ! is_string( $af_path ) || $af_path === '' ) { return; }
@@ -89,7 +92,12 @@ if ( preg_match(
     '#^/(wp-content|wp-includes)/.+\.(jpe?g|png|gif|webp|avif|svg|ico|css|js|map|woff2?|ttf|otf|eot|mp4|webm|pdf)$#i',
     $af_path
 ) ) {
-    $af_file = rtrim( ABSPATH, '/\\' ) . $af_path;
+    // Pre-WP context: ABSPATH may not exist. The deployed copy of this file
+    // lives at <docroot>/wp-content/af-crawl-guard.php, so dirname(__DIR__)
+    // is the docroot. (Existing files are served by the web server and never
+    // reach PHP, so a wrong-negative here cannot 404 a real asset.)
+    $af_docroot = defined( 'ABSPATH' ) ? rtrim( ABSPATH, '/\\' ) : dirname( __DIR__ );
+    $af_file    = $af_docroot . $af_path;
     if ( ! file_exists( $af_file ) ) {
         http_response_code( 404 );
         header( 'Cache-Control: no-store, max-age=0' );

@@ -7,36 +7,41 @@
  * The account sat at 606% of its 600% CPU limit almost entirely from crawlers
  * hammering /items/A######## hack leftovers, search, and missing files.
  *
- * TWO layers, because run #528 proved this Hostinger stack IGNORES custom
- * .htaccess rewrite rules on the public (CDN->origin) path:
- *   1. .htaccess block (kept as a belt — free if the platform ever honors it)
- *   2. mu-plugin  wp-content/mu-plugins/af-crawl-guard.php  — the layer that
- *      works: PHP answers junk in ~0.2s before plugins/Elementor/Woo load.
+ * Install anatomy — three host facts forced this design:
+ *   - custom .htaccess rewrite rules are IGNORED on the public path (run #528)
+ *   - wp-content/mu-plugins is ROOT-OWNED, writable=no (run #532; managed-WP
+ *     platform, core mounted from /opt/h5g/flavors)
+ *   - wp-content itself IS user-writable (themes/plugins/uploads live there)
+ * So: the guard CONTENT is copied to wp-content/af-crawl-guard.php (rsync
+ * never touches wp-content root, so it survives deploys), and a LOADER hooks
+ * it in — preferred: a marker-delimited require in wp-config.php (runs before
+ * WordPress: blocked requests cost ~10ms); fallback if wp-config is not
+ * writable: a tiny loader plugin forced to the front of active_plugins.
+ * Deleting wp-content/af-crawl-guard.php safely disables everything (the
+ * loader is is_file-guarded). An .htaccess belt block is still written.
  *
- * Verification (each gap below was found by adversarial review — keep them):
+ * Verification (each gap was found the hard way — keep all of it):
  *   - cache-busted homepage check; ANY non-2xx/3xx outcome across 3 attempts
- *     right after a change = confirmed breakage -> restore both layers, exit 1
- *     (the pre-change site was serving; "can't confirm" is not good enough)
- *   - rollback results are CHECKED; a failed restore prints AF-GUARD-FAIL with
- *     manual instructions instead of claiming success
- *   - positive-path search probe trusts only the mu-plugin's own X-AF-Guard
- *     marker (an edge/WAF 403 without it must not strip the rule) and reports
- *     whether it actually traversed the CDN; the deploy workflow re-checks
- *     from the GitHub runner (provably through the CDN) and can invoke
- *     `wp eval-file ... harden-crawl-budget.php strip-search` — persisted via
- *     option af_guard_no_search so later deploys stay stripped
- *   - effectiveness probes assert the X-AF-Guard marker header, not just the
- *     status code (a themed WP 404 is also "404" — that hid run #528's miss)
+ *     right after a change = confirmed breakage -> restore everything, exit 1
+ *   - rollback results are CHECKED and reported truthfully
+ *   - positive-path search probe trusts only the guard's own X-AF-Guard
+ *     marker; the deploy workflow re-checks from the GitHub runner (provably
+ *     through the CDN) and can invoke `... harden-crawl-budget.php
+ *     strip-search` — persisted via option af_guard_no_search
+ *   - effectiveness probes assert the X-AF-Guard marker, not just the status
  *
  * Run: wp eval-file wp-content/themes/postero-child/ops/harden-crawl-budget.php --allow-root
  * Strip search rule: append positional arg `strip-search`.
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$htaccess = rtrim( ABSPATH, '/\\' ) . '/.htaccess';
-$mu_src   = __DIR__ . '/mu/af-crawl-guard.php';
-$mu_dir   = ( defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR : rtrim( ABSPATH, '/\\' ) . '/wp-content' ) . '/mu-plugins';
-$mu_dst   = $mu_dir . '/af-crawl-guard.php';
+$htaccess    = rtrim( ABSPATH, '/\\' ) . '/.htaccess';
+$guard_src   = __DIR__ . '/mu/af-crawl-guard.php';
+$content_dir = defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR : rtrim( ABSPATH, '/\\' ) . '/wp-content';
+$content_dst = $content_dir . '/af-crawl-guard.php';
+$plugin_dir  = ( defined( 'WP_PLUGIN_DIR' ) ? WP_PLUGIN_DIR : $content_dir . '/plugins' ) . '/af-crawl-guard';
+$plugin_dst  = $plugin_dir . '/af-crawl-guard.php';
+$plugin_rel  = 'af-crawl-guard/af-crawl-guard.php';
 
 $strip_requested = isset( $args ) && is_array( $args ) && in_array( 'strip-search', $args, true );
 if ( $strip_requested && get_option( 'af_guard_no_search' ) !== 'yes' ) {
@@ -120,6 +125,19 @@ function af_guard_compose( $existing, $block ) {
     return $block . "\n\n" . ltrim( $clean );
 }
 
+/** Idempotently place the loader line right after wp-config's opening <?php.
+ *  Returns the new file content, or null if wp-config looks too odd to touch. */
+function af_guard_wpc_compose( $existing, $loader_line ) {
+    $clean = preg_replace( '#[ \t]*/\* BEGIN AF-CRAWL-GUARD \*/.*?/\* END AF-CRAWL-GUARD \*/\n?#s', '', $existing );
+    if ( $clean === null ) { return null; }
+    $pos = strpos( $clean, '<?php' );
+    if ( $pos !== 0 && $pos !== false && trim( substr( $clean, 0, $pos ) ) !== '' ) { return null; }
+    if ( $pos === false ) { return null; }
+    $nl = strpos( $clean, "\n", $pos );
+    if ( $nl === false ) { return null; }
+    return substr( $clean, 0, $nl + 1 ) . $loader_line . "\n" . substr( $clean, $nl + 1 );
+}
+
 /** GET through the public hostname. Returns code/err/marker/via_cdn. */
 function af_guard_probe( $path, $headers = array() ) {
     $r = wp_remote_get( home_url( $path ), array(
@@ -155,78 +173,124 @@ function af_guard_home_ok( &$last ) {
     return false;
 }
 
-/** Restore pre-run state; returns list of failures (empty = clean restore). */
-function af_guard_restore( $mu_dst, $mu_prev, $mu_changed, $htaccess, $ht_prev, $ht_changed ) {
-    $fails = array();
-    if ( $mu_changed ) {
-        if ( $mu_prev === null ) {
-            if ( file_exists( $mu_dst ) && ! @unlink( $mu_dst ) ) { $fails[] = "delete {$mu_dst}"; }
-        } elseif ( ! af_guard_write( $mu_dst, $mu_prev ) ) {
-            $fails[] = "rewrite {$mu_dst}";
-        }
-    }
-    if ( $ht_changed && ! af_guard_write( $htaccess, $ht_prev ) ) {
-        $fails[] = "rewrite {$htaccess}";
-    }
-    return $fails;
+/** File-permission diagnostic line (owner/perms/writability). */
+function af_guard_diag( $path ) {
+    if ( ! file_exists( $path ) ) { return "{$path}: does not exist"; }
+    $owner = function_exists( 'posix_getpwuid' ) ? ( posix_getpwuid( fileowner( $path ) )['name'] ?? fileowner( $path ) ) : fileowner( $path );
+    return "{$path}: perms " . substr( sprintf( '%o', fileperms( $path ) ), -4 )
+        . ", owner {$owner}, writable=" . ( is_writable( $path ) ? 'yes' : 'no' );
 }
 
 // ── Compose desired contents (search rule included only if still trusted) ──
-$mu_full = file_exists( $mu_src ) ? file_get_contents( $mu_src ) : false;
-if ( $mu_full === false || strpos( $mu_full, 'AF Crawl Guard' ) === false ) {
-    echo "AF-GUARD-FAIL: mu-plugin source missing/invalid at {$mu_src}\n"; exit(1);
+$guard_full = file_exists( $guard_src ) ? file_get_contents( $guard_src ) : false;
+if ( $guard_full === false || strpos( $guard_full, 'AF Crawl Guard' ) === false ) {
+    echo "AF-GUARD-FAIL: guard source missing/invalid at {$guard_src}\n"; exit(1);
 }
-$mu_stripped = preg_replace( '#// BEGIN AF-SEARCH-GUARD.*?// END AF-SEARCH-GUARD\s*#s', '', $mu_full );
-$mu_want = $want_search ? $mu_full : $mu_stripped;
-$ht_block = str_replace( '%%SEARCH%%', $want_search ? $search_stanza . "\n" : '', $block_tpl );
+$guard_stripped = preg_replace( '#// BEGIN AF-SEARCH-GUARD.*?// END AF-SEARCH-GUARD\s*#s', '', $guard_full );
+$guard_want = $want_search ? $guard_full : $guard_stripped;
+$ht_block   = str_replace( '%%SEARCH%%', $want_search ? $search_stanza . "\n" : '', $block_tpl );
+
+$rollback = array(); // list of array('desc' => ..., 'fn' => callable): undo in reverse order
 
 // ── Layer 1: .htaccess (belt; known inert on the public path today) ─────────
 $ht_prev = file_exists( $htaccess ) ? file_get_contents( $htaccess ) : '';
 if ( $ht_prev === false ) { echo "AF-GUARD-FAIL: cannot read {$htaccess}\n"; exit(1); }
-$ht_new     = af_guard_compose( $ht_prev, $ht_block );
-$ht_changed = false;
+$ht_new = af_guard_compose( $ht_prev, $ht_block );
 if ( $ht_new === $ht_prev ) {
     echo "htaccess block already current.\n";
 } elseif ( ( file_exists( $htaccess ) && ! is_writable( $htaccess ) ) || ! af_guard_write( $htaccess, $ht_new ) ) {
-    echo "AF-GUARD-WARN: could not write {$htaccess} — htaccess belt skipped (mu-plugin is the working layer).\n";
+    echo "AF-GUARD-WARN: could not write {$htaccess} — htaccess belt skipped.\n";
 } else {
-    $ht_changed = true;
     echo "htaccess block written.\n";
+    $rollback[] = array( 'desc' => 'htaccess', 'fn' => function () use ( $htaccess, $ht_prev ) {
+        return af_guard_write( $htaccess, $ht_prev );
+    } );
 }
 
-// ── Layer 2: the mu-plugin (the layer that actually fires) ──────────────────
-$mu_dir_existed = is_dir( $mu_dir );
-if ( ! $mu_dir_existed && ! mkdir( $mu_dir, 0755, true ) ) {
-    $e = error_get_last();
-    echo "AF-GUARD-FAIL: cannot create {$mu_dir} — " . ( $e['message'] ?? 'unknown error' ) . "\n"; exit(1);
-}
-// A pre-existing, unwritable mu-plugins dir means the hosting platform owns
-// it (confirmed on this host: perms 0755, owner uid 0). No amount of retrying
-// from here fixes that — it needs a hosting-side chown/grant. Skip the write
-// with a WARN instead of hard-failing every deploy indefinitely; the
-// effectiveness probes below already report (via WARN) that the guard isn't
-// actually protecting the site, which is the accurate state until that's done.
-$mu_unwritable = false;
-if ( $mu_dir_existed ) {
-    $owner = function_exists( 'posix_getpwuid' ) ? ( posix_getpwuid( fileowner( $mu_dir ) )['name'] ?? fileowner( $mu_dir ) ) : fileowner( $mu_dir );
-    $me    = function_exists( 'posix_getpwuid' ) ? ( posix_getpwuid( posix_geteuid() )['name'] ?? posix_geteuid() ) : 'unknown';
-    $mu_unwritable = ! is_writable( $mu_dir );
-    echo "mu-plugins dir exists: perms " . substr( sprintf( '%o', fileperms( $mu_dir ) ), -4 )
-        . ", owner {$owner}, running as {$me}, writable=" . ( $mu_unwritable ? 'no' : 'yes' ) . "\n";
-}
-$mu_prev = file_exists( $mu_dst ) ? file_get_contents( $mu_dst ) : null;
-if ( $mu_prev === false ) { $mu_prev = null; } // unreadable = treat as absent, never "restore" an empty file
-$mu_changed = false;
-if ( $mu_unwritable ) {
-    echo "AF-GUARD-WARN: mu-plugins dir is not writable by this account — likely platform-owned on this managed host. Skipping the mu-plugin install; ask hosting support to grant the deploy account write access to wp-content/mu-plugins. The crawl guard is NOT active until then.\n";
-} elseif ( $mu_prev === $mu_want ) {
-    echo "mu-plugin already current" . ( $want_search ? '' : ' (search rule stripped)' ) . ".\n";
-} elseif ( ! af_guard_write( $mu_dst, $mu_want ) ) {
+// ── Layer 2a: the guard CONTENT at wp-content/af-crawl-guard.php ────────────
+$ct_prev = file_exists( $content_dst ) ? file_get_contents( $content_dst ) : null;
+if ( $ct_prev === false ) { $ct_prev = null; } // unreadable = treat as absent, never "restore" an empty file
+if ( $ct_prev === $guard_want ) {
+    echo "guard content already current" . ( $want_search ? '' : ' (search rule stripped)' ) . ".\n";
+} elseif ( ! af_guard_write( $content_dst, $guard_want ) ) {
     $reason = $GLOBALS['af_guard_err'] ?? 'unknown error';
-    echo "AF-GUARD-FAIL: could not write {$mu_dst} — {$reason}\n"; exit(1);
+    echo af_guard_diag( $content_dir ) . "\n";
+    echo "AF-GUARD-FAIL: could not write {$content_dst} — {$reason}\n"; exit(1);
 } else {
-    $mu_changed = true;
-    echo "mu-plugin installed" . ( $want_search ? '' : ' (search rule stripped)' ) . ": {$mu_dst}\n";
+    echo "guard content installed" . ( $want_search ? '' : ' (search rule stripped)' ) . ": {$content_dst}\n";
+    $rollback[] = array( 'desc' => 'guard-content', 'fn' => function () use ( $content_dst, $ct_prev ) {
+        return ( $ct_prev === null ) ? ( ! file_exists( $content_dst ) || @unlink( $content_dst ) )
+                                     : af_guard_write( $content_dst, $ct_prev );
+    } );
+}
+
+// ── Layer 2b: the LOADER — wp-config require preferred, plugin fallback ─────
+$loader_line = "/* BEGIN AF-CRAWL-GUARD */ if ( PHP_SAPI !== 'cli' && is_file( '{$content_dst}' ) ) { require '{$content_dst}'; } /* END AF-CRAWL-GUARD */";
+$wpc = null;
+foreach ( array( rtrim( ABSPATH, '/\\' ) . '/wp-config.php', dirname( rtrim( ABSPATH, '/\\' ) ) . '/wp-config.php' ) as $cand ) {
+    if ( file_exists( $cand ) ) { $wpc = $cand; break; }
+}
+$loader_mode = 'none';
+if ( $wpc !== null && is_writable( $wpc ) ) {
+    $wpc_prev = file_get_contents( $wpc );
+    $wpc_new  = ( $wpc_prev === false ) ? null : af_guard_wpc_compose( $wpc_prev, $loader_line );
+    if ( $wpc_new === null ) {
+        echo "AF-GUARD-WARN: {$wpc} has an unexpected shape — not touching it; falling back to loader plugin.\n";
+    } elseif ( $wpc_new === $wpc_prev ) {
+        $loader_mode = 'wp-config';
+        echo "wp-config loader already current.\n";
+    } elseif ( af_guard_write( $wpc, $wpc_new ) ) {
+        $loader_mode = 'wp-config';
+        echo "wp-config loader installed: {$wpc}\n";
+        $rollback[] = array( 'desc' => 'wp-config', 'fn' => function () use ( $wpc, $wpc_prev ) {
+            return af_guard_write( $wpc, $wpc_prev );
+        } );
+    } else {
+        echo "AF-GUARD-WARN: could not rewrite {$wpc} (" . ( $GLOBALS['af_guard_err'] ?? 'unknown' ) . ") — falling back to loader plugin.\n";
+    }
+} else {
+    echo "wp-config not writable — " . ( $wpc !== null ? af_guard_diag( $wpc ) : 'not found near ABSPATH' ) . "; using loader plugin.\n";
+}
+
+if ( $loader_mode === 'none' ) {
+    $plugin_code = "<?php\n/**\n * Plugin Name: AF Crawl Guard loader\n * Description: Loads the early bot guard from wp-content/af-crawl-guard.php. Managed by ops/harden-crawl-budget.php — do not edit.\n */\n\$af = WP_CONTENT_DIR . '/af-crawl-guard.php';\nif ( is_file( \$af ) ) { require \$af; }\n";
+    if ( ! is_dir( $plugin_dir ) && ! mkdir( $plugin_dir, 0755, true ) ) {
+        echo af_guard_diag( dirname( $plugin_dir ) ) . "\n";
+        echo "AF-GUARD-FAIL: no usable loader — mu-plugins root-owned, wp-config unwritable, and cannot create {$plugin_dir}\n"; exit(1);
+    }
+    $pl_prev = file_exists( $plugin_dst ) ? file_get_contents( $plugin_dst ) : null;
+    if ( $pl_prev === false ) { $pl_prev = null; }
+    if ( $pl_prev !== $plugin_code && ! af_guard_write( $plugin_dst, $plugin_code ) ) {
+        echo "AF-GUARD-FAIL: could not write {$plugin_dst} — " . ( $GLOBALS['af_guard_err'] ?? 'unknown' ) . "\n"; exit(1);
+    }
+    if ( $pl_prev !== $plugin_code ) {
+        $rollback[] = array( 'desc' => 'loader-plugin-file', 'fn' => function () use ( $plugin_dst, $pl_prev ) {
+            return ( $pl_prev === null ) ? ( ! file_exists( $plugin_dst ) || @unlink( $plugin_dst ) )
+                                         : af_guard_write( $plugin_dst, $pl_prev );
+        } );
+    }
+    $active_prev = get_option( 'active_plugins', array() );
+    if ( ! is_array( $active_prev ) ) { $active_prev = array(); }
+    $active_new = array_values( array_unique( array_merge( array( $plugin_rel ), $active_prev ) ) );
+    if ( $active_new !== $active_prev ) {
+        update_option( 'active_plugins', $active_new );
+        echo "loader plugin activated (front of load order).\n";
+        $rollback[] = array( 'desc' => 'active_plugins', 'fn' => function () use ( $active_prev ) {
+            return update_option( 'active_plugins', $active_prev ) !== false || get_option( 'active_plugins' ) === $active_prev;
+        } );
+    } else {
+        echo "loader plugin already active.\n";
+    }
+    $loader_mode = 'plugin';
+}
+
+/** Undo everything this run changed, in reverse order; returns failures. */
+function af_guard_run_rollback( $rollback ) {
+    $fails = array();
+    foreach ( array_reverse( $rollback ) as $step ) {
+        if ( ! call_user_func( $step['fn'] ) ) { $fails[] = $step['desc']; }
+    }
+    return $fails;
 }
 
 // ── Homepage must still serve. The pre-change site was serving, so if we
@@ -234,23 +298,23 @@ if ( $mu_unwritable ) {
 // confirmed break: restore and fail. ─────────────────────────────────────────
 $last = '';
 if ( ! af_guard_home_ok( $last ) ) {
-    if ( $mu_changed || $ht_changed ) {
-        $fails = af_guard_restore( $mu_dst, $mu_prev, $mu_changed, $htaccess, $ht_prev, $ht_changed );
+    if ( ! empty( $rollback ) ) {
+        $fails = af_guard_run_rollback( $rollback );
         if ( empty( $fails ) ) {
             echo "AF-GUARD-FAIL: ROLLED BACK — homepage returned {$last} after the change; previous state restored.\n";
         } else {
-            echo "AF-GUARD-FAIL: ROLLBACK FAILED (" . implode( ', ', $fails ) . ") — site may be broken; manually delete wp-content/mu-plugins/af-crawl-guard.php\n";
+            echo "AF-GUARD-FAIL: ROLLBACK FAILED (" . implode( ', ', $fails ) . ") — manually delete {$content_dst} (the loader no-ops without it).\n";
         }
     } else {
         echo "AF-GUARD-FAIL: homepage returned {$last} but nothing changed this run — investigate the site, not this script.\n";
     }
     exit(1);
 }
-echo "Homepage check (cache-busted): {$last}\n";
+echo "Homepage check (cache-busted): {$last} [loader: {$loader_mode}]\n";
 
 // ── Positive path: a browser-headed search must NOT trip OUR guard. Only the
-// mu-plugin's own marker counts (an edge/WAF artifact must not strip the
-// rule), and the verdict is only trustworthy if the probe crossed the CDN. ──
+// guard's own marker counts (an edge/WAF artifact must not strip the rule),
+// and the verdict is only trustworthy if the probe crossed the CDN. ─────────
 $search_active = $want_search;
 if ( $want_search ) {
     $browser_headers = array(
@@ -262,18 +326,18 @@ if ( $want_search ) {
         // Our rule fired despite browser headers => Sec-Fetch did not survive
         // the path. Strip it everywhere and persist the decision.
         update_option( 'af_guard_no_search', 'yes', true );
-        $ok = af_guard_write( $mu_dst, $mu_stripped )
+        $ok = af_guard_write( $content_dst, $guard_stripped )
               && af_guard_write( $htaccess, af_guard_compose( $ht_prev, str_replace( '%%SEARCH%%', '', $block_tpl ) ) );
         $search_active = false;
         if ( ! $ok ) {
-            echo "AF-GUARD-FAIL: search rule misfires for browsers and the strip-rewrite failed — manually delete wp-content/mu-plugins/af-crawl-guard.php\n";
+            echo "AF-GUARD-FAIL: search rule misfires for browsers and the strip-rewrite failed — manually delete {$content_dst}\n";
             exit(1);
         }
         if ( ! af_guard_home_ok( $last ) ) {
-            $fails = af_guard_restore( $mu_dst, $mu_prev, true, $htaccess, $ht_prev, true );
+            $fails = af_guard_run_rollback( $rollback );
             echo empty( $fails )
                 ? "AF-GUARD-FAIL: ROLLED BACK — homepage returned {$last} after the search-strip rewrite.\n"
-                : "AF-GUARD-FAIL: ROLLBACK FAILED after search-strip (" . implode( ', ', $fails ) . ") — manually delete wp-content/mu-plugins/af-crawl-guard.php\n";
+                : "AF-GUARD-FAIL: ROLLBACK FAILED after search-strip (" . implode( ', ', $fails ) . ") — manually delete {$content_dst}\n";
             exit(1);
         }
         echo "AF-GUARD-WARN: Sec-Fetch headers do not survive to PHP — search rule REMOVED everywhere (persisted) so customer search keeps working.\n";
