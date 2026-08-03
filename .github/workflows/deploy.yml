@@ -364,6 +364,22 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/set-security-headers.php --allow-root 2>&1" \
             || true
 
+          echo "Crawl guard: spam-URL 410s, headerless-search 403s, cheap static 404s (the CPU fix)..."
+          # Unlike the other scripts, a silent failure here means the CPU fix
+          # is NOT live while the deploy shows green — so surface its markers.
+          GUARD_OUT=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/ops/harden-crawl-budget.php --allow-root 2>&1") \
+            || true
+          printf '%s\n' "$GUARD_OUT"
+          if printf '%s' "$GUARD_OUT" | grep -q "AF-GUARD-FAIL:"; then
+            echo "::error::Crawl guard did not apply cleanly — see the AF-GUARD-FAIL line above."
+            exit 1
+          fi
+          if printf '%s' "$GUARD_OUT" | grep -q "AF-GUARD-WARN:"; then
+            echo "::warning::Crawl guard applied with a caveat — see the AF-GUARD-WARN line above."
+          fi
+
       - name: Script suite 2 — media & data
         if: env.RUN_SUITE == '1'
         timeout-minutes: 15
