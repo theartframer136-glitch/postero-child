@@ -239,6 +239,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/rotate-rk18-image.php --allow-root 2>&1" \
             || true
 
+          echo "RK 18 photo landed upside down — flipping 180 deg to correct..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/rotate-rk18-image-180.php --allow-root 2>&1" \
+            || true
+
           echo "New Arrivals card markup diagnostic..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
