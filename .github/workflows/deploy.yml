@@ -215,12 +215,6 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/seo-improvements.php --allow-root 2>&1" \
             || true
 
-          echo "Verifying Phase 1 (read-only)..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/verify-phase1.php --allow-root 2>&1" \
-            || true
-
           echo "Fixing missing product featured images..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -233,40 +227,10 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/fix-image-orientation.php --allow-root 2>&1" \
             || true
 
-          echo "Rotating RK 18 (Radha Krishna Mosaic Art) photo 90 deg left..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/rotate-rk18-image.php --allow-root 2>&1" \
-            || true
-
-          echo "RK 18 photo landed upside down — flipping 180 deg to correct..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/rotate-rk18-image-180.php --allow-root 2>&1" \
-            || true
-
-          echo "New Arrivals card markup diagnostic..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-newarrivals.php --allow-root 2>&1" \
-            || true
-
           echo "Removing duplicate product categories..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/dedupe-categories.php --allow-root 2>&1" \
-            || true
-
-          echo "Category card + sidebar markup diagnostic..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-catcard.php --allow-root 2>&1" \
-            || true
-
-          echo "Buy Now diagnostic (simple vs variable + links)..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-buynow.php --allow-root 2>&1" \
             || true
 
           echo "Drafting imageless products (removes blank cards)..."
@@ -311,34 +275,10 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/fill-category-thumbs.php --allow-root 2>&1" \
             || true
 
-          echo "Category cards diagnostic..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-cat.php --allow-root 2>&1" \
-            || true
-
-          echo "Products In Motion (YouTube) diagnostic..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-pim.php --allow-root 2>&1" \
-            || true
-
-          echo "Footer/header render diagnostic..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-footer.php --allow-root 2>&1" \
-            || true
-
           echo "Assigning products to deity subcategories..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/assign-deity-categories.php --allow-root 2>&1" \
-            || true
-
-          echo "Category DOM diagnostic (rendered HTML from server)..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-cat-dom.php --allow-root 2>&1" \
             || true
 
           # ── always run: LiteSpeed safety enforcement, recovery, headers ──
@@ -488,18 +428,6 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/import-artcodes.php --allow-root 2>&1" \
             || true
 
-          echo "Art Code: full list of products still missing a code (read-only)..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-artcode-missing-full.php --allow-root 2>&1" \
-            || true
-
-          echo "Duplicate/repeated product check (read-only)..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-duplicate-products.php --allow-root 2>&1" \
-            || true
-
           echo "Flushing rewrites (My Account endpoints: saved-previews, messages, returns)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -620,18 +548,6 @@ jobs:
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-ar-layouts.php --allow-root 2>&1" \
-            || true
-
-          echo "Homepage card-section function parity..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-card-parity.php --allow-root 2>&1" \
-            || true
-
-          echo "FULL LIVE-SITE AUDIT (all key pages)..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/audit-live-site.php --allow-root 2>&1" \
             || true
 
           # ── always run: boot gate, 200 gate, cache warm ──
