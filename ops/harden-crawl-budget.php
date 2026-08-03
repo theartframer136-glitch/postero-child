@@ -1,61 +1,61 @@
 <?php
 /* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
- * Crawl guard: stop bot traffic from burning CPU on uncacheable URLs.
+ * Crawl guard installer: stop bot traffic from burning CPU on uncacheable URLs.
  *
- * Measured 2026-08-03: a cached homepage costs ~4ms (LiteSpeed hit, no PHP)
- * while a WordPress-rendered 404 costs ~3s and /?s= search ~3.3s. One bot hit
- * on a dead URL therefore equals ~900 real pageviews, and the account sat at
- * 606% of its 600% CPU limit almost entirely from crawlers hammering:
- *   - /items/A######## spam URLs left indexed by the July SEO hack
- *   - on-site search /?s=
- *   - missing static files
+ * Measured 2026-08-03: cached pages ~4ms, WP-rendered 404 ~3s, /?s= ~3.3s.
+ * The account sat at 606% of its 600% CPU limit almost entirely from crawlers
+ * hammering /items/A######## hack leftovers, search, and missing files.
  *
- * Writes a rewrite block into the DOCROOT .htaccess so those requests are
- * answered by the web server itself — zero PHP:
- *   1. /items/*                         -> 410 Gone (also the fastest way out of Google's index)
- *   2. /?s= without Sec-Fetch headers   -> 403 (real browsers send them; scrapers with fake Chrome UAs don't;
- *                                          never applies to logged-in users, wp-admin or wp-json)
- *   3. missing static files             -> plain 404, scoped to wp-content/wp-includes so virtual URLs
- *                                          (Rank Math sitemaps, robots.txt, feeds) are untouched
- *   4. bulk SEO/AI crawlers             -> 403 (Googlebot/Bingbot/link-preview fetchers deliberately NOT listed)
- *   5. xmlrpc.php                       -> 403 (already disabled in PHP — this makes the refusal free)
+ * TWO layers, because run #528 proved this Hostinger stack IGNORES custom
+ * .htaccess rewrite rules on the public (CDN->origin) path:
+ *   1. .htaccess block (kept as a belt — free if the platform ever honors it)
+ *   2. mu-plugin  wp-content/mu-plugins/af-crawl-guard.php  — the layer that
+ *      works: PHP answers junk in ~0.2s before plugins/Elementor/Woo load.
  *
- * NOTE: these rules answer before WordPress boots, so any future redirect for
- * /items/* or old asset URLs must be added HERE, not in a WP redirect plugin.
+ * Verification (each gap below was found by adversarial review — keep them):
+ *   - cache-busted homepage check; ANY non-2xx/3xx outcome across 3 attempts
+ *     right after a change = confirmed breakage -> restore both layers, exit 1
+ *     (the pre-change site was serving; "can't confirm" is not good enough)
+ *   - rollback results are CHECKED; a failed restore prints AF-GUARD-FAIL with
+ *     manual instructions instead of claiming success
+ *   - positive-path search probe trusts only the mu-plugin's own X-AF-Guard
+ *     marker (an edge/WAF 403 without it must not strip the rule) and reports
+ *     whether it actually traversed the CDN; the deploy workflow re-checks
+ *     from the GitHub runner (provably through the CDN) and can invoke
+ *     `wp eval-file ... harden-crawl-budget.php strip-search` — persisted via
+ *     option af_guard_no_search so later deploys stay stripped
+ *   - effectiveness probes assert the X-AF-Guard marker header, not just the
+ *     status code (a themed WP 404 is also "404" — that hid run #528's miss)
  *
- * Safety, in order:
- *   - atomic writes (tmp + rename) so live requests never see a partial .htaccess
- *   - homepage re-verified with a cache-busting URL; on a confirmed 403/404/410/500
- *     the previous .htaccess is restored (restore result is checked and, if it
- *     fails, the previous content is dumped to the log for manual recovery)
- *   - POSITIVE-path probe: a search request WITH Sec-Fetch headers must not be
- *     403. If it is (e.g. the CDN strips Sec-Fetch on the way to origin), the
- *     search rule alone is removed and the rest of the guard stays.
- *   - hard failures print "AF-GUARD-FAIL:" and exit 1; the deploy step greps
- *     for that marker and fails loudly instead of scrolling past.
- *
- * Idempotent: replaces its own BEGIN/END block; inserts after the security
- * headers block when present (so repeat runs converge byte-for-byte and the
- * two scripts stop rewriting the file on every deploy).
  * Run: wp eval-file wp-content/themes/postero-child/ops/harden-crawl-budget.php --allow-root
+ * Strip search rule: append positional arg `strip-search`.
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
 $htaccess = rtrim( ABSPATH, '/\\' ) . '/.htaccess';
+$mu_src   = __DIR__ . '/mu/af-crawl-guard.php';
+$mu_dir   = ( defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR : rtrim( ABSPATH, '/\\' ) . '/wp-content' ) . '/mu-plugins';
+$mu_dst   = $mu_dir . '/af-crawl-guard.php';
+
+$strip_requested = isset( $args ) && is_array( $args ) && in_array( 'strip-search', $args, true );
+if ( $strip_requested && get_option( 'af_guard_no_search' ) !== 'yes' ) {
+    update_option( 'af_guard_no_search', 'yes', true );
+    echo "strip-search requested: persisted via option af_guard_no_search.\n";
+}
+$want_search = ( get_option( 'af_guard_no_search' ) !== 'yes' );
 
 $search_stanza = <<<'HT'
 
 # On-site search costs ~3s of PHP per hit and cannot be cached. Real browsers
 # send Sec-Fetch-* headers; scrapers (even with fake Chrome UAs) do not.
-# Refuse headerless searches before WordPress loads. Never applies to
-# logged-in users, wp-admin or the REST API. If the CDN ever stops forwarding
-# Sec-Fetch headers, this script detects that and removes this rule.
+# Headerless searches are redirected to the cached homepage before WP loads.
+# Never applies to logged-in users, wp-admin or the REST API.
 RewriteCond %{REQUEST_URI} !^/(wp-admin|wp-json)/ [NC]
 RewriteCond %{HTTP_COOKIE} !wordpress_logged_in_ [NC]
 RewriteCond %{QUERY_STRING} (^|&)s= [NC]
 RewriteCond %{HTTP:Sec-Fetch-Mode} ^$
-RewriteRule ^ - [F,L]
+RewriteRule ^ / [R=302,L]
 HT;
 
 $block_tpl = <<<'HT'
@@ -67,33 +67,26 @@ RewriteEngine On
 RewriteRule ^items(/|$) - [G,NC,L]
 %%SEARCH%%
 # A request for a static file that does not exist must not boot WordPress just
-# to render a themed 404. (The CDN already short-circuits missing images; this
-# also covers css/js/fonts and direct-to-origin hits.) Virtual URLs like the
-# Rank Math sitemaps live outside these paths and are untouched.
+# to render a themed 404. Virtual URLs like the Rank Math sitemaps live
+# outside these paths and are untouched.
 RewriteCond %{REQUEST_URI} ^/(wp-content|wp-includes)/ [NC]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteRule \.(jpe?g|png|gif|webp|avif|svg|ico|css|js|map|woff2?|ttf|otf|eot|mp4|webm|pdf)$ - [R=404,NC,L]
 
 # Bulk SEO/AI crawlers that bring no customers. Googlebot, Bingbot and the
-# social link-preview fetchers (facebookexternalhit, Pinterestbot, WhatsApp)
-# are deliberately NOT listed. LiteSpeed ignores BrowserMatchNoCase/SetEnvIf —
-# RewriteCond is the mechanism that actually works on this host.
+# social link-preview fetchers are deliberately NOT listed.
 RewriteCond %{HTTP_USER_AGENT} (ahrefsbot|semrushbot|mj12bot|dotbot|blexbot|dataforseobot|petalbot|bytespider|amazonbot|gptbot|ccbot|claudebot|meta-externalagent|imagesiftbot|serpstatbot|barkrowler|seekportbot|zoominfobot|megaindex|timpibot) [NC]
 RewriteRule ^ - [F,L]
 
 # XML-RPC is already disabled in PHP (PHASE 25); this makes the refusal free.
-# Remove this rule if Jetpack or the WP mobile app ever needs xmlrpc back.
 RewriteRule ^xmlrpc\.php$ - [F,L]
 </IfModule>
 # END Art Framer Crawl Guard
 HT;
 
-$block_full     = str_replace( '%%SEARCH%%', $search_stanza . "\n", $block_tpl );
-$block_nosearch = str_replace( '%%SEARCH%%', '', $block_tpl );
-
-/** Atomic write: tmp file in the same dir + rename, so a live request never
- *  reads a truncated .htaccess. Returns true on success. */
+/** Atomic write: tmp + rename so a live request never reads a partial file. */
 function af_guard_write( $path, $content ) {
+    if ( ! is_string( $content ) ) { return false; }
     $tmp = $path . '.af-tmp';
     if ( file_put_contents( $tmp, $content ) === false ) { @unlink( $tmp ); return false; }
     @chmod( $tmp, file_exists( $path ) ? ( fileperms( $path ) & 0777 ) : 0644 );
@@ -101,9 +94,8 @@ function af_guard_write( $path, $content ) {
     return true;
 }
 
-/** Strip our block, then re-insert: after the security-headers block when it
- *  exists (repeat runs then converge byte-for-byte with that script's own
- *  prepend), else prepended. Must in all cases sit before "# BEGIN WordPress". */
+/** Strip our .htaccess block, re-insert after the security-headers block when
+ *  present (repeat runs converge byte-for-byte), else prepend. */
 function af_guard_compose( $existing, $block ) {
     $clean = preg_replace(
         '/# BEGIN Art Framer Crawl Guard.*?# END Art Framer Crawl Guard\s*/s',
@@ -118,7 +110,7 @@ function af_guard_compose( $existing, $block ) {
     return $block . "\n\n" . ltrim( $clean );
 }
 
-/** GET through the public hostname (i.e. the full CDN->origin path). */
+/** GET through the public hostname. Returns code/err/marker/via_cdn. */
 function af_guard_probe( $path, $headers = array() ) {
     $r = wp_remote_get( home_url( $path ), array(
         'timeout'     => 45,
@@ -127,95 +119,161 @@ function af_guard_probe( $path, $headers = array() ) {
         'user-agent'  => 'AF-CrawlGuard-Verify',
         'headers'     => $headers,
     ) );
-    if ( is_wp_error( $r ) ) { return 'ERR: ' . $r->get_error_message(); }
-    return (int) wp_remote_retrieve_response_code( $r );
+    if ( is_wp_error( $r ) ) {
+        return array( 'code' => null, 'err' => $r->get_error_message(), 'marker' => null, 'via_cdn' => false );
+    }
+    $server = (string) wp_remote_retrieve_header( $r, 'server' );
+    return array(
+        'code'    => (int) wp_remote_retrieve_response_code( $r ),
+        'err'     => null,
+        'marker'  => (string) wp_remote_retrieve_header( $r, 'x-af-guard' ),
+        'via_cdn' => ( stripos( $server, 'hcdn' ) !== false )
+                     || wp_remote_retrieve_header( $r, 'x-hcdn-request-id' ) !== ''
+                     || wp_remote_retrieve_header( $r, 'x-hcdn-cache-status' ) !== '',
+    );
 }
 
-$existing = file_exists( $htaccess ) ? file_get_contents( $htaccess ) : '';
-if ( $existing === false ) { echo "AF-GUARD-FAIL: cannot read {$htaccess}\n"; exit(1); }
+/** Cache-busted homepage check: true only on a 2xx/3xx within 3 attempts. */
+function af_guard_home_ok( &$last ) {
+    $last = 'no response';
+    for ( $i = 1; $i <= 3; $i++ ) {
+        $p = af_guard_probe( '/?afv=' . uniqid() );
+        $last = ( $p['code'] !== null ) ? "HTTP {$p['code']}" : 'ERR: ' . $p['err'];
+        if ( $p['code'] !== null && $p['code'] < 400 ) { return true; }
+        sleep( 5 );
+    }
+    return false;
+}
 
-$new     = af_guard_compose( $existing, $block_full );
-$changed = false;
-if ( $new === $existing ) {
-    echo "Crawl guard already current.\n";
+/** Restore pre-run state; returns list of failures (empty = clean restore). */
+function af_guard_restore( $mu_dst, $mu_prev, $mu_changed, $htaccess, $ht_prev, $ht_changed ) {
+    $fails = array();
+    if ( $mu_changed ) {
+        if ( $mu_prev === null ) {
+            if ( file_exists( $mu_dst ) && ! @unlink( $mu_dst ) ) { $fails[] = "delete {$mu_dst}"; }
+        } elseif ( ! af_guard_write( $mu_dst, $mu_prev ) ) {
+            $fails[] = "rewrite {$mu_dst}";
+        }
+    }
+    if ( $ht_changed && ! af_guard_write( $htaccess, $ht_prev ) ) {
+        $fails[] = "rewrite {$htaccess}";
+    }
+    return $fails;
+}
+
+// ── Compose desired contents (search rule included only if still trusted) ──
+$mu_full = file_exists( $mu_src ) ? file_get_contents( $mu_src ) : false;
+if ( $mu_full === false || strpos( $mu_full, 'AF Crawl Guard' ) === false ) {
+    echo "AF-GUARD-FAIL: mu-plugin source missing/invalid at {$mu_src}\n"; exit(1);
+}
+$mu_stripped = preg_replace( '#// BEGIN AF-SEARCH-GUARD.*?// END AF-SEARCH-GUARD\s*#s', '', $mu_full );
+$mu_want = $want_search ? $mu_full : $mu_stripped;
+$ht_block = str_replace( '%%SEARCH%%', $want_search ? $search_stanza . "\n" : '', $block_tpl );
+
+// ── Layer 1: .htaccess (belt; known inert on the public path today) ─────────
+$ht_prev = file_exists( $htaccess ) ? file_get_contents( $htaccess ) : '';
+if ( $ht_prev === false ) { echo "AF-GUARD-FAIL: cannot read {$htaccess}\n"; exit(1); }
+$ht_new     = af_guard_compose( $ht_prev, $ht_block );
+$ht_changed = false;
+if ( $ht_new === $ht_prev ) {
+    echo "htaccess block already current.\n";
+} elseif ( ( file_exists( $htaccess ) && ! is_writable( $htaccess ) ) || ! af_guard_write( $htaccess, $ht_new ) ) {
+    echo "AF-GUARD-WARN: could not write {$htaccess} — htaccess belt skipped (mu-plugin is the working layer).\n";
 } else {
-    if ( file_exists( $htaccess ) && ! is_writable( $htaccess ) ) {
-        echo "AF-GUARD-FAIL: {$htaccess} is not writable — crawl guard NOT applied.\n"; exit(1);
-    }
-    if ( ! af_guard_write( $htaccess, $new ) ) {
-        echo "AF-GUARD-FAIL: could not write {$htaccess}\n"; exit(1);
-    }
-    $changed = true;
-    echo "Crawl guard written to docroot .htaccess.\n";
+    $ht_changed = true;
+    echo "htaccess block written.\n";
 }
 
-// ── Homepage must still serve. Cache-busting query forces a real origin
-// render (a plain homepage GET can be answered from cache and prove nothing).
-// 403/404/410/500 are signatures of our rules misfiring or a syntax error;
-// 508/502/504 mean the shared host is momentarily saturated — not our doing,
-// so they retry and at worst downgrade to a warning, never a false rollback.
-$home_ok = false; $saw_http_fail = false; $last = 'no response';
-$fail_codes = array( 403, 404, 410, 500 );
-for ( $i = 1; $i <= 3; $i++ ) {
-    $code = af_guard_probe( '/?afv=' . uniqid() );
-    $last = is_int( $code ) ? "HTTP {$code}" : $code;
-    if ( is_int( $code ) && $code < 400 ) { $home_ok = true; break; }
-    if ( is_int( $code ) && in_array( $code, $fail_codes, true ) ) { $saw_http_fail = true; }
-    sleep( 5 );
+// ── Layer 2: the mu-plugin (the layer that actually fires) ──────────────────
+if ( ! is_dir( $mu_dir ) && ! mkdir( $mu_dir, 0755, true ) ) {
+    echo "AF-GUARD-FAIL: cannot create {$mu_dir}\n"; exit(1);
+}
+$mu_prev = file_exists( $mu_dst ) ? file_get_contents( $mu_dst ) : null;
+if ( $mu_prev === false ) { $mu_prev = null; } // unreadable = treat as absent, never "restore" an empty file
+$mu_changed = false;
+if ( $mu_prev === $mu_want ) {
+    echo "mu-plugin already current" . ( $want_search ? '' : ' (search rule stripped)' ) . ".\n";
+} elseif ( ! af_guard_write( $mu_dst, $mu_want ) ) {
+    echo "AF-GUARD-FAIL: could not write {$mu_dst}\n"; exit(1);
+} else {
+    $mu_changed = true;
+    echo "mu-plugin installed" . ( $want_search ? '' : ' (search rule stripped)' ) . ": {$mu_dst}\n";
 }
 
-if ( $changed && ! $home_ok && $saw_http_fail ) {
-    if ( af_guard_write( $htaccess, $existing ) ) {
-        echo "AF-GUARD-FAIL: ROLLED BACK — homepage returned {$last} after the edit; previous .htaccess restored.\n";
+// ── Homepage must still serve. The pre-change site was serving, so if we
+// changed anything and can't get a single 2xx/3xx in 3 tries, that's a
+// confirmed break: restore and fail. ─────────────────────────────────────────
+$last = '';
+if ( ! af_guard_home_ok( $last ) ) {
+    if ( $mu_changed || $ht_changed ) {
+        $fails = af_guard_restore( $mu_dst, $mu_prev, $mu_changed, $htaccess, $ht_prev, $ht_changed );
+        if ( empty( $fails ) ) {
+            echo "AF-GUARD-FAIL: ROLLED BACK — homepage returned {$last} after the change; previous state restored.\n";
+        } else {
+            echo "AF-GUARD-FAIL: ROLLBACK FAILED (" . implode( ', ', $fails ) . ") — site may be broken; manually delete wp-content/mu-plugins/af-crawl-guard.php\n";
+        }
     } else {
-        echo "AF-GUARD-FAIL: ROLLBACK FAILED — restore .htaccess manually. Previous content follows:\n";
-        echo "----8<----\n" . $existing . "\n---->8----\n";
+        echo "AF-GUARD-FAIL: homepage returned {$last} but nothing changed this run — investigate the site, not this script.\n";
     }
     exit(1);
 }
-if ( ! $home_ok ) {
-    echo "AF-GUARD-WARN: could not confirm homepage from here ({$last}) — verify https://theartframer.us/ manually. Not rolling back without a confirmed failure code.\n";
-} else {
-    echo "Homepage check (cache-busted): {$last}\n";
-}
+echo "Homepage check (cache-busted): {$last}\n";
 
-// ── POSITIVE path: a search carrying real-browser Sec-Fetch headers must NOT
-// be 403. If it is, the CDN is stripping those headers and the rule would
-// block every customer's search — remove just that rule, keep the rest.
-$browser_headers = array(
-    'Sec-Fetch-Mode' => 'navigate', 'Sec-Fetch-Site' => 'none',
-    'Sec-Fetch-Dest' => 'document', 'Sec-Fetch-User' => '?1',
-);
-$search_rule_active = true;
-$pos = af_guard_probe( '/?s=af-crawlguard-check', $browser_headers );
-if ( $pos === 403 ) {
-    $fallback = af_guard_compose( $existing, $block_nosearch );
-    if ( af_guard_write( $htaccess, $fallback ) ) {
-        $search_rule_active = false;
-        $recheck = af_guard_probe( '/?s=af-crawlguard-check', $browser_headers );
-        echo "AF-GUARD-WARN: CDN strips Sec-Fetch headers — search-guard rule REMOVED so real customers can search (recheck: {$recheck}). All other guards stay active.\n";
+// ── Positive path: a browser-headed search must NOT trip OUR guard. Only the
+// mu-plugin's own marker counts (an edge/WAF artifact must not strip the
+// rule), and the verdict is only trustworthy if the probe crossed the CDN. ──
+$search_active = $want_search;
+if ( $want_search ) {
+    $browser_headers = array(
+        'Sec-Fetch-Mode' => 'navigate', 'Sec-Fetch-Site' => 'none',
+        'Sec-Fetch-Dest' => 'document', 'Sec-Fetch-User' => '?1',
+    );
+    $pos = af_guard_probe( '/?s=af-guard-pos-' . uniqid(), $browser_headers );
+    if ( strpos( (string) $pos['marker'], 'search-' ) === 0 ) {
+        // Our rule fired despite browser headers => Sec-Fetch did not survive
+        // the path. Strip it everywhere and persist the decision.
+        update_option( 'af_guard_no_search', 'yes', true );
+        $ok = af_guard_write( $mu_dst, $mu_stripped )
+              && af_guard_write( $htaccess, af_guard_compose( $ht_prev, str_replace( '%%SEARCH%%', '', $block_tpl ) ) );
+        $search_active = false;
+        if ( ! $ok ) {
+            echo "AF-GUARD-FAIL: search rule misfires for browsers and the strip-rewrite failed — manually delete wp-content/mu-plugins/af-crawl-guard.php\n";
+            exit(1);
+        }
+        if ( ! af_guard_home_ok( $last ) ) {
+            $fails = af_guard_restore( $mu_dst, $mu_prev, true, $htaccess, $ht_prev, true );
+            echo empty( $fails )
+                ? "AF-GUARD-FAIL: ROLLED BACK — homepage returned {$last} after the search-strip rewrite.\n"
+                : "AF-GUARD-FAIL: ROLLBACK FAILED after search-strip (" . implode( ', ', $fails ) . ") — manually delete wp-content/mu-plugins/af-crawl-guard.php\n";
+            exit(1);
+        }
+        echo "AF-GUARD-WARN: Sec-Fetch headers do not survive to PHP — search rule REMOVED everywhere (persisted) so customer search keeps working.\n";
+    } elseif ( ! $pos['via_cdn'] ) {
+        echo "AF-GUARD-WARN: positive-path probe did not traverse the CDN (vantage unproven) — the deploy's external search gate is the authority here.\n";
     } else {
-        echo "AF-GUARD-FAIL: search guard blocks real browsers and the fallback write failed — restore .htaccess manually.\n";
-        exit(1);
+        echo "Search positive-path via CDN: HTTP {$pos['code']}, no guard marker — correct.\n";
     }
-} else {
-    echo "Search positive-path check (browser headers): {$pos} (anything but 403 is correct)\n";
 }
 
-// ── Functional checks (report-only). af_guard_probe sends no Sec-Fetch
-// headers, so the search probe exercises exactly the bot path we block. The
-// static-file probe uses .css because the CDN answers missing *images* itself.
+// ── EFFECTIVENESS: unique URLs + the guard's own marker header, so neither a
+// cache nor a themed WP 404 can fake a PASS. ────────────────────────────────
+$eff_fail = 0;
 $checks = array(
-    array( '/items/AF-crawlguard-check',                                 410, 'spam URL -> 410 Gone' ),
-    array( '/wp-content/themes/postero-child/af-crawlguard-check.css',   404, 'missing static file -> server 404' ),
+    array( '/items/AF-' . uniqid(),                                    410, 'items-410',  'spam URL -> 410' ),
+    array( '/wp-content/themes/postero-child/af-' . uniqid() . '.css', 404, 'static-404', 'missing static -> instant 404' ),
 );
-if ( $search_rule_active ) {
-    $checks[] = array( '/?s=af-crawlguard-check', 403, 'headerless search -> 403' );
+if ( $search_active ) {
+    $checks[] = array( '/?s=af-guard-bot-' . uniqid(), 302, 'search-302', 'headerless search -> 302 home' );
 }
 foreach ( $checks as $c ) {
-    list( $path, $want, $label ) = $c;
-    $got = af_guard_probe( $path );
-    $got = is_int( $got ) ? (string) $got : $got;
-    echo ( (string) $want === $got ? 'PASS' : 'CHECK' ) . ": {$label} (want {$want}, got {$got})\n";
+    list( $path, $want_code, $want_marker, $label ) = $c;
+    $p = af_guard_probe( $path );
+    $got  = ( $p['code'] !== null ) ? (string) $p['code'] : 'ERR: ' . $p['err'];
+    $pass = ( $p['code'] === $want_code && $p['marker'] === $want_marker );
+    if ( ! $pass ) { $eff_fail++; }
+    echo ( $pass ? 'PASS' : 'MISS' ) . ": {$label} (want {$want_code}+{$want_marker}, got {$got}+" . ( $p['marker'] !== '' ? $p['marker'] : 'no-marker' ) . ")\n";
+}
+if ( $eff_fail > 0 ) {
+    echo "AF-GUARD-WARN: {$eff_fail} effectiveness probe(s) missed — the guard may not be filtering on the public path. Investigate before trusting the CPU fix.\n";
 }
 echo "=== DONE ===\n";
