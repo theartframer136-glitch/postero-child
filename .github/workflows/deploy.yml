@@ -262,6 +262,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/rotate-moonlit-lotus-radha-gallery2-ccw90.php --allow-root 2>&1" \
             || true
 
+          echo "Rotating Colorful Horses (SH 06) photo 90 deg clockwise..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/rotate-colorful-horses-cw90.php --allow-root 2>&1" \
+            || true
+
           echo "Removing duplicate product categories..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
