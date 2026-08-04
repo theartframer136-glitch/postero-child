@@ -268,6 +268,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/rotate-colorful-horses-cw90.php --allow-root 2>&1" \
             || true
 
+          echo "Rotating 2nd gallery photo of Ganesha Dawn Silhouette (LS 11) 90 deg anti-clockwise..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/rotate-ganesha-dawn-silhouette-gallery2-ccw90.php --allow-root 2>&1" \
+            || true
+
           echo "Removing duplicate product categories..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
