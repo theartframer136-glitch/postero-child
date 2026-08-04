@@ -7353,6 +7353,21 @@ function af_seo_robots_txt() {
         'Disallow: /*?*lang=',
         'Disallow: /*?*per_page=',
         'Disallow: /*?*layout=',
+        // Deep tag pagination was the largest remaining crawl cost after the
+        // filter URLs: the 2026-08-04 profile is full of /product-tag/*/page/N/
+        // hits (page/22, page/13, page/11 ...) at ~2.2-4.2s each. Tag archives
+        // duplicate the category listings, and page 2 onward carries no ranking
+        // value the categories do not already have. Page 1 of each tag stays
+        // crawlable, and every product remains discoverable through the
+        // sitemap, so nothing drops out of the index by being unreachable.
+        'Disallow: /product-tag/*/page/',
+        // Feeds are rendered by PHP, are never cached, and bring no customers.
+        'Disallow: /*/feed/',
+        'Disallow: /*/embed/',
+        // Ignored by Google (it paces itself from Search Console) but honoured
+        // by Bing, Yandex and most well-behaved crawlers — the ones that were
+        // arriving in bursts and stacking concurrent renders on a shared host.
+        'Crawl-delay: 10',
         '',
         'Sitemap: https://theartframer.us/sitemap_index.xml',
     );
