@@ -363,6 +363,7 @@ $CHEAP_MAX = 4096;
 $checks = array(
     array( '/items/AF-' . uniqid(),                                    410, 'items-410',  'spam URL -> 410', false ),
     array( '/wp-content/themes/postero-child/af-' . uniqid() . '.css', 404, 'static-404', 'missing static -> instant 404', true ),
+    array( '/?wc-ajax=get_refreshed_fragments&afv=' . uniqid(),        200, 'fragments-empty', 'cookieless cart fragments -> instant empty JSON', false ),
 );
 if ( $search_active ) {
     // These three live inside the AF-SEARCH-GUARD block, so they exist only
@@ -385,6 +386,17 @@ foreach ( $checks as $c ) {
     echo ( $pass ? 'PASS' : 'MISS' ) . ": {$label} (want {$want_code}+{$want_marker}, got {$got}+"
         . ( $p['marker'] !== '' ? $p['marker'] : 'no-marker' ) . ', ' . $p['len'] . "B){$note}\n";
 }
+// SAFETY (the mirror of the probe above): a shopper carrying a cart cookie must
+// still reach WooCommerce's real fragments handler. If this ever trips, the
+// guard is answering for people with baskets and mini-carts would show empty.
+$af_cart = af_guard_probe( '/?wc-ajax=get_refreshed_fragments&afv=' . uniqid(), array( 'Cookie' => 'woocommerce_items_in_cart=1' ) );
+if ( $af_cart['marker'] === 'fragments-empty' ) {
+    echo "AF-GUARD-FAIL: cart-cookie fragments were answered by the guard — real shoppers would lose their mini-cart.\n";
+} else {
+    echo "PASS: cart-cookie fragments reach WooCommerce (got " . ( $af_cart['code'] !== null ? $af_cart['code'] : 'ERR' )
+        . '+' . ( $af_cart['marker'] !== '' ? $af_cart['marker'] : 'no-marker' ) . ")\n";
+}
+
 if ( $eff_fail > 0 ) {
     echo "AF-GUARD-WARN: {$eff_fail} effectiveness probe(s) missed — the guard may not be filtering on the public path. Investigate before trusting the CPU fix.\n";
 }
