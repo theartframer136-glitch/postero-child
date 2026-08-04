@@ -274,6 +274,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/rotate-ganesha-dawn-silhouette-gallery2-ccw90.php --allow-root 2>&1" \
             || true
 
+          echo "Checking for gallery photos that belong to a different product (read-only)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-gallery-featured-mismatch.php --allow-root 2>&1" \
+            || true
+
           echo "Removing duplicate product categories..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
