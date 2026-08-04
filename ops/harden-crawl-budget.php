@@ -148,13 +148,17 @@ function af_guard_probe( $path, $headers = array() ) {
         'headers'     => $headers,
     ) );
     if ( is_wp_error( $r ) ) {
-        return array( 'code' => null, 'err' => $r->get_error_message(), 'marker' => null, 'via_cdn' => false );
+        return array( 'code' => null, 'err' => $r->get_error_message(), 'marker' => null, 'len' => 0, 'via_cdn' => false );
     }
     $server = (string) wp_remote_retrieve_header( $r, 'server' );
     return array(
         'code'    => (int) wp_remote_retrieve_response_code( $r ),
         'err'     => null,
         'marker'  => (string) wp_remote_retrieve_header( $r, 'x-af-guard' ),
+        // Body size separates a cheap refusal from a full themed render: a
+        // WordPress 404 template is tens of KB, a web-server or guard refusal
+        // is a few hundred bytes.
+        'len'     => strlen( (string) wp_remote_retrieve_body( $r ) ),
         'via_cdn' => ( stripos( $server, 'hcdn' ) !== false )
                      || wp_remote_retrieve_header( $r, 'x-hcdn-request-id' ) !== ''
                      || wp_remote_retrieve_header( $r, 'x-hcdn-cache-status' ) !== '',
@@ -351,20 +355,35 @@ if ( $want_search ) {
 // ── EFFECTIVENESS: unique URLs + the guard's own marker header, so neither a
 // cache nor a themed WP 404 can fake a PASS. ────────────────────────────────
 $eff_fail = 0;
+// A check may set 'cheap_ok': the goal is "this request must not cost a full
+// WordPress render", and the web server answering it itself is even cheaper
+// than the guard doing so. Those checks accept a small-bodied response with no
+// marker; a themed WP 404/200 is tens of KB and still counts as a MISS.
+$CHEAP_MAX = 4096;
 $checks = array(
-    array( '/items/AF-' . uniqid(),                                    410, 'items-410',  'spam URL -> 410' ),
-    array( '/wp-content/themes/postero-child/af-' . uniqid() . '.css', 404, 'static-404', 'missing static -> instant 404' ),
+    array( '/items/AF-' . uniqid(),                                    410, 'items-410',  'spam URL -> 410', false ),
+    array( '/wp-content/themes/postero-child/af-' . uniqid() . '.css', 404, 'static-404', 'missing static -> instant 404', true ),
 );
 if ( $search_active ) {
-    $checks[] = array( '/?s=af-guard-bot-' . uniqid(), 302, 'search-302', 'headerless search -> 302 home' );
+    // These three live inside the AF-SEARCH-GUARD block, so they exist only
+    // while that block does — same condition, same probe gate.
+    $checks[] = array( '/?s=af-guard-bot-' . uniqid(), 302, 'search-302', 'headerless search -> 302 home', false );
+    $checks[] = array( '/shop/?filter_colors=af-' . uniqid(), 302, 'filter-302', 'headerless filter URL -> 302 bare path', false );
+    $checks[] = array( '/shop/?add-to-cart=' . rand( 900000, 999999 ), 302, 'addtocart-302', 'headerless add-to-cart -> 302 home', false );
 }
 foreach ( $checks as $c ) {
-    list( $path, $want_code, $want_marker, $label ) = $c;
+    list( $path, $want_code, $want_marker, $label, $cheap_ok ) = $c;
     $p = af_guard_probe( $path );
     $got  = ( $p['code'] !== null ) ? (string) $p['code'] : 'ERR: ' . $p['err'];
     $pass = ( $p['code'] === $want_code && $p['marker'] === $want_marker );
+    $note = '';
+    if ( ! $pass && $cheap_ok && $p['code'] === $want_code && $p['marker'] === '' && $p['len'] <= $CHEAP_MAX ) {
+        $pass = true;
+        $note = ' [answered by the web server before PHP — cheaper than the guard]';
+    }
     if ( ! $pass ) { $eff_fail++; }
-    echo ( $pass ? 'PASS' : 'MISS' ) . ": {$label} (want {$want_code}+{$want_marker}, got {$got}+" . ( $p['marker'] !== '' ? $p['marker'] : 'no-marker' ) . ")\n";
+    echo ( $pass ? 'PASS' : 'MISS' ) . ": {$label} (want {$want_code}+{$want_marker}, got {$got}+"
+        . ( $p['marker'] !== '' ? $p['marker'] : 'no-marker' ) . ', ' . $p['len'] . "B){$note}\n";
 }
 if ( $eff_fail > 0 ) {
     echo "AF-GUARD-WARN: {$eff_fail} effectiveness probe(s) missed — the guard may not be filtering on the public path. Investigate before trusting the CPU fix.\n";
