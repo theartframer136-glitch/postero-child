@@ -7350,6 +7350,9 @@ function af_seo_robots_txt() {
         'Disallow: /*?*query_type_',
         'Disallow: /*?*add-to-cart=',
         'Disallow: /*?*currency=',
+        'Disallow: /*?*lang=',
+        'Disallow: /*?*per_page=',
+        'Disallow: /*?*layout=',
         '',
         'Sitemap: https://theartframer.us/sitemap_index.xml',
     );

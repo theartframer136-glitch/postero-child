@@ -87,7 +87,11 @@ if ( $af_qs !== ''
         //     394-product store into millions of unique URLs, every one a
         //     cache MISS and a full render. Headerless clients get the bare
         //     (cached) archive path instead; real shoppers filter untouched.
-        if ( preg_match( '#(^|&)(filter_[a-z0-9_]+|orientation|min_price|max_price|orderby|query_type_[a-z0-9_]+|currency)=#i', $af_qs ) ) {
+        // lang= is Transposh's per-language URL variant (this store's own SEO
+        // code strips hreflang as a single-language US shop); per_page= and
+        // layout= are grid-display toggles. All were live in the 2026-08-04
+        // profiler capture, multiplying the crawlable URL space.
+        if ( preg_match( '#(^|&)(filter_[a-z0-9_]+|orientation|min_price|max_price|orderby|query_type_[a-z0-9_]+|currency|lang|per_page|layout)=#i', $af_qs ) ) {
             header( 'Cache-Control: no-store, max-age=0' );
             header( 'X-AF-Guard: filter-302' );
             header( 'Location: ' . $af_path, true, 302 );
