@@ -59,6 +59,38 @@ if ( $af_ua !== '' && preg_match(
     exit( 'Forbidden' );
 }
 
+// 3b. WooCommerce cart fragments. This endpoint is uncacheable by design and
+//     costs a full WP+Woo boot (~1.2s); the 2026-08-04 profiler measured 88.5s
+//     of PHP across 76 calls in 15 minutes — the single largest item after the
+//     filter URLs. It fires on EVERY page view, including pages LiteSpeed
+//     served from cache, because the theme's markup asks for it unconditionally.
+//     A client with no WooCommerce cookie at all has no cart and no session —
+//     every crawler, and nothing else — so its fragments are empty by
+//     definition. Answer that empty result here for ~10ms instead of booting
+//     WordPress to compute it. Anyone who has ever put something in a basket
+//     carries a cookie and passes straight through, untouched.
+//     Deliberately NOT edge-cached: the response is correct only for the
+//     cookieless, and a cached copy could otherwise reach a real shopper.
+if ( strpos( $af_qs, 'wc-ajax=get_refreshed_fragments' ) !== false ) {
+    $af_has_wc_cookie = false;
+    foreach ( array_keys( $_COOKIE ) as $af_ck ) {
+        if ( strpos( $af_ck, 'woocommerce_' ) === 0
+            || strpos( $af_ck, 'wp_woocommerce_session_' ) === 0
+            || strpos( $af_ck, 'wordpress_logged_in_' ) === 0 ) {
+            $af_has_wc_cookie = true;
+            break;
+        }
+    }
+    if ( ! $af_has_wc_cookie ) {
+        header( 'Cache-Control: no-store, max-age=0' );
+        header( 'Content-Type: application/json; charset=utf-8' );
+        header( 'X-AF-Guard: fragments-empty' );
+        // The shape WooCommerce's own handler returns, so its script stores a
+        // valid (empty) result and replaces nothing in the cached markup.
+        exit( '{"fragments":{},"cart_hash":""}' );
+    }
+}
+
 // BEGIN AF-SEARCH-GUARD (the installer removes this section if Sec-Fetch
 // headers are found not to survive the CDN, so customer search cannot break)
 // Rules 4/4b/4c share one signal: real browsers send Sec-Fetch-* headers;

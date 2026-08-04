@@ -9613,6 +9613,51 @@ add_action('woocommerce_after_single_product_summary', function() {
 // One batched endpoint tells the page which visible products get the
 // size/frame/color engine and their from-price; JS injects a compact
 // swatch strip on each eligible card, deep-linking to #af-opts.
+/**
+ * The frame-colour dots shown on every card. One definition, so the
+ * server-rendered strip and the AJAX fallback can never drift apart.
+ */
+function af_card_vars_dots() {
+    return array('Black' => '#1a1a1a', 'Silver' => '#c0c0c0', 'Gold' => '#d4af37', 'Rose Gold' => '#b76e79');
+}
+
+/** The strip's markup for one product, or '' when the product has no options. */
+function af_card_vars_html($product) {
+    if (!$product || $product->get_status() !== 'publish') return '';
+    if (!af_pricing_applies($product) || !$product->is_purchasable()) return '';
+
+    $cfg  = af_pricing_config();
+    $base = $product->is_type('variable')
+        ? (float) $product->get_variation_price('min')
+        : (float) wc_get_price_to_display($product);
+
+    $dots = '';
+    foreach (af_card_vars_dots() as $name => $hex) {
+        $dots .= '<i title="' . esc_attr($name) . '" style="background:' . esc_attr($hex) . '"></i>';
+    }
+    return '<div class="af-card-vars"><a href="' . esc_url(get_permalink($product->get_id()) . '#af-opts') . '">'
+         . '<span class="af-card-dots">' . $dots . '</span>'
+         . '<span>' . count($cfg['sizes']) . ' sizes &middot; ' . count($cfg['frames']) . ' frames</span>'
+         . '<span class="af-card-from">From ' . esc_html(wp_strip_all_tags(wc_price($base))) . '</span>'
+         . '</a></div>';
+}
+
+// PERF: render the strip into the card at page-build time. The 2026-08-04
+// profiler measured this endpoint at 43.1s of PHP across 33 calls (~1.3s each)
+// in 15 minutes — and every one of those calls happened on a page LiteSpeed had
+// already served from cache, because the markup was only ever built in the
+// browser. Emitting it here folds the cost into the cached HTML: paid once per
+// cache generation instead of once per visitor. Priority 13 puts it after the
+// price (10) and the discount badge (12), matching where the JS inserted it.
+// The JS skips any card that already carries .af-card-vars and makes no request
+// at all when every card is covered, so it now only fires for cards that this
+// hook cannot reach (Elementor-built homepage rows).
+add_action('woocommerce_after_shop_loop_item_title', function() {
+    global $product;
+    if (!$product) return;
+    echo af_card_vars_html($product); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the builder
+}, 13);
+
 function af_card_variations_handler() {
     $raw = isset($_POST['ids']) ? (array) $_POST['ids'] : array();
     $ids = array_slice(array_filter(array_map('absint', $raw)), 0, 48);
