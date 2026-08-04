@@ -1,11 +1,12 @@
-name: Diagnose CPU (read-only)
+name: Diagnose CPU (profiling)
 
-# Read-only diagnostic: gathers evidence for the sustained high-CPU
-# condition without deploying or changing anything on the host. Safe to run
-# at any time — it makes no writes beyond /tmp scratch files on the server.
-# The push trigger exists because workflow_dispatch only works once the file
-# reaches the default branch; on the investigation branch each push re-runs
-# the diagnostic, giving free before/after comparisons.
+# CPU-attribution run: the read-only pass proved page caching is healthy and
+# cron is quiet, yet CPU stays ~470%/600% — and this host exposes no access
+# logs over SSH. So this run installs a tiny request profiler plugin for
+# ~15 minutes (every request it logs is a PHP-burning request — cache HITs
+# never reach PHP), aggregates the log, then deactivates and deletes the
+# plugin and its log. The plugin self-expires after 2h and caps its file at
+# 30MB, so even a failed cleanup cannot leave anything running long-term.
 on:
   workflow_dispatch:
   push:
@@ -16,9 +17,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  diagnose:
+  profile:
     runs-on: ubuntu-latest
-    timeout-minutes: 18
+    timeout-minutes: 30
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -30,57 +31,37 @@ jobs:
           printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-      - name: Server-side diagnostic (read-only over one SSH connection)
-        timeout-minutes: 12
+      - name: Profile PHP requests for 15 minutes
+        timeout-minutes: 25
         env:
           H_USER: ${{ secrets.HOSTINGER_USERNAME }}
           H_HOST: ${{ secrets.HOSTINGER_HOST }}
           H_PORT: ${{ secrets.HOSTINGER_PORT }}
         run: |
           set -uo pipefail
-          # BatchMode: fail instead of hanging on any interactive prompt.
-          SSH="ssh -p ${H_PORT} -i $HOME/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=300"
+          SSH="ssh -p ${H_PORT} -i $HOME/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=1500"
+          DOCROOT="~/websites/OPu0sKi4J/public_html"
 
-          # The host throttles SSH hard after bursts — retry the master
-          # connection across the throttle window.
           OK=0
           for a in 1 2 3 4; do
             if ${SSH} "${H_USER}@${H_HOST}" "echo AF-SSH-OK" </dev/null; then OK=1; break; fi
             echo "SSH refused (attempt $a) — waiting 60s for the throttle..."
             sleep 60
           done
-          if [ "$OK" != "1" ]; then
-            echo "::error::Could not reach the host over SSH after 4 attempts."
-            exit 1
-          fi
+          [ "$OK" = "1" ] || { echo "::error::No SSH after 4 attempts."; exit 1; }
 
-          echo "── shell diagnostic ──────────────────────────────────"
-          timeout 300 ${SSH} "${H_USER}@${H_HOST}" "bash -s" < ops/diag-cpu.sh || echo "(shell diagnostic exited $?)"
+          echo "Installing the temporary profiler plugin..."
+          ${SSH} "${H_USER}@${H_HOST}" "mkdir -p ${DOCROOT}/wp-content/plugins/af-req-profiler && cat > ${DOCROOT}/wp-content/plugins/af-req-profiler/af-req-profiler.php && touch ${DOCROOT}/wp-content/plugins/af-req-profiler/af-req-profiler.php" < ops/diag-profiler-plugin.php
+          ${SSH} "${H_USER}@${H_HOST}" "cd ${DOCROOT} && rm -f wp-content/uploads/af-req-log.txt && wp plugin activate af-req-profiler --allow-root 2>&1" </dev/null
+          ${SSH} "${H_USER}@${H_HOST}" "cat > /tmp/af-diag-agg.php" < ops/diag-agg.php
 
-          echo "── wordpress diagnostic ──────────────────────────────"
-          ${SSH} "${H_USER}@${H_HOST}" "cat > /tmp/af-diag-cpu.php" < ops/diag-cpu.php
-          timeout 240 ${SSH} "${H_USER}@${H_HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && wp eval-file /tmp/af-diag-cpu.php --allow-root 2>&1; rm -f /tmp/af-diag-cpu.php" \
-            </dev/null || echo "(wp diagnostic exited $?)"
+          echo "Collecting for 15 minutes (the SSH master stays open)..."
+          sleep 900
 
-          # Tear the multiplexed master down so nothing lingers holding
-          # the step's stdio open.
+          echo "── AGGREGATE ────────────────────────────────────────"
+          ${SSH} "${H_USER}@${H_HOST}" "cd ${DOCROOT} && (php /tmp/af-diag-agg.php wp-content/uploads/af-req-log.txt 2>/dev/null || php82 /tmp/af-diag-agg.php wp-content/uploads/af-req-log.txt 2>/dev/null || /usr/bin/php /tmp/af-diag-agg.php wp-content/uploads/af-req-log.txt)" </dev/null || echo "(aggregation failed)"
+
+          echo "── CLEANUP ──────────────────────────────────────────"
+          ${SSH} "${H_USER}@${H_HOST}" "cd ${DOCROOT} && wp plugin deactivate af-req-profiler --allow-root 2>&1; rm -rf wp-content/plugins/af-req-profiler wp-content/uploads/af-req-log.txt /tmp/af-diag-agg.php; echo 'profiler removed'" </dev/null
           ${SSH} -O exit "${H_USER}@${H_HOST}" 2>/dev/null || true
-
-      - name: Edge probes (what does a visitor's request cost?)
-        timeout-minutes: 5
-        run: |
-          set -uo pipefail
-          probe() {
-            echo "--- $1 $2"
-            curl -s -D - -o /dev/null --max-time 25 -A "${3:-Mozilla/5.0 (X11; Linux x86_64) AF-DiagProbe}" "$2" \
-              | tr -d '\r' | grep -i '^HTTP/\|^x-litespeed-cache\|^x-qc-\|^x-cache\|^age:\|^cache-control\|^x-af-guard' || true
-          }
-          probe "home #1" "https://theartframer.us/"
-          probe "home #2" "https://theartframer.us/"
-          probe "shop #1" "https://theartframer.us/shop/"
-          probe "shop #2" "https://theartframer.us/shop/"
-          probe "guard: ahrefs UA" "https://theartframer.us/" "AhrefsBot/7.0"
-          probe "guard: spam URL" "https://theartframer.us/items/spam-check"
-          probe "guard: static 404" "https://theartframer.us/wp-content/uploads/nonexistent-diag.jpg"
-          echo "Diagnostic complete."
+          echo "Profiling complete."
