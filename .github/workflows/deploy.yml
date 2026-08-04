@@ -99,10 +99,19 @@ jobs:
 
           # ── Light-deploy guard ─────────────────────────────────────────────
           # The full script suite below (~45 wp-cli blocks) saturates the shared
-          # host's PHP pool and 508s real visitors for the whole run. Skip it
-          # when the push only touched theme code; run it when tools/ changed,
-          # the commit message contains [full-deploy], or the range is unknown
-          # (manual runs, force pushes).
+          # host's PHP pool and 508s real visitors for the whole run.
+          #
+          # It used to run whenever ANY file under tools/ changed. That fired it
+          # on every one-off task script — four photo-rotation deploys on
+          # 2026-08-04 alone — even though the suite invokes a FIXED list of
+          # scripts, so a brand-new one-off is not in it and re-running the other
+          # 45 accomplishes nothing but a CPU spike.
+          #
+          # So the trigger is now precise: run the suite when a changed tools/
+          # file is one this pipeline actually invokes (grep the workflow for
+          # it), when the commit says [full-deploy], or when the range is unknown
+          # (manual runs, force pushes). A one-off script still runs from the
+          # step its own PR adds — that is unaffected by this decision.
           RUN_SUITE=1
           BEFORE="$GH_BEFORE"
           if [ "$GH_EVENT_NAME" = "push" ] \
@@ -111,8 +120,16 @@ jobs:
              && git cat-file -e "$BEFORE" 2>/dev/null; then
             CHANGED=$(git diff --name-only "$BEFORE" "$GH_SHA" 2>/dev/null)
             MSGS=$(git log --format=%B "$BEFORE..$GH_SHA" 2>/dev/null)
+            SUITE_TOOL_CHANGED=0
+            for F in $(printf '%s\n' "$CHANGED" | grep '^tools/' || true); do
+              if grep -q "$(basename "$F")" .github/workflows/deploy.yml 2>/dev/null; then
+                SUITE_TOOL_CHANGED=1
+                echo "Suite script changed: $F"
+                break
+              fi
+            done
             if [ -n "$CHANGED" ] \
-               && ! printf '%s\n' "$CHANGED" | grep -q '^tools/' \
+               && [ "$SUITE_TOOL_CHANGED" = "0" ] \
                && ! printf '%s\n' "$MSGS" | grep -qi '\[full-deploy\]'; then
               RUN_SUITE=0
             fi
@@ -358,11 +375,22 @@ jobs:
             || true
 
           echo "Dropping tracker query params from the cache key (ad-click URLs share one cache entry instead of each being a full-render MISS)..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+          # Purge ONLY when the value actually changed. This setting is stable
+          # across deploys, so the unconditional purge that used to sit here
+          # emptied the whole page cache on every run for no reason — and a cold
+          # cache is exactly what makes CPU spike afterwards.
+          QSOUT=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             wp option update litespeed.conf.cache-drop_qs --format=json '[\"fbclid\",\"gclid\",\"gbraid\",\"wbraid\",\"msclkid\",\"ttclid\",\"igshid\",\"mc_cid\",\"mc_eid\",\"utm_source\",\"utm_medium\",\"utm_campaign\",\"utm_term\",\"utm_content\",\"utm_id\"]' --allow-root 2>&1; \
-             wp litespeed-purge all --allow-root 2>/dev/null || true" \
+             wp option update litespeed.conf.cache-drop_qs --format=json '[\"fbclid\",\"gclid\",\"gbraid\",\"wbraid\",\"msclkid\",\"ttclid\",\"igshid\",\"mc_cid\",\"mc_eid\",\"utm_source\",\"utm_medium\",\"utm_campaign\",\"utm_term\",\"utm_content\",\"utm_id\"]' --allow-root 2>&1") \
             || true
+          printf '%s\n' "$QSOUT"
+          if printf '%s' "$QSOUT" | grep -qi 'unchanged'; then
+            echo "  drop_qs already correct — skipping the purge."
+          else
+            echo "  drop_qs changed — purging so the new cache key takes effect."
+            ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+              "cd ~/websites/OPu0sKi4J/public_html && wp litespeed-purge all --allow-root 2>/dev/null || true" || true
+          fi
 
           echo "Recovery: clear maintenance flag + disable blanket auto-updates..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
@@ -657,29 +685,49 @@ jobs:
           # Sequential, one request at a time, so warming itself never adds
           # concurrent-PHP pressure. Warms the default (anonymous desktop)
           # cache variant — the one first-time visitors get.
+          # The warm list comes from WordPress itself, not from scraping the
+          # sitemap over HTTP. Run #544 proved why: the sitemap parse silently
+          # yielded nothing and the deploy reported "Warmed 1 pages" — so after
+          # purging the ENTIRE cache we left 394 products and every category and
+          # tag archive cold, and the next crawler to touch each one paid a full
+          # ~2-3s render. That is what makes CPU spike after a deploy and settle
+          # again hours later. wp-cli cannot silently return the wrong thing here:
+          # if it yields nothing, the guard below fails the deploy loudly.
           WARM_LIST=/tmp/warm-urls.txt
-          echo "https://theartframer.us/" > "$WARM_LIST"
-          for SITEMAP in "https://theartframer.us/sitemap_index.xml" "https://theartframer.us/wp-sitemap.xml"; do
-            SUBMAPS=$(curl -s --max-time 30 "$SITEMAP" | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' | grep -i 'product_cat\|product-cat\|category\|page' | head -4)
-            [ -n "$SUBMAPS" ] || continue
-            for SM in $SUBMAPS; do
-              curl -s --max-time 30 "$SM" | grep -o '<loc>[^<]*</loc>' | sed 's/<[^>]*>//g' >> "$WARM_LIST"
-            done
-            break
-          done
+          {
+            echo "https://theartframer.us/"
+            echo "https://theartframer.us/shop/"
+            ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+              "cd ~/websites/OPu0sKi4J/public_html && \
+               wp term list product_cat --field=url --hide_empty=1 --number=30 --allow-root 2>/dev/null" || true
+            ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+              "cd ~/websites/OPu0sKi4J/public_html && \
+               wp post list --post_type=product --post_status=publish --field=url \
+                 --posts_per_page=25 --orderby=modified --order=DESC --allow-root 2>/dev/null" || true
+          } | tr -d '\r' | grep '^https\?://' | awk '!seen[$0]++' > "$WARM_LIST"
+
+          WARM_TOTAL=$(wc -l < "$WARM_LIST")
+          echo "Warm list: $WARM_TOTAL URLs (categories first, then recently-changed products)."
+          if [ "$WARM_TOTAL" -lt 3 ]; then
+            echo "::error::Could not build a warm list — the cache would be left cold after the purge, which spikes CPU. Failing so this is never silent again."
+            exit 1
+          fi
+
           WARMED=0
+          MISSED=0
           while read -r URL; do
-            [ $WARMED -ge 30 ] && break
+            [ $WARMED -ge 55 ] && break
             CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 45 -A 'Mozilla/5.0 (X11; Linux x86_64) AF-CacheWarmer' "$URL" || echo 000)
-            echo "  warmed $URL -> $CODE"
+            case "$CODE" in 200|301|302) : ;; *) MISSED=$((MISSED + 1)); echo "  warmed $URL -> $CODE" ;; esac
             WARMED=$((WARMED + 1))
-            sleep 2
-          done < <(
-            # Homepage first, then category archives (the money pages — their
-            # sitemap sits last in the index and got crowded out by the page
-            # list before this reorder), then everything else, deduped.
-            { head -1 "$WARM_LIST"; grep '/product-category/' "$WARM_LIST"; tail -n +2 "$WARM_LIST" | grep -v '/product-category/'; } | awk '!seen[$0]++'
-          )
-          echo "Warmed $WARMED pages."
+            sleep 1
+          done < "$WARM_LIST"
+          echo "Warmed $WARMED pages ($MISSED non-2xx)."
+          # Warming is what stops the post-deploy spike, so a wholesale failure
+          # must not pass silently either.
+          if [ "$WARMED" -gt 0 ] && [ "$MISSED" -ge "$WARMED" ]; then
+            echo "::error::Every warm request failed — the cache is cold and CPU will spike."
+            exit 1
+          fi
 
           echo "Deploy complete"
