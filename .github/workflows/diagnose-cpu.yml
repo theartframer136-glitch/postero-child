@@ -7,10 +7,12 @@ name: Diagnose CPU (profiling)
 # never reach PHP), aggregates the log, then deactivates and deletes the
 # plugin and its log. The plugin self-expires after 2h and caps its file at
 # 30MB, so even a failed cleanup cannot leave anything running long-term.
+# Manual only. The push trigger did its job during the investigation; leaving
+# it armed would reinstall the profiler on the live site on every push, which
+# is itself load on a box we are trying to quieten. Re-run it from the Actions
+# tab whenever attribution is needed again.
 on:
   workflow_dispatch:
-  push:
-    branches: [ claude/high-cpu-usage-odphnl ]
 
 # Queue, never cancel: a push must not kill a profiling window mid-collection
 # (the run would also skip its cleanup step).
