@@ -61,12 +61,11 @@ if ( $af_ua !== '' && preg_match(
 
 // BEGIN AF-SEARCH-GUARD (the installer removes this section if Sec-Fetch
 // headers are found not to survive the CDN, so customer search cannot break)
-// 4. On-site search costs ~3s of PHP and cannot be cached. Real browsers send
-//    Sec-Fetch-* headers; scrapers with fake Chrome UAs do not. Headerless
-//    searches get a harmless redirect to the (cached, ~free) homepage — so
-//    the worst case for a rare old browser is landing on the homepage, never
-//    a dead "Forbidden". Skips wp-admin, the REST API and logged-in users.
-if ( $af_qs !== '' && preg_match( '#(^|&)s=#', $af_qs )
+// Rules 4/4b/4c share one signal: real browsers send Sec-Fetch-* headers;
+// scrapers with fake Chrome UAs do not. Each redirect lands somewhere cached
+// (~free), so the worst case for a rare old browser is a sensible page, never
+// a dead "Forbidden". All skip wp-admin, the REST API and logged-in users.
+if ( $af_qs !== ''
     && empty( $_SERVER['HTTP_SEC_FETCH_MODE'] )
     && strpos( $af_path, '/wp-admin' ) !== 0
     && strpos( $af_path, '/wp-json' ) !== 0
@@ -76,10 +75,38 @@ if ( $af_qs !== '' && preg_match( '#(^|&)s=#', $af_qs )
         if ( strpos( $af_ck, 'wordpress_logged_in_' ) === 0 ) { $af_logged_in = true; break; }
     }
     if ( ! $af_logged_in ) {
-        header( 'Cache-Control: no-store, max-age=0' );
-        header( 'X-AF-Guard: search-302' );
-        header( 'Location: /', true, 302 );
-        exit;
+        // 4. On-site search costs ~3s of PHP and cannot be cached.
+        if ( preg_match( '#(^|&)s=#', $af_qs ) ) {
+            header( 'Cache-Control: no-store, max-age=0' );
+            header( 'X-AF-Guard: search-302' );
+            header( 'Location: /', true, 302 );
+            exit;
+        }
+        // 4b. Faceted-filter URLs are a combinatorial crawl trap: sizes x
+        //     colors x frames x orientation x price x sort explode a
+        //     394-product store into millions of unique URLs, every one a
+        //     cache MISS and a full render. Headerless clients get the bare
+        //     (cached) archive path instead; real shoppers filter untouched.
+        // lang= is Transposh's per-language URL variant (this store's own SEO
+        // code strips hreflang as a single-language US shop); per_page= and
+        // layout= are grid-display toggles. All were live in the 2026-08-04
+        // profiler capture, multiplying the crawlable URL space.
+        if ( preg_match( '#(^|&)(filter_[a-z0-9_]+|orientation|min_price|max_price|orderby|query_type_[a-z0-9_]+|currency|lang|per_page|layout)=#i', $af_qs ) ) {
+            header( 'Cache-Control: no-store, max-age=0' );
+            header( 'X-AF-Guard: filter-302' );
+            header( 'Location: ' . $af_path, true, 302 );
+            exit;
+        }
+        // 4c. add-to-cart links (the Buy Now anchors) followed by bots build
+        //     a cart, mint a WooCommerce session row and render checkout
+        //     uncacheably — thousands of junk sessions. Bots land on the
+        //     cached homepage; a real click carries Sec-Fetch and sails past.
+        if ( preg_match( '#(^|&)add-to-cart=#i', $af_qs ) ) {
+            header( 'Cache-Control: no-store, max-age=0' );
+            header( 'X-AF-Guard: addtocart-302' );
+            header( 'Location: /', true, 302 );
+            exit;
+        }
     }
 }
 // END AF-SEARCH-GUARD

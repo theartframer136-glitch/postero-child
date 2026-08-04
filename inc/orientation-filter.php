@@ -65,11 +65,11 @@ add_action('wp_footer', function() {
     $links = array();
     foreach (array('portrait' => '▯ Portrait', 'landscape' => '▭ Landscape', 'square' => '□ Square') as $val => $label) {
         $q = $keep; $q['orientation'] = $val;
-        $links[] = '<a href="' . esc_url('?' . http_build_query($q)) . '">' . esc_html($label) . '</a>';
+        $links[] = '<a rel="nofollow" href="' . esc_url('?' . http_build_query($q)) . '">' . esc_html($label) . '</a>';
     }
     if ($cur !== '') {
         $q = $keep; unset($q['orientation']);
-        $links[] = '<a href="' . esc_url($q ? '?' . http_build_query($q) : strtok($_SERVER['REQUEST_URI'] ?? '/', '?')) . '">✕ Any orientation</a>';
+        $links[] = '<a rel="nofollow" href="' . esc_url($q ? '?' . http_build_query($q) : strtok($_SERVER['REQUEST_URI'] ?? '/', '?')) . '">✕ Any orientation</a>';
     }
     ?>
     <template id="af-orient-tpl">

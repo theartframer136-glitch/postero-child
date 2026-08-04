@@ -3964,7 +3964,7 @@ add_action('woocommerce_before_shop_loop', function() {
           <button type="button" class="af-lt-dbtn">Size ▾</button>
           <div class="af-lt-menu">
             <?php foreach ($sizes as $t): ?>
-              <a href="<?php echo esc_url($flink('filter_size',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
+              <a rel="nofollow" href="<?php echo esc_url($flink('filter_size',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
             <?php endforeach; ?>
           </div>
         </div>
@@ -3975,7 +3975,7 @@ add_action('woocommerce_before_shop_loop', function() {
           <button type="button" class="af-lt-dbtn">Frame Color ▾</button>
           <div class="af-lt-menu">
             <?php foreach ($colors as $t): ?>
-              <a href="<?php echo esc_url($flink('filter_colors',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
+              <a rel="nofollow" href="<?php echo esc_url($flink('filter_colors',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
             <?php endforeach; ?>
           </div>
         </div>
@@ -3986,7 +3986,7 @@ add_action('woocommerce_before_shop_loop', function() {
           <button type="button" class="af-lt-dbtn">Frame Type ▾</button>
           <div class="af-lt-menu">
             <?php foreach ($frames as $t): ?>
-              <a href="<?php echo esc_url($flink('filter_frame',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
+              <a rel="nofollow" href="<?php echo esc_url($flink('filter_frame',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
             <?php endforeach; ?>
           </div>
         </div>
@@ -4125,7 +4125,10 @@ add_action('woocommerce_after_add_to_cart_button', function() {
 
     if ($product->is_type('simple')) {
         $url = esc_url(wc_get_checkout_url() . '?add-to-cart=' . $product->get_id());
-        echo '<a href="' . $url . '" class="af-buynow button">Buy Now</a>';
+        // nofollow: crawlers following this link mint a cart session and an
+        // uncacheable checkout render per product; the crawl guard bounces
+        // headerless hits, this stops compliant bots queueing them at all.
+        echo '<a href="' . $url . '" rel="nofollow" class="af-buynow button">Buy Now</a>';
     } elseif ($product->is_type('variable')) {
         // Button submits the variation form, then redirects to checkout.
         echo '<button type="button" class="af-buynow af-buynow-var button" data-checkout="' . esc_url(wc_get_checkout_url()) . '">Buy Now</button>';
@@ -7334,6 +7337,22 @@ function af_seo_robots_txt() {
         'Disallow: /checkout/',
         'Disallow: /my-account/',
         'Disallow: /?s=',
+        // The faceted-filter URL space (sizes x colors x frames x orientation
+        // x price x sort) is combinatorially infinite for well-behaved
+        // crawlers; every combination is a cache MISS and a ~3s render. The
+        // crawl guard already bounces headerless clients — these lines stop
+        // Googlebot/Bingbot (deliberately never blocked) from queueing them.
+        'Disallow: /*?*filter_',
+        'Disallow: /*?*orientation=',
+        'Disallow: /*?*min_price=',
+        'Disallow: /*?*max_price=',
+        'Disallow: /*?*orderby=',
+        'Disallow: /*?*query_type_',
+        'Disallow: /*?*add-to-cart=',
+        'Disallow: /*?*currency=',
+        'Disallow: /*?*lang=',
+        'Disallow: /*?*per_page=',
+        'Disallow: /*?*layout=',
         '',
         'Sitemap: https://theartframer.us/sitemap_index.xml',
     );

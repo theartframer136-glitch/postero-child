@@ -327,6 +327,13 @@ jobs:
              wp litespeed-option get media-lazy --allow-root 2>&1" \
             || true
 
+          echo "Dropping tracker query params from the cache key (ad-click URLs share one cache entry instead of each being a full-render MISS)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp option update litespeed.conf.cache-drop_qs --format=json '[\"fbclid\",\"gclid\",\"gbraid\",\"wbraid\",\"msclkid\",\"ttclid\",\"igshid\",\"mc_cid\",\"mc_eid\",\"utm_source\",\"utm_medium\",\"utm_campaign\",\"utm_term\",\"utm_content\",\"utm_id\"]' --allow-root 2>&1; \
+             wp litespeed-purge all --allow-root 2>/dev/null || true" \
+            || true
+
           echo "Recovery: clear maintenance flag + disable blanket auto-updates..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
