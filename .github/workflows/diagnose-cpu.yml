@@ -12,9 +12,11 @@ on:
   push:
     branches: [ claude/high-cpu-usage-odphnl ]
 
+# Queue, never cancel: a push must not kill a profiling window mid-collection
+# (the run would also skip its cleanup step).
 concurrency:
   group: diagnose-cpu
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   profile:
