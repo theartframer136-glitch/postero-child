@@ -13,11 +13,12 @@ on:
 
 concurrency:
   group: diagnose-cpu
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   diagnose:
     runs-on: ubuntu-latest
+    timeout-minutes: 18
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -29,56 +30,57 @@ jobs:
           printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
-      - name: Edge probes (no SSH — what does a visitor's request cost?)
-        timeout-minutes: 5
-        run: |
-          set -uo pipefail
-          probe() {
-            echo "--- $1 $2"
-            curl -s -D - -o /dev/null --max-time 45 -A "${3:-Mozilla/5.0 (X11; Linux x86_64) AF-DiagProbe}" "$2" \
-              | tr -d '\r' | grep -i '^HTTP/\|^x-litespeed-cache\|^x-lsadc-cache\|^x-qc-\|^x-cache\|^age:\|^cache-control\|^x-af-guard\|^cf-cache-status' || true
-          }
-          # Twice each: first may be a MISS, second shows whether the page caches at all.
-          probe "home #1" "https://theartframer.us/"
-          probe "home #2" "https://theartframer.us/"
-          probe "shop #1" "https://theartframer.us/shop/"
-          probe "shop #2" "https://theartframer.us/shop/"
-          probe "cat  #1" "https://theartframer.us/product-category/wall-art/"
-          probe "cat  #2" "https://theartframer.us/product-category/wall-art/"
-          # Guard must still answer bot junk cheaply:
-          probe "guard: ahrefs UA" "https://theartframer.us/" "AhrefsBot/7.0"
-          probe "guard: spam URL" "https://theartframer.us/items/spam-check"
-          probe "guard: static 404" "https://theartframer.us/wp-content/uploads/nonexistent-diag.jpg"
-
       - name: Server-side diagnostic (read-only over one SSH connection)
-        timeout-minutes: 15
+        timeout-minutes: 12
         env:
           H_USER: ${{ secrets.HOSTINGER_USERNAME }}
           H_HOST: ${{ secrets.HOSTINGER_HOST }}
           H_PORT: ${{ secrets.HOSTINGER_PORT }}
         run: |
           set -uo pipefail
-          SSH="ssh -p ${H_PORT} -i $HOME/.ssh/id_ed25519 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          # BatchMode: fail instead of hanging on any interactive prompt.
+          SSH="ssh -p ${H_PORT} -i $HOME/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=300"
 
-          # The host throttles SSH hard after deploy bursts — retry the first
-          # (master) connection across the throttle window.
+          # The host throttles SSH hard after bursts — retry the master
+          # connection across the throttle window.
           OK=0
           for a in 1 2 3 4; do
-            if ${SSH} "${H_USER}@${H_HOST}" "echo AF-SSH-OK"; then OK=1; break; fi
-            echo "SSH refused (attempt $a) — waiting 75s for the throttle..."
-            sleep 75
+            if ${SSH} "${H_USER}@${H_HOST}" "echo AF-SSH-OK" </dev/null; then OK=1; break; fi
+            echo "SSH refused (attempt $a) — waiting 60s for the throttle..."
+            sleep 60
           done
           if [ "$OK" != "1" ]; then
             echo "::error::Could not reach the host over SSH after 4 attempts."
             exit 1
           fi
 
-          echo "shell diagnostic..."
-          ${SSH} "${H_USER}@${H_HOST}" "bash -s" < ops/diag-cpu.sh
+          echo "── shell diagnostic ──────────────────────────────────"
+          timeout 300 ${SSH} "${H_USER}@${H_HOST}" "bash -s" < ops/diag-cpu.sh || echo "(shell diagnostic exited $?)"
 
-          echo "wordpress diagnostic..."
+          echo "── wordpress diagnostic ──────────────────────────────"
           ${SSH} "${H_USER}@${H_HOST}" "cat > /tmp/af-diag-cpu.php" < ops/diag-cpu.php
-          ${SSH} "${H_USER}@${H_HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && wp eval-file /tmp/af-diag-cpu.php --allow-root 2>&1; rm -f /tmp/af-diag-cpu.php"
+          timeout 240 ${SSH} "${H_USER}@${H_HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && wp eval-file /tmp/af-diag-cpu.php --allow-root 2>&1; rm -f /tmp/af-diag-cpu.php" \
+            </dev/null || echo "(wp diagnostic exited $?)"
 
+          # Tear the multiplexed master down so nothing lingers holding
+          # the step's stdio open.
+          ${SSH} -O exit "${H_USER}@${H_HOST}" 2>/dev/null || true
+
+      - name: Edge probes (what does a visitor's request cost?)
+        timeout-minutes: 5
+        run: |
+          set -uo pipefail
+          probe() {
+            echo "--- $1 $2"
+            curl -s -D - -o /dev/null --max-time 25 -A "${3:-Mozilla/5.0 (X11; Linux x86_64) AF-DiagProbe}" "$2" \
+              | tr -d '\r' | grep -i '^HTTP/\|^x-litespeed-cache\|^x-qc-\|^x-cache\|^age:\|^cache-control\|^x-af-guard' || true
+          }
+          probe "home #1" "https://theartframer.us/"
+          probe "home #2" "https://theartframer.us/"
+          probe "shop #1" "https://theartframer.us/shop/"
+          probe "shop #2" "https://theartframer.us/shop/"
+          probe "guard: ahrefs UA" "https://theartframer.us/" "AhrefsBot/7.0"
+          probe "guard: spam URL" "https://theartframer.us/items/spam-check"
+          probe "guard: static 404" "https://theartframer.us/wp-content/uploads/nonexistent-diag.jpg"
           echo "Diagnostic complete."
