@@ -1,10 +1,15 @@
 name: Diagnose CPU (read-only)
 
-# Manual-only diagnostic: gathers evidence for the sustained high-CPU
+# Read-only diagnostic: gathers evidence for the sustained high-CPU
 # condition without deploying or changing anything on the host. Safe to run
 # at any time — it makes no writes beyond /tmp scratch files on the server.
+# The push trigger exists because workflow_dispatch only works once the file
+# reaches the default branch; on the investigation branch each push re-runs
+# the diagnostic, giving free before/after comparisons.
 on:
   workflow_dispatch:
+  push:
+    branches: [ claude/high-cpu-usage-odphnl ]
 
 concurrency:
   group: diagnose-cpu
