@@ -5114,6 +5114,21 @@ add_action('template_redirect', function(){
         'Gold':'linear-gradient(135deg,#fbe7ad 0%,#d8b445 42%,#a67c1e 58%,#f2d879 100%)',
         'Rose Gold':'linear-gradient(135deg,#f7d3c8 0%,#dca596 42%,#b76e79 58%,#efbcae 100%)'
       };
+      // Layers a mitred corner seam (the diagonal joint where two moulding
+      // sides meet on a real frame) plus a fine brushed/grain texture on top
+      // of the material gradient. Corner lines use a fixed px width via
+      // calc() so they read the same on a thumbnail as on a full-size stage.
+      function frameBG(mat){
+        var seam='rgba(0,0,0,.4)';
+        return [
+          'linear-gradient(to bottom right, transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) left top/50% 50% no-repeat',
+          'linear-gradient(to bottom left,  transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) right top/50% 50% no-repeat',
+          'linear-gradient(to top right,    transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) left bottom/50% 50% no-repeat',
+          'linear-gradient(to top left,     transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) right bottom/50% 50% no-repeat',
+          'repeating-linear-gradient(115deg, rgba(255,255,255,.05) 0px, rgba(255,255,255,.05) 1px, rgba(0,0,0,.06) 2px, rgba(0,0,0,.06) 3px)',
+          mat
+        ].join(',');
+      }
 
       // Colour swatches (drive the hidden select for pricing/logic)
       (function buildSwatches(){
@@ -5435,7 +5450,7 @@ add_action('template_redirect', function(){
           // read — floor it in real pixels so every frame stays legible at any
           // stage size instead of flattening out.
           frEl.style.padding = prof>0 ? ('max(11px, '+prof+'%)') : '0';
-          frEl.style.background = prof>0 ? mats : 'transparent';
+          frEl.style.background = prof>0 ? frameBG(mats) : 'transparent';
           frEl.style.borderRadius = frame==='Aluminium Frame' ? '3px' : '2px';
           frEl.style.boxShadow = prof>0
             ? 'inset 2px 2px 3px rgba(255,255,255,.5), inset -3px -3px 6px rgba(0,0,0,.6), inset 0 0 0 1px rgba(0,0,0,.3), 0 1px 3px rgba(0,0,0,.35)'
@@ -10209,6 +10224,19 @@ add_action('template_redirect', function () {
         'Gold':'linear-gradient(135deg,#fbe7ad 0%,#d8b445 42%,#a67c1e 58%,#f2d879 100%)',
         'Rose Gold':'linear-gradient(135deg,#f7d3c8 0%,#dca596 42%,#b76e79 58%,#efbcae 100%)'
       };
+      // Mitred corner seam + fine brushed/grain texture over the material
+      // gradient — same treatment as /try-on-wall/'s frameBG().
+      function frameBG(mat){
+        var seam='rgba(0,0,0,.4)';
+        return [
+          'linear-gradient(to bottom right, transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) left top/50% 50% no-repeat',
+          'linear-gradient(to bottom left,  transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) right top/50% 50% no-repeat',
+          'linear-gradient(to top right,    transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) left bottom/50% 50% no-repeat',
+          'linear-gradient(to top left,     transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) right bottom/50% 50% no-repeat',
+          'repeating-linear-gradient(115deg, rgba(255,255,255,.05) 0px, rgba(255,255,255,.05) 1px, rgba(0,0,0,.06) 2px, rgba(0,0,0,.06) 3px)',
+          mat
+        ].join(',');
+      }
       var photoURL = null, photoW = 0, photoH = 0, photoName = '';
 
       // ── real photographic rooms (same cleaned blank-wall mockups the
@@ -10334,7 +10362,7 @@ add_action('template_redirect', function () {
           // Same fix as /try-on-wall/: a bare percentage shrinks to a sliver on
           // small previews, too thin for the material gradient or bevel to read.
           m.style.padding      = prof ? 'max(11px, ' + prof + '%)' : '0';
-          m.style.background   = prof ? (MAT[color] || MAT['Black']) : 'transparent';
+          m.style.background   = prof ? frameBG(MAT[color] || MAT['Black']) : 'transparent';
           m.style.borderRadius = (frame === 'Aluminium Frame') ? '3px' : '2px';
           m.style.boxShadow    = prof
             ? 'inset 2px 2px 3px rgba(255,255,255,.5), inset -3px -3px 6px rgba(0,0,0,.6), inset 0 0 0 1px rgba(0,0,0,.3), 0 1px 3px rgba(0,0,0,.35)'
