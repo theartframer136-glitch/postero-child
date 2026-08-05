@@ -5430,15 +5430,19 @@ add_action('template_redirect', function(){
         // Multi-panel sets use slimmer mats so the slices read as one artwork
         if(LAYOUT>1){ matw=Math.max(0, matw-4); }
         fb.querySelectorAll('.af-tow-pframe').forEach(function(frEl){
-          frEl.style.padding = prof>0 ? (prof+'%') : '0';
+          // Padding was a bare percentage, so on a small preview the moulding
+          // shrinks to a sliver too thin for the material gradient or bevel to
+          // read — floor it in real pixels so every frame stays legible at any
+          // stage size instead of flattening out.
+          frEl.style.padding = prof>0 ? ('max(11px, '+prof+'%)') : '0';
           frEl.style.background = prof>0 ? mats : 'transparent';
           frEl.style.borderRadius = frame==='Aluminium Frame' ? '3px' : '2px';
           frEl.style.boxShadow = prof>0
-            ? 'inset 2px 2px 3px rgba(255,255,255,.45), inset -3px -3px 5px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.25)'
+            ? 'inset 2px 2px 3px rgba(255,255,255,.5), inset -3px -3px 6px rgba(0,0,0,.6), inset 0 0 0 1px rgba(0,0,0,.3), 0 1px 3px rgba(0,0,0,.35)'
             : 'none';
         });
         fb.querySelectorAll('.af-tow-pmat').forEach(function(mat){
-          mat.style.padding = matw>0 ? (matw+'%') : '0';
+          mat.style.padding = matw>0 ? ('max(8px, '+matw+'%)') : '0';
           mat.style.background = matw>0 ? matbg : 'transparent';
           mat.style.boxShadow = matw>0 ? 'inset 0 0 8px rgba(0,0,0,.28)' : 'none';
         });
@@ -10327,15 +10331,17 @@ add_action('template_redirect', function () {
         if (LAYOUT > 1) { matw = Math.max(0, matw - 4); }
         var wrap = $('ftm-panels');
         wrap.querySelectorAll('.af-ftm-pframe').forEach(function(m){
-          m.style.padding      = prof ? prof + '%' : '0';
+          // Same fix as /try-on-wall/: a bare percentage shrinks to a sliver on
+          // small previews, too thin for the material gradient or bevel to read.
+          m.style.padding      = prof ? 'max(11px, ' + prof + '%)' : '0';
           m.style.background   = prof ? (MAT[color] || MAT['Black']) : 'transparent';
           m.style.borderRadius = (frame === 'Aluminium Frame') ? '3px' : '2px';
           m.style.boxShadow    = prof
-            ? 'inset 2px 2px 3px rgba(255,255,255,.45), inset -3px -3px 5px rgba(0,0,0,.55), inset 0 0 0 1px rgba(0,0,0,.25)'
+            ? 'inset 2px 2px 3px rgba(255,255,255,.5), inset -3px -3px 6px rgba(0,0,0,.6), inset 0 0 0 1px rgba(0,0,0,.3), 0 1px 3px rgba(0,0,0,.35)'
             : 'none';
         });
         wrap.querySelectorAll('.af-ftm-pmat').forEach(function(m){
-          m.style.padding    = matw ? matw + '%' : '0';
+          m.style.padding    = matw ? 'max(8px, ' + matw + '%)' : '0';
           m.style.background = matw ? matbg : 'transparent';
           m.style.boxShadow  = matw ? 'inset 0 0 8px rgba(0,0,0,.28)' : 'none';
         });
