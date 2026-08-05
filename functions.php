@@ -5119,13 +5119,21 @@ add_action('template_redirect', function(){
       // of the material gradient. Corner lines use a fixed px width via
       // calc() so they read the same on a thumbnail as on a full-size stage.
       function frameBG(mat){
-        var seam='rgba(0,0,0,.4)';
+        var hi='rgba(255,255,255,.4)', lo='rgba(0,0,0,.5)';
         return [
-          'linear-gradient(to bottom right, transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) left top/50% 50% no-repeat',
-          'linear-gradient(to bottom left,  transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) right top/50% 50% no-repeat',
-          'linear-gradient(to top right,    transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) left bottom/50% 50% no-repeat',
-          'linear-gradient(to top left,     transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) right bottom/50% 50% no-repeat',
-          'repeating-linear-gradient(115deg, rgba(255,255,255,.05) 0px, rgba(255,255,255,.05) 1px, rgba(0,0,0,.06) 2px, rgba(0,0,0,.06) 3px)',
+          // mitred corner grooves: a lit inner edge then a dark outer edge per
+          // quadrant, so each corner reads as a carved cut rather than a
+          // printed line
+          'linear-gradient(to bottom right, transparent calc(50% - 2.5px), '+hi+' calc(50% - 1.5px), '+lo+' calc(50% + .5px), transparent calc(50% + 2px)) left top/50% 50% no-repeat',
+          'linear-gradient(to bottom left,  transparent calc(50% - 2.5px), '+hi+' calc(50% - 1.5px), '+lo+' calc(50% + .5px), transparent calc(50% + 2px)) right top/50% 50% no-repeat',
+          'linear-gradient(to top right,    transparent calc(50% - 2.5px), '+hi+' calc(50% - 1.5px), '+lo+' calc(50% + .5px), transparent calc(50% + 2px)) left bottom/50% 50% no-repeat',
+          'linear-gradient(to top left,     transparent calc(50% - 2.5px), '+hi+' calc(50% - 1.5px), '+lo+' calc(50% + .5px), transparent calc(50% + 2px)) right bottom/50% 50% no-repeat',
+          // ambient wraparound light from the upper-left, swept around the box
+          // so each side of the moulding reads as its own lit/shaded face
+          // instead of one flat diagonal wash across the whole frame
+          'conic-gradient(from 315deg at 50% 50%, rgba(255,255,255,.4) 0deg, rgba(255,255,255,0) 95deg, rgba(0,0,0,.4) 180deg, rgba(0,0,0,0) 265deg, rgba(255,255,255,.4) 360deg)',
+          // fine grain/brush texture
+          'repeating-linear-gradient(115deg, rgba(255,255,255,.08) 0px, rgba(255,255,255,.08) 1px, rgba(0,0,0,.1) 2px, rgba(0,0,0,.1) 3px)',
           mat
         ].join(',');
       }
@@ -10227,13 +10235,21 @@ add_action('template_redirect', function () {
       // Mitred corner seam + fine brushed/grain texture over the material
       // gradient — same treatment as /try-on-wall/'s frameBG().
       function frameBG(mat){
-        var seam='rgba(0,0,0,.4)';
+        var hi='rgba(255,255,255,.4)', lo='rgba(0,0,0,.5)';
         return [
-          'linear-gradient(to bottom right, transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) left top/50% 50% no-repeat',
-          'linear-gradient(to bottom left,  transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) right top/50% 50% no-repeat',
-          'linear-gradient(to top right,    transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) left bottom/50% 50% no-repeat',
-          'linear-gradient(to top left,     transparent calc(50% - 1px), '+seam+' 50%, transparent calc(50% + 1px)) right bottom/50% 50% no-repeat',
-          'repeating-linear-gradient(115deg, rgba(255,255,255,.05) 0px, rgba(255,255,255,.05) 1px, rgba(0,0,0,.06) 2px, rgba(0,0,0,.06) 3px)',
+          // mitred corner grooves: a lit inner edge then a dark outer edge per
+          // quadrant, so each corner reads as a carved cut rather than a
+          // printed line
+          'linear-gradient(to bottom right, transparent calc(50% - 2.5px), '+hi+' calc(50% - 1.5px), '+lo+' calc(50% + .5px), transparent calc(50% + 2px)) left top/50% 50% no-repeat',
+          'linear-gradient(to bottom left,  transparent calc(50% - 2.5px), '+hi+' calc(50% - 1.5px), '+lo+' calc(50% + .5px), transparent calc(50% + 2px)) right top/50% 50% no-repeat',
+          'linear-gradient(to top right,    transparent calc(50% - 2.5px), '+hi+' calc(50% - 1.5px), '+lo+' calc(50% + .5px), transparent calc(50% + 2px)) left bottom/50% 50% no-repeat',
+          'linear-gradient(to top left,     transparent calc(50% - 2.5px), '+hi+' calc(50% - 1.5px), '+lo+' calc(50% + .5px), transparent calc(50% + 2px)) right bottom/50% 50% no-repeat',
+          // ambient wraparound light from the upper-left, swept around the box
+          // so each side of the moulding reads as its own lit/shaded face
+          // instead of one flat diagonal wash across the whole frame
+          'conic-gradient(from 315deg at 50% 50%, rgba(255,255,255,.4) 0deg, rgba(255,255,255,0) 95deg, rgba(0,0,0,.4) 180deg, rgba(0,0,0,0) 265deg, rgba(255,255,255,.4) 360deg)',
+          // fine grain/brush texture
+          'repeating-linear-gradient(115deg, rgba(255,255,255,.08) 0px, rgba(255,255,255,.08) 1px, rgba(0,0,0,.1) 2px, rgba(0,0,0,.1) 3px)',
           mat
         ].join(',');
       }
