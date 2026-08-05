@@ -5115,11 +5115,13 @@ add_action('template_redirect', function(){
         'Rose Gold':'linear-gradient(135deg,#f7d3c8 0%,#dca596 42%,#b76e79 58%,#efbcae 100%)'
       };
       // Layers a mitred corner seam (the diagonal joint where two moulding
-      // sides meet on a real frame) plus a fine brushed/grain texture on top
-      // of the material gradient. Corner lines use a fixed px width via
+      // sides meet on a real frame) plus a polished-metal specular glint on
+      // top of the material gradient — matched to reference photos of the
+      // actual aluminium mouldings (buffed sheen + hard highlight, not a
+      // brushed/sandy texture). Corner lines use a fixed px width via
       // calc() so they read the same on a thumbnail as on a full-size stage.
       function frameBG(mat){
-        var hi='rgba(255,255,255,.4)', lo='rgba(0,0,0,.5)';
+        var hi='rgba(255,255,255,.45)', lo='rgba(0,0,0,.5)';
         return [
           // mitred corner grooves: a lit inner edge then a dark outer edge per
           // quadrant, so each corner reads as a carved cut rather than a
@@ -5128,12 +5130,15 @@ add_action('template_redirect', function(){
           'linear-gradient(to bottom left,  transparent calc(50% - 2.5px), '+hi+' calc(50% - 1.5px), '+lo+' calc(50% + .5px), transparent calc(50% + 2px)) right top/50% 50% no-repeat',
           'linear-gradient(to top right,    transparent calc(50% - 2.5px), '+hi+' calc(50% - 1.5px), '+lo+' calc(50% + .5px), transparent calc(50% + 2px)) left bottom/50% 50% no-repeat',
           'linear-gradient(to top left,     transparent calc(50% - 2.5px), '+hi+' calc(50% - 1.5px), '+lo+' calc(50% + .5px), transparent calc(50% + 2px)) right bottom/50% 50% no-repeat',
-          // ambient wraparound light from the upper-left, swept around the box
-          // so each side of the moulding reads as its own lit/shaded face
-          // instead of one flat diagonal wash across the whole frame
-          'conic-gradient(from 315deg at 50% 50%, rgba(255,255,255,.4) 0deg, rgba(255,255,255,0) 95deg, rgba(0,0,0,.4) 180deg, rgba(0,0,0,0) 265deg, rgba(255,255,255,.4) 360deg)',
-          // fine grain/brush texture
-          'repeating-linear-gradient(115deg, rgba(255,255,255,.08) 0px, rgba(255,255,255,.08) 1px, rgba(0,0,0,.1) 2px, rgba(0,0,0,.1) 3px)',
+          // polished-metal glint: a narrow, hard-edged bright streak swept
+          // around the ring so the top/left face catches a sharp specular
+          // highlight the way buffed aluminium does, with a fainter second
+          // glint opposite it
+          'conic-gradient(from 300deg at 50% 50%, rgba(255,255,255,0) 0deg, rgba(255,255,255,.85) 16deg, rgba(255,255,255,0) 38deg, rgba(255,255,255,0) 175deg, rgba(255,255,255,.5) 196deg, rgba(255,255,255,0) 218deg, rgba(255,255,255,0) 360deg)',
+          // broad wraparound light/shadow so each of the 4 faces reads as its
+          // own lit or shaded plane (upper-left key light), pushed to higher
+          // contrast so the moulding reads as metal, not painted flat colour
+          'conic-gradient(from 315deg at 50% 50%, rgba(255,255,255,.5) 0deg, rgba(255,255,255,0) 95deg, rgba(0,0,0,.55) 180deg, rgba(0,0,0,0) 265deg, rgba(255,255,255,.5) 360deg)',
           mat
         ].join(',');
       }
@@ -10232,10 +10237,12 @@ add_action('template_redirect', function () {
         'Gold':'linear-gradient(135deg,#fbe7ad 0%,#d8b445 42%,#a67c1e 58%,#f2d879 100%)',
         'Rose Gold':'linear-gradient(135deg,#f7d3c8 0%,#dca596 42%,#b76e79 58%,#efbcae 100%)'
       };
-      // Mitred corner seam + fine brushed/grain texture over the material
-      // gradient — same treatment as /try-on-wall/'s frameBG().
+      // Mitred corner seam + polished-metal specular glint over the material
+      // gradient — same treatment as /try-on-wall/'s frameBG(), matched to
+      // reference photos of the actual aluminium mouldings (buffed sheen +
+      // hard highlight, not a brushed/sandy texture).
       function frameBG(mat){
-        var hi='rgba(255,255,255,.4)', lo='rgba(0,0,0,.5)';
+        var hi='rgba(255,255,255,.45)', lo='rgba(0,0,0,.5)';
         return [
           // mitred corner grooves: a lit inner edge then a dark outer edge per
           // quadrant, so each corner reads as a carved cut rather than a
@@ -10244,12 +10251,15 @@ add_action('template_redirect', function () {
           'linear-gradient(to bottom left,  transparent calc(50% - 2.5px), '+hi+' calc(50% - 1.5px), '+lo+' calc(50% + .5px), transparent calc(50% + 2px)) right top/50% 50% no-repeat',
           'linear-gradient(to top right,    transparent calc(50% - 2.5px), '+hi+' calc(50% - 1.5px), '+lo+' calc(50% + .5px), transparent calc(50% + 2px)) left bottom/50% 50% no-repeat',
           'linear-gradient(to top left,     transparent calc(50% - 2.5px), '+hi+' calc(50% - 1.5px), '+lo+' calc(50% + .5px), transparent calc(50% + 2px)) right bottom/50% 50% no-repeat',
-          // ambient wraparound light from the upper-left, swept around the box
-          // so each side of the moulding reads as its own lit/shaded face
-          // instead of one flat diagonal wash across the whole frame
-          'conic-gradient(from 315deg at 50% 50%, rgba(255,255,255,.4) 0deg, rgba(255,255,255,0) 95deg, rgba(0,0,0,.4) 180deg, rgba(0,0,0,0) 265deg, rgba(255,255,255,.4) 360deg)',
-          // fine grain/brush texture
-          'repeating-linear-gradient(115deg, rgba(255,255,255,.08) 0px, rgba(255,255,255,.08) 1px, rgba(0,0,0,.1) 2px, rgba(0,0,0,.1) 3px)',
+          // polished-metal glint: a narrow, hard-edged bright streak swept
+          // around the ring so the top/left face catches a sharp specular
+          // highlight the way buffed aluminium does, with a fainter second
+          // glint opposite it
+          'conic-gradient(from 300deg at 50% 50%, rgba(255,255,255,0) 0deg, rgba(255,255,255,.85) 16deg, rgba(255,255,255,0) 38deg, rgba(255,255,255,0) 175deg, rgba(255,255,255,.5) 196deg, rgba(255,255,255,0) 218deg, rgba(255,255,255,0) 360deg)',
+          // broad wraparound light/shadow so each of the 4 faces reads as its
+          // own lit or shaded plane (upper-left key light), pushed to higher
+          // contrast so the moulding reads as metal, not painted flat colour
+          'conic-gradient(from 315deg at 50% 50%, rgba(255,255,255,.5) 0deg, rgba(255,255,255,0) 95deg, rgba(0,0,0,.55) 180deg, rgba(0,0,0,0) 265deg, rgba(255,255,255,.5) 360deg)',
           mat
         ].join(',');
       }
