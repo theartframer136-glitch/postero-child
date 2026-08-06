@@ -73,21 +73,29 @@ foreach ($rows as $r) {
     $flipped[] = $r->option_name . ": {$val} => {$off}";
 }
 
-// serialized settings blobs (wp-maintenance-mode, seedprod & friends keep the
-// flag inside an array, so the scalar test above cannot see it)
+// Serialized settings blobs. This is where the real switch lives: Hostinger's
+// own plugin keeps hostinger_tools['maintenance_mode'] as a PHP boolean, so
+// neither the scalar test above nor a string comparison can see it.
 foreach ($rows as $r) {
     if (!$was_hidden) break;
     $val = maybe_unserialize($r->option_value);
     if (!is_array($val)) continue;
     $changed = false;
     foreach ($val as $k => $v) {
-        if (!preg_match('~^(status|enabled|active|is_active|coming_soon)$~i', (string) $k)) continue;
-        if (in_array(strtolower(trim((string) $v)), array('1', 'yes', 'true', 'on'), true)) {
-            $val[$k] = is_string($v) ? '0' : 0; $changed = true;
-            $flipped[] = $r->option_name . "[{$k}]: {$v} => 0";
-        }
+        if (!preg_match('~^(status|enabled|active|is_active|coming_soon|maintenance_mode|maintenance|under_construction)$~i', (string) $k)) continue;
+        $on = ($v === true) || in_array(strtolower(trim((string) $v)), array('1', 'yes', 'true', 'on'), true);
+        if (!$on) continue;
+        $was = is_bool($v) ? 'true' : (string) $v;
+        // give it back the same type it had, or the plugin may choke on it
+        $val[$k] = is_bool($v) ? false : (is_int($v) ? 0 : '0');
+        $changed = true;
+        $flipped[] = $r->option_name . "[{$k}]: {$was} => off";
     }
-    if ($changed) update_option($r->option_name, $val);
+    if ($changed) {
+        update_option($r->option_name, $val);
+        // the plugin caches its own settings in an autoloaded copy
+        wp_cache_delete($r->option_name, 'options');
+    }
 }
 
 // WooCommerce's own store-wide switch, belt and braces
@@ -112,6 +120,13 @@ if ($flipped) {
     printf("  home HTTP %d  title=\"%s\"\n", $code2, $title2);
     $still = (stripos($title2, 'coming soon') !== false || stripos($title2, 'under construction') !== false);
     echo '  verdict: ' . ($still ? "STILL HIDDEN  <<<\n" : "PUBLIC — the shop is visible again\n");
+    if ($still) {
+        // show what the switch looks like now, so the next run is not blind
+        foreach (array('hostinger_tools') as $o) {
+            $v = get_option($o);
+            if (is_array($v)) echo "    {$o}: " . str_replace("\n", ' ', var_export($v, true)) . "\n";
+        }
+    }
     if ($still && $body2) {
         // hand the next run something to work with
         preg_match_all('~<(?:script|link)[^>]+(?:src|href)="([^"]+)"~i', $body2, $am);
