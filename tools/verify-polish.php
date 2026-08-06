@@ -79,6 +79,10 @@ af_pv('quick topics',        strpos($hb, 'af-chat-chips') !== false, $fail);
 af_pv('message form',        strpos($hb, 'af-chat-form') !== false, $fail);
 af_pv('email fallback',      strpos($hb, 'af-chat-alt') !== false, $fail);
 af_pv('conversation thread', strpos($hb, 'af-chat-thread') !== false, $fail);
+// the panel sets display:flex, which outranks the browser's [hidden] rule —
+// without this rule the close button fires and the panel stays on screen
+af_pv('close button can actually hide the panel',
+      strpos($hb, '.af-chat-panel[hidden]') !== false, $fail);
 // scope this to the chatbot's own script — the floating quick-access panel
 // legitimately links to WhatsApp, and testing the whole page flagged that
 $bot_js = '';

@@ -312,6 +312,10 @@ add_action('wp_footer', function() {
     .af-chat-panel{position:absolute;left:0;bottom:70px;width:356px;max-width:calc(100vw - 36px);
       background:#fffdf8;border:1px solid #e6dcc4;border-radius:16px;box-shadow:0 18px 50px rgba(40,30,10,.25);
       overflow:hidden;display:flex;flex-direction:column;max-height:min(74vh,560px);}
+    /* display:flex above outranks the browser's [hidden] rule, so hiding the
+       panel needs saying explicitly — without this the close button fires and
+       the panel stays on screen. */
+    .af-chat-panel[hidden]{display:none !important;}
     .af-chat-head{background:#1a1a1a;color:#fff;padding:14px 44px 12px 16px;position:relative;flex:0 0 auto;}
     .af-chat-head strong{display:block;font-size:14px;}
     .af-chat-head span{font-size:11px;color:#9fd8b8;}
@@ -430,11 +434,25 @@ add_action('wp_footer', function() {
         bubble('Hello! 👋 I am the Art Framer assistant.\nAsk me about sizes, frames, prices or delivery — or tell me what art you are looking for and I will find it.', 'bot');
       }
 
-      document.getElementById('af-chat-open').addEventListener('click', function(){
-        panel.hidden = !panel.hidden;
-        if (!panel.hidden){ greet(); setTimeout(function(){ input.focus(); }, 60); }
+      function openPanel(){
+        panel.hidden = false;
+        greet();
+        setTimeout(function(){ input.focus(); }, 60);
+      }
+      function closePanel(){ panel.hidden = true; }
+
+      document.getElementById('af-chat-open').addEventListener('click', function(e){
+        e.stopPropagation();
+        panel.hidden ? openPanel() : closePanel();
       });
-      document.getElementById('af-chat-close').addEventListener('click', function(){ panel.hidden = true; });
+      document.getElementById('af-chat-close').addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation(); closePanel();
+      });
+      // the other two ways people expect to dismiss a chat panel
+      document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closePanel(); });
+      document.addEventListener('click', function(e){
+        if (!panel.hidden && !e.target.closest('#af-chat')) closePanel();
+      });
       document.getElementById('af-chat-chips').addEventListener('click', function(e){
         var b = e.target.closest('button'); if (!b) return;
         ask(b.getAttribute('data-q'));
