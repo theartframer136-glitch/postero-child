@@ -692,12 +692,21 @@ jobs:
           # status-only gate would wave through a storefront that shows
           # visitors nothing they can buy. Check the body says shop.
           echo "GATE: the homepage must be the real shop, not a placeholder..."
-          BODY=$(curl -s --max-time 45 -A 'Mozilla/5.0 (X11; Linux x86_64) AF-DeployGate' https://theartframer.us/ || true)
-          if printf '%s' "$BODY" | grep -qi 'coming soon'; then
+          # Written to a file, never piped: with `set -o pipefail`, `grep -q`
+          # exits on first match and kills printf with SIGPIPE, so the pipeline
+          # reports 141 and the test inverts. That bug failed run #31098282890
+          # against a perfectly healthy homepage.
+          curl -s --max-time 45 -A 'Mozilla/5.0 (X11; Linux x86_64) AF-DeployGate' \
+            https://theartframer.us/ -o /tmp/af-home.html || true
+          HOME_TITLE=$(grep -oiE '<title>[^<]*</title>' /tmp/af-home.html | head -1)
+          echo "homepage title: ${HOME_TITLE:-(none)}"
+          # a placeholder announces itself in the TITLE; the word "coming soon"
+          # appearing somewhere in a 140 KB storefront means nothing
+          if printf '%s' "$HOME_TITLE" | grep -qi 'coming soon'; then
             echo "::error::Homepage is serving a COMING SOON placeholder — the shop is hidden from customers."
             exit 1
           fi
-          if ! printf '%s' "$BODY" | grep -qiE 'add-to-cart|product|woocommerce'; then
+          if ! grep -qiE 'add-to-cart|woocommerce|product' /tmp/af-home.html; then
             echo "::error::Homepage returned 200 but contains no storefront markup."
             exit 1
           fi
