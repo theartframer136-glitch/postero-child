@@ -58,7 +58,49 @@ foreach (array('recently modified' => $recent, 'random' => $random) as $group =>
 }
 printf("  totals: %d broken, %d ok\n", count($fail_ids), count($ok_ids));
 
+echo "\n=== WHO IS SERVING 'COMING SOON' ===\n";
+$active = (array) get_option('active_plugins', array());
+$suspects = array('coming-soon','maintenance','seedprod','under-construction','minimal-coming','cmp-','launch');
+echo "  active plugins: " . count($active) . "\n";
+foreach ($active as $plug) {
+    foreach ($suspects as $needle) {
+        if (stripos($plug, $needle) !== false) { echo "  SUSPECT <<< {$plug}\n"; break; }
+    }
+}
+foreach (array('seed_csp_enable_css','seed_csp4_settings_content','minimal_coming_soon_settings',
+               'cmp_options','wpmm_settings','under_construction_activation_status') as $o) {
+    $v = get_option($o);
+    if ($v !== false) echo "  option set: {$o}\n";
+}
+// which theme actually rendered it?
+$r = af_dv_get(home_url('/'));
+if (!is_wp_error($r)) {
+    $b = wp_remote_retrieve_body($r);
+    if (preg_match_all('#/wp-content/(plugins|themes)/([^/\'"]+)#', $b, $m)) {
+        $srcs = array_slice(array_unique($m[0]), 0, 12);
+        echo "  assets the placeholder loads:\n";
+        foreach ($srcs as $src) echo "    {$src}\n";
+    }
+}
+
 echo "\n=== WHAT THE FATAL SAYS ===\n";
+// Trigger one, then read what the recorder caught. Fetching a broken product
+// makes the fatal happen now, with the recorder already in place — rather than
+// hoping an old log holds it.
+if (!empty($fail_ids)) {
+    af_dv_get(get_permalink($fail_ids[0]));
+    sleep(1);
+}
+// our own recorder — written by inc/fatal-recorder.php on any real fatal
+if (function_exists('af_fatal_log_path') && file_exists(af_fatal_log_path())) {
+    $ours = @file(af_fatal_log_path());
+    if ($ours) {
+        echo "  af-fatals.log — last 8:\n";
+        foreach (array_slice($ours, -8) as $l) echo '    ' . rtrim(mb_strimwidth($l, 0, 320, '…')) . "\n";
+    }
+} else {
+    echo "  af-fatals.log not written yet (it records from the next fatal onward)\n";
+}
 $found = false;
 foreach (array(WP_CONTENT_DIR . '/debug.log', ABSPATH . 'error_log', WP_CONTENT_DIR . '/error_log',
                ini_get('error_log')) as $log) {
