@@ -79,7 +79,11 @@ af_pv('quick topics',        strpos($hb, 'af-chat-chips') !== false, $fail);
 af_pv('message form',        strpos($hb, 'af-chat-form') !== false, $fail);
 af_pv('email fallback',      strpos($hb, 'af-chat-alt') !== false, $fail);
 af_pv('conversation thread', strpos($hb, 'af-chat-thread') !== false, $fail);
-af_pv('answers on-site (no wa.me hand-off)', strpos($hb, 'wa.me') === false, $fail);
+// scope this to the chatbot's own script — the floating quick-access panel
+// legitimately links to WhatsApp, and testing the whole page flagged that
+$bot_js = '';
+if (preg_match('#af_bot_reply.{0,4000}#s', $hb, $bm)) $bot_js = $bm[0];
+af_pv('chatbot answers on-site (no wa.me hand-off)', $bot_js !== '' && strpos($bot_js, 'wa.me') === false, $fail);
 af_pv('reply endpoint',      (bool) has_action('wp_ajax_nopriv_af_bot_reply'), $fail);
 af_pv('question log table',  (bool) $GLOBALS['wpdb']->get_var("SHOW TABLES LIKE '" . af_bot_table() . "'"), $fail);
 // the brain must actually route real questions

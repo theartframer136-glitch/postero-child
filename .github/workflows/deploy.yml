@@ -651,6 +651,12 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
+          echo "Site visibility + product-page health..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-site-visibility.php --allow-root 2>&1" \
+            || true
+
           echo "GATE: the theme must actually boot..."
           BOOT=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && wp eval 'echo \"AF_BOOT_OK\";' --allow-root 2>&1")
@@ -680,6 +686,22 @@ jobs:
             200|301|302) : ;;
             *) echo "::error::Homepage still returned $CODE after 5 attempts over ~1 minute."; exit 1 ;;
           esac
+
+          # A 200 is not proof the shop is open. WooCommerce's coming-soon mode
+          # and maintenance screens answer 200 with a placeholder, so a
+          # status-only gate would wave through a storefront that shows
+          # visitors nothing they can buy. Check the body says shop.
+          echo "GATE: the homepage must be the real shop, not a placeholder..."
+          BODY=$(curl -s --max-time 45 -A 'Mozilla/5.0 (X11; Linux x86_64) AF-DeployGate' https://theartframer.us/ || true)
+          if printf '%s' "$BODY" | grep -qi 'coming soon'; then
+            echo "::error::Homepage is serving a COMING SOON placeholder — the shop is hidden from customers."
+            exit 1
+          fi
+          if ! printf '%s' "$BODY" | grep -qiE 'add-to-cart|product|woocommerce'; then
+            echo "::error::Homepage returned 200 but contains no storefront markup."
+            exit 1
+          fi
+          echo "homepage is the real storefront"
 
           echo "Re-warming page cache (the mid-pipeline purge left every page cold — without this, real visitors pay the cold-render cost and hit 508s while the host is still busy)..."
           # Sequential, one request at a time, so warming itself never adds
