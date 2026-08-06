@@ -7999,13 +7999,22 @@ add_action('woocommerce_checkout_create_order', function($order) {
 }, 10, 1);
 
 // ── Resized-copy quality ─────────────────────────────────────
-// WordPress re-encodes every registered size at quality 82. That is tuned for
-// photographs; this catalogue is flat-colour, hard-edged artwork, where 82
-// leaves visible ringing along the colour boundaries. 90 costs ~30% more bytes
-// for images that are already 70-220KB. Only affects copies generated from here
-// on — existing sizes keep their current quality until thumbnails are regenerated.
-add_filter('jpeg_quality',          function() { return 90; }, 10, 0);
-add_filter('wp_editor_set_quality', function() { return 90; }, 10, 0);
+// WordPress re-encodes every registered size at quality 82 by default. That's
+// tuned for photographs; this catalogue is flat-colour, hard-edged artwork,
+// where any re-encode leaves visible ringing along the colour boundaries.
+// Set to 100 (no additional compression loss) so every generated thumbnail/
+// medium/large copy stays visually identical to the uploaded original.
+// Only affects copies generated from here on — existing sizes keep their
+// current quality until thumbnails are regenerated.
+add_filter('jpeg_quality',          function() { return 100; }, 10, 0);
+add_filter('wp_editor_set_quality', function() { return 100; }, 10, 0);
+
+// WordPress also silently downscales any upload wider or taller than 2560px
+// on the way in, and that scaled-down copy — not the original — becomes the
+// "full" size used everywhere (product pages, zoom, etc.); the true original
+// is kept but never referenced. Disable that so uploaded images are used at
+// their full uploaded resolution.
+add_filter('big_image_size_threshold', '__return_false');
 
 // ── Watermarked previews ─────────────────────────────────────
 // For downloadable products, the product-page gallery serves a downscaled
