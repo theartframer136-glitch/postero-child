@@ -29,6 +29,11 @@ $checks = array(
             'share email'       => 'id="tow-share-mail"',
             'share copy'        => 'id="tow-share-copy"',
             'share helper'      => 'window.AFPreview',
+            // the wall used to end 600px above the bottom of the options rail,
+            // leaving the right-hand half of the page blank
+            'room card under wall' => 'af-tow-panel af-tow-room',
+            'room card styling'    => '.af-tow-room{',
+            'shorter stage'        => 'height:520px',
         ),
         'gone'   => array(
             'old single art node' => 'id="tow-art"',
@@ -54,6 +59,9 @@ $checks = array(
             'share email'       => 'id="ftm-share-mail"',
             'share copy'        => 'id="ftm-share-copy"',
             'share helper'      => 'window.AFPreview',
+            'cards under wall'  => 'class="af-ftm-under"',
+            'cards styling'     => '.af-ftm-under{',
+            'shorter stage'     => 'height:520px',
         ),
         'gone'   => array(
             'old single art node' => 'id="ftm-art"',
