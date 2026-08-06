@@ -5039,20 +5039,6 @@ add_action('template_redirect', function(){
               <button type="button" class="af-tow-lay" data-n="4"><i></i><i></i><i></i><i></i><span>4 Panels</span></button>
             </div>
 
-            <div class="af-tow-step">
-              <span class="af-tow-stepnum">3</span>
-              <span class="af-tow-steptitle">Set the room</span>
-            </div>
-            <label>Room Scene</label>
-            <div id="tow-scenes" class="af-tow-scenes"></div>
-
-            <label class="af-tow-upload"><input type="file" id="tow-wall" accept="image/*" hidden><span>⬆ Upload your own wall photo</span></label>
-            <button type="button" id="tow-cambtn" class="af-tow-cambtn">🎥 Use live camera <em>point it at your wall</em></button>
-
-            <p class="af-tow-scalenote">📏 Shown true to scale on a 10&nbsp;ft wall</p>
-            <label>Adjust Size <span id="tow-scaleval">100%</span></label>
-            <input type="range" id="tow-scale" min="40" max="160" value="100">
-
             <div class="af-tow-price"><span>Your price</span><strong id="tow-price">—</strong></div>
             <div class="af-tow-actions">
               <button type="button" id="tow-save" class="af-tow-btn ghost">⤓ Save Preview</button>
@@ -5087,6 +5073,29 @@ add_action('template_redirect', function(){
               <div id="tow-toast" class="af-tow-toast"></div>
             </div>
             <p class="af-tow-tip">Tip: drag the artwork to line it up with your furniture, then hit <strong>Save Preview</strong> — the image downloads to your device.</p>
+
+            <!-- Step 3 sits under the wall it controls: it fills the column
+                 beside the (much taller) options rail instead of leaving the
+                 page half empty, and the room switcher is next to the room. -->
+            <div class="af-tow-panel af-tow-room">
+              <div class="af-tow-step">
+                <span class="af-tow-stepnum">3</span>
+                <span class="af-tow-steptitle">Set the room</span>
+              </div>
+              <div class="af-tow-roomgrid">
+                <div class="af-tow-roomcol">
+                  <label>Room Scene</label>
+                  <div id="tow-scenes" class="af-tow-scenes"></div>
+                  <label class="af-tow-upload"><input type="file" id="tow-wall" accept="image/*" hidden><span>⬆ Upload your own wall photo</span></label>
+                </div>
+                <div class="af-tow-roomcol">
+                  <button type="button" id="tow-cambtn" class="af-tow-cambtn">🎥 Use live camera <em>point it at your wall</em></button>
+                  <p class="af-tow-scalenote">📏 Shown true to scale on a 10&nbsp;ft wall</p>
+                  <label>Adjust Size <span id="tow-scaleval">100%</span></label>
+                  <input type="range" id="tow-scale" min="40" max="160" value="100">
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -5825,8 +5834,17 @@ add_action('template_redirect', function(){
     .af-tow-btn.solid:hover{background:#b8973c;}
     .af-tow-toast{position:absolute;left:50%;bottom:18px;transform:translateX(-50%) translateY(12px);background:#1a1a1a;color:#fff;font-size:13px;font-weight:600;padding:11px 18px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:20;white-space:nowrap;}
     .af-tow-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-    .af-tow-stagewrap{position:relative;}
-    .af-tow-stage{position:relative;width:100%;height:600px;border-radius:18px;overflow:hidden;background:#e9e4d8;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 60px rgba(0,0,0,.10);}
+    .af-tow-stagewrap{position:relative;display:flex;flex-direction:column;}
+    .af-tow-stage{position:relative;width:100%;height:520px;border-radius:18px;overflow:hidden;background:#e9e4d8;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 60px rgba(0,0,0,.10);}
+    /* room card under the wall — never sticky, it is already in view */
+    .af-tow-room{position:static;top:auto;margin-top:16px;gap:0;}
+    .af-tow-roomgrid{display:grid;grid-template-columns:1.15fr .85fr;gap:4px 26px;align-items:start;}
+    .af-tow-roomcol{display:flex;flex-direction:column;min-width:0;}
+    .af-tow-room .af-tow-scenes{grid-template-columns:repeat(4,1fr);}
+    .af-tow-room .af-tow-scene{height:84px;}
+    .af-tow-room .af-tow-cambtn{margin-top:26px;padding:16px 12px;}
+    .af-tow-room .af-tow-scalenote{margin-top:16px;}
+    .af-tow-room .af-tow-upload{padding:15px;}
     .af-tow-wallimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;}
     .af-tow-ph{position:relative;z-index:2;color:#8a8170;font-size:14.5px;text-align:center;max-width:360px;line-height:1.65;padding:24px;display:flex;flex-direction:column;align-items:center;gap:12px;background:rgba(255,255,255,.78);border-radius:14px;backdrop-filter:blur(2px);}
     .af-tow-ph-ic{font-size:34px;}
@@ -5865,16 +5883,24 @@ add_action('template_redirect', function(){
     .af-tow-hint{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;opacity:0;transition:opacity .15s;pointer-events:none;}
     .af-tow-tip{text-align:center;color:#8a8170;font-size:13px;margin:14px 0 0;}
     .af-tow-tip strong{color:#5a5140;}
+    /* Below ~1150px the 360px rail + a 4-across scene strip get cramped, so the
+       room card drops to a single column before the page itself does. */
+    @media(max-width:1150px){
+      .af-tow-roomgrid{grid-template-columns:1fr;gap:0;}
+      .af-tow-room .af-tow-cambtn{margin-top:12px;}
+    }
     @media(max-width:900px){
       .af-tow-grid{grid-template-columns:1fr;}
       .af-tow-panel{position:static;}
-      .af-tow-stage{height:460px;}
+      .af-tow-stage{height:440px;}
       .af-tow-title{font-size:34px;}
       .af-tow-card{padding:64px 20px 30px;}
+      .af-tow-room .af-tow-scenes{grid-template-columns:1fr 1fr;}
+      .af-tow-room .af-tow-scene{height:56px;}
     }
     @media(max-width:480px){
       .af-tow-title{font-size:27px;}
-      .af-tow-stage{height:380px;}
+      .af-tow-stage{height:360px;}
       .af-tow-badge{display:none;}
     }
     </style>
