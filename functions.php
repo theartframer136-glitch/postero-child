@@ -10243,20 +10243,6 @@ add_action('template_redirect', function () {
               <button type="button" class="af-ftm-lay" data-n="4"><i></i><i></i><i></i><i></i><span>4 Panels</span></button>
             </div>
 
-            <div class="af-ftm-step"><span class="af-ftm-num">4</span><span class="af-ftm-steptitle">Set the room</span></div>
-            <label>Room Scene</label>
-            <div class="af-ftm-scenes" id="ftm-scenes"></div>
-            <button type="button" id="ftm-cambtn" class="af-ftm-cambtn">🎥 Use live camera <em>point it at your wall</em></button>
-
-            <div class="af-ftm-price"><span>Your price</span><strong id="ftm-price">—</strong></div>
-            <p class="af-ftm-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Free secure packaging</p>
-
-            <div class="af-ftm-actions">
-              <button type="button" id="ftm-save" class="af-ftm-btn ghost">⤓ Save Preview</button>
-              <a href="#" id="ftm-send" class="af-ftm-btn solid" target="_blank" rel="noopener">Confirm &amp; Send</a>
-            </div>
-            <p class="af-ftm-fine">“Confirm &amp; Send” opens WhatsApp with your choices ready — just attach the saved preview and hit send.</p>
-
             <p class="af-sharelabel">Keep it &amp; share it</p>
             <div class="af-share">
               <button type="button" id="ftm-saveacct">💾 Save to my account</button>
@@ -10288,6 +10274,27 @@ add_action('template_redirect', function () {
               </div>
             </div>
             <p class="af-ftm-tip" id="ftm-tip">Shown true to scale on a 10&nbsp;ft wall — change the size to compare.</p>
+
+            <!-- The room switcher and the price belong beside the preview they
+                 describe. Left in the rail they pushed it 650px past the
+                 bottom of the wall image, which read as a broken page. -->
+            <div class="af-ftm-under">
+              <div class="af-ftm-panel af-ftm-flat">
+                <div class="af-ftm-step"><span class="af-ftm-num">4</span><span class="af-ftm-steptitle">Set the room</span></div>
+                <label>Room Scene</label>
+                <div class="af-ftm-scenes" id="ftm-scenes"></div>
+                <button type="button" id="ftm-cambtn" class="af-ftm-cambtn">🎥 Use live camera <em>point it at your wall</em></button>
+              </div>
+              <div class="af-ftm-panel af-ftm-flat">
+                <div class="af-ftm-price"><span>Your price</span><strong id="ftm-price">—</strong></div>
+                <p class="af-ftm-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Free secure packaging</p>
+                <div class="af-ftm-actions">
+                  <button type="button" id="ftm-save" class="af-ftm-btn ghost">⤓ Save Preview</button>
+                  <a href="#" id="ftm-send" class="af-ftm-btn solid" target="_blank" rel="noopener">Confirm &amp; Send</a>
+                </div>
+                <p class="af-ftm-fine">“Confirm &amp; Send” opens WhatsApp with your choices ready — just attach the saved preview and hit send.</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -10873,9 +10880,16 @@ add_action('template_redirect', function () {
     .af-ftm-btn.solid:hover{background:#1e8b56;color:#fff;}
     .af-ftm-fine{margin:10px 0 0;font-size:11.5px;color:#8a8170;line-height:1.5;}
     /* stage */
-    .af-ftm-stagewrap{position:relative;}
-    .af-ftm-stage{position:relative;width:100%;height:600px;border-radius:18px;overflow:hidden;display:flex;
+    .af-ftm-stagewrap{position:relative;display:flex;flex-direction:column;}
+    .af-ftm-stage{position:relative;width:100%;height:520px;border-radius:18px;overflow:hidden;display:flex;
       align-items:center;justify-content:center;box-shadow:inset 0 0 60px rgba(0,0,0,.10);background:#e9e4d8;}
+    /* the two cards under the wall */
+    .af-ftm-under{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px;align-items:start;}
+    .af-ftm-flat{position:static;top:auto;}
+    .af-ftm-under .af-ftm-scenes{grid-template-columns:repeat(4,1fr);}
+    .af-ftm-under .af-ftm-scene{height:74px;}
+    .af-ftm-under .af-ftm-cambtn{margin-top:14px;padding:15px 12px;}
+    .af-ftm-under .af-ftm-price{margin-top:0;padding-top:0;border-top:none;}
     /* real photographic room behind the frame */
     .af-ftm-wall{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:52% 50%;display:block;}
     .af-ftm-empty{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;
@@ -10923,16 +10937,21 @@ add_action('template_redirect', function () {
     .af-ftm-glass{position:absolute;inset:0;pointer-events:none;
       background:linear-gradient(125deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,.05) 22%,rgba(255,255,255,0) 42%);}
     .af-ftm-tip{text-align:center;color:#8a8170;font-size:13px;margin:14px 0 0;}
+    @media(max-width:1150px){
+      .af-ftm-under{grid-template-columns:1fr;}
+      .af-ftm-under .af-ftm-scenes{grid-template-columns:1fr 1fr;}
+      .af-ftm-under .af-ftm-scene{height:56px;}
+    }
     @media(max-width:900px){
       .af-ftm-grid{grid-template-columns:1fr;}
       .af-ftm-panel{position:static;}
-      .af-ftm-stage{height:460px;}
+      .af-ftm-stage{height:440px;}
       .af-ftm-title{font-size:34px;}
       .af-ftm-card{padding:64px 20px 30px;}
     }
     @media(max-width:480px){
       .af-ftm-title{font-size:27px;}
-      .af-ftm-stage{height:390px;}
+      .af-ftm-stage{height:360px;}
       .af-ftm-badge{display:none;}
     }
     </style>
