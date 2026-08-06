@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) exit;
 function af_sales_count_min() { return (int) apply_filters('af_sales_count_min', 3); }
 
 add_action('woocommerce_after_shop_loop_item_title', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product) return;
     $sold = (int) $product->get_total_sales();
     if ($sold < af_sales_count_min()) return;

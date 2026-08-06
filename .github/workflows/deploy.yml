@@ -651,6 +651,12 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
+          echo "The shop must not be hidden behind a placeholder..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/fix-coming-soon.php --allow-root 2>&1" \
+            || true
+
           echo "Site visibility + product-page health..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

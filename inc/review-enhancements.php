@@ -60,7 +60,7 @@ add_filter('comment_text', function($text, $comment) {
 // ── histogram + photo strip, injected at the top of #reviews ─────
 add_action('wp_footer', function() {
     if (!function_exists('is_product') || !is_product()) return;
-    global $product;
+    $product = af_wc_product();
     if (!$product || !comments_open($product->get_id())) return;
     $total = (int) $product->get_review_count();
     if ($total < 1) return;

@@ -2078,7 +2078,7 @@ add_action('wp_head', function() { ?>
 
 // Inject hidden product data (fires inside the product link, inside the image area)
 add_action('woocommerce_before_shop_loop_item_title', function() {
-  global $product;
+  $product = af_wc_product();
   if (!$product) return;
   $id       = $product->get_id();
   $url      = get_permalink($id);
@@ -2092,7 +2092,7 @@ add_action('woocommerce_before_shop_loop_item_title', function() {
 
 // Discount badge (fires after price, inside the product link — span is OK here)
 add_action('woocommerce_after_shop_loop_item_title', function() {
-  global $product;
+  $product = af_wc_product();
   if (!$product || !$product->is_on_sale() || !$product->get_regular_price()) return;
   $regular = (float) $product->get_regular_price();
   $sale    = (float) $product->get_sale_price();
@@ -3456,7 +3456,7 @@ add_action('wp_enqueue_scripts', function() {
 // "Try It On Your Wall" button under Add to Cart — now LINKS to the full
 // standalone /try-on-wall/ page with this product pre-selected.
 add_action('woocommerce_after_add_to_cart_button', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product) return;
     $url = add_query_arg('tow', $product->get_id(), home_url('/try-on-wall/'));
     ?>
@@ -3477,7 +3477,7 @@ add_action('wp_footer', function() {
     // so fetch it from the queried page instead — otherwise the modal
     // never renders and the button has nothing to open.
     $product = wc_get_product(get_queried_object_id());
-    if (!$product) { global $product; }
+    if (!($product instanceof WC_Product)) { $product = af_wc_product($product); }
     if (!$product) return;
 
     // Build size options from the product's Size attribute (parse inch width)
@@ -4046,7 +4046,7 @@ add_action('woocommerce_before_shop_loop', function() {
 
 // 5c. Add "Try on Wall" AR hook button on each listing card
 add_action('woocommerce_after_shop_loop_item', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product) return;
     $url = add_query_arg('tow', $product->get_id(), home_url('/try-on-wall/'));
     echo '<a class="af-card-ar" href="'.esc_url($url).'" aria-label="Try on your wall">'
@@ -4120,7 +4120,7 @@ add_action('template_redirect', function() {
 //     Simple products: direct link to checkout with add-to-cart.
 //     Variable products: JS adds the chosen variation, then redirects.
 add_action('woocommerce_after_add_to_cart_button', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product || !$product->is_purchasable() || !$product->is_in_stock()) return;
 
     if ($product->is_type('simple')) {
@@ -4166,7 +4166,7 @@ add_filter('woocommerce_add_to_cart_redirect', function($url){
 
 // 7c. Trust badges directly under the CTA
 add_action('woocommerce_after_add_to_cart_button', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product) return;
     ?>
     <div class="af-pp-trust">
@@ -4179,7 +4179,7 @@ add_action('woocommerce_after_add_to_cart_button', function() {
 
 // 7d. Related Searches (from product tags + category) after summary
 add_action('woocommerce_after_single_product_summary', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product) return;
     $terms = array();
     foreach (array('product_tag','product_cat') as $tax) {
@@ -4198,7 +4198,7 @@ add_action('woocommerce_after_single_product_summary', function() {
 
 // 7e. Popular Products (best sellers) after tabs
 add_action('woocommerce_after_single_product_summary', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product) return;
     $ids = wc_get_products(array(
         'status'=>'publish','limit'=>12,'orderby'=>'meta_value_num','meta_key'=>'total_sales',
@@ -4216,7 +4216,7 @@ add_action('woocommerce_after_single_product_summary', function() {
 
 // 7f. Recently Viewed after tabs
 add_action('woocommerce_after_single_product_summary', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product) return;
     $ids = isset($_COOKIE['af_recently_viewed']) ? array_filter(array_map('absint', explode('|', $_COOKIE['af_recently_viewed']))) : array();
     $ids = array_values(array_diff($ids, array($product->get_id())));
@@ -4298,7 +4298,7 @@ add_action('wp_head', function() {
 
 // 7h. Digital Downloads section (post-tab) — shows Digital Downloads category
 add_action('woocommerce_after_single_product_summary', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product) return;
     $ids = wc_get_products(array(
         'status'=>'publish','limit'=>12,'return'=>'ids',
@@ -4316,7 +4316,7 @@ add_action('woocommerce_after_single_product_summary', function() {
 
 // 7i. Customize Your Picture CTA (post-tab)
 add_action('woocommerce_after_single_product_summary', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product) return;
     // Link to Personalised Prints category if it exists, else Contact
     $term = get_term_by('slug', 'personalised-prints', 'product_cat');
@@ -4363,8 +4363,51 @@ add_action('wp_head', function() {
 // Which products get the size/frame/color engine: every purchasable
 // simple or variable product EXCEPT the gift card and non-canvas
 // categories (accessories, banners) that have their own option sets.
+/**
+ * The current product, or null — never a string.
+ *
+ * WooCommerce's $product global is only reliable inside its own loop. A
+ * plugin, shortcode or template that reassigns it (we have one that leaves a
+ * string behind by the time wp_footer runs) turns every `if (!$product)`
+ * guard into a lie, because a non-empty string is truthy — and the next
+ * `$product->get_id()` is a fatal that takes the whole page down with it.
+ * Ask for the product through here instead of trusting the global.
+ */
+function af_wc_product($maybe = null) {
+    if ($maybe instanceof WC_Product) return $maybe;
+    if (!function_exists('wc_get_product')) return null;
+    $global = isset($GLOBALS['product']) ? $GLOBALS['product'] : null;
+    if ($global instanceof WC_Product) return $global;
+
+    $id = 0;
+    if (is_numeric($maybe))      $id = (int) $maybe;
+    elseif (is_numeric($global)) $id = (int) $global;
+    else {
+        $id = (int) get_the_ID();
+        if (!$id && function_exists('get_queried_object_id')) $id = (int) get_queried_object_id();
+    }
+    if (!$id) return null;
+    $p = wc_get_product($id);
+    return ($p instanceof WC_Product) ? $p : null;
+}
+
+/**
+ * Repair a corrupted $product global before the footer runs. Something on the
+ * product page hands the global to wp_footer as a string; anything that then
+ * calls a method on it dies, and WordPress answers 500 for the whole page.
+ * Runs first (priority 0) so every later footer hook — ours, the parent
+ * theme's, a plugin's — sees a real product or nothing at all.
+ */
+add_action('wp_footer', function() {
+    if (!function_exists('is_product') || !is_product()) return;
+    if (!array_key_exists('product', $GLOBALS)) return;
+    if ($GLOBALS['product'] instanceof WC_Product) return;
+    $p = function_exists('wc_get_product') ? wc_get_product(get_queried_object_id()) : null;
+    $GLOBALS['product'] = ($p instanceof WC_Product) ? $p : null;
+}, 0);
+
 function af_pricing_applies($product) {
-    if (!$product) return false;
+    if (!($product instanceof WC_Product)) return false;
     if (!$product->is_type('simple') && !$product->is_type('variable')) return false;
     if (function_exists('af_gc_product_id') && (int) $product->get_id() === af_gc_product_id()) return false;
     if (get_post_meta($product->get_id(), '_af_is_gift_card', true) === 'yes') return false;
@@ -4459,7 +4502,7 @@ function af_calc_price($base, $size, $frame, $color) {
 
 // 8a. Render selectors inside the add-to-cart form (simple products)
 add_action('woocommerce_before_add_to_cart_button', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product || !af_pricing_applies($product) || !$product->is_purchasable() || !$product->is_in_stock()) return;
     $cfg  = af_pricing_config();
     if ($product->is_type('variable')) {
@@ -6704,7 +6747,7 @@ add_filter('woocommerce_loop_add_to_cart_link', function($html, $product){
 
 // Single product page: add an "Enquire for price" button where Add to Cart would be
 add_action('woocommerce_single_product_summary', function(){
-    global $product;
+    $product = af_wc_product();
     if (!$product) return;
     $p = $product->get_price();
     if ($p === '' || $p === null || (float)$p <= 0) {
@@ -7687,7 +7730,7 @@ add_action('wp_ajax_nopriv_af_compare_data', 'af_compare_data_handler');
 // The single-product "Add to Compare" CTA below keeps its full text; only
 // the card-level icon is condensed.
 add_action('woocommerce_after_shop_loop_item', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product) return;
     echo '<button type="button" class="af-cmp-btn" data-id="' . esc_attr($product->get_id())
         . '" title="Compare" aria-label="Add to compare">'
@@ -7696,7 +7739,7 @@ add_action('woocommerce_after_shop_loop_item', function() {
 
 // Compare toggle on single product pages
 add_action('woocommerce_after_add_to_cart_button', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product) return;
     echo '<button type="button" class="af-cmp-btn af-cmp-single" data-id="' . esc_attr($product->get_id())
         . '">⇄ Add to Compare</button>';
@@ -8079,7 +8122,7 @@ function af_wm_enabled() {
  * their children are the honest signal.
  */
 function af_wm_applies($product) {
-    if (!$product) return false;
+    if (!($product instanceof WC_Product)) return false;
     $ids = array();
     foreach (array('digital-downloads', 'instant-downloads', 'printable-art') as $slug) {
         $t = get_term_by('slug', $slug, 'product_cat');
@@ -8096,7 +8139,7 @@ function af_wm_applies($product) {
 add_filter('woocommerce_single_product_image_thumbnail_html', function($html, $attachment_id) {
     if (!is_product()) return $html;
     if (!af_wm_enabled()) return $html;
-    global $product;
+    $product = af_wc_product();
     if (!$product || !af_wm_applies($product)) return $html;
     $wm = af_wm_preview_url($attachment_id);
     if (!$wm) return $html;
@@ -8265,7 +8308,7 @@ function af_gc_get($code) {
 
 // ── Product page: amount + recipient fields ──────────────────
 add_action('woocommerce_before_add_to_cart_button', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product || $product->get_id() !== af_gc_product_id()) return;
     ?>
     <div class="af-gc-fields">
@@ -9726,7 +9769,7 @@ function af_card_vars_html($product) {
 // at all when every card is covered, so it now only fires for cards that this
 // hook cannot reach (Elementor-built homepage rows).
 add_action('woocommerce_after_shop_loop_item_title', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product) return;
     echo af_card_vars_html($product); // phpcs:ignore WordPress.Security.EscapeOutput -- escaped in the builder
 }, 13);
@@ -9915,7 +9958,7 @@ add_action('wp_footer', function () {
 // apply_art_codes.py). Products without a code simply show nothing.
 // ---------------------------------------------------------------------------
 function af_get_art_code($product = null) {
-  if (!$product) { global $product; }
+  if (!($product instanceof WC_Product)) { $product = af_wc_product($product); }
   if (!$product) return '';
   $code = get_post_meta($product->get_id(), '_taf_art_code', true);
   return is_string($code) ? trim($code) : '';

@@ -116,7 +116,7 @@ add_action('woocommerce_cart_calculate_fees', function($cart) {
 
 /** Tell the customer how their order travels, on the product page and in the cart. */
 add_action('woocommerce_single_product_summary', function() {
-    global $product;
+    $product = af_wc_product();
     if (!$product || !function_exists('af_pricing_applies') || !af_pricing_applies($product)) return;
     echo '<p class="af-ship-note" style="margin:10px 0 0;font-size:12.5px;color:#5a5140;">'
        . '📦 <strong>Rolled</strong> in a protective tube up to 3&nbsp;ft unframed; larger or framed pieces ship '

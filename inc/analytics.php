@@ -35,8 +35,7 @@ add_action('admin_init', function() {
 function af_ga4_page_events() {
     $ev = array();
     if (function_exists('is_product') && is_product()) {
-        global $product;
-        $p = $product ?: wc_get_product(get_the_ID());
+        $p = af_wc_product();
         if ($p) $ev[] = array('view_item', array(
             'currency' => get_woocommerce_currency(),
             'value'    => (float) wc_get_price_to_display($p),
