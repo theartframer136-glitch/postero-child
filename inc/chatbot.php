@@ -434,12 +434,21 @@ add_action('wp_footer', function() {
         bubble('Hello! 👋 I am the Art Framer assistant.\nAsk me about sizes, frames, prices or delivery — or tell me what art you are looking for and I will find it.', 'bot');
       }
 
+      // Belt and braces. The stylesheet rule alone already failed once here
+      // (the panel's display:flex outranked [hidden]), and a cached or
+      // overridden stylesheet could do it again — so closing also forces the
+      // strongest thing JS can set, which no ordinary rule can beat.
       function openPanel(){
         panel.hidden = false;
+        panel.style.setProperty('display', 'flex', 'important');
         greet();
         setTimeout(function(){ input.focus(); }, 60);
       }
-      function closePanel(){ panel.hidden = true; }
+      function closePanel(){
+        panel.hidden = true;
+        panel.style.setProperty('display', 'none', 'important');
+      }
+      closePanel();   // never sit open on load, whatever the CSS says
 
       document.getElementById('af-chat-open').addEventListener('click', function(e){
         e.stopPropagation();
