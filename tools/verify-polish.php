@@ -73,11 +73,30 @@ if ($probe) {
 $home = af_pv_get(home_url('/?nocache=' . time()));
 $hb = is_wp_error($home) ? '' : wp_remote_retrieve_body($home);
 
-echo "\n=== 15. LIVE CHAT ===\n";
-af_pv('launcher ships',   strpos($hb, 'af-chat-bub') !== false, $fail);
-af_pv('panel + topics',   strpos($hb, 'af-chat-chips') !== false, $fail);
-af_pv('message form',     strpos($hb, 'af-chat-form') !== false, $fail);
-af_pv('email fallback',   strpos($hb, 'af-chat-alt') !== false, $fail);
+echo "\n=== 15. ON-SITE CHATBOT ===\n";
+af_pv('launcher ships',      strpos($hb, 'af-chat-bub') !== false, $fail);
+af_pv('quick topics',        strpos($hb, 'af-chat-chips') !== false, $fail);
+af_pv('message form',        strpos($hb, 'af-chat-form') !== false, $fail);
+af_pv('email fallback',      strpos($hb, 'af-chat-alt') !== false, $fail);
+af_pv('conversation thread', strpos($hb, 'af-chat-thread') !== false, $fail);
+af_pv('answers on-site (no wa.me hand-off)', strpos($hb, 'wa.me') === false, $fail);
+af_pv('reply endpoint',      (bool) has_action('wp_ajax_nopriv_af_bot_reply'), $fail);
+af_pv('question log table',  (bool) $GLOBALS['wpdb']->get_var("SHOW TABLES LIKE '" . af_bot_table() . "'"), $fail);
+// the brain must actually route real questions
+$cases = array('what sizes do you have'=>'sizes','do you have gold frames'=>'frames',
+               'how long does delivery take'=>'shipping','can you frame my own photo'=>'custom',
+               'i want to talk to a human'=>'human');
+$bad = array();
+foreach ($cases as $q => $want) { if (af_bot_match($q) !== $want) $bad[] = $q . ' -> ' . (af_bot_match($q) ?: 'none'); }
+af_pv('intent routing (5 samples)', !$bad, $fail, $bad ? implode('; ', $bad) : 'all correct');
+// and it must answer a live request end to end
+$r = wp_remote_post(admin_url('admin-ajax.php'), array('timeout'=>45,'sslverify'=>false,
+    'body'=>array('action'=>'af_bot_reply','nonce'=>wp_create_nonce('af_bot'),'msg'=>'what sizes do you offer?')));
+if (!is_wp_error($r)) {
+    $j = json_decode(wp_remote_retrieve_body($r), true);
+    af_pv('live reply', !empty($j['success']) && !empty($j['data']['reply']), $fail,
+          !empty($j['data']['reply']) ? mb_strimwidth(str_replace("\n",' ',$j['data']['reply']),0,60,'…') : '');
+}
 
 echo "\n=== 16. SALES COUNT ON CARDS ===\n";
 af_pv('hook registered', function_exists('af_sales_count_min'), $fail);

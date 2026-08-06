@@ -10879,7 +10879,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'reels', 'cookie-consent', 'masonry', 'orientation-filter', 'blog-hub', 'analytics', 'live-chat', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard') as $af_mod) {
+foreach (array('abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'reels', 'cookie-consent', 'masonry', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }
