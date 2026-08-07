@@ -12277,23 +12277,40 @@ add_action('template_redirect', function(){
     exit;
 }, 1);
 
+function af_inv_url() {
+    $page = get_page_by_path('inventory-management');
+    return $page ? get_permalink($page) : home_url('/inventory-management/');
+}
+
 // Admin-only "Inventory" link in the main nav, sitting after Contact Us.
 // The menu itself is managed in WP, so rather than editing it there (where the
 // item would be visible to everyone) the link is injected at render time and
-// only for users who can actually open the page. Appended to the first menu
-// in the request that carries a Contact Us item — that's the header nav, and
-// the static flag keeps it from repeating in the footer menu.
+// only for users who can actually open the page.
+//
+// This adds the item to EVERY menu carrying a Contact Us link, not just the
+// first. The first version stopped after one menu to avoid repeating it, but
+// themes commonly emit a hidden mobile/off-canvas copy of the nav ahead of the
+// desktop one — so the single insert landed in markup that is never visible on
+// desktop. Adding to each matching menu also means the link works on mobile.
 add_filter('wp_nav_menu_items', function($items, $args) {
-    static $added = false;
-    if ($added || !function_exists('af_inv_can_access') || !af_inv_can_access()) return $items;
+    if (!function_exists('af_inv_can_access') || !af_inv_can_access()) return $items;
     if (stripos($items, 'contact') === false) return $items;
+    if (strpos($items, 'af-inv-navitem') !== false) return $items;
 
-    $page = get_page_by_path('inventory-management');
-    $url  = $page ? get_permalink($page) : home_url('/inventory-management/');
-
-    $added = true;
-    return $items . '<li class="menu-item af-inv-navitem"><a href="' . esc_url($url) . '">Inventory</a></li>';
+    return $items . '<li class="menu-item af-inv-navitem"><a href="' . esc_url(af_inv_url()) . '">Inventory</a></li>';
 }, 20, 2);
+
+// Admin-bar entry: works no matter how the header is built, so there is always
+// one reliable way in even if the theme renders its nav without wp_nav_menu().
+add_action('admin_bar_menu', function($bar) {
+    if (!function_exists('af_inv_can_access') || !af_inv_can_access()) return;
+    $bar->add_node(array(
+        'id'    => 'af-inventory',
+        'title' => 'Inventory',
+        'href'  => af_inv_url(),
+        'meta'  => array('title' => 'Open the inventory management page'),
+    ));
+}, 80);
 
 add_action('wp_head', function() {
     if (!function_exists('af_inv_can_access') || !af_inv_can_access()) return;
@@ -12305,5 +12322,51 @@ add_action('wp_head', function() {
     .af-inv-navitem > a::after{content:'ADMIN';margin-left:6px;font-size:8.5px;font-weight:800;
       letter-spacing:.06em;vertical-align:super;opacity:.75;}
     </style>
+    <?php
+}, 99);
+
+// Last-resort DOM fallback. Headers built by Elementor or a page builder can
+// render their nav without ever passing through wp_nav_menu_items, in which
+// case the PHP filter above adds nothing. This checks the rendered page and,
+// only if no Inventory item is present, appends one to the nav list that
+// actually holds the Contact link — matching what the visitor really sees
+// rather than what the theme was assumed to output.
+add_action('wp_footer', function() {
+    if (!function_exists('af_inv_can_access') || !af_inv_can_access()) return;
+    ?>
+    <script>
+    (function(){
+      function inject(){
+        if (document.querySelector('.af-inv-navitem')) return; // PHP filter already did it
+        var lists = document.querySelectorAll('ul');
+        var best = null, bestCount = 0;
+        for (var i = 0; i < lists.length; i++) {
+          var ul = lists[i];
+          var links = ul.querySelectorAll(':scope > li > a');
+          if (links.length < 3) continue; // not a real nav bar
+          var hasContact = false;
+          for (var j = 0; j < links.length; j++) {
+            if (/contact/i.test(links[j].textContent || '')) { hasContact = true; break; }
+          }
+          if (!hasContact) continue;
+          // Prefer the visible nav: a hidden mobile copy has no layout box.
+          var visible = ul.getBoundingClientRect().width > 0;
+          var score = links.length + (visible ? 1000 : 0);
+          if (score > bestCount) { bestCount = score; best = ul; }
+        }
+        if (!best) return;
+        var first = best.querySelector(':scope > li');
+        var li = document.createElement('li');
+        li.className = (first ? first.className + ' ' : 'menu-item ') + 'af-inv-navitem';
+        var a = document.createElement('a');
+        a.href = <?php echo wp_json_encode(af_inv_url()); ?>;
+        a.textContent = 'Inventory';
+        li.appendChild(a);
+        best.appendChild(li);
+      }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inject);
+      else inject();
+    })();
+    </script>
     <?php
 }, 99);
