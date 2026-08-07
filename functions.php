@@ -4179,7 +4179,7 @@ add_action('woocommerce_after_add_to_cart_button', function() {
 
 // 7d. Related Searches (from product tags + category) after summary
 add_action('woocommerce_after_single_product_summary', function() {
-    if (!af_is_product_page()) return;   // never inside the quick-view modal
+    if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
     $product = af_wc_product();
     if (!$product) return;
     $terms = array();
@@ -4199,7 +4199,7 @@ add_action('woocommerce_after_single_product_summary', function() {
 
 // 7e. Popular Products (best sellers) after tabs
 add_action('woocommerce_after_single_product_summary', function() {
-    if (!af_is_product_page()) return;   // never inside the quick-view modal
+    if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
     $product = af_wc_product();
     if (!$product) return;
     $ids = wc_get_products(array(
@@ -4218,7 +4218,7 @@ add_action('woocommerce_after_single_product_summary', function() {
 
 // 7f. Recently Viewed after tabs
 add_action('woocommerce_after_single_product_summary', function() {
-    if (!af_is_product_page()) return;   // never inside the quick-view modal
+    if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
     $product = af_wc_product();
     if (!$product) return;
     $ids = isset($_COOKIE['af_recently_viewed']) ? array_filter(array_map('absint', explode('|', $_COOKIE['af_recently_viewed']))) : array();
@@ -4301,7 +4301,7 @@ add_action('wp_head', function() {
 
 // 7h. Digital Downloads section (post-tab) — shows Digital Downloads category
 add_action('woocommerce_after_single_product_summary', function() {
-    if (!af_is_product_page()) return;   // never inside the quick-view modal
+    if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
     $product = af_wc_product();
     if (!$product) return;
     $ids = wc_get_products(array(
@@ -4320,7 +4320,7 @@ add_action('woocommerce_after_single_product_summary', function() {
 
 // 7i. Customize Your Picture CTA (post-tab)
 add_action('woocommerce_after_single_product_summary', function() {
-    if (!af_is_product_page()) return;   // never inside the quick-view modal
+    if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
     $product = af_wc_product();
     if (!$product) return;
     // Link to Personalised Prints category if it exists, else Contact
@@ -4397,17 +4397,7 @@ function af_wc_product($maybe = null) {
 }
 
 /**
- * True only on the real single-product page.
- *
- * The sections below (Related Searches, Popular, Recently Viewed, Digital
- * Downloads, the Customize CTA) hang off woocommerce_after_single_product_summary,
- * and the quick-view plugin fires that same hook to build its modal. They used
- * to fall out of the modal by accident, because af_wc_product() returned null
- * without a proper $product global; once that learned to fall back to the
- * current post they all started rendering inside the modal instead — without
- * the product-page stylesheet, so each mini card came out as a full-width
- * unstyled image. The modal wants the summary and nothing else, so ask
- * explicitly rather than relying on a lookup failing.
+ * True only on the real single-product page — no ajax, no REST, no admin.
  */
 function af_is_product_page() {
     if (is_admin()) return false;
@@ -4415,6 +4405,41 @@ function af_is_product_page() {
     if (defined('REST_REQUEST') && REST_REQUEST) return false;
     if (defined('DOING_AJAX') && DOING_AJAX) return false;
     return function_exists('is_product') && is_product();
+}
+
+/**
+ * True while the quick-view plugin is rendering its modal.
+ *
+ * Matched on the ajax action rather than a plugin's name, so swapping the
+ * quick-view plugin does not silently empty the modal.
+ */
+function af_is_quick_view_request() {
+    $ajax = (function_exists('wp_doing_ajax') && wp_doing_ajax()) || (defined('DOING_AJAX') && DOING_AJAX);
+    if (!$ajax) return false;
+    if (defined('REST_REQUEST') && REST_REQUEST) return false;
+    $action = isset($_REQUEST['action']) ? (string) $_REQUEST['action'] : '';
+    return $action !== '' && (bool) preg_match('/(woosq|quick_?view|^qv_|_qv$)/i', $action);
+}
+
+/**
+ * Should the product page's own sections — Related Searches, Popular Products,
+ * Recently Viewed, Digital Downloads, the Customize CTA, the FAQ — render here?
+ *
+ * The quick view is meant to be the product page for that product, not a
+ * trimmed version of it, so the answer is yes on the real page AND inside the
+ * modal. What it is not is a licence to render during any old ajax call, a
+ * REST response or an admin screen, which is what this keeps out.
+ *
+ * These sections hang off woocommerce_after_single_product_summary, which the
+ * quick-view plugin fires too. They used to stay out of the modal only by
+ * accident — af_wc_product() found no $product global there and each section
+ * bailed on its own first line — and when that helper learned to fall back to
+ * the current post they appeared unstyled, because the stylesheet they need was
+ * gated to is_product(). That stylesheet is now site-wide, so they render in
+ * the modal exactly as they do on the page.
+ */
+function af_show_product_sections() {
+    return af_is_product_page() || af_is_quick_view_request();
 }
 
 /**
@@ -4764,7 +4789,7 @@ function af_product_faqs() {
 }
 
 add_action('woocommerce_after_single_product_summary', function() {
-    if (!function_exists('is_product') || !is_product()) return;
+    if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
     $faqs = af_product_faqs();
     if (empty($faqs)) return;
     echo '<section class="af-pp-sec af-faq"><h2>Frequently Asked Questions</h2><div class="af-faq-list">';
@@ -9579,7 +9604,13 @@ add_filter('login_errors', function () {
    verified-buyers badge, recently viewed.
    ============================================================ */
 add_action('wp_footer', function() {
-    if (!function_exists('is_product') || !is_product()) return;
+    // Printed on every front-end page, not just the product page. The quick-view
+    // modal is injected into whatever page the visitor is already on — the shop,
+    // the homepage — so gating this to is_product() left the modal's Recently
+    // Viewed strip with no .af-recent-row rule at all, which is why it came out
+    // as a column of full-width images. Every selector is .af-* scoped and the
+    // whole block is ~3 KB, so serving it site-wide is the cheap fix.
+    if (is_admin()) return;
     ?>
 <style>
 .af-opt-sub{font-weight:400;color:#999;font-size:11.5px;}
@@ -9783,7 +9814,7 @@ add_action('template_redirect', function() {
 });
 
 add_action('woocommerce_after_single_product_summary', function() {
-    if (!af_is_product_page()) return;   // never inside the quick-view modal
+    if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
     global $post;
     $seen = isset($_COOKIE['af_recent']) ? array_filter(array_map('absint', explode(',', $_COOKIE['af_recent']))) : array();
     $seen = array_values(array_diff($seen, array($post ? $post->ID : 0)));
