@@ -11914,3 +11914,345 @@ function af_preview_share_assets() {
     </style>
     <?php
 }
+
+// ── PHASE 28 — Admin-only Inventory Management page (/inventory-management/) ──
+// Standalone stock dashboard rendered over a real WP page, same pattern as the
+// try-on-wall / frame-the-moment builders. Lists every product with its stock
+// state and lets an administrator edit quantities inline. Restricted to
+// manage_options (site administrators) — shop managers do NOT get in.
+
+function af_inv_can_access() {
+    return is_user_logged_in() && current_user_can('manage_options');
+}
+
+// Endpoint: write a new stock quantity for one product.
+function af_inventory_save_handler() {
+    if (!af_inv_can_access()) {
+        wp_send_json_error(array('message' => 'Permission denied.'), 403);
+    }
+    check_ajax_referer('af_inventory', 'nonce');
+
+    $pid = isset($_POST['id']) ? absint($_POST['id']) : 0;
+    $product = $pid ? wc_get_product($pid) : null;
+    if (!$product) {
+        wp_send_json_error(array('message' => 'Product not found.'), 404);
+    }
+
+    // An empty qty means "stop tracking a number for this product" and fall
+    // back to the plain in/out-of-stock flag, which is how WooCommerce itself
+    // treats a blank stock field.
+    $raw = isset($_POST['qty']) ? trim(wp_unslash($_POST['qty'])) : '';
+    if ($raw === '') {
+        $product->set_manage_stock(false);
+        $status = isset($_POST['status']) && $_POST['status'] === 'outofstock' ? 'outofstock' : 'instock';
+        $product->set_stock_status($status);
+        $qty = null;
+    } else {
+        $qty = (int) $raw;
+        if ($qty < 0) $qty = 0;
+        $product->set_manage_stock(true);
+        $product->set_stock_quantity($qty);
+        $product->set_stock_status($qty > 0 ? 'instock' : 'outofstock');
+    }
+    $product->save();
+
+    if (function_exists('wc_delete_product_transients')) wc_delete_product_transients($pid);
+
+    wp_send_json_success(array(
+        'id'     => $pid,
+        'qty'    => $qty,
+        'status' => $product->get_stock_status(),
+    ));
+}
+add_action('wp_ajax_af_inventory_save', 'af_inventory_save_handler');
+
+add_action('template_redirect', function(){
+    if (!function_exists('is_page') || !is_page(array('inventory-management','inventory'))) return;
+    if (!function_exists('wc_get_products')) return;
+
+    if (!af_inv_can_access()) {
+        wp_die(
+            'You do not have permission to view this page.',
+            'Access Denied',
+            array('response' => 403, 'back_link' => true)
+        );
+    }
+
+    $ids = wc_get_products(array('status' => array('publish','draft'), 'limit' => -1, 'return' => 'ids'));
+    $rows = array();
+    foreach ($ids as $pid) {
+        $p = wc_get_product($pid);
+        if (!$p) continue;
+        $rows[] = array(
+            'id'      => $pid,
+            'title'   => html_entity_decode(wp_strip_all_tags($p->get_name())),
+            'sku'     => $p->get_sku(),
+            'price'   => (float) $p->get_price(),
+            'managed' => (bool) $p->get_manage_stock(),
+            'qty'     => $p->get_manage_stock() ? (int) $p->get_stock_quantity() : null,
+            'status'  => $p->get_stock_status(),
+            'draft'   => $p->get_status() !== 'publish',
+            'img'     => get_the_post_thumbnail_url($pid, 'thumbnail') ?: wc_placeholder_img_src('thumbnail'),
+            'edit'    => get_edit_post_link($pid, 'raw'),
+            'view'    => get_permalink($pid),
+        );
+    }
+    usort($rows, function($a, $b){ return strcasecmp($a['title'], $b['title']); });
+
+    $cfg = array(
+        'ajax'  => admin_url('admin-ajax.php'),
+        'nonce' => wp_create_nonce('af_inventory'),
+        'sym'   => function_exists('get_woocommerce_currency_symbol') ? get_woocommerce_currency_symbol() : '$',
+        'low'   => 5, // at or below this counts as "low stock"
+    );
+
+    get_header();
+    ?>
+    <div class="af-inv-wrap">
+      <header class="af-inv-head">
+        <div>
+          <p class="af-inv-eyebrow">Admin only</p>
+          <h1>Inventory Management</h1>
+          <p class="af-inv-sub">Edit a stock number and press Enter (or click away) to save. Leave it blank to stop tracking a count for that product.</p>
+        </div>
+        <a class="af-inv-home" href="<?php echo esc_url(home_url('/')); ?>">Back to site</a>
+      </header>
+
+      <div class="af-inv-stats" id="inv-stats"></div>
+
+      <div class="af-inv-toolbar">
+        <input type="search" id="inv-search" class="af-inv-search" placeholder="Search by name or SKU&hellip;" autocomplete="off">
+        <div class="af-inv-filters" id="inv-filters">
+          <button type="button" class="af-inv-chip is-on" data-filter="all">All</button>
+          <button type="button" class="af-inv-chip" data-filter="instock">In stock</button>
+          <button type="button" class="af-inv-chip" data-filter="low">Low stock</button>
+          <button type="button" class="af-inv-chip" data-filter="outofstock">Out of stock</button>
+          <button type="button" class="af-inv-chip" data-filter="untracked">Not tracked</button>
+        </div>
+      </div>
+
+      <div class="af-inv-tablewrap">
+        <table class="af-inv-table">
+          <thead>
+            <tr>
+              <th class="af-inv-thimg"></th>
+              <th>Product</th>
+              <th class="af-inv-thsku">SKU</th>
+              <th class="af-inv-thprice">Price</th>
+              <th class="af-inv-thstock">Stock</th>
+              <th class="af-inv-thstatus">Status</th>
+              <th class="af-inv-thact"></th>
+            </tr>
+          </thead>
+          <tbody id="inv-body"></tbody>
+        </table>
+        <p class="af-inv-empty" id="inv-empty" hidden>No products match that search.</p>
+      </div>
+    </div>
+
+    <script>
+    (function(){
+      var ROWS = <?php echo wp_json_encode($rows); ?>;
+      var CFG  = <?php echo wp_json_encode($cfg); ?>;
+      var $ = function(id){ return document.getElementById(id); };
+      var filter = 'all', term = '';
+
+      function esc(s){ var d=document.createElement('div'); d.textContent = s==null?'':String(s); return d.innerHTML; }
+      function money(n){ return CFG.sym + (Math.round(n*100)/100).toFixed(2); }
+
+      // A product's bucket drives both the filter chips and the status pill.
+      function bucket(r){
+        if (!r.managed) return 'untracked';
+        if (r.status === 'outofstock' || r.qty <= 0) return 'outofstock';
+        if (r.qty <= CFG.low) return 'low';
+        return 'instock';
+      }
+      var LABEL = { instock:'In stock', low:'Low stock', outofstock:'Out of stock', untracked:'Not tracked' };
+
+      function visible(){
+        return ROWS.filter(function(r){
+          if (filter !== 'all') {
+            var b = bucket(r);
+            // "In stock" should include low-stock items; "Low stock" narrows it.
+            if (filter === 'instock' ? (b !== 'instock' && b !== 'low') : b !== filter) return false;
+          }
+          if (!term) return true;
+          var hay = (r.title + ' ' + (r.sku||'')).toLowerCase();
+          return hay.indexOf(term) !== -1;
+        });
+      }
+
+      function renderStats(){
+        var c = { instock:0, low:0, outofstock:0, untracked:0 };
+        ROWS.forEach(function(r){ c[bucket(r)]++; });
+        $('inv-stats').innerHTML =
+          stat('Products', ROWS.length, '') +
+          stat('In stock', c.instock, 'ok') +
+          stat('Low stock', c.low, 'warn') +
+          stat('Out of stock', c.outofstock, 'bad') +
+          stat('Not tracked', c.untracked, 'mute');
+      }
+      function stat(label, n, kind){
+        return '<div class="af-inv-stat af-inv-stat--'+kind+'"><span class="af-inv-statn">'+n+'</span><span class="af-inv-statl">'+label+'</span></div>';
+      }
+
+      function render(){
+        var list = visible();
+        $('inv-empty').hidden = list.length > 0;
+        $('inv-body').innerHTML = list.map(function(r){
+          var b = bucket(r);
+          return '<tr data-id="'+r.id+'">'
+            + '<td class="af-inv-tdimg"><img src="'+esc(r.img)+'" alt="" loading="lazy"></td>'
+            + '<td class="af-inv-tdname"><a href="'+esc(r.view)+'" target="_blank" rel="noopener">'+esc(r.title)+'</a>'
+              + (r.draft ? ' <span class="af-inv-draft">Draft</span>' : '') + '</td>'
+            + '<td class="af-inv-tdsku">'+(r.sku ? esc(r.sku) : '<span class="af-inv-dash">&mdash;</span>')+'</td>'
+            + '<td class="af-inv-tdprice">'+money(r.price)+'</td>'
+            + '<td class="af-inv-tdstock"><input type="number" min="0" step="1" class="af-inv-qty" '
+              + 'value="'+(r.managed && r.qty !== null ? r.qty : '')+'" placeholder="&mdash;" aria-label="Stock quantity"></td>'
+            + '<td class="af-inv-tdstatus"><span class="af-inv-pill af-inv-pill--'+b+'">'+LABEL[b]+'</span></td>'
+            + '<td class="af-inv-tdact"><a class="af-inv-edit" href="'+esc(r.edit)+'" target="_blank" rel="noopener">Edit</a></td>'
+            + '</tr>';
+        }).join('');
+      }
+
+      function save(tr, input){
+        var id = parseInt(tr.getAttribute('data-id'), 10);
+        var row = ROWS.filter(function(r){ return r.id === id; })[0];
+        if (!row) return;
+        var raw = input.value.trim();
+        var prev = (row.managed && row.qty !== null) ? String(row.qty) : '';
+        if (raw === prev) return; // nothing actually changed
+
+        tr.classList.add('is-saving');
+        var body = new URLSearchParams();
+        body.set('action', 'af_inventory_save');
+        body.set('nonce', CFG.nonce);
+        body.set('id', id);
+        body.set('qty', raw);
+
+        fetch(CFG.ajax, { method:'POST', credentials:'same-origin', body:body })
+          .then(function(res){ return res.json(); })
+          .then(function(json){
+            tr.classList.remove('is-saving');
+            if (!json || !json.success) throw new Error((json && json.data && json.data.message) || 'Save failed');
+            row.managed = json.data.qty !== null;
+            row.qty     = json.data.qty;
+            row.status  = json.data.status;
+            flash(tr, 'ok');
+            renderStats();
+            var b = bucket(row);
+            var pill = tr.querySelector('.af-inv-pill');
+            if (pill) { pill.className = 'af-inv-pill af-inv-pill--'+b; pill.textContent = LABEL[b]; }
+          })
+          .catch(function(err){
+            tr.classList.remove('is-saving');
+            flash(tr, 'bad');
+            input.value = prev; // put the old number back so the table never lies
+            alert('Could not save: ' + err.message);
+          });
+      }
+      function flash(tr, kind){
+        tr.classList.add('af-inv-flash-'+kind);
+        setTimeout(function(){ tr.classList.remove('af-inv-flash-'+kind); }, 1200);
+      }
+
+      $('inv-body').addEventListener('change', function(e){
+        if (!e.target.classList.contains('af-inv-qty')) return;
+        save(e.target.closest('tr'), e.target);
+      });
+      $('inv-body').addEventListener('keydown', function(e){
+        if (e.key === 'Enter' && e.target.classList.contains('af-inv-qty')) { e.preventDefault(); e.target.blur(); }
+      });
+      $('inv-search').addEventListener('input', function(){ term = this.value.trim().toLowerCase(); render(); });
+      $('inv-filters').addEventListener('click', function(e){
+        var btn = e.target.closest('.af-inv-chip');
+        if (!btn) return;
+        filter = btn.getAttribute('data-filter');
+        Array.prototype.forEach.call(this.querySelectorAll('.af-inv-chip'), function(b){ b.classList.toggle('is-on', b === btn); });
+        render();
+      });
+
+      renderStats();
+      render();
+    })();
+    </script>
+
+    <style>
+    .af-inv-wrap{max-width:1180px;margin:0 auto;padding:34px 18px 70px;
+      background:linear-gradient(180deg,#f6f1e6 0%,#efe7d6 100%);}
+    .af-inv-head{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;justify-content:space-between;margin:0 0 22px;}
+    .af-inv-eyebrow{margin:0 0 6px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+      color:#a8801f;background:#f3ead2;border:1px solid #e6d7ad;border-radius:999px;display:inline-block;padding:4px 11px;}
+    .af-inv-head h1{margin:0 0 8px;font-family:'Playfair Display',Georgia,serif;font-size:34px;color:#1a1a1a;line-height:1.15;}
+    .af-inv-sub{margin:0;font-size:13.5px;color:#6b6250;max-width:56ch;line-height:1.6;}
+    .af-inv-home{align-self:center;background:#1a1a1a;color:#fff;text-decoration:none;font-size:12.5px;font-weight:700;
+      padding:11px 18px;border-radius:9px;transition:background .2s;white-space:nowrap;}
+    .af-inv-home:hover{background:#c9a84c;color:#fff;}
+
+    .af-inv-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:0 0 22px;}
+    .af-inv-stat{background:#fffdf8;border:1px solid #efe6d2;border-radius:12px;padding:14px 16px;
+      box-shadow:0 2px 10px rgba(70,54,26,.05);}
+    .af-inv-statn{display:block;font-family:'Playfair Display',Georgia,serif;font-size:27px;color:#1a1a1a;line-height:1.1;}
+    .af-inv-statl{display:block;margin-top:3px;font-size:11px;font-weight:700;letter-spacing:.05em;
+      text-transform:uppercase;color:#8a8170;}
+    .af-inv-stat--ok .af-inv-statn{color:#1e8b56;}
+    .af-inv-stat--warn .af-inv-statn{color:#a8801f;}
+    .af-inv-stat--bad .af-inv-statn{color:#b4453a;}
+    .af-inv-stat--mute .af-inv-statn{color:#8a8170;}
+
+    .af-inv-toolbar{display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between;margin:0 0 14px;}
+    .af-inv-search{flex:1 1 260px;min-width:0;height:42px;padding:0 14px;border:1.5px solid #e2d9c4;border-radius:10px;
+      background:#fffdf8;color:#1a1a1a;font-size:14px;}
+    .af-inv-search:focus{outline:none;border-color:#c9a84c;}
+    .af-inv-filters{display:flex;flex-wrap:wrap;gap:7px;}
+    .af-inv-chip{height:36px;padding:0 14px;border:1.5px solid #e2d9c4;border-radius:999px;background:#fffdf8;
+      color:#6b6250;font-size:12.5px;font-weight:700;cursor:pointer;transition:border-color .15s,background .2s,color .2s;}
+    .af-inv-chip:hover{border-color:#c9a84c;background:#fdf9ef;}
+    .af-inv-chip.is-on{background:#1a1a1a;border-color:#1a1a1a;color:#fff;}
+
+    .af-inv-tablewrap{background:#fffdf8;border:1px solid #efe6d2;border-radius:14px;overflow-x:auto;
+      box-shadow:0 4px 18px rgba(70,54,26,.07);}
+    .af-inv-table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px;}
+    .af-inv-table thead th{position:sticky;top:0;background:#f3ead2;color:#6b6250;text-align:left;
+      font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:12px 14px;
+      border-bottom:1px solid #e6d7ad;z-index:1;}
+    .af-inv-table tbody td{padding:11px 14px;border-bottom:1px solid #f0e9da;vertical-align:middle;color:#1a1a1a;}
+    .af-inv-table tbody tr:last-child td{border-bottom:none;}
+    .af-inv-table tbody tr:hover{background:#fdf9ef;}
+    .af-inv-thimg,.af-inv-tdimg{width:54px;}
+    .af-inv-tdimg img{width:40px;height:40px;object-fit:cover;border-radius:7px;border:1px solid #ece4cf;display:block;}
+    .af-inv-tdname a{color:#1a1a1a;text-decoration:none;font-weight:600;}
+    .af-inv-tdname a:hover{color:#c9a84c;}
+    .af-inv-draft{display:inline-block;margin-left:6px;font-size:10px;font-weight:800;text-transform:uppercase;
+      letter-spacing:.04em;color:#8a8170;background:#f0e9da;border-radius:4px;padding:2px 6px;vertical-align:middle;}
+    .af-inv-tdsku,.af-inv-thsku{color:#6b6250;font-size:12.5px;white-space:nowrap;}
+    .af-inv-dash{color:#b8b0a0;}
+    .af-inv-tdprice,.af-inv-thprice{white-space:nowrap;font-weight:600;}
+    .af-inv-thstock,.af-inv-tdstock{width:104px;}
+    .af-inv-qty{width:84px;height:36px;padding:0 9px;border:1.5px solid #e2d9c4;border-radius:8px;background:#fff;
+      color:#1a1a1a;font-size:13.5px;font-weight:600;text-align:center;}
+    .af-inv-qty:focus{outline:none;border-color:#c9a84c;background:#fffdf8;}
+    .af-inv-pill{display:inline-block;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:800;
+      letter-spacing:.03em;white-space:nowrap;}
+    .af-inv-pill--instock{background:#e6f5ed;color:#1e8b56;border:1px solid #c4e6d5;}
+    .af-inv-pill--low{background:#f3ead2;color:#a8801f;border:1px solid #e6d7ad;}
+    .af-inv-pill--outofstock{background:#fbe9e7;color:#b4453a;border:1px solid #f0cdc8;}
+    .af-inv-pill--untracked{background:#f0e9da;color:#8a8170;border:1px solid #e2d9c4;}
+    .af-inv-edit{color:#6b6250;text-decoration:none;font-size:12px;font-weight:700;border:1.5px solid #e2d9c4;
+      border-radius:8px;padding:7px 12px;transition:border-color .15s,color .2s,background .2s;white-space:nowrap;}
+    .af-inv-edit:hover{border-color:#c9a84c;color:#a8801f;background:#fdf9ef;}
+    .af-inv-empty{margin:0;padding:34px 16px;text-align:center;color:#8a8170;font-size:14px;}
+
+    .af-inv-table tbody tr.is-saving{opacity:.55;}
+    .af-inv-table tbody tr.af-inv-flash-ok{background:#e6f5ed;}
+    .af-inv-table tbody tr.af-inv-flash-bad{background:#fbe9e7;}
+
+    @media(max-width:640px){
+      .af-inv-wrap{padding:24px 12px 54px;}
+      .af-inv-head h1{font-size:27px;}
+    }
+    </style>
+    <?php
+    get_footer();
+    exit;
+}, 1);
