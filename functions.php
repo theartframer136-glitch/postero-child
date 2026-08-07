@@ -5248,6 +5248,22 @@ add_action('template_redirect', function(){
                 <span class="af-tow-hint">✥ drag</span>
               </div>
               <button type="button" id="tow-camstop" class="af-tow-camstop" style="display:none">✕ Stop camera</button>
+              <!-- live-camera calibration: fit the wall into the rectangle and it
+                   turns green — from that moment scale is MEASURED, not assumed -->
+              <div id="tow-cal" class="af-tow-cal" style="display:none">
+                <div id="tow-calbox" class="af-tow-calbox">
+                  <span class="af-tow-calcorner tl"></span><span class="af-tow-calcorner tr"></span>
+                  <span class="af-tow-calcorner bl"></span><span class="af-tow-calcorner br"></span>
+                </div>
+                <div id="tow-calmsg" class="af-tow-calmsg">Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge</div>
+                <div id="tow-calh" class="af-tow-calh">
+                  <span>Wall height</span>
+                  <button type="button" data-ft="8" class="on">8 ft</button>
+                  <button type="button" data-ft="9">9 ft</button>
+                  <button type="button" data-ft="10">10 ft</button>
+                </div>
+              </div>
+              <button type="button" id="tow-recal" class="af-tow-recal" style="display:none">📐 True scale locked · tap to recalibrate</button>
               <div id="tow-toast" class="af-tow-toast"></div>
             </div>
             <p class="af-tow-tip">Tip: drag the artwork to line it up with your furniture, then hit <strong>Save Preview</strong> — the image downloads to your device.</p>
@@ -5283,6 +5299,7 @@ add_action('template_redirect', function(){
     (function(){
       var CATS = <?php echo wp_json_encode($cat_items); ?>;
       var PRODUCTS = <?php echo wp_json_encode($prod_items); ?>;
+      window.AFProducts = PRODUCTS;   // same array, for the test harness (already public in page source)
       var CFG = <?php echo wp_json_encode($cfg); ?>;
       var SYM = <?php echo wp_json_encode($sym); ?>;
       var $=function(id){return document.getElementById(id);};
@@ -5684,6 +5701,7 @@ add_action('template_redirect', function(){
             sceneWrap.querySelectorAll('.af-tow-scene').forEach(function(x){x.classList.remove('on');});
             $('tow-placeholder').style.display = current() ? 'none' : 'flex';
             camLabel();
+            calStart();
             toast('🎥 Live camera on — point it at your wall');
           })
           .catch(function(err){
@@ -5696,6 +5714,7 @@ add_action('template_redirect', function(){
         camSeq++; camStarting=false;              // cancels any start still in flight
         if(camStream){ camStream.getTracks().forEach(function(t){ t.stop(); }); camStream=null; }
         camOn=false;
+        calStop();
         var v=$('tow-cam'); v.srcObject=null; v.style.display='none';
         $('tow-camstop').style.display='none';
         // bring the room photo (or the uploaded wall) back, and re-highlight
@@ -5719,6 +5738,128 @@ add_action('template_redirect', function(){
       });
       $('tow-camstop').addEventListener('click', function(){ stopCam(); });
       window.addEventListener('pagehide', stopCam);
+
+      // ── LIVE-CAMERA CALIBRATION — measured true scale ─────────────────
+      // The rectangle over the feed stands for the wall between ceiling and
+      // floor. The visitor steps back or forward until both lines sit on its
+      // edges; an edge detector watches the feed and flips the rectangle red
+      // → amber → green, and at the lock pixels-per-foot becomes MEASURED
+      // (rectangle height ÷ chosen wall height) instead of assumed. After
+      // the lock the same detector keeps tracking the two lines, so walking
+      // closer or farther rescales the artwork exactly as a real painting
+      // grows and shrinks in a person's view. If the lines are lost the
+      // scale simply holds — it never jumps.
+      var CAL = { locked:false, wallFt:8, base:0, pxPerFt:0, factor:1,
+                  streak:0, spanLock:0, timer:null };
+      window.AFCal = CAL;   // read-only view for the harness and live verifier
+      var CAL_TOP=0.16, CAL_BOT=0.84;   // rectangle edges as fractions of stage height
+      var calCv=document.createElement('canvas');
+      calCv.width=120; calCv.height=90;
+      var calCx=calCv.getContext('2d', { willReadFrequently:true });
+
+      // where the rectangle's edges land in detector-row space, allowing for
+      // the object-fit:cover crop of the feed inside the stage
+      function calRows(){
+        var v=$('tow-cam'); if(!(v.videoWidth>0)) return null;
+        var st=$('tow-stage').getBoundingClientRect();
+        var s=Math.max(st.width/v.videoWidth, st.height/v.videoHeight);
+        var cropY=(v.videoHeight - st.height/s)/2;
+        var toRow=function(frac){
+          return (cropY + (frac*st.height)/s) / v.videoHeight * calCv.height;
+        };
+        return { top:toRow(CAL_TOP), bot:toRow(CAL_BOT) };
+      }
+
+      // the strongest horizontal edge in the upper and the lower half of the
+      // feed — on a wall shot those are the ceiling line and the floor line
+      function calSample(){
+        var v=$('tow-cam'); if(!(v.videoWidth>0)) return null;
+        try{
+          calCx.drawImage(v,0,0,calCv.width,calCv.height);
+          var d=calCx.getImageData(0,0,calCv.width,calCv.height).data;
+        }catch(e){ return null; }
+        var W=calCv.width,H=calCv.height,x0=Math.round(W*0.15),x1=Math.round(W*0.85);
+        function lum(x,y){ var i=(y*W+x)*4; return d[i]*0.299+d[i+1]*0.587+d[i+2]*0.114; }
+        var rows=[];
+        for(var y=1;y<H-1;y++){ var acc=0; for(var x=x0;x<x1;x++){ acc+=Math.abs(lum(x,y+1)-lum(x,y-1)); } rows[y]=acc; }
+        var sorted=rows.filter(function(v2){return v2!=null;}).sort(function(a,b){return a-b;});
+        var med=sorted[Math.floor(sorted.length/2)]||1;
+        function pick(a,b){
+          var best=-1, by=0;
+          for(var y=Math.max(1,Math.round(a)); y<Math.min(H-1,Math.round(b)); y++){
+            if(rows[y]>best){ best=rows[y]; by=y; }
+          }
+          return { y:by, ok: best > med*2.2 };
+        }
+        return { top:pick(H*0.03,H*0.48), bot:pick(H*0.52,H*0.97) };
+      }
+
+      function calTick(){
+        if(!camOn) return;
+        var s=calSample(); if(!s) return;
+        if(!CAL.locked){
+          var r=calRows(); if(!r) return;
+          var tol=calCv.height*0.055;
+          var hit=s.top.ok && s.bot.ok &&
+                  Math.abs(s.top.y-r.top)<tol && Math.abs(s.bot.y-r.bot)<tol;
+          $('tow-calbox').classList.toggle('near', hit);
+          CAL.streak = hit ? CAL.streak+1 : 0;
+          if(CAL.streak>=5) calLock(s);      // ~0.8s of steady alignment
+        }else{
+          if(!(s.top.ok && s.bot.ok)) return;          // lines lost: hold scale
+          var span=s.bot.y-s.top.y; if(span<=4) return;
+          var f=span/CAL.spanLock; if(!(f>0.35 && f<2.8)) return;
+          CAL.factor += (f-CAL.factor)*0.25;           // smooth, no jitter
+          var want=CAL.base*CAL.factor;
+          if(CAL.pxPerFt>0 && Math.abs(want-CAL.pxPerFt)/CAL.pxPerFt>0.015){
+            CAL.pxPerFt=want; applyScale();
+          }
+        }
+      }
+
+      function calLock(s){
+        var st=$('tow-stage').getBoundingClientRect();
+        CAL.base=((CAL_BOT-CAL_TOP)*st.height)/CAL.wallFt;   // MEASURED px per ft
+        CAL.factor=1; CAL.pxPerFt=CAL.base;
+        CAL.spanLock=s.bot.y-s.top.y;
+        CAL.locked=true; CAL.streak=0;
+        $('tow-calbox').classList.add('locked');
+        $('tow-calmsg').textContent='✓ Wall locked — the frame is now shown at its real size';
+        if(navigator.vibrate) try{ navigator.vibrate(60); }catch(e){}
+        setTimeout(function(){
+          if(CAL.locked){ $('tow-cal').style.display='none'; $('tow-recal').style.display='block'; }
+        }, 1100);
+        applyScale();
+      }
+
+      function calStart(){
+        CAL.locked=false; CAL.streak=0; CAL.factor=1;
+        $('tow-cal').style.display='block';
+        $('tow-recal').style.display='none';
+        $('tow-calbox').classList.remove('locked','near');
+        $('tow-calmsg').innerHTML='Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge';
+        if(!CAL.timer) CAL.timer=setInterval(calTick,160);
+      }
+      function calStop(){
+        if(CAL.timer){ clearInterval(CAL.timer); CAL.timer=null; }
+        CAL.locked=false;
+        $('tow-cal').style.display='none';
+        $('tow-recal').style.display='none';
+        applyScale();                       // back to the room-photo scale
+      }
+      $('tow-recal').addEventListener('click', calStart);
+      $('tow-calh').addEventListener('click', function(e){
+        var b=e.target.closest('button[data-ft]'); if(!b) return;
+        this.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+        b.classList.add('on');
+        CAL.wallFt=parseInt(b.getAttribute('data-ft'),10)||8;
+        if(CAL.locked){                     // re-derive the measurement, keep tracking
+          var st=$('tow-stage').getBoundingClientRect();
+          CAL.base=((CAL_BOT-CAL_TOP)*st.height)/CAL.wallFt;
+          CAL.pxPerFt=CAL.base*CAL.factor;
+          applyScale();
+        }
+      });
 
       // ── 1 / 2 / 4 PANEL WALL LAYOUTS (spec §8) ─────────────────────────
       // 2 and 4 render the artwork as a split multi-panel set (vertical
@@ -5939,7 +6080,12 @@ add_action('template_redirect', function(){
 
         if(ft && ft.h>0 && ft.w>0){
           // pixels-per-foot from the wall height in this scene
-          var pxPerFt = (sh * WALL_FRAC) / WALL_FT;
+          // Calibrated live camera: the scale is measured against the visitor's
+          // actual wall and tracks them as they move. Otherwise: the room-photo
+          // assumption (the scene shows a WALL_FT wall).
+          var pxPerFt = (camOn && CAL.locked && CAL.pxPerFt > 0)
+            ? CAL.pxPerFt
+            : (sh * WALL_FRAC) / WALL_FT;
           var targetH = ft.h * pxPerFt * slider;         // true height on the wall
           var targetW = ft.w * pxPerFt * slider;         // true width  on the wall
           // Set width first, then correct so the RENDERED box (frame + mat +
@@ -6281,6 +6427,29 @@ add_action('template_redirect', function(){
     .af-tow-cambtn em{font-style:normal;font-weight:500;font-size:10.5px;color:#cbc2ac;}
     .af-tow-camstop{position:absolute;top:12px;right:12px;z-index:8;background:rgba(20,20,20,.85);color:#fff;border:none;
       border-radius:999px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+    /* wall calibration: red rectangle → amber when the lines are close → green
+       at the lock; the huge shadow dims everything outside the rectangle */
+    .af-tow-cal{position:absolute;inset:0;z-index:7;pointer-events:none;}
+    .af-tow-calbox{position:absolute;left:9%;right:9%;top:16%;bottom:16%;border:3px solid #e04338;border-radius:6px;
+      box-shadow:0 0 0 2000px rgba(0,0,0,.16);transition:border-color .25s,box-shadow .3s;}
+    .af-tow-calbox.near{border-color:#e8b400;}
+    .af-tow-calbox.locked{border-color:#2fae52;box-shadow:0 0 0 2000px rgba(0,0,0,0),0 0 26px rgba(47,174,82,.85);}
+    .af-tow-calcorner{position:absolute;width:20px;height:20px;border-color:inherit;border-style:solid;border-width:0;}
+    .af-tow-calcorner.tl{top:-3px;left:-3px;border-top-width:6px;border-left-width:6px;border-top-left-radius:6px;}
+    .af-tow-calcorner.tr{top:-3px;right:-3px;border-top-width:6px;border-right-width:6px;border-top-right-radius:6px;}
+    .af-tow-calcorner.bl{bottom:-3px;left:-3px;border-bottom-width:6px;border-left-width:6px;border-bottom-left-radius:6px;}
+    .af-tow-calcorner.br{bottom:-3px;right:-3px;border-bottom-width:6px;border-right-width:6px;border-bottom-right-radius:6px;}
+    .af-tow-calmsg{position:absolute;left:50%;top:4%;transform:translateX(-50%);background:rgba(16,16,16,.82);color:#fff;
+      font-size:12.5px;line-height:1.45;padding:8px 14px;border-radius:9px;max-width:78%;text-align:center;}
+    .af-tow-calmsg strong{color:#efd48d;}
+    .af-tow-calh{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);display:flex;gap:7px;align-items:center;
+      background:rgba(16,16,16,.82);border-radius:999px;padding:6px 10px;pointer-events:auto;}
+    .af-tow-calh span{color:#cbc2ac;font-size:11px;font-weight:700;text-transform:none;letter-spacing:0;margin:0;}
+    .af-tow-calh button{background:transparent;border:1px solid #6f6a5e;color:#fff;font-size:11.5px;font-weight:700;
+      border-radius:999px;padding:4px 10px;cursor:pointer;transition:background .15s;}
+    .af-tow-calh button.on{background:#c9a84c;border-color:#c9a84c;color:#1a1a1a;}
+    .af-tow-recal{position:absolute;top:12px;left:12px;z-index:8;background:rgba(24,110,52,.92);color:#fff;border:none;
+      border-radius:999px;padding:8px 13px;font-size:12px;font-weight:700;cursor:pointer;}
     .af-tow-frame{position:relative;box-sizing:border-box;}
     .af-tow-mat{position:relative;box-sizing:border-box;}
     .af-tow-art{display:block;width:100%;height:auto;}

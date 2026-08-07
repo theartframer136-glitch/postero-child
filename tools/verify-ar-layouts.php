@@ -41,6 +41,12 @@ $checks = array(
             'stage fills column'   => 'align-self:stretch',
             'stage flexes'         => 'flex:1 1 auto',
             'stage height capped'  => 'max-height:760px',
+            'calibration rectangle'=> 'id="tow-calbox"',
+            'wall-height chips'    => 'id="tow-calh"',
+            'recalibrate chip'     => 'id="tow-recal"',
+            'edge detector'        => 'function calSample',
+            'measured px-per-ft'   => 'CAL.pxPerFt',
+            'walk-tracking'        => 'CAL.spanLock',
         ),
         'gone'   => array(
             'old single art node' => 'id="tow-art"',
