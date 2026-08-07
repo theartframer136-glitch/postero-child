@@ -12327,6 +12327,15 @@ add_action('template_redirect', function(){
         render();
       });
 
+      // Open on the first real category rather than every category at once,
+      // so only the selected category's products show. "All categories" in the
+      // rail is still there if the whole list is wanted.
+      (function pickInitialCat(){
+        var names = orderedCatNames(groupByCat(ROWS));
+        var firstReal = names.filter(function(n){ return n !== UNCAT; })[0];
+        activeCat = firstReal || names[0] || 'all';
+      })();
+
       renderStats();
       render();
     })();
