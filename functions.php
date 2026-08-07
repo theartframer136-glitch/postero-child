@@ -4179,6 +4179,7 @@ add_action('woocommerce_after_add_to_cart_button', function() {
 
 // 7d. Related Searches (from product tags + category) after summary
 add_action('woocommerce_after_single_product_summary', function() {
+    if (!af_is_product_page()) return;   // never inside the quick-view modal
     $product = af_wc_product();
     if (!$product) return;
     $terms = array();
@@ -4198,6 +4199,7 @@ add_action('woocommerce_after_single_product_summary', function() {
 
 // 7e. Popular Products (best sellers) after tabs
 add_action('woocommerce_after_single_product_summary', function() {
+    if (!af_is_product_page()) return;   // never inside the quick-view modal
     $product = af_wc_product();
     if (!$product) return;
     $ids = wc_get_products(array(
@@ -4216,6 +4218,7 @@ add_action('woocommerce_after_single_product_summary', function() {
 
 // 7f. Recently Viewed after tabs
 add_action('woocommerce_after_single_product_summary', function() {
+    if (!af_is_product_page()) return;   // never inside the quick-view modal
     $product = af_wc_product();
     if (!$product) return;
     $ids = isset($_COOKIE['af_recently_viewed']) ? array_filter(array_map('absint', explode('|', $_COOKIE['af_recently_viewed']))) : array();
@@ -4298,6 +4301,7 @@ add_action('wp_head', function() {
 
 // 7h. Digital Downloads section (post-tab) — shows Digital Downloads category
 add_action('woocommerce_after_single_product_summary', function() {
+    if (!af_is_product_page()) return;   // never inside the quick-view modal
     $product = af_wc_product();
     if (!$product) return;
     $ids = wc_get_products(array(
@@ -4316,6 +4320,7 @@ add_action('woocommerce_after_single_product_summary', function() {
 
 // 7i. Customize Your Picture CTA (post-tab)
 add_action('woocommerce_after_single_product_summary', function() {
+    if (!af_is_product_page()) return;   // never inside the quick-view modal
     $product = af_wc_product();
     if (!$product) return;
     // Link to Personalised Prints category if it exists, else Contact
@@ -4389,6 +4394,27 @@ function af_wc_product($maybe = null) {
     if (!$id) return null;
     $p = wc_get_product($id);
     return ($p instanceof WC_Product) ? $p : null;
+}
+
+/**
+ * True only on the real single-product page.
+ *
+ * The sections below (Related Searches, Popular, Recently Viewed, Digital
+ * Downloads, the Customize CTA) hang off woocommerce_after_single_product_summary,
+ * and the quick-view plugin fires that same hook to build its modal. They used
+ * to fall out of the modal by accident, because af_wc_product() returned null
+ * without a proper $product global; once that learned to fall back to the
+ * current post they all started rendering inside the modal instead — without
+ * the product-page stylesheet, so each mini card came out as a full-width
+ * unstyled image. The modal wants the summary and nothing else, so ask
+ * explicitly rather than relying on a lookup failing.
+ */
+function af_is_product_page() {
+    if (is_admin()) return false;
+    if (function_exists('wp_doing_ajax') && wp_doing_ajax()) return false;
+    if (defined('REST_REQUEST') && REST_REQUEST) return false;
+    if (defined('DOING_AJAX') && DOING_AJAX) return false;
+    return function_exists('is_product') && is_product();
 }
 
 /**
@@ -9757,6 +9783,7 @@ add_action('template_redirect', function() {
 });
 
 add_action('woocommerce_after_single_product_summary', function() {
+    if (!af_is_product_page()) return;   // never inside the quick-view modal
     global $post;
     $seen = isset($_COOKIE['af_recent']) ? array_filter(array_map('absint', explode(',', $_COOKIE['af_recent']))) : array();
     $seen = array_values(array_diff($seen, array($post ? $post->ID : 0)));

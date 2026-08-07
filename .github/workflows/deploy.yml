@@ -590,6 +590,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/verify-polish.php --allow-root 2>&1" \
             || true
 
+          echo "Verifying the quick-view modal shows only the summary..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/verify-quickview-modal.php --allow-root 2>&1" \
+            || true
+
           echo "Backfilling product orientation (portrait/landscape/square)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
