@@ -4178,7 +4178,7 @@ add_action('woocommerce_after_add_to_cart_button', function() {
 }, 25);
 
 // 7d. Related Searches (from product tags + category) after summary
-add_action('woocommerce_after_single_product_summary', function() {
+af_section(function() {
     if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
     $product = af_wc_product();
     if (!$product) return;
@@ -4198,7 +4198,7 @@ add_action('woocommerce_after_single_product_summary', function() {
 }, 16);
 
 // 7e. Popular Products (best sellers) after tabs
-add_action('woocommerce_after_single_product_summary', function() {
+af_section(function() {
     if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
     $product = af_wc_product();
     if (!$product) return;
@@ -4217,7 +4217,7 @@ add_action('woocommerce_after_single_product_summary', function() {
 }, 21);
 
 // 7f. Recently Viewed after tabs
-add_action('woocommerce_after_single_product_summary', function() {
+af_section(function() {
     if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
     $product = af_wc_product();
     if (!$product) return;
@@ -4289,6 +4289,12 @@ add_action('wp_head', function() {
     .af-mini-title{font-size:13px;font-weight:700;color:#1a1a1a;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em;}
     .af-mini-price{font-size:13.5px;font-weight:700;color:#c9a84c;margin-top:auto;}
     @media(max-width:900px){ .af-pp-row{grid-template-columns:repeat(2,1fr);} }
+    /* Inside the quick-view popup the same sections render in a narrower,
+       scrolling container — two cards across, tighter rhythm. */
+    .eael-product-popup .af-pp-row{grid-template-columns:repeat(2,1fr);}
+    .eael-product-popup .af-pp-sec{margin-top:28px;}
+    .eael-product-popup .af-recent-row a{flex:0 0 120px;}
+    .eael-product-popup .af-recent-row img{width:120px;height:120px;}
     @media(max-width:600px){ .af-pp-sec h2{font-size:19px;} .af-ppt{flex:1 1 45%;} }
     </style>
     <?php
@@ -4300,7 +4306,7 @@ add_action('wp_head', function() {
 // ─────────────────────────────────────────────────────────────
 
 // 7h. Digital Downloads section (post-tab) — shows Digital Downloads category
-add_action('woocommerce_after_single_product_summary', function() {
+af_section(function() {
     if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
     $product = af_wc_product();
     if (!$product) return;
@@ -4319,7 +4325,7 @@ add_action('woocommerce_after_single_product_summary', function() {
 }, 23);
 
 // 7i. Customize Your Picture CTA (post-tab)
-add_action('woocommerce_after_single_product_summary', function() {
+af_section(function() {
     if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
     $product = af_wc_product();
     if (!$product) return;
@@ -4431,6 +4437,30 @@ function af_is_quick_view_request() {
     if (defined('REST_REQUEST') && REST_REQUEST) return false;
     return af_is_quick_view_action(isset($_REQUEST['action']) ? $_REQUEST['action'] : '');
 }
+
+/**
+ * Register a product-page section so it renders in BOTH places it belongs.
+ *
+ * On the real product page these hang off woocommerce_after_single_product_summary.
+ * The quick-view modal (Essential Addons) renders the summary hook but never
+ * fires the after-summary hook at all — measured directly: every in-summary
+ * piece of ours reaches the modal, every after-summary section is absent, and
+ * the response ends right after the product meta. So each section also joins a
+ * private af_product_sections action, and a bridge at the end of the summary
+ * hook fires that action only during a quick-view request. The bridge
+ * deliberately does NOT fire the whole after-summary hook inside the modal:
+ * WooCommerce hangs tabs, up-sells and related products there (44 callbacks),
+ * and the modal wants the page's own sections, not the entire tail of the
+ * template.
+ */
+function af_section($fn, $prio = 10) {
+    add_action('woocommerce_after_single_product_summary', $fn, $prio);
+    add_action('af_product_sections', $fn, $prio);
+}
+add_action('woocommerce_single_product_summary', function() {
+    if (!af_is_quick_view_request()) return;
+    do_action('af_product_sections');
+}, 200);
 
 /**
  * Should the product page's own sections — Related Searches, Popular Products,
@@ -4799,7 +4829,7 @@ function af_product_faqs() {
     );
 }
 
-add_action('woocommerce_after_single_product_summary', function() {
+af_section(function() {
     if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
     $faqs = af_product_faqs();
     if (empty($faqs)) return;
@@ -10033,7 +10063,7 @@ add_action('template_redirect', function() {
     setcookie('af_recent', implode(',', $seen), time() + MONTH_IN_SECONDS, '/');
 });
 
-add_action('woocommerce_after_single_product_summary', function() {
+af_section(function() {
     if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
     global $post;
     $seen = isset($_COOKIE['af_recent']) ? array_filter(array_map('absint', explode(',', $_COOKIE['af_recent']))) : array();
