@@ -5291,13 +5291,32 @@ add_action('template_redirect', function(){
       // the corners stay true 45° joints at any panel size, and drawn into
       // the saved preview by 9-slice so the download matches the screen.
       var TEXQ = {};
+      // Desaturated faces, patina-dark recesses and CREAM highlights — never
+      // white. Full-saturation colour with a white-hot crown is exactly what
+      // made the first pass read as plastic.
       function framePalette(color){
         return ({
-          'Black':     {face:'#2b2925', hi:'#8a867e', crown:'#565249', lo:'#0a0908', seam:'#000'},
-          'Silver':    {face:'#c3c6ca', hi:'#f8fafc', crown:'#e2e5e9', lo:'#6f7378', seam:'#5a5e63'},
-          'Gold':      {face:'#c09a44', hi:'#f6e19b', crown:'#e0bd63', lo:'#6f5312', seam:'#5c440e'},
-          'Rose Gold': {face:'#b97d6f', hi:'#f0c9b9', crown:'#d9a191', lo:'#6d4036', seam:'#59332b'}
+          'Black':     {face:'#282520', hi:'#6e6a62', crown:'#3d3a34', lo:'#0a0806'},
+          'Silver':    {face:'#b6b9bd', hi:'#eef0f2', crown:'#d0d3d7', lo:'#585c61'},
+          'Gold':      {face:'#b08a40', hi:'#f0dfa4', crown:'#d2ab58', lo:'#553f10'},
+          'Rose Gold': {face:'#a86f60', hi:'#e2bfae', crown:'#c28d7c', lo:'#4e2e25'}
         })[color] || null;
+      }
+      // Fine monochrome grain, tiled over the moulding at low alpha so flat
+      // runs of colour stop looking computer-clean. Deterministic, so every
+      // render of a texture is identical.
+      var NOISETILE = null;
+      function noiseTile(){
+        if (NOISETILE) return NOISETILE;
+        var n = document.createElement('canvas'); n.width = 128; n.height = 128;
+        var nx = n.getContext('2d'), id = nx.createImageData(128, 128);
+        var s = 13; function r(){ s = (s * 16807) % 2147483647; return s / 2147483647; }
+        for (var i = 0; i < id.data.length; i += 4) {
+          var v = Math.floor(r() * 255);
+          id.data[i] = v; id.data[i+1] = v; id.data[i+2] = v; id.data[i+3] = 16;
+        }
+        nx.putImageData(id, 0, 0);
+        NOISETILE = n; return n;
       }
       function frameTexture(frame, color){
         var key = frame + '|' + color;
@@ -5310,19 +5329,20 @@ add_action('template_redirect', function(){
         // One horizontal strip of moulding, grain running along its length.
         var strip = document.createElement('canvas'); strip.width = S; strip.height = B;
         var sg = strip.getContext('2d');
-        // The moulding profile, lit from the top: outer shadow line, lit outer
-        // bevel, flat face, crown highlight, inner slope falling to a bright
-        // inner lip, then the dark rebate against the mat.
+        // The moulding profile, lit from the top. Every transition passes
+        // through crown (a midtone) on its way to hi, so the highlight rolls
+        // off the way light leaves a curved surface — a stop that jumps
+        // straight from face to hi is the hard bright band that read as fake.
         var grad = sg.createLinearGradient(0, 0, 0, B);
         grad.addColorStop(0.00, pal.lo);
-        grad.addColorStop(0.045, pal.hi);
-        grad.addColorStop(0.16, pal.face);
-        grad.addColorStop(0.34, pal.crown);
-        grad.addColorStop(0.46, pal.hi);
-        grad.addColorStop(0.60, pal.crown);
-        grad.addColorStop(0.80, pal.face);
-        grad.addColorStop(0.905, pal.lo);
-        grad.addColorStop(0.945, pal.hi);
+        grad.addColorStop(0.05, pal.crown);
+        grad.addColorStop(0.13, pal.face);
+        grad.addColorStop(0.30, pal.crown);
+        grad.addColorStop(0.42, pal.hi);
+        grad.addColorStop(0.50, pal.crown);
+        grad.addColorStop(0.68, pal.face);
+        grad.addColorStop(0.88, pal.lo);
+        grad.addColorStop(0.935, pal.crown);
         grad.addColorStop(1.00, pal.lo);
         sg.fillStyle = grad; sg.fillRect(0, 0, S, B);
         // Deterministic pseudo-random, so every render of a texture is identical
@@ -5359,16 +5379,29 @@ add_action('template_redirect', function(){
             sg.beginPath(); sg.moveTo(0, sy); sg.lineTo(S, sy); sg.stroke();
           }
         }
+        // slow luminance drift along the stick — real moulding is never one
+        // even value end to end
+        var lw = sg.createLinearGradient(0, 0, S, 0);
+        lw.addColorStop(0, 'rgba(255,255,255,.04)');
+        lw.addColorStop(0.3, 'rgba(0,0,0,.03)');
+        lw.addColorStop(0.55, 'rgba(255,255,255,.05)');
+        lw.addColorStop(0.8, 'rgba(0,0,0,.04)');
+        lw.addColorStop(1, 'rgba(255,255,255,.02)');
+        sg.fillStyle = lw; sg.fillRect(0, 0, S, B);
         // crisp outer and rebate edges
-        sg.fillStyle = 'rgba(0,0,0,.55)'; sg.fillRect(0, 0, S, 1); sg.fillRect(0, B - 1, S, 1);
+        sg.fillStyle = 'rgba(0,0,0,.38)'; sg.fillRect(0, 0, S, 1); sg.fillRect(0, B - 1, S, 1);
 
         // Lay the strip on all four sides, each clipped to its mitred trapezoid
         // so the grain runs along every side and the corners join at 45°.
+        // Each side then takes its own exposure from the room's key light,
+        // above and slightly left: top rail lit, left rail faintly lit, right
+        // rail shaded, bottom rail in shadow. One flat gradient over the whole
+        // ring — the old approach — is precisely what a photograph never does.
         var sides = [
-          {path: [[0,0],[S,0],[S-B,B],[B,B]],       tx: 0, ty: 0, rot: 0},
-          {path: [[S,0],[S,S],[S-B,S-B],[S-B,B]],   tx: S, ty: 0, rot: Math.PI/2},
-          {path: [[S,S],[0,S],[B,S-B],[S-B,S-B]],   tx: S, ty: S, rot: Math.PI},
-          {path: [[0,S],[0,0],[B,B],[B,S-B]],       tx: 0, ty: S, rot: -Math.PI/2}
+          {path: [[0,0],[S,0],[S-B,B],[B,B]],       tx: 0, ty: 0, rot: 0,           lum:  0.09},
+          {path: [[S,0],[S,S],[S-B,S-B],[S-B,B]],   tx: S, ty: 0, rot: Math.PI/2,   lum: -0.06},
+          {path: [[S,S],[0,S],[B,S-B],[S-B,S-B]],   tx: S, ty: S, rot: Math.PI,     lum: -0.14},
+          {path: [[0,S],[0,0],[B,B],[B,S-B]],       tx: 0, ty: S, rot: -Math.PI/2,  lum:  0.03}
         ];
         sides.forEach(function(sd){
           g.save();
@@ -5377,22 +5410,30 @@ add_action('template_redirect', function(){
           g.closePath(); g.clip();
           g.translate(sd.tx, sd.ty); g.rotate(sd.rot);
           g.drawImage(strip, 0, 0);
+          g.setTransform(1, 0, 0, 1, 0, 0);
+          g.fillStyle = sd.lum > 0 ? 'rgba(255,255,255,' + sd.lum + ')' : 'rgba(0,0,0,' + (-sd.lum) + ')';
+          g.fillRect(0, 0, S, S);
           g.restore();
         });
-        // mitre seams: the dark joint line with a lit edge beside it
+        // mitre seams: the dark joint line with a lit edge beside it — present,
+        // as in the moulding photos, but a joint, not a drawn-on stripe
         [[0,0,B,B],[S,0,S-B,B],[S,S,S-B,S-B],[0,S,B,S-B]].forEach(function(c){
-          g.strokeStyle = 'rgba(0,0,0,.38)'; g.lineWidth = 1.6;
+          g.strokeStyle = 'rgba(0,0,0,.28)'; g.lineWidth = 1.6;
           g.beginPath(); g.moveTo(c[0], c[1]); g.lineTo(c[2], c[3]); g.stroke();
-          g.strokeStyle = 'rgba(255,255,255,.20)'; g.lineWidth = 0.8;
+          g.strokeStyle = 'rgba(255,255,255,.12)'; g.lineWidth = 0.8;
           g.beginPath(); g.moveTo(c[0] + (c[2] > c[0] ? 1.6 : -1.6), c[1]); g.lineTo(c[2] + (c[2] > c[0] ? 1.6 : -1.6), c[3]); g.stroke();
         });
-        // room light comes from above: brighten the top run, shade the bottom
+        // a soft light-catch where the key light grazes the top rail
         g.globalCompositeOperation = 'source-atop';
-        var light = g.createLinearGradient(0, 0, 0, S);
-        light.addColorStop(0, 'rgba(255,255,255,.14)');
-        light.addColorStop(0.4, 'rgba(255,255,255,0)');
-        light.addColorStop(1, 'rgba(0,0,0,.20)');
-        g.fillStyle = light; g.fillRect(0, 0, S, S);
+        var blob = g.createRadialGradient(S * 0.30, B * 0.45, 4, S * 0.30, B * 0.45, S * 0.28);
+        blob.addColorStop(0, 'rgba(255,255,255,.22)');
+        blob.addColorStop(1, 'rgba(255,255,255,0)');
+        g.fillStyle = blob; g.fillRect(0, 0, S, S);
+        // film grain over the whole ring
+        g.globalAlpha = 0.06;
+        var nt = noiseTile();
+        for (var ny = 0; ny < S; ny += 128) for (var nx2 = 0; nx2 < S; nx2 += 128) g.drawImage(nt, nx2, ny);
+        g.globalAlpha = 1;
         g.globalCompositeOperation = 'source-over';
 
         TEXQ[key] = {url: cv.toDataURL('image/png'), cv: cv, B: B, S: S};
