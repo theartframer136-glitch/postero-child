@@ -33,27 +33,33 @@ function af_qv_get($url) {
 
 echo "=== QUICK VIEW MODAL ===\n";
 af_qv('section gate exists',        function_exists('af_show_product_sections'), $fail);
-af_qv('quick-view detector exists', function_exists('af_is_quick_view_request'), $fail);
-if (!function_exists('af_show_product_sections')) { echo "\n=== RESULT: PROBLEM(S) ===\n"; return; }
+af_qv('quick-view detector exists', function_exists('af_is_quick_view_action'), $fail);
+if (!function_exists('af_show_product_sections') || !function_exists('af_is_quick_view_action')) {
+    echo "\n=== RESULT: PROBLEM(S) ===\n"; return;
+}
 
-// ── 1. the gate must say yes to the modal and no to everything else ──
-// Simulated rather than inferred: this is the decision that empties or fills
-// the modal, so exercise it directly.
-$saved = isset($_REQUEST['action']) ? $_REQUEST['action'] : null;
+// ── 1. the action test must recognise a modal and nothing else ──
+// Only the action-matching half is exercised here. The full request check also
+// requires wp_doing_ajax(), which is always false under WP-CLI, so asserting it
+// from here would fail against perfectly good code — an earlier version of this
+// file did exactly that.
 $cases = array(
-    'woosq_get_product'        => true,
-    'wc_quick_view'            => true,
-    'qv_load_product'          => true,
-    'woocommerce_add_to_cart'  => false,
-    'af_bot_reply'             => false,
+    'eael_product_quickview_popup' => true,   // what this site actually uses
+    'woosq_get_product'            => true,
+    'wc_quick_view'                => true,
+    'qv_load_product'              => true,
+    'woocommerce_add_to_cart'      => false,
+    'af_bot_reply'                 => false,
+    ''                             => false,
 );
 $wrong = array();
 foreach ($cases as $act => $want) {
-    $_REQUEST['action'] = $act;
-    if (af_is_quick_view_request() !== $want) $wrong[] = $act;
+    if (af_is_quick_view_action($act) !== $want) $wrong[] = ($act === '' ? '(empty)' : $act);
 }
-if ($saved === null) unset($_REQUEST['action']); else $_REQUEST['action'] = $saved;
-af_qv('quick-view detected, other ajax is not', !$wrong, $fail, $wrong ? implode(', ', $wrong) : '5 actions correct');
+af_qv('quick-view actions recognised, others not', !$wrong, $fail,
+      $wrong ? implode(', ', $wrong) : count($cases) . ' actions correct');
+// and outside an ajax request it must always be false, whatever the action says
+af_qv('not a quick view outside ajax', af_is_quick_view_request() === false, $fail);
 
 // ── 2. the styling must live where the modal opens, not only on the product page ──
 // This is the bit that actually broke: the CSS was gated to is_product(), so on
@@ -99,11 +105,15 @@ echo "  quick-view ajax action: " . ($action ? $action : '(none found)') . "\n";
 
 if ($action && $pid) {
     $got = '';
-    foreach (array('id','product_id','pid') as $key) {
+    // Essential Addons (this site's quick view) wants a nonce and its own
+    // product key; other plugins want plain id/pid. Try each shape rather than
+    // hard-coding one plugin's contract.
+    $nonce = wp_create_nonce('essential-addons-elementor');
+    foreach (array('product_id','id','pid') as $key) {
         $r = wp_remote_post(admin_url('admin-ajax.php'), array(
             'timeout'=>60, 'sslverify'=>false,
             'headers'=>array('User-Agent'=>'AF-Verify','X-Requested-With'=>'XMLHttpRequest'),
-            'body'=>array('action'=>$action, $key=>$pid),
+            'body'=>array('action'=>$action, $key=>$pid, 'security'=>$nonce, 'nonce'=>$nonce),
         ));
         if (is_wp_error($r)) continue;
         $b = wp_remote_retrieve_body($r);

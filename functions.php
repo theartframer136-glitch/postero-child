@@ -4408,17 +4408,28 @@ function af_is_product_page() {
 }
 
 /**
- * True while the quick-view plugin is rendering its modal.
+ * Does this ajax action name belong to a quick-view plugin?
  *
- * Matched on the ajax action rather than a plugin's name, so swapping the
- * quick-view plugin does not silently empty the modal.
+ * Split out from the request check because it is the part worth testing, and
+ * the request check cannot be exercised from WP-CLI, where wp_doing_ajax() is
+ * always false. Matched on the action rather than a plugin's name: the site
+ * currently quick-views through Essential Addons
+ * (eael_product_quickview_popup), and swapping that for WooSQ or another
+ * plugin must not silently empty the modal.
+ */
+function af_is_quick_view_action($action) {
+    $action = (string) $action;
+    return $action !== '' && (bool) preg_match('/(woosq|quick_?view|^qv_|_qv$)/i', $action);
+}
+
+/**
+ * True while a quick-view plugin is rendering its modal.
  */
 function af_is_quick_view_request() {
     $ajax = (function_exists('wp_doing_ajax') && wp_doing_ajax()) || (defined('DOING_AJAX') && DOING_AJAX);
     if (!$ajax) return false;
     if (defined('REST_REQUEST') && REST_REQUEST) return false;
-    $action = isset($_REQUEST['action']) ? (string) $_REQUEST['action'] : '';
-    return $action !== '' && (bool) preg_match('/(woosq|quick_?view|^qv_|_qv$)/i', $action);
+    return af_is_quick_view_action(isset($_REQUEST['action']) ? $_REQUEST['action'] : '');
 }
 
 /**
