@@ -11921,8 +11921,28 @@ function af_preview_share_assets() {
 // state and lets an administrator edit quantities inline. Restricted to
 // manage_options (site administrators) — shop managers do NOT get in.
 
+// Named staff who get the inventory tool without being site administrators.
+// Kept as an explicit email allowlist rather than granting these accounts the
+// administrator role: the role would also hand over plugins, users, theme
+// editing and everything else, when all that was asked for is this one page.
+function af_inv_allowed_emails() {
+    return array(
+        'sushovanberawinquest452@gmail.com',
+        'yashwinquest@gmail.com',
+        'dinesh@winquestonline.com',
+    );
+}
+
 function af_inv_can_access() {
-    return is_user_logged_in() && current_user_can('manage_options');
+    if (!is_user_logged_in()) return false;
+    if (current_user_can('manage_options')) return true;
+
+    $user = wp_get_current_user();
+    if (!$user || empty($user->user_email)) return false;
+
+    $email   = strtolower(trim($user->user_email));
+    $allowed = array_map('strtolower', af_inv_allowed_emails());
+    return in_array($email, $allowed, true);
 }
 
 // Endpoint: write a new stock quantity for one product.

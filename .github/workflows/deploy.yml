@@ -303,6 +303,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/diag-image-quality-scan.php --allow-root 2>&1" \
             || true
 
+          echo "Checking inventory-tool allowlist resolves to real accounts (read-only)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-inventory-access.php --allow-root 2>&1" \
+            || true
+
           echo "Restoring the 4 images found downscaled below their original quality..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
