@@ -11933,19 +11933,48 @@ function af_inv_allowed_emails() {
     );
 }
 
-// Category names for one product, as shown on the storefront. A product often
-// sits in several categories (and in child categories), so this returns them
-// all and the dashboard groups the product under each — the same product
-// legitimately appearing under two headings is accurate, not a duplicate bug.
+// The TOP-LEVEL storefront categories a product belongs to, matching the
+// category menu on the site (e.g. "Direct from Artists"), not the sub-category
+// under it (e.g. an individual artist). Each assigned term is rolled up to its
+// root ancestor so the dashboard groups the way the shop menu does. A product
+// under two different top-level categories appears under each — accurate, not
+// a duplicate.
 function af_inv_product_cats($pid) {
     $terms = get_the_terms($pid, 'product_cat');
     if (!$terms || is_wp_error($terms)) return array();
     $names = array();
     foreach ($terms as $t) {
+        $root = $t;
+        if ($t->parent) {
+            $anc = get_ancestors($t->term_id, 'product_cat'); // nearest-first ... root-last
+            if ($anc) {
+                $root_id = end($anc);
+                $rt = get_term($root_id, 'product_cat');
+                if ($rt && !is_wp_error($rt)) $root = $rt;
+            }
+        }
+        $names[] = html_entity_decode(wp_strip_all_tags($root->name));
+    }
+    return array_values(array_unique($names));
+}
+
+// Top-level product categories in the storefront's own display order (the same
+// order shown in the shop's category menu), so the dashboard's sections line up
+// with what the owner sees on the site rather than a plain alphabetical list.
+function af_inv_category_order() {
+    $terms = get_terms(array(
+        'taxonomy'   => 'product_cat',
+        'parent'     => 0,
+        'hide_empty' => false,
+        'orderby'    => 'menu_order', // honours the manual product-category order
+        'order'      => 'ASC',
+    ));
+    if (!$terms || is_wp_error($terms)) return array();
+    $names = array();
+    foreach ($terms as $t) {
         $names[] = html_entity_decode(wp_strip_all_tags($t->name));
     }
-    sort($names);
-    return array_values(array_unique($names));
+    return $names;
 }
 
 function af_inv_can_access() {
@@ -12036,10 +12065,11 @@ add_action('template_redirect', function(){
     usort($rows, function($a, $b){ return strcasecmp($a['title'], $b['title']); });
 
     $cfg = array(
-        'ajax'  => admin_url('admin-ajax.php'),
-        'nonce' => wp_create_nonce('af_inventory'),
-        'sym'   => function_exists('get_woocommerce_currency_symbol') ? get_woocommerce_currency_symbol() : '$',
-        'low'   => 5, // at or below this counts as "low stock"
+        'ajax'     => admin_url('admin-ajax.php'),
+        'nonce'    => wp_create_nonce('af_inventory'),
+        'sym'      => function_exists('get_woocommerce_currency_symbol') ? get_woocommerce_currency_symbol() : '$',
+        'low'      => 5, // at or below this counts as "low stock"
+        'catOrder' => af_inv_category_order(),
     );
 
     get_header();
@@ -12068,8 +12098,13 @@ add_action('template_redirect', function(){
         <label class="af-inv-groupToggle"><input type="checkbox" id="inv-groupby" checked> Group by category</label>
       </div>
 
-      <div id="inv-groups"></div>
-      <p class="af-inv-empty" id="inv-empty" hidden>No products match that search.</p>
+      <div class="af-inv-layout" id="inv-layout">
+        <nav class="af-inv-catrail" id="inv-catrail" aria-label="Categories"></nav>
+        <div class="af-inv-main">
+          <div id="inv-groups"></div>
+          <p class="af-inv-empty" id="inv-empty" hidden>No products match that search.</p>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -12077,7 +12112,7 @@ add_action('template_redirect', function(){
       var ROWS = <?php echo wp_json_encode($rows); ?>;
       var CFG  = <?php echo wp_json_encode($cfg); ?>;
       var $ = function(id){ return document.getElementById(id); };
-      var filter = 'all', term = '', groupBy = true;
+      var filter = 'all', term = '', groupBy = true, activeCat = 'all';
 
       function esc(s){ var d=document.createElement('div'); d.textContent = s==null?'':String(s); return d.innerHTML; }
       function money(n){ return CFG.sym + (Math.round(n*100)/100).toFixed(2); }
@@ -12143,31 +12178,67 @@ add_action('template_redirect', function(){
           + '</tr></thead><tbody>' + rows.map(rowHtml).join('') + '</tbody></table></div>';
       }
 
-      function render(){
-        var list = visible();
-        $('inv-empty').hidden = list.length > 0;
-
-        if (!groupBy) {
-          $('inv-groups').innerHTML = list.length ? tableHtml(list) : '';
-          return;
-        }
-
-        // Group by category name. A product in several categories shows under
-        // each — that's accurate, not a duplicate. Products with no category
-        // fall under "Uncategorized".
+      // Bucket the (filtered) products by top-level category.
+      function groupByCat(list){
         var groups = {};
         list.forEach(function(r){
           var cats = (r.cats && r.cats.length) ? r.cats : [UNCAT];
           cats.forEach(function(c){ (groups[c] = groups[c] || []).push(r); });
         });
+        return groups;
+      }
 
-        // Alphabetical, but keep Uncategorized last so real categories lead.
-        var names = Object.keys(groups).sort(function(a, b){
+      // Category names ordered to match the storefront's own category menu
+      // (CFG.catOrder). Anything not in that list (a stray category, or
+      // Uncategorized) trails after, with Uncategorized always last.
+      function orderedCatNames(groups){
+        var order = CFG.catOrder || [];
+        var rank = {};
+        order.forEach(function(n, i){ rank[n] = i; });
+        return Object.keys(groups).sort(function(a, b){
           if (a === UNCAT) return 1;
           if (b === UNCAT) return -1;
+          var ra = (a in rank) ? rank[a] : 9998;
+          var rb = (b in rank) ? rank[b] : 9998;
+          if (ra !== rb) return ra - rb;
           return a.localeCompare(b);
         });
+      }
 
+      // Vertical category rail down the left — the same categories as the shop
+      // menu, in the same order, each a click-to-filter entry.
+      function renderRail(){
+        var rail = $('inv-catrail');
+        if (!groupBy) { rail.hidden = true; return; }
+        rail.hidden = false;
+
+        var groups = groupByCat(ROWS); // counts reflect the whole catalogue
+        var names = orderedCatNames(groups);
+        var html = '<button type="button" class="af-inv-catlink' + (activeCat === 'all' ? ' is-on' : '')
+          + '" data-cat="all">All categories <span class="af-inv-catn">' + ROWS.length + '</span></button>';
+        html += names.map(function(name){
+          return '<button type="button" class="af-inv-catlink' + (activeCat === name ? ' is-on' : '')
+            + '" data-cat="' + esc(name) + '">' + esc(name)
+            + ' <span class="af-inv-catn">' + groups[name].length + '</span></button>';
+        }).join('');
+        rail.innerHTML = html;
+      }
+
+      function render(){
+        renderRail();
+        var list = visible();
+
+        if (!groupBy) {
+          $('inv-empty').hidden = list.length > 0;
+          $('inv-groups').innerHTML = list.length ? tableHtml(list) : '';
+          return;
+        }
+
+        var groups = groupByCat(list);
+        var names = orderedCatNames(groups);
+        if (activeCat !== 'all') names = names.filter(function(n){ return n === activeCat; });
+
+        $('inv-empty').hidden = names.length > 0;
         $('inv-groups').innerHTML = names.map(function(name){
           var rows = groups[name];
           return '<section class="af-inv-cat">'
@@ -12244,6 +12315,12 @@ add_action('template_redirect', function(){
         render();
       });
       $('inv-groupby').addEventListener('change', function(){ groupBy = this.checked; render(); });
+      $('inv-catrail').addEventListener('click', function(e){
+        var btn = e.target.closest('.af-inv-catlink');
+        if (!btn) return;
+        activeCat = btn.getAttribute('data-cat');
+        render();
+      });
 
       renderStats();
       render();
@@ -12285,6 +12362,27 @@ add_action('template_redirect', function(){
     .af-inv-groupToggle{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;
       color:#6b6250;cursor:pointer;user-select:none;white-space:nowrap;}
     .af-inv-groupToggle input{width:16px;height:16px;accent-color:#c9a84c;cursor:pointer;}
+
+    /* Two-column layout: a vertical category rail on the left, product
+       sections on the right — mirroring the shop's category menu. */
+    .af-inv-layout{display:grid;grid-template-columns:230px 1fr;gap:22px;align-items:start;}
+    .af-inv-main{min-width:0;}
+    .af-inv-catrail{position:sticky;top:16px;display:flex;flex-direction:column;gap:4px;
+      background:#fffdf8;border:1px solid #efe6d2;border-radius:14px;padding:10px;
+      box-shadow:0 4px 18px rgba(70,54,26,.07);}
+    .af-inv-catlink{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;
+      text-align:left;padding:10px 12px;border:none;border-radius:9px;background:transparent;
+      color:#3a352a;font-size:13px;font-weight:700;cursor:pointer;transition:background .15s,color .15s;}
+    .af-inv-catlink:hover{background:#f7f0df;color:#1a1a1a;}
+    .af-inv-catlink.is-on{background:#1a1a1a;color:#fff;}
+    .af-inv-catn{flex:0 0 auto;font-size:11px;font-weight:800;color:#a8801f;background:#f3ead2;
+      border-radius:999px;padding:2px 8px;line-height:1.6;}
+    .af-inv-catlink.is-on .af-inv-catn{background:#c9a84c;color:#1a1a1a;}
+    @media(max-width:820px){
+      .af-inv-layout{grid-template-columns:1fr;}
+      .af-inv-catrail{position:static;flex-direction:row;flex-wrap:wrap;}
+      .af-inv-catlink{width:auto;}
+    }
 
     .af-inv-cat{margin:0 0 26px;}
     .af-inv-cattitle{margin:0 0 10px;font-family:'Playfair Display',Georgia,serif;font-size:20px;color:#1a1a1a;
