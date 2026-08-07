@@ -11933,6 +11933,21 @@ function af_inv_allowed_emails() {
     );
 }
 
+// Category names for one product, as shown on the storefront. A product often
+// sits in several categories (and in child categories), so this returns them
+// all and the dashboard groups the product under each — the same product
+// legitimately appearing under two headings is accurate, not a duplicate bug.
+function af_inv_product_cats($pid) {
+    $terms = get_the_terms($pid, 'product_cat');
+    if (!$terms || is_wp_error($terms)) return array();
+    $names = array();
+    foreach ($terms as $t) {
+        $names[] = html_entity_decode(wp_strip_all_tags($t->name));
+    }
+    sort($names);
+    return array_values(array_unique($names));
+}
+
 function af_inv_can_access() {
     if (!is_user_logged_in()) return false;
     if (current_user_can('manage_options')) return true;
@@ -12015,6 +12030,7 @@ add_action('template_redirect', function(){
             'img'     => get_the_post_thumbnail_url($pid, 'thumbnail') ?: wc_placeholder_img_src('thumbnail'),
             'edit'    => get_edit_post_link($pid, 'raw'),
             'view'    => get_permalink($pid),
+            'cats'    => af_inv_product_cats($pid),
         );
     }
     usort($rows, function($a, $b){ return strcasecmp($a['title'], $b['title']); });
@@ -12049,25 +12065,11 @@ add_action('template_redirect', function(){
           <button type="button" class="af-inv-chip" data-filter="outofstock">Out of stock</button>
           <button type="button" class="af-inv-chip" data-filter="untracked">Not tracked</button>
         </div>
+        <label class="af-inv-groupToggle"><input type="checkbox" id="inv-groupby" checked> Group by category</label>
       </div>
 
-      <div class="af-inv-tablewrap">
-        <table class="af-inv-table">
-          <thead>
-            <tr>
-              <th class="af-inv-thimg"></th>
-              <th>Product</th>
-              <th class="af-inv-thsku">SKU</th>
-              <th class="af-inv-thprice">Price</th>
-              <th class="af-inv-thstock">Stock</th>
-              <th class="af-inv-thstatus">Status</th>
-              <th class="af-inv-thact"></th>
-            </tr>
-          </thead>
-          <tbody id="inv-body"></tbody>
-        </table>
-        <p class="af-inv-empty" id="inv-empty" hidden>No products match that search.</p>
-      </div>
+      <div id="inv-groups"></div>
+      <p class="af-inv-empty" id="inv-empty" hidden>No products match that search.</p>
     </div>
 
     <script>
@@ -12075,7 +12077,7 @@ add_action('template_redirect', function(){
       var ROWS = <?php echo wp_json_encode($rows); ?>;
       var CFG  = <?php echo wp_json_encode($cfg); ?>;
       var $ = function(id){ return document.getElementById(id); };
-      var filter = 'all', term = '';
+      var filter = 'all', term = '', groupBy = true;
 
       function esc(s){ var d=document.createElement('div'); d.textContent = s==null?'':String(s); return d.innerHTML; }
       function money(n){ return CFG.sym + (Math.round(n*100)/100).toFixed(2); }
@@ -12116,22 +12118,62 @@ add_action('template_redirect', function(){
         return '<div class="af-inv-stat af-inv-stat--'+kind+'"><span class="af-inv-statn">'+n+'</span><span class="af-inv-statl">'+label+'</span></div>';
       }
 
+      var UNCAT = 'Uncategorized';
+
+      function rowHtml(r){
+        var b = bucket(r);
+        return '<tr data-id="'+r.id+'">'
+          + '<td class="af-inv-tdimg"><img src="'+esc(r.img)+'" alt="" loading="lazy"></td>'
+          + '<td class="af-inv-tdname"><a href="'+esc(r.view)+'" target="_blank" rel="noopener">'+esc(r.title)+'</a>'
+            + (r.draft ? ' <span class="af-inv-draft">Draft</span>' : '') + '</td>'
+          + '<td class="af-inv-tdsku">'+(r.sku ? esc(r.sku) : '<span class="af-inv-dash">&mdash;</span>')+'</td>'
+          + '<td class="af-inv-tdprice">'+money(r.price)+'</td>'
+          + '<td class="af-inv-tdstock"><input type="number" min="0" step="1" class="af-inv-qty" '
+            + 'value="'+(r.managed && r.qty !== null ? r.qty : '')+'" placeholder="&mdash;" aria-label="Stock quantity"></td>'
+          + '<td class="af-inv-tdstatus"><span class="af-inv-pill af-inv-pill--'+b+'">'+LABEL[b]+'</span></td>'
+          + '<td class="af-inv-tdact"><a class="af-inv-edit" href="'+esc(r.edit)+'" target="_blank" rel="noopener">Edit</a></td>'
+          + '</tr>';
+      }
+
+      function tableHtml(rows){
+        return '<div class="af-inv-tablewrap"><table class="af-inv-table"><thead><tr>'
+          + '<th class="af-inv-thimg"></th><th>Product</th><th class="af-inv-thsku">SKU</th>'
+          + '<th class="af-inv-thprice">Price</th><th class="af-inv-thstock">Stock</th>'
+          + '<th class="af-inv-thstatus">Status</th><th class="af-inv-thact"></th>'
+          + '</tr></thead><tbody>' + rows.map(rowHtml).join('') + '</tbody></table></div>';
+      }
+
       function render(){
         var list = visible();
         $('inv-empty').hidden = list.length > 0;
-        $('inv-body').innerHTML = list.map(function(r){
-          var b = bucket(r);
-          return '<tr data-id="'+r.id+'">'
-            + '<td class="af-inv-tdimg"><img src="'+esc(r.img)+'" alt="" loading="lazy"></td>'
-            + '<td class="af-inv-tdname"><a href="'+esc(r.view)+'" target="_blank" rel="noopener">'+esc(r.title)+'</a>'
-              + (r.draft ? ' <span class="af-inv-draft">Draft</span>' : '') + '</td>'
-            + '<td class="af-inv-tdsku">'+(r.sku ? esc(r.sku) : '<span class="af-inv-dash">&mdash;</span>')+'</td>'
-            + '<td class="af-inv-tdprice">'+money(r.price)+'</td>'
-            + '<td class="af-inv-tdstock"><input type="number" min="0" step="1" class="af-inv-qty" '
-              + 'value="'+(r.managed && r.qty !== null ? r.qty : '')+'" placeholder="&mdash;" aria-label="Stock quantity"></td>'
-            + '<td class="af-inv-tdstatus"><span class="af-inv-pill af-inv-pill--'+b+'">'+LABEL[b]+'</span></td>'
-            + '<td class="af-inv-tdact"><a class="af-inv-edit" href="'+esc(r.edit)+'" target="_blank" rel="noopener">Edit</a></td>'
-            + '</tr>';
+
+        if (!groupBy) {
+          $('inv-groups').innerHTML = list.length ? tableHtml(list) : '';
+          return;
+        }
+
+        // Group by category name. A product in several categories shows under
+        // each — that's accurate, not a duplicate. Products with no category
+        // fall under "Uncategorized".
+        var groups = {};
+        list.forEach(function(r){
+          var cats = (r.cats && r.cats.length) ? r.cats : [UNCAT];
+          cats.forEach(function(c){ (groups[c] = groups[c] || []).push(r); });
+        });
+
+        // Alphabetical, but keep Uncategorized last so real categories lead.
+        var names = Object.keys(groups).sort(function(a, b){
+          if (a === UNCAT) return 1;
+          if (b === UNCAT) return -1;
+          return a.localeCompare(b);
+        });
+
+        $('inv-groups').innerHTML = names.map(function(name){
+          var rows = groups[name];
+          return '<section class="af-inv-cat">'
+            + '<h2 class="af-inv-cattitle">' + esc(name)
+            + ' <span class="af-inv-catcount">' + rows.length + '</span></h2>'
+            + tableHtml(rows) + '</section>';
         }).join('');
       }
 
@@ -12160,9 +12202,19 @@ add_action('template_redirect', function(){
             row.status  = json.data.status;
             flash(tr, 'ok');
             renderStats();
+            // In grouped view the same product can appear under several
+            // category headings, so sync every row for this id — not just the
+            // one edited — so the copies never disagree.
             var b = bucket(row);
-            var pill = tr.querySelector('.af-inv-pill');
-            if (pill) { pill.className = 'af-inv-pill af-inv-pill--'+b; pill.textContent = LABEL[b]; }
+            var all = document.querySelectorAll('.af-inv-table tr[data-id="'+row.id+'"]');
+            Array.prototype.forEach.call(all, function(t){
+              var pill = t.querySelector('.af-inv-pill');
+              if (pill) { pill.className = 'af-inv-pill af-inv-pill--'+b; pill.textContent = LABEL[b]; }
+              if (t !== tr) {
+                var qi = t.querySelector('.af-inv-qty');
+                if (qi) qi.value = (row.managed && row.qty !== null) ? row.qty : '';
+              }
+            });
           })
           .catch(function(err){
             tr.classList.remove('is-saving');
@@ -12176,11 +12228,11 @@ add_action('template_redirect', function(){
         setTimeout(function(){ tr.classList.remove('af-inv-flash-'+kind); }, 1200);
       }
 
-      $('inv-body').addEventListener('change', function(e){
+      $('inv-groups').addEventListener('change', function(e){
         if (!e.target.classList.contains('af-inv-qty')) return;
         save(e.target.closest('tr'), e.target);
       });
-      $('inv-body').addEventListener('keydown', function(e){
+      $('inv-groups').addEventListener('keydown', function(e){
         if (e.key === 'Enter' && e.target.classList.contains('af-inv-qty')) { e.preventDefault(); e.target.blur(); }
       });
       $('inv-search').addEventListener('input', function(){ term = this.value.trim().toLowerCase(); render(); });
@@ -12191,6 +12243,7 @@ add_action('template_redirect', function(){
         Array.prototype.forEach.call(this.querySelectorAll('.af-inv-chip'), function(b){ b.classList.toggle('is-on', b === btn); });
         render();
       });
+      $('inv-groupby').addEventListener('change', function(){ groupBy = this.checked; render(); });
 
       renderStats();
       render();
@@ -12229,6 +12282,15 @@ add_action('template_redirect', function(){
       color:#6b6250;font-size:12.5px;font-weight:700;cursor:pointer;transition:border-color .15s,background .2s,color .2s;}
     .af-inv-chip:hover{border-color:#c9a84c;background:#fdf9ef;}
     .af-inv-chip.is-on{background:#1a1a1a;border-color:#1a1a1a;color:#fff;}
+    .af-inv-groupToggle{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:700;
+      color:#6b6250;cursor:pointer;user-select:none;white-space:nowrap;}
+    .af-inv-groupToggle input{width:16px;height:16px;accent-color:#c9a84c;cursor:pointer;}
+
+    .af-inv-cat{margin:0 0 26px;}
+    .af-inv-cattitle{margin:0 0 10px;font-family:'Playfair Display',Georgia,serif;font-size:20px;color:#1a1a1a;
+      display:flex;align-items:center;gap:10px;padding-bottom:8px;border-bottom:2px solid #e6d7ad;}
+    .af-inv-catcount{font-family:inherit;font-size:11px;font-weight:800;color:#a8801f;background:#f3ead2;
+      border:1px solid #e6d7ad;border-radius:999px;padding:2px 9px;line-height:1.6;}
 
     .af-inv-tablewrap{background:#fffdf8;border:1px solid #efe6d2;border-radius:14px;overflow-x:auto;
       box-shadow:0 4px 18px rgba(70,54,26,.07);}
