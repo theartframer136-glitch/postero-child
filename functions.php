@@ -12170,13 +12170,12 @@ add_action('template_redirect', function(){
           + '</tr>';
       }
 
-      // More than 5 products in one table caps its height and scrolls inside
-      // rather than stretching the page; the header row stays pinned (sticky
-      // thead) so columns stay labelled while scrolling.
-      var SCROLL_AFTER = 5;
+      // A category's products fill the available screen height and scroll
+      // inside for the rest — so you can read down to the last product without
+      // the page itself growing. The header row stays pinned (sticky thead) so
+      // the columns stay labelled while scrolling.
       function tableHtml(rows){
-        var cls = 'af-inv-tablewrap' + (rows.length > SCROLL_AFTER ? ' is-scroll' : '');
-        return '<div class="' + cls + '"><table class="af-inv-table"><thead><tr>'
+        return '<div class="af-inv-tablewrap is-scroll"><table class="af-inv-table"><thead><tr>'
           + '<th class="af-inv-thimg"></th><th>Product</th><th class="af-inv-thsku">SKU</th>'
           + '<th class="af-inv-thprice">Price</th><th class="af-inv-thstock">Stock</th>'
           + '<th class="af-inv-thstatus">Status</th><th class="af-inv-thact"></th>'
@@ -12406,9 +12405,11 @@ add_action('template_redirect', function(){
 
     .af-inv-tablewrap{background:#fffdf8;border:1px solid #efe6d2;border-radius:14px;overflow-x:auto;
       box-shadow:0 4px 18px rgba(70,54,26,.07);}
-    /* Cap tables with more than 5 rows to roughly five rows tall and scroll
-       inside. The sticky thead keeps the column labels visible while scrolling. */
-    .af-inv-tablewrap.is-scroll{max-height:352px;overflow-y:auto;}
+    /* Let a category's table use most of the screen height, showing products
+       to the end of that space and scrolling within for the rest. A short
+       category simply doesn't reach the cap, so it never scrolls. The sticky
+       thead keeps the column labels visible while scrolling. */
+    .af-inv-tablewrap.is-scroll{max-height:72vh;overflow-y:auto;}
     .af-inv-table{width:100%;border-collapse:collapse;font-size:13.5px;min-width:760px;}
     .af-inv-table thead th{position:sticky;top:0;background:#f3ead2;color:#6b6250;text-align:left;
       font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:12px 14px;
