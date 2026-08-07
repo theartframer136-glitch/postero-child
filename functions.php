@@ -5812,6 +5812,14 @@ add_action('template_redirect', function(){
 
       window.addEventListener('resize', applyScale);
 
+      // The stage now stretches to match the control rail, so its height can
+      // change without the window changing size. pixels-per-foot is derived
+      // from that height, so re-run the maths whenever the box itself moves.
+      if (window.ResizeObserver) {
+        var scaleRO = new ResizeObserver(function(){ applyScale(); });
+        scaleRO.observe($('tow-stage'));
+      }
+
       // Show a realistic room by default so the preview always looks real
       setScene(0);
 
@@ -5836,12 +5844,12 @@ add_action('template_redirect', function(){
 
     <style>
     .af-tow-wrap{background:linear-gradient(180deg,#f6f1e6 0%,#efe7d6 100%);padding:44px 16px 70px;}
-    .af-tow-card{max-width:1220px;margin:0 auto;background:#fffdf8;border:1px solid #efe6d2;border-radius:24px;padding:40px 34px;position:relative;box-shadow:0 24px 60px rgba(70,54,26,.10);}
+    .af-tow-card{max-width:1300px;margin:0 auto;background:#fffdf8;border:1px solid #efe6d2;border-radius:24px;padding:34px 30px;position:relative;box-shadow:0 24px 60px rgba(70,54,26,.10);}
     .af-tow-home{position:absolute;top:26px;left:26px;background:#1a1a1a;color:#fff;text-decoration:none;font-weight:700;font-size:12.5px;padding:10px 16px;border-radius:9px;transition:background .2s;}
     .af-tow-home:hover{background:#c9a84c;}
     .af-tow-badge{position:absolute;top:26px;right:26px;background:#f3ead2;color:#a8801f;font-weight:800;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;border-radius:999px;border:1px solid #e6d7ad;}
     .af-tow-title{text-align:center;font-size:46px;font-weight:800;color:#1a1a1a;margin:14px 0 10px;letter-spacing:-.5px;font-family:'Playfair Display',Georgia,serif;}
-    .af-tow-sub{text-align:center;color:#6b6250;font-size:15.5px;max-width:640px;margin:0 auto 34px;line-height:1.6;}
+    .af-tow-sub{text-align:center;color:#6b6250;font-size:15.5px;max-width:640px;margin:0 auto 26px;line-height:1.6;}
     .af-tow-grid{display:grid;grid-template-columns:360px 1fr;gap:30px;align-items:start;}
     .af-tow-panel{background:#fff;border:1px solid #ece4cf;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:6px;box-shadow:0 8px 26px rgba(70,54,26,.05);position:sticky;top:20px;}
     .af-tow-step{display:flex;align-items:center;gap:10px;margin:16px 0 4px;}
@@ -5877,8 +5885,11 @@ add_action('template_redirect', function(){
     .af-tow-btn.solid:hover{background:#b8973c;}
     .af-tow-toast{position:absolute;left:50%;bottom:18px;transform:translateX(-50%) translateY(12px);background:#1a1a1a;color:#fff;font-size:13px;font-weight:600;padding:11px 18px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:20;white-space:nowrap;}
     .af-tow-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-    .af-tow-stagewrap{position:relative;display:flex;flex-direction:column;}
-    .af-tow-stage{position:relative;width:100%;height:520px;border-radius:18px;overflow:hidden;background:#e9e4d8;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 60px rgba(0,0,0,.10);}
+    /* The preview column stretches to whatever height the control rail needs
+       and the wall itself swallows the difference, so neither column can end
+       short and leave a band of empty card behind it. */
+    .af-tow-stagewrap{position:relative;display:flex;flex-direction:column;align-self:stretch;min-height:0;}
+    .af-tow-stage{position:relative;width:100%;flex:1 1 auto;min-height:470px;max-height:760px;border-radius:18px;overflow:hidden;background:#e9e4d8;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 60px rgba(0,0,0,.10);}
     /* room card under the wall — never sticky, it is already in view */
     .af-tow-room{position:static;top:auto;margin-top:16px;gap:0;}
     .af-tow-roomgrid{display:grid;grid-template-columns:1.15fr .85fr;gap:4px 26px;align-items:start;}
@@ -5926,18 +5937,24 @@ add_action('template_redirect', function(){
     .af-tow-hint{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;opacity:0;transition:opacity .15s;pointer-events:none;}
     .af-tow-tip{text-align:center;color:#8a8170;font-size:13px;margin:14px 0 0;}
     .af-tow-tip strong{color:#5a5140;}
-    /* Below ~1150px the 360px rail + a 4-across scene strip get cramped, so the
-       room card drops to a single column before the page itself does. */
-    @media(max-width:1150px){
+    /* The room card stays two-up as far down as it comfortably fits: the moment
+       it stacks, the preview column grows taller than the rail and the dead
+       space reappears — on the other side. */
+    @media(max-width:1180px){
+      .af-tow-grid{grid-template-columns:330px 1fr;gap:24px;}
+      .af-tow-roomgrid{gap:4px 18px;}
+    }
+    @media(max-width:1000px){
       .af-tow-roomgrid{grid-template-columns:1fr;gap:0;}
       .af-tow-room .af-tow-cambtn{margin-top:12px;}
     }
     @media(max-width:900px){
-      .af-tow-grid{grid-template-columns:1fr;}
+      .af-tow-grid{grid-template-columns:1fr;gap:16px;}
       .af-tow-panel{position:static;}
-      .af-tow-stage{height:440px;}
+      .af-tow-stagewrap{align-self:auto;}
+      .af-tow-stage{flex:0 0 auto;height:440px;min-height:0;max-height:none;}
       .af-tow-title{font-size:34px;}
-      .af-tow-card{padding:64px 20px 30px;}
+      .af-tow-card{padding:64px 20px 26px;}
       .af-tow-room .af-tow-scenes{grid-template-columns:1fr 1fr;}
       .af-tow-room .af-tow-scene{height:56px;}
     }
@@ -10675,6 +10692,11 @@ add_action('template_redirect', function () {
         $(id).addEventListener('change', render);
       });
       window.addEventListener('resize', render);
+      // The stage stretches to match the control rail, so it can change height
+      // without the window resizing — the wall maths reads that height.
+      if (window.ResizeObserver) {
+        new ResizeObserver(function(){ render(); }).observe($('ftm-stage'));
+      }
 
       // ── compose the preview: the whole wall, not just the frames ──
       // done(dataURL) receives the finished PNG; used by download, save-to-account
@@ -10829,8 +10851,8 @@ add_action('template_redirect', function () {
 
     <style>
     .af-ftm-wrap{background:linear-gradient(180deg,#f6f1e6 0%,#efe7d6 100%);padding:44px 16px 70px;}
-    .af-ftm-card{max-width:1220px;margin:0 auto;background:#fffdf8;border:1px solid #efe6d2;border-radius:24px;
-      padding:44px 34px 40px;position:relative;box-shadow:0 24px 60px rgba(70,54,26,.10);}
+    .af-ftm-card{max-width:1300px;margin:0 auto;background:#fffdf8;border:1px solid #efe6d2;border-radius:24px;
+      padding:36px 30px 34px;position:relative;box-shadow:0 24px 60px rgba(70,54,26,.10);}
     .af-ftm-home{position:absolute;top:26px;left:26px;background:#1a1a1a;color:#fff;text-decoration:none;font-weight:700;
       font-size:12.5px;padding:10px 16px;border-radius:9px;transition:background .2s;}
     .af-ftm-home:hover{background:#c9a84c;color:#fff;}
@@ -10838,7 +10860,7 @@ add_action('template_redirect', function () {
       letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;border-radius:999px;border:1px solid #e6d7ad;}
     .af-ftm-title{text-align:center;font-size:46px;font-weight:800;color:#1a1a1a;margin:16px 0 10px;letter-spacing:-.5px;
       font-family:'Playfair Display',Georgia,serif;}
-    .af-ftm-sub{text-align:center;color:#6b6250;font-size:15.5px;max-width:660px;margin:0 auto 34px;line-height:1.65;}
+    .af-ftm-sub{text-align:center;color:#6b6250;font-size:15.5px;max-width:660px;margin:0 auto 26px;line-height:1.65;}
     .af-ftm-grid{display:grid;grid-template-columns:380px 1fr;gap:30px;align-items:start;}
     .af-ftm-panel{background:#fff;border:1px solid #ece4cf;border-radius:18px;padding:24px;display:flex;flex-direction:column;
       gap:6px;box-shadow:0 8px 26px rgba(70,54,26,.05);position:sticky;top:20px;}
@@ -10889,11 +10911,13 @@ add_action('template_redirect', function () {
     .af-ftm-btn.solid:hover{background:#1e8b56;color:#fff;}
     .af-ftm-fine{margin:10px 0 0;font-size:11.5px;color:#8a8170;line-height:1.5;}
     /* stage */
-    .af-ftm-stagewrap{position:relative;display:flex;flex-direction:column;}
-    .af-ftm-stage{position:relative;width:100%;height:520px;border-radius:18px;overflow:hidden;display:flex;
+    /* Same rule as Try-On-Wall: the preview column matches the rail's height and
+       the wall absorbs the difference, so no band of empty card is left over. */
+    .af-ftm-stagewrap{position:relative;display:flex;flex-direction:column;align-self:stretch;min-height:0;}
+    .af-ftm-stage{position:relative;width:100%;flex:1 1 auto;min-height:470px;max-height:760px;border-radius:18px;overflow:hidden;display:flex;
       align-items:center;justify-content:center;box-shadow:inset 0 0 60px rgba(0,0,0,.10);background:#e9e4d8;}
-    /* the two cards under the wall */
-    .af-ftm-under{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px;align-items:start;}
+    /* the two cards under the wall — equal height so neither leaves a void */
+    .af-ftm-under{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px;align-items:stretch;}
     .af-ftm-flat{position:static;top:auto;}
     .af-ftm-under .af-ftm-scenes{grid-template-columns:repeat(4,1fr);}
     .af-ftm-under .af-ftm-scene{height:74px;}
@@ -10946,17 +10970,22 @@ add_action('template_redirect', function () {
     .af-ftm-glass{position:absolute;inset:0;pointer-events:none;
       background:linear-gradient(125deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,.05) 22%,rgba(255,255,255,0) 42%);}
     .af-ftm-tip{text-align:center;color:#8a8170;font-size:13px;margin:14px 0 0;}
-    @media(max-width:1150px){
+    @media(max-width:1180px){
+      .af-ftm-grid{grid-template-columns:340px 1fr;gap:24px;}
+      .af-ftm-under{gap:14px;}
+    }
+    @media(max-width:1000px){
       .af-ftm-under{grid-template-columns:1fr;}
       .af-ftm-under .af-ftm-scenes{grid-template-columns:1fr 1fr;}
       .af-ftm-under .af-ftm-scene{height:56px;}
     }
     @media(max-width:900px){
-      .af-ftm-grid{grid-template-columns:1fr;}
+      .af-ftm-grid{grid-template-columns:1fr;gap:16px;}
       .af-ftm-panel{position:static;}
-      .af-ftm-stage{height:440px;}
+      .af-ftm-stagewrap{align-self:auto;}
+      .af-ftm-stage{flex:0 0 auto;height:440px;min-height:0;max-height:none;}
       .af-ftm-title{font-size:34px;}
-      .af-ftm-card{padding:64px 20px 30px;}
+      .af-ftm-card{padding:64px 20px 26px;}
     }
     @media(max-width:480px){
       .af-ftm-title{font-size:27px;}
