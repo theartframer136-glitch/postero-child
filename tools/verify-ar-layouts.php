@@ -35,6 +35,9 @@ $checks = array(
             'room card styling'    => '.af-tow-room{',
             // the wall now stretches to match the control rail instead of
             // standing at a fixed height, so assert the elastic rule, not a number
+            'photoreal moulding'   => 'function frameTexture',
+            'mitred border-image'  => 'borderImage',
+            'contact shadow'       => 'drop-shadow(0 2px 4px',
             'stage fills column'   => 'align-self:stretch',
             'stage flexes'         => 'flex:1 1 auto',
             'stage height capped'  => 'max-height:760px',

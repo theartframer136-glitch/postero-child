@@ -5283,6 +5283,134 @@ add_action('template_redirect', function(){
         ].join(',');
       }
 
+      // ── PHOTOREAL FRAME TEXTURES ─────────────────────────────────────────
+      // Paints an actual picture of a frame — mitred corners, a moulding
+      // profile lit from above, and per-material surface texture (brushed
+      // metal, satin lacquer, fibre grain) — on an offscreen canvas, matched
+      // to the studio's real moulding photos. Applied with border-image, so
+      // the corners stay true 45° joints at any panel size, and drawn into
+      // the saved preview by 9-slice so the download matches the screen.
+      var TEXQ = {};
+      function framePalette(color){
+        return ({
+          'Black':     {face:'#2b2925', hi:'#8a867e', crown:'#565249', lo:'#0a0908', seam:'#000'},
+          'Silver':    {face:'#c3c6ca', hi:'#f8fafc', crown:'#e2e5e9', lo:'#6f7378', seam:'#5a5e63'},
+          'Gold':      {face:'#c09a44', hi:'#f6e19b', crown:'#e0bd63', lo:'#6f5312', seam:'#5c440e'},
+          'Rose Gold': {face:'#b97d6f', hi:'#f0c9b9', crown:'#d9a191', lo:'#6d4036', seam:'#59332b'}
+        })[color] || null;
+      }
+      function frameTexture(frame, color){
+        var key = frame + '|' + color;
+        if (TEXQ[key]) return TEXQ[key];
+        var pal = framePalette(color) || framePalette('Black');
+        var S = 512, B = 96;
+        var cv = document.createElement('canvas'); cv.width = S; cv.height = S;
+        var g = cv.getContext('2d');
+
+        // One horizontal strip of moulding, grain running along its length.
+        var strip = document.createElement('canvas'); strip.width = S; strip.height = B;
+        var sg = strip.getContext('2d');
+        // The moulding profile, lit from the top: outer shadow line, lit outer
+        // bevel, flat face, crown highlight, inner slope falling to a bright
+        // inner lip, then the dark rebate against the mat.
+        var grad = sg.createLinearGradient(0, 0, 0, B);
+        grad.addColorStop(0.00, pal.lo);
+        grad.addColorStop(0.045, pal.hi);
+        grad.addColorStop(0.16, pal.face);
+        grad.addColorStop(0.34, pal.crown);
+        grad.addColorStop(0.46, pal.hi);
+        grad.addColorStop(0.60, pal.crown);
+        grad.addColorStop(0.80, pal.face);
+        grad.addColorStop(0.905, pal.lo);
+        grad.addColorStop(0.945, pal.hi);
+        grad.addColorStop(1.00, pal.lo);
+        sg.fillStyle = grad; sg.fillRect(0, 0, S, B);
+        // Deterministic pseudo-random, so every render of a texture is identical
+        var seed = 7; function rnd(){ seed = (seed * 16807) % 2147483647; return seed / 2147483647; }
+        if (frame === 'Aluminium Frame') {
+          // brushed metal: dense hairlines along the extrusion
+          for (var i = 0; i < 110; i++) {
+            var y = rnd() * B;
+            sg.strokeStyle = 'rgba(' + (rnd() < 0.5 ? '255,255,255' : '0,0,0') + ',' + (0.028 + rnd() * 0.062).toFixed(3) + ')';
+            sg.lineWidth = 0.6 + rnd() * 0.9;
+            sg.beginPath(); sg.moveTo(0, y); sg.lineTo(S, y); sg.stroke();
+          }
+        } else if (frame === 'Fibre Frame') {
+          // fibre/wood: long shallow grain waves with occasional darker streaks
+          for (var j = 0; j < 26; j++) {
+            var gy = 4 + rnd() * (B - 8), amp = 0.6 + rnd() * 1.8, wav = 70 + rnd() * 160, ph = rnd() * 6.28;
+            var dark = rnd() < 0.28;
+            sg.strokeStyle = dark ? 'rgba(0,0,0,' + (0.10 + rnd() * 0.08).toFixed(3) + ')'
+                                  : 'rgba(255,255,255,' + (0.035 + rnd() * 0.05).toFixed(3) + ')';
+            sg.lineWidth = dark ? 1.2 : 0.8;
+            sg.beginPath();
+            for (var x = 0; x <= S; x += 7) {
+              var yy = gy + Math.sin(x / wav + ph) * amp;
+              x === 0 ? sg.moveTo(x, yy) : sg.lineTo(x, yy);
+            }
+            sg.stroke();
+          }
+        } else {
+          // Floating frame: satin lacquer — a soft sheen, almost no pattern
+          for (var k = 0; k < 18; k++) {
+            var sy = rnd() * B;
+            sg.strokeStyle = 'rgba(255,255,255,' + (0.015 + rnd() * 0.03).toFixed(3) + ')';
+            sg.lineWidth = 1.5;
+            sg.beginPath(); sg.moveTo(0, sy); sg.lineTo(S, sy); sg.stroke();
+          }
+        }
+        // crisp outer and rebate edges
+        sg.fillStyle = 'rgba(0,0,0,.55)'; sg.fillRect(0, 0, S, 1); sg.fillRect(0, B - 1, S, 1);
+
+        // Lay the strip on all four sides, each clipped to its mitred trapezoid
+        // so the grain runs along every side and the corners join at 45°.
+        var sides = [
+          {path: [[0,0],[S,0],[S-B,B],[B,B]],       tx: 0, ty: 0, rot: 0},
+          {path: [[S,0],[S,S],[S-B,S-B],[S-B,B]],   tx: S, ty: 0, rot: Math.PI/2},
+          {path: [[S,S],[0,S],[B,S-B],[S-B,S-B]],   tx: S, ty: S, rot: Math.PI},
+          {path: [[0,S],[0,0],[B,B],[B,S-B]],       tx: 0, ty: S, rot: -Math.PI/2}
+        ];
+        sides.forEach(function(sd){
+          g.save();
+          g.beginPath();
+          sd.path.forEach(function(pt, n){ n === 0 ? g.moveTo(pt[0], pt[1]) : g.lineTo(pt[0], pt[1]); });
+          g.closePath(); g.clip();
+          g.translate(sd.tx, sd.ty); g.rotate(sd.rot);
+          g.drawImage(strip, 0, 0);
+          g.restore();
+        });
+        // mitre seams: the dark joint line with a lit edge beside it
+        [[0,0,B,B],[S,0,S-B,B],[S,S,S-B,S-B],[0,S,B,S-B]].forEach(function(c){
+          g.strokeStyle = 'rgba(0,0,0,.38)'; g.lineWidth = 1.6;
+          g.beginPath(); g.moveTo(c[0], c[1]); g.lineTo(c[2], c[3]); g.stroke();
+          g.strokeStyle = 'rgba(255,255,255,.20)'; g.lineWidth = 0.8;
+          g.beginPath(); g.moveTo(c[0] + (c[2] > c[0] ? 1.6 : -1.6), c[1]); g.lineTo(c[2] + (c[2] > c[0] ? 1.6 : -1.6), c[3]); g.stroke();
+        });
+        // room light comes from above: brighten the top run, shade the bottom
+        g.globalCompositeOperation = 'source-atop';
+        var light = g.createLinearGradient(0, 0, 0, S);
+        light.addColorStop(0, 'rgba(255,255,255,.14)');
+        light.addColorStop(0.4, 'rgba(255,255,255,0)');
+        light.addColorStop(1, 'rgba(0,0,0,.20)');
+        g.fillStyle = light; g.fillRect(0, 0, S, S);
+        g.globalCompositeOperation = 'source-over';
+
+        TEXQ[key] = {url: cv.toDataURL('image/png'), cv: cv, B: B, S: S};
+        return TEXQ[key];
+      }
+      // Border width for the current profile, from the panel's real on-screen
+      // size — border-width cannot take %, so this runs whenever the box is
+      // (re)measured.
+      function sizeFrameBorders(){
+        var fb = $('tow-framebox');
+        fb.querySelectorAll('.af-tow-pframe').forEach(function(frEl){
+          var prof = parseFloat(frEl.getAttribute('data-prof') || '0');
+          if (!(prof > 0)) { frEl.style.borderWidth = '0'; return; }
+          var w = frEl.parentNode.getBoundingClientRect().width || 0;
+          frEl.style.borderWidth = Math.max(11, w * prof / 100).toFixed(1) + 'px';
+        });
+      }
+
       // Colour swatches (drive the hidden select for pricing/logic)
       (function buildSwatches(){
         var wrap=$('tow-colorsw'); wrap.innerHTML='';
@@ -5551,7 +5679,12 @@ add_action('template_redirect', function(){
 
       function buildPanels(){
         var p=current(); if(!p) return;      // never wipe the wall when there is nothing to rebuild
-        var src=cropURL||p.img, ratio=cropURL?printRatio():artRatio;
+        // The frame's shape is ALWAYS the chosen print size, even while the
+        // artwork is still downloading. It used to fall back to the photo's own
+        // aspect until the crop was ready, so picking a product flashed a
+        // wrong-shape frame on a page whose whole promise is true-to-scale —
+        // a briefly stretched artwork is the better half of that trade.
+        var src=cropURL||p.img, ratio=printRatio();
         var wrap=$('tow-panels'); wrap.innerHTML='';
         for(var i=0;i<LAYOUT;i++){
           var panel=document.createElement('div'); panel.className='af-tow-wpanel';
@@ -5588,7 +5721,6 @@ add_action('template_redirect', function(){
       function applyFrame(){
         var frame=$('tow-frame').value, color=$('tow-color').value;
         var fb=$('tow-framebox');
-        var mats=MAT[color]||MAT['Black'];
         // Frame profile thickness (% of panel width so it scales) + mat width
         var prof, matw, matbg='#f6f1e6';
         if(frame==='Without Frame'){ prof=0; matw=0; }         // gallery-wrapped canvas
@@ -5597,25 +5729,39 @@ add_action('template_redirect', function(){
         else { prof=7; matw=9; }                                // Fibre / default wood
         // Multi-panel sets use slimmer mats so the slices read as one artwork
         if(LAYOUT>1){ matw=Math.max(0, matw-4); }
+        var tex = prof>0 ? frameTexture(frame, color) : null;
         fb.querySelectorAll('.af-tow-pframe').forEach(function(frEl){
-          // Padding was a bare percentage, so on a small preview the moulding
-          // shrinks to a sliver too thin for the material gradient or bevel to
-          // read — floor it in real pixels so every frame stays legible at any
-          // stage size instead of flattening out.
-          frEl.style.padding = prof>0 ? ('max(11px, '+prof+'%)') : '0';
-          frEl.style.background = prof>0 ? frameBG(mats) : 'transparent';
-          frEl.style.borderRadius = frame==='Aluminium Frame' ? '3px' : '2px';
-          frEl.style.boxShadow = prof>0
-            ? 'inset 2px 2px 3px rgba(255,255,255,.5), inset -3px -3px 6px rgba(0,0,0,.6), inset 0 0 0 1px rgba(0,0,0,.3), 0 1px 3px rgba(0,0,0,.35)'
-            : 'none';
+          frEl.setAttribute('data-prof', prof);
+          frEl.style.padding='0';
+          if(tex){
+            // the moulding is a rendered picture of a frame, not a gradient —
+            // border-image keeps the 45° mitres true at any panel size
+            frEl.style.borderStyle='solid';
+            frEl.style.borderColor='transparent';
+            frEl.style.borderImage='url("'+tex.url+'") '+tex.B+' stretch';
+            frEl.style.background='transparent';
+            frEl.style.borderRadius='0';
+            frEl.style.boxShadow='none';
+          }else{
+            frEl.style.border='0';
+            frEl.style.borderImage='none';
+            frEl.style.background='transparent';
+            frEl.style.boxShadow='none';
+          }
         });
+        sizeFrameBorders();
         fb.querySelectorAll('.af-tow-pmat').forEach(function(mat){
           mat.style.padding = matw>0 ? ('max(8px, '+matw+'%)') : '0';
           mat.style.background = matw>0 ? matbg : 'transparent';
-          mat.style.boxShadow = matw>0 ? 'inset 0 0 8px rgba(0,0,0,.28)' : 'none';
+          // the rebate throws a fine shadow onto the mat, and the glazing
+          // grazes a touch of light across its top edge
+          mat.style.boxShadow = matw>0 ? 'inset 0 2px 5px rgba(0,0,0,.34), inset 0 0 9px rgba(0,0,0,.16)' : 'none';
         });
-        // Cast shadow on the wall (soft, light from top-left)
-        fb.style.filter = 'drop-shadow(10px 16px 22px rgba(0,0,0,.38))';
+        // Sitting on the wall: a tight contact shadow right behind the
+        // moulding plus the broad soft cast from the room's key light — two
+        // shadows is what makes it read as hanging ON the wall rather than
+        // pasted over the photo.
+        fb.style.filter = 'drop-shadow(0 2px 4px rgba(0,0,0,.35)) drop-shadow(12px 18px 26px rgba(0,0,0,.30))';
       }
 
       function calcPrice(){
@@ -5719,12 +5865,16 @@ add_action('template_redirect', function(){
               corrected = Math.min(corrected, sw*0.92);
               box.style.width = corrected + 'px';
             }
+            // the moulding thickness is a % of the panel, expressed in border
+            // px — re-derive it now that the box has its final width
+            sizeFrameBorders();
           });
           return;
         }
         // Fallback (unparsable label): previous gentle scaling
         var sizeMult=CFG.sizes[label]||1;
         box.style.width=Math.max(60, sw*0.28*Math.sqrt(sizeMult)*slider)+'px';
+        sizeFrameBorders();
       }
       $('tow-scale').addEventListener('input', function(){ $('tow-scaleval').textContent=this.value+'%'; applyScale(); });
 
@@ -5808,7 +5958,23 @@ add_action('template_redirect', function(){
           }
           function rect(el){ var b=el.getBoundingClientRect(); return {x:b.left-r.left,y:b.top-r.top,w:b.width,h:b.height}; }
           var color=$('tow-color').value, hex=SWATCH[color]||'#1a1a1a';
+          var frameName=$('tow-frame').value;
           var N=panels.length||1;
+          // The same rendered moulding the screen shows, 9-sliced into the
+          // export so corners keep their true mitres at any panel size.
+          function drawFrameRing(fr, bw){
+            if(!(bw>0)) return;
+            var t=frameTexture(frameName, color), s=t.cv, B=t.B, S=t.S;
+            var iw=Math.max(1, fr.w-2*bw), ih=Math.max(1, fr.h-2*bw);
+            ctx.drawImage(s, 0,0,B,B,             fr.x,fr.y,bw,bw);                       // corners
+            ctx.drawImage(s, S-B,0,B,B,           fr.x+fr.w-bw,fr.y,bw,bw);
+            ctx.drawImage(s, 0,S-B,B,B,           fr.x,fr.y+fr.h-bw,bw,bw);
+            ctx.drawImage(s, S-B,S-B,B,B,         fr.x+fr.w-bw,fr.y+fr.h-bw,bw,bw);
+            ctx.drawImage(s, B,0,S-2*B,B,         fr.x+bw,fr.y,iw,bw);                    // edges
+            ctx.drawImage(s, B,S-B,S-2*B,B,       fr.x+bw,fr.y+fr.h-bw,iw,bw);
+            ctx.drawImage(s, 0,B,B,S-2*B,         fr.x,fr.y+bw,bw,ih);
+            ctx.drawImage(s, S-B,B,B,S-2*B,       fr.x+fr.w-bw,fr.y+bw,bw,ih);
+          }
           // Pass 1: cast every panel's shadow on the wall first, so a later
           // panel's shadow can never fall across an already-drawn frame.
           ctx.save(); ctx.shadowColor='rgba(0,0,0,.4)'; ctx.shadowBlur=26; ctx.shadowOffsetX=10; ctx.shadowOffsetY=16;
@@ -5823,7 +5989,9 @@ add_action('template_redirect', function(){
           panels.forEach(function(panel){
             var frEl=panel.querySelector('.af-tow-pframe'), matEl=panel.querySelector('.af-tow-pmat'), artEl=panel.querySelector('.af-tow-part');
             var fr=rect(frEl);
-            ctx.fillStyle=hex; ctx.fillRect(fr.x,fr.y,fr.w,fr.h);
+            var bw=parseFloat(getComputedStyle(frEl).borderTopWidth)||0;
+            if(bw>0){ drawFrameRing(fr, bw); }
+            else { ctx.fillStyle=hex; }
             var mt=rect(matEl); var st=getComputedStyle(matEl);
             if(parseFloat(st.paddingTop)>0){ ctx.fillStyle=(st.backgroundColor&&st.backgroundColor!=='rgba(0, 0, 0, 0)')?st.backgroundColor:'#f6f1e6'; ctx.fillRect(mt.x,mt.y,mt.w,mt.h); }
             var ar=rect(artEl);
