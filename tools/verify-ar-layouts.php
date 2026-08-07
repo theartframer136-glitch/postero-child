@@ -33,7 +33,11 @@ $checks = array(
             // leaving the right-hand half of the page blank
             'room card under wall' => 'af-tow-panel af-tow-room',
             'room card styling'    => '.af-tow-room{',
-            'shorter stage'        => 'height:520px',
+            // the wall now stretches to match the control rail instead of
+            // standing at a fixed height, so assert the elastic rule, not a number
+            'stage fills column'   => 'align-self:stretch',
+            'stage flexes'         => 'flex:1 1 auto',
+            'stage height capped'  => 'max-height:760px',
         ),
         'gone'   => array(
             'old single art node' => 'id="tow-art"',
@@ -61,7 +65,9 @@ $checks = array(
             'share helper'      => 'window.AFPreview',
             'cards under wall'  => 'class="af-ftm-under"',
             'cards styling'     => '.af-ftm-under{',
-            'shorter stage'     => 'height:520px',
+            'stage fills column'=> 'align-self:stretch',
+            'stage flexes'      => 'flex:1 1 auto',
+            'stage height capped'=> 'max-height:760px',
         ),
         'gone'   => array(
             'old single art node' => 'id="ftm-art"',
