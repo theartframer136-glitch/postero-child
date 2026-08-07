@@ -10,9 +10,10 @@ add_action('template_redirect', function() {
     $req = trim(parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '', '/');
     if ($req !== 'about' && $req !== 'about-us') return;
 
-    $email = get_option('woocommerce_email_from_address', get_option('admin_email'));
-    $phone = '+1 (610) 470-7280';
-    $wa    = '16104707280';
+    $contact = af_studio_contact();
+    $email = $contact['email'];
+    $phone = $contact['phone'];
+    $wa    = $contact['wa'];
 
     $products = (int) wp_count_posts('product')->publish;
     $parent   = get_term_by('slug', 'direct-from-artists', 'product_cat');

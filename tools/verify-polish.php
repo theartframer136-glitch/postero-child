@@ -105,6 +105,26 @@ if (!is_wp_error($r)) {
     af_pv('live reply', !empty($j['success']) && !empty($j['data']['reply']), $fail,
           !empty($j['data']['reply']) ? mb_strimwidth(str_replace("\n",' ',$j['data']['reply']),0,60,'…') : '');
 }
+// The bot used to publish get_option('admin_email') as "the studio" — a
+// personal admin address handed to every customer who asked for a human.
+$admin_addr = get_option('admin_email');
+$studio     = af_studio_contact();
+af_pv('studio contact is not the WP admin account', $studio['email'] !== $admin_addr, $fail, $studio['email']);
+af_pv('widget publishes the studio address', strpos($hb, $studio['email']) !== false, $fail);
+af_pv('widget never leaks the admin address',
+      $admin_addr && $studio['email'] !== $admin_addr ? strpos($hb, $admin_addr) === false : true, $fail);
+// and the same must hold for the two replies that name a human
+foreach (array('i want to talk to a human' => 'human hand-off',
+               'zzqq nonsense question xyzzy' => 'fallback') as $probe => $what) {
+    $pr = wp_remote_post(admin_url('admin-ajax.php'), array('timeout'=>45,'sslverify'=>false,
+        'body'=>array('action'=>'af_bot_reply','nonce'=>wp_create_nonce('af_bot'),'msg'=>$probe)));
+    if (is_wp_error($pr)) continue;
+    $pj  = json_decode(wp_remote_retrieve_body($pr), true);
+    $txt = isset($pj['data']['reply']) ? $pj['data']['reply'] : '';
+    af_pv("{$what} gives the studio address", strpos($txt, $studio['email']) !== false, $fail);
+    af_pv("{$what} hides the admin address",
+          $admin_addr && $studio['email'] !== $admin_addr ? strpos($txt, $admin_addr) === false : true, $fail);
+}
 
 echo "\n=== 16. SALES COUNT ON CARDS ===\n";
 af_pv('hook registered', function_exists('af_sales_count_min'), $fail);

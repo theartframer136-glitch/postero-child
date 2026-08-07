@@ -29,7 +29,9 @@ function af_doc_store() {
         'city'     => get_option('woocommerce_store_city'),
         'postcode' => get_option('woocommerce_store_postcode'),
         'country'  => get_option('woocommerce_default_country'),
-        'email'    => get_option('woocommerce_email_from_address', get_option('admin_email')),
+        // an invoice goes to the customer, so it carries the studio's public
+        // address — never whoever happens to own the WordPress login
+        'email'    => af_studio_contact()['email'],
         'site'     => home_url('/'),
     );
 }

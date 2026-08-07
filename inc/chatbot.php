@@ -17,6 +17,17 @@ if (!defined('ABSPATH')) exit;
 
 function af_bot_table() { global $wpdb; return $wpdb->prefix . 'af_bot_log'; }
 
+/**
+ * Every reply that names a way to reach a human goes through the shared
+ * studio-contact helper, so the bot can never publish the WordPress admin's
+ * personal address the way it used to.
+ */
+function af_bot_contact() {
+    return function_exists('af_studio_contact')
+        ? af_studio_contact()
+        : array('email' => 'theartframer136@gmail.com', 'phone' => '+1 (610) 470-7280', 'tel' => 'tel:+16104707280');
+}
+
 add_action('after_setup_theme', function() {
     if (get_option('af_bot_db_ver') === '1') return;
     global $wpdb;
@@ -131,8 +142,9 @@ function af_bot_intents() {
         ),
         'human' => array(
             'k' => array('human', 'person', 'agent', 'talk to someone', 'representative', 'call', 'phone', 'email you', 'contact', 'support'),
-            'a' => "Of course — our studio team answers directly.\n\nEmail: " . get_option('woocommerce_email_from_address', get_option('admin_email')) .
-                   "\nPhone: +1 (610) 470-7280\n\nOr send us a message and we'll reply, usually within the hour during business hours.",
+            'a' => "Of course — our studio team answers directly.\n\nEmail: " . af_bot_contact()['email'] .
+                   "\nPhone: " . af_bot_contact()['phone'] .
+                   "\n\nOr send us a message and we'll reply, usually within the hour during business hours.",
             'c' => array('Contact form' => home_url('/contact/')),
         ),
         'greeting' => array(
@@ -222,9 +234,9 @@ function af_bot_reply_handler() {
             $chips = array('See more' => home_url('/shop/'), 'Try on my wall' => home_url('/try-on-wall/'));
         } else {
             $answered = 0;
+            $c = af_bot_contact();
             $reply = "I don't have a good answer for that one yet — I'd rather send you to a person than guess.\n\nEmail " .
-                     get_option('woocommerce_email_from_address', get_option('admin_email')) .
-                     " or call +1 (610) 470-7280 and the studio will help.";
+                     $c['email'] . " or call " . $c['phone'] . " and the studio will help.";
             $chips = array('Contact the studio' => home_url('/contact/'), 'Browse art' => home_url('/shop/'));
         }
     }
@@ -265,7 +277,8 @@ add_action('admin_menu', function() {
 // ── the widget ───────────────────────────────────────────────────────
 add_action('wp_footer', function() {
     if (is_admin()) return;
-    $email = get_option('woocommerce_email_from_address', get_option('admin_email'));
+    $contact = af_bot_contact();
+    $email   = $contact['email'];
     ?>
     <div id="af-chat" class="af-chat">
       <button type="button" class="af-chat-bub" id="af-chat-open" aria-label="Chat with the Art Framer assistant">
@@ -298,7 +311,8 @@ add_action('wp_footer', function() {
                  placeholder="Ask me anything…" aria-label="Your message">
           <button type="submit" aria-label="Send">➤</button>
         </form>
-        <p class="af-chat-alt">Prefer a person? <a href="mailto:<?php echo esc_attr($email); ?>"><?php echo esc_html($email); ?></a></p>
+        <p class="af-chat-alt">Prefer a person? <a href="mailto:<?php echo esc_attr($email); ?>"><?php echo esc_html($email); ?></a>
+          &nbsp;·&nbsp; <a href="<?php echo esc_attr($contact['tel']); ?>"><?php echo esc_html($contact['phone']); ?></a></p>
       </div>
     </div>
 

@@ -4428,6 +4428,32 @@ function af_pricing_applies($product) {
     return true;
 }
 
+/**
+ * The studio's public contact details — the single place any customer-facing
+ * surface should ask.
+ *
+ * Deliberately NOT get_option('admin_email'): that is whoever owns the
+ * WordPress login, so publishing it hands customers a personal address that
+ * has nothing to do with the studio. These match what the header, footer and
+ * contact page already show. Set the af_contact_email / af_contact_phone
+ * options, or filter af_studio_contact, to change them everywhere at once.
+ */
+function af_studio_contact() {
+    $email = get_option('af_contact_email');
+    $phone = get_option('af_contact_phone');
+    $c = apply_filters('af_studio_contact', array(
+        'email' => $email ? $email : 'theartframer136@gmail.com',
+        'phone' => $phone ? $phone : '+1 (610) 470-7280',
+    ));
+    // a blank option must never fall through as an empty mailto:
+    if (empty($c['email'])) $c['email'] = 'theartframer136@gmail.com';
+    if (empty($c['phone'])) $c['phone'] = '+1 (610) 470-7280';
+    $digits     = preg_replace('/\D+/', '', $c['phone']);
+    $c['tel']   = 'tel:+' . $digits;
+    $c['wa']    = $digits;
+    return $c;
+}
+
 function af_pricing_config() {
     return array(
         // Size label => price multiplier (relative to the product's base price)
