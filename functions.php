@@ -12256,3 +12256,34 @@ add_action('template_redirect', function(){
     get_footer();
     exit;
 }, 1);
+
+// Admin-only "Inventory" link in the main nav, sitting after Contact Us.
+// The menu itself is managed in WP, so rather than editing it there (where the
+// item would be visible to everyone) the link is injected at render time and
+// only for users who can actually open the page. Appended to the first menu
+// in the request that carries a Contact Us item — that's the header nav, and
+// the static flag keeps it from repeating in the footer menu.
+add_filter('wp_nav_menu_items', function($items, $args) {
+    static $added = false;
+    if ($added || !function_exists('af_inv_can_access') || !af_inv_can_access()) return $items;
+    if (stripos($items, 'contact') === false) return $items;
+
+    $page = get_page_by_path('inventory-management');
+    $url  = $page ? get_permalink($page) : home_url('/inventory-management/');
+
+    $added = true;
+    return $items . '<li class="menu-item af-inv-navitem"><a href="' . esc_url($url) . '">Inventory</a></li>';
+}, 20, 2);
+
+add_action('wp_head', function() {
+    if (!function_exists('af_inv_can_access') || !af_inv_can_access()) return;
+    ?>
+    <style>
+    /* Marks the injected link as an admin-only tool so it reads as distinct
+       from the customer-facing nav items it sits beside. */
+    .af-inv-navitem > a{position:relative;color:#c9a84c !important;}
+    .af-inv-navitem > a::after{content:'ADMIN';margin-left:6px;font-size:8.5px;font-weight:800;
+      letter-spacing:.06em;vertical-align:super;opacity:.75;}
+    </style>
+    <?php
+}, 99);
