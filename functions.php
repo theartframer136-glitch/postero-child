@@ -4457,10 +4457,27 @@ function af_section($fn, $prio = 10) {
     add_action('woocommerce_after_single_product_summary', $fn, $prio);
     add_action('af_product_sections', $fn, $prio);
 }
-add_action('woocommerce_single_product_summary', function() {
-    if (!af_is_quick_view_request()) return;
+/**
+ * Fire the sections inside the modal, on a hook the modal actually reaches.
+ *
+ * Essential Addons builds its popup layout by hand: it never fires
+ * woocommerce_single_product_summary either — proven by which of our pieces
+ * arrive in its response (all three are on the add-to-cart button hooks) and
+ * by a first bridge on the summary hook that never ran. What its popup DOES
+ * render is the product meta, whose template fires
+ * woocommerce_product_meta_end — the very tail of the modal. The bridge sits
+ * there, and also on the summary hook for quick-view plugins that do fire it,
+ * with a latch so the sections render once whichever hook comes first. On the
+ * real product page af_is_quick_view_request() is false and both are no-ops.
+ */
+function af_qv_bridge() {
+    static $done = false;
+    if ($done || !af_is_quick_view_request()) return;
+    $done = true;
     do_action('af_product_sections');
-}, 200);
+}
+add_action('woocommerce_product_meta_end', 'af_qv_bridge', 200);
+add_action('woocommerce_single_product_summary', 'af_qv_bridge', 200);
 
 /**
  * Should the product page's own sections — Related Searches, Popular Products,
