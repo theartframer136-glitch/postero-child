@@ -5792,14 +5792,20 @@ add_action('template_redirect', function(){
       function applyFrame(){
         var frame=$('tow-frame').value, color=$('tow-color').value;
         var fb=$('tow-framebox');
-        // Frame profile thickness (% of panel width so it scales) + mat width
+        // Frame profile thickness (% of panel width so it scales) + reveal.
+        // These are CANVAS prints: a real fibre or aluminium frame mounts the
+        // canvas edge-to-edge — no paper-print mat. The wide cream border the
+        // preview used to draw between moulding and art was a museum mat that
+        // this product never ships with, and at 4×6 ft it scaled up to a
+        // hand-width band of nothing. Only the floating frame keeps a border:
+        // its slim dark reveal is how a real float frame is built.
         var prof, matw, matbg='#f6f1e6';
         if(frame==='Without Frame'){ prof=0; matw=0; }         // gallery-wrapped canvas
-        else if(frame==='Floating Frame'){ prof=5; matw=6; matbg='#161616'; }
-        else if(frame==='Aluminium Frame'){ prof=4; matw=7; }
-        else { prof=7; matw=9; }                                // Fibre / default wood
-        // Multi-panel sets use slimmer mats so the slices read as one artwork
-        if(LAYOUT>1){ matw=Math.max(0, matw-4); }
+        else if(frame==='Floating Frame'){ prof=5; matw=2.5; matbg='#161616'; }
+        else if(frame==='Aluminium Frame'){ prof=4; matw=0; }
+        else { prof=7; matw=0; }                                // Fibre / default wood
+        // Multi-panel float sets keep a hairline reveal so slices stay separate
+        if(LAYOUT>1 && matw>0){ matw=Math.max(1.5, matw-1); }
         var tex = prof>0 ? frameTexture(frame, color) : null;
         fb.querySelectorAll('.af-tow-pframe').forEach(function(frEl){
           frEl.setAttribute('data-prof', prof);
@@ -5824,9 +5830,10 @@ add_action('template_redirect', function(){
         fb.querySelectorAll('.af-tow-pmat').forEach(function(mat){
           mat.style.padding = matw>0 ? ('max(8px, '+matw+'%)') : '0';
           mat.style.background = matw>0 ? matbg : 'transparent';
-          // the rebate throws a fine shadow onto the mat, and the glazing
-          // grazes a touch of light across its top edge
-          mat.style.boxShadow = matw>0 ? 'inset 0 2px 5px rgba(0,0,0,.34), inset 0 0 9px rgba(0,0,0,.16)' : 'none';
+          // the frame's rebate overhangs whatever sits in it, so its fine
+          // shadow falls on the reveal when there is one and straight onto
+          // the canvas when there is not — only an unframed wrap has none
+          mat.style.boxShadow = prof>0 ? 'inset 0 2px 5px rgba(0,0,0,.34), inset 0 0 9px rgba(0,0,0,.16)' : 'none';
         });
         // Sitting on the wall: a tight contact shadow right behind the
         // moulding plus the broad soft cast from the room's key light — two
