@@ -244,6 +244,13 @@ $pages = array(
 <h3>Shop the Collection</h3>
 <p><a class=\"button\" href=\"/product-category/direct-from-artists/tanmay-choudhary/\">View all artworks by Tanmay Choudhary</a></p>",
     ),
+    // Admin-only stock dashboard. The body here is only a fallback — the real
+    // page is rendered by the template_redirect builder in functions.php, which
+    // also enforces the administrator-only gate.
+    'inventory-management' => array(
+        'title' => 'Inventory Management',
+        'body'  => "<p>This page is restricted to site administrators.</p>",
+    ),
 );
 
 echo "=== Create Missing Pages ===\n\n";
