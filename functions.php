@@ -12774,12 +12774,22 @@ add_action('template_redirect', function(){
     ), ARRAY_A);
     $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table}");
 
+    // Resolve each user's email at display time (not stored), cached per id so
+    // a user who appears in many rows is only looked up once. Falls back to
+    // empty if the account was since deleted.
+    $email_cache = array();
     $rows = array();
     foreach ((array) $raw as $r) {
-        $ts = strtotime($r['created_at']);
+        $ts  = strtotime($r['created_at']);
+        $uid = (int) $r['user_id'];
+        if ($uid && !array_key_exists($uid, $email_cache)) {
+            $u = get_userdata($uid);
+            $email_cache[$uid] = ($u && $u->user_email) ? $u->user_email : '';
+        }
         $rows[] = array(
             'time'  => $ts ? date_i18n('M j, Y g:i a', $ts) : $r['created_at'],
-            'user'  => $r['user_login'] !== '' ? $r['user_login'] : ('#' . (int) $r['user_id']),
+            'user'  => $r['user_login'] !== '' ? $r['user_login'] : ('#' . $uid),
+            'email' => $uid ? $email_cache[$uid] : '',
             'ip'    => $r['ip'],
             'act'   => $r['action'],
             'url'   => $r['url'],
@@ -12799,7 +12809,7 @@ add_action('template_redirect', function(){
       </header>
 
       <div class="af-log-toolbar">
-        <input type="search" id="log-search" class="af-log-search" placeholder="Search user, IP or action&hellip;" autocomplete="off">
+        <input type="search" id="log-search" class="af-log-search" placeholder="Search user, email, IP or action&hellip;" autocomplete="off">
       </div>
 
       <div class="af-log-tablewrap">
@@ -12807,6 +12817,7 @@ add_action('template_redirect', function(){
           <thead><tr>
             <th class="af-log-thtime">Time</th>
             <th class="af-log-thuser">User</th>
+            <th class="af-log-themail">Email</th>
             <th class="af-log-thip">IP address</th>
             <th>Action</th>
           </tr></thead>
@@ -12826,7 +12837,7 @@ add_action('template_redirect', function(){
       function render(){
         var list = ROWS.filter(function(r){
           if (!term) return true;
-          return (r.user + ' ' + r.ip + ' ' + r.act).toLowerCase().indexOf(term) !== -1;
+          return (r.user + ' ' + (r.email||'') + ' ' + r.ip + ' ' + r.act).toLowerCase().indexOf(term) !== -1;
         });
         $('log-empty').hidden = list.length > 0;
         $('log-body').innerHTML = list.map(function(r){
@@ -12836,6 +12847,7 @@ add_action('template_redirect', function(){
           return '<tr>'
             + '<td class="af-log-tdtime">' + esc(r.time) + '</td>'
             + '<td class="af-log-tduser">' + esc(r.user) + '</td>'
+            + '<td class="af-log-tdemail">' + (r.email ? esc(r.email) : '<span class="af-log-dash">&mdash;</span>') + '</td>'
             + '<td class="af-log-tdip">' + (r.ip ? esc(r.ip) : '<span class="af-log-dash">&mdash;</span>') + '</td>'
             + '<td class="af-log-tdact">' + act + '</td>'
             + '</tr>';
@@ -12863,7 +12875,7 @@ add_action('template_redirect', function(){
     .af-log-search:focus{outline:none;border-color:#c9a84c;}
     .af-log-tablewrap{background:#fffdf8;border:1px solid #efe6d2;border-radius:14px;overflow:auto;max-height:72vh;
       box-shadow:0 4px 18px rgba(70,54,26,.07);}
-    .af-log-table{width:100%;border-collapse:collapse;font-size:13px;min-width:680px;}
+    .af-log-table{width:100%;border-collapse:collapse;font-size:13px;min-width:820px;}
     .af-log-table thead th{position:sticky;top:0;background:#f3ead2;color:#6b6250;text-align:left;
       font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:11px 14px;
       border-bottom:1px solid #e6d7ad;z-index:1;}
@@ -12872,6 +12884,7 @@ add_action('template_redirect', function(){
     .af-log-table tbody tr:hover{background:#fdf9ef;}
     .af-log-thtime,.af-log-tdtime{white-space:nowrap;color:#6b6250;}
     .af-log-thuser,.af-log-tduser{white-space:nowrap;font-weight:700;}
+    .af-log-themail,.af-log-tdemail{white-space:nowrap;color:#5a5140;font-size:12.5px;}
     .af-log-thip,.af-log-tdip{white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#5a5140;}
     .af-log-tdact a{color:#1a1a1a;text-decoration:none;}
     .af-log-tdact a:hover{color:#c9a84c;}
