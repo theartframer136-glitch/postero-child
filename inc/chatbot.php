@@ -62,6 +62,7 @@ function af_bot_from_price() {
 function af_bot_intents() {
     $cfg    = function_exists('af_pricing_config') ? af_pricing_config() : array('sizes' => array(), 'frames' => array(), 'colors' => array());
     $sizes  = array_keys($cfg['sizes']);
+    $size_prices = array_values(array_filter(array_map('floatval', $cfg['sizes'])));
     $frames = $cfg['frames'];
     $colors = $cfg['colors'];
     $home   = home_url('/');
@@ -86,7 +87,9 @@ function af_bot_intents() {
         ),
         'price' => array(
             'k' => array('price', 'cost', 'how much', 'expensive', 'cheap', 'budget', 'afford', 'discount', 'offer', 'sale'),
-            'a' => "Prices start at " . af_bot_money(af_bot_from_price()) . " and depend on three things: the size, the frame, and the frame colour.\n\nA larger size multiplies the base price; a frame adds a flat fee (" .
+            'a' => "The size sets the price, straight from our pine-wood framing price list: " .
+                   af_bot_money($size_prices ? min($size_prices) : 60) . " for a 2×3 ft up to " .
+                   af_bot_money($size_prices ? max($size_prices) : 150) . " for a 4×6 ft.\n\nA frame adds a flat fee (" .
                    af_bot_money(min(array_filter($frames))) . "–" . af_bot_money(max($frames)) . "); gold and rose gold add " . af_bot_money(10) . ".\n\nThe price updates live on the product page as you choose — nothing is hidden until checkout.",
             'c' => array('Browse art' => home_url('/shop/'), 'Digital downloads' => home_url('/product-category/digital-downloads/')),
         ),

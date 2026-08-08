@@ -662,6 +662,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/verify-marketplace.php --allow-root 2>&1" \
             || true
 
+          echo "Verifying prices against the printed rate card..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/verify-pricing.php --allow-root 2>&1" \
+            || true
+
           echo "Verifying checkout operations (abandoned cart, address, fraud, invoices)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

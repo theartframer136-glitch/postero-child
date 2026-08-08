@@ -4565,22 +4565,29 @@ function af_studio_contact() {
 
 function af_pricing_config() {
     return array(
-        // Size label => price multiplier (relative to the product's base price)
+        // Size label => PRICE IN USD, straight from the printed "Pine Wood
+        // Framing Sizes & Pricing" rate card. These used to be multipliers on
+        // each product's listing price, which was an invented curve nobody had
+        // reconciled with the card — a 4×6 came out at $608 against the card's
+        // $150. The card is the price book now. Sizes the card doesn't list
+        // (2×3.5, 2×4, 2.5×…, and 2×5/2.5×4/3×5 which match card areas) are
+        // interpolated along the card's own per-square-foot curve and rounded
+        // to $5.
         'sizes' => array(
-            '2×3 ft (24×36 in)'   => 1.00,  // base — spec size list (mega menu)
-            '2×3.5 ft (24×42 in)' => 1.15,
-            '2×4 ft (24×48 in)'   => 1.30,
-            '2×5 ft (24×60 in)'   => 1.60,
-            '2.5×3 ft (30×36 in)' => 1.22,
-            '2.5×4 ft (30×48 in)' => 1.55,
-            '2.5×5 ft (30×60 in)' => 1.90,
-            '3×4 ft (36×48 in)'   => 1.80,
-            '3×5 ft (36×60 in)'   => 2.20,
-            '3×6 ft (36×72 in)'   => 2.60,
-            '4×3 ft (48×36 in)'   => 1.80,
-            '4×4 ft (48×48 in)'   => 2.40,
-            '4×5 ft (48×60 in)'   => 2.90,
-            '4×6 ft (48×72 in)'   => 3.40,
+            '2×3 ft (24×36 in)'   => 60,    // card
+            '2×3.5 ft (24×42 in)' => 65,    // interpolated (7 sq ft)
+            '2×4 ft (24×48 in)'   => 70,    // interpolated (8 sq ft)
+            '2×5 ft (24×60 in)'   => 75,    // card 5×2 (same 10 sq ft)
+            '2.5×3 ft (30×36 in)' => 65,    // interpolated (7.5 sq ft)
+            '2.5×4 ft (30×48 in)' => 75,    // interpolated (10 sq ft)
+            '2.5×5 ft (30×60 in)' => 85,    // interpolated (12.5 sq ft)
+            '3×4 ft (36×48 in)'   => 80,    // card
+            '3×5 ft (36×60 in)'   => 100,   // card 5×3 (same 15 sq ft)
+            '3×6 ft (36×72 in)'   => 120,   // card
+            '4×3 ft (48×36 in)'   => 80,    // card
+            '4×4 ft (48×48 in)'   => 110,   // card
+            '4×5 ft (48×60 in)'   => 130,   // card
+            '4×6 ft (48×72 in)'   => 150,   // card
         ),
         // Quick-filter groups (spec: Small / Medium / Large / Custom)
         'groups' => array(
@@ -4605,11 +4612,12 @@ function af_pricing_config() {
             '4×5 ft (48×60 in)'   => 'Grand walls & double-height spaces',
             '4×6 ft (48×72 in)'   => 'Extra large — lobbies & feature walls',
         ),
-        // Frame type => flat add-on fee (USD)
+        // Frame type => flat add-on fee (USD). Floating matches the rate
+        // card's "ADD FLOATING FRAME: +$50"; the card is silent on the others.
         'frames' => array(
             'Without Frame'   => 0,
             'Fibre Frame'     => 25,
-            'Floating Frame'  => 40,
+            'Floating Frame'  => 50,
             'Aluminium Frame' => 55,
         ),
         // Frame color => flat add-on fee (USD)
@@ -4623,16 +4631,20 @@ function af_pricing_config() {
 }
 
 // Authoritative server-side price calculation.
+// The size sets the price outright from the rate card — the product's listing
+// price no longer multiplies into it ($base stays in the signature so the
+// call sites don't churn, and in case a per-product premium ever returns).
 // The colour fee pays for the frame's finish, so an unframed (gallery-wrapped)
 // print is never charged for one — there is no moulding to finish.
 function af_calc_price($base, $size, $frame, $color) {
     $cfg = af_pricing_config();
-    $mult = isset($cfg['sizes'][$size]) ? (float)$cfg['sizes'][$size] : 1.0;
+    $sizes = $cfg['sizes'];
+    $price = isset($sizes[$size]) ? (float)$sizes[$size] : (float)reset($sizes);
     $fee  = (isset($cfg['frames'][$frame]) ? (float)$cfg['frames'][$frame] : 0);
     if ($frame !== 'Without Frame') {
         $fee += (isset($cfg['colors'][$color]) ? (float)$cfg['colors'][$color] : 0);
     }
-    return round(((float)$base * $mult) + $fee, 2);
+    return round($price + $fee, 2);
 }
 
 // 8a. Render selectors inside the add-to-cart form (simple products)
@@ -4787,12 +4799,13 @@ add_action('wp_head', function() {
         var size = wrap.querySelector('[data-type="size"].active');
         var frame= wrap.querySelector('[data-type="frame"].active');
         var color= wrap.querySelector('[data-type="color"].active');
-        var mult = size ? (cfg.sizes[size.getAttribute('data-val')]||1) : 1;
+        // the size IS the price, from the rate card (matches af_calc_price)
+        var sizePrice = size ? (cfg.sizes[size.getAttribute('data-val')]||base) : base;
         var frameVal = frame ? frame.getAttribute('data-val') : '';
         // no frame means no frame-finish surcharge (matches af_calc_price)
         var fee  = (frame ? (cfg.frames[frameVal]||0) : 0)
                  + ((color && frameVal !== 'Without Frame') ? (cfg.colors[color.getAttribute('data-val')]||0) : 0);
-        var price = Math.round((base*mult + fee)*100)/100;
+        var price = Math.round((sizePrice + fee)*100)/100;
         var el = wrap.querySelector('#af-live-price');
         if(el) el.innerHTML = '<span class="amount">'+money(sym,price)+'</span>';
       }
@@ -6002,11 +6015,12 @@ add_action('template_redirect', function(){
 
       function calcPrice(){
         var p=current(); if(!p) return null;
-        var mult=CFG.sizes[$('tow-size').value]||1;
+        // the size IS the price, from the rate card (matches af_calc_price)
+        var sizePrice=CFG.sizes[$('tow-size').value]||p.price;
         var frameVal=$('tow-frame').value;
         // no frame means no frame-finish surcharge (matches af_calc_price)
         var fee=(CFG.frames[frameVal]||0)+(frameVal!=='Without Frame' ? (CFG.colors[$('tow-color').value]||0) : 0);
-        return Math.round((p.price*mult+fee)*100)/100;
+        return Math.round((sizePrice+fee)*100)/100;
       }
       function refresh(){
         var p=current();
@@ -6112,8 +6126,10 @@ add_action('template_redirect', function(){
           });
           return;
         }
-        // Fallback (unparsable label): previous gentle scaling
-        var sizeMult=CFG.sizes[label]||1;
+        // Fallback (unparsable label): gentle scaling — CFG.sizes now holds
+        // dollar prices, so normalise against the smallest to get a ratio
+        var sMin=Math.min.apply(null, Object.keys(CFG.sizes).map(function(k){return CFG.sizes[k];}));
+        var sizeMult=(CFG.sizes[label]||sMin)/(sMin||1);
         box.style.width=Math.max(60, sw*0.28*Math.sqrt(sizeMult)*slider)+'px';
         sizeFrameBorders();
       }
@@ -10962,13 +10978,16 @@ add_action('template_redirect', function () {
       }
 
       function price(){
-        var mult = parseFloat($('ftm-size').selectedOptions[0].dataset.mult) || 1;
+        // data-mult now carries the rate card's absolute USD price per size —
+        // the size IS the price (matches af_calc_price); BASE no longer
+        // multiplies into it
+        var sizePrice = parseFloat($('ftm-size').selectedOptions[0].dataset.mult) || BASE;
         // no frame means no frame-finish surcharge (matches af_calc_price)
         var noFrame = $('ftm-frame').value === 'Without Frame';
         var fee  = (parseFloat($('ftm-frame').selectedOptions[0].dataset.fee) || 0)
                  + (noFrame ? 0 : (parseFloat($('ftm-color').selectedOptions[0].dataset.fee) || 0))
                  + (parseFloat($('ftm-type').selectedOptions[0].dataset.fee)  || 0);
-        return Math.round((BASE * mult + fee) * 100) / 100;
+        return Math.round((sizePrice + fee) * 100) / 100;
       }
 
       // ── 1 / 2 / 4 panel layouts (spec §8) ──
