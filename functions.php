@@ -12284,6 +12284,20 @@ add_action('template_redirect', function(){
         rail.innerHTML = html;
       }
 
+      // Size each scrollable product table so it stops at the bottom of the
+      // viewport — the table fits the page and its extra rows scroll inside,
+      // instead of the whole page growing taller than the screen.
+      function fitTables(){
+        var wraps = document.querySelectorAll('.af-inv-tablewrap.is-scroll');
+        for (var i = 0; i < wraps.length; i++) {
+          var w = wraps[i];
+          var top = w.getBoundingClientRect().top; // distance from viewport top
+          var avail = Math.floor(window.innerHeight - top - 20);
+          if (avail < 220) avail = 220; // always show a few rows
+          w.style.maxHeight = avail + 'px';
+        }
+      }
+
       function render(){
         renderRail();
         var list = visible();
@@ -12291,6 +12305,7 @@ add_action('template_redirect', function(){
         if (!groupBy) {
           $('inv-empty').hidden = list.length > 0;
           $('inv-groups').innerHTML = list.length ? tableHtml(list) : '';
+          fitTables();
           return;
         }
 
@@ -12306,6 +12321,7 @@ add_action('template_redirect', function(){
             + ' <span class="af-inv-catcount">' + rows.length + '</span></h2>'
             + tableHtml(rows) + '</section>';
         }).join('');
+        fitTables();
       }
 
       function save(tr, input){
@@ -12381,6 +12397,9 @@ add_action('template_redirect', function(){
         activeCat = btn.getAttribute('data-cat');
         render();
       });
+      // Keep the table fitting the viewport as the window is resized.
+      var rzT;
+      window.addEventListener('resize', function(){ clearTimeout(rzT); rzT = setTimeout(fitTables, 120); });
 
       // Open on the first real category rather than every category at once,
       // so only the selected category's products show. "All categories" in the
