@@ -82,10 +82,13 @@ foreach ($pages as $where => $url) {
     $r = af_prv_get($url);
     if (is_wp_error($r)) { af_prv("{$where} fetch", false, $fail, $r->get_error_message()); continue; }
     $body = wp_remote_retrieve_body($r);
-    // the embedded config carries card dollars, not multipliers (JSON may be
-    // esc_attr'd inside data-config, so match both quote forms)
-    $has60  = (bool) preg_match('/2×3 ft \(24×36 in\)[^,}]{0,20}?:60\b/u', str_replace('&quot;', '"', $body));
-    $has150 = (bool) preg_match('/4×6 ft \(48×72 in\)[^,}]{0,20}?:150\b/u', str_replace('&quot;', '"', $body));
+    // the embedded config carries card dollars, not multipliers. Normalise the
+    // two encodings it travels in: esc_attr'd quotes inside data-config, and
+    // wp_json_encode writing × as \u00d7 — the first version of this probe
+    // matched the literal × and failed against perfectly card-priced pages.
+    $norm = str_replace(array('&quot;', '\\u00d7'), array('"', '×'), $body);
+    $has60  = (bool) preg_match('/2×3 ft \(24×36 in\)[^,}]{0,20}?:60\b/u', $norm);
+    $has150 = (bool) preg_match('/4×6 ft \(48×72 in\)[^,}]{0,20}?:150\b/u', $norm);
     af_prv("{$where} config carries card prices", $has60 && $has150, $fail,
            ($has60?'':'2×3:60 missing ') . ($has150?'':'4×6:150 missing'));
 }
