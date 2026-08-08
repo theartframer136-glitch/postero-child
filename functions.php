@@ -12460,6 +12460,17 @@ function af_inv_url() {
     return $page ? get_permalink($page) : home_url('/inventory-management/');
 }
 
+function af_log_url() {
+    $page = get_page_by_path('activity-log');
+    return $page ? get_permalink($page) : home_url('/activity-log/');
+}
+
+// The activity log is administrators only (unlike Inventory, which also admits
+// the allowlisted staff), matching the manage_options gate on the page itself.
+function af_log_can_access() {
+    return is_user_logged_in() && current_user_can('manage_options');
+}
+
 // Admin-only "Inventory" link in the main nav, sitting after Contact Us.
 // The menu itself is managed in WP, so rather than editing it there (where the
 // item would be visible to everyone) the link is injected at render time and
@@ -12471,11 +12482,17 @@ function af_inv_url() {
 // desktop one — so the single insert landed in markup that is never visible on
 // desktop. Adding to each matching menu also means the link works on mobile.
 add_filter('wp_nav_menu_items', function($items, $args) {
-    if (!function_exists('af_inv_can_access') || !af_inv_can_access()) return $items;
     if (stripos($items, 'contact') === false) return $items;
-    if (strpos($items, 'af-inv-navitem') !== false) return $items;
 
-    return $items . '<li class="menu-item af-inv-navitem"><a href="' . esc_url(af_inv_url()) . '">Inventory</a></li>';
+    $add = '';
+    if (function_exists('af_inv_can_access') && af_inv_can_access() && strpos($items, 'af-inv-navitem') === false) {
+        $add .= '<li class="menu-item af-inv-navitem"><a href="' . esc_url(af_inv_url()) . '">Inventory</a></li>';
+    }
+    // Activity Log sits right beside Inventory, admins only.
+    if (af_log_can_access() && strpos($items, 'af-log-navitem') === false) {
+        $add .= '<li class="menu-item af-log-navitem"><a href="' . esc_url(af_log_url()) . '">Activity Log</a></li>';
+    }
+    return $items . $add;
 }, 20, 2);
 
 // Admin-bar entry: works no matter how the header is built, so there is always
@@ -12491,13 +12508,13 @@ add_action('admin_bar_menu', function($bar) {
 }, 80);
 
 add_action('wp_head', function() {
-    if (!function_exists('af_inv_can_access') || !af_inv_can_access()) return;
+    if ((!function_exists('af_inv_can_access') || !af_inv_can_access()) && !af_log_can_access()) return;
     ?>
     <style>
-    /* Marks the injected link as an admin-only tool so it reads as distinct
-       from the customer-facing nav items it sits beside. */
-    .af-inv-navitem > a{position:relative;color:#c9a84c !important;}
-    .af-inv-navitem > a::after{content:'ADMIN';margin-left:6px;font-size:8.5px;font-weight:800;
+    /* Marks the injected links as admin-only tools so they read as distinct
+       from the customer-facing nav items they sit beside. */
+    .af-inv-navitem > a, .af-log-navitem > a{position:relative;color:#c9a84c !important;}
+    .af-inv-navitem > a::after, .af-log-navitem > a::after{content:'ADMIN';margin-left:6px;font-size:8.5px;font-weight:800;
       letter-spacing:.06em;vertical-align:super;opacity:.75;}
     </style>
     <?php
@@ -12510,14 +12527,19 @@ add_action('wp_head', function() {
 // actually holds the Contact link — matching what the visitor really sees
 // rather than what the theme was assumed to output.
 add_action('wp_footer', function() {
-    if (!function_exists('af_inv_can_access') || !af_inv_can_access()) return;
+    $inv = (function_exists('af_inv_can_access') && af_inv_can_access());
+    $log = af_log_can_access();
+    if (!$inv && !$log) return;
     ?>
     <script>
     (function(){
-      function inject(){
-        if (document.querySelector('.af-inv-navitem')) return; // PHP filter already did it
+      var ITEMS = [];
+      <?php if ($inv) : ?>ITEMS.push({cls:'af-inv-navitem', label:'Inventory', href:<?php echo wp_json_encode(af_inv_url()); ?>});<?php endif; ?>
+      <?php if ($log) : ?>ITEMS.push({cls:'af-log-navitem', label:'Activity Log', href:<?php echo wp_json_encode(af_log_url()); ?>});<?php endif; ?>
+
+      function findNav(){
         var lists = document.querySelectorAll('ul');
-        var best = null, bestCount = 0;
+        var best = null, bestScore = 0;
         for (var i = 0; i < lists.length; i++) {
           var ul = lists[i];
           var links = ul.querySelectorAll(':scope > li > a');
@@ -12530,17 +12552,26 @@ add_action('wp_footer', function() {
           // Prefer the visible nav: a hidden mobile copy has no layout box.
           var visible = ul.getBoundingClientRect().width > 0;
           var score = links.length + (visible ? 1000 : 0);
-          if (score > bestCount) { bestCount = score; best = ul; }
+          if (score > bestScore) { bestScore = score; best = ul; }
         }
-        if (!best) return;
-        var first = best.querySelector(':scope > li');
-        var li = document.createElement('li');
-        li.className = (first ? first.className + ' ' : 'menu-item ') + 'af-inv-navitem';
-        var a = document.createElement('a');
-        a.href = <?php echo wp_json_encode(af_inv_url()); ?>;
-        a.textContent = 'Inventory';
-        li.appendChild(a);
-        best.appendChild(li);
+        return best;
+      }
+
+      function inject(){
+        var best = null;
+        ITEMS.forEach(function(item){
+          if (document.querySelector('.' + item.cls)) return; // PHP filter already added it
+          if (!best) best = findNav();
+          if (!best) return;
+          var first = best.querySelector(':scope > li');
+          var li = document.createElement('li');
+          li.className = (first ? first.className + ' ' : 'menu-item ') + item.cls;
+          var a = document.createElement('a');
+          a.href = item.href;
+          a.textContent = item.label;
+          li.appendChild(a);
+          best.appendChild(li);
+        });
       }
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inject);
       else inject();
