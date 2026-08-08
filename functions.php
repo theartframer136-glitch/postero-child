@@ -12490,7 +12490,7 @@ add_filter('wp_nav_menu_items', function($items, $args) {
     }
     // Activity Log sits right beside Inventory, admins only.
     if (af_log_can_access() && strpos($items, 'af-log-navitem') === false) {
-        $add .= '<li class="menu-item af-log-navitem"><a href="' . esc_url(af_log_url()) . '">Activity Log</a></li>';
+        $add .= '<li class="menu-item af-log-navitem"><a href="' . esc_url(af_log_url()) . '">Audit</a></li>';
     }
     return $items . $add;
 }, 20, 2);
@@ -12535,7 +12535,7 @@ add_action('wp_footer', function() {
     (function(){
       var ITEMS = [];
       <?php if ($inv) : ?>ITEMS.push({cls:'af-inv-navitem', label:'Inventory', href:<?php echo wp_json_encode(af_inv_url()); ?>});<?php endif; ?>
-      <?php if ($log) : ?>ITEMS.push({cls:'af-log-navitem', label:'Activity Log', href:<?php echo wp_json_encode(af_log_url()); ?>});<?php endif; ?>
+      <?php if ($log) : ?>ITEMS.push({cls:'af-log-navitem', label:'Audit', href:<?php echo wp_json_encode(af_log_url()); ?>});<?php endif; ?>
 
       function findNav(){
         var lists = document.querySelectorAll('ul');
@@ -12751,9 +12751,9 @@ add_action('admin_bar_menu', function($bar){
     $url  = $page ? get_permalink($page) : home_url('/activity-log/');
     $bar->add_node(array(
         'id'    => 'af-activity-log',
-        'title' => 'Activity Log',
+        'title' => 'Audit',
         'href'  => $url,
-        'meta'  => array('title' => 'View the visitor activity log'),
+        'meta'  => array('title' => 'View the audit log'),
     ));
 }, 81);
 
@@ -12802,7 +12802,7 @@ add_action('template_redirect', function(){
       <header class="af-log-head">
         <div>
           <p class="af-log-eyebrow">Admin only</p>
-          <h1>Visitor Activity Log</h1>
+          <h1>Audit</h1>
           <p class="af-log-sub">Timestamped record of what signed-in visitors do on the site. Showing the most recent <?php echo (int) count($rows); ?> of <?php echo (int) $total; ?> entries. Entries older than 90 days are pruned automatically.</p>
         </div>
         <a class="af-log-home" href="<?php echo esc_url(home_url('/')); ?>">Back to site</a>
