@@ -34,9 +34,14 @@ foreach ($ids as $pid) {
     $children = get_posts(array('post_type'=>'product_variation','post_parent'=>$pid,'numberposts'=>-1,'fields'=>'ids','post_status'=>'any'));
     $has_children = !empty($children);
 
-    // Only touch products that are (still) variable OR were variable (have
-    // orphaned variations) — i.e. anything with variation children.
-    if (!$is_variable && !$has_children) { continue; }
+    // Only touch products that are STILL variable. This used to also grab
+    // already-simple products with orphaned variation children so a past
+    // migration could repair them — but the orphan children keep their old
+    // $179/$348 prices forever, so on every full deploy this quietly reset
+    // ~280 card-priced listings back to the old regime and left the
+    // reprice-from-card step to fix them again. The migration is long done;
+    // an already-simple product's price belongs to the rate card now.
+    if (!$is_variable) { continue; }
 
     // Respect the pricing-applies exclusions (accessories/banners/gift cards).
     $prod = wc_get_product($pid);
