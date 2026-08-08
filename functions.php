@@ -13019,7 +13019,10 @@ add_action('wp_footer', function() {
   if (is_admin()) return; ?>
 <script>
 (function(){
-  var HTML = <?php echo wp_json_encode(taf_brochure_link('card')); ?>;
+  var HTML   = <?php echo wp_json_encode(taf_brochure_link('card')); ?>;
+  var BANNER = <?php echo wp_json_encode(taf_brochure_link('banner')); ?>;
+  var BLURB  = 'Browse all 358 pages of our printed collection book — every artwork with its Art Code.';
+  var URL    = <?php echo wp_json_encode(taf_brochure_url()); ?>;
   if (!HTML) return;
   function add(card){
     if (card.getAttribute('data-taf-broch')) return;
@@ -13038,6 +13041,35 @@ add_action('wp_footer', function() {
       if (!c.querySelector('a[href]')) return;            // not a real card
       add(c);
     });
+    banner();
+    navItem();
+  }
+  // Archive banner. `woocommerce_before_shop_loop` never fires on the Postero
+  // shop template, so place it in front of the products grid client-side.
+  function banner(){
+    if (!BANNER || document.querySelector('.taf-broch-banner')) return;
+    var b = document.body.className || '';
+    if (!/(post-type-archive-product|tax-product_cat|tax-product_tag|woocommerce-shop|search-results)/.test(b)) return;
+    var grid = document.querySelector('ul.products, ul.postero-products, .products');
+    if (!grid || !grid.parentNode) return;
+    var d = document.createElement('div');
+    d.className = 'taf-broch-banner';
+    d.innerHTML = '<span class="taf-broch-banner-txt">' + BLURB + '</span>' + BANNER;
+    grid.parentNode.insertBefore(d, grid);
+  }
+  // Primary menu item. The header menu is built by Elementor, so it carries no
+  // theme_location and the PHP `wp_nav_menu_items` filter never matches it.
+  // Append to the FIRST top-level menu inside the header nav only — never the
+  // sub-menus or the footer menu, or the link would appear several times.
+  function navItem(){
+    if (document.querySelector('.taf-broch-nav')) return;
+    var ul = document.querySelector('nav.main-navigation ul.menu, .primary-navigation > ul.menu');
+    if (!ul || ul.closest('.sub-menu')) return;
+    var li = document.createElement('li');
+    li.className = 'menu-item taf-broch-nav';
+    li.innerHTML = '<a href="' + URL + '" download="TheArtFramer-Collection-Brochure.pdf"'
+                 + ' target="_blank" rel="noopener"><span class="menu-title">Brochure</span></a>';
+    ul.appendChild(li);
   }
   document.addEventListener('DOMContentLoaded', run);
   window.addEventListener('load', run);
