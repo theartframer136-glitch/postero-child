@@ -13141,7 +13141,7 @@ add_action('wp_head', function() { ?>
 .taf-broch:hover .taf-broch-ico{opacity:1;}
 /* card — same pill as the card's Add to Cart, one step quieter */
 .taf-broch-cardwrap{display:flex;justify-content:center;}
-.taf-broch--card{font-size:11px;padding:8px 18px;margin:10px auto 2px;
+.taf-broch--card{font-size:11px;padding:9px 22px;margin:11px auto 6px;
   border-color:rgba(201,168,76,.62);}
 .taf-broch--card .taf-broch-ico{width:13px;height:13px;}
 /* single product page — sits with Show Dimensions, size as a caption below */
