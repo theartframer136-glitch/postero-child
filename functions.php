@@ -12548,3 +12548,307 @@ add_action('wp_footer', function() {
     </script>
     <?php
 }, 99);
+
+// ── PHASE 29 — Visitor activity log (logged-in users only) ──────────────────
+// Records, for signed-in visitors ONLY, a timestamp + what they did + their IP
+// into a dedicated table. Admin-only viewer at /activity-log/. Nothing here runs
+// on guest requests, so cached anonymous traffic keeps paying zero extra cost —
+// the log never touches the per-visitor budget we spent effort cutting.
+
+function af_activity_log_table() {
+    global $wpdb;
+    return $wpdb->prefix . 'af_activity_log';
+}
+
+// Create/upgrade the table once, guarded by an option so dbDelta never runs on
+// an ordinary request. Safe to call repeatedly.
+function af_activity_log_ensure_table() {
+    if (get_option('af_activity_log_db_ver') === '1') return;
+    global $wpdb;
+    require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+    $table   = af_activity_log_table();
+    $charset = $wpdb->get_charset_collate();
+    $sql = "CREATE TABLE {$table} (
+        id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        created_at DATETIME NOT NULL,
+        user_id BIGINT UNSIGNED NOT NULL DEFAULT 0,
+        user_login VARCHAR(120) NOT NULL DEFAULT '',
+        ip VARCHAR(45) NOT NULL DEFAULT '',
+        action VARCHAR(255) NOT NULL DEFAULT '',
+        url VARCHAR(255) NOT NULL DEFAULT '',
+        PRIMARY KEY (id),
+        KEY created_at (created_at),
+        KEY user_id (user_id)
+    ) {$charset};";
+    dbDelta($sql);
+    update_option('af_activity_log_db_ver', '1');
+}
+
+// Best-effort client IP. Honours the proxy headers this host / Cloudflare set,
+// falls back to REMOTE_ADDR, and validates the result so a spoofed header can't
+// store junk.
+function af_activity_client_ip() {
+    $candidates = array();
+    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) $candidates[] = $_SERVER['HTTP_CF_CONNECTING_IP'];
+    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+        $parts = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
+        $candidates[] = $parts[0];
+    }
+    if (!empty($_SERVER['HTTP_X_REAL_IP'])) $candidates[] = $_SERVER['HTTP_X_REAL_IP'];
+    if (!empty($_SERVER['REMOTE_ADDR']))    $candidates[] = $_SERVER['REMOTE_ADDR'];
+    foreach ($candidates as $ip) {
+        $ip = trim($ip);
+        if (filter_var($ip, FILTER_VALIDATE_IP)) return $ip;
+    }
+    return '';
+}
+
+// Write one entry. Only ever called for logged-in users.
+function af_activity_log_record($action, $user = null) {
+    $action = trim((string) $action);
+    if ($action === '') return;
+    af_activity_log_ensure_table();
+    global $wpdb;
+
+    if ($user === null) $user = wp_get_current_user();
+    $uid   = ($user && $user->ID) ? (int) $user->ID : 0;
+    if (!$uid) return; // logged-in users only
+    $login = ($user && $user->user_login) ? $user->user_login : '';
+    $url   = isset($_SERVER['REQUEST_URI']) ? esc_url_raw($_SERVER['REQUEST_URI']) : '';
+
+    $wpdb->insert(
+        af_activity_log_table(),
+        array(
+            'created_at' => current_time('mysql'),
+            'user_id'    => $uid,
+            'user_login' => substr($login, 0, 120),
+            'ip'         => substr(af_activity_client_ip(), 0, 45),
+            'action'     => substr($action, 0, 255),
+            'url'        => substr($url, 0, 255),
+        ),
+        array('%s', '%d', '%s', '%s', '%s', '%s')
+    );
+
+    // Occasionally prune entries older than 90 days so the table stays bounded.
+    if (mt_rand(1, 40) === 1) {
+        $cutoff = date('Y-m-d H:i:s', current_time('timestamp') - 90 * DAY_IN_SECONDS);
+        $wpdb->query($wpdb->prepare(
+            'DELETE FROM ' . af_activity_log_table() . ' WHERE created_at < %s', $cutoff
+        ));
+    }
+}
+
+// Whether the current front-end request is a real page view worth logging.
+function af_activity_should_log_request() {
+    if (!is_user_logged_in()) return false;
+    if (is_admin()) return false;
+    if (defined('DOING_AJAX') && DOING_AJAX) return false;
+    if (defined('DOING_CRON') && DOING_CRON) return false;
+    if (defined('REST_REQUEST') && REST_REQUEST) return false;
+    if (function_exists('wp_is_json_request') && wp_is_json_request()) return false;
+    if (function_exists('is_feed') && is_feed()) return false;
+    // Don't log admins opening our own tool pages — keeps the log about real
+    // storefront activity rather than filling with self-views.
+    if (function_exists('is_page') && is_page(array('activity-log','user-activity-log','inventory-management','inventory'))) return false;
+    return true;
+}
+
+// A human-readable label for the current front-end page.
+function af_activity_page_label() {
+    if (is_front_page() || is_home()) return 'Visited homepage';
+    if (function_exists('is_product') && is_product()) {
+        return 'Viewed product: ' . html_entity_decode(wp_strip_all_tags(get_the_title()));
+    }
+    if (function_exists('is_product_category') && is_product_category()) {
+        $o = get_queried_object();
+        return 'Viewed category: ' . ($o ? html_entity_decode(wp_strip_all_tags($o->name)) : '');
+    }
+    if (function_exists('is_product_tag') && is_product_tag()) {
+        $o = get_queried_object();
+        return 'Viewed tag: ' . ($o ? html_entity_decode(wp_strip_all_tags($o->name)) : '');
+    }
+    if (function_exists('is_shop') && is_shop()) return 'Viewed shop';
+    if (is_search()) return 'Searched: "' . html_entity_decode(wp_strip_all_tags(get_search_query())) . '"';
+    if (function_exists('is_cart') && is_cart()) return 'Viewed cart';
+    if (function_exists('is_checkout') && is_checkout()) {
+        return (function_exists('is_order_received_page') && is_order_received_page())
+            ? 'Reached order confirmation' : 'Viewed checkout';
+    }
+    if (function_exists('is_account_page') && is_account_page()) return 'Viewed my account';
+    if (is_page()) return 'Viewed page: ' . html_entity_decode(wp_strip_all_tags(get_the_title()));
+    if (is_singular()) return 'Viewed: ' . html_entity_decode(wp_strip_all_tags(get_the_title()));
+    if (is_category() || is_tag() || is_tax()) {
+        $o = get_queried_object();
+        return 'Browsed: ' . ($o && isset($o->name) ? html_entity_decode(wp_strip_all_tags($o->name)) : '');
+    }
+    return 'Viewed a page';
+}
+
+// Log the page view once the main query is resolved (so conditional tags work).
+add_action('template_redirect', function(){
+    if (!af_activity_should_log_request()) return;
+    af_activity_log_record(af_activity_page_label());
+}, 9999);
+
+// Key WooCommerce / auth events — the "what a user does" beyond plain views.
+add_action('woocommerce_add_to_cart', function($key, $product_id, $quantity){
+    if (!is_user_logged_in()) return;
+    $name = html_entity_decode(wp_strip_all_tags(get_the_title($product_id)));
+    af_activity_log_record('Added to cart: ' . $name . ' (x' . (int) $quantity . ')');
+}, 10, 3);
+
+add_action('woocommerce_checkout_order_processed', function($order_id){
+    if (!is_user_logged_in()) return;
+    $order = function_exists('wc_get_order') ? wc_get_order($order_id) : null;
+    $total = $order ? html_entity_decode(wp_strip_all_tags(wc_price($order->get_total()))) : '';
+    af_activity_log_record('Placed order #' . (int) $order_id . ($total ? ' (' . $total . ')' : ''));
+}, 10, 1);
+
+add_action('wp_login', function($user_login, $user){
+    af_activity_log_record('Logged in', $user);
+}, 10, 2);
+
+add_action('wp_logout', function($user_id){
+    $u = $user_id ? get_user_by('id', $user_id) : null;
+    if ($u) af_activity_log_record('Logged out', $u);
+}, 10, 1);
+
+// Admin-bar shortcut to the log, for anyone who can view it.
+add_action('admin_bar_menu', function($bar){
+    if (!current_user_can('manage_options')) return;
+    $page = get_page_by_path('activity-log');
+    $url  = $page ? get_permalink($page) : home_url('/activity-log/');
+    $bar->add_node(array(
+        'id'    => 'af-activity-log',
+        'title' => 'Activity Log',
+        'href'  => $url,
+        'meta'  => array('title' => 'View the visitor activity log'),
+    ));
+}, 81);
+
+// ── Admin-only viewer page /activity-log/ ───────────────────────────────────
+add_action('template_redirect', function(){
+    if (!function_exists('is_page') || !is_page(array('activity-log','user-activity-log'))) return;
+    if (!is_user_logged_in() || !current_user_can('manage_options')) {
+        wp_die('You do not have permission to view this page.', 'Access Denied',
+            array('response' => 403, 'back_link' => true));
+    }
+    af_activity_log_ensure_table();
+    global $wpdb;
+    $table = af_activity_log_table();
+    $limit = 1000;
+    $raw = $wpdb->get_results($wpdb->prepare(
+        "SELECT created_at, user_login, user_id, ip, action, url FROM {$table} ORDER BY id DESC LIMIT %d",
+        $limit
+    ), ARRAY_A);
+    $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table}");
+
+    $rows = array();
+    foreach ((array) $raw as $r) {
+        $ts = strtotime($r['created_at']);
+        $rows[] = array(
+            'time'  => $ts ? date_i18n('M j, Y g:i a', $ts) : $r['created_at'],
+            'user'  => $r['user_login'] !== '' ? $r['user_login'] : ('#' . (int) $r['user_id']),
+            'ip'    => $r['ip'],
+            'act'   => $r['action'],
+            'url'   => $r['url'],
+        );
+    }
+
+    get_header();
+    ?>
+    <div class="af-log-wrap">
+      <header class="af-log-head">
+        <div>
+          <p class="af-log-eyebrow">Admin only</p>
+          <h1>Visitor Activity Log</h1>
+          <p class="af-log-sub">Timestamped record of what signed-in visitors do on the site. Showing the most recent <?php echo (int) count($rows); ?> of <?php echo (int) $total; ?> entries. Entries older than 90 days are pruned automatically.</p>
+        </div>
+        <a class="af-log-home" href="<?php echo esc_url(home_url('/')); ?>">Back to site</a>
+      </header>
+
+      <div class="af-log-toolbar">
+        <input type="search" id="log-search" class="af-log-search" placeholder="Search user, IP or action&hellip;" autocomplete="off">
+      </div>
+
+      <div class="af-log-tablewrap">
+        <table class="af-log-table">
+          <thead><tr>
+            <th class="af-log-thtime">Time</th>
+            <th class="af-log-thuser">User</th>
+            <th class="af-log-thip">IP address</th>
+            <th>Action</th>
+          </tr></thead>
+          <tbody id="log-body"></tbody>
+        </table>
+        <p class="af-log-empty" id="log-empty" hidden>No entries match that search.</p>
+      </div>
+    </div>
+
+    <script>
+    (function(){
+      var ROWS = <?php echo wp_json_encode($rows); ?>;
+      var $ = function(id){ return document.getElementById(id); };
+      var term = '';
+      function esc(s){ var d=document.createElement('div'); d.textContent = s==null?'':String(s); return d.innerHTML; }
+
+      function render(){
+        var list = ROWS.filter(function(r){
+          if (!term) return true;
+          return (r.user + ' ' + r.ip + ' ' + r.act).toLowerCase().indexOf(term) !== -1;
+        });
+        $('log-empty').hidden = list.length > 0;
+        $('log-body').innerHTML = list.map(function(r){
+          var act = r.url
+            ? '<a href="' + esc(r.url) + '" target="_blank" rel="noopener">' + esc(r.act) + '</a>'
+            : esc(r.act);
+          return '<tr>'
+            + '<td class="af-log-tdtime">' + esc(r.time) + '</td>'
+            + '<td class="af-log-tduser">' + esc(r.user) + '</td>'
+            + '<td class="af-log-tdip">' + (r.ip ? esc(r.ip) : '<span class="af-log-dash">&mdash;</span>') + '</td>'
+            + '<td class="af-log-tdact">' + act + '</td>'
+            + '</tr>';
+        }).join('');
+      }
+      $('log-search').addEventListener('input', function(){ term = this.value.trim().toLowerCase(); render(); });
+      render();
+    })();
+    </script>
+
+    <style>
+    .af-log-wrap{max-width:1080px;margin:0 auto;padding:34px 18px 70px;
+      background:linear-gradient(180deg,#f6f1e6 0%,#efe7d6 100%);}
+    .af-log-head{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;justify-content:space-between;margin:0 0 22px;}
+    .af-log-eyebrow{margin:0 0 6px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+      color:#a8801f;background:#f3ead2;border:1px solid #e6d7ad;border-radius:999px;display:inline-block;padding:4px 11px;}
+    .af-log-head h1{margin:0 0 8px;font-family:'Playfair Display',Georgia,serif;font-size:32px;color:#1a1a1a;line-height:1.15;}
+    .af-log-sub{margin:0;font-size:13px;color:#6b6250;max-width:64ch;line-height:1.6;}
+    .af-log-home{align-self:center;background:#1a1a1a;color:#fff;text-decoration:none;font-size:12.5px;font-weight:700;
+      padding:11px 18px;border-radius:9px;transition:background .2s;white-space:nowrap;}
+    .af-log-home:hover{background:#c9a84c;color:#fff;}
+    .af-log-toolbar{margin:0 0 14px;}
+    .af-log-search{width:100%;max-width:420px;height:42px;padding:0 14px;border:1.5px solid #e2d9c4;border-radius:10px;
+      background:#fffdf8;color:#1a1a1a;font-size:14px;}
+    .af-log-search:focus{outline:none;border-color:#c9a84c;}
+    .af-log-tablewrap{background:#fffdf8;border:1px solid #efe6d2;border-radius:14px;overflow:auto;max-height:72vh;
+      box-shadow:0 4px 18px rgba(70,54,26,.07);}
+    .af-log-table{width:100%;border-collapse:collapse;font-size:13px;min-width:680px;}
+    .af-log-table thead th{position:sticky;top:0;background:#f3ead2;color:#6b6250;text-align:left;
+      font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;padding:11px 14px;
+      border-bottom:1px solid #e6d7ad;z-index:1;}
+    .af-log-table tbody td{padding:9px 14px;border-bottom:1px solid #f0e9da;vertical-align:top;color:#1a1a1a;}
+    .af-log-table tbody tr:last-child td{border-bottom:none;}
+    .af-log-table tbody tr:hover{background:#fdf9ef;}
+    .af-log-thtime,.af-log-tdtime{white-space:nowrap;color:#6b6250;}
+    .af-log-thuser,.af-log-tduser{white-space:nowrap;font-weight:700;}
+    .af-log-thip,.af-log-tdip{white-space:nowrap;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:#5a5140;}
+    .af-log-tdact a{color:#1a1a1a;text-decoration:none;}
+    .af-log-tdact a:hover{color:#c9a84c;}
+    .af-log-dash{color:#b8b0a0;}
+    .af-log-empty{margin:0;padding:34px 16px;text-align:center;color:#8a8170;font-size:14px;}
+    @media(max-width:640px){ .af-log-wrap{padding:24px 12px 54px;} .af-log-head h1{font-size:26px;} }
+    </style>
+    <?php
+    get_footer();
+    exit;
+}, 1);

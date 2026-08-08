@@ -251,6 +251,12 @@ $pages = array(
         'title' => 'Inventory Management',
         'body'  => "<p>This page is restricted to site administrators.</p>",
     ),
+    // Admin-only visitor activity log. Rendered by the template_redirect
+    // builder in functions.php, which enforces the administrator-only gate.
+    'activity-log' => array(
+        'title' => 'Activity Log',
+        'body'  => "<p>This page is restricted to site administrators.</p>",
+    ),
 );
 
 echo "=== Create Missing Pages ===\n\n";
