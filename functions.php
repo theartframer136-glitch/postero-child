@@ -12931,11 +12931,13 @@ function taf_brochure_link($variant = 'card') {
   $icon = '<svg class="taf-broch-ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false">'
         . '<path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"'
         . ' d="M12 3v11m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>';
-  $meta = '<span class="taf-broch-meta">PDF &middot; ' . esc_html(TAF_BROCHURE_SIZE) . '</span>';
+  // Labels stay short: the site's button language is uppercase with 2px
+  // letter-spacing, so anything long stops looking like a button. The file
+  // size goes in a separate caption instead of inside the pill.
   if ($variant === 'single') {
-    $label = 'Download Brochure ' . $meta;
+    $label = 'Download Brochure';
   } elseif ($variant === 'banner') {
-    $label = 'Download the full brochure ' . $meta;
+    $label = 'Download Brochure';
   } else {
     $label = 'Brochure';
   }
@@ -12947,7 +12949,9 @@ function taf_brochure_link($variant = 'card') {
 
 // 1. Single product page — button under the add-to-cart area.
 add_action('woocommerce_single_product_summary', function() {
-  echo '<div class="taf-broch-wrap">' . taf_brochure_link('single') . '</div>';
+  echo '<div class="taf-broch-wrap">' . taf_brochure_link('single')
+     . '<span class="taf-broch-note">PDF &middot; ' . esc_html(TAF_BROCHURE_SIZE)
+     . ' &middot; 358 pages</span></div>';
 }, 35);
 
 // 2. Standard WooCommerce loop cards (shop, category, tag, related, up-sells).
@@ -12973,39 +12977,44 @@ add_filter('wp_nav_menu_items', function($items, $args) {
 
 add_action('wp_head', function() { ?>
 <style>
-.taf-broch{display:inline-flex!important;align-items:center;gap:6px;
-  text-decoration:none;font-weight:600;line-height:1.2;border-radius:8px;
-  transition:background .15s,border-color .15s,color .15s;}
-.taf-broch .taf-broch-ico{flex:0 0 auto;}
-.taf-broch-meta{font-weight:500;opacity:.72;font-size:.86em;letter-spacing:.02em;}
-/* card variant — deliberately quiet so it never competes with Add to Cart */
-.taf-broch--card{margin:6px auto 2px;padding:5px 10px;font-size:12px;
-  letter-spacing:.03em;color:#8a6d3b;border:1px solid rgba(138,109,59,.32);
-  background:transparent;}
-.taf-broch--card:hover,.taf-broch--card:focus{background:rgba(138,109,59,.09);
-  border-color:#8a6d3b;color:#6d5429;}
+/* Matches the store's existing button language exactly — pill radius 50px,
+   uppercase, 2px tracking, gold #c9a84c border with #8a6d1f text — so the
+   brochure reads as a native secondary action next to "Show Dimensions"
+   rather than a bolted-on box. Never a solid fill: the solid gold #ca9236 is
+   reserved for Add to Cart and a second solid button would fight it. */
+.taf-broch{display:inline-flex!important;align-items:center;justify-content:center;
+  gap:8px;text-decoration:none;font-weight:700;text-transform:uppercase;
+  letter-spacing:2px;line-height:1.15;border-radius:50px;
+  border:.8px solid #c9a84c;background:#fff;color:#8a6d1f;
+  box-shadow:none;text-align:center;
+  transition:background .18s,border-color .18s,color .18s,box-shadow .18s;}
+.taf-broch:hover,.taf-broch:focus{background:#c9a84c;border-color:#c9a84c;
+  color:#fff;box-shadow:0 2px 12px rgba(201,168,76,.32);}
+.taf-broch .taf-broch-ico{flex:0 0 auto;opacity:.85;}
+.taf-broch:hover .taf-broch-ico{opacity:1;}
+/* card — same pill as the card's Add to Cart, one step quieter */
+.taf-broch-cardwrap{display:flex;justify-content:center;}
+.taf-broch--card{font-size:11px;padding:8px 18px;margin:10px auto 2px;
+  border-color:rgba(201,168,76,.62);}
 .taf-broch--card .taf-broch-ico{width:13px;height:13px;}
-li.product .taf-broch--card{display:flex!important;width:-moz-fit-content;width:fit-content;}
-.taf-broch-cardwrap{text-align:center;}
-/* single product page */
-.taf-broch-wrap{margin:14px 0 6px;}
-.taf-broch--single{padding:11px 20px;font-size:14.5px;color:#fff;
-  background:#8a6d3b;border:1px solid #8a6d3b;letter-spacing:.02em;}
-.taf-broch--single:hover,.taf-broch--single:focus{background:#6d5429;
-  border-color:#6d5429;color:#fff;}
-.taf-broch--single .taf-broch-meta{opacity:.8;}
+/* single product page — sits with Show Dimensions, size as a caption below */
+.taf-broch-wrap{margin:16px 0 12px;display:flex;flex-direction:column;
+  align-items:flex-start;gap:7px;}
+.taf-broch--single{font-size:12.5px;padding:14px 26px;}
+.taf-broch-note{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;
+  color:#a49c8b;font-weight:600;}
 /* archive banner */
-.taf-broch-banner{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;
-  justify-content:space-between;margin:0 0 22px;padding:14px 18px;
-  border:1px solid rgba(138,109,59,.28);border-radius:12px;
-  background:linear-gradient(180deg,rgba(201,168,76,.09),rgba(201,168,76,.03));}
-.taf-broch-banner-txt{font-size:14px;color:#5a5140;flex:1 1 260px;}
-.taf-broch--banner{padding:9px 16px;font-size:13.5px;color:#fff;background:#8a6d3b;
-  border:1px solid #8a6d3b;white-space:nowrap;}
-.taf-broch--banner:hover,.taf-broch--banner:focus{background:#6d5429;color:#fff;}
+.taf-broch-banner{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;
+  justify-content:space-between;margin:0 0 24px;padding:16px 22px;
+  border:.8px solid rgba(201,168,76,.55);border-radius:14px;
+  background:linear-gradient(180deg,rgba(201,168,76,.08),rgba(201,168,76,.02));}
+.taf-broch-banner-txt{font-size:14px;line-height:1.45;color:#5a5140;flex:1 1 280px;}
+.taf-broch--banner{font-size:12px;padding:13px 24px;white-space:nowrap;}
 @media(max-width:600px){
-  .taf-broch-banner{padding:12px 14px;}
-  .taf-broch--banner,.taf-broch--single{width:100%;justify-content:center;}
+  .taf-broch-banner{padding:14px 16px;}
+  .taf-broch-wrap{align-items:stretch;}
+  .taf-broch--banner,.taf-broch--single{width:100%;}
+  .taf-broch-note{text-align:center;}
 }
 </style>
 <?php });
