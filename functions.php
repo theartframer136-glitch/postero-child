@@ -4630,6 +4630,35 @@ function af_pricing_config() {
     );
 }
 
+/**
+ * The size a product is titled as — "…Canvas Wall Art 3x4 Feet", "60 x 36
+ * Inch…" — resolved to its selector label. This is what makes the numbers
+ * agree "variation-wise": the listing price, the pre-selected size chip and
+ * the cart default all key off the product's own size instead of everything
+ * defaulting to 2×3. Returns '' when the title carries no recognisable size.
+ */
+function af_size_label_for_product($product) {
+    $name = is_object($product) ? $product->get_name() : (string) $product;
+    if (!preg_match('/(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(ft|feet|foot|inches|inch|in)?\b/iu', $name, $m)) return '';
+    $a = (float) $m[1]; $b = (float) $m[2];
+    $u = strtolower(isset($m[3]) ? $m[3] : '');
+    if ($u === '') $u = ($a > 12 || $b > 12) ? 'in' : 'ft';   // a bare "36x48" is inches
+    if (strpos($u, 'in') === 0) { $a /= 12; $b /= 12; }
+    $labels = array();
+    foreach (af_pricing_config()['sizes'] as $label => $usd) {
+        if (preg_match('/^(\d+(?:\.\d+)?)×(\d+(?:\.\d+)?) ft/u', $label, $lm)) {
+            $labels[$label] = array((float) $lm[1], (float) $lm[2]);
+        }
+    }
+    foreach ($labels as $label => $d) {                        // exact orientation
+        if (abs($d[0] - $a) < 0.26 && abs($d[1] - $b) < 0.26) return $label;
+    }
+    foreach ($labels as $label => $d) {                        // same print, turned
+        if (abs($d[0] - $b) < 0.26 && abs($d[1] - $a) < 0.26) return $label;
+    }
+    return '';
+}
+
 // Authoritative server-side price calculation.
 // The size sets the price outright from the rate card — the product's listing
 // price no longer multiplies into it ($base stays in the signature so the
@@ -4661,6 +4690,10 @@ add_action('woocommerce_before_add_to_cart_button', function() {
     $sizes  = array_keys($cfg['sizes']);
     $frames = array_keys($cfg['frames']);
     $colors = array_keys($cfg['colors']);
+    // pre-select the size the product is titled as, so the opening price IS
+    // this product's price — not every product pretending to be a 2×3
+    $def_size = af_size_label_for_product($product);
+    if (!in_array($def_size, $sizes, true)) $def_size = $sizes[0];
     ?>
     <div class="af-opts" id="af-opts" data-base="<?php echo esc_attr($base); ?>" data-config='<?php echo esc_attr(wp_json_encode($cfg)); ?>' data-symbol="<?php echo esc_attr(get_woocommerce_currency_symbol()); ?>">
       <div class="af-opt-group">
@@ -4674,7 +4707,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
         </div>
         <div class="af-chips af-size-chips">
           <?php foreach ($sizes as $i => $s): ?>
-            <button type="button" class="af-chip-opt<?php echo $i===0?' active':''; ?>" data-type="size" data-val="<?php echo esc_attr($s); ?>"><?php echo esc_html($s); ?></button>
+            <button type="button" class="af-chip-opt<?php echo $s===$def_size?' active':''; ?>" data-type="size" data-val="<?php echo esc_attr($s); ?>"><?php echo esc_html($s); ?></button>
           <?php endforeach; ?>
         </div>
       </div>
@@ -4713,7 +4746,11 @@ add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
     $product = wc_get_product($pid);
     if (!$product || !af_pricing_applies($product)) return $data;
     $cfg = af_pricing_config();
-    $size  = isset($_POST['af_size'])  ? sanitize_text_field(wp_unslash($_POST['af_size']))  : array_key_first($cfg['sizes']);
+    // quick add-to-cart (no options chosen) defaults to the product's OWN
+    // titled size, so a 4×6-titled piece is never silently sold as a 2×3
+    $def   = af_size_label_for_product($product);
+    $size  = isset($_POST['af_size'])  ? sanitize_text_field(wp_unslash($_POST['af_size']))
+             : ($def !== '' ? $def : array_key_first($cfg['sizes']));
     $frame = isset($_POST['af_frame']) ? sanitize_text_field(wp_unslash($_POST['af_frame'])) : array_key_first($cfg['frames']);
     $color = isset($_POST['af_color']) ? sanitize_text_field(wp_unslash($_POST['af_color'])) : array_key_first($cfg['colors']);
     // Validate against config

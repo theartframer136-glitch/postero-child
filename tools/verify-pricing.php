@@ -90,4 +90,36 @@ foreach ($pages as $where => $url) {
            ($has60?'':'2×3:60 missing ') . ($has150?'':'4×6:150 missing'));
 }
 
+// ── listings must carry the same book ──
+// a product titled 3×4 must LIST at $80, open its options on the 3×4 chip,
+// and quick-add to the cart at $80 — one number, three surfaces
+$sampled = 0; $wrong = array(); $backed = 0;
+foreach (wc_get_products(array('status'=>'publish','limit'=>60,'return'=>'ids','orderby'=>'date','order'=>'DESC')) as $sid) {
+    $sp = wc_get_product($sid);
+    if (!$sp || !af_pricing_applies($sp) || $sp->is_type('variable')) continue;
+    $slabel = af_size_label_for_product($sp);
+    if ($slabel === '') continue;
+    $sampled++;
+    $cfg2 = af_pricing_config();
+    $want = (float) $cfg2['sizes'][$slabel];
+    if ((float) $sp->get_price() !== $want) $wrong[] = "#{$sid} {$slabel} lists \${$sp->get_price()} (card \${$want})";
+    if (get_post_meta($sid, '_af_price_backup', true)) $backed++;
+    if ($sampled >= 25) break;
+}
+af_prv('listings priced from the card (' . $sampled . ' sampled)', !$wrong, $fail,
+       $wrong ? implode('; ', array_slice($wrong, 0, 3)) : 'all exact');
+af_prv('old prices backed up for reversal', $sampled === 0 || $backed > 0, $fail, "{$backed} of {$sampled}");
+if ($pid) {
+    $pp = wc_get_product($pid);
+    $plabel = af_size_label_for_product($pp);
+    if ($plabel !== '') {
+        $r2 = af_prv_get(get_permalink($pid));
+        if (!is_wp_error($r2)) {
+            $b2 = wp_remote_retrieve_body($r2);
+            af_prv('options panel opens on the titled size',
+                   strpos($b2, 'af-chip-opt active" data-type="size" data-val="' . $plabel . '"') !== false, $fail, $plabel);
+        }
+    }
+}
+
 echo "\n=== RESULT: " . ($fail ? "{$fail} PROBLEM(S)" : "ALL CHECKS PASSED") . " ===\n";
