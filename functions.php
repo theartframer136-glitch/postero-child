@@ -12471,6 +12471,99 @@ function af_log_can_access() {
     return is_user_logged_in() && current_user_can('manage_options');
 }
 
+function af_console_url() {
+    $page = get_page_by_path('admin-console');
+    return $page ? get_permalink($page) : home_url('/admin-console/');
+}
+
+// The Admin Console is reachable by anyone who can open at least one of the
+// tools inside it — administrators see every tool, allowlisted inventory staff
+// see just Inventory. Each tool still enforces its own gate.
+function af_console_can_access() {
+    return (function_exists('af_inv_can_access') && af_inv_can_access()) || af_log_can_access();
+}
+
+// ── Admin Console hub page /admin-console/ ──────────────────────────────────
+// A panel that gathers the admin tools (Inventory Management, Audit) in one
+// place. Each tool is shown only if the viewer can actually open it.
+add_action('template_redirect', function(){
+    if (!function_exists('is_page') || !is_page(array('admin-console','admin'))) return;
+    if (!af_console_can_access()) {
+        wp_die('You do not have permission to view this page.', 'Access Denied',
+            array('response' => 403, 'back_link' => true));
+    }
+    $can_inv = (function_exists('af_inv_can_access') && af_inv_can_access());
+    $can_log = af_log_can_access();
+
+    $cards = array();
+    if ($can_inv) {
+        $cards[] = array(
+            'url'   => af_inv_url(),
+            'icon'  => '&#128230;', // package
+            'title' => 'Inventory Management',
+            'desc'  => 'View and edit product stock, grouped by category.',
+        );
+    }
+    if ($can_log) {
+        $cards[] = array(
+            'url'   => af_log_url(),
+            'icon'  => '&#128220;', // scroll
+            'title' => 'Audit',
+            'desc'  => 'Timestamped log of what signed-in visitors do, with IP and email.',
+        );
+    }
+
+    get_header();
+    ?>
+    <div class="af-console-wrap">
+      <header class="af-console-head">
+        <div>
+          <p class="af-console-eyebrow">Admin only</p>
+          <h1>Admin Console</h1>
+          <p class="af-console-sub">Your staff tools in one place. Open a tool to manage the store.</p>
+        </div>
+        <a class="af-console-home" href="<?php echo esc_url(home_url('/')); ?>">Back to site</a>
+      </header>
+
+      <div class="af-console-grid">
+        <?php foreach ($cards as $c) : ?>
+          <a class="af-console-card" href="<?php echo esc_url($c['url']); ?>">
+            <span class="af-console-cardicon"><?php echo $c['icon']; ?></span>
+            <span class="af-console-cardtitle"><?php echo esc_html($c['title']); ?></span>
+            <span class="af-console-carddesc"><?php echo esc_html($c['desc']); ?></span>
+            <span class="af-console-cardgo">Open &rarr;</span>
+          </a>
+        <?php endforeach; ?>
+      </div>
+    </div>
+
+    <style>
+    .af-console-wrap{max-width:960px;margin:0 auto;padding:34px 18px 70px;
+      background:linear-gradient(180deg,#f6f1e6 0%,#efe7d6 100%);}
+    .af-console-head{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;justify-content:space-between;margin:0 0 26px;}
+    .af-console-eyebrow{margin:0 0 6px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+      color:#a8801f;background:#f3ead2;border:1px solid #e6d7ad;border-radius:999px;display:inline-block;padding:4px 11px;}
+    .af-console-head h1{margin:0 0 8px;font-family:'Playfair Display',Georgia,serif;font-size:34px;color:#1a1a1a;line-height:1.15;}
+    .af-console-sub{margin:0;font-size:13.5px;color:#6b6250;max-width:56ch;line-height:1.6;}
+    .af-console-home{align-self:center;background:#1a1a1a;color:#fff;text-decoration:none;font-size:12.5px;font-weight:700;
+      padding:11px 18px;border-radius:9px;transition:background .2s;white-space:nowrap;}
+    .af-console-home:hover{background:#c9a84c;color:#fff;}
+    .af-console-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px;}
+    .af-console-card{display:flex;flex-direction:column;gap:8px;padding:24px 22px;text-decoration:none;
+      background:#fffdf8;border:1px solid #efe6d2;border-radius:16px;box-shadow:0 4px 18px rgba(70,54,26,.07);
+      transition:border-color .15s,transform .15s,box-shadow .2s;}
+    .af-console-card:hover{border-color:#c9a84c;transform:translateY(-2px);box-shadow:0 10px 26px rgba(70,54,26,.13);}
+    .af-console-cardicon{font-size:30px;line-height:1;}
+    .af-console-cardtitle{font-family:'Playfair Display',Georgia,serif;font-size:20px;color:#1a1a1a;}
+    .af-console-carddesc{font-size:13px;color:#6b6250;line-height:1.55;}
+    .af-console-cardgo{margin-top:6px;font-size:12.5px;font-weight:800;letter-spacing:.02em;color:#a8801f;}
+    @media(max-width:640px){ .af-console-wrap{padding:24px 12px 54px;} .af-console-head h1{font-size:27px;} }
+    </style>
+    <?php
+    get_footer();
+    exit;
+}, 1);
+
 // Admin-only "Inventory" link in the main nav, sitting after Contact Us.
 // The menu itself is managed in WP, so rather than editing it there (where the
 // item would be visible to everyone) the link is injected at render time and
@@ -12483,38 +12576,41 @@ function af_log_can_access() {
 // desktop. Adding to each matching menu also means the link works on mobile.
 add_filter('wp_nav_menu_items', function($items, $args) {
     if (stripos($items, 'contact') === false) return $items;
+    if (!af_console_can_access()) return $items;
+    if (strpos($items, 'af-console-navitem') !== false) return $items;
 
-    $add = '';
-    if (function_exists('af_inv_can_access') && af_inv_can_access() && strpos($items, 'af-inv-navitem') === false) {
-        $add .= '<li class="menu-item af-inv-navitem"><a href="' . esc_url(af_inv_url()) . '">Inventory</a></li>';
-    }
-    // Activity Log sits right beside Inventory, admins only.
-    if (af_log_can_access() && strpos($items, 'af-log-navitem') === false) {
-        $add .= '<li class="menu-item af-log-navitem"><a href="' . esc_url(af_log_url()) . '">Audit</a></li>';
-    }
-    return $items . $add;
+    return $items . '<li class="menu-item af-console-navitem"><a href="' . esc_url(af_console_url()) . '">Admin Console</a></li>';
 }, 20, 2);
 
 // Admin-bar entry: works no matter how the header is built, so there is always
 // one reliable way in even if the theme renders its nav without wp_nav_menu().
+// The console is the parent; the individual tools hang off it as children.
 add_action('admin_bar_menu', function($bar) {
-    if (!function_exists('af_inv_can_access') || !af_inv_can_access()) return;
+    if (!af_console_can_access()) return;
     $bar->add_node(array(
-        'id'    => 'af-inventory',
-        'title' => 'Inventory',
-        'href'  => af_inv_url(),
-        'meta'  => array('title' => 'Open the inventory management page'),
+        'id'    => 'af-admin-console',
+        'title' => 'Admin Console',
+        'href'  => af_console_url(),
+        'meta'  => array('title' => 'Open the admin console'),
     ));
+    if (function_exists('af_inv_can_access') && af_inv_can_access()) {
+        $bar->add_node(array(
+            'id'     => 'af-inventory',
+            'parent' => 'af-admin-console',
+            'title'  => 'Inventory',
+            'href'   => af_inv_url(),
+        ));
+    }
 }, 80);
 
 add_action('wp_head', function() {
-    if ((!function_exists('af_inv_can_access') || !af_inv_can_access()) && !af_log_can_access()) return;
+    if (!af_console_can_access()) return;
     ?>
     <style>
-    /* Marks the injected links as admin-only tools so they read as distinct
-       from the customer-facing nav items they sit beside. */
-    .af-inv-navitem > a, .af-log-navitem > a{position:relative;color:#c9a84c !important;}
-    .af-inv-navitem > a::after, .af-log-navitem > a::after{content:'ADMIN';margin-left:6px;font-size:8.5px;font-weight:800;
+    /* Marks the injected link as an admin-only tool so it reads as distinct
+       from the customer-facing nav items it sits beside. */
+    .af-console-navitem > a{position:relative;color:#c9a84c !important;}
+    .af-console-navitem > a::after{content:'ADMIN';margin-left:6px;font-size:8.5px;font-weight:800;
       letter-spacing:.06em;vertical-align:super;opacity:.75;}
     </style>
     <?php
@@ -12527,15 +12623,11 @@ add_action('wp_head', function() {
 // actually holds the Contact link — matching what the visitor really sees
 // rather than what the theme was assumed to output.
 add_action('wp_footer', function() {
-    $inv = (function_exists('af_inv_can_access') && af_inv_can_access());
-    $log = af_log_can_access();
-    if (!$inv && !$log) return;
+    if (!af_console_can_access()) return;
     ?>
     <script>
     (function(){
-      var ITEMS = [];
-      <?php if ($inv) : ?>ITEMS.push({cls:'af-inv-navitem', label:'Inventory', href:<?php echo wp_json_encode(af_inv_url()); ?>});<?php endif; ?>
-      <?php if ($log) : ?>ITEMS.push({cls:'af-log-navitem', label:'Audit', href:<?php echo wp_json_encode(af_log_url()); ?>});<?php endif; ?>
+      var ITEMS = [{cls:'af-console-navitem', label:'Admin Console', href:<?php echo wp_json_encode(af_console_url()); ?>}];
 
       function findNav(){
         var lists = document.querySelectorAll('ul');
@@ -12680,7 +12772,7 @@ function af_activity_should_log_request() {
     if (function_exists('is_feed') && is_feed()) return false;
     // Don't log admins opening our own tool pages — keeps the log about real
     // storefront activity rather than filling with self-views.
-    if (function_exists('is_page') && is_page(array('activity-log','user-activity-log','inventory-management','inventory'))) return false;
+    if (function_exists('is_page') && is_page(array('activity-log','user-activity-log','inventory-management','inventory','admin-console','admin'))) return false;
     return true;
 }
 
@@ -12744,16 +12836,15 @@ add_action('wp_logout', function($user_id){
     if ($u) af_activity_log_record('Logged out', $u);
 }, 10, 1);
 
-// Admin-bar shortcut to the log, for anyone who can view it.
+// Admin-bar shortcut to the log, nested under the Admin Console parent node.
 add_action('admin_bar_menu', function($bar){
-    if (!current_user_can('manage_options')) return;
-    $page = get_page_by_path('activity-log');
-    $url  = $page ? get_permalink($page) : home_url('/activity-log/');
+    if (!af_log_can_access()) return;
     $bar->add_node(array(
-        'id'    => 'af-activity-log',
-        'title' => 'Audit',
-        'href'  => $url,
-        'meta'  => array('title' => 'View the audit log'),
+        'id'     => 'af-activity-log',
+        'parent' => 'af-admin-console',
+        'title'  => 'Audit',
+        'href'   => af_log_url(),
+        'meta'   => array('title' => 'View the audit log'),
     ));
 }, 81);
 

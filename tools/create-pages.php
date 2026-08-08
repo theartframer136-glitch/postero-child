@@ -257,6 +257,12 @@ $pages = array(
         'title' => 'Audit',
         'body'  => "<p>This page is restricted to site administrators.</p>",
     ),
+    // Admin Console hub — links to the Inventory and Audit tools. Rendered by
+    // the template_redirect builder in functions.php, which enforces the gate.
+    'admin-console' => array(
+        'title' => 'Admin Console',
+        'body'  => "<p>This page is restricted to staff.</p>",
+    ),
 );
 
 echo "=== Create Missing Pages ===\n\n";
