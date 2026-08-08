@@ -12896,3 +12896,158 @@ add_action('template_redirect', function(){
     get_footer();
     exit;
 }, 1);
+
+// ---------------------------------------------------------------------------
+// PHASE 30 — "Download Brochure" (printed collection book, PDF)
+// Added 2026-08-08. One canonical PDF in the media library, linked from every
+// product card, the single-product page, the shop/category header and the main
+// menu, so a visitor can always grab the printed catalogue.
+//
+// The source file supplied was 1.1 GB (358 full-bleed pages) — far too large to
+// serve to visitors. It is re-encoded to ~41 MB with no visible quality loss
+// before upload (PyMuPDF re-render at 1.05x, JPEG q62). To replace the brochure
+// later: upload the new PDF and set the `taf_brochure_url` option (or hook the
+// filter of the same name) — nothing else here needs to change.
+// ---------------------------------------------------------------------------
+define('TAF_BROCHURE_FALLBACK',
+  'https://theartframer.us/wp-content/uploads/2026/08/TheArtFramer-Collection-Brochure.pdf');
+define('TAF_BROCHURE_SIZE', '41 MB');
+
+function taf_brochure_url() {
+  $url = get_option('taf_brochure_url', '');
+  if (!$url) { $url = TAF_BROCHURE_FALLBACK; }
+  return esc_url(apply_filters('taf_brochure_url', $url));
+}
+
+/**
+ * Brochure anchor. Always an <a>, never a <button>: a global rule elsewhere in
+ * the site collapses padding on bare <button> elements, which would squash it.
+ * `download` asks the browser to save the 41 MB file instead of opening it
+ * inline in the PDF viewer.
+ */
+function taf_brochure_link($variant = 'card') {
+  $url = taf_brochure_url();
+  if (!$url) return '';
+  $icon = '<svg class="taf-broch-ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false">'
+        . '<path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"'
+        . ' d="M12 3v11m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>';
+  $meta = '<span class="taf-broch-meta">PDF &middot; ' . esc_html(TAF_BROCHURE_SIZE) . '</span>';
+  if ($variant === 'single') {
+    $label = 'Download Brochure ' . $meta;
+  } elseif ($variant === 'banner') {
+    $label = 'Download the full brochure ' . $meta;
+  } else {
+    $label = 'Brochure';
+  }
+  return '<a class="taf-broch taf-broch--' . esc_attr($variant) . '" href="' . $url . '"'
+       . ' download="TheArtFramer-Collection-Brochure.pdf" target="_blank" rel="noopener"'
+       . ' title="Download the printed collection book (PDF, ' . esc_attr(TAF_BROCHURE_SIZE) . ')">'
+       . $icon . '<span class="taf-broch-txt">' . $label . '</span></a>';
+}
+
+// 1. Single product page — button under the add-to-cart area.
+add_action('woocommerce_single_product_summary', function() {
+  echo '<div class="taf-broch-wrap">' . taf_brochure_link('single') . '</div>';
+}, 35);
+
+// 2. Standard WooCommerce loop cards (shop, category, tag, related, up-sells).
+add_action('woocommerce_after_shop_loop_item', function() {
+  echo taf_brochure_link('card');
+}, 15);
+
+// 3. Shop / product-archive header strip.
+add_action('woocommerce_before_shop_loop', function() {
+  echo '<div class="taf-broch-banner"><span class="taf-broch-banner-txt">'
+     . 'Browse all 358 pages of our printed collection book &mdash; every artwork with its Art Code.'
+     . '</span>' . taf_brochure_link('banner') . '</div>';
+}, 8);
+
+// 4. Main-menu item, so the brochure is one click away from any page.
+add_filter('wp_nav_menu_items', function($items, $args) {
+  $loc = isset($args->theme_location) ? $args->theme_location : '';
+  if (!in_array($loc, array('primary', 'menu-1', 'main', 'header'), true)) return $items;
+  if (strpos($items, 'taf-broch-nav') !== false) return $items;
+  return $items . '<li class="menu-item taf-broch-nav"><a href="' . taf_brochure_url()
+       . '" download="TheArtFramer-Collection-Brochure.pdf" target="_blank" rel="noopener">Brochure</a></li>';
+}, 10, 2);
+
+add_action('wp_head', function() { ?>
+<style>
+.taf-broch{display:inline-flex!important;align-items:center;gap:6px;
+  text-decoration:none;font-weight:600;line-height:1.2;border-radius:8px;
+  transition:background .15s,border-color .15s,color .15s;}
+.taf-broch .taf-broch-ico{flex:0 0 auto;}
+.taf-broch-meta{font-weight:500;opacity:.72;font-size:.86em;letter-spacing:.02em;}
+/* card variant — deliberately quiet so it never competes with Add to Cart */
+.taf-broch--card{margin:6px auto 2px;padding:5px 10px;font-size:12px;
+  letter-spacing:.03em;color:#8a6d3b;border:1px solid rgba(138,109,59,.32);
+  background:transparent;}
+.taf-broch--card:hover,.taf-broch--card:focus{background:rgba(138,109,59,.09);
+  border-color:#8a6d3b;color:#6d5429;}
+.taf-broch--card .taf-broch-ico{width:13px;height:13px;}
+li.product .taf-broch--card{display:flex!important;width:-moz-fit-content;width:fit-content;}
+.taf-broch-cardwrap{text-align:center;}
+/* single product page */
+.taf-broch-wrap{margin:14px 0 6px;}
+.taf-broch--single{padding:11px 20px;font-size:14.5px;color:#fff;
+  background:#8a6d3b;border:1px solid #8a6d3b;letter-spacing:.02em;}
+.taf-broch--single:hover,.taf-broch--single:focus{background:#6d5429;
+  border-color:#6d5429;color:#fff;}
+.taf-broch--single .taf-broch-meta{opacity:.8;}
+/* archive banner */
+.taf-broch-banner{display:flex;flex-wrap:wrap;align-items:center;gap:12px 18px;
+  justify-content:space-between;margin:0 0 22px;padding:14px 18px;
+  border:1px solid rgba(138,109,59,.28);border-radius:12px;
+  background:linear-gradient(180deg,rgba(201,168,76,.09),rgba(201,168,76,.03));}
+.taf-broch-banner-txt{font-size:14px;color:#5a5140;flex:1 1 260px;}
+.taf-broch--banner{padding:9px 16px;font-size:13.5px;color:#fff;background:#8a6d3b;
+  border:1px solid #8a6d3b;white-space:nowrap;}
+.taf-broch--banner:hover,.taf-broch--banner:focus{background:#6d5429;color:#fff;}
+@media(max-width:600px){
+  .taf-broch-banner{padding:12px 14px;}
+  .taf-broch--banner,.taf-broch--single{width:100%;justify-content:center;}
+}
+</style>
+<?php });
+
+// 5. Cards rendered outside the standard Woo loop (Postero homepage carousels,
+//    Elementor product widgets, search results). Same reason as PHASE 25b: those
+//    templates never fire `woocommerce_after_shop_loop_item`, so inject in JS.
+//    Unlike the Art Code this needs no per-product lookup — the link is the same
+//    for every product, so it only has to recognise a product card.
+add_action('wp_footer', function() {
+  if (is_admin()) return; ?>
+<script>
+(function(){
+  var HTML = <?php echo wp_json_encode(taf_brochure_link('card')); ?>;
+  if (!HTML) return;
+  function add(card){
+    if (card.getAttribute('data-taf-broch')) return;
+    card.setAttribute('data-taf-broch','1');
+    if (card.querySelector('.taf-broch--card')) return;   // PHP hook already handled it
+    var w = document.createElement('div');
+    w.className = 'taf-broch-cardwrap';
+    w.innerHTML = HTML;
+    card.appendChild(w);
+  }
+  function run(){
+    var cards = document.querySelectorAll('li.product, .product-card, .trending-card, [class*="type-product"]');
+    Array.prototype.forEach.call(cards, function(c){
+      if (document.body.classList.contains('single-product') && c.closest('.summary')) return;
+      if (c.querySelector('.taf-broch--single')) return;  // this is the single-product body
+      if (!c.querySelector('a[href]')) return;            // not a real card
+      add(c);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', run);
+  window.addEventListener('load', run);
+  [400,1200,2500].forEach(function(d){ setTimeout(run,d); });
+  try {
+    var obs = new MutationObserver(function(m){
+      for (var i=0;i<m.length;i++){ if (m[i].addedNodes && m[i].addedNodes.length){ run(); break; } }
+    });
+    obs.observe(document.body,{childList:true,subtree:true});
+  } catch(e){}
+})();
+</script>
+<?php }, 60);
