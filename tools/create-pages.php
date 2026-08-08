@@ -254,7 +254,7 @@ $pages = array(
     // Admin-only visitor activity log. Rendered by the template_redirect
     // builder in functions.php, which enforces the administrator-only gate.
     'activity-log' => array(
-        'title' => 'Activity Log',
+        'title' => 'Audit',
         'body'  => "<p>This page is restricted to site administrators.</p>",
     ),
 );
