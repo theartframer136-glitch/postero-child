@@ -770,15 +770,31 @@ add_action('wp_footer', function() { ?>
                     sp(btn,'display',         'flex');
                     sp(btn,'align-items',     'center');
                     sp(btn,'justify-content', 'center');
-                    sp(btn,'gap',             '5px');
+                    // 8px, matching every other card section. This inline
+                    // !important is what silently beat the stylesheet's gap:
+                    // it is the styler that builds the carousel cards, so
+                    // Trending Today kept its 5px however the CSS was written.
+                    sp(btn,'gap',             '8px');
                     sp(btn,'white-space',     'nowrap');
                     sp(btn,'text-decoration', 'none');
                     sp(btn,'line-height',     '1');
                     var cls = btn.className || '';
-                    if (/add.cart|add_to_cart/i.test(cls)) {
-                        sp(btn,'background','#c9a84c'); sp(btn,'color','#fff');
-                    } else {
-                        sp(btn,'background','#1a1a1a'); sp(btn,'color','#fff');
+                    // Every spelling the sections ship: add-cart, add_to_cart_button,
+                    // add-to-cart-btn. The old /add.cart|add_to_cart/ needed exactly
+                    // ONE character between "add" and "cart", so add-to-cart-btn fell
+                    // through and got painted black like Quick View.
+                    var isCart = /add[-_ ]?(to[-_ ]?)?cart/i.test(cls);
+                    sp(btn,'background', isCart ? '#c9a84c' : '#1a1a1a');
+                    sp(btn,'color','#fff');
+                    // inline !important cannot be hovered by a stylesheet
+                    if (!btn.dataset.afHoverBound) {
+                        btn.dataset.afHoverBound = '1';
+                        btn.addEventListener('mouseenter', function(){
+                            sp(btn,'background', isCart ? '#8b6a2b' : '#333');
+                        });
+                        btn.addEventListener('mouseleave', function(){
+                            sp(btn,'background', isCart ? '#c9a84c' : '#1a1a1a');
+                        });
                     }
                 });
             }
