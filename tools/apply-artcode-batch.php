@@ -43,6 +43,11 @@ $MAP = array(
     31829 => 'RK 34', // Krishna Flute Panorama (vivid orange/blue splash)
     21320 => 'RK 35', // Krishna with White Cows (blue Krishna among cows)
     16318 => 'RK 40', // Krishna Art (blue face, yellow/blue abstract splash)
+    16823 => 'RK 44', // Golden Cosmic Krishna (starry swirl, devotee below)
+    15217 => 'RK 46', // Lord Krishna Cosmic (crowned, cosmic orange, starry)
+    18788 => 'RK 47', // Vishnu Divine Avatar (radiant multi-armed golden)
+    19822 => 'RK 48', // Baby Krishna Hides (peeking behind red curtain)
+    18355 => 'RK 50', // Mystical Govinda Poster (dark cosmic "Govinda")
 );
 
 echo "=== APPLY ART CODE BATCH ===\n";
