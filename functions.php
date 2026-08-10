@@ -10959,6 +10959,29 @@ add_action('woocommerce_single_product_summary', function() {
      . esc_html($code) . '</strong></p>';
 }, 6);
 
+// PHASE 25c — Art Code inside the product Description content as well, so the
+// code is readable in the description tab/section (not only under the title).
+add_filter('the_content', function($content) {
+  if (is_admin()) return $content;
+  if (get_post_type() !== 'product') return $content;
+  $code = af_get_art_code(get_the_ID());
+  if ($code === '') return $content;
+  if (strpos($content, 'af-art-code--desc') !== false) return $content; // already added
+  $line = '<p class="af-art-code af-art-code--desc">Art Code: <strong>'
+        . esc_html($code) . '</strong></p>';
+  return $line . $content;
+}, 8);
+
+// And at the top of the short description (summary excerpt) for themes that
+// render only the excerpt on the product page.
+add_filter('woocommerce_short_description', function($excerpt) {
+  if (is_admin() || !function_exists('is_product') || !is_product()) return $excerpt;
+  $code = af_get_art_code(get_the_ID());
+  if ($code === '' || strpos((string)$excerpt, 'af-art-code') !== false) return $excerpt;
+  return '<p class="af-art-code af-art-code--desc">Art Code: <strong>'
+       . esc_html($code) . '</strong></p>' . $excerpt;
+}, 8);
+
 // Show the code on admin order line items so fulfilment can read it off an order.
 add_filter('woocommerce_display_item_meta', function($html, $item, $args) {
   $pid = method_exists($item, 'get_product_id') ? $item->get_product_id() : 0;
@@ -10977,6 +11000,9 @@ add_action('wp_head', function() { ?>
 .af-art-code--single{margin:.4em 0 .8em;font-size:14px;color:#6b6b6b;
   letter-spacing:.03em;}
 .af-art-code--single strong{color:#8a6d3b;letter-spacing:.06em;}
+.af-art-code--desc{margin:0 0 .9em;font-size:14px;color:#6b6b6b;
+  letter-spacing:.03em;}
+.af-art-code--desc strong{color:#8a6d3b;letter-spacing:.06em;}
 </style>
 <?php });
 
