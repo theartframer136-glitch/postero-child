@@ -12,23 +12,31 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-// product ID => brochure art code. Radha Krishna (verified against the brochure
-// page by page). Corrections: #31772 is the RK 18 mosaic and #21686 is the
-// RK 13 golden duet — both restored to their correct original codes after an
-// earlier mismatch; the true RK 01 / RK 02 artworks are #24653 / #11577.
+// product ID => brochure art code. Radha Krishna, verified page-by-page against
+// the brochure (Canva). Only entries confirmed by direct image comparison are
+// listed; ambiguous pages (RK 05, 11, 15, 16, 17, 22, 24, 25, 27, 28, 30) are
+// intentionally left out until matched. #19392 is the RK 23 peacock pair (its
+// original, correct code) — an earlier pass had wrongly moved it to RK 05.
 $MAP = array(
     24653 => 'RK 01', // Radha Krishna Painted Faces (abstract faces, drips)
     11577 => 'RK 02', // Radha Krishna Divine Love (golden, among autumn leaves)
      7811 => 'RK 03', // Radha Krishna Love (realistic embrace, orange)
     18964 => 'RK 04', // Krishna with Radha (pink lotus mandala arch)
-    19392 => 'RK 05', // Radha Krishna with Peacocks (golden, flute)
      8301 => 'RK 06', // Radha Krishna Peacock (close-up faces, dense flowers)
      7802 => 'RK 07', // Radha Krishna Abstract (cubist faces)
      7819 => 'RK 08', // Sleeping Baby Krishna (yellow, peacock feathers)
      7822 => 'RK 09', // Lord Krishna Blessing (blue Krishna, devotee, golden)
       223 => 'RK 10', // Krishna Moonlight (flute against golden full moon)
+    20831 => 'RK 12', // Radha Krishna Peacock Elegance (two teal peacocks, lotus)
     21686 => 'RK 13', // Golden Radha Krishna Duet (golden faces, peacock, tree)
+    21197 => 'RK 14', // Baby Krishna Butter Delight (butter pot, golden temple)
     31772 => 'RK 18', // Radha Krishna Mosaic Art (jewel-tone mosaic faces)
+    18039 => 'RK 19', // Radha Krishna Dance (Krishna lifting Radha, petals)
+    19208 => 'RK 20', // Radha Krishna Floral Arch (temple arch, marigolds)
+    17280 => 'RK 21', // Radha Krishna Temple Scene (golden niche, diyas)
+    19392 => 'RK 23', // Radha Krishna with Peacocks (couple facing, peacocks both sides)
+    11551 => 'RK 26', // Stunning Radha Krishna Abstract (cubist blue/gold, moon)
+    20349 => 'RK 29', // Radha Krishna Angel Embrace (grey clouds, angelic)
 );
 
 echo "=== APPLY ART CODE BATCH ===\n";
