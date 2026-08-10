@@ -63,10 +63,11 @@ jobs:
           # ControlMaster multiplexing (the -o Control* options on every SSH
           # var in this file) makes the whole deploy share ONE ssh connection
           # instead of opening 10+ — Hostinger's throttle counts connections,
-          # and that spree is what starved runs #526/527/534. With reuse in
-          # place the pre-wait can be much shorter.
-          echo "Waiting 45s for any SSH throttle to clear..."
-          sleep 45
+          # and that spree is what starved runs #526/527/534. Connection reuse
+          # is what actually tamed the throttle, so the pre-wait is a short
+          # grace, and the rsync retry ladder below remains the safety net.
+          echo "Waiting 20s for any SSH throttle to clear..."
+          sleep 20
 
           MAX=6
           DELAY=90
@@ -784,17 +785,23 @@ jobs:
           # ~2-3s render. That is what makes CPU spike after a deploy and settle
           # again hours later. wp-cli cannot silently return the wrong thing here:
           # if it yields nothing, the guard below fails the deploy loudly.
+          # The warm is sized to the deploy: a full suite touched catalogue
+          # data, so categories and recent products get warmed; a light deploy
+          # changed theme code only, so the entrance pages are enough and the
+          # rest re-warms organically. This is most of the difference between a
+          # ~10-minute and a ~3-minute deploy.
+          if [ "${RUN_SUITE:-1}" = "1" ]; then CATN=12; PRODN=8; WARM_CAP=24; else CATN=5; PRODN=0; WARM_CAP=10; fi
           WARM_LIST=/tmp/warm-urls.txt
           {
             echo "https://theartframer.us/"
             echo "https://theartframer.us/shop/"
+            echo "https://theartframer.us/try-on-wall/"
+            echo "https://theartframer.us/frame-the-moment/"
             ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
               "cd ~/websites/OPu0sKi4J/public_html && \
-               wp term list product_cat --field=url --hide_empty=1 --number=30 --allow-root 2>/dev/null" || true
-            ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-              "cd ~/websites/OPu0sKi4J/public_html && \
-               wp post list --post_type=product --post_status=publish --field=url \
-                 --posts_per_page=25 --orderby=modified --order=DESC --allow-root 2>/dev/null" || true
+               wp term list product_cat --field=url --hide_empty=1 --number=${CATN} --orderby=count --order=DESC --allow-root 2>/dev/null; \
+               if [ ${PRODN} -gt 0 ]; then wp post list --post_type=product --post_status=publish --field=url \
+                 --posts_per_page=${PRODN} --orderby=modified --order=DESC --allow-root 2>/dev/null; fi" || true
           } | tr -d '\r' | grep '^https\?://' | awk '!seen[$0]++' > "$WARM_LIST"
 
           WARM_TOTAL=$(wc -l < "$WARM_LIST")
@@ -807,7 +814,7 @@ jobs:
           WARMED=0
           MISSED=0
           while read -r URL; do
-            [ $WARMED -ge 55 ] && break
+            [ $WARMED -ge $WARM_CAP ] && break
             CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 45 -A 'Mozilla/5.0 (X11; Linux x86_64) AF-CacheWarmer' "$URL" || echo 000)
             case "$CODE" in 200|301|302) : ;; *) MISSED=$((MISSED + 1)); echo "  warmed $URL -> $CODE" ;; esac
             WARMED=$((WARMED + 1))
