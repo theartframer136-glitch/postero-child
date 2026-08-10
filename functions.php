@@ -4520,6 +4520,11 @@ add_filter('body_class', function($classes) {
     if (af_is_qv_embed()) $classes[] = 'af-qv-embed';
     return $classes;
 });
+// Don't merely hide the admin bar in the modal — don't render it. It ships its
+// own stylesheet and markup, and it is site furniture, not product detail.
+add_filter('show_admin_bar', function($show) {
+    return af_is_qv_embed() ? false : $show;
+}, 99);
 add_action('wp_head', function() {
     if (!af_is_qv_embed()) return;
     ?>
@@ -4529,9 +4534,16 @@ add_action('wp_head', function() {
     .af-qv-embed footer, .af-qv-embed .site-footer,
     .af-qv-embed [data-elementor-type="header"], .af-qv-embed [data-elementor-type="footer"],
     .af-qv-embed .af-quickpanel, .af-qv-embed #af-chat, .af-qv-embed #af-consent,
-    .af-qv-embed .af-ck-footwrap, .af-qv-embed .woocommerce-breadcrumb {
+    .af-qv-embed .af-ck-footwrap, .af-qv-embed .woocommerce-breadcrumb,
+    /* the top utility strip (Track Order / Help / phone / currency) and the
+       WordPress admin bar — site furniture, not product detail */
+    .af-qv-embed .af-utilitybar, .af-qv-embed #wpadminbar {
       display: none !important;
     }
+    /* WordPress reserves space for the admin bar on <html>; with the bar hidden
+       that margin would leave a strip of empty page at the top of the modal */
+    html { margin-top: 0 !important; }
+    * html body { margin-top: 0 !important; }
     .af-qv-embed { background: #fff; }
     </style>
     <?php

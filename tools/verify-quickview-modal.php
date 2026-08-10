@@ -57,6 +57,16 @@ if ($pid0) {
         $miss = array();
         foreach ($need as $what => $needle) if (strpos($eb, $needle) === false) $miss[] = $what;
         af_qv('embed carries the full product page', !$miss, $fail, $miss ? 'missing ' . implode(', ', $miss) : 'tabs, options, sections, cart');
+        // …and none of the surrounding site furniture. The utility strip and
+        // the admin bar were both showing inside the modal.
+        $chrome = array('utility bar' => 'af-utilitybar', 'admin bar' => 'id="wpadminbar"');
+        $left = array();
+        foreach ($chrome as $what => $needle) if (strpos($eb, $needle) !== false) $left[] = $what;
+        // the utility strip prints for everyone, so CSS must hide it; the admin
+        // bar must not be rendered at all
+        af_qv('embed does not render the admin bar', !in_array('admin bar', $left, true), $fail);
+        af_qv('embed hides the utility strip',
+              strpos($eb, '.af-qv-embed .af-utilitybar') !== false, $fail);
         $emb_ok = !$miss;
     }
 }
