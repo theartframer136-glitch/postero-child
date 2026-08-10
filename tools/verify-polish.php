@@ -210,8 +210,22 @@ if (function_exists('taf_brochure_url')) {
     // the three-button spec must reach the browser: View Brochure label, the
     // gold-outline card style, the icon-text gap and both hover colours
     af_pv('cards say View Brochure', strpos($hb2, 'View Brochure') !== false, $fail);
+    // Match the rule's PROPERTIES, not one exact byte sequence: the page is
+    // minified in transit, so an exact-string probe fails against perfectly
+    // correct CSS — the same brittleness that made the pricing probe miss a
+    // unicode-escaped multiplication sign.
+    $card_rule = '';
+    if (preg_match('/\.taf-broch--card\s*\{([^}]*)\}/', $hb2, $cm)) $card_rule = $cm[1];
+    $need = array(
+        'transparent background' => '/background\s*:\s*transparent/i',
+        'gold 1.5px outline'     => '/border\s*:\s*1\.5px\s+solid\s+#c9a84c/i',
+        'square corners'         => '/border-radius\s*:\s*0/i',
+    );
+    $missing = array();
+    foreach ($need as $what => $re) { if (!preg_match($re, $card_rule)) $missing[] = $what; }
     af_pv('brochure card style is outline-on-transparent',
-          strpos($hb2, 'background:transparent;border:1.5px solid #c9a84c') !== false, $fail);
+          $card_rule !== '' && !$missing, $fail,
+          $card_rule === '' ? 'rule not found in page' : ($missing ? 'missing ' . implode(', ', $missing) : 'all three'));
     af_pv('cart hover colour ships (#8b6a2b)', strpos($hb2, '#8b6a2b') !== false, $fail);
     af_pv('icon-text gap ships (8px)', strpos($hb2, "'gap', '8px'") !== false || strpos($hb2, 'gap:8px') !== false, $fail);
     // the carousels ship .add-to-cart-btn (hyphens) — the selector the first
