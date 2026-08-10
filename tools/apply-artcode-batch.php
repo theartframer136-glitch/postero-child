@@ -12,10 +12,13 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-// product ID => brochure art code. Radha Krishna batch 1 (RK 01–10).
+// product ID => brochure art code. Radha Krishna (verified against the brochure
+// page by page). Corrections: #31772 is the RK 18 mosaic and #21686 is the
+// RK 13 golden duet — both restored to their correct original codes after an
+// earlier mismatch; the true RK 01 / RK 02 artworks are #24653 / #11577.
 $MAP = array(
-    31772 => 'RK 01', // Radha Krishna Mosaic Art (mosaic faces, flowers, birds)
-    21686 => 'RK 02', // Golden Radha Krishna Duet (all-gold among leaves)
+    24653 => 'RK 01', // Radha Krishna Painted Faces (abstract faces, drips)
+    11577 => 'RK 02', // Radha Krishna Divine Love (golden, among autumn leaves)
      7811 => 'RK 03', // Radha Krishna Love (realistic embrace, orange)
     18964 => 'RK 04', // Krishna with Radha (pink lotus mandala arch)
     19392 => 'RK 05', // Radha Krishna with Peacocks (golden, flute)
@@ -24,6 +27,8 @@ $MAP = array(
      7819 => 'RK 08', // Sleeping Baby Krishna (yellow, peacock feathers)
      7822 => 'RK 09', // Lord Krishna Blessing (blue Krishna, devotee, golden)
       223 => 'RK 10', // Krishna Moonlight (flute against golden full moon)
+    21686 => 'RK 13', // Golden Radha Krishna Duet (golden faces, peacock, tree)
+    31772 => 'RK 18', // Radha Krishna Mosaic Art (jewel-tone mosaic faces)
 );
 
 echo "=== APPLY ART CODE BATCH ===\n";
