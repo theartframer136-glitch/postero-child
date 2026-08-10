@@ -48,6 +48,12 @@ $MAP = array(
     18788 => 'RK 47', // Vishnu Divine Avatar (radiant multi-armed golden)
     19822 => 'RK 48', // Baby Krishna Hides (peeking behind red curtain)
     18355 => 'RK 50', // Mystical Govinda Poster (dark cosmic "Govinda")
+    30592 => 'RK 51', // Krishna Floral Halo (flute, golden robes, roses, halo)
+    24230 => 'RK 55', // Vishvarupa Gita Vision (Vishnu cosmic + Arjuna chariot)
+    24033 => 'RK 56', // Radha Krishna Melody Swirl (dancing, watercolor)
+    26690 => 'RK 57', // Mother and Little Krishna (Yashoda + baby, watercolor)
+    23972 => 'RK 58', // Radha Krishna Petal Dance (dancing amid petals, golden)
+    25901 => 'RK 59', // Krishna Watercolor Gaze (face portrait, peacock feather)
 );
 
 echo "=== APPLY ART CODE BATCH ===\n";
