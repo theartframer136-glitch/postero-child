@@ -54,6 +54,7 @@ $MAP = array(
     26690 => 'RK 57', // Mother and Little Krishna (Yashoda + baby, watercolor)
     23972 => 'RK 58', // Radha Krishna Petal Dance (dancing amid petals, golden)
     25901 => 'RK 59', // Krishna Watercolor Gaze (face portrait, peacock feather)
+    25419 => 'RK 61', // Satyanarayan Katha Scene (Vishnu puja ceremony)
 );
 
 echo "=== APPLY ART CODE BATCH ===\n";
