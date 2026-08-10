@@ -12872,10 +12872,20 @@ add_action('wp_head', function() {
     ?>
     <style>
     /* Marks the injected link as an admin-only tool so it reads as distinct
-       from the customer-facing nav items it sits beside. */
+       from the customer-facing nav items it sits beside. Kept layout-neutral:
+       the item never wraps its own label, and the small "ADMIN" marker is
+       taken out of the text flow (absolute) so it can't inflate the menu
+       item's height/width and push the header nav into overlapping when the
+       window is resized. This block only renders for admins, so it can't
+       affect the customer-facing header. */
+    .af-console-navitem{white-space:nowrap;}
     .af-console-navitem > a{position:relative;color:#c9a84c !important;}
-    .af-console-navitem > a::after{content:'ADMIN';margin-left:6px;font-size:8.5px;font-weight:800;
-      letter-spacing:.06em;vertical-align:super;opacity:.75;}
+    .af-console-navitem > a::after{content:'ADMIN';position:absolute;top:-.55em;left:100%;
+      margin-left:3px;font-size:7.5px;font-weight:800;letter-spacing:.04em;line-height:1;
+      opacity:.7;pointer-events:none;white-space:nowrap;}
+    /* On tighter widths (where the desktop menu is most crowded) drop the
+       marker entirely so it can't contribute any width to the row. */
+    @media (max-width:1200px){ .af-console-navitem > a::after{display:none;} }
     </style>
     <?php
 }, 99);
