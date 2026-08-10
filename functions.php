@@ -3888,6 +3888,9 @@ add_action('wp_footer', function() {
       </a>
       <a class="af-qp-btn af-qp-wl" href="/wishlist/" data-tip="Wishlist" aria-label="Wishlist">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        <!-- filled in by JS, never by PHP: this page is full-page cached, so a
+             server-rendered count would show one visitor's wishlist to everyone -->
+        <span class="af-qp-count" id="af-qp-wl-count" hidden>0</span>
       </a>
       <a class="af-qp-btn af-qp-tr" href="/track-your-order/" data-tip="Track Order" aria-label="Track Order">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><path d="M16 8h4l3 3v5h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
@@ -3905,6 +3908,74 @@ add_action('wp_footer', function() {
         if (top) top.style.opacity = y>400 ? '1':'0';
         if (top) top.style.pointerEvents = y>400 ? 'auto':'none';
       }, {passive:true});
+
+      // ── one WhatsApp button, not two ──────────────────────────────────
+      // A plugin drops its own floating WhatsApp bubble into the same corner
+      // as ours. Rather than trust a list of plugin class names, find it by
+      // what it is: a WhatsApp link inside a fixed-position element that is
+      // not our quick panel. Anything in the page flow (footer, contact,
+      // product share) is left alone.
+      function dedupeWhatsApp(){
+        var links = document.querySelectorAll(
+          'a[href*="wa.me"],a[href*="api.whatsapp.com"],a[href*="whatsapp://"],a[href*="web.whatsapp.com"]');
+        Array.prototype.forEach.call(links, function(a){
+          if (a.closest('.af-quickpanel')) return;          // ours — keep
+          var n = a, floating = null;
+          for (var i = 0; i < 8 && n && n !== document.body; i++) {
+            var pos = getComputedStyle(n).position;
+            if (pos === 'fixed' || pos === 'sticky') { floating = n; break; }
+            n = n.parentElement;
+          }
+          if (!floating) return;                            // in-page link — keep
+          if (floating.closest('.af-quickpanel') || floating.id === 'af-chat') return;
+          floating.style.setProperty('display', 'none', 'important');
+        });
+      }
+
+      // ── wishlist count on the floating button ─────────────────────────
+      // Computed in the browser, never in PHP: these pages are full-page
+      // cached, so a server-rendered number would hand one visitor's wishlist
+      // to every other visitor. Reads the plugin's own cookie first, then
+      // falls back to whatever counter the header is already showing.
+      function wishlistCount(){
+        var m = document.cookie.match(/(?:^|;\s*)yith_wcwl_products=([^;]*)/);
+        if (m && m[1]) {
+          try {
+            var arr = JSON.parse(decodeURIComponent(m[1].replace(/\+/g, ' ')));
+            if (Array.isArray(arr)) return arr.length;
+            if (arr && typeof arr === 'object') return Object.keys(arr).length;
+          } catch(e){}
+        }
+        var el = document.querySelector(
+          '.wishlist-count,.wishlist_count,.yith-wcwl-items-count,[class*="wishlist"] .count,[class*="wishlist"] .counter');
+        if (el) {
+          var n2 = parseInt((el.textContent||'').replace(/[^\d]/g, ''), 10);
+          if (!isNaN(n2)) return n2;
+        }
+        return 0;
+      }
+      function paintWishlist(){
+        var badge = document.getElementById('af-qp-wl-count');
+        if (!badge) return;
+        var n = wishlistCount();
+        badge.textContent = n > 99 ? '99+' : String(n);
+        if (n > 0) badge.removeAttribute('hidden'); else badge.setAttribute('hidden','');
+      }
+
+      function refresh(){ dedupeWhatsApp(); paintWishlist(); }
+      refresh();
+      // plugin widgets and counters arrive late and change as the visitor
+      // adds items, so re-run on the events that matter rather than once
+      window.addEventListener('load', refresh);
+      [400, 1200, 2500].forEach(function(t){ setTimeout(refresh, t); });
+      ['added_to_wishlist','removed_from_wishlist','yith_wcwl_reload_fragments','added_to_cart']
+        .forEach(function(ev){ document.body.addEventListener(ev, paintWishlist); });
+      if (window.jQuery) {
+        jQuery(document.body).on('added_to_wishlist removed_from_wishlist yith_wcwl_reload_fragments', paintWishlist);
+      }
+      document.addEventListener('click', function(e){
+        if (e.target.closest('[class*="wishlist"],[class*="wcwl"]')) setTimeout(paintWishlist, 900);
+      }, true);
     })();
     </script>
     <style>
@@ -3930,6 +4001,21 @@ add_action('wp_footer', function() {
     .af-qp-btn[data-tip]:hover::after{
       content:attr(data-tip);position:absolute;right:58px;top:50%;transform:translateY(-50%);
       background:#1a1a1a;color:#fff;font-size:12px;white-space:nowrap;padding:5px 10px;border-radius:6px;
+    }
+    /* wishlist count badge */
+    .af-qp-count{
+      position:absolute;top:-4px;right:-4px;min-width:20px;height:20px;padding:0 5px;
+      border-radius:999px;background:#1a1a1a;color:#fff;font-size:11px;font-weight:800;
+      line-height:20px;text-align:center;box-sizing:border-box;box-shadow:0 2px 6px rgba(0,0,0,.3);
+      pointer-events:none;
+    }
+    .af-qp-count[hidden]{display:none !important;}
+    /* A second, plugin-supplied WhatsApp bubble sits in the same corner as ours.
+       Hidden by class where the common plugins are known; the script below also
+       catches any other floating WhatsApp widget by behaviour. */
+    .ht-ctc.ht-ctc-chat, .joinchat, .wa__floating_btn, .wa-chat-box-wrapper,
+    .whatsapp-chat-widget, #whatsapp-chat-widget, .wt-whatsapp-float {
+      display:none !important;
     }
     @media(max-width:600px){
       .af-quickpanel{right:12px;bottom:14px;gap:10px;}
