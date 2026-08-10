@@ -2053,7 +2053,14 @@ add_action('wp_head', function() { ?>
         sp(viewBtn, 'display', 'flex');
         sp(viewBtn, 'align-items', 'center');
         sp(viewBtn, 'justify-content', 'center');
+        sp(viewBtn, 'gap', '8px');
         sp(viewBtn, 'background', '#1a1a1a');
+        // inline !important styles: hover must be scripted, same as Add to Cart
+        if (!viewBtn.dataset.afHoverBound) {
+          viewBtn.dataset.afHoverBound = '1';
+          viewBtn.addEventListener('mouseenter', function(){ sp(viewBtn, 'background', '#333'); });
+          viewBtn.addEventListener('mouseleave', function(){ sp(viewBtn, 'background', '#1a1a1a'); });
+        }
         sp(viewBtn, 'color', '#fff');
         sp(viewBtn, 'border', 'none');
         sp(viewBtn, 'border-radius', '7px');

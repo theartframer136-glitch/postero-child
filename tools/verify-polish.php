@@ -207,6 +207,13 @@ if (function_exists('taf_brochure_url')) {
     // and no surface still forces the download client-side
     $hb2 = isset($hb) ? $hb : '';
     af_pv('no download attribute ships anywhere', strpos($hb2, 'download="TheArtFramer') === false, $fail);
+    // the three-button spec must reach the browser: View Brochure label, the
+    // gold-outline card style, the icon-text gap and both hover colours
+    af_pv('cards say View Brochure', strpos($hb2, 'View Brochure') !== false, $fail);
+    af_pv('brochure card style is outline-on-transparent',
+          strpos($hb2, 'background:transparent;border:1.5px solid #c9a84c') !== false, $fail);
+    af_pv('cart hover colour ships (#8b6a2b)', strpos($hb2, '#8b6a2b') !== false, $fail);
+    af_pv('icon-text gap ships (8px)', strpos($hb2, "'gap', '8px'") !== false || strpos($hb2, 'gap:8px') !== false, $fail);
 }
 
 echo "\n=== RESULT: " . ($fail ? "{$fail} PROBLEM(S)" : "ALL CHECKS PASSED") . " ===\n";
