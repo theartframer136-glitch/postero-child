@@ -186,4 +186,27 @@ if ($prod) {
     echo "  (no approved product reviews yet — histogram appears with the first one)\n";
 }
 
+
+echo "\n=== BROCHURE (view, not download) ===\n";
+// The card button says View Brochure and carries no download attribute; the
+// server must cooperate by serving the PDF inline, or the browser downloads
+// it anyway and the label lies.
+if (function_exists('taf_brochure_url')) {
+    $bu = taf_brochure_url();
+    $br = wp_remote_get($bu, array('timeout'=>45,'sslverify'=>false,
+        'headers'=>array('User-Agent'=>'AF-Verify','Range'=>'bytes=0-2047')));
+    if (is_wp_error($br)) { af_pv('brochure fetch', false, $fail, $br->get_error_message()); }
+    else {
+        $bc = (int) wp_remote_retrieve_response_code($br);
+        $ct = (string) wp_remote_retrieve_header($br, 'content-type');
+        $cd = (string) wp_remote_retrieve_header($br, 'content-disposition');
+        af_pv('brochure answers', in_array($bc, array(200, 206), true), $fail, "HTTP {$bc}");
+        af_pv('served as application/pdf', stripos($ct, 'pdf') !== false, $fail, $ct);
+        af_pv('not forced to download', stripos($cd, 'attachment') === false, $fail, $cd !== '' ? $cd : '(no disposition header)');
+    }
+    // and no surface still forces the download client-side
+    $hb2 = isset($hb) ? $hb : '';
+    af_pv('no download attribute ships anywhere', strpos($hb2, 'download="TheArtFramer') === false, $fail);
+}
+
 echo "\n=== RESULT: " . ($fail ? "{$fail} PROBLEM(S)" : "ALL CHECKS PASSED") . " ===\n";

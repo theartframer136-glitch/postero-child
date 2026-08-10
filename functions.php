@@ -1210,11 +1210,11 @@ html body .product-card button.button {
   font-size:13px !important; font-weight:600 !important; padding:10px 6px !important;
   cursor:pointer !important; text-decoration:none !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
-  gap:5px !important; transition:background .2s !important; white-space:nowrap !important;
+  gap:8px !important; transition:background .2s !important; white-space:nowrap !important;
   flex:1 1 50% !important;
 }
 html body .product-card .add-cart:hover,
-html body .product-card .add_to_cart_button:hover { background:#a8872e !important; }
+html body .product-card .add_to_cart_button:hover { background:#8b6a2b !important; }
 
 /* Quick View */
 html body .product-card .quick-view-btn,
@@ -1225,7 +1225,7 @@ html body .product-card [class*="quickview"] {
   font-size:13px !important; font-weight:600 !important; padding:10px 6px !important;
   cursor:pointer !important; text-decoration:none !important;
   display:flex !important; align-items:center !important; justify-content:center !important;
-  gap:5px !important; transition:background .2s !important; white-space:nowrap !important;
+  gap:8px !important; transition:background .2s !important; white-space:nowrap !important;
   flex:1 1 50% !important; min-width:0 !important;
 }
 html body .product-card .quick-view-btn:hover,
@@ -2024,7 +2024,15 @@ add_action('wp_head', function() { ?>
         sp(addCartBtn, 'display', 'flex');
         sp(addCartBtn, 'align-items', 'center');
         sp(addCartBtn, 'justify-content', 'center');
+        sp(addCartBtn, 'gap', '8px');
         sp(addCartBtn, 'background', '#c9a84c');
+        // these styles are inline !important, so a stylesheet :hover can never
+        // out-rank them — the hover swap has to be scripted
+        if (!addCartBtn.dataset.afHoverBound) {
+          addCartBtn.dataset.afHoverBound = '1';
+          addCartBtn.addEventListener('mouseenter', function(){ sp(addCartBtn, 'background', '#8b6a2b'); });
+          addCartBtn.addEventListener('mouseleave', function(){ sp(addCartBtn, 'background', '#c9a84c'); });
+        }
         sp(addCartBtn, 'color', '#fff');
         sp(addCartBtn, 'border', 'none');
         sp(addCartBtn, 'border-radius', '7px');
@@ -3341,7 +3349,9 @@ add_action('wp_footer', function() {
       atcBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span>Add to Cart</span>';
       sp(atcBtn,'display',        'inline-flex');
       sp(atcBtn,'align-items',    'center');
-      sp(atcBtn,'gap',            '6px');
+      sp(atcBtn,'gap',            '8px');
+      atcBtn.addEventListener('mouseenter', function(){ sp(atcBtn,'background','#8b6a2b'); });
+      atcBtn.addEventListener('mouseleave', function(){ sp(atcBtn,'background','#c9a84c'); });
       sp(atcBtn,'padding',        '9px 18px');
       sp(atcBtn,'background',     '#c9a84c');
       sp(atcBtn,'color',          '#fff');
@@ -13283,22 +13293,18 @@ function taf_brochure_url() {
 function taf_brochure_link($variant = 'card') {
   $url = taf_brochure_url();
   if (!$url) return '';
+  // an open book, not a download arrow — the button views, it does not save
   $icon = '<svg class="taf-broch-ico" viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" focusable="false">'
         . '<path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"'
-        . ' d="M12 3v11m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>';
-  // Labels stay short: the site's button language is uppercase with 2px
-  // letter-spacing, so anything long stops looking like a button. The file
-  // size goes in a separate caption instead of inside the pill.
-  if ($variant === 'single') {
-    $label = 'Download Brochure';
-  } elseif ($variant === 'banner') {
-    $label = 'Download Brochure';
-  } else {
-    $label = 'Brochure';
-  }
+        . ' d="M2 4.5A2.5 2.5 0 0 1 4.5 2H11v17.5H4.5A2.5 2.5 0 0 0 2 22V4.5zM22 4.5A2.5 2.5 0 0 0 19.5 2H13v17.5h6.5A2.5 2.5 0 0 1 22 22V4.5zM11 19.5v.01M13 19.5v.01"/></svg>';
+  // "View", not "Download": the link opens the PDF in a browser tab (no
+  // download attribute), so the visitor reads the collection book without a
+  // 41 MB file landing in their downloads folder. Saving stays their choice
+  // from the viewer.
+  $label = 'View Brochure';
   return '<a class="taf-broch taf-broch--' . esc_attr($variant) . '" href="' . $url . '"'
-       . ' download="TheArtFramer-Collection-Brochure.pdf" target="_blank" rel="noopener"'
-       . ' title="Download the printed collection book (PDF, ' . esc_attr(TAF_BROCHURE_SIZE) . ')">'
+       . ' target="_blank" rel="noopener"'
+       . ' title="View the printed collection book (PDF, ' . esc_attr(TAF_BROCHURE_SIZE) . ')">'
        . $icon . '<span class="taf-broch-txt">' . $label . '</span></a>';
 }
 
@@ -13327,7 +13333,7 @@ add_filter('wp_nav_menu_items', function($items, $args) {
   if (!in_array($loc, array('primary', 'menu-1', 'main', 'header'), true)) return $items;
   if (strpos($items, 'taf-broch-nav') !== false) return $items;
   return $items . '<li class="menu-item taf-broch-nav"><a href="' . taf_brochure_url()
-       . '" download="TheArtFramer-Collection-Brochure.pdf" target="_blank" rel="noopener">Brochure</a></li>';
+       . '" target="_blank" rel="noopener">Brochure</a></li>';
 }, 10, 2);
 
 add_action('wp_head', function() { ?>
@@ -13355,9 +13361,9 @@ add_action('wp_head', function() { ?>
 .taf-broch-cardwrap{display:block;}
 .taf-broch--card{display:flex!important;width:calc(100% - 28px);box-sizing:border-box;
   font-size:11px;padding:11px 12px;margin:0 14px 14px;border-radius:0;
-  background:#2f6f6a;border:.8px solid #2f6f6a;color:#fff;}
-.taf-broch--card:hover,.taf-broch--card:focus{background:#255a56;border-color:#255a56;
-  color:#fff;box-shadow:0 2px 12px rgba(47,111,106,.34);}
+  background:transparent;border:1.5px solid #c9a84c;color:#8a6d1f;}
+.taf-broch--card:hover,.taf-broch--card:focus{background:#c9a84c;border-color:#c9a84c;
+  color:#fff;box-shadow:0 2px 12px rgba(201,168,76,.32);}
 .taf-broch--card .taf-broch-ico{width:13px;height:13px;opacity:1;}
 /* single product page — sits with Show Dimensions, size as a caption below */
 .taf-broch-wrap{margin:16px 0 12px;display:flex;flex-direction:column;
@@ -13438,7 +13444,7 @@ add_action('wp_footer', function() {
     if (!ul || ul.closest('.sub-menu')) return;
     var li = document.createElement('li');
     li.className = 'menu-item taf-broch-nav';
-    li.innerHTML = '<a href="' + URL + '" download="TheArtFramer-Collection-Brochure.pdf"'
+    li.innerHTML = '<a href="' + URL + '"'
                  + ' target="_blank" rel="noopener"><span class="menu-title">Brochure</span></a>';
     ul.appendChild(li);
   }
