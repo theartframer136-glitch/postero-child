@@ -669,6 +669,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/verify-marketplace.php --allow-root 2>&1" \
             || true
 
+          echo "Filling the All Art Prints category with the real catalogue..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/populate-all-art-prints.php --allow-root 2>&1" \
+            || true
+
           echo "Repricing catalogue listings from the rate card (idempotent)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

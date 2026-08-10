@@ -125,4 +125,21 @@ if ($pid) {
     }
 }
 
+// ── the All Art Prints collection must actually hold the collection ──
+// it promises "every print in the studio" and held five demo posters
+$aap = get_term_by('slug', 'all-art-prints', 'product_cat');
+if ($aap && !is_wp_error($aap)) {
+    $art_total = 0;
+    foreach (wc_get_products(array('status'=>'publish','limit'=>-1,'return'=>'ids')) as $aid) {
+        $ap = wc_get_product($aid);
+        if ($ap && af_pricing_applies($ap)) $art_total++;
+    }
+    $in_cat = (int) $aap->count;
+    af_prv('All Art Prints holds the whole catalogue',
+           $art_total > 0 && $in_cat >= $art_total, $fail,
+           "{$in_cat} in category vs {$art_total} art products");
+} else {
+    af_prv('All Art Prints category exists', false, $fail, 'slug all-art-prints not found');
+}
+
 echo "\n=== RESULT: " . ($fail ? "{$fail} PROBLEM(S)" : "ALL CHECKS PASSED") . " ===\n";
