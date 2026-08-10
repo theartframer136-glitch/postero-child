@@ -58,6 +58,54 @@ $MAP = array(
      7769 => 'RK 76', // Divine Shrinathji (pichwai, dark deity + cows + lotus)
     15974 => 'RK 30', // Dancing Lady Portrait (dancer + Krishna sketch fusion)
     26206 => 'RK 68', // Krishna in Pearl Attire (white/gold idol, garlands)
+
+    // --- best-guess matches (closest brochure artwork) ---
+    25962 => 'RK 15', // Radha Krishna Grove Mural (vivid forest couple scene)
+    11560 => 'RK 25', // Divine Radha Krishna (pastel pink/white, dancing)
+    19453 => 'RK 41', // Golden Krishna Flute Player (golden statue, diyas)
+    18600 => 'RK 45', // Lord Krishna Playing Flute (golden idol, dark temple)
+    14678 => 'RK 52', // Golden Krishna Temple Idol (garlanded shrine idol)
+    31212 => 'RK 77', // Radha Krishna Jeweled Duet (ornate golden pair, flowers)
+    17212 => 'RK 78', // Beautiful Lord Krishna Statue (black idol, garlands)
+     7824 => 'RK 79', // Bal Krishna Flute (baby Krishna, soft glow)
+    13355 => 'RK 80', // Krishna Standing Tall (idol, peacock-feather arch)
+    28900 => 'RK 83', // Krishna Kadamba Melody (Krishna on branch, moon)
+    30653 => 'RK 85', // Krishna Peacock Serenade (ornate turban, lotus, flute)
+    31334 => 'RK 86', // Radha in Bridal Blooms (photoreal bridal portrait)
+    27325 => 'RK 87', // Radha Krishna on the Branch (couple, blossoms)
+    22138 => 'RK 88', // Krishna's Gopis Gathering (vintage devotee scene)
+    30470 => 'RK 90', // Moonlit Lotus Radha (lotus lake, starlit night)
+
+    // --- cross-category fixes: Seven Horses (SH) ---
+    19025 => 'SH 04', // Seven Horses Ocean Run (white horses, dark ocean)
+    30093 => 'SH 05', // Horses of the Dust Plains (dark golden herd)
+    19636 => 'SH 08', // Seven Horses in the Clouds (golden clouds)
+    27572 => 'SH 10', // Two Horses Cubist (abstract geometric herd)
+
+    // --- cross-category fixes: Lord Shiva (LS; 16-17 extend the printed range) ---
+    17856 => 'LS 16', // Shiva The Destroyer (standing, trident, fire ring)
+    20770 => 'LS 17', // Shiva Crescent Dream (blue portrait, crescent)
+
+    // --- cross-category fixes: Buddha (LB; extends existing LB range) ---
+     7676 => 'LB 12', // Abstract Buddha Lotus Meditation (green/pink)
+    27811 => 'LB 13', // Buddha Among Pink Lotuses (stone Buddha, lotus)
+
+    // --- clear wrong codes (artwork not in the brochure) ---
+    29517 => '',      // Lone Tree Between Worlds (landscape; was RK 15)
+    19086 => '',      // Surya in Chariot (was RK 15)
+    25840 => '',      // Dancers in Duet (was RK 14)
+    13722 => '',      // Stairway to the Moon (was RK 34)
+    27017 => '',      // Graphite Muse Sketch (was RK 37)
+     8585 => '',      // Elegant Large Framed White mockup (was RK 32)
+     8440 => '',      // Large Landscape Canvas Print (was RK 42)
+    27133 => '',      // Geometric Falls Sunrise (was RK 43)
+    28595 => '',      // Krishna's Promise (was RK 46; RK 46 is #15217)
+    26450 => '',      // Starry City Nights (was RK 58)
+    28422 => '',      // Raas Leela Miniature (was TA 04)
+    22505 => '',      // Sleeping Krishna Art (was TA 04)
+    23558 => '',      // Bal Krishna Classic Portrait (was LG 03)
+    23789 => '',      // Radha Krishna Color Duet (was WL 07)
+    18229 => '',      // Lord Krishna Statue (was LR 06)
 );
 
 echo "=== APPLY ART CODE BATCH ===\n";
@@ -79,6 +127,19 @@ foreach ( $MAP as $pid => $code ) {
     }
     $title = html_entity_decode( wp_strip_all_tags( get_the_title( $pid ) ) );
     $old   = trim( (string) get_post_meta( $pid, '_taf_art_code', true ) );
+
+    // empty code = remove a wrong code (artwork not in the brochure)
+    if ( $code === '' ) {
+        if ( $old !== '' ) {
+            delete_post_meta( $pid, '_taf_art_code' );
+            echo "CLEAR #{$pid} (was: {$old}) — {$title}\n";
+            $set++;
+        } else {
+            echo "OK    #{$pid} already blank — {$title}\n";
+            $same++;
+        }
+        continue;
+    }
 
     // note any OTHER products that still carry this target code
     $holders = $wpdb->get_col( $wpdb->prepare(
