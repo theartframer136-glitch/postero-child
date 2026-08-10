@@ -214,6 +214,12 @@ if (function_exists('taf_brochure_url')) {
           strpos($hb2, 'background:transparent;border:1.5px solid #c9a84c') !== false, $fail);
     af_pv('cart hover colour ships (#8b6a2b)', strpos($hb2, '#8b6a2b') !== false, $fail);
     af_pv('icon-text gap ships (8px)', strpos($hb2, "'gap', '8px'") !== false || strpos($hb2, 'gap:8px') !== false, $fail);
+    // the carousels ship .add-to-cart-btn (hyphens) — the selector the first
+    // gap fix missed entirely, which is why nothing changed on Trending Today
+    af_pv('hyphen add-to-cart-btn is covered',
+          strpos($hb2, '.add-to-cart-btn') !== false, $fail);
+    af_pv('cart label cannot wrap under the icon',
+          (bool) preg_match('/add-to-cart-btn[^{]*\{[^}]*white-space:nowrap/s', $hb2), $fail);
 }
 
 echo "\n=== RESULT: " . ($fail ? "{$fail} PROBLEM(S)" : "ALL CHECKS PASSED") . " ===\n";

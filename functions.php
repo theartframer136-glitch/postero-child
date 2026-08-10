@@ -1216,6 +1216,45 @@ html body .product-card button.button {
 html body .product-card .add-cart:hover,
 html body .product-card .add_to_cart_button:hover { background:#8b6a2b !important; }
 
+/* Add to Cart — the icon's breathing room, brand gold and hover, applied
+   wherever the button lives and whatever the section calls it. The homepage
+   carousels ship .add-to-cart-btn (hyphens); the loop ships
+   .add_to_cart_button (underscores); earlier rules only knew the second, so
+   the gap never reached Trending Today, Digital Downloads or Corporate
+   Signages. The space is a margin on the ICON, not a flex gap, so it works
+   whether the button is flex or inline-block, and the ::before pair covers
+   icon-font buttons that have no child element at all. */
+/* ONE spacing mechanism, not two: make every variant a flex box and let a
+   single gap do the work. An icon margin on top of an inherited flex gap
+   doubled the space to 16px on the loop cards — measured, not guessed. Flex
+   also spaces ::before icon fonts, which become flex items in their own
+   right, so no separate pseudo-element rule is needed. */
+html body .add_to_cart_button,
+html body .add-to-cart-btn,
+html body .add-cart,
+html body [class*="add-to-cart-btn"] {
+  display:inline-flex !important; align-items:center !important;
+  justify-content:center !important; gap:8px !important;
+  /* the label must never wrap under the icon in a narrow card — only the
+     loop selector carried nowrap before, so the carousels could break it */
+  white-space:nowrap !important;
+}
+html body .add_to_cart_button > i,  html body .add_to_cart_button > svg,
+html body .add-to-cart-btn > i,     html body .add-to-cart-btn > svg,
+html body .add-cart > i,            html body .add-cart > svg,
+html body .af-ov-atc > svg {
+  flex-shrink:0 !important; margin-right:0 !important;
+}
+html body .add-to-cart-btn,
+html body [class*="add-to-cart-btn"] {
+  background:#c9a84c !important; border-color:#c9a84c !important;
+  transition:background .2s !important;
+}
+html body .add-to-cart-btn:hover,
+html body [class*="add-to-cart-btn"]:hover {
+  background:#8b6a2b !important; border-color:#8b6a2b !important;
+}
+
 /* Quick View */
 html body .product-card .quick-view-btn,
 html body .product-card [class*="quick-view"],
@@ -1810,6 +1849,24 @@ add_action('wp_head', function() { ?>
     document.querySelectorAll('.trending-card .add-to-cart-btn, .trending-card .add_to_cart_button, .trending-card a.button').forEach(function(el) {
       el.style.setProperty('background-color', '#c9a84c', 'important');
       el.style.setProperty('border-color', '#c9a84c', 'important');
+      // inline !important beats any stylesheet :hover, so bind the swap here
+      if (!el.dataset.afHoverBound) {
+        el.dataset.afHoverBound = '1';
+        el.addEventListener('mouseenter', function(){
+          el.style.setProperty('background-color', '#8b6a2b', 'important');
+          el.style.setProperty('border-color', '#8b6a2b', 'important');
+        });
+        el.addEventListener('mouseleave', function(){
+          el.style.setProperty('background-color', '#c9a84c', 'important');
+          el.style.setProperty('border-color', '#c9a84c', 'important');
+        });
+      }
+      // spacing comes from the flex gap above; force the layout in case the
+      // theme left this button inline-block
+      el.style.setProperty('display', 'inline-flex', 'important');
+      el.style.setProperty('align-items', 'center', 'important');
+      el.style.setProperty('justify-content', 'center', 'important');
+      el.style.setProperty('gap', '8px', 'important');
     });
   }
   document.addEventListener('DOMContentLoaded', tagTrendingTodaySection);
