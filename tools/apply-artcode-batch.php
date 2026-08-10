@@ -86,19 +86,94 @@ $MAP = array(
     17856 => 'LS 16', // Shiva The Destroyer (standing, trident, fire ring)
     20770 => 'LS 17', // Shiva Crescent Dream (blue portrait, crescent)
 
-    // --- cross-category fixes: Buddha (LB; extends existing LB range) ---
-     7676 => 'LB 12', // Abstract Buddha Lotus Meditation (green/pink)
-    27811 => 'LB 13', // Buddha Among Pink Lotuses (stone Buddha, lotus)
+    // --- Lord Buddha (LB) ---
+     7676 => 'LB 02', // Abstract Buddha Lotus Meditation (radiant lotus aura)
+     7839 => 'LB 03', // Buddha Lotus Serenity (golden Buddha, lotus)
+    16932 => 'LB 06', // Buddha Enlightenment Scene (radiating peace)
+    27811 => 'LB 08', // Buddha Among Pink Lotuses (stone Buddha, blooms)
+    27510 => 'LB 09', // Cubist Buddha Visage
+      220 => 'LB 10', // Serene Buddha with Lotus (4x3)
+    17472 => 'LB 13', // Lord Mahavira Art (enlightenment, golden hues)
+
+    // --- Tirupati / Vishnu (TP) ---
+    30966 => 'TP 07', // Vishnu on Shesha (resting form)
+    31456 => 'TP 09', // Balaji Abstract Gold
+    29281 => 'TP 10', // Balaji Divine Collage
+    31088 => 'TP 12', // Vaikuntha Celestial Court (cosmic vision)
+    22686 => 'TP 13', // Vishnu Bhootapuri
+    23911 => 'TP 14', // Kalki Avatar Tanjore
+
+    // --- Lord Rama (LR) ---
+    28300 => 'LR 07', // Ram Lalla in Garlands (carved temple shrine)
+    26023 => 'LR 08', // Utsava Deity in Garlands (red attire, floral arch)
+    31588 => 'LR 09', // Kodanda Rama Utsavam (bow, ornate arch)
+
+    // --- Hindu Deities (HD) ---
+     7718 => 'HD 02', // Maa Durga Divine
+     7830 => 'HD 05', // Modern Abstract Ganesha
+    22747 => 'HD 06', // Ganesh Pop Art (vibrant, marigold)
+    25021 => 'HD 15', // Tanjore Seated Goddess (Lakshmi on lotus)
+    18538 => 'HD 16', // Lakshmi with Elephants (Gajalakshmi)
+    21564 => 'HD 19', // Ganesha with Elephants (deity on elephant)
+    24094 => 'HD 20', // Sri Ramanuja Procession (leaders walking)
+    26328 => 'HD 21', // Sri Ramanuja Golden Murti (golden idol)
+    22321 => 'HD 22', // Golden Guru Aura
+     8398 => 'HD 25', // Meditating Yogi (deep meditation)
+
+    // --- Lakshmi Ganesha / Sikh / Swaminarayan / Pichwai / Indian Culture ---
+     8412 => 'LG 02', // Lakshmi Ganesh (classic seated pair)
+    26814 => 'SA 01', // Golden Temple at Dusk
+     7815 => 'SA 02', // Sacred Golden Temple Amritsar (reflection)
+     8504 => 'SA 03', // Sacred Guru Nanak Dev Ji (radiant, blessing)
+     8454 => 'SN 01', // Divine Swaminarayan Temple Golden Murti
+    31527 => 'PA 01', // Krishna Cowherd Modern Art (Krishna with cows, pichwai)
+    29395 => 'PA 02', // Pichwai Ganesha Fountains
+    25840 => 'IC 01', // Dancers in Duet (classical dancers; was cleared)
+
+    // --- Lord Shiva (LS 16+ extend the printed range) ---
+    29578 => 'LS 09', // Twin Faces of Serenity (two-face fusion, lotus)
+    30338 => 'LS 18', // Shiva Parivar in Clouds
+    29023 => 'LS 19', // Shiva Parivar Blessing
+    31150 => 'LS 20', // Shiva Family Harmony
+    19883 => 'LS 21', // Shiva Neon Line Art
+     7816 => 'LS 22', // Divine Lord Shiva (classic majestic)
+
+    // --- Landscapes (brochure also numbers these LS 01-10) ---
+    27133 => 'LS 01', // Geometric Falls Sunrise (flowing waterfall; was cleared)
+    13722 => 'LS 02', // Stairway to the Moon (pathway to celestial; was cleared)
+    18897 => 'LS 03', // Surreal Landscape (misty cliffs, radiant sun)
+    29517 => 'LS 04', // Lone Tree Between Worlds (twilight forests)
+    30276 => 'LS 07', // Red Sun Winter Tree (minimal sunrise)
+    22625 => 'LS 08', // Whimsical Tower Scene (nature meets imagination)
+
+    // --- Still Life (SL) ---
+     7833 => 'SL 02', // Minimalist Blossom Vase (green, glass vases)
+    13239 => 'SL 09', // Vibrant Floral Still Life (bold hues)
+     7834 => 'SL 12', // Rustic Blossom Vase (minimalist, earthy)
+    28473 => 'SL 16', // Quiet Harbor Minimal (endless horizons)
+
+    // --- Vaastu / Wildlife (VA / WL) ---
+    29751 => 'VA 03', // Sacred Cow Relief Art (sacred cows)
+     7703 => 'VA 04', // Divine Garuda Sacred Symbol (Garuda with sun)
+     7767 => 'WL 01', // Sacred Elephant Harmony (elephants + birds folk)
+    29159 => 'WL 02', // Horse Studies Collage
+    27194 => 'WL 09', // Murmuration at Dusk (birds, wild beauty)
+    29690 => 'WL 08', // Folk Cows Abstract (nature's rhythm, folk)
+
+    // --- Kids Room (KR) ---
+    15046 => 'KR 12', // Batman Comic Art (Dark Knight comic style)
+    26389 => 'KR 13', // Pirate Captain Sketch (inner warrior)
+    25718 => 'KR 15', // Franklin Graffiti Pop Art (quirky charm)
+    27633 => 'KR 16', // Flight Path Reverie (modernist birds)
+
+    // --- late Radha Krishna text match ---
+    30836 => 'RK 64', // Veena Player with Peacock (pink moonlit, silhouette)
 
     // --- clear wrong codes (artwork not in the brochure) ---
-    29517 => '',      // Lone Tree Between Worlds (landscape; was RK 15)
     19086 => '',      // Surya in Chariot (was RK 15)
-    25840 => '',      // Dancers in Duet (was RK 14)
-    13722 => '',      // Stairway to the Moon (was RK 34)
     27017 => '',      // Graphite Muse Sketch (was RK 37)
      8585 => '',      // Elegant Large Framed White mockup (was RK 32)
      8440 => '',      // Large Landscape Canvas Print (was RK 42)
-    27133 => '',      // Geometric Falls Sunrise (was RK 43)
     28595 => '',      // Krishna's Promise (was RK 46; RK 46 is #15217)
     26450 => '',      // Starry City Nights (was RK 58)
     28422 => '',      // Raas Leela Miniature (was TA 04)
