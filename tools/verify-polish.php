@@ -222,7 +222,11 @@ if (function_exists('taf_brochure_url')) {
     // happened to type. The page is minified in transit — the previous probe
     // reported a failure against CSS that renders exactly as intended.
     $need = array(
-        'transparent background' => '/background(-color)?\s*:\s*(transparent|none|0\s+0|rgba\(0,\s*0,\s*0,\s*0\))/i',
+        // Every way a minifier can write "no fill": the keyword, none, the
+        // 0 0 shorthand, rgba with zero alpha, and hex WITH zero alpha —
+        // #fff0 is what this site's minifier actually emits, which the log
+        // only revealed once the probe started printing the served rule.
+        'transparent background' => '/background(-color)?\s*:\s*(transparent|none|0\s+0|rgba\([^)]*,\s*0(\.0+)?\s*\)|#[0-9a-f]{3}0\b|#[0-9a-f]{6}00\b)/i',
         'gold 1.5px outline'     => '/border\s*:\s*1\.5px\s+solid\s+#c9a84c/i',
         'square corners'         => '/border-radius\s*:\s*0/i',
     );
