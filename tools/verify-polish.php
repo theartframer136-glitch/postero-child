@@ -216,8 +216,13 @@ if (function_exists('taf_brochure_url')) {
     // unicode-escaped multiplication sign.
     $card_rule = '';
     if (preg_match('/\.taf-broch--card\s*\{([^}]*)\}/', $hb2, $cm)) $card_rule = $cm[1];
+    // CSS minifiers rewrite `background:transparent` to the shorter but
+    // equivalent `background:0 0` (and `none` / `rgba(0,0,0,0)` are the same
+    // paint), so accept every spelling of "no fill" rather than the one I
+    // happened to type. The page is minified in transit — the previous probe
+    // reported a failure against CSS that renders exactly as intended.
     $need = array(
-        'transparent background' => '/background\s*:\s*transparent/i',
+        'transparent background' => '/background(-color)?\s*:\s*(transparent|none|0\s+0|rgba\(0,\s*0,\s*0,\s*0\))/i',
         'gold 1.5px outline'     => '/border\s*:\s*1\.5px\s+solid\s+#c9a84c/i',
         'square corners'         => '/border-radius\s*:\s*0/i',
     );
@@ -225,7 +230,9 @@ if (function_exists('taf_brochure_url')) {
     foreach ($need as $what => $re) { if (!preg_match($re, $card_rule)) $missing[] = $what; }
     af_pv('brochure card style is outline-on-transparent',
           $card_rule !== '' && !$missing, $fail,
-          $card_rule === '' ? 'rule not found in page' : ($missing ? 'missing ' . implode(', ', $missing) : 'all three'));
+          $card_rule === '' ? 'rule not found in page'
+            : ($missing ? 'missing ' . implode(', ', $missing) . ' | served rule: ' . mb_strimwidth($card_rule, 0, 160, '…')
+                        : 'all three'));
     af_pv('cart hover colour ships (#8b6a2b)', strpos($hb2, '#8b6a2b') !== false, $fail);
     af_pv('icon-text gap ships (8px)', strpos($hb2, "'gap', '8px'") !== false || strpos($hb2, 'gap:8px') !== false, $fail);
     // the carousels ship .add-to-cart-btn (hyphens) — the selector the first
