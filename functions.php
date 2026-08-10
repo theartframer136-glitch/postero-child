@@ -13347,11 +13347,18 @@ add_action('wp_head', function() { ?>
   color:#fff;box-shadow:0 2px 12px rgba(201,168,76,.32);}
 .taf-broch .taf-broch-ico{flex:0 0 auto;opacity:.85;}
 .taf-broch:hover .taf-broch-ico{opacity:1;}
-/* card — same pill as the card's Add to Cart, one step quieter */
-.taf-broch-cardwrap{display:flex;justify-content:center;}
-.taf-broch--card{font-size:11px;padding:9px 22px;margin:11px auto 6px;
-  border-color:rgba(201,168,76,.62);}
-.taf-broch--card .taf-broch-ico{width:13px;height:13px;}
+/* card — a full-width bar under Add to Cart and Quick View, squared off and
+   in its own colour so the three actions read as three distinct things:
+   gold buys, black previews, teal downloads the book. Width and side margins
+   match the card's Add to Cart exactly (calc(100% - 28px) / 0 14px 14px), so
+   the three line up as one stack whatever section rendered the card. */
+.taf-broch-cardwrap{display:block;}
+.taf-broch--card{display:flex!important;width:calc(100% - 28px);box-sizing:border-box;
+  font-size:11px;padding:11px 12px;margin:0 14px 14px;border-radius:0;
+  background:#2f6f6a;border:.8px solid #2f6f6a;color:#fff;}
+.taf-broch--card:hover,.taf-broch--card:focus{background:#255a56;border-color:#255a56;
+  color:#fff;box-shadow:0 2px 12px rgba(47,111,106,.34);}
+.taf-broch--card .taf-broch-ico{width:13px;height:13px;opacity:1;}
 /* single product page — sits with Show Dimensions, size as a caption below */
 .taf-broch-wrap{margin:16px 0 12px;display:flex;flex-direction:column;
   align-items:flex-start;gap:7px;}
