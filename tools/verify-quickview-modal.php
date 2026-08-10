@@ -60,11 +60,21 @@ if ($pid0) {
         $emb_ok = !$miss;
     }
 }
-// and the launcher must ship on catalogue pages
-$sr = af_qv_get(get_permalink(wc_get_page_id('shop')));
-if (!is_wp_error($sr)) {
+// and the launcher must ship on every page that shows product cards. The
+// homepage is checked explicitly: that is where the visitor was clicking when
+// the plugin popup kept opening instead of ours.
+foreach (array('shop' => get_permalink(wc_get_page_id('shop')), 'homepage' => home_url('/')) as $w2 => $u2) {
+    if (!$u2) continue;
+    $sr = af_qv_get($u2);
+    if (is_wp_error($sr)) { af_qv("{$w2} fetch", false, $fail, $sr->get_error_message()); continue; }
     $sb = wp_remote_retrieve_body($sr);
-    af_qv('quick-view modal ships on the shop', strpos($sb, 'af-qv-frame') !== false, $fail);
+    af_qv("quick-view modal ships on the {$w2}", strpos($sb, 'af-qv-frame') !== false, $fail);
+    // the card markup the interceptor has to cope with, so a theme change that
+    // renames the cards shows up here rather than as a plugin popup
+    if ($w2 === 'homepage') {
+        af_qv('homepage cards expose a product link',
+              (bool) preg_match('#product-card[\s\S]{0,4000}?href="[^"]*/product/#', $sb), $fail);
+    }
 }
 
 af_qv('section gate exists',        function_exists('af_show_product_sections'), $fail);

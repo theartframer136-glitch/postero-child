@@ -4586,39 +4586,92 @@ add_action('wp_footer', function() {
     .af-qv.loaded .af-qv-spin{display:none;}
     @keyframes afqvspin{to{transform:rotate(360deg);}}
     @media(max-width:600px){ .af-qv-box{width:100vw;height:100vh;border-radius:0;} }
+    /* Belt and braces: if the plugin's own popup still manages to open behind
+       ours, keep it off the screen rather than stacking two modals. */
+    html.af-qv-open .eael-product-popup, html.af-qv-open .woosq-popup,
+    html.af-qv-open .mfp-wrap, html.af-qv-open .pswp--open { display:none !important; }
     </style>
     <script>
     (function(){
       var wrap=document.getElementById('af-qv');
       if(!wrap) return;
-      var frame=wrap.querySelector('.af-qv-frame');
+      var frame=wrap.querySelector('.af-qv-frame'), readyTimer=null, giveUp=null, target='';
+
+      // Find the product URL for whatever card this button belongs to. The
+      // first version looked for li.product/.product, which does not match the
+      // homepage's .product-card (a class selector matches whole tokens), so
+      // on the homepage it found nothing, bailed, and let the plugin's popup
+      // open — which is exactly what the visitor kept seeing. Walk up instead:
+      // any ancestor holding a /product/ link is the card, whatever it's called.
+      function productURL(btn){
+        var own=btn.getAttribute('href')||'';
+        if(own.indexOf('/product/')>-1) return own;
+        var d=btn.getAttribute('data-product-url')||btn.getAttribute('data-url')||'';
+        if(d.indexOf('/product/')>-1) return d;
+        var n=btn;
+        for(var i=0;i<10 && n && n!==document.body;i++){
+          var a=n.querySelector ? n.querySelector('a[href*="/product/"]') : null;
+          if(a && a.href) return a.href;
+          n=n.parentElement;
+        }
+        return '';
+      }
+      function reveal(){
+        wrap.classList.add('loaded');
+        if(readyTimer){ clearInterval(readyTimer); readyTimer=null; }
+        if(giveUp){ clearTimeout(giveUp); giveUp=null; }
+      }
       function openQV(url){
+        target=url;
         wrap.classList.remove('loaded');
-        frame.onload=function(){ wrap.classList.add('loaded'); };
+        document.documentElement.classList.add('af-qv-open');
+        frame.onload=reveal;
         frame.src=url+(url.indexOf('?')>-1?'&':'?')+'af_qv=1';
         wrap.hidden=false;
         document.documentElement.style.overflow='hidden';
+        // The frame is same-origin, so show it the moment it has a document
+        // rather than waiting for every image — a 500 KB product page kept the
+        // spinner up long enough to read as broken.
+        if(readyTimer) clearInterval(readyTimer);
+        readyTimer=setInterval(function(){
+          try{
+            var d=frame.contentDocument;
+            if(d && (d.readyState==='interactive'||d.readyState==='complete') && d.body && d.body.children.length) reveal();
+          }catch(err){ /* cross-origin: wait for onload */ }
+        }, 120);
+        // and never spin for ever: if the page will not frame, just go to it
+        if(giveUp) clearTimeout(giveUp);
+        giveUp=setTimeout(function(){
+          if(!wrap.classList.contains('loaded') && target){ window.location.href=target; }
+        }, 12000);
       }
       function closeQV(){
         wrap.hidden=true;
         frame.src='about:blank';
         document.documentElement.style.overflow='';
+        document.documentElement.classList.remove('af-qv-open');
+        if(readyTimer){ clearInterval(readyTimer); readyTimer=null; }
+        if(giveUp){ clearTimeout(giveUp); giveUp=null; }
       }
       wrap.querySelector('.af-qv-x').addEventListener('click', closeQV);
       wrap.querySelector('.af-qv-back').addEventListener('click', closeQV);
       document.addEventListener('keydown', function(e){ if(e.key==='Escape' && !wrap.hidden) closeQV(); });
-      // Capture-phase, so this wins the race against the plugin's own handler.
-      // If the product URL cannot be found the plugin popup still works.
-      document.addEventListener('click', function(e){
-        var b=e.target.closest('[class*="quick-view"],[class*="quickview"],[class*="eael-product-quick"]');
+
+      // Capture phase on document runs before any delegated handler the
+      // quick-view plugin binds, so this wins without a race. Matched broadly:
+      // the buttons ship as quick-view, quickview, quick_view or view-btn
+      // depending on which section rendered the card.
+      var SEL='[class*="quick-view"],[class*="quickview"],[class*="quick_view"],'
+             +'[class*="eael-product-quick"],[data-quick-view],.view-btn,a[class*="quick"]';
+      function grab(e){
+        var b=e.target.closest(SEL);
         if(!b || wrap.contains(b)) return;
-        var card=b.closest('li.product,.product,.af-mini-card') || b.parentElement;
-        var link=card ? card.querySelector('a[href*="/product/"]') : null;
-        var url=link ? link.href : (b.getAttribute('data-product-url')||'');
-        if(!url) return;                       // fall through to the plugin
+        var url=productURL(b);
+        if(!url) return;                       // unknown card: leave the plugin to it
         e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
         openQV(url.split('#')[0]);
-      }, true);
+      }
+      document.addEventListener('click', grab, true);
     })();
     </script>
     <?php
