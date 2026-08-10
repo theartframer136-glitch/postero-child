@@ -32,6 +32,41 @@ function af_qv_get($url) {
 }
 
 echo "=== QUICK VIEW MODAL ===\n";
+
+// ── the modal is the product page itself ──
+// The plugin's popup rebuilt the product from its own template and could only
+// approximate the page. Quick View now frames the real page in af_qv=1 embed
+// mode, so "exact full copy" is structural rather than maintained by hand.
+$emb_ok = false;
+$pid0 = 0;
+foreach (wc_get_products(array('status'=>'publish','limit'=>8,'return'=>'ids','orderby'=>'date','order'=>'DESC')) as $c0) {
+    $p0 = wc_get_product($c0);
+    if ($p0 && $p0->get_image_id()) { $pid0 = $c0; break; }
+}
+if ($pid0) {
+    $rr = af_qv_get(add_query_arg('af_qv', 1, get_permalink($pid0)));
+    if (!is_wp_error($rr)) {
+        $eb = wp_remote_retrieve_body($rr);
+        $code0 = (int) wp_remote_retrieve_response_code($rr);
+        af_qv('embed mode responds 200', $code0 === 200, $fail, "#{$pid0}, " . number_format(strlen($eb)/1024, 0) . ' KB');
+        af_qv('embed is flagged for the chrome CSS', strpos($eb, 'af-qv-embed') !== false, $fail);
+        // it must still be the WHOLE product page — the sections the owner
+        // listed as missing from the old popup
+        $need = array('description tabs' => 'woocommerce-tabs', 'options panel' => 'af-opts',
+                      'post-summary sections' => 'af-pp-sec', 'add to cart' => 'add-to-cart');
+        $miss = array();
+        foreach ($need as $what => $needle) if (strpos($eb, $needle) === false) $miss[] = $what;
+        af_qv('embed carries the full product page', !$miss, $fail, $miss ? 'missing ' . implode(', ', $miss) : 'tabs, options, sections, cart');
+        $emb_ok = !$miss;
+    }
+}
+// and the launcher must ship on catalogue pages
+$sr = af_qv_get(get_permalink(wc_get_page_id('shop')));
+if (!is_wp_error($sr)) {
+    $sb = wp_remote_retrieve_body($sr);
+    af_qv('quick-view modal ships on the shop', strpos($sb, 'af-qv-frame') !== false, $fail);
+}
+
 af_qv('section gate exists',        function_exists('af_show_product_sections'), $fail);
 af_qv('quick-view detector exists', function_exists('af_is_quick_view_action'), $fail);
 if (!function_exists('af_show_product_sections') || !function_exists('af_is_quick_view_action')) {

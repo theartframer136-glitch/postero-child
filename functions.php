@@ -4500,6 +4500,130 @@ function af_show_product_sections() {
     return af_is_product_page() || af_is_quick_view_request();
 }
 
+/* ============================================================
+   QUICK VIEW = THE PRODUCT PAGE ITSELF
+   The plugin's popup rebuilds the product from its own template, so it can
+   only ever be an approximation of the page. The owner wants an exact full
+   copy — tabs, art code, highlights, spec table, placement ideas, FAQ,
+   related pieces, everything. The only rendering that is exactly the product
+   page is the product page, so Quick View now opens the real page inside a
+   modal frame, with the site chrome (header, footer, floating widgets)
+   hidden via the af_qv=1 embed mode below. It cannot drift out of sync with
+   the page, because it IS the page.
+   ============================================================ */
+
+// ── embed mode: the product page stripped to its content ──
+function af_is_qv_embed() {
+    return !empty($_GET['af_qv']);
+}
+add_filter('body_class', function($classes) {
+    if (af_is_qv_embed()) $classes[] = 'af-qv-embed';
+    return $classes;
+});
+add_action('wp_head', function() {
+    if (!af_is_qv_embed()) return;
+    ?>
+    <style>
+    /* hide everything that belongs to the surrounding site, keep the page */
+    .af-qv-embed header, .af-qv-embed .site-header, .af-qv-embed #masthead,
+    .af-qv-embed footer, .af-qv-embed .site-footer,
+    .af-qv-embed [data-elementor-type="header"], .af-qv-embed [data-elementor-type="footer"],
+    .af-qv-embed .af-quickpanel, .af-qv-embed #af-chat, .af-qv-embed #af-consent,
+    .af-qv-embed .af-ck-footwrap, .af-qv-embed .woocommerce-breadcrumb {
+      display: none !important;
+    }
+    .af-qv-embed { background: #fff; }
+    </style>
+    <?php
+}, 99);
+add_action('wp_footer', function() {
+    if (!af_is_qv_embed()) return;
+    ?>
+    <script>
+    (function(){
+      // Inside the frame, anything that leaves the product (Buy Now, checkout,
+      // cart, breadcrumbs to categories, related-product cards) should take
+      // over the whole window rather than navigating within the modal.
+      // Add-to-cart form posts stay inside so the modal keeps its context.
+      document.addEventListener('click', function(e){
+        var a = e.target.closest('a[href]');
+        if (!a) return;
+        var h = a.getAttribute('href') || '';
+        if (h.charAt(0) === '#' || /^javascript:/i.test(h)) return;
+        // keep in-frame: gallery lightboxes and same-page anchors only
+        a.target = '_top';
+      }, true);
+    })();
+    </script>
+    <?php
+}, 99);
+
+// ── the modal: intercept quick-view clicks on catalogue pages ──
+add_action('wp_footer', function() {
+    if (is_admin() || af_is_qv_embed()) return;
+    ?>
+    <div id="af-qv" class="af-qv" hidden>
+      <div class="af-qv-back"></div>
+      <div class="af-qv-box" role="dialog" aria-modal="true" aria-label="Quick view">
+        <button type="button" class="af-qv-x" aria-label="Close quick view">✕</button>
+        <div class="af-qv-spin"></div>
+        <iframe class="af-qv-frame" title="Product quick view"></iframe>
+      </div>
+    </div>
+    <style>
+    .af-qv[hidden]{display:none !important;}
+    .af-qv{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;}
+    .af-qv-back{position:absolute;inset:0;background:rgba(12,10,6,.62);backdrop-filter:blur(2px);}
+    .af-qv-box{position:relative;width:min(1200px,94vw);height:92vh;background:#fff;border-radius:16px;
+      overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,.45);}
+    .af-qv-x{position:absolute;top:10px;right:10px;z-index:3;width:38px;height:38px;border:none;border-radius:50%;
+      background:#1a1a1a;color:#fff;font-size:16px;font-weight:700;cursor:pointer;line-height:1;}
+    .af-qv-x:hover{background:#c9a84c;}
+    .af-qv-frame{position:absolute;inset:0;width:100%;height:100%;border:0;opacity:0;transition:opacity .25s;}
+    .af-qv.loaded .af-qv-frame{opacity:1;}
+    .af-qv-spin{position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;
+      border:4px solid #eee2c8;border-top-color:#c9a84c;animation:afqvspin .8s linear infinite;}
+    .af-qv.loaded .af-qv-spin{display:none;}
+    @keyframes afqvspin{to{transform:rotate(360deg);}}
+    @media(max-width:600px){ .af-qv-box{width:100vw;height:100vh;border-radius:0;} }
+    </style>
+    <script>
+    (function(){
+      var wrap=document.getElementById('af-qv');
+      if(!wrap) return;
+      var frame=wrap.querySelector('.af-qv-frame');
+      function openQV(url){
+        wrap.classList.remove('loaded');
+        frame.onload=function(){ wrap.classList.add('loaded'); };
+        frame.src=url+(url.indexOf('?')>-1?'&':'?')+'af_qv=1';
+        wrap.hidden=false;
+        document.documentElement.style.overflow='hidden';
+      }
+      function closeQV(){
+        wrap.hidden=true;
+        frame.src='about:blank';
+        document.documentElement.style.overflow='';
+      }
+      wrap.querySelector('.af-qv-x').addEventListener('click', closeQV);
+      wrap.querySelector('.af-qv-back').addEventListener('click', closeQV);
+      document.addEventListener('keydown', function(e){ if(e.key==='Escape' && !wrap.hidden) closeQV(); });
+      // Capture-phase, so this wins the race against the plugin's own handler.
+      // If the product URL cannot be found the plugin popup still works.
+      document.addEventListener('click', function(e){
+        var b=e.target.closest('[class*="quick-view"],[class*="quickview"],[class*="eael-product-quick"]');
+        if(!b || wrap.contains(b)) return;
+        var card=b.closest('li.product,.product,.af-mini-card') || b.parentElement;
+        var link=card ? card.querySelector('a[href*="/product/"]') : null;
+        var url=link ? link.href : (b.getAttribute('data-product-url')||'');
+        if(!url) return;                       // fall through to the plugin
+        e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
+        openQV(url.split('#')[0]);
+      }, true);
+    })();
+    </script>
+    <?php
+}, 98);
+
 /**
  * Repair a corrupted $product global before the footer runs. Something on the
  * product page hands the global to wp_footer as a string; anything that then
