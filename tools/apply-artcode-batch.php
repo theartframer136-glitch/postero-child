@@ -37,6 +37,12 @@ $MAP = array(
     19392 => 'RK 23', // Radha Krishna with Peacocks (couple facing, peacocks both sides)
     11551 => 'RK 26', // Stunning Radha Krishna Abstract (cubist blue/gold, moon)
     20349 => 'RK 29', // Radha Krishna Angel Embrace (grey clouds, angelic)
+    19147 => 'RK 31', // Krishna Flute Player (grayscale sketch, couple)
+    13916 => 'RK 32', // Jagannath Art (Jagannath, Balaram, Subhadra)
+    18107 => 'RK 33', // Krishna Flute Collage (blue face, graffiti collage)
+    31829 => 'RK 34', // Krishna Flute Panorama (vivid orange/blue splash)
+    21320 => 'RK 35', // Krishna with White Cows (blue Krishna among cows)
+    16318 => 'RK 40', // Krishna Art (blue face, yellow/blue abstract splash)
 );
 
 echo "=== APPLY ART CODE BATCH ===\n";
