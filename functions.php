@@ -536,17 +536,15 @@ add_action('wp_footer', function() {
 (function(){
   var CATS = <?php echo wp_json_encode($map); ?>;
   function norm(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,''); }
+  function deadHref(h){ return !h || h === '#' || h.indexOf('javascript:') === 0; }
   function urlFor(item){
-    // A real link inside the item wins — never override native navigation.
-    var a = item.querySelector('a[href]');
-    if (a) { var h = a.getAttribute('href'); if (h && h !== '#' && h.indexOf('javascript:') !== 0) return null; }
     var label = norm(item.textContent);
     if (!label) return null;
     if (CATS[label]) return CATS[label];
     // tolerate extra text around the name (counts, "New" badges…)
     var best = null, bestLen = 0;
     for (var k in CATS) {
-      if (k.length > bestLen && (label === k || label.indexOf(k) === 0 || label.indexOf(k) !== -1)) {
+      if (k.length > bestLen && (label === k || label.indexOf(k) !== -1)) {
         best = CATS[k]; bestLen = k.length;
       }
     }
@@ -559,20 +557,32 @@ add_action('wp_footer', function() {
     items.forEach(function(it){
       if (it.getAttribute('data-af-cat-link') === '') return;      // resolved: no match
       if (it.getAttribute('data-af-cat-link')) return;             // already wired
+      // an item whose link already goes somewhere real is left alone
+      var a = it.querySelector('a[href]');
+      if (a && !deadHref(a.getAttribute('href'))) { it.setAttribute('data-af-cat-link', ''); return; }
       var url = urlFor(it);
       if (!url) { it.setAttribute('data-af-cat-link', ''); return; }
       it.setAttribute('data-af-cat-link', url);
+      // dead links (href="#", javascript:) get the real URL so native
+      // navigation works even if a slider library eats our click handler
+      it.querySelectorAll('a').forEach(function(lnk){
+        if (deadHref(lnk.getAttribute('href'))) lnk.setAttribute('href', url);
+      });
       it.style.cursor = 'pointer';
       it.setAttribute('role', 'link');
       it.setAttribute('tabindex', '0');
       var sx = 0, sy = 0;
-      it.addEventListener('pointerdown', function(e){ sx = e.clientX; sy = e.clientY; });
+      it.addEventListener('pointerdown', function(e){ sx = e.clientX; sy = e.clientY; }, true);
+      // capture phase: run BEFORE slider libraries that stopPropagation()
       it.addEventListener('click', function(e){
         // swiping the strip must not navigate
-        if (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8) return;
-        if (e.target.closest && e.target.closest('a[href]')) return;
+        if (sx && (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8)) return;
+        // let ctrl/cmd/middle-click use the (rewritten) anchor natively
+        if (e.ctrlKey || e.metaKey || e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
         window.location.href = it.getAttribute('data-af-cat-link');
-      });
+      }, true);
       it.addEventListener('keydown', function(e){
         if (e.key === 'Enter') window.location.href = it.getAttribute('data-af-cat-link');
       });
@@ -580,7 +590,7 @@ add_action('wp_footer', function() {
   }
   document.addEventListener('DOMContentLoaded', wire);
   window.addEventListener('load', wire);
-  [400, 1200, 2500].forEach(function(d){ setTimeout(wire, d); });
+  [400, 1200, 2500, 4000].forEach(function(d){ setTimeout(wire, d); });
   try {
     new MutationObserver(function(m){
       for (var i = 0; i < m.length; i++) {
