@@ -5667,18 +5667,28 @@ add_filter('wp_nav_menu_objects', function($items){
     return $items;
 }, 20);
 
-// Drop the "Social Media" and "Contact Us" items (and their dropdown
-// children) from the header navigation only. Footer menus and standalone
-// social icon links are left alone.
+// Drop the "Social Media", "Contact Us" and "About" items (and their dropdown
+// children) from the header navigation only, leaving that bar as Blog. Footer
+// menus and standalone social icon links are left alone.
 add_filter('wp_nav_menu_objects', function($items, $args){
     $loc = isset($args->theme_location) ? strtolower((string) $args->theme_location) : '';
     if ($loc !== '' && strpos($loc, 'footer') !== false) return $items;
+
+    // Belt-and-braces footer guard for menus rendered without a theme
+    // location (widgets, page builders): anything self-describing as a footer
+    // menu keeps every item.
+    foreach (array('menu', 'menu_class', 'container_class', 'menu_id') as $k) {
+        if (empty($args->$k)) continue;
+        $v = $args->$k;
+        if (is_object($v)) { $v = isset($v->slug) ? $v->slug : (isset($v->name) ? $v->name : ''); }
+        if (is_string($v) && stripos($v, 'footer') !== false) return $items;
+    }
 
     $is_header = ($loc !== '' && preg_match('/primary|header|main|top/', $loc));
     if (!$is_header) {
         // No usable location (builder menus): identify the header nav by the
         // items it carries. Checked BEFORE anything is removed, so dropping
-        // Contact Us below does not break this detection.
+        // those items below does not break this detection.
         $markers = 0;
         foreach ($items as $it) {
             $t = strtolower(wp_strip_all_tags($it->title));
@@ -5693,7 +5703,8 @@ add_filter('wp_nav_menu_objects', function($items, $args){
         $t = strtolower(trim(wp_strip_all_tags($it->title)));
         $t = preg_replace('/\s+/', ' ', $t);
         if ($t === 'social media' || $t === 'social' || $t === 'social medias'
-            || $t === 'contact us' || $t === 'contact') {
+            || $t === 'contact us' || $t === 'contact'
+            || $t === 'about' || $t === 'about us') {
             $remove[] = (int) $it->ID;
         }
     }
@@ -5741,7 +5752,8 @@ add_action('wp_footer', function() {
       for (var k = 0; k < links.length; k++) {
         var txt = (links[k].textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
         if (txt === 'social media' || txt === 'social'
-            || txt === 'contact us' || txt === 'contact') {
+            || txt === 'contact us' || txt === 'contact'
+            || txt === 'about' || txt === 'about us') {
           var li = links[k].closest('li');
           if (li) li.style.setProperty('display', 'none', 'important');
         }
