@@ -57,8 +57,28 @@ foreach ($broken as $r) {
     // parses is the original; guessing is not involved because JSON either
     // decodes or it does not
     $candidates = array($backup, wp_slash((string) $backup), stripslashes((string) $backup));
-    $good = null;
+    $good = null; $from = 'backup';
     foreach ($candidates as $c) { if (af_el_ok($c)) { $good = $c; break; } }
+
+    if ($good === null) {
+        // No usable backup. Elementor saves a revision on every edit, and each
+        // revision carries its own copy of the design — the newest one that
+        // parses is the page as the owner last left it, which is exactly what
+        // "put it back the way it was" means here.
+        $revs = $wpdb->get_col($wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts}
+              WHERE post_parent = %d AND post_type = 'revision'
+              ORDER BY post_date DESC LIMIT 30", (int) $r->post_id));
+        foreach ($revs as $rev) {
+            $rv = $wpdb->get_var($wpdb->prepare(
+                "SELECT meta_value FROM {$wpdb->postmeta}
+                  WHERE post_id = %d AND meta_key = '_elementor_data' LIMIT 1", (int) $rev));
+            foreach (array($rv, wp_slash((string) $rv), stripslashes((string) $rv)) as $c) {
+                if (af_el_ok($c)) { $good = $c; $from = 'revision #' . $rev; break 2; }
+            }
+        }
+    }
+
     if ($good === null) {
         $unrepairable[] = $r->post_id;
         printf("  UNREPAIRABLE #%-6d %s (no parseable backup)\n", $r->post_id,
@@ -68,8 +88,8 @@ foreach ($broken as $r) {
     $ok = $wpdb->update($wpdb->postmeta, array('meta_value' => $good), array('meta_id' => (int) $r->meta_id));
     if ($ok === false) { echo "  FAILED write meta #{$r->meta_id}\n"; continue; }
     $repaired++;
-    printf("  repaired  #%-6d %s\n", $r->post_id,
-           mb_strimwidth((string) get_the_title($r->post_id), 0, 44, '…'));
+    printf("  repaired  #%-6d %-44s from %s\n", $r->post_id,
+           mb_strimwidth((string) get_the_title($r->post_id), 0, 44, '…'), $from);
     clean_post_cache((int) $r->post_id);
 }
 printf("  repaired: %d   still broken: %d\n", $repaired, count($unrepairable));
