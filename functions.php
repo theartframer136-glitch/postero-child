@@ -5667,30 +5667,33 @@ add_filter('wp_nav_menu_objects', function($items){
     return $items;
 }, 20);
 
-// Drop the "Social Media" item (and its dropdown children) from the header
-// navigation only. Footer menus and standalone social icon links are left
-// alone — this targets the nav bar that carries Contact Us.
+// Drop the "Social Media" and "Contact Us" items (and their dropdown
+// children) from the header navigation only. Footer menus and standalone
+// social icon links are left alone.
 add_filter('wp_nav_menu_objects', function($items, $args){
     $loc = isset($args->theme_location) ? strtolower((string) $args->theme_location) : '';
     if ($loc !== '' && strpos($loc, 'footer') !== false) return $items;
 
     $is_header = ($loc !== '' && preg_match('/primary|header|main|top/', $loc));
     if (!$is_header) {
-        // No usable location (builder menus): treat the nav carrying a
-        // Contact item as the header nav, matching how the Admin Console
-        // link finds it.
-        $has_contact = false;
+        // No usable location (builder menus): identify the header nav by the
+        // items it carries. Checked BEFORE anything is removed, so dropping
+        // Contact Us below does not break this detection.
+        $markers = 0;
         foreach ($items as $it) {
-            if (stripos(wp_strip_all_tags($it->title), 'contact') !== false) { $has_contact = true; break; }
+            $t = strtolower(wp_strip_all_tags($it->title));
+            if (strpos($t, 'contact') !== false || strpos($t, 'about') !== false
+                || strpos($t, 'blog') !== false) { $markers++; }
         }
-        if (!$has_contact) return $items;
+        if ($markers < 2) return $items;
     }
 
     $remove = array();
     foreach ($items as $it) {
         $t = strtolower(trim(wp_strip_all_tags($it->title)));
         $t = preg_replace('/\s+/', ' ', $t);
-        if ($t === 'social media' || $t === 'social' || $t === 'social medias') {
+        if ($t === 'social media' || $t === 'social' || $t === 'social medias'
+            || $t === 'contact us' || $t === 'contact') {
             $remove[] = (int) $it->ID;
         }
     }
@@ -5727,15 +5730,18 @@ add_action('wp_footer', function() {
       var ul = lists[i];
       if (ul.closest('footer, .footer, #footer, .site-footer, .elementor-location-footer')) continue;
       var links = ul.querySelectorAll(':scope > li > a');
-      if (links.length < 3) continue;                 // not a real nav bar
-      var hasContact = false;
+      if (links.length < 2) continue;                 // not a real nav bar
+      // Identify the header nav by its remaining items, so this keeps
+      // matching after Contact Us is gone.
+      var markers = 0;
       for (var j = 0; j < links.length; j++) {
-        if (/contact/i.test(links[j].textContent || '')) { hasContact = true; break; }
+        if (/contact|about|blog/i.test(links[j].textContent || '')) markers++;
       }
-      if (!hasContact) continue;
+      if (markers < 2) continue;
       for (var k = 0; k < links.length; k++) {
         var txt = (links[k].textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-        if (txt === 'social media' || txt === 'social') {
+        if (txt === 'social media' || txt === 'social'
+            || txt === 'contact us' || txt === 'contact') {
           var li = links[k].closest('li');
           if (li) li.style.setProperty('display', 'none', 'important');
         }
@@ -13265,7 +13271,11 @@ add_action('template_redirect', function(){
 // desktop one — so the single insert landed in markup that is never visible on
 // desktop. Adding to each matching menu also means the link works on mobile.
 add_filter('wp_nav_menu_items', function($items, $args) {
-    if (stripos($items, 'contact') === false) return $items;
+    // Contact Us is removed from the header nav, so match on what remains
+    // there too — otherwise this link would disappear along with it.
+    if (stripos($items, 'contact') === false
+        && stripos($items, 'about') === false
+        && stripos($items, 'blog') === false) return $items;
     if (!af_console_can_access()) return $items;
     if (strpos($items, 'af-console-navitem') !== false) return $items;
 
@@ -13325,12 +13335,14 @@ add_action('wp_footer', function() {
         for (var i = 0; i < lists.length; i++) {
           var ul = lists[i];
           var links = ul.querySelectorAll(':scope > li > a');
-          if (links.length < 3) continue; // not a real nav bar
-          var hasContact = false;
+          if (links.length < 2) continue; // not a real nav bar
+          // Contact Us no longer sits in the header nav, so score on the
+          // items that remain there.
+          var markers = 0;
           for (var j = 0; j < links.length; j++) {
-            if (/contact/i.test(links[j].textContent || '')) { hasContact = true; break; }
+            if (/contact|about|blog/i.test(links[j].textContent || '')) markers++;
           }
-          if (!hasContact) continue;
+          if (markers < 2) continue;
           // Prefer the visible nav: a hidden mobile copy has no layout box.
           var visible = ul.getBoundingClientRect().width > 0;
           var score = links.length + (visible ? 1000 : 0);
