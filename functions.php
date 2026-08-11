@@ -9983,6 +9983,21 @@ add_shortcode('af_country_selector', function() {
 .af-cty .af-cty-menu{display:none !important;}
 .af-cty.open .af-cty-menu{display:block !important;}
 
+/* The dropdown was rendering see-through with light text, so it vanished over
+   the light homepage. Force a SOLID dark panel with high-contrast text so it
+   is legible on any background (matches the dark header). */
+.af-cty .af-cty-menu{background:#161616 !important;border-top:3px solid var(--taf-gold,#c9a84c) !important;
+  box-shadow:0 14px 44px rgba(0,0,0,.55) !important;opacity:1 !important;}
+.af-cty .af-cty-head{color:#b9b09a !important;}
+.af-cty .af-cty-item{background:transparent !important;}
+.af-cty .af-cty-item:hover{background:rgba(255,255,255,.07) !important;}
+.af-cty .af-cty-item.on{background:rgba(201,168,76,.16) !important;}
+.af-cty .af-cty-nm{color:#f3ede1 !important;}
+.af-cty .af-cty-nm small{color:#a79f8d !important;}
+.af-cty .af-cty-cur{color:var(--taf-gold,#c9a84c) !important;}
+.af-cty .af-cty-foot{color:#b9b09a !important;border-top:1px solid rgba(255,255,255,.12) !important;}
+.af-cty .af-cty-foot a{color:var(--taf-gold,#c9a84c) !important;}
+
 /* Relocated next to the social icons: align on the row and keep the dropdown
    anchored to the button rather than the old utility-bar position. */
 .af-cty--inline{display:inline-flex !important;align-items:center;margin:0 6px;vertical-align:middle;
