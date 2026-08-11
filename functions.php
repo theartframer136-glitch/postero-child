@@ -5142,7 +5142,7 @@ function af_pricing_config() {
  * list is all it takes to put a frame back on sale.
  */
 function af_frames_in_stock() {
-    return array( 'Aluminium Frame' );
+    return array( 'Without Frame', 'Aluminium Frame' );
 }
 
 function af_frame_is_in_stock( $frame ) {
