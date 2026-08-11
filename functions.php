@@ -9983,20 +9983,23 @@ add_shortcode('af_country_selector', function() {
 .af-cty .af-cty-menu{display:none !important;}
 .af-cty.open .af-cty-menu{display:block !important;}
 
-/* The dropdown was rendering see-through with light text, so it vanished over
-   the light homepage. Force a SOLID dark panel with high-contrast text so it
-   is legible on any background (matches the dark header). */
-.af-cty .af-cty-menu{background:#161616 !important;border-top:3px solid var(--taf-gold,#c9a84c) !important;
-  box-shadow:0 14px 44px rgba(0,0,0,.55) !important;opacity:1 !important;}
-.af-cty .af-cty-head{color:#b9b09a !important;}
-.af-cty .af-cty-item{background:transparent !important;}
-.af-cty .af-cty-item:hover{background:rgba(255,255,255,.07) !important;}
-.af-cty .af-cty-item.on{background:rgba(201,168,76,.16) !important;}
-.af-cty .af-cty-nm{color:#f3ede1 !important;}
-.af-cty .af-cty-nm small{color:#a79f8d !important;}
-.af-cty .af-cty-cur{color:var(--taf-gold,#c9a84c) !important;}
-.af-cty .af-cty-foot{color:#b9b09a !important;border-top:1px solid rgba(255,255,255,.12) !important;}
-.af-cty .af-cty-foot a{color:var(--taf-gold,#c9a84c) !important;}
+/* Match the My Account dropdown: a clean SOLID WHITE panel with dark text.
+   Literal hex only — the CSS custom properties (--taf-dark/--taf-gold) do not
+   resolve in the relocated Elementor header context, which is what made the
+   text invisible before. */
+.af-cty .af-cty-menu{background:#ffffff !important;border:1px solid #e6e2d8 !important;
+  border-radius:6px !important;box-shadow:0 12px 32px rgba(0,0,0,.16) !important;
+  opacity:1 !important;overflow:hidden !important;}
+.af-cty .af-cty-head{color:#8a8a8a !important;background:#ffffff !important;}
+.af-cty .af-cty-item{background:#ffffff !important;color:#1e1e1e !important;}
+.af-cty .af-cty-item:hover{background:#f5f1e6 !important;}
+.af-cty .af-cty-item.on{background:#f5f1e6 !important;}
+.af-cty .af-cty-nm{color:#1e1e1e !important;}
+.af-cty .af-cty-nm small{color:#777777 !important;}
+.af-cty .af-cty-cur{color:#8a6d1f !important;}
+.af-cty .af-cty-foot{color:#777777 !important;background:#ffffff !important;
+  border-top:1px solid #e6e2d8 !important;}
+.af-cty .af-cty-foot a{color:#8a6d1f !important;}
 
 /* Relocated next to the social icons: align on the row and keep the dropdown
    anchored to the button rather than the old utility-bar position. */
