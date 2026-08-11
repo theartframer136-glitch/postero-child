@@ -63,7 +63,7 @@ function af_rw_apply($text, $map, &$hits) {
 echo "=== REWRITE FREE-SHIPPING CLAIMS (DB CONTENT) ===\n";
 printf("  new label : %s\n  new line  : %s\n\n", $label, $short);
 
-$changed_posts = 0; $changed_meta = 0; $total_hits = 0;
+$changed_posts = 0; $changed_meta = 0; $total_hits = 0; $unmatched = array();
 
 // ── 1. post content (pages, products) ──
 $ids = $wpdb->get_col(
@@ -103,33 +103,48 @@ foreach ($ids as $pid) {
 // ── 2. Elementor designs in postmeta ──
 // _elementor_data is JSON stored as a slashed string; replacing inside it is
 // safe because every phrase here is plain display text, not markup or a key.
-$rows = $wpdb->get_results(
-    "SELECT meta_id, post_id, meta_value FROM {$wpdb->postmeta}
-      WHERE meta_key = '_elementor_data'
-        AND (LOWER(meta_value) LIKE '%free shipping%'
-          OR LOWER(meta_value) LIKE '%free delivery%'
-          OR LOWER(meta_value) LIKE '%free usa shipping%')
-      LIMIT 300");
-foreach ($rows as $row) {
-    $hits = 0;
-    // inside JSON the em dash and quotes are escaped; feed the map through the
-    // same encoder so replacements match what is actually stored
-    $jmap = array();
-    foreach ($map as $from => $to) {
-        $jf = trim(wp_json_encode($from), '"');
-        $jt = trim(wp_json_encode($to), '"');
-        $jmap[$jf] = $jt;
+// Batched until exhausted. The first version stopped at LIMIT 300 and left
+// the rest of the homepage's widgets still saying "Free Shipping" — the count
+// in the log looked like success while the page had not fully changed.
+// Rows that contain a phrase but nothing this map can replace are remembered
+// and excluded, so the loop always makes progress instead of re-reading them.
+$seen = array();
+$guard = 0;
+while (true) {
+    $skip = $seen ? (' AND meta_id NOT IN (' . implode(',', array_map('intval', $seen)) . ')') : '';
+    $batch = $wpdb->get_results(
+        "SELECT meta_id, post_id, meta_value FROM {$wpdb->postmeta}
+          WHERE meta_key = '_elementor_data'
+            AND (LOWER(meta_value) LIKE '%free shipping%'
+              OR LOWER(meta_value) LIKE '%free delivery%'
+              OR LOWER(meta_value) LIKE '%free usa shipping%')
+            {$skip}
+          LIMIT 100");
+    if (!$batch) break;
+    foreach ($batch as $row) {
+        $seen[] = (int) $row->meta_id;
+        $hits = 0;
+        // inside JSON the em dash and quotes are escaped; feed the map through
+        // the same encoder so replacements match what is actually stored
+        $jmap = array();
+        foreach ($map as $from => $to) {
+            $jmap[trim(wp_json_encode($from), '"')] = trim(wp_json_encode($to), '"');
+        }
+        $new = af_rw_apply($row->meta_value, $jmap, $hits);
+        if ($new === null) { $unmatched[] = $row->post_id; continue; }
+        if (!get_post_meta($row->post_id, '_af_elementor_backup', true)) {
+            update_post_meta($row->post_id, '_af_elementor_backup', wp_slash($row->meta_value));
+        }
+        $ok = $wpdb->update($wpdb->postmeta, array('meta_value' => $new), array('meta_id' => $row->meta_id));
+        if ($ok === false) { echo "  FAILED meta #{$row->meta_id}\n"; continue; }
+        $changed_meta++; $total_hits += $hits;
     }
-    $new = af_rw_apply($row->meta_value, $jmap, $hits);
-    if ($new === null) continue;
-    if (!get_post_meta($row->post_id, '_af_elementor_backup', true)) {
-        update_post_meta($row->post_id, '_af_elementor_backup', wp_slash($row->meta_value));
-    }
-    $ok = $wpdb->update($wpdb->postmeta, array('meta_value' => $new), array('meta_id' => $row->meta_id));
-    if ($ok === false) { echo "  FAILED meta #{$row->meta_id}\n"; continue; }
-    $changed_meta++; $total_hits += $hits;
-    printf("  elementor #%-6d %s (%d)\n", $row->post_id,
-           mb_strimwidth(get_the_title($row->post_id), 0, 46, '…'), $hits);
+    if (++$guard > 60) { echo "  (batch guard reached — re-run to continue)\n"; break; }
+}
+if (!empty($unmatched)) {
+    $u = array_unique($unmatched);
+    echo "  designs holding a phrase this map does not cover: " . count($u) . "\n";
+    foreach (array_slice($u, 0, 6) as $up) echo "    #{$up} " . get_the_title($up) . "\n";
 }
 
 echo "\n  posts changed:      {$changed_posts}\n";

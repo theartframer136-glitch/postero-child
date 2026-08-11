@@ -61,8 +61,11 @@ if ($rows) {
 echo "\n-- postmeta (Elementor designs, custom fields) --\n";
 $mwhere = array();
 foreach ($needles as $n) $mwhere[] = $wpdb->prepare("LOWER(meta_value) LIKE %s", '%' . $wpdb->esc_like($n) . '%');
+// exclude the rewrite tool's own backups: they hold the ORIGINAL wording by
+// design, and counting them as live claims overstates what is left to fix
 $meta = $wpdb->get_results("SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta}
-    WHERE (" . implode(' OR ', $mwhere) . ") LIMIT 40");
+    WHERE (" . implode(' OR ', $mwhere) . ")
+      AND meta_key NOT IN ('_af_shipping_copy_backup','_af_elementor_backup') LIMIT 40");
 if ($meta) {
     foreach ($meta as $m) {
         $total++;
@@ -135,5 +138,27 @@ foreach ($pages as $name => $url) {
     }
 }
 
-echo "\n=== {$total} PLACE(S) TO FIX ===\n";
+// WooCommerce's own shipping methods: a cart saying "Free shipping" is usually
+// a zone method, not copy — a store setting only the owner should change
+echo "\n-- WooCommerce shipping methods (settings, not copy) --\n";
+if (class_exists('WC_Shipping_Zones')) {
+    $zones = WC_Shipping_Zones::get_zones();
+    $zones[] = array('zone_name' => 'Rest of the world',
+                     'shipping_methods' => WC_Shipping_Zones::get_zone(0)->get_shipping_methods());
+    foreach ($zones as $z) {
+        foreach ((array) $z['shipping_methods'] as $mth) {
+            $on = (isset($mth->enabled) && $mth->enabled === 'yes') ? 'enabled ' : 'disabled';
+            $cost = isset($mth->cost) && $mth->cost !== '' ? ('  cost: ' . $mth->cost) : '';
+            printf("  %-22s %-22s %s%s\n", mb_strimwidth($z['zone_name'], 0, 22),
+                   $mth->title, $on, $cost);
+            if ($mth->id === 'free_shipping' && $on === 'enabled ') {
+                echo "      ^ this is why the cart says free shipping — a setting, not text\n";
+            }
+        }
+    }
+} else {
+    echo "  (WooCommerce shipping API unavailable)\n";
+}
+
+echo "\n=== {$total} PLACE(S) TO FIX (content only; settings listed above) ===\n";
 echo "=== DONE ===\n";
