@@ -528,16 +528,17 @@ add_action('wp_footer', function() {
     $link = get_term_link($t);
     if (is_wp_error($link)) continue;
     $key = strtolower(preg_replace('/[^a-z0-9]+/i', '', html_entity_decode($t->name)));
-    if ($key !== '') $map[$key] = $link;
+    if ($key !== '') $map[$key] = array('u' => $link, 's' => $t->slug);
   }
   if (!$map) return;
   ?>
 <script>
 (function(){
-  var CATS = <?php echo wp_json_encode($map); ?>;
+  var CATS  = <?php echo wp_json_encode($map); ?>;
+  var AJAX  = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
   function norm(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,''); }
   function deadHref(h){ return !h || h === '#' || h.indexOf('javascript:') === 0; }
-  function urlFor(item){
+  function catFor(item){
     var label = norm(item.textContent);
     if (!label) return null;
     if (CATS[label]) return CATS[label];
@@ -550,6 +551,45 @@ add_action('wp_footer', function() {
     }
     return best;
   }
+  function urlFor(item){ var c = catFor(item); return c ? c.u : null; }
+
+  // Clicking a circle is meant to swap the products shown in the slider, not
+  // leave the page — that is what the theme's own load_products endpoint is
+  // for (it takes a subcategory slug and answers with the cards). Navigating
+  // to the category archive, which this handler used to do, replaced that
+  // behaviour with a page change. Filter in place, and only fall back to the
+  // archive if the request cannot be served.
+  function grid(){
+    return document.querySelector('#productGrid, .product-slider, .custom-product-track');
+  }
+  function filterTo(cat, item){
+    var box = grid();
+    if (!box || !cat || !cat.s) return false;
+    var strip = item.parentElement;
+    if (strip) {
+      Array.prototype.forEach.call(strip.children, function(sib){ sib.classList.remove('active'); });
+    }
+    item.classList.add('active');
+    box.style.opacity = '.45';
+    var body = new URLSearchParams();
+    body.set('action', 'load_products');
+    body.set('subcategory', cat.s);
+    fetch(AJAX, {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+      body: body.toString()
+    }).then(function(r){ return r.ok ? r.text() : Promise.reject(r.status); })
+      .then(function(html){
+        box.style.opacity = '';
+        if (!html || !html.trim()) { window.location.href = cat.u; return; }
+        box.innerHTML = html;
+        // let anything that decorates cards (wishlist, quick view, AR) re-run
+        document.dispatchEvent(new CustomEvent('af:products-replaced', {detail:{slug: cat.s}}));
+      })
+      .catch(function(){ box.style.opacity = ''; window.location.href = cat.u; });
+    return true;
+  }
   function wire(){
     var items = document.querySelectorAll(
       '#subcategorySlider > *, .subcategory-slider > *, ul.postero-scroll-content > li.cat-item'
@@ -560,9 +600,11 @@ add_action('wp_footer', function() {
       // an item whose link already goes somewhere real is left alone
       var a = it.querySelector('a[href]');
       if (a && !deadHref(a.getAttribute('href'))) { it.setAttribute('data-af-cat-link', ''); return; }
-      var url = urlFor(it);
+      var cat = catFor(it);
+      var url = cat ? cat.u : null;
       if (!url) { it.setAttribute('data-af-cat-link', ''); return; }
       it.setAttribute('data-af-cat-link', url);
+      if (cat.s) it.setAttribute('data-af-cat-slug', cat.s);
       // dead links (href="#", javascript:) get the real URL so native
       // navigation works even if a slider library eats our click handler
       it.querySelectorAll('a').forEach(function(lnk){
@@ -581,10 +623,12 @@ add_action('wp_footer', function() {
         if (e.ctrlKey || e.metaKey || e.button !== 0) return;
         e.preventDefault();
         e.stopPropagation();
-        window.location.href = it.getAttribute('data-af-cat-link');
+        // show this subcategory in the slider; the archive is the fallback
+        if (!filterTo(cat, it)) window.location.href = it.getAttribute('data-af-cat-link');
       }, true);
       it.addEventListener('keydown', function(e){
-        if (e.key === 'Enter') window.location.href = it.getAttribute('data-af-cat-link');
+        if (e.key !== 'Enter') return;
+        if (!filterTo(cat, it)) window.location.href = it.getAttribute('data-af-cat-link');
       });
     });
   }
@@ -11278,16 +11322,25 @@ add_filter('do_shortcode_tag', function ($output, $tag) {
  * content asks for the reviews widget, its assets belong on the page.
  */
 function af_grwp_page_has_widget() {
+    if (is_admin()) return false;
     if (!empty($GLOBALS['af_grwp_rendered'])) return true;
-    $id = (int) get_queried_object_id();
-    if (!$id && function_exists('is_front_page') && is_front_page()) $id = (int) get_option('page_on_front');
-    if (!$id) return false;
-    static $cache = array();
-    if (isset($cache[$id])) return $cache[$id];
-    $hay = (string) get_post_field('post_content', $id);
-    $meta = get_post_meta($id, '_elementor_data', true);
-    if (is_string($meta)) $hay .= $meta;
-    return $cache[$id] = (bool) preg_match('/grwp|g-review|google[-_ ]?review/i', $hay);
+
+    // Two attempts at inferring this failed against the live page: the
+    // shortcode-render flag missed because Elementor can serve the widget from
+    // its own cache, and matching the stored design missed because the
+    // shortcode's own tag carries none of the words the widget's markup does.
+    // Guessing the tag would be a third inference. The plugin's front-end
+    // bundle is small and self-initialising, so when the plugin is active the
+    // assets simply ship — a little weight on pages without the widget, in
+    // exchange for arrows that work wherever the widget appears.
+    static $active = null;
+    if ($active === null) {
+        $active = false;
+        foreach ((array) get_option('active_plugins', array()) as $p) {
+            if (strpos($p, 'embedder-for-google-reviews') === 0) { $active = true; break; }
+        }
+    }
+    return $active;
 }
 
 add_action('wp_footer', function () {
