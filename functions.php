@@ -11380,32 +11380,17 @@ add_action('wp_footer', function () {
     $slug   = 'embedder-for-google-reviews';
     $loaded = array();
 
-    // 1. Preferred: the plugin registered its assets properly and simply never
-    //    enqueued them. Printing the handles it declared keeps its own
-    //    dependencies and versioning intact.
-    foreach (wp_scripts()->registered as $handle => $script) {
-        if (empty($script->src) || strpos($script->src, $slug) === false) continue;
-        if (in_array($handle, wp_scripts()->done, true)) continue;
-        wp_enqueue_script($handle);
-        $loaded[] = $handle;
-    }
-    $styles = array();
-    foreach (wp_styles()->registered as $handle => $style) {
-        if (empty($style->src) || strpos($style->src, $slug) === false) continue;
-        if (in_array($handle, wp_styles()->done, true)) continue;
-        wp_enqueue_style($handle);
-        $styles[] = $handle;
-    }
-    if ($loaded) {
-        wp_print_scripts($loaded);
-        if ($styles) wp_print_styles($styles);
-        af_grwp_state('enqueued', $loaded);
-        return;
-    }
-
-    // 2. Fallback: nothing was registered, so point at the plugin's shipped
-    //    files directly. Only front-end bundles — never anything admin — and
-    //    only files that actually exist on disk.
+    // Print the plugin's files directly, and do it FIRST.
+    //
+    // The previous order asked WordPress to print the plugin's registered
+    // handle instead, reasoning that this preserves its dependencies. Measured
+    // on the live page that path reported success — state "enqueued", handle
+    // "google-reviews" — while the served html still contained no plugin
+    // script at all, so the arrows stayed dead. Whatever swallows that print,
+    // a plain tag cannot be swallowed.
+    //
+    // Order matters here: the vendor swiper bundle must execute before the
+    // plugin's own bundle asks it to build the carousel.
     $base = WP_PLUGIN_DIR . '/' . $slug;
     if (!is_dir($base)) { af_grwp_state('plugin-dir-missing', array()); return; }
 
@@ -11421,7 +11406,16 @@ add_action('wp_footer', function () {
                        '/public/*.', '/public/*/*.') as $pat) {
             $files = array_merge($files, (array) glob($base . $pat . $ext));
         }
-        foreach (array_unique(array_filter($files)) as $file) {
+        $files = array_values(array_unique(array_filter($files)));
+        // vendor libraries first: the plugin's own bundle calls Swiper, and a
+        // library that loads afterwards is a library that was not there when
+        // the carousel tried to start
+        usort($files, function ($a, $b) {
+            $av = (int) (strpos($a, '/vendor/') !== false);
+            $bv = (int) (strpos($b, '/vendor/') !== false);
+            return $av === $bv ? strcmp($a, $b) : ($bv - $av);
+        });
+        foreach ($files as $file) {
             if (preg_match('#/(admin|backend|block|editor|gutenberg)#i', $file)) continue;
             $name = basename($file);
             if (isset($seen[$name])) continue;
