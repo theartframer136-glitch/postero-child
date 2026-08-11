@@ -126,6 +126,26 @@ foreach (array('i want to talk to a human' => 'human hand-off',
           $admin_addr && $studio['email'] !== $admin_addr ? strpos($txt, $admin_addr) === false : true, $fail);
 }
 
+// ── shipping wording must be one claim, stated once ──
+echo "\n=== SHIPPING WORDING ===\n";
+$ship = af_shipping_copy();
+af_pv('copy helper exists', function_exists('af_shipping_copy'), $fail, $ship['label']);
+af_pv('no free-shipping claim in the copy',
+      stripos($ship['label'] . $ship['short'] . $ship['blurb'], 'free') === false, $fail);
+af_pv('badge label ships to the page', strpos($hb, $ship['label']) !== false, $fail);
+af_pv('homepage makes no free-shipping promise',
+      stripos($hb, 'Free Shipping across the USA') === false, $fail);
+// the bot must not contradict the page
+$sr = wp_remote_post(admin_url('admin-ajax.php'), array('timeout'=>45,'sslverify'=>false,
+    'body'=>array('action'=>'af_bot_reply','nonce'=>wp_create_nonce('af_bot'),'msg'=>'how much is shipping?')));
+if (!is_wp_error($sr)) {
+    $sj = json_decode(wp_remote_retrieve_body($sr), true);
+    $stxt = isset($sj['data']['reply']) ? $sj['data']['reply'] : '';
+    af_pv('chatbot says the same as the page',
+          $stxt !== '' && stripos($stxt, 'shipping is free') === false, $fail,
+          mb_strimwidth(str_replace("\n", ' ', $stxt), 0, 58, '…'));
+}
+
 echo "\n=== 16. SALES COUNT ON CARDS ===\n";
 af_pv('hook registered', function_exists('af_sales_count_min'), $fail);
 $sold = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key='total_sales' AND CAST(meta_value AS UNSIGNED) >= " . (int) af_sales_count_min());

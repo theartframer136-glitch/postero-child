@@ -2195,6 +2195,9 @@ add_action('woocommerce_after_shop_loop_item_title', function() {
 add_action('wp_footer', function() { ?>
 <script>
 (function() {
+  // shipping wording comes from af_shipping_copy() so the badge, its popup,
+  // the announcement bar and the chatbot always say the same thing
+  var AF_SHIP = <?php echo wp_json_encode(af_shipping_copy()); ?>;
   if (window.innerWidth > 600) return;
   var sp = function(el, p, v) { el.style.setProperty(p, v, 'important'); };
 
@@ -2225,7 +2228,7 @@ add_action('wp_footer', function() { ?>
     if (alreadyFixed) {
       // Only re-wire clicks on any newly added items, skip style work
       var popupMap2 = { 'shipping': 0, 'resolution': 1, 'frames': 2, 'payment': 3 };
-      var labelMap2 = ['Free Shipping','High Resolution','Premium Frames','Secure Payment'];
+      var labelMap2 = [AF_SHIP.label,'High Resolution','Premium Frames','Secure Payment'];
       Array.from(container.children).forEach(function(item) {
         if (item.dataset.afClick) return;
         item.dataset.afClick = '1';
@@ -2308,7 +2311,7 @@ add_action('wp_footer', function() { ?>
 
     // Wire click on each item to open the popup — only once per item
     var popupMap = { 'shipping': 0, 'resolution': 1, 'frames': 2, 'payment': 3 };
-    var labelMap = ['Free Shipping','High Resolution','Premium Frames','Secure Payment'];
+    var labelMap = [AF_SHIP.label,'High Resolution','Premium Frames','Secure Payment'];
     Array.from(container.children).forEach(function(item) {
       if (item.dataset.afClick) return; // already wired
       item.dataset.afClick = '1';
@@ -2943,12 +2946,17 @@ add_action('wp_footer', function() { ?>
 </div>
 <script>
 (function(){
+  // shipping wording comes from af_shipping_copy() so the badge, its popup,
+  // the announcement bar and the chatbot always say the same thing
+  var AF_SHIP = <?php echo wp_json_encode(af_shipping_copy()); ?>;
   var features = [
     {
-      label: 'Free Shipping',
+      label: AF_SHIP.label,
       icon: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>',
-      title: '🚚 Free Shipping Available!',
-      body: '<p>Enjoy fast, safe, and reliable delivery with guaranteed on-time service.</p><h4>📍 Shipping Available In:</h4><ul><li>New Jersey</li><li>Pennsylvania</li><li>Philadelphia</li></ul><h4>🎁 Free Delivery In:</h4><ul><li>Delaware</li><li>Pennsylvania</li><li>Maryland</li><li>New Jersey &amp; nearby areas</li></ul>'
+      title: '🚚 ' + AF_SHIP.label,
+      // the old copy promised free shipping here and then listed free delivery
+      // in four states only — one claim, stated once, from af_shipping_copy()
+      body: '<p>' + AF_SHIP.blurb + '</p><h4>📦 How it travels:</h4><ul><li>Smaller unframed prints ship rolled in a protective tube</li><li>Framed and larger pieces ship flat in a corner-protected crate</li><li>Oversize handling, where it applies, is shown at checkout</li></ul><p>Everything is made to order, so allow a few days for production before it ships. Tracking follows by email.</p>'
     },
     {
       label: 'High Resolution',
@@ -3792,7 +3800,7 @@ add_action('wp_footer', function() {
     <div class="af-utilitybar">
       <div class="af-ub-inner">
         <div class="af-ub-msg" aria-live="polite">
-          <span class="af-ub-rot">✨ Free Shipping across the USA on Premium Canvas Wall Art</span>
+          <span class="af-ub-rot">✨ <?php echo esc_html(af_shipping_copy()['short']); ?> on Premium Canvas Wall Art</span>
         </div>
         <nav class="af-ub-links" aria-label="Support and account">
           <a href="/track-your-order/" class="af-ub-link">🚚 Track Order</a>
@@ -3811,7 +3819,7 @@ add_action('wp_footer', function() {
       }
       // Rotating announcement messages
       var msgs = [
-        '✨ Free Shipping across the USA on Premium Canvas Wall Art',
+        '✨ ' + <?php echo wp_json_encode(af_shipping_copy()['short']); ?> + ' on Premium Canvas Wall Art',
         '🖼️ Try "On Your Wall" preview on any product before you buy',
         '🎨 Custom sizes & frames available — message us on WhatsApp',
         '⭐ Trusted by art lovers — archival, fade-resistant prints'
@@ -4926,6 +4934,34 @@ function af_studio_contact() {
     $c['tel']   = 'tel:+' . $digits;
     $c['wa']    = $digits;
     return $c;
+}
+
+/**
+ * How the site talks about shipping — one source, so the trust badge, its
+ * popup, the announcement bar and the chatbot can never contradict each other.
+ *
+ * The site used to promise "Free Shipping across the USA" while the badge's
+ * own popup listed free delivery in four states only. It now says the studio
+ * ships throughout the USA and states the cost.
+ *
+ * The cost line is deliberately not invented here: set the af_shipping_cost
+ * option (e.g. "$15" or "from $12") and every surface picks it up; leave it
+ * empty and they all say the cost is shown at checkout, which is true whatever
+ * the rate turns out to be. Filter af_shipping_copy to override any of it.
+ */
+function af_shipping_copy() {
+    $cost = trim((string) get_option('af_shipping_cost', ''));
+    $line = $cost !== ''
+        ? 'Shipping ' . $cost . ' throughout the USA'
+        : 'Shipping cost shown at checkout';
+    return apply_filters('af_shipping_copy', array(
+        'label' => 'Shipping Throughout the USA',
+        'short' => $line,
+        'blurb' => $cost !== ''
+            ? 'Delivered anywhere in the USA — shipping ' . $cost . ', shown before you pay.'
+            : 'Delivered anywhere in the USA — shipping cost is shown at checkout before you pay.',
+        'cost'  => $cost,
+    ));
 }
 
 function af_pricing_config() {
@@ -10312,8 +10348,9 @@ add_action('save_post_product', function () {
 
 // ─────────────────────────────────────────────────────────────
 // PHASE 24k — Product schema: shipping, returns, brand.
-// Values mirror the store's PUBLISHED policies (shipping page: free
-// US shipping, ~5 business days production + up to 10 days transit;
+// Values mirror the store's PUBLISHED policies (shipping: throughout the
+// USA at the rate in af_shipping_cost, ~5 business days production + up to
+// 10 days transit;
 // refund page: 7-day return window). returnFees intentionally
 // omitted — free returns are only promised for damaged/wrong-item,
 // so claiming FreeReturn store-wide would overstate. Makes products
@@ -10321,16 +10358,25 @@ add_action('save_post_product', function () {
 // Keep these in sync with the policy pages if they change.
 // ─────────────────────────────────────────────────────────────
 function af_offer_shipping_details() {
-    return array(
+    // The rate follows af_shipping_copy(): telling Google "0" while the site
+    // charges for shipping is a false free-shipping claim in Merchant results,
+    // which is a policy problem as well as a factual one. With no rate
+    // configured the amount is omitted rather than guessed at.
+    $cost = function_exists('af_shipping_copy') ? af_shipping_copy()['cost'] : '';
+    $num  = ($cost !== '' && preg_match('/[\d.]+/', $cost, $m)) ? $m[0] : '';
+    $rate = ($num !== '')
+        ? array('@type' => 'MonetaryAmount', 'value' => $num, 'currency' => 'USD')
+        : null;
+    return array_filter(array(
         '@type' => 'OfferShippingDetails',
-        'shippingRate' => array('@type' => 'MonetaryAmount', 'value' => '0', 'currency' => 'USD'),
+        'shippingRate' => $rate,
         'shippingDestination' => array('@type' => 'DefinedRegion', 'addressCountry' => 'US'),
         'deliveryTime' => array(
             '@type' => 'ShippingDeliveryTime',
             'handlingTime' => array('@type' => 'QuantitativeValue', 'minValue' => 1, 'maxValue' => 5, 'unitCode' => 'DAY'),
             'transitTime'  => array('@type' => 'QuantitativeValue', 'minValue' => 3, 'maxValue' => 10, 'unitCode' => 'DAY'),
         ),
-    );
+    ), function($v){ return $v !== null; });
 }
 function af_merchant_return_policy() {
     return array(

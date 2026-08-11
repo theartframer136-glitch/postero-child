@@ -95,7 +95,11 @@ function af_bot_intents() {
         ),
         'shipping' => array(
             'k' => array('ship', 'shipping', 'delivery', 'deliver', 'post', 'courier', 'how long', 'arrive', 'dispatch', 'tracking number', 'freight'),
-            'a' => "Shipping is free across the USA.\n\nSmaller unframed prints travel rolled in a protective tube; framed and larger pieces ship flat in a corner-protected crate. Very large pieces may go by freight, and oversize handling is shown at checkout before you pay.\n\nEverything is made to order, so allow a few days for production before it ships. You get tracking by email the moment it leaves us.",
+            // wording comes from af_shipping_copy() so the bot cannot promise
+            // something different from what the page says
+            'a' => (function_exists('af_shipping_copy') ? af_shipping_copy()['blurb']
+                    : 'We ship throughout the USA — the cost is shown at checkout.')
+                   . "\n\nSmaller unframed prints travel rolled in a protective tube; framed and larger pieces ship flat in a corner-protected crate. Very large pieces may go by freight, and oversize handling is shown at checkout before you pay.\n\nEverything is made to order, so allow a few days for production before it ships. You get tracking by email the moment it leaves us.",
             'c' => array('Track my order' => home_url('/my-account/orders/'), 'Shipping policy' => home_url('/shipping-delivery/')),
         ),
         'returns' => array(
