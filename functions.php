@@ -9976,12 +9976,28 @@ add_shortcode('af_country_selector', function() {
 })();
 </script>
 <style>
+/* CRITICAL: the dropdown must stay CLOSED until its button is clicked, in any
+   context it is relocated into. In the relocated header the base
+   `.af-cty-menu{display:none}` was being overridden, leaving the panel open
+   and covering the page — force it hidden unless the wrapper has .open. */
+.af-cty .af-cty-menu{display:none !important;}
+.af-cty.open .af-cty-menu{display:block !important;}
+
 /* Relocated next to the social icons: align on the row and keep the dropdown
    anchored to the button rather than the old utility-bar position. */
 .af-cty--inline{display:inline-flex !important;align-items:center;margin:0 6px;vertical-align:middle;
   flex:0 0 auto;white-space:nowrap;}
-.af-cty--inline .af-cty-btn{line-height:1;white-space:nowrap;}
 .af-cty--inline .af-cty-menu{right:0;left:auto;}
+/* Match the plain-text look of the other header items (English, CA$ CAD,
+   About Us …): drop the boxed border and inherit the row's font and colour
+   instead of the utility-bar's boxed style. */
+.af-cty--inline .af-cty-btn{border:none !important;background:transparent !important;
+  color:inherit !important;font:inherit !important;font-weight:600 !important;
+  line-height:1;white-space:nowrap;padding:0 !important;gap:4px;
+  text-transform:none;letter-spacing:normal;cursor:pointer;}
+.af-cty--inline .af-cty-btn:hover{color:var(--taf-gold) !important;border:none !important;}
+.af-cty--inline .af-cty-code{font:inherit !important;font-weight:600 !important;}
+.af-cty--inline .af-cty-caret{font-size:.8em;opacity:.75;}
 /* On Windows/Chrome the flag emoji renders as its letters (e.g. "GB"), which
    next to the code reads as "GB GB". Drop the flag in the inline placement so
    it shows just the code + caret, and it's narrower — helping the one-line fit. */
