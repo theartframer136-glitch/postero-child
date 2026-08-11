@@ -11250,8 +11250,31 @@ add_filter('do_shortcode_tag', function ($output, $tag) {
     return $output;
 }, 10, 2);
 
+/**
+ * Will the reviews widget appear on the page being served?
+ *
+ * The shortcode-render flag is the reliable signal, but it is only set once the
+ * content has rendered, and Elementor can serve a widget from its own cache
+ * without running the shortcode again — measured: the first attempt reported
+ * "widget shortcode not detected" on a page that plainly shows the widget. So
+ * also look at where the design is stored: if this page's Elementor data or
+ * content asks for the reviews widget, its assets belong on the page.
+ */
+function af_grwp_page_has_widget() {
+    if (!empty($GLOBALS['af_grwp_rendered'])) return true;
+    $id = (int) get_queried_object_id();
+    if (!$id && function_exists('is_front_page') && is_front_page()) $id = (int) get_option('page_on_front');
+    if (!$id) return false;
+    static $cache = array();
+    if (isset($cache[$id])) return $cache[$id];
+    $hay = (string) get_post_field('post_content', $id);
+    $meta = get_post_meta($id, '_elementor_data', true);
+    if (is_string($meta)) $hay .= $meta;
+    return $cache[$id] = (bool) preg_match('/grwp|g-review|google[-_ ]?review/i', $hay);
+}
+
 add_action('wp_footer', function () {
-    if (empty($GLOBALS['af_grwp_rendered'])) return;
+    if (!af_grwp_page_has_widget()) return;
 
     $slug   = 'embedder-for-google-reviews';
     $loaded = array();
