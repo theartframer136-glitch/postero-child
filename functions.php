@@ -11383,43 +11383,58 @@ add_action('wp_footer', function () {
     if ($loaded) {
         wp_print_scripts($loaded);
         if ($styles) wp_print_styles($styles);
-        echo "\n<!-- af: review slider assets enqueued (" . esc_html(implode(', ', $loaded)) . ") -->\n";
+        af_grwp_state('enqueued', $loaded);
         return;
     }
 
     // 2. Fallback: nothing was registered, so point at the plugin's shipped
     //    files directly. Only front-end bundles — never anything admin — and
     //    only files that actually exist on disk.
-    $dir = WP_PLUGIN_DIR . '/' . $slug . '/dist';
-    if (!is_dir($dir)) {
-        echo "\n<!-- af: review slider assets not found on disk -->\n";
-        return;
-    }
-    $url  = plugins_url('dist', WP_PLUGIN_DIR . '/' . $slug . '/' . $slug . '.php');
+    $base = WP_PLUGIN_DIR . '/' . $slug;
+    if (!is_dir($base)) { af_grwp_state('plugin-dir-missing', array()); return; }
+
+    // Take every front-end file the plugin ships. An earlier version filtered
+    // names to front/public/main/bundle/… and found nothing, because the
+    // plugin does not name its files any of those things — the filter was a
+    // guess about someone else's build output, and a guess is what left the
+    // page with no slider library at all.
     $seen = array();
     foreach (array('js', 'css') as $ext) {
-        $files = array_merge(
-            (array) glob($dir . '/*.' . $ext),
-            (array) glob($dir . '/' . $ext . '/*.' . $ext),
-            (array) glob($dir . '/*/*.' . $ext)
-        );
+        $files = array();
+        foreach (array('/*.', '/dist/*.', '/dist/*/*.', '/assets/*.', '/assets/*/*.',
+                       '/public/*.', '/public/*/*.') as $pat) {
+            $files = array_merge($files, (array) glob($base . $pat . $ext));
+        }
         foreach (array_unique(array_filter($files)) as $file) {
+            if (preg_match('#/(admin|backend|block|editor|gutenberg)#i', $file)) continue;
             $name = basename($file);
-            if (preg_match('/admin|backend|block/i', $file)) continue;
-            if (!preg_match('/front|public|main|index|bundle|swiper|slider|script|style/i', $name)) continue;
             if (isset($seen[$name])) continue;
             $seen[$name] = true;
-            $href = $url . substr($file, strlen($dir));
+            $href = plugins_url(substr($file, strlen($base) + 1), $base . '/' . $slug . '.php');
+            $ver  = (int) @filemtime($file);
             if ($ext === 'js') {
-                echo '<script src="' . esc_url($href) . '?ver=' . (int) filemtime($file) . '"></script>' . "\n";
+                echo '<script src="' . esc_url($href) . '?ver=' . $ver . '"></script>' . "\n";
             } else {
-                echo '<link rel="stylesheet" href="' . esc_url($href) . '?ver=' . (int) filemtime($file) . '">' . "\n";
+                echo '<link rel="stylesheet" href="' . esc_url($href) . '?ver=' . $ver . '">' . "\n";
             }
             $loaded[] = $name;
         }
     }
-    echo "\n<!-- af: review slider assets loaded from disk (" . esc_html(implode(', ', $loaded)) . ") -->\n";
+    af_grwp_state($loaded ? 'from-disk' : 'nothing-found', $loaded);
 }, 5);
+
+/**
+ * Say what the loader did, in a way that survives the page minifier.
+ *
+ * The first version reported itself in an HTML comment, and the served page
+ * showed no comment at all — which read as "the loader never ran" when the
+ * minifier had simply stripped it. An attribute on a real tag cannot be
+ * dropped that way, so the deploy check can trust it.
+ */
+function af_grwp_state($state, $files) {
+    printf('<script id="af-grwp-loader" data-state="%s" data-files="%s"></script>' . "\n",
+        esc_attr($state), esc_attr(implode(' ', (array) $files)));
+}
 
 // ---------------------------------------------------------------------------
 // PHASE 25 — Brochure "Art Code" (e.g. RK 01) shown on shop card + product page

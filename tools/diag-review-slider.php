@@ -120,6 +120,35 @@ foreach (array(
 $hdr = wp_remote_retrieve_header($res, 'x-litespeed-cache');
 printf("  x-litespeed-cache header: %s\n", $hdr ? $hdr : '(none)');
 
+// ── what the plugin actually ships, on disk ──
+// The loader falls back to the plugin's own files, so the names it can find
+// decide whether anything loads at all.
+echo "\n-- files the reviews plugin ships --\n";
+$pdir = WP_PLUGIN_DIR . '/embedder-for-google-reviews';
+if (!is_dir($pdir)) {
+    echo "  plugin directory not found at {$pdir}\n";
+} else {
+    $found = 0;
+    foreach (array('/*.js', '/*.css', '/dist/*.js', '/dist/*.css', '/dist/*/*.js', '/dist/*/*.css',
+                   '/assets/*.js', '/assets/*/*.js', '/public/*.js', '/public/*/*.js') as $g) {
+        foreach ((array) glob($pdir . $g) as $f) {
+            printf("  %-60s %6d bytes\n", str_replace($pdir . '/', '', $f), (int) @filesize($f));
+            if (++$found >= 25) break 2;
+        }
+    }
+    if (!$found) echo "  no js/css found in the usual places\n";
+}
+
+// ── does the loader leave a machine-readable trace? ──
+// HTML comments do not survive the page minifier, so the loader also prints a
+// tag with its state in an attribute. That is what to trust here.
+echo "\n-- loader state tag --\n";
+if (preg_match('#<script[^>]*id=["\']af-grwp-loader["\'][^>]*>#i', $html, $tg)) {
+    echo "  " . trim($tg[0]) . "\n";
+} else {
+    echo "  no state tag on the page\n";
+}
+
 // ── plugins that could own this widget ──
 echo "\n-- active plugins mentioning reviews or sliders --\n";
 foreach ((array) get_option('active_plugins', array()) as $p) {
