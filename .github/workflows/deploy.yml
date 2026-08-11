@@ -681,6 +681,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/verify-marketplace.php --allow-root 2>&1" \
             || true
 
+          echo "Rewriting free-shipping claims stored in page and Elementor content..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/rewrite-free-shipping.php --allow-root 2>&1" \
+            || true
+
           echo "Auditing every free-shipping claim on the site (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

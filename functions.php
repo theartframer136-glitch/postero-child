@@ -9607,7 +9607,11 @@ function af_gc_admin_page() {
 // ── 16a. Flag-based country selector (spec §3 Layer 1) ───────
 function af_countries() {
     return array(
-        'US' => array('flag' => '🇺🇸', 'name' => 'United States', 'cur' => 'USD', 'note' => 'Free delivery in DE, PA, MD, NJ &amp; nearby'),
+        // the note follows af_shipping_copy(); it used to promise free delivery
+        // in four states, which is what the currency strip showed on the shop,
+        // cart, about, FAQ and every product page
+        'US' => array('flag' => '🇺🇸', 'name' => 'United States', 'cur' => 'USD',
+                      'note' => function_exists('af_shipping_copy') ? af_shipping_copy()['short'] : 'Shipping cost shown at checkout'),
         'CA' => array('flag' => '🇨🇦', 'name' => 'Canada',        'cur' => 'CAD', 'note' => 'Shipping calculated at checkout'),
         'GB' => array('flag' => '🇬🇧', 'name' => 'United Kingdom','cur' => 'USD', 'note' => 'International — contact us for a quote'),
         'AU' => array('flag' => '🇦🇺', 'name' => 'Australia',     'cur' => 'USD', 'note' => 'International — contact us for a quote'),
