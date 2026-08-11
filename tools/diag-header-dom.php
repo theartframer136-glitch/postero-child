@@ -30,15 +30,23 @@ foreach ( array(
     echo "contains {$needle} ({$label}): " . ( strpos( $html, $needle ) !== false ? 'YES' : 'NO' ) . "\n";
 }
 
-// Dump a window of markup around each landmark so the real structure is visible.
-$targets = array( '470-7280', '4707280', 'tel:', 'facebook', 'instagram', 'mailto:' );
-foreach ( $targets as $needle ) {
-    $p = stripos( $html, $needle );
-    echo "\n----- around '{$needle}' (pos " . ( $p === false ? 'NOT FOUND' : $p ) . ") -----\n";
-    if ( $p !== false ) {
-        $chunk = substr( $html, max( 0, $p - 450 ), 950 );
-        // collapse whitespace so the deploy log stays readable
+// The first phone/facebook hits are the JSON-LD schema in <head>. Dump EVERY
+// occurrence of the phone number and the account/header landmarks so the
+// visible header row (an Elementor header template) is captured too.
+function afd_dump_all( $html, $needle, $before = 500, $after = 700, $max = 4 ) {
+    $count = 0; $from = 0;
+    while ( ( $p = stripos( $html, $needle, $from ) ) !== false && $count < $max ) {
+        $chunk = substr( $html, max( 0, $p - $before ), $before + $after );
+        echo "\n----- '{$needle}' #".( $count + 1 )." (pos {$p}) -----\n";
         echo preg_replace( '/\s+/', ' ', $chunk ) . "\n";
+        $from = $p + strlen( $needle ); $count++;
     }
+    if ( $count === 0 ) echo "\n----- '{$needle}': NOT FOUND -----\n";
+}
+afd_dump_all( $html, '470-7280', 700, 300 );     // all phone occurrences
+foreach ( array( 'elementor-location-header', 'ehf-header', 'MY ACCOUNT', 'My account', 'af-cty' ) as $needle ) {
+    $p = stripos( $html, $needle );
+    echo "\n----- '{$needle}' (pos " . ( $p === false ? 'NOT FOUND' : $p ) . ") -----\n";
+    if ( $p !== false ) echo preg_replace( '/\s+/', ' ', substr( $html, max( 0, $p - 300 ), 1100 ) ) . "\n";
 }
 echo "\n=== DONE ===\n";
