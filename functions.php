@@ -9887,15 +9887,30 @@ add_shortcode('af_country_selector', function() {
     host.parentNode.insertBefore(w, where === 'after' ? host.nextSibling : host);
     w.dataset.moved = '1';
     w.classList.add('af-cty--inline');
-    // Keep the whole contact row on one line: stop the flex row that now holds
-    // the selector (and its wrapper, in case the row is one level up) from
-    // wrapping the extra item onto a second line.
+    // Keep the contact row on ONE clean line and pack its items together
+    // instead of letting them spread edge-to-edge (which was forcing the email
+    // and phone text to wrap). Apply to the flex ancestors that hold the row.
     var p = w.parentElement, hops = 0;
-    while (p && hops < 3) {
+    while (p && hops < 4) {
       var cs = window.getComputedStyle(p);
       if (cs.display === 'flex' || cs.display === 'inline-flex') {
         p.style.setProperty('flex-wrap', 'nowrap', 'important');
         p.style.setProperty('align-items', 'center', 'important');
+        // pack the items rather than spreading them across the full width
+        if (/space-/.test(cs.justifyContent)) {
+          p.style.setProperty('justify-content', 'center', 'important');
+        }
+        // tighten oversized gaps
+        var gap = parseFloat(cs.columnGap || cs.gap || '0') || 0;
+        if (gap > 16) {
+          p.style.setProperty('column-gap', '14px', 'important');
+          p.style.setProperty('gap', '14px', 'important');
+        }
+        // white-space is inherited, so this stops the email/phone text inside
+        // each item from breaking onto two lines
+        for (var k = 0; k < p.children.length; k++) {
+          p.children[k].style.setProperty('white-space', 'nowrap', 'important');
+        }
       }
       p = p.parentElement; hops++;
     }
