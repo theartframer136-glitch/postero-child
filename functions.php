@@ -11167,6 +11167,95 @@ add_action('wp_footer', function () {
     <?php
 }, 99);
 
+// ─────────────────────────────────────────────────────────────
+// The review carousel's arrows did nothing when clicked.
+//
+// ROOT CAUSE (measured, tools/diag-review-slider.php): the widget's slider
+// markup is on the page — <div class="swiper reviews_embedder_slider"> with
+// its slides — but the served homepage references NO slider library at all
+// ("none — no slider library is loaded", 90 scripts on the page). Embedder for
+// Google Reviews enqueues its assets when it sees its shortcode in the post
+// content; on this homepage the shortcode lives inside Elementor's JSON, so
+// that check never matches and the script is never queued. The markup renders,
+// the arrows render, and nothing is listening to them.
+//
+// The fix is to notice when the shortcode actually renders and load the
+// plugin's own assets — its files, unmodified — so the slider initialises the
+// way it always did. Scoped to pages that really render the widget, so nothing
+// else on the site is affected. Footer scripts still run before
+// DOMContentLoaded, so the plugin's own init listener fires normally.
+// ─────────────────────────────────────────────────────────────
+add_filter('do_shortcode_tag', function ($output, $tag) {
+    if (!is_admin() && is_string($output) && $output !== ''
+        && (strpos($output, 'id="g-review"') !== false || strpos($output, 'grwp_') !== false)) {
+        $GLOBALS['af_grwp_rendered'] = true;
+    }
+    return $output;
+}, 10, 2);
+
+add_action('wp_footer', function () {
+    if (empty($GLOBALS['af_grwp_rendered'])) return;
+
+    $slug   = 'embedder-for-google-reviews';
+    $loaded = array();
+
+    // 1. Preferred: the plugin registered its assets properly and simply never
+    //    enqueued them. Printing the handles it declared keeps its own
+    //    dependencies and versioning intact.
+    foreach (wp_scripts()->registered as $handle => $script) {
+        if (empty($script->src) || strpos($script->src, $slug) === false) continue;
+        if (in_array($handle, wp_scripts()->done, true)) continue;
+        wp_enqueue_script($handle);
+        $loaded[] = $handle;
+    }
+    $styles = array();
+    foreach (wp_styles()->registered as $handle => $style) {
+        if (empty($style->src) || strpos($style->src, $slug) === false) continue;
+        if (in_array($handle, wp_styles()->done, true)) continue;
+        wp_enqueue_style($handle);
+        $styles[] = $handle;
+    }
+    if ($loaded) {
+        wp_print_scripts($loaded);
+        if ($styles) wp_print_styles($styles);
+        echo "\n<!-- af: review slider assets enqueued (" . esc_html(implode(', ', $loaded)) . ") -->\n";
+        return;
+    }
+
+    // 2. Fallback: nothing was registered, so point at the plugin's shipped
+    //    files directly. Only front-end bundles — never anything admin — and
+    //    only files that actually exist on disk.
+    $dir = WP_PLUGIN_DIR . '/' . $slug . '/dist';
+    if (!is_dir($dir)) {
+        echo "\n<!-- af: review slider assets not found on disk -->\n";
+        return;
+    }
+    $url  = plugins_url('dist', WP_PLUGIN_DIR . '/' . $slug . '/' . $slug . '.php');
+    $seen = array();
+    foreach (array('js', 'css') as $ext) {
+        $files = array_merge(
+            (array) glob($dir . '/*.' . $ext),
+            (array) glob($dir . '/' . $ext . '/*.' . $ext),
+            (array) glob($dir . '/*/*.' . $ext)
+        );
+        foreach (array_unique(array_filter($files)) as $file) {
+            $name = basename($file);
+            if (preg_match('/admin|backend|block/i', $file)) continue;
+            if (!preg_match('/front|public|main|index|bundle|swiper|slider|script|style/i', $name)) continue;
+            if (isset($seen[$name])) continue;
+            $seen[$name] = true;
+            $href = $url . substr($file, strlen($dir));
+            if ($ext === 'js') {
+                echo '<script src="' . esc_url($href) . '?ver=' . (int) filemtime($file) . '"></script>' . "\n";
+            } else {
+                echo '<link rel="stylesheet" href="' . esc_url($href) . '?ver=' . (int) filemtime($file) . '">' . "\n";
+            }
+            $loaded[] = $name;
+        }
+    }
+    echo "\n<!-- af: review slider assets loaded from disk (" . esc_html(implode(', ', $loaded)) . ") -->\n";
+}, 5);
+
 // ---------------------------------------------------------------------------
 // PHASE 25 — Brochure "Art Code" (e.g. RK 01) shown on shop card + product page
 // so an incoming order can be matched back to the printed collection book.

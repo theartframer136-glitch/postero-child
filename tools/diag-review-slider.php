@@ -95,6 +95,16 @@ if ($pos === false) {
     echo "  " . trim(preg_replace('/\s+/', ' ', substr($chunk, 0, 1200))) . "\n";
 }
 
+// ── did our loader run, and did the arrows get a library? ──
+echo "\n-- theme's slider-asset loader --\n";
+if (preg_match('#<!-- af: review slider[^>]*-->#', $html, $c)) {
+    echo "  " . trim($c[0]) . "\n";
+} else {
+    echo "  the loader did not run on this page (widget shortcode not detected)\n";
+}
+$lib = preg_match('#src=["\'][^"\']*embedder-for-google-reviews[^"\']*\.js#i', $html);
+printf("  slider library on the page: %s\n", $lib ? 'YES' : 'NO  <-- arrows cannot work');
+
 // ── plugins that could own this widget ──
 echo "\n-- active plugins mentioning reviews or sliders --\n";
 foreach ((array) get_option('active_plugins', array()) as $p) {
