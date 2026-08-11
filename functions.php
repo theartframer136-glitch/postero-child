@@ -5264,30 +5264,20 @@ add_action('woocommerce_before_add_to_cart_button', function() {
     // pre-select the size the product is titled as, so the opening price IS
     // this product's price — not every product pretending to be a 2×3
     $def_size = af_size_default($product);
-    // Only offer a S/M/L filter for groups that still have a size in them.
-    $groups = array();
-    foreach (array('Small','Medium','Large') as $g) {
-        $in = isset($cfg['groups'][$g]) ? array_intersect($cfg['groups'][$g], $sizes) : array();
-        if ($in) $groups[] = $g;
-    }
     // Frames that are out of stock are shown but cannot be picked, so the
     // selector opens on the first one we can actually make.
     $def_frame = af_frame_default();
     ?>
     <div class="af-opts" id="af-opts" data-base="<?php echo esc_attr($base); ?>" data-config='<?php echo esc_attr(wp_json_encode($cfg)); ?>' data-symbol="<?php echo esc_attr(get_woocommerce_currency_symbol()); ?>">
       <div class="af-opt-group">
-        <label class="af-opt-label">Size <span class="af-opt-sub">(height × width)</span></label>
-        <div class="af-chips af-group-chips">
-          <button type="button" class="af-chip-grp active" data-grp="All">All</button>
-          <?php foreach ($groups as $g): ?>
-            <button type="button" class="af-chip-grp" data-grp="<?php echo esc_attr($g); ?>"><?php echo esc_html($g); ?></button>
-          <?php endforeach; ?>
+        <label class="af-opt-label" for="af-size-select">Size <span class="af-opt-sub">(height × width)</span></label>
+        <div class="af-size-row">
+          <select id="af-size-select" class="af-size-select" data-type="size">
+            <?php foreach ($sizes as $s): ?>
+              <option value="<?php echo esc_attr($s); ?>"<?php selected($s, $def_size); ?>><?php echo esc_html($s); ?></option>
+            <?php endforeach; ?>
+          </select>
           <a class="af-chip-grp af-chip-custom" href="/customize-your-picture/">Custom ↗</a>
-        </div>
-        <div class="af-chips af-size-chips">
-          <?php foreach ($sizes as $i => $s): ?>
-            <button type="button" class="af-chip-opt<?php echo $s===$def_size?' active':''; ?>" data-type="size" data-val="<?php echo esc_attr($s); ?>"><?php echo esc_html($s); ?></button>
-          <?php endforeach; ?>
         </div>
       </div>
       <p class="af-wall-hint" id="afWallHint"></p>
@@ -5401,6 +5391,16 @@ add_action('wp_head', function() {
     .af-swatch span{width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.15);display:inline-block;}
     .af-swatch:hover{border-color:#c9a84c;}
     .af-swatch.active{border-color:#1a1a1a;}
+    /* Size is a dropdown rather than a chip grid — fourteen chips was a wall,
+       and the list is short enough now that a select reads faster. */
+    .af-size-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;}
+    .af-size-select{flex:1 1 220px;max-width:340px;background:#fff;border:1.5px solid #ddd;border-radius:8px;
+      padding:10px 34px 10px 14px;font-size:14px;font-weight:600;color:#1a1a1a;cursor:pointer;
+      transition:border-color .15s;appearance:none;-webkit-appearance:none;
+      background-image:url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23666' d='M1 1h10L6 7z'/%3E%3C/svg%3E");
+      background-repeat:no-repeat;background-position:right 13px center;}
+    .af-size-select:hover{border-color:#c9a84c;}
+    .af-size-select:focus{outline:none;border-color:#1a1a1a;box-shadow:0 0 0 3px rgba(201,168,76,.18);}
     .af-price-live{margin:6px 0 0;font-size:15px;color:#333;}
     .af-price-live strong{font-size:20px;color:#1a1a1a;}
     .af-price-live .amount{font-weight:800;}
@@ -5419,19 +5419,38 @@ add_action('wp_head', function() {
         if(input) input.value = b.getAttribute('data-val');
         recalc(wrap);
       });
+
+      // Size is a <select>, frame and colour are still chips. One reader for
+      // both shapes, so nothing downstream has to care which is which.
+      function chosen(wrap, type){
+        var sel = wrap.querySelector('select[data-type="'+type+'"]');
+        if(sel) return sel.value;
+        var chip = wrap.querySelector('[data-type="'+type+'"].active');
+        return chip ? chip.getAttribute('data-val') : '';
+      }
+
+      document.addEventListener('change', function(e){
+        var sel = e.target && e.target.closest ? e.target.closest('select[data-type]') : null;
+        if(!sel) return;
+        var wrap = sel.closest('.af-opts'); if(!wrap) return;
+        var type = sel.getAttribute('data-type');
+        var input = wrap.parentNode.querySelector('input[name="af_'+type+'"]') || document.querySelector('input[name="af_'+type+'"]');
+        if(input) input.value = sel.value;
+        recalc(wrap);
+      });
+
       function recalc(wrap){
         var base = parseFloat(wrap.getAttribute('data-base'))||0;
         var cfg = {}; try{ cfg = JSON.parse(wrap.getAttribute('data-config')); }catch(e){ return; }
         var sym = wrap.getAttribute('data-symbol')||'$';
-        var size = wrap.querySelector('[data-type="size"].active');
-        var frame= wrap.querySelector('[data-type="frame"].active');
-        var color= wrap.querySelector('[data-type="color"].active');
+        var sizeVal  = chosen(wrap, 'size');
+        var frameVal = chosen(wrap, 'frame');
+        var colorVal = chosen(wrap, 'color');
         // the size IS the price, from the rate card (matches af_calc_price)
-        var sizePrice = size ? (cfg.sizes[size.getAttribute('data-val')]||base) : base;
-        var frameVal = frame ? frame.getAttribute('data-val') : '';
+        var sizePrice = (sizeVal && cfg.sizes[sizeVal]) ? cfg.sizes[sizeVal] : base;
         // no frame means no frame-finish surcharge (matches af_calc_price)
-        var fee  = (frame ? (cfg.frames[frameVal]||0) : 0)
-                 + ((color && frameVal !== 'Without Frame') ? (cfg.colors[color.getAttribute('data-val')]||0) : 0);
+        var fee  = (cfg.frames[frameVal]||0)
+                 + ((colorVal && frameVal !== 'Without Frame') ? (cfg.colors[colorVal]||0) : 0);
         var price = Math.round((sizePrice + fee)*100)/100;
         var el = wrap.querySelector('#af-live-price');
         if(el) el.innerHTML = '<span class="amount">'+money(sym,price)+'</span>';
@@ -5446,6 +5465,16 @@ add_action('wp_head', function() {
         document.querySelectorAll('.af-opts').forEach(function(wrap){
           Object.keys(want).forEach(function(type){
             if(!want[type]) return;
+            // dropdown types: only honour a value the select still offers
+            var sel = wrap.querySelector('select[data-type="'+type+'"]');
+            if(sel){
+              var has = Array.prototype.some.call(sel.options, function(o){ return o.value === want[type]; });
+              if(!has) return;
+              sel.value = want[type];
+              var si = wrap.parentNode.querySelector('input[name="af_'+type+'"]') || document.querySelector('input[name="af_'+type+'"]');
+              if(si) si.value = want[type];
+              return;
+            }
             var target = null;
             wrap.querySelectorAll('[data-type="'+type+'"]').forEach(function(x){
               if(x.getAttribute('data-val') === want[type]) target = x;
@@ -10980,10 +11009,10 @@ add_action('wp_footer', function() {
     ?>
 <style>
 .af-opt-sub{font-weight:400;color:#999;font-size:11.5px;}
-.af-group-chips{margin-bottom:8px;}
+/* Only the "Custom ↗" pill still uses this — the S/M/L filters went with the
+   size chip grid, since a five-item dropdown has nothing to filter. */
 .af-chip-grp{background:#f5f0e4;border:1px solid #e0d5b8;color:#6b5a23;font-size:11.5px;font-weight:800;
   padding:5px 13px;cursor:pointer;border-radius:20px;text-decoration:none;display:inline-block;}
-.af-chip-grp.active{background:#141414;border-color:#141414;color:#c9a84c;}
 .af-chip-custom{border-style:dashed;}
 .af-wall-hint{margin:2px 0 12px;font-size:12.5px;color:#8a6d1f;font-weight:600;}
 .af-rec{display:block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#256d2c;font-weight:800;}
@@ -11043,24 +11072,6 @@ add_action('wp_footer', function() {
 
   var cfg = JSON.parse(opts.dataset.config || '{}');
 
-  // ── S/M/L group chips filter the size chips
-  var groups = cfg.groups || {};
-  opts.querySelectorAll('.af-chip-grp[data-grp]').forEach(function(g){
-    g.addEventListener('click', function(){
-      opts.querySelectorAll('.af-chip-grp').forEach(function(x){ x.classList.remove('active'); });
-      g.classList.add('active');
-      var allow = g.dataset.grp === 'All' ? null : (groups[g.dataset.grp] || []);
-      var first = null;
-      opts.querySelectorAll('.af-size-chips .af-chip-opt').forEach(function(ch){
-        var ok = !allow || allow.indexOf(ch.dataset.val) >= 0;
-        ch.style.display = ok ? '' : 'none';
-        if (ok && !first) first = ch;
-      });
-      var active = opts.querySelector('.af-size-chips .af-chip-opt.active');
-      if (first && (!active || active.style.display === 'none')) first.click();
-    });
-  });
-
   // ── Wall-suitability hint follows the selected size
   var hintEl = document.getElementById('afWallHint');
   function refreshExtras(){
@@ -11085,6 +11096,8 @@ add_action('wp_footer', function() {
     }
   }
   opts.addEventListener('click', function(){ setTimeout(refreshExtras, 30); });
+  // the size dropdown also changes by keyboard, which never fires a click
+  opts.addEventListener('change', function(){ setTimeout(refreshExtras, 30); });
   refreshExtras();
 
   // ── Dimension overlay toggle on the main product image (spec: ON/OFF)
@@ -11120,6 +11133,7 @@ add_action('wp_footer', function() {
       dims();
     });
     opts.addEventListener('click', function(){ setTimeout(dims, 30); });
+    opts.addEventListener('change', function(){ setTimeout(dims, 30); });
 
     // ── Frame-color preview: swap main image to the matching frame photo
     var colorImgs = {
