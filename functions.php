@@ -9835,51 +9835,86 @@ add_shortcode('af_country_selector', function() {
   // exactly where it belongs. Falls back to the social icons, then leaves the
   // selector hidden rather than dropping it somewhere wrong.
   function inFooter(el){
-    return !!el.closest('footer, .site-footer, #footer, .elementor-location-footer, .footer');
+    return !!(el.closest && el.closest('footer, .site-footer, #footer, .elementor-location-footer, .footer'));
   }
   function put(anchor, where){
-    var host = anchor.closest('.elementor-widget, li') || anchor;
+    var host = (anchor.closest && anchor.closest('.elementor-widget, li')) || anchor;
     if (!host.parentNode || host === w || host.contains(w)) return false;
     host.parentNode.insertBefore(w, where === 'after' ? host.nextSibling : host);
     w.dataset.moved = '1';
     w.classList.add('af-cty--inline');
     return true;
   }
-  function relocate(){
-    if (w.dataset.moved) return;
-    var i, links;
-    // 1) immediately AFTER the header phone number → sits before the FB icon
-    links = document.querySelectorAll('a[href^="tel:"]');
-    for (i = 0; i < links.length; i++) {
-      if (inFooter(links[i])) continue;
-      if (put(links[i], 'after')) return;
+  // Deepest element in the header area whose text contains the phone number.
+  function phoneEl(){
+    var re = /470[\s .\-]?7280/;
+    var all = document.body ? document.body.querySelectorAll('a,span,div,p,li,strong,em') : [];
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (inFooter(el)) continue;
+      if (!re.test(el.textContent || '')) continue;
+      var childHit = false;
+      for (var j = 0; j < el.children.length; j++) {
+        if (re.test(el.children[j].textContent || '')) { childHit = true; break; }
+      }
+      if (!childHit) return el;   // deepest match, header comes first in the DOM
     }
-    // 2) fallback: BEFORE the first social icon
-    links = document.querySelectorAll('a[href*="facebook"], a[href*="instagram"]');
-    for (i = 0; i < links.length; i++) {
-      if (inFooter(links[i])) continue;
-      if (put(links[i], 'before')) return;
-    }
+    return null;
   }
-  document.addEventListener('DOMContentLoaded', relocate);
-  window.addEventListener('load', relocate);
-  [300, 800, 1500, 2500, 4000].forEach(function(d){ setTimeout(relocate, d); });
-  // Header can render late (Elementor / lazy load) — keep trying until placed.
+  var tries = 0;
+  function relocate(){
+    if (w.dataset.moved) return true;
+    var i, links;
+    // 1) right AFTER the phone number (matched by its text) → before the FB icon
+    var pe = phoneEl();
+    if (pe && put(pe, 'after')) return true;
+    // 2) after a tel: link
+    links = document.querySelectorAll('a[href^="tel:"]');
+    for (i = 0; i < links.length; i++) { if (!inFooter(links[i]) && put(links[i], 'after')) return true; }
+    // 3) before the first social icon
+    links = document.querySelectorAll('a[href*="facebook"],a[href*="instagram"],a[aria-label*="Facebook" i],a[aria-label*="Instagram" i]');
+    for (i = 0; i < links.length; i++) { if (!inFooter(links[i]) && put(links[i], 'before')) return true; }
+    // 4) after the email address
+    links = document.querySelectorAll('a[href^="mailto:"]');
+    for (i = 0; i < links.length; i++) { if (!inFooter(links[i]) && put(links[i], 'after')) return true; }
+    return false;
+  }
+  // Last resort: never let the selector stay hidden. If it can't be placed in
+  // the contact row after several tries, show it fixed in the top-right corner
+  // so currency switching is always reachable.
+  function ensureVisible(){
+    if (w.dataset.moved) return;
+    w.dataset.moved = '1';
+    w.classList.add('af-cty--inline', 'af-cty--fallback');
+    document.body.appendChild(w);
+  }
+  function tick(){
+    if (relocate()) return;
+    if (++tries >= 12) ensureVisible();
+  }
+  document.addEventListener('DOMContentLoaded', tick);
+  window.addEventListener('load', tick);
+  [300, 700, 1200, 1800, 2600, 3600, 5000].forEach(function(d){ setTimeout(tick, d); });
   try {
     var mo = new MutationObserver(function(){
       if (w.dataset.moved) { mo.disconnect(); return; }
       relocate();
     });
-    mo.observe(document.body, { childList: true, subtree: true });
+    mo.observe(document.documentElement, { childList: true, subtree: true });
   } catch (e) {}
 })();
 </script>
 <style>
 /* Relocated next to the social icons: align on the row and keep the dropdown
    anchored to the button rather than the old utility-bar position. */
-.af-cty--inline{display:inline-flex;align-items:center;margin:0 10px;vertical-align:middle;}
+.af-cty--inline{display:inline-flex !important;align-items:center;margin:0 10px;vertical-align:middle;}
 .af-cty--inline .af-cty-btn{line-height:1;}
 .af-cty--inline .af-cty-menu{right:0;left:auto;}
+/* Last-resort corner placement if the contact row can't be found. */
+.af-cty--fallback{position:fixed !important;top:8px;right:14px;z-index:100000;
+  background:rgba(20,20,20,.9);border:1px solid rgba(201,168,76,.5);border-radius:6px;
+  padding:2px 6px;}
+.af-cty--fallback .af-cty-code,.af-cty--fallback .af-cty-caret{color:#e8e2cf;}
 </style>
 <?php return ob_get_clean();
 });

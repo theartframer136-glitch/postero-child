@@ -142,6 +142,22 @@ jobs:
           fi
           echo "RUN_SUITE=$RUN_SUITE" >> "$GITHUB_ENV"
 
+      # One-off (read-only): dump the header markup so the currency-selector
+      # relocation can be aimed precisely. Runs on ANY successful deploy. Remove
+      # once the selector placement is confirmed.
+      - name: Header DOM diagnostic (one-off, read-only)
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Header DOM diagnostic (read-only)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-header-dom.php --allow-root 2>&1" \
+            || true
+
       - name: Script suite 1 — catalogue & content
         if: env.RUN_SUITE == '1'
         timeout-minutes: 15
