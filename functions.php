@@ -4041,7 +4041,7 @@ add_action('wp_footer', function() {
     ?>
     <div class="af-trustbar">
       <div class="af-trust-inner">
-        <div class="af-trust-item"><span class="af-trust-ico">🚚</span><div><strong>Free USA Shipping</strong><small>On premium canvas art</small></div></div>
+        <div class="af-trust-item"><span class="af-trust-ico">🚚</span><div><strong><?php echo esc_html(af_shipping_copy()['label']); ?></strong><small><?php echo esc_html(af_shipping_copy()['cost'] !== '' ? 'Shipping ' . af_shipping_copy()['cost'] : 'Cost shown at checkout'); ?></small></div></div>
         <div class="af-trust-item"><span class="af-trust-ico">🎨</span><div><strong>Archival Quality</strong><small>Fade-resistant inks</small></div></div>
         <div class="af-trust-item"><span class="af-trust-ico">🔒</span><div><strong>Secure Checkout</strong><small>Encrypted payments</small></div></div>
         <div class="af-trust-item"><span class="af-trust-ico">↩️</span><div><strong>Easy Returns</strong><small>7-day policy</small></div></div>
@@ -5293,7 +5293,12 @@ function af_product_faqs() {
         array('What is your customer support email address?', 'You can contact us via email at theartframer136@gmail.com for product inquiries, bulk orders, or support-related questions.'),
         array('Do you provide WhatsApp support?', 'Yes, we provide WhatsApp support for quick assistance with product selection, order inquiries, and customization requests. You can message us on WhatsApp at +1 (610) 470-7280.'),
         array('Where is your canvas printing business located?', 'Our canvas printing business operates from Delaware, USA, and we provide delivery services across multiple locations.'),
-        array('Which areas are eligible for free delivery?', 'We offer free delivery across major cities and serviceable locations in the USA, including Delaware, Pennsylvania, Maryland, New Jersey and nearby areas.'),
+        // wording follows af_shipping_copy() so this FAQ cannot promise
+        // something the badge, the bar and the chatbot no longer say
+        array('Where do you deliver, and what does shipping cost?',
+              (function_exists('af_shipping_copy') ? af_shipping_copy()['blurb']
+               : 'We ship throughout the USA — the cost is shown at checkout.')
+              . ' We ship from our Delaware studio to every state.'),
     );
 }
 
