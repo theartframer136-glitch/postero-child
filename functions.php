@@ -3974,6 +3974,28 @@ add_action('wp_footer', function() {
           }
           if (!floating) return;                            // in-page link — keep
           if (floating.closest('.af-quickpanel') || floating.id === 'af-chat') return;
+
+          // A floating bar can hold far more than WhatsApp: the site has a
+          // slide-out panel whose toggle opens a bar of several options, and
+          // WhatsApp is only one row of it. Hiding the whole container to
+          // remove one duplicate took that entire panel with it — the toggle
+          // still showed, but the bar it opened was display:none, so clicking
+          // it appeared to do nothing. Remove the duplicate itself and leave
+          // everything else in the bar alone.
+          var others = floating.querySelectorAll('a[href],button');
+          var foreign = 0;
+          Array.prototype.forEach.call(others, function (el) {
+            if (el === a) return;
+            if (/wa\.me|whatsapp/i.test(el.getAttribute('href') || '')) return;
+            foreign++;
+          });
+          if (foreign > 0) {
+            // hide just this entry: the link, or the list item wrapping it
+            var item = a.closest('li,.item,[class*="item"]') || a;
+            if (item === floating || floating.contains(item) === false) item = a;
+            item.style.setProperty('display', 'none', 'important');
+            return;
+          }
           floating.style.setProperty('display', 'none', 'important');
         });
       }
