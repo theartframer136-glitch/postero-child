@@ -515,6 +515,83 @@ div.list-wrapper.postero-scroll {
 <?php }, 9999);
 
 
+// 9b. Subcategory circles → clickable. The slider fix above keeps the strip
+// scrollable; the items themselves have no working links, so resolve each
+// circle's label to its product-category URL and navigate on click. A small
+// drag guard keeps horizontal swiping from triggering navigation.
+add_action('wp_footer', function() {
+  if (is_admin()) return;
+  $terms = get_terms(array('taxonomy' => 'product_cat', 'hide_empty' => false));
+  if (is_wp_error($terms) || !$terms) return;
+  $map = array();
+  foreach ($terms as $t) {
+    $link = get_term_link($t);
+    if (is_wp_error($link)) continue;
+    $key = strtolower(preg_replace('/[^a-z0-9]+/i', '', html_entity_decode($t->name)));
+    if ($key !== '') $map[$key] = $link;
+  }
+  if (!$map) return;
+  ?>
+<script>
+(function(){
+  var CATS = <?php echo wp_json_encode($map); ?>;
+  function norm(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,''); }
+  function urlFor(item){
+    // A real link inside the item wins — never override native navigation.
+    var a = item.querySelector('a[href]');
+    if (a) { var h = a.getAttribute('href'); if (h && h !== '#' && h.indexOf('javascript:') !== 0) return null; }
+    var label = norm(item.textContent);
+    if (!label) return null;
+    if (CATS[label]) return CATS[label];
+    // tolerate extra text around the name (counts, "New" badges…)
+    var best = null, bestLen = 0;
+    for (var k in CATS) {
+      if (k.length > bestLen && (label === k || label.indexOf(k) === 0 || label.indexOf(k) !== -1)) {
+        best = CATS[k]; bestLen = k.length;
+      }
+    }
+    return best;
+  }
+  function wire(){
+    var items = document.querySelectorAll(
+      '#subcategorySlider > *, .subcategory-slider > *, ul.postero-scroll-content > li.cat-item'
+    );
+    items.forEach(function(it){
+      if (it.getAttribute('data-af-cat-link') === '') return;      // resolved: no match
+      if (it.getAttribute('data-af-cat-link')) return;             // already wired
+      var url = urlFor(it);
+      if (!url) { it.setAttribute('data-af-cat-link', ''); return; }
+      it.setAttribute('data-af-cat-link', url);
+      it.style.cursor = 'pointer';
+      it.setAttribute('role', 'link');
+      it.setAttribute('tabindex', '0');
+      var sx = 0, sy = 0;
+      it.addEventListener('pointerdown', function(e){ sx = e.clientX; sy = e.clientY; });
+      it.addEventListener('click', function(e){
+        // swiping the strip must not navigate
+        if (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8) return;
+        if (e.target.closest && e.target.closest('a[href]')) return;
+        window.location.href = it.getAttribute('data-af-cat-link');
+      });
+      it.addEventListener('keydown', function(e){
+        if (e.key === 'Enter') window.location.href = it.getAttribute('data-af-cat-link');
+      });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', wire);
+  window.addEventListener('load', wire);
+  [400, 1200, 2500].forEach(function(d){ setTimeout(wire, d); });
+  try {
+    new MutationObserver(function(m){
+      for (var i = 0; i < m.length; i++) {
+        if (m[i].addedNodes && m[i].addedNodes.length) { wire(); break; }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  } catch (e) {}
+})();
+</script>
+<?php }, 9999);
+
 // 10. Product card slider
 add_action('wp_footer', function() { ?>
 <style>
