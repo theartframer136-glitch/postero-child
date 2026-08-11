@@ -9843,6 +9843,18 @@ add_shortcode('af_country_selector', function() {
     host.parentNode.insertBefore(w, where === 'after' ? host.nextSibling : host);
     w.dataset.moved = '1';
     w.classList.add('af-cty--inline');
+    // Keep the whole contact row on one line: stop the flex row that now holds
+    // the selector (and its wrapper, in case the row is one level up) from
+    // wrapping the extra item onto a second line.
+    var p = w.parentElement, hops = 0;
+    while (p && hops < 3) {
+      var cs = window.getComputedStyle(p);
+      if (cs.display === 'flex' || cs.display === 'inline-flex') {
+        p.style.setProperty('flex-wrap', 'nowrap', 'important');
+        p.style.setProperty('align-items', 'center', 'important');
+      }
+      p = p.parentElement; hops++;
+    }
     return true;
   }
   // Deepest element in the header area whose text contains the phone number.
@@ -9907,9 +9919,14 @@ add_shortcode('af_country_selector', function() {
 <style>
 /* Relocated next to the social icons: align on the row and keep the dropdown
    anchored to the button rather than the old utility-bar position. */
-.af-cty--inline{display:inline-flex !important;align-items:center;margin:0 10px;vertical-align:middle;}
-.af-cty--inline .af-cty-btn{line-height:1;}
+.af-cty--inline{display:inline-flex !important;align-items:center;margin:0 6px;vertical-align:middle;
+  flex:0 0 auto;white-space:nowrap;}
+.af-cty--inline .af-cty-btn{line-height:1;white-space:nowrap;}
 .af-cty--inline .af-cty-menu{right:0;left:auto;}
+/* On Windows/Chrome the flag emoji renders as its letters (e.g. "GB"), which
+   next to the code reads as "GB GB". Drop the flag in the inline placement so
+   it shows just the code + caret, and it's narrower — helping the one-line fit. */
+.af-cty--inline .af-cty-flag{display:none !important;}
 /* Last-resort corner placement if the contact row can't be found. */
 .af-cty--fallback{position:fixed !important;top:8px;right:14px;z-index:100000;
   background:rgba(20,20,20,.9);border:1px solid rgba(201,168,76,.5);border-radius:6px;
