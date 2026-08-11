@@ -5667,6 +5667,88 @@ add_filter('wp_nav_menu_objects', function($items){
     return $items;
 }, 20);
 
+// Drop the "Social Media" item (and its dropdown children) from the header
+// navigation only. Footer menus and standalone social icon links are left
+// alone — this targets the nav bar that carries Contact Us.
+add_filter('wp_nav_menu_objects', function($items, $args){
+    $loc = isset($args->theme_location) ? strtolower((string) $args->theme_location) : '';
+    if ($loc !== '' && strpos($loc, 'footer') !== false) return $items;
+
+    $is_header = ($loc !== '' && preg_match('/primary|header|main|top/', $loc));
+    if (!$is_header) {
+        // No usable location (builder menus): treat the nav carrying a
+        // Contact item as the header nav, matching how the Admin Console
+        // link finds it.
+        $has_contact = false;
+        foreach ($items as $it) {
+            if (stripos(wp_strip_all_tags($it->title), 'contact') !== false) { $has_contact = true; break; }
+        }
+        if (!$has_contact) return $items;
+    }
+
+    $remove = array();
+    foreach ($items as $it) {
+        $t = strtolower(trim(wp_strip_all_tags($it->title)));
+        $t = preg_replace('/\s+/', ' ', $t);
+        if ($t === 'social media' || $t === 'social' || $t === 'social medias') {
+            $remove[] = (int) $it->ID;
+        }
+    }
+    if (!$remove) return $items;
+
+    // Pull the dropdown children down with the parent.
+    $changed = true;
+    while ($changed) {
+        $changed = false;
+        foreach ($items as $it) {
+            if (in_array((int) $it->menu_item_parent, $remove, true)
+                && !in_array((int) $it->ID, $remove, true)) {
+                $remove[] = (int) $it->ID;
+                $changed  = true;
+            }
+        }
+    }
+    return array_values(array_filter($items, function($it) use ($remove) {
+        return !in_array((int) $it->ID, $remove, true);
+    }));
+}, 25, 2);
+
+// DOM fallback for builder-rendered headers that never pass through
+// wp_nav_menu_objects. Same scoping rule: only the nav holding Contact, and
+// never inside a footer.
+add_action('wp_footer', function() {
+    if (is_admin()) return;
+    ?>
+<script>
+(function(){
+  function strip(){
+    var lists = document.querySelectorAll('ul');
+    for (var i = 0; i < lists.length; i++) {
+      var ul = lists[i];
+      if (ul.closest('footer, .footer, #footer, .site-footer, .elementor-location-footer')) continue;
+      var links = ul.querySelectorAll(':scope > li > a');
+      if (links.length < 3) continue;                 // not a real nav bar
+      var hasContact = false;
+      for (var j = 0; j < links.length; j++) {
+        if (/contact/i.test(links[j].textContent || '')) { hasContact = true; break; }
+      }
+      if (!hasContact) continue;
+      for (var k = 0; k < links.length; k++) {
+        var txt = (links[k].textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        if (txt === 'social media' || txt === 'social') {
+          var li = links[k].closest('li');
+          if (li) li.style.setProperty('display', 'none', 'important');
+        }
+      }
+    }
+  }
+  document.addEventListener('DOMContentLoaded', strip);
+  window.addEventListener('load', strip);
+  [300, 1000, 2200].forEach(function(d){ setTimeout(strip, d); });
+})();
+</script>
+<?php }, 60);
+
 // ─────────────────────────────────────────────────────────────
 // PHASE 13 — Fully dynamic standalone "Try It On Your Wall" page.
 // Replaces the static Elementor mockup at /try-on-wall/ with a working
