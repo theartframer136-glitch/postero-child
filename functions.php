@@ -3890,7 +3890,7 @@ add_action('wp_footer', function() {
           <span class="af-ub-rot">✨ <?php echo esc_html(af_shipping_copy()['short']); ?> on Premium Canvas Wall Art</span>
         </div>
         <nav class="af-ub-links" aria-label="Support and account">
-          <a href="/track-your-order/" class="af-ub-link">🚚 Track Order</a>
+          <?php // Track Order lives in the My Account menu, not up here. ?>
           <a href="/help-support/" class="af-ub-link">❓ Help</a>
           <a href="tel:+16104707280" class="af-ub-link af-ub-phone">📞 +1 (610) 470-7280</a>
           <?php echo do_shortcode('[af_country_selector]'); ?>
@@ -12432,6 +12432,89 @@ add_filter('woocommerce_account_menu_items', function($items) {
     if (!isset($new['saved-previews'])) $new['saved-previews'] = 'Saved Previews';
     return $new;
 }, 20);
+
+// Track Order sits in My Account directly under Orders (it used to live in the
+// top utility bar). Runs last so it lands immediately after Orders, and points
+// at the standalone tracking page rather than an account endpoint.
+add_filter('woocommerce_account_menu_items', function($items) {
+    if (isset($items['af-track-order'])) return $items;
+    $new = array();
+    foreach ($items as $k => $v) {
+        $new[$k] = $v;
+        if ($k === 'orders') $new['af-track-order'] = 'Track Order';
+    }
+    if (!isset($new['af-track-order'])) $new['af-track-order'] = 'Track Order';
+    return $new;
+}, 30);
+
+add_filter('woocommerce_get_endpoint_url', function($url, $endpoint) {
+    if ($endpoint === 'af-track-order') return home_url('/track-your-order/');
+    return $url;
+}, 10, 2);
+
+// The header's "My Account" dropdown is rendered by the theme, not by
+// woocommerce_account_menu_items, so the filter above never reaches it. Insert
+// the same Track Order entry into that dropdown client-side, cloning the
+// Orders row so it inherits the dropdown's own styling.
+add_action('wp_footer', function() {
+    if (is_admin()) return;
+    ?>
+<script>
+(function(){
+  var URL = <?php echo wp_json_encode(home_url('/track-your-order/')); ?>;
+  function isOrders(a){
+    var t = (a.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    if (t === 'orders' || t === 'my orders') return true;
+    var h = a.getAttribute('href') || '';
+    return /\/my-account\/orders\/?$/.test(h.split('?')[0]);
+  }
+  function add(){
+    var anchors = document.querySelectorAll('a[href]');
+    for (var i = 0; i < anchors.length; i++) {
+      var a = anchors[i];
+      if (!isOrders(a)) continue;
+      var li = a.closest('li');
+      if (!li || !li.parentNode) continue;
+      var list = li.parentNode;
+      if (list.querySelector('.af-track-order-item')) continue;   // already added
+      // Only a dropdown/account menu — must sit alongside other account rows.
+      var txt = (list.textContent || '').toLowerCase();
+      if (txt.indexOf('log out') === -1 && txt.indexOf('logout') === -1
+          && txt.indexOf('dashboard') === -1 && txt.indexOf('account details') === -1) continue;
+      var clone = li.cloneNode(true);
+      clone.className = (li.className || '') + ' af-track-order-item';
+      clone.removeAttribute('id');
+      var link = clone.querySelector('a');
+      if (!link) continue;
+      link.setAttribute('href', URL);
+      // replace the label text but keep any icon markup the theme adds
+      var replaced = false;
+      (function walk(node){
+        for (var n = 0; n < node.childNodes.length; n++) {
+          var c = node.childNodes[n];
+          if (c.nodeType === 3 && c.nodeValue.trim()) {
+            if (!replaced) { c.nodeValue = 'Track Order'; replaced = true; }
+            else { c.nodeValue = ''; }
+          } else if (c.nodeType === 1) { walk(c); }
+        }
+      })(link);
+      if (!replaced) link.textContent = 'Track Order';
+      li.parentNode.insertBefore(clone, li.nextSibling);
+    }
+  }
+  document.addEventListener('DOMContentLoaded', add);
+  window.addEventListener('load', add);
+  [400, 1200, 2500].forEach(function(d){ setTimeout(add, d); });
+  try {
+    new MutationObserver(function(m){
+      for (var i = 0; i < m.length; i++) {
+        if (m[i].addedNodes && m[i].addedNodes.length) { add(); break; }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+  } catch (e) {}
+})();
+</script>
+<?php }, 65);
 
 add_action('woocommerce_account_saved-previews_endpoint', function() {
     // WP_Query drops an author clause of 0, which would list everyone's previews
