@@ -3890,7 +3890,9 @@ add_action('wp_footer', function() {
           <span class="af-ub-rot">✨ <?php echo esc_html(af_shipping_copy()['short']); ?> on Premium Canvas Wall Art</span>
         </div>
         <nav class="af-ub-links" aria-label="Support and account">
-          <?php // Track Order and Help live in the My Account menu, not up here. ?>
+          <?php // Track Order and Help live in the My Account menu, not up here.
+                // The country selector is rendered here but relocated beside the
+                // social icons below; it stays put if that row is not found. ?>
           <a href="tel:+16104707280" class="af-ub-link af-ub-phone">📞 +1 (610) 470-7280</a>
           <?php echo do_shortcode('[af_country_selector]'); ?>
         </nav>
@@ -9853,8 +9855,37 @@ add_shortcode('af_country_selector', function() {
       location.href = u.toString();
     });
   });
+
+  // Sit the selector in the contact row, between the phone number and the
+  // Facebook icon. The markup for that row belongs to the theme, so this is
+  // done by moving the node (listeners above survive the move). If the row
+  // isn't found the selector simply stays in the utility bar.
+  function relocate(){
+    if (w.dataset.moved) return;
+    var links = document.querySelectorAll('a[href*="facebook.com"]');
+    for (var i = 0; i < links.length; i++) {
+      var a = links[i];
+      if (a.closest('footer, .site-footer, #footer, .elementor-location-footer')) continue;
+      var host = a.closest('.elementor-widget') || a.closest('li') || a;
+      if (!host.parentNode || host.contains(w)) continue;
+      host.parentNode.insertBefore(w, host);
+      w.dataset.moved = '1';
+      w.classList.add('af-cty--inline');
+      return;
+    }
+  }
+  document.addEventListener('DOMContentLoaded', relocate);
+  window.addEventListener('load', relocate);
+  [400, 1200, 2500].forEach(function(d){ setTimeout(relocate, d); });
 })();
 </script>
+<style>
+/* Relocated next to the social icons: align on the row and keep the dropdown
+   anchored to the button rather than the old utility-bar position. */
+.af-cty--inline{display:inline-flex;align-items:center;margin:0 10px;vertical-align:middle;}
+.af-cty--inline .af-cty-btn{line-height:1;}
+.af-cty--inline .af-cty-menu{right:0;left:auto;}
+</style>
 <?php return ob_get_clean();
 });
 
