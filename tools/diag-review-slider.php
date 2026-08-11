@@ -149,6 +149,48 @@ if (preg_match('#<script[^>]*id=["\']af-grwp-loader["\'][^>]*>#i', $html, $tg)) 
     echo "  no state tag on the page\n";
 }
 
+// ── does the delivered javascript actually contain Swiper? ──
+// Matching the plugin's name in a src stopped being reliable: the page
+// optimizer rewrites each script to a hashed copy under its own directory, so
+// the file is delivered but the URL no longer says so. Download what the page
+// links and look inside it — that is the only answer that cannot be faked by a
+// rewritten path.
+echo "\n-- is the slider library really delivered? --\n";
+$host = wp_parse_url(home_url('/'), PHP_URL_HOST);
+$swiper = false; $init = false; $checked = 0;
+if (preg_match_all('#<script[^>]+src=["\']([^"\']+)["\']#i', $html, $sm)) {
+    foreach (array_unique($sm[1]) as $src) {
+        $abs = (strpos($src, '//') === 0) ? 'https:' . $src : $src;
+        if (strpos($abs, 'http') !== 0) $abs = home_url($abs);
+        if (wp_parse_url($abs, PHP_URL_HOST) !== $host) continue;   // same site only
+        if ($checked >= 30) break;
+        $checked++;
+        $jr = wp_remote_get($abs, array('timeout' => 45, 'sslverify' => false));
+        if (is_wp_error($jr)) continue;
+        $js = wp_remote_retrieve_body($jr);
+        if ($js === '') continue;
+        if (!$swiper && (strpos($js, 'swiper-slide-active') !== false
+                      || strpos($js, 'swiper-button-disabled') !== false
+                      || preg_match('#function\s+Swiper|class\s+Swiper#', $js))) {
+            $swiper = true;
+            printf("  Swiper library delivered by: %s (%d KB)\n",
+                   mb_strimwidth(basename(wp_parse_url($abs, PHP_URL_PATH)), 0, 46, '…'), strlen($js) / 1024);
+        }
+        if (!$init && strpos($js, 'reviews_embedder_slider') !== false) {
+            $init = true;
+            printf("  widget's own script delivered by: %s (%d KB)\n",
+                   mb_strimwidth(basename(wp_parse_url($abs, PHP_URL_PATH)), 0, 46, '…'), strlen($js) / 1024);
+        }
+        if ($swiper && $init) break;
+    }
+}
+printf("  scripts inspected: %d\n", $checked);
+printf("  VERDICT: %s\n", ($swiper && $init)
+    ? 'library and widget script both delivered — the arrows have what they need'
+    : ($swiper ? 'library delivered but the widget script is missing'
+               : ($init ? 'widget script delivered but Swiper is missing'
+                        : 'NEITHER delivered — arrows cannot work')));
+
 // ── plugins that could own this widget ──
 echo "\n-- active plugins mentioning reviews or sliders --\n";
 foreach ((array) get_option('active_plugins', array()) as $p) {
