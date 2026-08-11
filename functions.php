@@ -9806,27 +9806,50 @@ add_shortcode('af_country_selector', function() {
     });
   });
 
-  // Sit the selector in the contact row, between the phone number and the
-  // Facebook icon. The markup for that row belongs to the theme, so this is
-  // done by moving the node (listeners above survive the move). If the row
-  // isn't found the selector simply stays in the utility bar.
+  // Sit the selector in the header contact row, between the phone number and
+  // the Facebook icon. That row is theme markup, so the node is moved into it
+  // (the listeners above survive the move). Anchoring on the phone number is
+  // far more reliable than the social icon's href, and it lands the selector
+  // exactly where it belongs. Falls back to the social icons, then leaves the
+  // selector hidden rather than dropping it somewhere wrong.
+  function inFooter(el){
+    return !!el.closest('footer, .site-footer, #footer, .elementor-location-footer, .footer');
+  }
+  function put(anchor, where){
+    var host = anchor.closest('.elementor-widget, li') || anchor;
+    if (!host.parentNode || host === w || host.contains(w)) return false;
+    host.parentNode.insertBefore(w, where === 'after' ? host.nextSibling : host);
+    w.dataset.moved = '1';
+    w.classList.add('af-cty--inline');
+    return true;
+  }
   function relocate(){
     if (w.dataset.moved) return;
-    var links = document.querySelectorAll('a[href*="facebook.com"]');
-    for (var i = 0; i < links.length; i++) {
-      var a = links[i];
-      if (a.closest('footer, .site-footer, #footer, .elementor-location-footer')) continue;
-      var host = a.closest('.elementor-widget') || a.closest('li') || a;
-      if (!host.parentNode || host.contains(w)) continue;
-      host.parentNode.insertBefore(w, host);
-      w.dataset.moved = '1';
-      w.classList.add('af-cty--inline');
-      return;
+    var i, links;
+    // 1) immediately AFTER the header phone number → sits before the FB icon
+    links = document.querySelectorAll('a[href^="tel:"]');
+    for (i = 0; i < links.length; i++) {
+      if (inFooter(links[i])) continue;
+      if (put(links[i], 'after')) return;
+    }
+    // 2) fallback: BEFORE the first social icon
+    links = document.querySelectorAll('a[href*="facebook"], a[href*="instagram"]');
+    for (i = 0; i < links.length; i++) {
+      if (inFooter(links[i])) continue;
+      if (put(links[i], 'before')) return;
     }
   }
   document.addEventListener('DOMContentLoaded', relocate);
   window.addEventListener('load', relocate);
-  [400, 1200, 2500].forEach(function(d){ setTimeout(relocate, d); });
+  [300, 800, 1500, 2500, 4000].forEach(function(d){ setTimeout(relocate, d); });
+  // Header can render late (Elementor / lazy load) — keep trying until placed.
+  try {
+    var mo = new MutationObserver(function(){
+      if (w.dataset.moved) { mo.disconnect(); return; }
+      relocate();
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+  } catch (e) {}
 })();
 </script>
 <style>
