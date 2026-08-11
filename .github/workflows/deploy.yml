@@ -691,6 +691,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/restore-shipping-copy.php --allow-root 2>&1" \
             || true
 
+          echo "Diagnosing the review carousel arrows (read-only)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-review-slider.php --allow-root 2>&1" \
+            || true
+
           echo "Repairing Elementor rendering (design data + regenerated css)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
