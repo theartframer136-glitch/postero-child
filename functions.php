@@ -5080,6 +5080,7 @@ function af_pricing_config() {
         // to $5.
         'sizes' => array(
             '2×3 ft (24×36 in)'   => 60,    // card
+            '3×2 ft (36×24 in)'   => 60,    // card 2×3, turned (same 6 sq ft)
             '2×3.5 ft (24×42 in)' => 65,    // interpolated (7 sq ft)
             '2×4 ft (24×48 in)'   => 70,    // interpolated (8 sq ft)
             '2×5 ft (24×60 in)'   => 75,    // card 5×2 (same 10 sq ft)
@@ -5096,13 +5097,14 @@ function af_pricing_config() {
         ),
         // Quick-filter groups (spec: Small / Medium / Large / Custom)
         'groups' => array(
-            'Small'  => array('2×3 ft (24×36 in)','2×3.5 ft (24×42 in)','2.5×3 ft (30×36 in)'),
+            'Small'  => array('2×3 ft (24×36 in)','3×2 ft (36×24 in)','2×3.5 ft (24×42 in)','2.5×3 ft (30×36 in)'),
             'Medium' => array('2×4 ft (24×48 in)','2.5×4 ft (30×48 in)','3×4 ft (36×48 in)','4×3 ft (48×36 in)'),
             'Large'  => array('2×5 ft (24×60 in)','2.5×5 ft (30×60 in)','3×5 ft (36×60 in)','3×6 ft (36×72 in)','4×4 ft (48×48 in)','4×5 ft (48×60 in)','4×6 ft (48×72 in)'),
         ),
         // Wall-suitability hints (spec: "Best for 10×12 ft walls")
         'hints' => array(
             '2×3 ft (24×36 in)'   => 'Best for 6×8 ft walls & cozy corners',
+            '3×2 ft (36×24 in)'   => 'Best for 6×8 ft walls & cozy corners (landscape)',
             '2×3.5 ft (24×42 in)' => 'Best for 6×8 ft walls',
             '2×4 ft (24×48 in)'   => 'Best for 8×10 ft walls',
             '2×5 ft (24×60 in)'   => 'Best above sofas & consoles',
@@ -5154,6 +5156,48 @@ function af_frame_default() {
     $frames = array_keys( af_pricing_config()['frames'] );
     foreach ( $frames as $f ) { if ( af_frame_is_in_stock( $f ) ) return $f; }
     return $frames[0];
+}
+
+/**
+ * Sizes we currently offer. Unlike frames — which stay on the page struck
+ * through — a size we do not sell is simply not shown: nine greyed-out chips
+ * would be noise, not information. The rest of af_pricing_config()['sizes']
+ * stays put so the price book, the size-from-title lookup and every existing
+ * order keep resolving exactly as before. Offering a size again is one edit
+ * to this list.
+ */
+function af_sizes_offered() {
+    return array(
+        '2×3 ft (24×36 in)',
+        '3×2 ft (36×24 in)',
+        '2.5×3 ft (30×36 in)',
+        '3×4 ft (36×48 in)',
+        '3×5 ft (36×60 in)',
+    );
+}
+
+function af_size_is_offered( $size ) {
+    return in_array( $size, af_sizes_offered(), true );
+}
+
+/** Offered sizes in price-book order, so the selector reads small → large. */
+function af_sizes_available() {
+    return array_values( array_filter(
+        array_keys( af_pricing_config()['sizes'] ), 'af_size_is_offered' ) );
+}
+
+/**
+ * The size a product opens on: its own titled size when we still offer it,
+ * otherwise the first size we do offer.
+ */
+function af_size_default( $product = null ) {
+    $avail = af_sizes_available();
+    if ( ! $avail ) return array_key_first( af_pricing_config()['sizes'] );
+    if ( $product ) {
+        $titled = af_size_label_for_product( $product );
+        if ( $titled !== '' && in_array( $titled, $avail, true ) ) return $titled;
+    }
+    return $avail[0];
 }
 
 /**
@@ -5213,13 +5257,19 @@ add_action('woocommerce_before_add_to_cart_button', function() {
     } else {
         $base = (float) wc_get_price_to_display($product);
     }
-    $sizes  = array_keys($cfg['sizes']);
+    // only the sizes we actually offer reach the selector
+    $sizes  = af_sizes_available();
     $frames = array_keys($cfg['frames']);
     $colors = array_keys($cfg['colors']);
     // pre-select the size the product is titled as, so the opening price IS
     // this product's price — not every product pretending to be a 2×3
-    $def_size = af_size_label_for_product($product);
-    if (!in_array($def_size, $sizes, true)) $def_size = $sizes[0];
+    $def_size = af_size_default($product);
+    // Only offer a S/M/L filter for groups that still have a size in them.
+    $groups = array();
+    foreach (array('Small','Medium','Large') as $g) {
+        $in = isset($cfg['groups'][$g]) ? array_intersect($cfg['groups'][$g], $sizes) : array();
+        if ($in) $groups[] = $g;
+    }
     // Frames that are out of stock are shown but cannot be picked, so the
     // selector opens on the first one we can actually make.
     $def_frame = af_frame_default();
@@ -5229,9 +5279,9 @@ add_action('woocommerce_before_add_to_cart_button', function() {
         <label class="af-opt-label">Size <span class="af-opt-sub">(height × width)</span></label>
         <div class="af-chips af-group-chips">
           <button type="button" class="af-chip-grp active" data-grp="All">All</button>
-          <button type="button" class="af-chip-grp" data-grp="Small">Small</button>
-          <button type="button" class="af-chip-grp" data-grp="Medium">Medium</button>
-          <button type="button" class="af-chip-grp" data-grp="Large">Large</button>
+          <?php foreach ($groups as $g): ?>
+            <button type="button" class="af-chip-grp" data-grp="<?php echo esc_attr($g); ?>"><?php echo esc_html($g); ?></button>
+          <?php endforeach; ?>
           <a class="af-chip-grp af-chip-custom" href="/customize-your-picture/">Custom ↗</a>
         </div>
         <div class="af-chips af-size-chips">
@@ -5262,7 +5312,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
         <s id="af-live-mrp" class="af-live-mrp"></s>
         <span id="af-live-disc" class="af-live-disc"></span></div>
       <p class="af-price-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Free Secure Packaging</p>
-      <input type="hidden" name="af_size"  value="<?php echo esc_attr($sizes[0]); ?>">
+      <input type="hidden" name="af_size"  value="<?php echo esc_attr($def_size); ?>">
       <input type="hidden" name="af_frame" value="<?php echo esc_attr($def_frame); ?>">
       <input type="hidden" name="af_color" value="<?php echo esc_attr($colors[0]); ?>">
     </div>
@@ -5277,15 +5327,14 @@ add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
     $cfg = af_pricing_config();
     // quick add-to-cart (no options chosen) defaults to the product's OWN
     // titled size, so a 4×6-titled piece is never silently sold as a 2×3
-    $def   = af_size_label_for_product($product);
     $size  = isset($_POST['af_size'])  ? sanitize_text_field(wp_unslash($_POST['af_size']))
-             : ($def !== '' ? $def : array_key_first($cfg['sizes']));
+             : af_size_default($product);
     $frame = isset($_POST['af_frame']) ? sanitize_text_field(wp_unslash($_POST['af_frame'])) : af_frame_default();
     $color = isset($_POST['af_color']) ? sanitize_text_field(wp_unslash($_POST['af_color'])) : array_key_first($cfg['colors']);
-    // Validate against config. An out-of-stock frame is refused here too, not
-    // just greyed out in the selector, so a stale page or a hand-made POST
-    // cannot order one.
-    if (!isset($cfg['sizes'][$size]))   $size  = array_key_first($cfg['sizes']);
+    // Validate against config. A size or frame we no longer offer is refused
+    // here too, not just hidden in the selector, so a stale page, a saved
+    // preview link or a hand-made POST cannot order one.
+    if (!isset($cfg['sizes'][$size]) || !af_size_is_offered($size)) $size = af_size_default($product);
     if (!isset($cfg['frames'][$frame]) || !af_frame_is_in_stock($frame)) $frame = af_frame_default();
     if (!isset($cfg['colors'][$color])) $color = array_key_first($cfg['colors']);
     $data['af_size']  = $size;
@@ -6001,6 +6050,8 @@ add_action('template_redirect', function(){
       var SYM = <?php echo wp_json_encode($sym); ?>;
       // Frames we can actually make — the rest are listed but not selectable.
       var INSTOCK = <?php echo wp_json_encode(function_exists('af_frames_in_stock') ? af_frames_in_stock() : array_keys($cfg['frames'])); ?>;
+      // Sizes we currently offer — the rest are not listed at all.
+      var SIZES = <?php echo wp_json_encode(function_exists('af_sizes_available') ? af_sizes_available() : array_keys($cfg['sizes'])); ?>;
       var $=function(id){return document.getElementById(id);};
 
       // Populate selects
@@ -6010,7 +6061,7 @@ add_action('template_redirect', function(){
         o.textContent=f+(CFG.frames[f]>0?(' (+'+SYM+CFG.frames[f]+')'):'')+(oos?' — Out of stock':'');
         o.disabled = oos; if(!oos && !$('tow-frame').value) o.selected = true;
         $('tow-frame').appendChild(o); });
-      Object.keys(CFG.sizes).forEach(function(s){ var o=document.createElement('option'); o.value=s; o.textContent=s; $('tow-size').appendChild(o); });
+      SIZES.forEach(function(s){ var o=document.createElement('option'); o.value=s; o.textContent=s; $('tow-size').appendChild(o); });
       Object.keys(CFG.colors).forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c+(CFG.colors[c]>0?(' (+'+SYM+CFG.colors[c]+')'):''); $('tow-color').appendChild(o); });
 
       // Realistic frame material gradients (bevel comes from CSS box-shadows)
@@ -11163,14 +11214,16 @@ function af_card_vars_dots() {
 }
 
 /**
- * "13 sizes · 1 frame" — the card's option summary. Counts only frames that
- * are in stock, so a card never advertises a frame the product page refuses
- * to sell. Built once and shared by the rendered strip and the AJAX fallback.
+ * "5 sizes · 1 frame" — the card's option summary. Counts only what the
+ * product page will actually sell, so a card never advertises a size or a
+ * frame the selector refuses. Shared by the rendered strip and the AJAX
+ * fallback, which is why it is built in one place.
  */
 function af_card_vars_label() {
-    $sizes  = count(af_pricing_config()['sizes']);
+    $sizes  = count(af_sizes_available());
     $frames = count(af_frames_in_stock());
-    return $sizes . ' sizes &middot; ' . $frames . ' frame' . ($frames === 1 ? '' : 's');
+    return $sizes . ' size' . ($sizes === 1 ? '' : 's')
+         . ' &middot; ' . $frames . ' frame' . ($frames === 1 ? '' : 's');
 }
 
 /** The strip's markup for one product, or '' when the product has no options. */
@@ -11214,7 +11267,7 @@ function af_card_variations_handler() {
     $raw = isset($_POST['ids']) ? (array) $_POST['ids'] : array();
     $ids = array_slice(array_filter(array_map('absint', $raw)), 0, 48);
     $cfg = af_pricing_config();
-    $meta = array('sizes' => count($cfg['sizes']), 'frames' => count(af_frames_in_stock()),
+    $meta = array('sizes' => count(af_sizes_available()), 'frames' => count(af_frames_in_stock()),
                   'label' => html_entity_decode(af_card_vars_label(), ENT_QUOTES, 'UTF-8'));
     $out = array();
     foreach ($ids as $id) {
@@ -11808,7 +11861,8 @@ add_action('template_redirect', function () {
 
             <label>Frame Size</label>
             <select id="ftm-size">
-              <?php foreach (array_keys($cfg['sizes']) as $i => $s): ?>
+              <?php $ftm_sizes = function_exists('af_sizes_available') ? af_sizes_available() : array_keys($cfg['sizes']); ?>
+              <?php foreach ($ftm_sizes as $i => $s): ?>
                 <option value="<?php echo esc_attr($s); ?>" data-mult="<?php echo esc_attr($cfg['sizes'][$s]); ?>"<?php echo $i===0?' selected':''; ?>><?php echo esc_html($s); ?></option>
               <?php endforeach; ?>
             </select>
