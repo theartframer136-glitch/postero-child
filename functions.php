@@ -5136,6 +5136,27 @@ function af_pricing_config() {
 }
 
 /**
+ * Frame types we can currently make. Everything else in af_pricing_config()
+ * stays priced and previewable — the selector still shows the full range — but
+ * is offered as OUT OF STOCK and cannot be chosen or ordered. Editing this one
+ * list is all it takes to put a frame back on sale.
+ */
+function af_frames_in_stock() {
+    return array( 'Aluminium Frame' );
+}
+
+function af_frame_is_in_stock( $frame ) {
+    return in_array( $frame, af_frames_in_stock(), true );
+}
+
+/** The frame a product opens on: the first in-stock one in config order. */
+function af_frame_default() {
+    $frames = array_keys( af_pricing_config()['frames'] );
+    foreach ( $frames as $f ) { if ( af_frame_is_in_stock( $f ) ) return $f; }
+    return $frames[0];
+}
+
+/**
  * The size a product is titled as — "…Canvas Wall Art 3x4 Feet", "60 x 36
  * Inch…" — resolved to its selector label. This is what makes the numbers
  * agree "variation-wise": the listing price, the pre-selected size chip and
@@ -5199,6 +5220,9 @@ add_action('woocommerce_before_add_to_cart_button', function() {
     // this product's price — not every product pretending to be a 2×3
     $def_size = af_size_label_for_product($product);
     if (!in_array($def_size, $sizes, true)) $def_size = $sizes[0];
+    // Frames that are out of stock are shown but cannot be picked, so the
+    // selector opens on the first one we can actually make.
+    $def_frame = af_frame_default();
     ?>
     <div class="af-opts" id="af-opts" data-base="<?php echo esc_attr($base); ?>" data-config='<?php echo esc_attr(wp_json_encode($cfg)); ?>' data-symbol="<?php echo esc_attr(get_woocommerce_currency_symbol()); ?>">
       <div class="af-opt-group">
@@ -5220,8 +5244,8 @@ add_action('woocommerce_before_add_to_cart_button', function() {
       <div class="af-opt-group">
         <label class="af-opt-label">Frame Type</label>
         <div class="af-chips af-frame-chips">
-          <?php foreach ($frames as $i => $f): $fee=$cfg['frames'][$f]; ?>
-            <button type="button" class="af-chip-opt<?php echo $i===0?' active':''; ?>" data-type="frame" data-val="<?php echo esc_attr($f); ?>"><?php if($f==='Floating Frame') echo '<span class="af-rec">Recommended</span>'; ?><?php echo esc_html($f); ?><?php if($fee>0) echo ' <em>+'.get_woocommerce_currency_symbol().$fee.'</em>'; ?></button>
+          <?php foreach ($frames as $i => $f): $fee=$cfg['frames'][$f]; $oos = !af_frame_is_in_stock($f); ?>
+            <button type="button" class="af-chip-opt<?php echo $f===$def_frame?' active':''; ?><?php echo $oos?' af-chip-oos':''; ?>" data-type="frame" data-val="<?php echo esc_attr($f); ?>"<?php echo $oos?' disabled aria-disabled="true"':''; ?>><?php if(!$oos && $f==='Floating Frame') echo '<span class="af-rec">Recommended</span>'; ?><?php echo esc_html($f); ?><?php if($fee>0) echo ' <em>+'.get_woocommerce_currency_symbol().$fee.'</em>'; ?><?php if($oos) echo ' <span class="af-oos">Out of stock</span>'; ?></button>
           <?php endforeach; ?>
         </div>
       </div>
@@ -5239,7 +5263,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
         <span id="af-live-disc" class="af-live-disc"></span></div>
       <p class="af-price-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Free Secure Packaging</p>
       <input type="hidden" name="af_size"  value="<?php echo esc_attr($sizes[0]); ?>">
-      <input type="hidden" name="af_frame" value="<?php echo esc_attr($frames[0]); ?>">
+      <input type="hidden" name="af_frame" value="<?php echo esc_attr($def_frame); ?>">
       <input type="hidden" name="af_color" value="<?php echo esc_attr($colors[0]); ?>">
     </div>
     <?php
@@ -5256,11 +5280,13 @@ add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
     $def   = af_size_label_for_product($product);
     $size  = isset($_POST['af_size'])  ? sanitize_text_field(wp_unslash($_POST['af_size']))
              : ($def !== '' ? $def : array_key_first($cfg['sizes']));
-    $frame = isset($_POST['af_frame']) ? sanitize_text_field(wp_unslash($_POST['af_frame'])) : array_key_first($cfg['frames']);
+    $frame = isset($_POST['af_frame']) ? sanitize_text_field(wp_unslash($_POST['af_frame'])) : af_frame_default();
     $color = isset($_POST['af_color']) ? sanitize_text_field(wp_unslash($_POST['af_color'])) : array_key_first($cfg['colors']);
-    // Validate against config
+    // Validate against config. An out-of-stock frame is refused here too, not
+    // just greyed out in the selector, so a stale page or a hand-made POST
+    // cannot order one.
     if (!isset($cfg['sizes'][$size]))   $size  = array_key_first($cfg['sizes']);
-    if (!isset($cfg['frames'][$frame])) $frame = array_key_first($cfg['frames']);
+    if (!isset($cfg['frames'][$frame]) || !af_frame_is_in_stock($frame)) $frame = af_frame_default();
     if (!isset($cfg['colors'][$color])) $color = array_key_first($cfg['colors']);
     $data['af_size']  = $size;
     $data['af_frame'] = $frame;
@@ -5313,6 +5339,15 @@ add_action('wp_head', function() {
     .af-chip-opt:hover{border-color:#c9a84c;}
     .af-chip-opt.active{border-color:#1a1a1a;background:#1a1a1a;color:#fff;}
     .af-chip-opt.active em{color:#e8c766;}
+    /* Out-of-stock frames stay visible (so the range still reads) but are
+       plainly unavailable: greyed, struck through and not clickable. */
+    .af-chip-opt.af-chip-oos{background:#f6f6f6;border-color:#e4e4e4;color:#a3a3a3;cursor:not-allowed;
+      text-decoration:line-through;text-decoration-color:#c9c9c9;}
+    .af-chip-opt.af-chip-oos:hover{border-color:#e4e4e4;}
+    .af-chip-opt.af-chip-oos em{color:#b5b5b5;}
+    .af-chip-opt .af-oos{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:4px;
+      background:#ececec;color:#8a8a8a;font-size:10px;font-weight:800;letter-spacing:.04em;
+      text-transform:uppercase;text-decoration:none;vertical-align:1px;}
     .af-swatch{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid #ddd;border-radius:8px;padding:6px 12px 6px 8px;font-size:12.5px;font-weight:600;color:#333;cursor:pointer;transition:all .15s;}
     .af-swatch span{width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.15);display:inline-block;}
     .af-swatch:hover{border-color:#c9a84c;}
@@ -5326,6 +5361,7 @@ add_action('wp_head', function() {
       function money(sym,val){ return sym + val.toFixed(2); }
       document.addEventListener('click', function(e){
         var b = e.target.closest('.af-chip-opt, .af-swatch'); if(!b) return;
+        if(b.disabled || b.classList.contains('af-chip-oos')) return;   // out of stock
         var wrap = b.closest('.af-opts'); if(!wrap) return;
         var type = b.getAttribute('data-type');
         wrap.querySelectorAll('[data-type="'+type+'"]').forEach(function(x){ x.classList.remove('active'); });
@@ -5365,7 +5401,8 @@ add_action('wp_head', function() {
             wrap.querySelectorAll('[data-type="'+type+'"]').forEach(function(x){
               if(x.getAttribute('data-val') === want[type]) target = x;
             });
-            if(!target) return;
+            // never restore a Try-On-Wall choice we can no longer make
+            if(!target || target.disabled || target.classList.contains('af-chip-oos')) return;
             wrap.querySelectorAll('[data-type="'+type+'"]').forEach(function(x){ x.classList.remove('active'); });
             target.classList.add('active');
             var input = wrap.parentNode.querySelector('input[name="af_'+type+'"]') || document.querySelector('input[name="af_'+type+'"]');
@@ -5962,11 +5999,17 @@ add_action('template_redirect', function(){
       window.AFProducts = PRODUCTS;   // same array, for the test harness (already public in page source)
       var CFG = <?php echo wp_json_encode($cfg); ?>;
       var SYM = <?php echo wp_json_encode($sym); ?>;
+      // Frames we can actually make — the rest are listed but not selectable.
+      var INSTOCK = <?php echo wp_json_encode(function_exists('af_frames_in_stock') ? af_frames_in_stock() : array_keys($cfg['frames'])); ?>;
       var $=function(id){return document.getElementById(id);};
 
       // Populate selects
       CATS.forEach(function(c){ var o=document.createElement('option'); o.value=c.slug; o.textContent=c.name; $('tow-cat').appendChild(o); });
-      Object.keys(CFG.frames).forEach(function(f){ var o=document.createElement('option'); o.value=f; o.textContent=f+(CFG.frames[f]>0?(' (+'+SYM+CFG.frames[f]+')'):''); $('tow-frame').appendChild(o); });
+      Object.keys(CFG.frames).forEach(function(f){ var o=document.createElement('option'); o.value=f;
+        var oos = INSTOCK.indexOf(f) === -1;
+        o.textContent=f+(CFG.frames[f]>0?(' (+'+SYM+CFG.frames[f]+')'):'')+(oos?' — Out of stock':'');
+        o.disabled = oos; if(!oos && !$('tow-frame').value) o.selected = true;
+        $('tow-frame').appendChild(o); });
       Object.keys(CFG.sizes).forEach(function(s){ var o=document.createElement('option'); o.value=s; o.textContent=s; $('tow-size').appendChild(o); });
       Object.keys(CFG.colors).forEach(function(c){ var o=document.createElement('option'); o.value=c; o.textContent=c+(CFG.colors[c]>0?(' (+'+SYM+CFG.colors[c]+')'):''); $('tow-color').appendChild(o); });
 
@@ -6994,8 +7037,7 @@ add_action('template_redirect', function(){
         var cat = (prod.cats||[])[0] || '';
         if(cat){ $('tow-cat').value = cat; fillProducts(cat); }
         $('tow-prod').value = pid;
-        // defaults for a nice first view
-        if($('tow-frame').options.length>1) $('tow-frame').selectedIndex = 2; // Floating
+        // defaults for a nice first view — the first frame we can still make
         refresh();
         var el=document.querySelector('.af-tow-wrap'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
       })();
@@ -11120,6 +11162,17 @@ function af_card_vars_dots() {
     return array('Black' => '#1a1a1a', 'Silver' => '#c0c0c0', 'Gold' => '#d4af37', 'Rose Gold' => '#b76e79');
 }
 
+/**
+ * "13 sizes · 1 frame" — the card's option summary. Counts only frames that
+ * are in stock, so a card never advertises a frame the product page refuses
+ * to sell. Built once and shared by the rendered strip and the AJAX fallback.
+ */
+function af_card_vars_label() {
+    $sizes  = count(af_pricing_config()['sizes']);
+    $frames = count(af_frames_in_stock());
+    return $sizes . ' sizes &middot; ' . $frames . ' frame' . ($frames === 1 ? '' : 's');
+}
+
 /** The strip's markup for one product, or '' when the product has no options. */
 function af_card_vars_html($product) {
     if (!$product || $product->get_status() !== 'publish') return '';
@@ -11136,7 +11189,7 @@ function af_card_vars_html($product) {
     }
     return '<div class="af-card-vars"><a href="' . esc_url(get_permalink($product->get_id()) . '#af-opts') . '">'
          . '<span class="af-card-dots">' . $dots . '</span>'
-         . '<span>' . count($cfg['sizes']) . ' sizes &middot; ' . count($cfg['frames']) . ' frames</span>'
+         . '<span>' . af_card_vars_label() . '</span>'
          . '<span class="af-card-from">From ' . esc_html(wp_strip_all_tags(wc_price($base))) . '</span>'
          . '</a></div>';
 }
@@ -11161,7 +11214,8 @@ function af_card_variations_handler() {
     $raw = isset($_POST['ids']) ? (array) $_POST['ids'] : array();
     $ids = array_slice(array_filter(array_map('absint', $raw)), 0, 48);
     $cfg = af_pricing_config();
-    $meta = array('sizes' => count($cfg['sizes']), 'frames' => count($cfg['frames']));
+    $meta = array('sizes' => count($cfg['sizes']), 'frames' => count(af_frames_in_stock()),
+                  'label' => html_entity_decode(af_card_vars_label(), ENT_QUOTES, 'UTF-8'));
     $out = array();
     foreach ($ids as $id) {
         $p = wc_get_product($id);
@@ -11219,7 +11273,7 @@ add_action('wp_footer', function() {
           strip.className = 'af-card-vars';
           var d = Object.keys(dots).map(function(c){ return '<i title="' + c + '" style="background:' + dots[c] + '"></i>'; }).join('');
           strip.innerHTML = '<a href="' + info.url + '"><span class="af-card-dots">' + d + '</span>' +
-            '<span>' + meta.sizes + ' sizes · ' + meta.frames + ' frames</span>' +
+            '<span>' + (meta.label || (meta.sizes + ' sizes · ' + meta.frames + ' frames')) + '</span>' +
             '<span class="af-card-from">From ' + info.from + '</span></a>';
           var anchor = card.querySelector('.price') || card.querySelector('.woocommerce-loop-product__title') || card;
           anchor.parentElement ? anchor.parentElement.insertBefore(strip, anchor.nextSibling) : card.appendChild(strip);
@@ -11762,8 +11816,9 @@ add_action('template_redirect', function () {
             <div class="af-ftm-step"><span class="af-ftm-num">3</span><span class="af-ftm-steptitle">Style the frame</span></div>
             <label>Frame Type</label>
             <select id="ftm-frame">
-              <?php foreach ($cfg['frames'] as $f => $fee): ?>
-                <option value="<?php echo esc_attr($f); ?>" data-fee="<?php echo esc_attr($fee); ?>"><?php echo esc_html($f); ?><?php if($fee>0) echo ' (+'.$sym.$fee.')'; ?></option>
+              <?php $ftm_def = function_exists('af_frame_default') ? af_frame_default() : array_key_first($cfg['frames']); ?>
+              <?php foreach ($cfg['frames'] as $f => $fee): $oos = function_exists('af_frame_is_in_stock') && !af_frame_is_in_stock($f); ?>
+                <option value="<?php echo esc_attr($f); ?>" data-fee="<?php echo esc_attr($fee); ?>"<?php echo $oos?' disabled':''; ?><?php echo $f===$ftm_def?' selected':''; ?>><?php echo esc_html($f); ?><?php if($fee>0) echo ' (+'.$sym.$fee.')'; ?><?php if($oos) echo ' — Out of stock'; ?></option>
               <?php endforeach; ?>
             </select>
 
