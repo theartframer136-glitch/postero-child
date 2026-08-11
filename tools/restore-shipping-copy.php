@@ -48,9 +48,17 @@ $er = $wpdb->get_results(
 $el = 0;
 foreach ($er as $row) {
     if ($row->meta_value === '' || $row->meta_value === null) { $skipped++; continue; }
-    // the backup was stored slashed for update_post_meta; unslash to get the
-    // original bytes back before writing them straight into the row
-    $original = wp_unslash($row->meta_value);
+    // Read straight from the table, so these bytes are already unslashed —
+    // update_post_meta stripped the slashes when the backup was saved. Calling
+    // wp_unslash here a second time (which an earlier version did) eats the
+    // backslashes JSON depends on and leaves Elementor with a design it cannot
+    // parse. Write what is stored, and only if it still parses.
+    $original = $row->meta_value;
+    if (json_decode($original, true) === null) {
+        echo "  SKIPPED elementor #{$row->post_id} (backup does not parse)\n";
+        $skipped++;
+        continue;
+    }
     $ok = $wpdb->update(
         $wpdb->postmeta,
         array('meta_value' => $original),
