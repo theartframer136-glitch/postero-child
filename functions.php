@@ -3890,8 +3890,7 @@ add_action('wp_footer', function() {
           <span class="af-ub-rot">✨ <?php echo esc_html(af_shipping_copy()['short']); ?> on Premium Canvas Wall Art</span>
         </div>
         <nav class="af-ub-links" aria-label="Support and account">
-          <?php // Track Order lives in the My Account menu, not up here. ?>
-          <a href="/help-support/" class="af-ub-link">❓ Help</a>
+          <?php // Track Order and Help live in the My Account menu, not up here. ?>
           <a href="tel:+16104707280" class="af-ub-link af-ub-phone">📞 +1 (610) 470-7280</a>
           <?php echo do_shortcode('[af_country_selector]'); ?>
         </nav>
@@ -12433,73 +12432,91 @@ add_filter('woocommerce_account_menu_items', function($items) {
     return $new;
 }, 20);
 
-// Track Order sits in My Account directly under Orders (it used to live in the
-// top utility bar). Runs last so it lands immediately after Orders, and points
-// at the standalone tracking page rather than an account endpoint.
+// Track Order and Help live in My Account rather than the top utility bar:
+// Track Order directly under Orders, Help directly under Account details.
+// Runs last so each lands immediately after its anchor row, and both point at
+// standalone pages rather than account endpoints.
 add_filter('woocommerce_account_menu_items', function($items) {
-    if (isset($items['af-track-order'])) return $items;
+    $after = array(
+        'orders'       => array('af-track-order', 'Track Order'),
+        'edit-account' => array('af-help',        'Help'),
+    );
     $new = array();
     foreach ($items as $k => $v) {
         $new[$k] = $v;
-        if ($k === 'orders') $new['af-track-order'] = 'Track Order';
+        if (isset($after[$k]) && !isset($items[$after[$k][0]])) {
+            $new[$after[$k][0]] = $after[$k][1];
+        }
     }
-    if (!isset($new['af-track-order'])) $new['af-track-order'] = 'Track Order';
+    // Anchor row missing (menus vary) — still surface the entry.
+    foreach ($after as $add) {
+        if (!isset($new[$add[0]])) $new[$add[0]] = $add[1];
+    }
     return $new;
 }, 30);
 
 add_filter('woocommerce_get_endpoint_url', function($url, $endpoint) {
     if ($endpoint === 'af-track-order') return home_url('/track-your-order/');
+    if ($endpoint === 'af-help')        return home_url('/help-support/');
     return $url;
 }, 10, 2);
 
 // The header's "My Account" dropdown is rendered by the theme, not by
 // woocommerce_account_menu_items, so the filter above never reaches it. Insert
-// the same Track Order entry into that dropdown client-side, cloning the
-// Orders row so it inherits the dropdown's own styling.
+// the same entries into that dropdown client-side, each cloned from the row it
+// follows so they inherit the dropdown's own styling.
 add_action('wp_footer', function() {
     if (is_admin()) return;
     ?>
 <script>
 (function(){
-  var URL = <?php echo wp_json_encode(home_url('/track-your-order/')); ?>;
-  function isOrders(a){
-    var t = (a.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-    if (t === 'orders' || t === 'my orders') return true;
-    var h = a.getAttribute('href') || '';
-    return /\/my-account\/orders\/?$/.test(h.split('?')[0]);
-  }
+  var ROWS = [
+    { cls: 'af-track-order-item', label: 'Track Order',
+      url: <?php echo wp_json_encode(home_url('/track-your-order/')); ?>,
+      match: function(t, h){ return t === 'orders' || t === 'my orders'
+                                    || /\/my-account\/orders\/?$/.test(h); } },
+    { cls: 'af-help-item', label: 'Help',
+      url: <?php echo wp_json_encode(home_url('/help-support/')); ?>,
+      match: function(t, h){ return t === 'account details' || t === 'account detail'
+                                    || /\/my-account\/edit-account\/?$/.test(h); } }
+  ];
   function add(){
     var anchors = document.querySelectorAll('a[href]');
     for (var i = 0; i < anchors.length; i++) {
       var a = anchors[i];
-      if (!isOrders(a)) continue;
-      var li = a.closest('li');
-      if (!li || !li.parentNode) continue;
-      var list = li.parentNode;
-      if (list.querySelector('.af-track-order-item')) continue;   // already added
-      // Only a dropdown/account menu — must sit alongside other account rows.
-      var txt = (list.textContent || '').toLowerCase();
-      if (txt.indexOf('log out') === -1 && txt.indexOf('logout') === -1
-          && txt.indexOf('dashboard') === -1 && txt.indexOf('account details') === -1) continue;
-      var clone = li.cloneNode(true);
-      clone.className = (li.className || '') + ' af-track-order-item';
-      clone.removeAttribute('id');
-      var link = clone.querySelector('a');
-      if (!link) continue;
-      link.setAttribute('href', URL);
-      // replace the label text but keep any icon markup the theme adds
-      var replaced = false;
-      (function walk(node){
-        for (var n = 0; n < node.childNodes.length; n++) {
-          var c = node.childNodes[n];
-          if (c.nodeType === 3 && c.nodeValue.trim()) {
-            if (!replaced) { c.nodeValue = 'Track Order'; replaced = true; }
-            else { c.nodeValue = ''; }
-          } else if (c.nodeType === 1) { walk(c); }
-        }
-      })(link);
-      if (!replaced) link.textContent = 'Track Order';
-      li.parentNode.insertBefore(clone, li.nextSibling);
+      var t = (a.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      var h = (a.getAttribute('href') || '').split('?')[0];
+      for (var r = 0; r < ROWS.length; r++) {
+        var row = ROWS[r];
+        if (!row.match(t, h)) continue;
+        var li = a.closest('li');
+        if (!li || !li.parentNode) continue;
+        var list = li.parentNode;
+        if (list.querySelector('.' + row.cls)) continue;          // already added
+        // Only a dropdown/account menu — must sit alongside other account rows.
+        var all = (list.textContent || '').toLowerCase();
+        if (all.indexOf('log out') === -1 && all.indexOf('logout') === -1
+            && all.indexOf('dashboard') === -1 && all.indexOf('account details') === -1) continue;
+        var clone = li.cloneNode(true);
+        clone.className = (li.className || '') + ' ' + row.cls;
+        clone.removeAttribute('id');
+        var link = clone.querySelector('a');
+        if (!link) continue;
+        link.setAttribute('href', row.url);
+        // replace the label text but keep any icon markup the theme adds
+        var replaced = false;
+        (function walk(node){
+          for (var n = 0; n < node.childNodes.length; n++) {
+            var c = node.childNodes[n];
+            if (c.nodeType === 3 && c.nodeValue.trim()) {
+              if (!replaced) { c.nodeValue = row.label; replaced = true; }
+              else { c.nodeValue = ''; }
+            } else if (c.nodeType === 1) { walk(c); }
+          }
+        })(link);
+        if (!replaced) link.textContent = row.label;
+        li.parentNode.insertBefore(clone, li.nextSibling);
+      }
     }
   }
   document.addEventListener('DOMContentLoaded', add);
