@@ -752,6 +752,15 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/diag-site-visibility.php --allow-root 2>&1" \
             || true
 
+          # Printed here, in the always-run step at the end, because suite 1's
+          # output is buried under image-rotation logs and cannot be read back.
+          echo "Last content restore:"
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval 'echo get_option(\"af_restore_summary\", \"(never run)\");' --allow-root 2>/dev/null" \
+            || true
+          echo ""
+
           echo "GATE: the theme must actually boot..."
           BOOT=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && wp eval 'echo \"AF_BOOT_OK\";' --allow-root 2>&1")

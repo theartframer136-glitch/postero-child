@@ -74,4 +74,10 @@ if ($restored || $el) {
     if (function_exists('wc_delete_product_transients')) wc_delete_product_transients();
     echo "  caches flushed\n";
 }
+// Record the outcome where it can always be read. The deploy log buries this
+// step under a megabyte of image-rotation output, so "did the restore run?"
+// was unanswerable from the log alone.
+update_option('af_restore_summary', sprintf(
+    'pages %d, designs %d, skipped %d, at %s UTC', $restored, $el, $skipped, gmdate('Y-m-d H:i')), false);
+
 echo "=== DONE ===\n";
