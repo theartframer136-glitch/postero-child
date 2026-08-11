@@ -105,6 +105,21 @@ if (preg_match('#<!-- af: review slider[^>]*-->#', $html, $c)) {
 $lib = preg_match('#src=["\'][^"\']*embedder-for-google-reviews[^"\']*\.js#i', $html);
 printf("  slider library on the page: %s\n", $lib ? 'YES' : 'NO  <-- arrows cannot work');
 
+// Is this response even coming from the current theme code? Two markers the
+// theme prints unconditionally in the footer answer that: if they are missing
+// too, the page is being served from cache (or the footer never ran) and no
+// amount of changing the loader would show up here.
+echo "\n-- is the served page running current theme code? --\n";
+foreach (array(
+    'af-review-overlap-fix' => 'footer style block (printed on every page)',
+    'af-quickpanel'         => 'floating quick panel (printed on every page)',
+) as $marker => $what) {
+    printf("  %-24s %s   (%s)\n", $marker,
+           strpos($html, $marker) !== false ? 'present' : 'MISSING', $what);
+}
+$hdr = wp_remote_retrieve_header($res, 'x-litespeed-cache');
+printf("  x-litespeed-cache header: %s\n", $hdr ? $hdr : '(none)');
+
 // ── plugins that could own this widget ──
 echo "\n-- active plugins mentioning reviews or sliders --\n";
 foreach ((array) get_option('active_plugins', array()) as $p) {

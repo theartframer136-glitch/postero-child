@@ -77,7 +77,20 @@ foreach ((array) get_terms(array('taxonomy' => 'product_cat', 'hide_empty' => fa
     if (is_wp_error($t) || !isset($t->name)) continue;
     $map[strtolower(preg_replace('/[^a-z0-9]+/i', '', html_entity_decode($t->name)))] = $t->slug;
 }
-if (preg_match_all('#<span[^>]*>([^<]{2,60})</span>#i', $strip, $caps)) {
+// the circles ship as .sub-cat blocks; their caption is the text inside.
+// (An earlier pass looked only for <span> and reported "no captions found",
+// which said nothing about whether the captions resolve.)
+$caps = array(array(), array());
+if (preg_match_all('#<div[^>]*class=["\'][^"\']*sub-cat[^"\']*["\'][^>]*>(.*?)</div>#is', $strip, $sc)) {
+    foreach ($sc[1] as $inner) {
+        $txt = trim(preg_replace('/\s+/', ' ', wp_strip_all_tags($inner)));
+        if ($txt !== '') $caps[1][] = $txt;
+    }
+}
+if (!$caps[1] && preg_match_all('#<span[^>]*>([^<]{2,60})</span>#i', $strip, $sp)) {
+    $caps[1] = $sp[1];
+}
+if ($caps[1]) {
     $unmatched = array();
     $matched   = 0;
     foreach (array_slice(array_unique($caps[1]), 0, 40) as $cap) {
