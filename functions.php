@@ -536,17 +536,15 @@ add_action('wp_footer', function() {
 (function(){
   var CATS = <?php echo wp_json_encode($map); ?>;
   function norm(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,''); }
+  function deadHref(h){ return !h || h === '#' || h.indexOf('javascript:') === 0; }
   function urlFor(item){
-    // A real link inside the item wins — never override native navigation.
-    var a = item.querySelector('a[href]');
-    if (a) { var h = a.getAttribute('href'); if (h && h !== '#' && h.indexOf('javascript:') !== 0) return null; }
     var label = norm(item.textContent);
     if (!label) return null;
     if (CATS[label]) return CATS[label];
     // tolerate extra text around the name (counts, "New" badges…)
     var best = null, bestLen = 0;
     for (var k in CATS) {
-      if (k.length > bestLen && (label === k || label.indexOf(k) === 0 || label.indexOf(k) !== -1)) {
+      if (k.length > bestLen && (label === k || label.indexOf(k) !== -1)) {
         best = CATS[k]; bestLen = k.length;
       }
     }
@@ -559,20 +557,32 @@ add_action('wp_footer', function() {
     items.forEach(function(it){
       if (it.getAttribute('data-af-cat-link') === '') return;      // resolved: no match
       if (it.getAttribute('data-af-cat-link')) return;             // already wired
+      // an item whose link already goes somewhere real is left alone
+      var a = it.querySelector('a[href]');
+      if (a && !deadHref(a.getAttribute('href'))) { it.setAttribute('data-af-cat-link', ''); return; }
       var url = urlFor(it);
       if (!url) { it.setAttribute('data-af-cat-link', ''); return; }
       it.setAttribute('data-af-cat-link', url);
+      // dead links (href="#", javascript:) get the real URL so native
+      // navigation works even if a slider library eats our click handler
+      it.querySelectorAll('a').forEach(function(lnk){
+        if (deadHref(lnk.getAttribute('href'))) lnk.setAttribute('href', url);
+      });
       it.style.cursor = 'pointer';
       it.setAttribute('role', 'link');
       it.setAttribute('tabindex', '0');
       var sx = 0, sy = 0;
-      it.addEventListener('pointerdown', function(e){ sx = e.clientX; sy = e.clientY; });
+      it.addEventListener('pointerdown', function(e){ sx = e.clientX; sy = e.clientY; }, true);
+      // capture phase: run BEFORE slider libraries that stopPropagation()
       it.addEventListener('click', function(e){
         // swiping the strip must not navigate
-        if (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8) return;
-        if (e.target.closest && e.target.closest('a[href]')) return;
+        if (sx && (Math.abs(e.clientX - sx) > 8 || Math.abs(e.clientY - sy) > 8)) return;
+        // let ctrl/cmd/middle-click use the (rewritten) anchor natively
+        if (e.ctrlKey || e.metaKey || e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
         window.location.href = it.getAttribute('data-af-cat-link');
-      });
+      }, true);
       it.addEventListener('keydown', function(e){
         if (e.key === 'Enter') window.location.href = it.getAttribute('data-af-cat-link');
       });
@@ -580,7 +590,7 @@ add_action('wp_footer', function() {
   }
   document.addEventListener('DOMContentLoaded', wire);
   window.addEventListener('load', wire);
-  [400, 1200, 2500].forEach(function(d){ setTimeout(wire, d); });
+  [400, 1200, 2500, 4000].forEach(function(d){ setTimeout(wire, d); });
   try {
     new MutationObserver(function(m){
       for (var i = 0; i < m.length; i++) {
@@ -5656,6 +5666,94 @@ add_filter('wp_nav_menu_objects', function($items){
     }
     return $items;
 }, 20);
+
+// Drop the "Social Media" and "Contact Us" items (and their dropdown
+// children) from the header navigation only. Footer menus and standalone
+// social icon links are left alone.
+add_filter('wp_nav_menu_objects', function($items, $args){
+    $loc = isset($args->theme_location) ? strtolower((string) $args->theme_location) : '';
+    if ($loc !== '' && strpos($loc, 'footer') !== false) return $items;
+
+    $is_header = ($loc !== '' && preg_match('/primary|header|main|top/', $loc));
+    if (!$is_header) {
+        // No usable location (builder menus): identify the header nav by the
+        // items it carries. Checked BEFORE anything is removed, so dropping
+        // Contact Us below does not break this detection.
+        $markers = 0;
+        foreach ($items as $it) {
+            $t = strtolower(wp_strip_all_tags($it->title));
+            if (strpos($t, 'contact') !== false || strpos($t, 'about') !== false
+                || strpos($t, 'blog') !== false) { $markers++; }
+        }
+        if ($markers < 2) return $items;
+    }
+
+    $remove = array();
+    foreach ($items as $it) {
+        $t = strtolower(trim(wp_strip_all_tags($it->title)));
+        $t = preg_replace('/\s+/', ' ', $t);
+        if ($t === 'social media' || $t === 'social' || $t === 'social medias'
+            || $t === 'contact us' || $t === 'contact') {
+            $remove[] = (int) $it->ID;
+        }
+    }
+    if (!$remove) return $items;
+
+    // Pull the dropdown children down with the parent.
+    $changed = true;
+    while ($changed) {
+        $changed = false;
+        foreach ($items as $it) {
+            if (in_array((int) $it->menu_item_parent, $remove, true)
+                && !in_array((int) $it->ID, $remove, true)) {
+                $remove[] = (int) $it->ID;
+                $changed  = true;
+            }
+        }
+    }
+    return array_values(array_filter($items, function($it) use ($remove) {
+        return !in_array((int) $it->ID, $remove, true);
+    }));
+}, 25, 2);
+
+// DOM fallback for builder-rendered headers that never pass through
+// wp_nav_menu_objects. Same scoping rule: only the nav holding Contact, and
+// never inside a footer.
+add_action('wp_footer', function() {
+    if (is_admin()) return;
+    ?>
+<script>
+(function(){
+  function strip(){
+    var lists = document.querySelectorAll('ul');
+    for (var i = 0; i < lists.length; i++) {
+      var ul = lists[i];
+      if (ul.closest('footer, .footer, #footer, .site-footer, .elementor-location-footer')) continue;
+      var links = ul.querySelectorAll(':scope > li > a');
+      if (links.length < 2) continue;                 // not a real nav bar
+      // Identify the header nav by its remaining items, so this keeps
+      // matching after Contact Us is gone.
+      var markers = 0;
+      for (var j = 0; j < links.length; j++) {
+        if (/contact|about|blog/i.test(links[j].textContent || '')) markers++;
+      }
+      if (markers < 2) continue;
+      for (var k = 0; k < links.length; k++) {
+        var txt = (links[k].textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        if (txt === 'social media' || txt === 'social'
+            || txt === 'contact us' || txt === 'contact') {
+          var li = links[k].closest('li');
+          if (li) li.style.setProperty('display', 'none', 'important');
+        }
+      }
+    }
+  }
+  document.addEventListener('DOMContentLoaded', strip);
+  window.addEventListener('load', strip);
+  [300, 1000, 2200].forEach(function(d){ setTimeout(strip, d); });
+})();
+</script>
+<?php }, 60);
 
 // ─────────────────────────────────────────────────────────────
 // PHASE 13 — Fully dynamic standalone "Try It On Your Wall" page.
@@ -13173,7 +13271,11 @@ add_action('template_redirect', function(){
 // desktop one — so the single insert landed in markup that is never visible on
 // desktop. Adding to each matching menu also means the link works on mobile.
 add_filter('wp_nav_menu_items', function($items, $args) {
-    if (stripos($items, 'contact') === false) return $items;
+    // Contact Us is removed from the header nav, so match on what remains
+    // there too — otherwise this link would disappear along with it.
+    if (stripos($items, 'contact') === false
+        && stripos($items, 'about') === false
+        && stripos($items, 'blog') === false) return $items;
     if (!af_console_can_access()) return $items;
     if (strpos($items, 'af-console-navitem') !== false) return $items;
 
@@ -13233,12 +13335,14 @@ add_action('wp_footer', function() {
         for (var i = 0; i < lists.length; i++) {
           var ul = lists[i];
           var links = ul.querySelectorAll(':scope > li > a');
-          if (links.length < 3) continue; // not a real nav bar
-          var hasContact = false;
+          if (links.length < 2) continue; // not a real nav bar
+          // Contact Us no longer sits in the header nav, so score on the
+          // items that remain there.
+          var markers = 0;
           for (var j = 0; j < links.length; j++) {
-            if (/contact/i.test(links[j].textContent || '')) { hasContact = true; break; }
+            if (/contact|about|blog/i.test(links[j].textContent || '')) markers++;
           }
-          if (!hasContact) continue;
+          if (markers < 2) continue;
           // Prefer the visible nav: a hidden mobile copy has no layout box.
           var visible = ul.getBoundingClientRect().width > 0;
           var score = links.length + (visible ? 1000 : 0);
