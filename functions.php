@@ -3042,6 +3042,9 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         var max = Math.max(0, circles.length - vis());
         idx = Math.max(0, Math.min(n, max));
         track.style.transform = 'translateX(' + (-(idx * (cw() + GAP))) + 'px)';
+        // page across and the newly-leading circle takes over the playback,
+        // rather than leaving a video running somewhere off to the left
+        autoplayVisible();
     }
 
     document.getElementById('afPimPrev').onclick = function(){ go(idx - vis()); };
@@ -3092,16 +3095,38 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
             });
         }
     });
-    // Autoplay just the first visible circle so the row still feels alive
-    if (!isTouch && circles.length) {
+    // ── Play as soon as the section is reached ──────────────────────
+    // This is the video row: arriving at it should show motion, not a wall of
+    // stills waiting to be hovered. The leading circle starts on its own and
+    // stops again when the row scrolls away, so nothing burns CPU or data off
+    // screen — and it starts again on the way back, which the old one-shot
+    // observer could not do, having disconnected itself after the first pass.
+    //
+    // Touch devices are included now. The embed is muted, which is exactly
+    // what phone browsers require before they will autoplay at all, and hover
+    // does not exist there — without this the row never moved on a phone.
+    var inView = false, reduceMotion = false;
+    try { reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){}
+
+    function autoplayVisible(){
+        if (!inView || reduceMotion) return;
+        if (lb.classList.contains('open')) return;      // the lightbox has the stage
+        var c = circles[Math.min(idx, circles.length - 1)];
+        if (c && !c.querySelector('iframe')) startPreview(c);
+    }
+    if (circles.length) {
+        var wrap = document.getElementById('afPimWrap');
         try {
-            var io = new IntersectionObserver(function(en){
+            new IntersectionObserver(function(en){
                 en.forEach(function(e){
-                    if (e.isIntersecting) { startPreview(circles[0]); io.disconnect(); }
+                    inView = e.isIntersecting;
+                    if (inView) autoplayVisible();
+                    else stopPreview(playing);          // off screen: stop, stay armed
                 });
-            }, { threshold: 0.4 });
-            io.observe(circles[0]);
-        } catch(e){}
+            }, { threshold: 0.25 }).observe(wrap);
+        } catch(e){
+            inView = true; autoplayVisible();           // no observer: just play
+        }
     }
 
     function closeLb() {
