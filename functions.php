@@ -600,8 +600,13 @@ add_action('wp_footer', function() {
     return true;
   }
   function wire(){
+    // every strip variant this theme renders circles with: the Elementor
+    // circle gallery (.circle-gallery-slider — the one on the homepage, per
+    // the served markup), plus the older subcategory sliders
     var items = document.querySelectorAll(
-      '#subcategorySlider > *, .subcategory-slider > *, ul.postero-scroll-content > li.cat-item'
+      '.circle-gallery-slider > *, .circle-gallery-slider .circle-item, ' +
+      '#subcategorySlider > *, .subcategory-slider > *, .subcategory-slider .sub-cat, ' +
+      'ul.postero-scroll-content > li.cat-item'
     );
     items.forEach(function(it){
       if (it.getAttribute('data-af-cat-link') === '') return;      // resolved: no match
@@ -612,6 +617,7 @@ add_action('wp_footer', function() {
       // "already linked" on the next page load and the filter handler was
       // never attached again. The strip's slider library then ate the native
       // link click, so clicking a circle did nothing at all.
+      if (it.matches && it.matches('.next-circle,.prev-circle,[class*="arrow"],button')) { it.setAttribute('data-af-cat-link', ''); return; }
       var a = it.querySelector('a[href]');
       var cat = catFor(it);
       if (!cat && a && !deadHref(a.getAttribute('href'))) { it.setAttribute('data-af-cat-link', ''); return; }

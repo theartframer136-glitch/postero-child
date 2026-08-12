@@ -77,6 +77,26 @@ foreach ((array) get_terms(array('taxonomy' => 'product_cat', 'hide_empty' => fa
     if (is_wp_error($t) || !isset($t->name)) continue;
     $map[strtolower(preg_replace('/[^a-z0-9]+/i', '', html_entity_decode($t->name)))] = $t->slug;
 }
+// what strip does the homepage actually serve? Print the markup around the
+// first circle so the click wiring is aimed at real elements, not assumed ones.
+echo "\n-- the strip as served --\n";
+$dom = preg_replace('#<(style|script)\b[^>]*>.*?</\1>#is', '', $html);
+$sp = false;
+foreach (array('circle-gallery-slider', 'subcategorySlider', 'subcategory-slider', 'sub-cat', 'circle-item') as $mk) {
+    $sp = stripos($dom, $mk);
+    if ($sp !== false) { echo "  found by: {$mk}\n"; break; }
+}
+if ($sp === false) {
+    // fall back to a known circle caption
+    $sp = stripos($dom, 'Seven Horses');
+    if ($sp !== false) echo "  found by caption: Seven Horses\n";
+}
+if ($sp !== false) {
+    echo "  " . trim(preg_replace('/\s+/', ' ', mb_strimwidth(substr($dom, max(0, $sp - 500), 2800), 0, 2800))) . "\n";
+} else {
+    echo "  no circle strip found in the served document body\n";
+}
+
 // the circles ship as .sub-cat blocks; their caption is the text inside.
 // (An earlier pass looked only for <span> and reported "no captions found",
 // which said nothing about whether the captions resolve.)
