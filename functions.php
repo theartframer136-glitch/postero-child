@@ -14750,6 +14750,16 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
   display:flex!important;flex-direction:column!important}
 /* anchor price and buttons to the card bottom so the row aligns (see cart copy) */
 .af-wl-related ul.products li.product .price{margin-top:auto!important}
+/* the sale ribbon and wishlist heart are positioned by the theme only inside
+   .product-slider; in this row they drift to a different offset on every card.
+   Pin them to the same corner on all cards. */
+.af-wl-related ul.products li.product{position:relative!important}
+.af-wl-related li.product .sale-ribbon,
+.af-wl-related li.product [class*="sale-ribbon"],
+.af-wl-related li.product .onsale{position:absolute!important;top:0!important;left:0!important;margin:0!important;z-index:3!important}
+.af-wl-related li.product .wishlist-btn{position:absolute!important;top:10px!important;right:10px!important;z-index:3!important}
+.af-wl-related li.product .product-image,
+.af-wl-related li.product .image-wrapper{position:relative!important;overflow:hidden!important}
 .af-wl-related ul.products li.product .woocommerce-loop-product__title{min-height:2.9em}
 .af-wl-related ul.products li.product img{width:100%!important;height:auto!important;aspect-ratio:1/1;object-fit:cover!important}
 .af-wl-related ul.products li.product .woocommerce-loop-product__title{font-size:14px!important;line-height:1.4!important;padding:10px 12px 0!important}
@@ -14868,6 +14878,16 @@ add_action('woocommerce_after_cart', function () {
    title line) — anchor the price and the buttons to the bottom so every card
    in the row lines up regardless */
 .af-wl-related ul.products li.product .price{margin-top:auto!important}
+/* the sale ribbon and wishlist heart are positioned by the theme only inside
+   .product-slider; in this row they drift to a different offset on every card.
+   Pin them to the same corner on all cards. */
+.af-wl-related ul.products li.product{position:relative!important}
+.af-wl-related li.product .sale-ribbon,
+.af-wl-related li.product [class*="sale-ribbon"],
+.af-wl-related li.product .onsale{position:absolute!important;top:0!important;left:0!important;margin:0!important;z-index:3!important}
+.af-wl-related li.product .wishlist-btn{position:absolute!important;top:10px!important;right:10px!important;z-index:3!important}
+.af-wl-related li.product .product-image,
+.af-wl-related li.product .image-wrapper{position:relative!important;overflow:hidden!important}
 .af-wl-related ul.products li.product .woocommerce-loop-product__title{min-height:2.9em}
 .af-wl-related li.product .taf-broch--card,.af-wl-related li.product [class*="broch"]{margin-top:0!important}
 .af-wl-related ul.products li.product img{width:100%!important;height:auto!important;aspect-ratio:1/1;object-fit:cover!important}
