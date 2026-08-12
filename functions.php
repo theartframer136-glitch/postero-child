@@ -14620,7 +14620,11 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
 .af-wl-related ul.products{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;margin:0!important;padding:0!important;list-style:none!important}
 .af-wl-related ul.products::before,.af-wl-related ul.products::after{display:none!important}
 .af-wl-related ul.products li.product{width:100%!important;margin:0!important;float:none!important;
-  background:#fff!important;border:1px solid #eee!important;border-radius:12px!important;overflow:hidden!important}
+  background:#fff!important;border:1px solid #eee!important;border-radius:12px!important;overflow:hidden!important;
+  display:flex!important;flex-direction:column!important}
+/* anchor price and buttons to the card bottom so the row aligns (see cart copy) */
+.af-wl-related ul.products li.product .price{margin-top:auto!important}
+.af-wl-related ul.products li.product .woocommerce-loop-product__title{min-height:2.9em}
 .af-wl-related ul.products li.product img{width:100%!important;height:auto!important;aspect-ratio:1/1;object-fit:cover!important}
 .af-wl-related ul.products li.product .woocommerce-loop-product__title{font-size:14px!important;line-height:1.4!important;padding:10px 12px 0!important}
 .af-wl-related ul.products li.product .price{padding:0 12px 12px!important;display:block!important}
