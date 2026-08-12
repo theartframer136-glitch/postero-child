@@ -66,17 +66,20 @@ if ($pg) {
 }
 
 echo "\n-- markup that holds the items --\n";
+// search the DOCUMENT BODY with style/script stripped: the first version
+// matched its own css text inside a <style> block and printed that instead of
+// the markup, which is how the wrong plugin's classes went unnoticed
+$dom = preg_replace('#<(style|script)\b[^>]*>.*?</\1>#is', '', $html);
 $pos = false;
-foreach (array('wishlist_table', 'wishlist-items', 'yith-wcwl', 'tinvwl', 'wishlist') as $marker) {
-    $pos = stripos($html, $marker);
+foreach (array('woosw-item', 'woosw', 'wishlist_table', 'wishlist-items', 'yith-wcwl', 'tinvwl') as $marker) {
+    $pos = stripos($dom, $marker);
     if ($pos !== false) { echo "  found by: {$marker}\n"; break; }
 }
 if ($pos !== false) {
-    // walk back to the nearest table/ul/div opening and print a slice
     $start = max(0, $pos - 600);
-    echo "  " . trim(preg_replace('/\s+/', ' ', mb_strimwidth(substr($html, $start, 3500), 0, 3500))) . "\n";
+    echo "  " . trim(preg_replace('/\s+/', ' ', mb_strimwidth(substr($dom, $start, 3500), 0, 3500))) . "\n";
 } else {
-    echo "  no wishlist markup found at all\n";
+    echo "  no wishlist markup found in the document body\n";
 }
 
 // active wishlist-ish plugins — which plugin owns this page decides the markup

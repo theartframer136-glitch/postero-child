@@ -14534,34 +14534,38 @@ add_action('wp_footer', function () {
 .af-wl-head h1{font-size:30px;margin:0 0 4px;color:#1a1a1a}
 .af-wl-head p{margin:0;color:#6b6b6b;font-size:14px}
 
-/* the plugin's table, read as a list of cards */
+/* the plugin's table, read as a list of cards.
+   The page is rendered by WPC Smart Wishlist ([woosw_list], woosw- classes) —
+   verified from the served page; the .wishlist_table selectors are kept for
+   any template that still uses them. */
+.woosw-list table.woosw-items,
 .wishlist_table{border:0!important;border-collapse:separate!important;border-spacing:0 14px!important;width:100%!important;background:transparent!important}
-.wishlist_table thead{display:none!important}
-.wishlist_table tr{background:#fff!important;box-shadow:0 2px 14px rgba(0,0,0,.07)!important;border-radius:14px!important}
-.wishlist_table td{border:0!important;vertical-align:middle!important;padding:16px 12px!important;background:transparent!important}
-.wishlist_table td:first-child{border-radius:14px 0 0 14px!important}
-.wishlist_table td:last-child{border-radius:0 14px 14px 0!important;text-align:right!important}
-.wishlist_table td.product-thumbnail img{width:88px!important;height:88px!important;object-fit:cover!important;border-radius:10px!important;display:block!important}
-.wishlist_table td.product-name a{color:#1a1a1a!important;font-weight:600!important;font-size:15px!important;line-height:1.45!important;text-decoration:none!important}
-.wishlist_table td.product-name a:hover{color:#8b6a2b!important}
-.wishlist_table td.product-price{color:#1a1a1a!important;font-weight:700!important;white-space:nowrap!important}
+.woosw-items thead{display:none!important}
+.woosw-items tr,.woosw-item{background:#fff!important;box-shadow:0 2px 14px rgba(0,0,0,.07)!important;border-radius:14px!important}
+.woosw-items td,.woosw-item td{border:0!important;vertical-align:middle!important;padding:16px 12px!important;background:transparent!important}
+.woosw-item td:first-child{border-radius:14px 0 0 14px!important}
+.woosw-item td:last-child{border-radius:0 14px 14px 0!important;text-align:right!important}
+.woosw-item--image img,.woosw-item img{width:88px!important;height:88px!important;object-fit:cover!important;border-radius:10px!important;display:block!important}
+.woosw-item--name a,.woosw-item--info a{color:#1a1a1a!important;font-weight:600!important;font-size:15px!important;line-height:1.45!important;text-decoration:none!important}
+.woosw-item--name a:hover{color:#8b6a2b!important}
+.woosw-item--price{color:#1a1a1a!important;font-weight:700!important;white-space:nowrap!important}
 /* the date a piece was saved is noise next to the piece itself */
-.wishlist_table td.wishlist-date,.wishlist_table .dateadded{display:none!important}
+.woosw-item--time,.woosw-item--date{display:none!important}
 
 /* remove ("×") */
-.wishlist_table .product-remove a,.wishlist_table a.remove{
+.woosw-item--remove span,.woosw-item-remove,.woosw-item--remove a{
   width:30px!important;height:30px!important;line-height:28px!important;border-radius:50%!important;
   background:#f4f4f4!important;color:#8a8a8a!important;font-size:17px!important;text-align:center!important;
   display:inline-block!important;transition:background .2s,color .2s!important}
-.wishlist_table .product-remove a:hover,.wishlist_table a.remove:hover{background:#e5c9c9!important;color:#a11!important}
+.woosw-item--remove span:hover,.woosw-item-remove:hover{background:#e5c9c9!important;color:#a11!important}
 
 /* the add-to-cart control: a real button, not a bare emoji.
    Written against every name this control ships under, plus a catch-all for
    any add-to-cart link inside the items table — the first pass bound only to
    .wishlist_table descendants and the live page proved that was not enough. */
-.wishlist_table .product-add-to-cart a,
-.wishlist_table td:last-child a.button,
-.wishlist_table a.add_to_cart_button,
+.woosw-item--add a,
+.woosw-item--actions a.button,
+.woosw-item td a[href*="add-to-cart="],
 body.woocommerce-wishlist a[href*="add-to-cart="],
 .wishlist-items a[href*="add-to-cart="],
 table a[href*="add-to-cart="].af-wl-labelled{
@@ -14569,9 +14573,10 @@ table a[href*="add-to-cart="].af-wl-labelled{
   background:#c9a84c!important;border:0!important;color:#fff!important;font-size:14px!important;font-weight:600!important;
   padding:11px 20px!important;border-radius:6px!important;white-space:nowrap!important;text-decoration:none!important;
   transition:background .2s!important}
-.wishlist_table .product-add-to-cart a:hover,
-.wishlist_table td:last-child a.button:hover{background:#8b6a2b!important}
-.wishlist_table .af-wl-cart-ico{width:17px;height:17px;flex:0 0 auto}
+.woosw-item--add a:hover,
+.woosw-item td a[href*="add-to-cart="]:hover,
+table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
+.af-wl-cart-ico{width:17px;height:17px;flex:0 0 auto}
 
 /* share link row */
 .yith-wcwl-share,.wishlist-title,.wishlist_table+form{max-width:1200px;margin-inline:auto}
@@ -14619,7 +14624,7 @@ table a[href*="add-to-cart="].af-wl-labelled{
     return t.length <= 3;   // '', an emoji, or an icon ligature
   }
   function heading(){
-    var table = document.querySelector('.wishlist_table, .wishlist-items, table.shop_table');
+    var table = document.querySelector('.woosw-items, .woosw-list, .wishlist_table, table.shop_table');
     if (!table || document.querySelector('.af-wl-head')) return;
     var h = document.createElement('div');
     h.className = 'af-wl-head';
@@ -14631,7 +14636,7 @@ table a[href*="add-to-cart="].af-wl-labelled{
     host.insertBefore(h, host.firstChild);
   }
   function run(){
-    document.querySelectorAll('.wishlist_table a[href*="add-to-cart="]').forEach(label);
+    document.querySelectorAll('.woosw-items a[href*="add-to-cart="], .wishlist_table a[href*="add-to-cart="]').forEach(label);
     // the same control wherever the plugin put it, as long as it is wordless
     document.querySelectorAll('a[href*="add-to-cart="]').forEach(function(a){
       if (!a.closest('.af-wl-related') && bare(a)) label(a);
