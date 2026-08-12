@@ -2309,6 +2309,79 @@ add_action('woocommerce_before_shop_loop_item_title', function() {
   echo '<span class="af-pd" data-id="' . $id . '" data-url="' . esc_url($url) . '" data-cart="' . $cart_url . '" data-pct="' . $pct . '" style="display:none"></span>';
 }, 1);
 
+// ─────────────────────────────────────────────────────────────
+// "(N% off)" beside the price, on EVERY card shape.
+// The site renders product cards in at least five different ways — the shop
+// grid, the homepage sliders, Trending Today, the related/wishlist rows and
+// Quick View — and each carries its own price markup. The existing badge
+// injectors only understand <ins>/<del> inside a .price, so the slider and
+// related cards showed a struck price with no percentage next to it: the
+// saving was there and unstated.
+//
+// This is deliberately markup-agnostic. It finds the old price (a <del> or an
+// .old-price), works out the current price from whatever is left in the
+// container, and states the saving. Anything that already shows a percentage
+// in its price row is left alone, so this fills gaps rather than competing.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function () {
+    if (is_admin()) return;
+    ?>
+<script>
+(function(){
+  function num(el){
+    if(!el) return 0;
+    var t = (el.textContent||'').replace(/[^0-9.,]/g,'').replace(/,/g,'');
+    var v = parseFloat(t);
+    return isFinite(v) ? v : 0;
+  }
+  function mark(box){
+    if(!box || box.dataset.afPct) return;
+    box.dataset.afPct = '1';
+    // something already states a percentage here — leave it be
+    if(box.querySelector('.af-pct-off, .af-disc-badge, .discount, .discount-percentage')) return;
+    var was = box.querySelector('del, .old-price');
+    if(!was) return;
+    var oldV = num(was);
+    if(oldV <= 0) return;
+    // the current price: <ins> when the markup has one, otherwise whatever
+    // number is left once the struck price is taken out
+    var ins = box.querySelector('ins, .current-price');
+    var newV;
+    if(ins){ newV = num(ins); }
+    else {
+      var c = box.cloneNode(true);
+      c.querySelectorAll('del, .old-price').forEach(function(x){ x.parentNode.removeChild(x); });
+      newV = num(c);
+    }
+    if(!(newV > 0) || newV >= oldV) return;
+    var pct = Math.round((oldV - newV) / oldV * 100);
+    if(pct < 1) return;
+    var b = document.createElement('span');
+    b.className = 'af-pct-off';
+    b.textContent = '(' + pct + '% off)';
+    box.appendChild(b);
+  }
+  function scan(){
+    document.querySelectorAll('.price, .price-section, .af-mini-price').forEach(mark);
+  }
+  if(document.readyState !== 'loading') scan();
+  else document.addEventListener('DOMContentLoaded', scan);
+  window.addEventListener('load', scan);
+  // cards arrive late from sliders, Quick View and AJAX filters
+  var t = null;
+  try {
+    new MutationObserver(function(){
+      clearTimeout(t); t = setTimeout(scan, 120);
+    }).observe(document.body, { childList:true, subtree:true });
+  } catch(e){}
+})();
+</script>
+<style id="af-pct-off-style">
+.af-pct-off{color:#4caf2f;font-weight:700;font-size:.85em;white-space:nowrap;margin-left:4px;text-decoration:none!important;}
+</style>
+    <?php
+}, 41);
+
 // Discount badge (fires after price, inside the product link — span is OK here)
 add_action('woocommerce_after_shop_loop_item_title', function() {
   $product = af_wc_product();
