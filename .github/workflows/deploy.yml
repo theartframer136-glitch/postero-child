@@ -709,6 +709,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/verify-wishlist-page.php --allow-root 2>&1" \
             || true
 
+          echo "Finding who handles .pf-value (read-only)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-pf-handler.php --allow-root 2>&1" \
+            || true
+
           echo "Verifying the subcategory circles can filter the slider..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

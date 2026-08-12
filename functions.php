@@ -581,8 +581,10 @@ add_action('wp_footer', function() {
     }
     return document.querySelector(GRID_SEL);
   }
+  function dbg(m){ if (window.afdbg) window.afdbg(m); }
   function filterTo(cat, item){
     var box = gridFor(item);
+    dbg('click slug=' + (cat && cat.s) + ' box=' + (box ? (box.id || box.className).toString().slice(0,60) : 'NONE'));
     if (!box || !cat || !cat.s) return false;
     var strip = item.parentElement;
     if (strip) {
@@ -598,15 +600,17 @@ add_action('wp_footer', function() {
       credentials: 'same-origin',
       headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
       body: body.toString()
-    }).then(function(r){ return r.ok ? r.text() : Promise.reject(r.status); })
+    }).then(function(r){ dbg('ajax http=' + r.status); return r.ok ? r.text() : Promise.reject(r.status); })
       .then(function(html){
         box.style.opacity = '';
+        dbg('ajax bytes=' + (html ? html.length : 0));
         if (!html || !html.trim()) { window.location.href = cat.u; return; }
         box.innerHTML = html;
+        dbg('swapped into ' + (box.id || box.className).toString().slice(0,60));
         // let anything that decorates cards (wishlist, quick view, AR) re-run
         document.dispatchEvent(new CustomEvent('af:products-replaced', {detail:{slug: cat.s}}));
       })
-      .catch(function(){ box.style.opacity = ''; window.location.href = cat.u; });
+      .catch(function(err){ dbg('ajax FAILED ' + err); box.style.opacity = ''; window.location.href = cat.u; });
     return true;
   }
   function wire(){
@@ -15466,3 +15470,37 @@ add_action('wp_footer', function () {
 </script>
     <?php
 }, 44);
+
+// ─────────────────────────────────────────────────────────────
+// TEMPORARY, owner-only: visit the homepage with ?af_debug_circles=1 and a
+// small panel reports what a circle click actually does — how many circles
+// were wired, which slug the click resolved, which container was chosen for
+// the swap, and what the ajax answered. Ten days of this regression have been
+// diagnosed from server logs, which cannot see a browser click; this can.
+// Prints nothing for normal visitors.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function () {
+    if (!isset($_GET['af_debug_circles'])) return;
+    ?>
+<style>#af-circdbg{position:fixed;left:10px;bottom:10px;z-index:99999;background:#111;color:#9f9;
+font:12px/1.5 monospace;padding:10px 14px;border-radius:8px;max-width:460px;max-height:45vh;overflow:auto}</style>
+<div id="af-circdbg">circle debug on…</div>
+<script>
+(function(){
+  var box = document.getElementById('af-circdbg');
+  window.afdbg = function(m){ box.innerHTML += '<br>' + m; };
+  window.addEventListener('load', function(){
+    setTimeout(function(){
+      var wired = document.querySelectorAll('[data-af-cat-link]:not([data-af-cat-link=""])').length;
+      var resolvedEmpty = document.querySelectorAll('[data-af-cat-link=""]').length;
+      var pf = document.querySelectorAll('a.pf-value').length;
+      var grids = ['#productGrid','.product-slider','.custom-product-track','ul.products']
+        .map(function(sel){ return sel + ':' + document.querySelectorAll(sel).length; }).join('  ');
+      afdbg('wired:' + wired + '  skipped:' + resolvedEmpty + '  pf-value anchors:' + pf);
+      afdbg('grids ' + grids);
+    }, 1500);
+  });
+})();
+</script>
+    <?php
+}, 9998);
