@@ -14733,7 +14733,13 @@ add_action('woocommerce_after_cart', function () {
 .af-wl-related h2{font-size:24px;margin:0 0 18px;color:#1a1a1a}
 .af-wl-related ul.products{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;margin:0!important;padding:0!important;list-style:none!important}
 .af-wl-related ul.products::before,.af-wl-related ul.products::after{display:none!important}
-.af-wl-related ul.products li.product{width:100%!important;margin:0!important;float:none!important;background:#fff!important;border:1px solid #eee!important;border-radius:12px!important;overflow:hidden!important}
+.af-wl-related ul.products li.product{width:100%!important;margin:0!important;float:none!important;background:#fff!important;border:1px solid #eee!important;border-radius:12px!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
+/* cards hold different amounts of text (some have an art code, some a second
+   title line) — anchor the price and the buttons to the bottom so every card
+   in the row lines up regardless */
+.af-wl-related ul.products li.product .price{margin-top:auto!important}
+.af-wl-related ul.products li.product .woocommerce-loop-product__title{min-height:2.9em}
+.af-wl-related li.product .taf-broch--card,.af-wl-related li.product [class*="broch"]{margin-top:0!important}
 .af-wl-related ul.products li.product img{width:100%!important;height:auto!important;aspect-ratio:1/1;object-fit:cover!important}
 .af-wl-related ul.products li.product .woocommerce-loop-product__title{font-size:14px!important;line-height:1.4!important;padding:10px 12px 0!important}
 .af-wl-related ul.products li.product .price{padding:0 12px 12px!important;display:block!important}
