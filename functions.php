@@ -15119,3 +15119,77 @@ add_action('woocommerce_after_cart_totals', function () {
 </style>
     <?php
 }, 20);
+
+// ─────────────────────────────────────────────────────────────
+// Related-row cards: the room-preview block rendered IN FLOW.
+//
+// The card template ships a second, framed "in the room" preview with an icon
+// strip. Inside .product-slider the theme overlays it on the artwork and shows
+// it on hover; in the related row it fell into normal flow below the image —
+// giant cards, blank gaps where a card has no preview (the owner's recording).
+//
+// Class names for that block vary between card variants, so this does not
+// guess them: any top-level block of the card that comes after the primary
+// image container and itself contains an <img> is the preview, and it gets
+// stacked over the primary image and revealed on hover — the same behaviour
+// the theme intends elsewhere. Title, price, rating and buttons carry no <img>
+// (icons are inline svg), so they can never match.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function () {
+    ?>
+<script>
+(function(){
+  function fixRow(){
+    document.querySelectorAll('.af-wl-related li.product').forEach(function(card){
+      if (card.dataset.afPreviewFixed) return;
+      var img = card.querySelector('img');
+      if (!img) return;
+      // the primary image's top-level container inside the card
+      var top = img;
+      while (top.parentElement && top.parentElement !== card) top = top.parentElement;
+      var moved = false;
+      var n = top.nextElementSibling;
+      while (n) {
+        var next = n.nextElementSibling;
+        if (n.querySelector && n.querySelector('img')) {
+          top.style.setProperty('position', 'relative', 'important');
+          n.style.setProperty('position', 'absolute', 'important');
+          n.style.setProperty('inset', '0', 'important');
+          n.style.setProperty('margin', '0', 'important');
+          n.style.setProperty('opacity', '0', 'important');
+          n.style.setProperty('transition', 'opacity .3s', 'important');
+          n.style.setProperty('z-index', '4', 'important');
+          n.style.setProperty('overflow', 'hidden', 'important');
+          top.appendChild(n);
+          moved = true;
+        }
+        n = next;
+      }
+      if (moved) {
+        card.addEventListener('mouseenter', function(){
+          top.querySelectorAll(':scope > [style*="opacity"]').forEach(function(el){
+            if (el.style.position === 'absolute') el.style.setProperty('opacity', '1', 'important');
+          });
+        });
+        card.addEventListener('mouseleave', function(){
+          top.querySelectorAll(':scope > [style*="opacity"]').forEach(function(el){
+            if (el.style.position === 'absolute') el.style.setProperty('opacity', '0', 'important');
+          });
+        });
+      }
+      card.dataset.afPreviewFixed = '1';
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fixRow);
+  else fixRow();
+  window.addEventListener('load', fixRow);
+  [400, 1200, 2500].forEach(function(d){ setTimeout(fixRow, d); });
+})();
+</script>
+<style id="af-wl-related-stray">
+/* an art-code line printed outside its card is noise between sections; the
+   codes INSIDE cards keep showing */
+.af-wl-related .af-art-code:not(li .af-art-code){display:none!important}
+</style>
+    <?php
+}, 21);
