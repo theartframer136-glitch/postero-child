@@ -14537,6 +14537,132 @@ function af_wl_related_html($markup) {
     return ob_get_clean();
 }
 
+// ─────────────────────────────────────────────────────────────
+// CROSS-SELL ON THIN CATEGORY PAGES
+// A category holding one product renders one card against an acre of empty
+// grid — "Showing the single result" and nothing to look at. The visitor
+// arrived wanting art of that kind, so rather than leaving them to hit Back,
+// show what else the studio has that is close to it.
+//
+// "Close to it" means siblings first: the categories sharing this one's
+// parent, plus whatever else the products already on the page are filed
+// under. Only when that comes up short does it fall back to the shop's
+// popular pieces, so the row is a recommendation before it is filler.
+// ─────────────────────────────────────────────────────────────
+
+/** A full row of cards. Fewer than this on an archive and the page looks broken. */
+function af_xsell_min_cards() {
+    return (int) apply_filters('af_xsell_min_cards', 4);
+}
+
+/** Category slugs that read as "similar" to the archive currently being viewed. */
+function af_xsell_related_slugs($shown_ids) {
+    $slugs = array();
+    $term  = get_queried_object();
+
+    if ($term && !empty($term->term_id) && !empty($term->taxonomy) && $term->taxonomy === 'product_cat') {
+        // Siblings under the same parent. A top-level category has no siblings
+        // worth pairing with, so use its own children instead.
+        $sibs = get_terms(array(
+            'taxonomy'   => 'product_cat',
+            'hide_empty' => true,
+            'parent'     => (int) $term->parent,
+            'exclude'    => array((int) $term->term_id),
+        ));
+        if (is_wp_error($sibs) || !$sibs) {
+            $sibs = get_terms(array('taxonomy' => 'product_cat', 'hide_empty' => true,
+                                    'parent' => (int) $term->term_id));
+        }
+        if (!is_wp_error($sibs)) foreach ($sibs as $s) $slugs[$s->slug] = true;
+    }
+
+    // Whatever the products already on the page are filed under — a lone
+    // penguin poster in a thin category is still the best clue we have.
+    foreach ((array) $shown_ids as $pid) {
+        $terms = get_the_terms($pid, 'product_cat');
+        if (!$terms || is_wp_error($terms)) continue;
+        foreach ($terms as $t) {
+            if ($t->slug === 'uncategorized') continue;
+            if ($term && !empty($term->slug) && $t->slug === $term->slug) continue;
+            $slugs[$t->slug] = true;
+        }
+    }
+    return array_slice(array_keys($slugs), 0, 12);
+}
+
+/**
+ * Print the row. Runs at most once per request — an archive with no products
+ * fires woocommerce_no_products_found, one with a few fires
+ * woocommerce_after_shop_loop, and a theme may well fire both.
+ */
+function af_xsell_render() {
+    static $done = false;
+    if ($done) return;
+    if (!function_exists('wc_get_products') || !function_exists('is_product_category')) return;
+    if (!is_product_category() && !is_product_tag()) return;
+    if (is_paged()) return;                       // page 2+ is not a thin page
+
+    global $wp_query;
+    $shown_ids = array();
+    if (isset($wp_query->posts) && is_array($wp_query->posts)) {
+        foreach ($wp_query->posts as $p) {
+            if (isset($p->ID)) $shown_ids[] = (int) $p->ID;
+        }
+    }
+    if (count($shown_ids) >= af_xsell_min_cards()) return;   // the grid stands on its own
+
+    $slugs = af_xsell_related_slugs($shown_ids);
+    $args  = array('status' => 'publish', 'limit' => 8, 'orderby' => 'popularity',
+                   'visibility' => 'catalog', 'exclude' => $shown_ids);
+    if ($slugs) $args['category'] = $slugs;
+    $picks = wc_get_products($args);
+
+    if (count($picks) < 8) {                      // top up from the whole shop
+        $have = array_merge($shown_ids, wp_list_pluck($picks, 'id'));
+        $more = wc_get_products(array('status' => 'publish', 'limit' => 8 - count($picks),
+                                      'orderby' => 'popularity', 'visibility' => 'catalog',
+                                      'exclude' => $have));
+        $picks = array_merge($picks, $more);
+    }
+    if (!$picks) return;
+    $picks = array_slice($picks, 0, 8);
+    $done  = true;
+
+    echo '<section class="af-xsell"><h2>You may also like</h2>'
+       . '<p class="af-xsell-sub">More from the studio, close to what you were looking at.</p>'
+       . '<ul class="products columns-4">';
+    $keep = isset($GLOBALS['post']) ? $GLOBALS['post'] : null;
+    foreach ($picks as $p) {
+        $po = get_post($p->get_id());
+        if (!$po) continue;
+        $GLOBALS['post'] = $po;
+        setup_postdata($GLOBALS['post']);
+        wc_get_template_part('content', 'product');
+    }
+    $GLOBALS['post'] = $keep;
+    wp_reset_postdata();
+    echo '</ul></section>';
+    ?>
+<style id="af-xsell-style">
+.af-xsell{max-width:1200px;margin:40px auto 56px;padding:0 16px;clear:both}
+.af-xsell h2{font-size:22px;margin:0 0 4px}
+.af-xsell .af-xsell-sub{margin:0 0 18px;font-size:13.5px;opacity:.7}
+.af-xsell ul.products{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;margin:0!important;padding:0!important;list-style:none!important}
+.af-xsell ul.products::before,.af-xsell ul.products::after{display:none!important}
+.af-xsell ul.products li.product{width:100%!important;margin:0!important;float:none!important}
+.af-xsell ul.products li.product img{width:100%!important;height:auto!important;aspect-ratio:1/1;object-fit:cover!important}
+@media (max-width:1024px){.af-xsell ul.products{grid-template-columns:repeat(3,1fr)!important}}
+@media (max-width:760px){.af-xsell ul.products{grid-template-columns:repeat(2,1fr)!important}}
+</style>
+    <?php
+}
+// Three entry points because a thin archive and an empty one fire different
+// hooks, and a theme that renders its own loop may fire neither — the static
+// guard inside means the extra hooks cost nothing when an earlier one lands.
+add_action('woocommerce_after_shop_loop', 'af_xsell_render', 30);
+add_action('woocommerce_no_products_found', 'af_xsell_render', 30);
+add_action('woocommerce_after_main_content', 'af_xsell_render', 30);
+
 // Path 1: the wishlist arrives via a shortcode. Match ANY shortcode whose name
 // mentions the wishlist — the first version accepted only names starting
 // yith_wcwl, and the owner's recording proved the page renders through
