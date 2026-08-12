@@ -5138,6 +5138,35 @@ function af_pricing_config() {
 }
 
 /**
+ * The discount percentage shown against a product's struck-through reference
+ * price. Every product used to sit at the same figure, which reads as a
+ * pricing rule rather than a saving, so each one gets its own percentage
+ * inside the band below.
+ *
+ * Deterministic, not actually random: the value is derived from the product
+ * id, so a product shows the same percentage on every page load and on every
+ * re-run of tools/apply-mrp-markup.php. A genuinely random number would move
+ * the struck price each time the script ran.
+ */
+function af_mrp_discount_pct( $product_id ) {
+    $min = 20;   // gentlest saving shown
+    $max = 45;   // largest saving shown
+    $hash = abs( crc32( 'af-mrp-' . (int) $product_id ) );
+    return $min + ( $hash % ( $max - $min + 1 ) );
+}
+
+/**
+ * What to multiply the selling price by to get that product's reference
+ * price. Derived from the percentage so the badge the theme computes back
+ * out of the two prices lands on exactly af_mrp_discount_pct().
+ */
+function af_mrp_multiplier( $product_id ) {
+    $pct = af_mrp_discount_pct( $product_id );
+    if ( $pct <= 0 || $pct >= 100 ) return 1.0;
+    return 1 / ( 1 - $pct / 100 );
+}
+
+/**
  * Frame types we can currently make. Everything else in af_pricing_config()
  * stays priced and previewable — the selector still shows the full range — but
  * is offered as OUT OF STOCK and cannot be chosen or ordered. Editing this one
@@ -5268,7 +5297,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
     // selector opens on the first one we can actually make.
     $def_frame = af_frame_default();
     ?>
-    <div class="af-opts" id="af-opts" data-base="<?php echo esc_attr($base); ?>" data-config='<?php echo esc_attr(wp_json_encode($cfg)); ?>' data-symbol="<?php echo esc_attr(get_woocommerce_currency_symbol()); ?>">
+    <div class="af-opts" id="af-opts" data-base="<?php echo esc_attr($base); ?>" data-config='<?php echo esc_attr(wp_json_encode($cfg)); ?>' data-symbol="<?php echo esc_attr(get_woocommerce_currency_symbol()); ?>" data-mrp-mult="<?php echo esc_attr(round(af_mrp_multiplier($product->get_id()), 6)); ?>">
       <div class="af-opt-group">
         <label class="af-opt-label" for="af-size-select">Size <span class="af-opt-sub">(height × width)</span></label>
         <div class="af-size-row">
@@ -11077,19 +11106,20 @@ add_action('wp_footer', function() {
   function refreshExtras(){
     var sz = (opts.querySelector('input[name="af_size"]') || {}).value;
     if (hintEl) hintEl.textContent = (cfg.hints && cfg.hints[sz]) ? '📐 ' + cfg.hints[sz] : '';
-    // MRP strikethrough (reference list price = +40% of the live price) plus
-    // the matching discount badge, so the product page shows the saving too.
-    // The multiplier matches tools/apply-mrp-markup.php, which writes the same
-    // +40% reference price into every product — the live price recomputes as
-    // the size and frame change, so it has to derive the same figure here.
+    // MRP strikethrough plus the matching discount badge, so the product page
+    // shows the saving too. The multiplier is this product's own — the same
+    // one af_mrp_multiplier() gave tools/apply-mrp-markup.php when it wrote
+    // the card price — because the live price recomputes as the size and frame
+    // change, so the strike-through has to be derived here rather than read.
     var live = document.getElementById('af-live-price'),
         mrp  = document.getElementById('af-live-mrp'),
         disc = document.getElementById('af-live-disc');
     if (live && mrp) {
       var num = parseFloat((live.textContent || '').replace(/[^0-9.]/g, ''));
       var symM = (live.textContent || '').match(/^[^0-9]*/);
+      var mult = parseFloat(opts.dataset.mrpMult) || 1.40;
       if (num) {
-        var mrpVal = num * 1.40;
+        var mrpVal = num * mult;
         mrp.textContent = (symM ? symM[0] : '$') + mrpVal.toFixed(2);
         if (disc) {
           var pct = Math.round((mrpVal - num) / mrpVal * 100);
