@@ -14726,6 +14726,72 @@ add_action('woocommerce_after_cart', function () {
 }, 30);
 
 // ─────────────────────────────────────────────────────────────
+// Cart totals breakdown. "Subtotal $80 / Total $80" tells a buyer nothing and
+// reads like a placeholder — the same two numbers twice, with no working shown.
+// These rows show the arithmetic instead: how many pieces, what they list at
+// before the discount, what that discount is worth, and what is still to be
+// added at checkout.
+//
+// The reference price uses af_mrp_multiplier(), the same per-product figure
+// behind the struck-through price on the card and the product page, so the
+// saving quoted here is the one the shopper was shown on the way in. It is
+// derived from the live line totals rather than stored, because the size and
+// frame engine sets the price at add-to-cart time.
+// ─────────────────────────────────────────────────────────────
+function af_cart_reference_total() {
+    if (!function_exists('WC') || !WC()->cart) return array(0, 0.0, 0.0);
+    $items = 0; $ref = 0.0;
+    foreach (WC()->cart->get_cart() as $item) {
+        if (empty($item['product_id'])) continue;
+        $qty    = isset($item['quantity']) ? (int) $item['quantity'] : 1;
+        $line   = isset($item['line_subtotal']) ? (float) $item['line_subtotal'] : 0.0;
+        $items += $qty;
+        $ref   += $line * af_mrp_multiplier((int) $item['product_id']);
+    }
+    $sub = (float) WC()->cart->get_subtotal();
+    return array($items, round($ref, 2), $sub);
+}
+
+add_action('woocommerce_cart_totals_before_shipping', function () {
+    if (!function_exists('af_mrp_multiplier') || !function_exists('WC') || !WC()->cart) return;
+    list($items, $ref, $sub) = af_cart_reference_total();
+    if ($items < 1) return;
+    $save = $ref - $sub;
+    $pct  = $ref > 0 ? (int) round($save / $ref * 100) : 0;
+    ?>
+  <tr class="af-ct-items">
+    <th><?php echo esc_html($items === 1 ? 'Item' : 'Items'); ?></th>
+    <td data-title="Items"><?php echo esc_html($items); ?> <?php echo esc_html($items === 1 ? 'piece' : 'pieces'); ?></td>
+  </tr>
+    <?php if ($save > 0.01): ?>
+  <tr class="af-ct-was">
+    <th>Price before discount</th>
+    <td data-title="Price before discount"><s><?php echo wp_kses_post(wc_price($ref)); ?></s></td>
+  </tr>
+  <tr class="af-ct-save">
+    <th>You save</th>
+    <td data-title="You save">&minus;<?php echo wp_kses_post(wc_price($save)); ?> <span class="af-ct-pct">(<?php echo esc_html($pct); ?>% off)</span></td>
+  </tr>
+    <?php endif; ?>
+    <?php
+}, 5);
+
+// Below the total: what is NOT yet in that number, said plainly. A buyer who
+// cannot tell whether $80 is the final figure abandons the cart.
+add_action('woocommerce_cart_totals_after_order_total', function () {
+    if (!function_exists('af_shipping_copy')) return;
+    $ship = af_shipping_copy();
+    ?>
+  <tr class="af-ct-note">
+    <td colspan="2">
+      <span>Inclusive of all taxes</span>
+      <span><?php echo esc_html($ship['short']); ?></span>
+    </td>
+  </tr>
+    <?php
+}, 5);
+
+// ─────────────────────────────────────────────────────────────
 // Cart totals box (owner: "give some more"). The box held only Subtotal, the
 // gift-card field and Total. Add the reassurance a buyer looks for at exactly
 // this moment — shipping terms, secure checkout, a human to call — using the
@@ -14762,6 +14828,16 @@ add_action('woocommerce_after_cart_totals', function () {
 .af-ct-row svg{width:18px;height:18px;flex:0 0 auto;margin-top:1px;color:#c9a84c}
 .af-ct-row a{color:#8b6a2b;font-weight:600;text-decoration:none}
 .af-ct-row a:hover{text-decoration:underline}
+/* Breakdown rows. Colours are inherited from the totals box so this reads the
+   same on the dark cart as on a light one; only the saving and the struck
+   reference price are tinted, because those two carry the meaning. */
+.cart_totals .af-ct-items th,.cart_totals .af-ct-was th,.cart_totals .af-ct-save th{font-weight:600;opacity:.85}
+.cart_totals .af-ct-was td s{opacity:.6;text-decoration-thickness:1.5px}
+.cart_totals .af-ct-save th,.cart_totals .af-ct-save td{color:#4caf2f!important}
+.cart_totals .af-ct-save td .amount{color:#4caf2f!important}
+.cart_totals .af-ct-pct{font-weight:700}
+.cart_totals .af-ct-note td{padding-top:4px!important;border-top:0!important}
+.cart_totals .af-ct-note span{display:block;font-size:12px;opacity:.7;line-height:1.5}
 </style>
     <?php
 }, 20);
