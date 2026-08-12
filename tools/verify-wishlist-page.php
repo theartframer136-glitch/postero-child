@@ -14,7 +14,15 @@ if (!defined('ABSPATH')) { fwrite(STDERR, "Run via wp eval-file\n"); exit(1); }
 
 echo "=== VERIFY WISHLIST PAGE ===\n";
 
-$url = home_url('/wishlist/');
+// The owner's recording is of a shared-link view (/wishlist/<token>/), which
+// renders with items in it even for an anonymous fetch — exactly what the
+// styling has to handle. Use the token from the recording when it still
+// resolves; fall back to the bare page.
+$url = home_url('/wishlist/4TIY7Q/');
+$probe = wp_remote_get($url, array('timeout' => 45, 'sslverify' => false));
+if (is_wp_error($probe) || (int) wp_remote_retrieve_response_code($probe) >= 400) {
+    $url = home_url('/wishlist/');
+}
 $res = wp_remote_get(add_query_arg('afverify', time(), $url),
     array('timeout' => 60, 'sslverify' => false, 'headers' => array('User-Agent' => 'Mozilla/5.0 AF-Verify')));
 if (is_wp_error($res)) { echo "  FETCH FAILED: " . $res->get_error_message() . "\n=== DONE ===\n"; return; }
@@ -41,4 +49,40 @@ if (preg_match('#<a[^>]*add-to-cart=\d+[^>]*>(.{0,80}?)</a>#s', $html, $m)) {
 }
 
 printf("\n=== %s ===\n", $fail ? "{$fail} CHECK(S) FAILED" : 'ALL CHECKS PASSED');
+
+// ── the markup that actually renders the saved items ──
+// The styling passed its marker checks while the owner's recording showed the
+// page unchanged, which means the selectors were written for markup this
+// plugin does not produce. Print the real thing — the table/list that holds
+// the items, plus the shortcode stored in the page — so the CSS can be aimed
+// at what exists instead of at an assumption. Also fetch a shared-link view:
+// it renders through a different code path than /wishlist/.
+echo "\n-- stored page content (shortcode) --\n";
+$pg = get_page_by_path('wishlist');
+if ($pg) {
+    echo "  page #{$pg->ID}: " . trim(mb_strimwidth(preg_replace('/\s+/', ' ', $pg->post_content), 0, 400, '…')) . "\n";
+} else {
+    echo "  no page with slug 'wishlist'\n";
+}
+
+echo "\n-- markup that holds the items --\n";
+$pos = false;
+foreach (array('wishlist_table', 'wishlist-items', 'yith-wcwl', 'tinvwl', 'wishlist') as $marker) {
+    $pos = stripos($html, $marker);
+    if ($pos !== false) { echo "  found by: {$marker}\n"; break; }
+}
+if ($pos !== false) {
+    // walk back to the nearest table/ul/div opening and print a slice
+    $start = max(0, $pos - 600);
+    echo "  " . trim(preg_replace('/\s+/', ' ', mb_strimwidth(substr($html, $start, 3500), 0, 3500))) . "\n";
+} else {
+    echo "  no wishlist markup found at all\n";
+}
+
+// active wishlist-ish plugins — which plugin owns this page decides the markup
+echo "\n-- active wishlist plugins --\n";
+foreach ((array) get_option('active_plugins', array()) as $p) {
+    if (preg_match('#wishlist|wcwl|tinv#i', $p)) echo "  {$p}\n";
+}
+
 echo "=== DONE ===\n";

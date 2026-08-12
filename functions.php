@@ -14452,22 +14452,12 @@ function af_is_wishlist_page() {
     return $path !== '' && strpos($path, 'wishlist') === 0;
 }
 
-/**
- * Append "You may also like" underneath the wishlist table.
- *
- * The saved product ids are read out of the shortcode's own output rather than
- * asked of the plugin: they are already in the markup as add-to-cart links, and
- * reading them there works no matter which wishlist (session, saved, shared by
- * link) the visitor is looking at.
- */
-add_filter('do_shortcode_tag', function ($output, $tag) {
-    if (is_admin() || strpos((string) $tag, 'yith_wcwl') !== 0) return $output;
-    if (!is_string($output) || strpos($output, 'wishlist') === false) return $output;
-    if (!function_exists('wc_get_products')) return $output;
+function af_wl_related_html($markup) {
+    if (!function_exists('wc_get_products')) return '';
 
     $ids = array();
-    if (preg_match_all('/add-to-cart=(\d+)/', $output, $m)) $ids = array_map('intval', $m[1]);
-    if (preg_match_all('/data-product-id=["\'](\d+)["\']/', $output, $m2)) {
+    if (preg_match_all('/add-to-cart=(\d+)/', $markup, $m)) $ids = array_map('intval', $m[1]);
+    if (preg_match_all('/data-product-id=["\'](\d+)["\']/', $markup, $m2)) {
         $ids = array_merge($ids, array_map('intval', $m2[1]));
     }
     $ids = array_values(array_unique(array_filter($ids)));
@@ -14494,7 +14484,7 @@ add_filter('do_shortcode_tag', function ($output, $tag) {
                                       'exclude' => array_merge($ids, wp_list_pluck($picks, 'id'))));
         $picks = array_merge($picks, $more);
     }
-    if (!$picks) return $output;
+    if (!$picks) return '';
     $picks = array_slice($picks, 0, 8);
 
     ob_start();
@@ -14511,8 +14501,30 @@ add_filter('do_shortcode_tag', function ($output, $tag) {
     $GLOBALS['post'] = $keep;
     wp_reset_postdata();
     echo '</ul></section>';
-    return $output . ob_get_clean();
+    return ob_get_clean();
+}
+
+// Path 1: the wishlist arrives via a shortcode. Match ANY shortcode whose name
+// mentions the wishlist — the first version accepted only names starting
+// yith_wcwl, and the owner's recording proved the page renders through
+// something else entirely.
+add_filter('do_shortcode_tag', function ($output, $tag) {
+    if (is_admin() || stripos((string) $tag, 'wishlist') === false && strpos((string) $tag, 'wcwl') === false && strpos((string) $tag, 'tinvwl') === false) return $output;
+    if (!is_string($output) || $output === '' || strpos($output, 'af-wl-related') !== false) return $output;
+    if (!af_is_wishlist_page()) return $output;
+    $extra = af_wl_related_html($output);
+    return $extra === '' ? $output : $output . $extra;
 }, 20, 2);
+
+// Path 2: whatever rendered the items, they end up in the page content. After
+// the shortcodes have run (priority 99), append the row if path 1 did not.
+add_filter('the_content', function ($content) {
+    if (is_admin() || !is_string($content)) return $content;
+    if (!af_is_wishlist_page() || !in_the_loop() || !is_main_query()) return $content;
+    if (strpos($content, 'af-wl-related') !== false) return $content;
+    $extra = af_wl_related_html($content);
+    return $extra === '' ? $content : $content . $extra;
+}, 99);
 
 add_action('wp_footer', function () {
     if (!af_is_wishlist_page()) return;
@@ -14543,10 +14555,16 @@ add_action('wp_footer', function () {
   display:inline-block!important;transition:background .2s,color .2s!important}
 .wishlist_table .product-remove a:hover,.wishlist_table a.remove:hover{background:#e5c9c9!important;color:#a11!important}
 
-/* the add-to-cart control: a real button, not a bare emoji */
+/* the add-to-cart control: a real button, not a bare emoji.
+   Written against every name this control ships under, plus a catch-all for
+   any add-to-cart link inside the items table — the first pass bound only to
+   .wishlist_table descendants and the live page proved that was not enough. */
 .wishlist_table .product-add-to-cart a,
 .wishlist_table td:last-child a.button,
-.wishlist_table a.add_to_cart_button{
+.wishlist_table a.add_to_cart_button,
+body.woocommerce-wishlist a[href*="add-to-cart="],
+.wishlist-items a[href*="add-to-cart="],
+table a[href*="add-to-cart="].af-wl-labelled{
   display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;
   background:#c9a84c!important;border:0!important;color:#fff!important;font-size:14px!important;font-weight:600!important;
   padding:11px 20px!important;border-radius:6px!important;white-space:nowrap!important;text-decoration:none!important;
@@ -14590,11 +14608,18 @@ add_action('wp_footer', function () {
     if (a.dataset.afWlDone) return;
     a.dataset.afWlDone = '1';
     a.classList.add('button');
+    a.classList.add('af-wl-labelled');
     a.innerHTML = CART + '<span>Add to Cart</span>';
     a.setAttribute('aria-label', 'Add to cart');
   }
+  // Only rewrite a link that has no words of its own (the emoji control).
+  // A link that already says something keeps its text.
+  function bare(a){
+    var t = (a.textContent || '').replace(/[\s\u200b]/g, '');
+    return t.length <= 3;   // '', an emoji, or an icon ligature
+  }
   function heading(){
-    var table = document.querySelector('.wishlist_table');
+    var table = document.querySelector('.wishlist_table, .wishlist-items, table.shop_table');
     if (!table || document.querySelector('.af-wl-head')) return;
     var h = document.createElement('div');
     h.className = 'af-wl-head';
@@ -14607,6 +14632,10 @@ add_action('wp_footer', function () {
   }
   function run(){
     document.querySelectorAll('.wishlist_table a[href*="add-to-cart="]').forEach(label);
+    // the same control wherever the plugin put it, as long as it is wordless
+    document.querySelectorAll('a[href*="add-to-cart="]').forEach(function(a){
+      if (!a.closest('.af-wl-related') && bare(a)) label(a);
+    });
     heading();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
