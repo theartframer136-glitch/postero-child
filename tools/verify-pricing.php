@@ -142,4 +142,45 @@ if ($aap && !is_wp_error($aap)) {
     af_prv('All Art Prints category exists', false, $fail, 'slug all-art-prints not found');
 }
 
+// ── the struck-through reference price must survive the whole deploy ──
+// It did not, for three runs: apply-mrp-markup.php wrote regular/sale early,
+// then reprice-from-card.php cleared the sale price 400 lines later and every
+// card went back to "$80.00  $80.00  (0% off)". Both steps reported success,
+// because both did what they were written to do. Nothing checked the END
+// STATE, so nothing caught it. This does — and it runs after both of them.
+$checked = $flat = 0;
+$samples = array();
+foreach (wc_get_products(array('status'=>'publish','limit'=>-1,'return'=>'ids')) as $mid) {
+    $mp = wc_get_product($mid);
+    if (!$mp || !af_pricing_applies($mp) || $mp->is_type('variable')) continue;
+    $sell = (float) $mp->get_price();
+    if ($sell <= 0) continue;
+    $reg  = (float) $mp->get_regular_price();
+    $checked++;
+    if ($reg <= $sell + 0.005) {
+        $flat++;
+        if (count($samples) < 5) {
+            $samples[] = sprintf('#%d regular %.2f / sells %.2f', $mid, $reg, $sell);
+        }
+    }
+}
+af_prv('every product keeps a struck-through reference price', $flat === 0, $fail,
+       "{$flat} flat of {$checked} checked" . ( $samples ? '  e.g. ' . implode('; ', $samples) : '' ));
+
+// and it has to reach the markup, not just the database
+$html_pid = 0;
+foreach (wc_get_products(array('status'=>'publish','limit'=>12,'return'=>'ids')) as $cand) {
+    $cp = wc_get_product($cand);
+    if ($cp && af_pricing_applies($cp) && !$cp->is_type('variable') && (float) $cp->get_price() > 0) {
+        $html_pid = $cand; break;
+    }
+}
+if ($html_pid) {
+    $hp   = wc_get_product($html_pid);
+    $html = preg_replace('/\s+/', ' ', wp_strip_all_tags( str_replace('</del>', '</del> ', $hp->get_price_html()) ));
+    af_prv('the price markup carries both numbers',
+           strpos($hp->get_price_html(), '<del') !== false, $fail,
+           "#{$html_pid} renders: {$html}");
+}
+
 echo "\n=== RESULT: " . ($fail ? "{$fail} PROBLEM(S)" : "ALL CHECKS PASSED") . " ===\n";
