@@ -2445,12 +2445,32 @@ body.post-type-archive-product ul.products li.product{
 }
 /* Uniform image height (nested product-block layout doesn't get the JS box) */
 body.tax-product_cat ul.products li.product .product-block .product-transition,
-body.tax-product_cat ul.products li.product a.woocommerce-loop-product__link,
-body.post-type-archive-product ul.products li.product .product-block .product-transition,
-body.post-type-archive-product ul.products li.product a.woocommerce-loop-product__link{
+body.post-type-archive-product ul.products li.product .product-block .product-transition{
   position:relative !important;display:block !important;width:100% !important;
   height:300px !important;max-height:300px !important;overflow:hidden !important;
   background:#f5f2ed !important;flex-shrink:0 !important;
+}
+/* The loop link is EMPTY in this theme's card — it is the clickable layer that
+   belongs OVER the artwork, not a block beneath it. It used to be pinned to
+   height:300px by the rule above, which put a second empty 300px band between
+   the picture and the title on every card. Overlay it instead: same click
+   target, no height of its own. */
+body.tax-product_cat ul.products li.product a.woocommerce-loop-product__link,
+body.post-type-archive-product ul.products li.product a.woocommerce-loop-product__link{
+  position:absolute !important;inset:0 !important;display:block !important;
+  width:100% !important;height:100% !important;max-height:none !important;
+  margin:0 !important;padding:0 !important;background:transparent !important;
+  z-index:2 !important;
+}
+/* …and the action buttons sit ABOVE that overlay. A positioned element paints
+   over static siblings whatever the source order, so without this the overlay
+   would swallow every click on Add to cart, wishlist and Quick view — trading
+   a layout bug for a broken card. */
+body.tax-product_cat ul.products li.product .product-transition .group-action,
+body.post-type-archive-product ul.products li.product .product-transition .group-action,
+body.tax-product_cat ul.products li.product .product-transition .onsale,
+body.post-type-archive-product ul.products li.product .product-transition .onsale{
+  position:relative !important;z-index:3 !important;
 }
 body.tax-product_cat ul.products li.product .product-transition img,
 body.tax-product_cat ul.products li.product a.woocommerce-loop-product__link img,
@@ -2459,8 +2479,7 @@ body.post-type-archive-product ul.products li.product a.woocommerce-loop-product
   width:100% !important;height:100% !important;object-fit:cover !important;display:block !important;
 }
 @media(max-width:520px){
-  body.tax-product_cat ul.products li.product .product-transition,
-  body.tax-product_cat ul.products li.product a.woocommerce-loop-product__link{height:260px !important;max-height:260px !important;}
+  body.tax-product_cat ul.products li.product .product-transition{height:260px !important;max-height:260px !important;}
 }
 /* Hover overlay button must not clip ("SELECT OPTI…") */
 body.tax-product_cat ul.products li.product .button,
