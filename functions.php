@@ -11077,8 +11077,11 @@ add_action('wp_footer', function() {
   function refreshExtras(){
     var sz = (opts.querySelector('input[name="af_size"]') || {}).value;
     if (hintEl) hintEl.textContent = (cfg.hints && cfg.hints[sz]) ? '📐 ' + cfg.hints[sz] : '';
-    // MRP strikethrough (reference list price = +25% of the live price) plus
+    // MRP strikethrough (reference list price = +40% of the live price) plus
     // the matching discount badge, so the product page shows the saving too.
+    // The multiplier matches tools/apply-mrp-markup.php, which writes the same
+    // +40% reference price into every product — the live price recomputes as
+    // the size and frame change, so it has to derive the same figure here.
     var live = document.getElementById('af-live-price'),
         mrp  = document.getElementById('af-live-mrp'),
         disc = document.getElementById('af-live-disc');
@@ -11086,7 +11089,7 @@ add_action('wp_footer', function() {
       var num = parseFloat((live.textContent || '').replace(/[^0-9.]/g, ''));
       var symM = (live.textContent || '').match(/^[^0-9]*/);
       if (num) {
-        var mrpVal = num * 1.25;
+        var mrpVal = num * 1.40;
         mrp.textContent = (symM ? symM[0] : '$') + mrpVal.toFixed(2);
         if (disc) {
           var pct = Math.round((mrpVal - num) / mrpVal * 100);
