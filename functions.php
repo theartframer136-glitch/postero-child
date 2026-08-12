@@ -15235,23 +15235,131 @@ function af_sidebar_cat_terms() {
     return $map;
 }
 
+/**
+ * The nine parents plus their DIRECT children, in display order.
+ *
+ * Direct children only, on purpose. Going deeper would drag the whole tree
+ * back in — art-accessories → frame-sizes → "2x3 ft", "4x6 ft" and the rest
+ * are grandchildren, and those are attribute values wearing category
+ * costumes. One level down is the shop's structure; two is its plumbing.
+ */
+function af_sidebar_cat_tree_ids() {
+    $ids = array();
+    foreach (array_keys(af_sidebar_cat_terms()) as $parent_id) {
+        $ids[] = (int) $parent_id;
+        $kids = get_terms(array(
+            'taxonomy'   => 'product_cat',
+            'parent'     => (int) $parent_id,
+            'hide_empty' => false,
+            'orderby'    => 'name',
+            'order'      => 'ASC',
+            'fields'     => 'ids',
+        ));
+        if (!is_wp_error($kids)) foreach ($kids as $k) $ids[] = (int) $k;
+    }
+    return array_values(array_unique($ids));
+}
+
 // The widget builds its list through wp_list_categories; include only these
 // terms, in this order. orderby=include is what keeps the header's order
-// rather than falling back to alphabetical.
+// rather than falling back to alphabetical, and hierarchical nests the
+// children under the parent they belong to.
 add_filter('woocommerce_product_categories_widget_args', function ($args) {
-    $terms = af_sidebar_cat_terms();
-    if (!$terms) return $args;                     // resolved nothing — leave the widget alone
-    $args['include']      = implode(',', array_keys($terms));
+    $ids = af_sidebar_cat_tree_ids();
+    if (!$ids) return $args;                       // resolved nothing — leave the widget alone
+    $args['include']      = implode(',', $ids);
     $args['orderby']      = 'include';
-    $args['hierarchical'] = 0;                     // the nine are the whole list, no branches
-    $args['depth']        = 1;
+    $args['hierarchical'] = 1;
+    $args['depth']        = 2;                     // parents and their children, no deeper
     $args['hide_empty']   = 0;                     // several are empty; the cross-sell row covers that
     return $args;
 }, 20);
 
-// Use the header's wording where the term's own name differs.
-add_filter('list_cats', function ($name, $category = null) {
+// Use the header's wording where the term's own name differs. WooCommerce's
+// widget renders through its own walker, which fires list_product_cats and
+// never list_cats — filtering only the latter is why "Home Decor Space" was
+// still coming out as the term's own "Home Decor By Space". Both are hooked
+// so it does not matter which walker is in play.
+function af_sidebar_cat_label($name, $category = null) {
     if (!$category || !is_object($category) || empty($category->term_id)) return $name;
     $terms = af_sidebar_cat_terms();
     return isset($terms[(int) $category->term_id]) ? $terms[(int) $category->term_id] : $name;
-}, 20, 2);
+}
+add_filter('list_cats', 'af_sidebar_cat_label', 20, 2);
+add_filter('list_product_cats', 'af_sidebar_cat_label', 20, 2);
+
+// Subcategories arrive collapsed behind a "+", the way the widget behaved
+// before the list was filtered. Thirty-eight rows open at once is a wall;
+// nine with a "+" against the six that have children is a menu.
+//
+// The branch you are standing in opens itself, so landing on Pichwai Art
+// does not leave you hunting for where you are.
+add_action('wp_footer', function () {
+    if (is_admin()) return;
+    ?>
+<script>
+(function(){
+  // A theme-supplied expander, if there is one — we are not adding a second.
+  function existingToggle(li){
+    var kids = li.children;
+    for (var i=0;i<kids.length;i++){
+      var el = kids[i];
+      if (el.tagName === 'A' || el.tagName === 'UL') continue;
+      var txt = (el.textContent||'').trim();
+      if (/^[+\-−–]$/.test(txt) || /toggle|opener|expand|plus/i.test(el.className||'')) return el;
+    }
+    return null;
+  }
+  function setup(){
+    document.querySelectorAll('ul.product-categories li').forEach(function(li){
+      if (li.dataset.afSub) return;
+      var kids = li.querySelector(':scope > ul.children');
+      if (!kids) return;
+      li.dataset.afSub = '1';
+      li.classList.add('af-subcat-parent');
+      if (existingToggle(li)) return;              // the theme already does this
+
+      // open if you are inside this branch, closed otherwise
+      var here = /current-cat(?!-)/.test(li.className) ||
+                 li.querySelector('.current-cat') !== null;
+      if (!here) li.classList.add('af-subcat-closed');
+
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'af-subcat-toggle';
+      b.setAttribute('aria-expanded', here ? 'true' : 'false');
+      b.setAttribute('aria-label', 'Show subcategories');
+      b.textContent = here ? '−' : '+';
+      b.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var closed = li.classList.toggle('af-subcat-closed');
+        b.textContent = closed ? '+' : '−';
+        b.setAttribute('aria-expanded', closed ? 'false' : 'true');
+      });
+      li.insertBefore(b, li.firstChild);
+    });
+  }
+  if (document.readyState !== 'loading') setup();
+  else document.addEventListener('DOMContentLoaded', setup);
+  window.addEventListener('load', setup);
+  var t = null;
+  try {
+    new MutationObserver(function(){ clearTimeout(t); t = setTimeout(setup, 120); })
+      .observe(document.body, { childList:true, subtree:true });
+  } catch(e){}
+})();
+</script>
+<style id="af-subcat-toggle-style">
+/* Colour is inherited, so this reads the same on the dark sidebar as a light
+   one — only the box and the collapse are stated here. */
+.af-subcat-parent{position:relative;}
+.af-subcat-toggle{position:absolute;top:4px;right:0;width:26px;height:26px;padding:0;
+  display:flex;align-items:center;justify-content:center;border:0;background:transparent;
+  color:inherit;font-size:16px;font-weight:700;line-height:1;cursor:pointer;opacity:.55;
+  transition:opacity .15s;}
+.af-subcat-toggle:hover{opacity:1;}
+.af-subcat-parent > a{padding-right:30px !important;}
+.af-subcat-closed > ul.children{display:none !important;}
+</style>
+    <?php
+}, 43);
