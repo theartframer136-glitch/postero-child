@@ -14656,3 +14656,38 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
 </script>
     <?php
 }, 20);
+
+// ─────────────────────────────────────────────────────────────
+// "You may also like" on the CART page too (owner request, video
+// 2026-08-12). Same row the wishlist got, built from the categories of what
+// is in the cart. WooCommerce's native cross-sells slot would cover this only
+// if every product had cross-sells picked by hand; none do.
+// ─────────────────────────────────────────────────────────────
+add_action('woocommerce_after_cart', function () {
+    if (!function_exists('WC') || !WC()->cart || WC()->cart->is_empty()) return;
+    $ids = array();
+    foreach (WC()->cart->get_cart() as $item) {
+        if (!empty($item['product_id'])) $ids[] = (int) $item['product_id'];
+    }
+    if (!$ids) return;
+    // af_wl_related_html() reads ids out of markup; feed it the cart's ids in
+    // the same shape rather than duplicating its category logic
+    $html = af_wl_related_html(implode(' ', array_map(function ($id) {
+        return 'add-to-cart=' . $id;
+    }, array_unique($ids))));
+    if ($html === '') return;
+    // the wishlist's row styling, printed once here since the wishlist-page
+    // footer block does not run on the cart
+    echo '<style id="af-cart-related-style">
+.af-wl-related{max-width:1200px;margin:44px auto 56px;padding:0 16px}
+.af-wl-related h2{font-size:24px;margin:0 0 18px;color:#1a1a1a}
+.af-wl-related ul.products{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;margin:0!important;padding:0!important;list-style:none!important}
+.af-wl-related ul.products::before,.af-wl-related ul.products::after{display:none!important}
+.af-wl-related ul.products li.product{width:100%!important;margin:0!important;float:none!important;background:#fff!important;border:1px solid #eee!important;border-radius:12px!important;overflow:hidden!important}
+.af-wl-related ul.products li.product img{width:100%!important;height:auto!important;aspect-ratio:1/1;object-fit:cover!important}
+.af-wl-related ul.products li.product .woocommerce-loop-product__title{font-size:14px!important;line-height:1.4!important;padding:10px 12px 0!important}
+.af-wl-related ul.products li.product .price{padding:0 12px 12px!important;display:block!important}
+@media (max-width:900px){.af-wl-related ul.products{grid-template-columns:repeat(2,1fr)!important}}
+</style>';
+    echo $html;
+}, 30);
