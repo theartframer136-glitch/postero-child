@@ -14736,6 +14736,21 @@ table a[href*="add-to-cart="].af-wl-labelled{
 .woosw-item td a[href*="add-to-cart="]:hover,
 table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
 .af-wl-cart-ico{width:17px;height:17px;flex:0 0 auto}
+/* The theme ships this control as a slide-in-on-hover button: parked off the
+   card's right edge, translated in when a product card is hovered. Inside the
+   wishlist table nothing hovers it, so all that showed was the sliver poking
+   past the card. Park it in the row like a normal button. */
+.woosw-item .opal-add-to-cart-button,
+.woosw-item p.add_to_cart_inline,
+.woosw-item--atc,
+.woosw-item--atc *{position:static!important;transform:none!important;opacity:1!important;
+  visibility:visible!important;margin:0!important;right:auto!important;left:auto!important}
+.woosw-item p.add_to_cart_inline{display:inline-block!important;padding:0!important}
+.woosw-item--actions{min-width:200px!important;padding-right:18px!important;text-align:right!important}
+/* an art-code placeholder escapes its card on this page — a bare
+   "ART CODE: …" line floating between sections is noise, hide it */
+.woosw-list .af-art-code,.woosw-list ~ .af-art-code,
+.entry-content > .af-art-code,.cart_totals .af-art-code{display:none!important}
 
 /* share link row */
 .yith-wcwl-share,.wishlist-title,.wishlist_table+form{max-width:1200px;margin-inline:auto}
