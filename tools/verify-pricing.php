@@ -119,8 +119,16 @@ if ($pid) {
         $r2 = af_prv_get(get_permalink($pid));
         if (!is_wp_error($r2)) {
             $b2 = wp_remote_retrieve_body($r2);
-            af_prv('options panel opens on the titled size',
-                   strpos($b2, 'af-chip-opt active" data-type="size" data-val="' . $plabel . '"') !== false, $fail, $plabel);
+            // The size picker is a <select> now, not a grid of chips, and only
+            // the sizes we still offer are in it — so the panel opens on the
+            // product's titled size when that size is offered, and on the
+            // first offered size when it is not. af_size_default() is the same
+            // function the panel itself renders from, which is the point: this
+            // asserts the page agrees with it, not that both hold one guess.
+            $want = function_exists('af_size_default') ? af_size_default($pp) : $plabel;
+            $found = strpos($b2, 'value="' . esc_attr($want) . '" selected') !== false;
+            af_prv('size dropdown opens on the size this product sells at', $found, $fail,
+                   $want . ($want === $plabel ? '' : "  (titled {$plabel}, no longer offered)"));
         }
     }
 }
