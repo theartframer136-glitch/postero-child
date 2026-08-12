@@ -2340,74 +2340,106 @@ add_action('woocommerce_before_shop_loop_item_title', function() {
 }, 1);
 
 // ─────────────────────────────────────────────────────────────
-// "(N% off)" beside the price, on EVERY card shape.
+// ONE PRICE ROW EVERYWHERE: what you pay, then what it was, then the saving.
+//
+//     $80.00  $121.21  (34% off)
+//
 // The site renders product cards in at least five different ways — the shop
 // grid, the homepage sliders, Trending Today, the related/wishlist rows and
-// Quick View — and each carries its own price markup. The existing badge
-// injectors only understand <ins>/<del> inside a .price, so the slider and
-// related cards showed a struck price with no percentage next to it: the
-// saving was there and unstated.
+// Quick View — and each carries its own price markup. Some put the struck
+// price first, some omit the percentage entirely, so the same product read
+// differently depending on where you met it. The price a customer pays
+// should lead every time.
 //
-// This is deliberately markup-agnostic. It finds the old price (a <del> or an
-// .old-price), works out the current price from whatever is left in the
-// container, and states the saving. Anything that already shows a percentage
-// in its price row is left alone, so this fills gaps rather than competing.
+// Rows are found by looking for the struck price itself — a <del> or an
+// .old-price — and taking its parent, rather than by guessing at class names
+// that differ per card. The current price is whatever is left in the row; if
+// it is a bare text node with no element around it, one is added, because
+// CSS cannot reorder what is not an element.
+//
+// The cart's own "price before discount" line uses <s>, not <del>, so it is
+// untouched — its layout is a table and reordering would wreck it.
 // ─────────────────────────────────────────────────────────────
 add_action('wp_footer', function () {
     if (is_admin()) return;
     ?>
 <script>
 (function(){
-  function num(el){
-    if(!el) return 0;
-    var t = (el.textContent||'').replace(/[^0-9.,]/g,'').replace(/,/g,'');
+  function num(t){
+    t = (t || '').replace(/[^0-9.,]/g, '').replace(/,/g, '');
     var v = parseFloat(t);
     return isFinite(v) ? v : 0;
   }
-  function mark(box){
-    if(!box || box.dataset.afPct) return;
-    box.dataset.afPct = '1';
-    // something already states a percentage here — leave it be
-    if(box.querySelector('.af-pct-off, .af-disc-badge, .discount, .discount-percentage')) return;
-    var was = box.querySelector('del, .old-price');
-    if(!was) return;
-    var oldV = num(was);
-    if(oldV <= 0) return;
-    // the current price: <ins> when the markup has one, otherwise whatever
-    // number is left once the struck price is taken out
-    var ins = box.querySelector('ins, .current-price');
-    var newV;
-    if(ins){ newV = num(ins); }
-    else {
-      var c = box.cloneNode(true);
-      c.querySelectorAll('del, .old-price').forEach(function(x){ x.parentNode.removeChild(x); });
-      newV = num(c);
+  function fix(row){
+    if (!row || row.dataset.afPrice) return;
+    row.dataset.afPrice = '1';
+
+    var was = row.querySelector(':scope > del, :scope > .old-price');
+    if (!was) return;
+    var oldV = num(was.textContent);
+    if (oldV <= 0) return;
+
+    // The current price: an <ins> when the markup has one, otherwise the
+    // text left over once the struck price is set aside. Bare text gets
+    // wrapped so it can be ordered and weighted.
+    var now = row.querySelector(':scope > ins, :scope > .current-price, :scope > .af-now');
+    if (!now) {
+      var moved = [], n;
+      for (var i = 0; i < row.childNodes.length; i++) {
+        n = row.childNodes[i];
+        if (n === was || was.contains(n)) continue;
+        if (n.nodeType === 3 && !n.nodeValue.trim()) continue;
+        if (n.nodeType === 1 && n.classList && n.classList.contains('af-pct-off')) continue;
+        moved.push(n);
+      }
+      if (!moved.length) return;
+      now = document.createElement('span');
+      now.className = 'af-now';
+      moved[0].parentNode.insertBefore(now, moved[0]);
+      moved.forEach(function(x){ now.appendChild(x); });
     }
-    if(!(newV > 0) || newV >= oldV) return;
-    var pct = Math.round((oldV - newV) / oldV * 100);
-    if(pct < 1) return;
-    var b = document.createElement('span');
-    b.className = 'af-pct-off';
-    b.textContent = '(' + pct + '% off)';
-    box.appendChild(b);
+    var newV = num(now.textContent);
+    if (!(newV > 0) || newV >= oldV) return;
+
+    row.classList.add('af-price-row');
+
+    // one percentage per row — never a second next to the theme's own
+    if (!row.querySelector('.af-pct-off, .af-disc-badge, .discount, .discount-percentage')) {
+      var b = document.createElement('span');
+      b.className = 'af-pct-off';
+      b.textContent = '(' + Math.round((oldV - newV) / oldV * 100) + '% off)';
+      row.appendChild(b);
+    }
   }
   function scan(){
-    document.querySelectorAll('.price, .price-section, .af-mini-price').forEach(mark);
+    // find the rows by the struck price, not by a class name that differs
+    // between every card variant on the site
+    document.querySelectorAll('del, .old-price').forEach(function(el){
+      if (el.closest('.af-ct-was')) return;         // the cart totals table
+      fix(el.parentElement);
+    });
   }
-  if(document.readyState !== 'loading') scan();
+  if (document.readyState !== 'loading') scan();
   else document.addEventListener('DOMContentLoaded', scan);
   window.addEventListener('load', scan);
-  // cards arrive late from sliders, Quick View and AJAX filters
   var t = null;
   try {
-    new MutationObserver(function(){
-      clearTimeout(t); t = setTimeout(scan, 120);
-    }).observe(document.body, { childList:true, subtree:true });
+    new MutationObserver(function(){ clearTimeout(t); t = setTimeout(scan, 120); })
+      .observe(document.body, { childList:true, subtree:true });
   } catch(e){}
 })();
 </script>
-<style id="af-pct-off-style">
-.af-pct-off{color:#4caf2f;font-weight:700;font-size:.85em;white-space:nowrap;margin-left:4px;text-decoration:none!important;}
+<style id="af-price-row-style">
+/* Order is stated here rather than in the markup, so it holds however each
+   card happens to nest its two prices. */
+.af-price-row{display:inline-flex !important;align-items:baseline;flex-wrap:wrap;gap:6px;}
+.af-price-row > ins,.af-price-row > .af-now,.af-price-row > .current-price{order:1;
+  text-decoration:none !important;font-weight:700;}
+.af-price-row > del,.af-price-row > .old-price{order:2;opacity:.65;font-weight:400;
+  text-decoration:line-through;}
+.af-price-row > .af-pct-off{order:3;}
+.af-pct-off{color:#4caf2f;font-weight:700;font-size:.85em;white-space:nowrap;
+  text-decoration:none !important;}
 </style>
     <?php
 }, 41);
