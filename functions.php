@@ -15193,3 +15193,127 @@ add_action('wp_footer', function () {
 </style>
     <?php
 }, 21);
+
+// ─────────────────────────────────────────────────────────────
+// SIDEBAR CATEGORIES — match the header's category menu
+// The header menu gives each category an icon and a chevron; the sidebar
+// widget was a plain text list with a bare "+" on the branches, so the same
+// nine categories read as two unrelated pieces of furniture. This gives the
+// sidebar the header's shape: icon, label, chevron.
+//
+// Done in the browser rather than in a template because the widget is the
+// theme's, and its markup differs between the shop page and a category page.
+// Icons key off the category SLUG, so renaming a category cannot break them,
+// and the emoji match the ones already used on the About page.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function () {
+    if (is_admin()) return;
+    $icons = array(
+        // slugs the header menu shows, using the About page's emoji
+        'digital-canvas-prints' => '🖼', 'digital-canvas-print' => '🖼',
+        'framed-canvases'       => '🪟',
+        'direct-from-artists'   => '🎨',
+        'art-accessories'       => '🧰',
+        'banners-signage'       => '🏢', 'banners-and-signage' => '🏢',
+        'digital-downloads'     => '⤓',
+        'home-decor-space'      => '🏠', 'home-decor-by-space' => '🏠', 'home-decor' => '🏠',
+        'personalised-prints'   => '📸', 'personalized-prints' => '📸',
+        'gifts'                 => '🎁',
+        // the rest of the sidebar
+        'all-art-prints'        => '🖼',
+        'canvas-prints'         => '🖼',
+        'christian-art'         => '✝',
+        'colouring-posters'     => '🖍', 'coloring-posters' => '🖍',
+        'gallery-prints'        => '🏛',
+        'posters'               => '📜',
+        'wall-art'              => '🖼',
+    );
+    ?>
+<script>
+(function(){
+  var ICONS = <?php echo wp_json_encode($icons); ?>;
+  // a slug we have no icon for still gets one, chosen by what the name says
+  var GUESS = [[/gift/,'🎁'],[/frame/,'🪟'],[/artist/,'🎨'],[/banner|sign/,'🏢'],
+               [/download|digital/,'⤓'],[/decor|home/,'🏠'],[/personal/,'📸'],
+               [/poster/,'📜'],[/gallery/,'🏛'],[/colour|color/,'🖍'],[/christ/,'✝']];
+  function iconFor(a){
+    var slug = '';
+    try {
+      var parts = new URL(a.href, location.origin).pathname.replace(/\/+$/,'').split('/');
+      slug = parts[parts.length-1] || '';
+    } catch(e){}
+    if (ICONS[slug]) return ICONS[slug];
+    var hay = (slug + ' ' + (a.textContent||'')).toLowerCase();
+    for (var i=0;i<GUESS.length;i++) if (GUESS[i][0].test(hay)) return GUESS[i][1];
+    return '🖼';
+  }
+  // the theme's own expander: a non-link, non-list child that is a +/− or is
+  // named like a toggle. Ours replaces it, so it is hidden and proxied.
+  function toggleIn(li){
+    var kids = li.children, t = null;
+    for (var i=0;i<kids.length;i++){
+      var el = kids[i], tag = el.tagName;
+      if (tag === 'A' || tag === 'UL') continue;
+      var txt = (el.textContent||'').trim();
+      if (/^[+\-−–]$/.test(txt) || /toggle|opener|expand|arrow|plus/i.test(el.className||'')) { t = el; break; }
+    }
+    return t;
+  }
+  function dress(){
+    document.querySelectorAll('ul.product-categories > li, .widget_product_categories li.cat-item').forEach(function(li){
+      if (li.dataset.afCatIco) return;
+      var a = li.querySelector(':scope > a');
+      if (!a) return;
+      li.dataset.afCatIco = '1';
+      li.classList.add('af-cat-row');
+
+      var ico = document.createElement('span');
+      ico.className = 'af-cat-ico';
+      ico.textContent = iconFor(a);
+      a.insertBefore(ico, a.firstChild);
+
+      var chev = document.createElement('span');
+      chev.className = 'af-cat-chev';
+      chev.setAttribute('aria-hidden','true');
+      chev.textContent = '›';
+      a.appendChild(chev);
+
+      var t = toggleIn(li);
+      if (t) {
+        t.classList.add('af-cat-oldtoggle');
+        li.classList.add('af-cat-haskids');
+        // the chevron now does what the "+" did
+        chev.addEventListener('click', function(e){
+          e.preventDefault(); e.stopPropagation();
+          chev.classList.toggle('open');
+          t.click();
+        });
+      }
+    });
+  }
+  if (document.readyState !== 'loading') dress();
+  else document.addEventListener('DOMContentLoaded', dress);
+  window.addEventListener('load', dress);
+  var d = null;
+  try {
+    new MutationObserver(function(){ clearTimeout(d); d = setTimeout(dress, 120); })
+      .observe(document.body, { childList:true, subtree:true });
+  } catch(e){}
+})();
+</script>
+<style id="af-cat-menu-style">
+/* Colours are inherited so this reads the same on the dark sidebar as on a
+   light one — only layout and the icon well are stated here. */
+.af-cat-row > a{display:flex !important;align-items:center;gap:10px;}
+.af-cat-ico{flex:0 0 auto;width:22px;height:22px;display:inline-flex;align-items:center;
+  justify-content:center;font-size:12px;line-height:1;border:1px solid currentColor;
+  border-radius:5px;opacity:.75;}
+.af-cat-chev{margin-left:auto;flex:0 0 auto;font-size:17px;line-height:1;opacity:.5;
+  transition:transform .15s,opacity .15s;}
+.af-cat-row > a:hover .af-cat-chev{opacity:.9;transform:translateX(2px);}
+.af-cat-haskids > .af-cat-oldtoggle{display:none !important;}
+.af-cat-chev.open{transform:rotate(90deg);}
+.af-cat-row .count{margin-left:6px;}
+</style>
+    <?php
+}, 42);
