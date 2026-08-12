@@ -41,6 +41,16 @@ function af_allowed_currencies() { return array('USD', 'CAD'); }
 
 function af_currency_symbol_for($code) { return $code === 'CAD' ? 'CA$' : '$'; }
 
+/**
+ * The plain-English name of each currency. "CA$ CAD" is two codes and no
+ * words — it tells a shopper what the symbol is and what the code is, but
+ * never what the money is. The switcher spells it out instead.
+ */
+function af_currency_name_for($code) {
+    $names = array('USD' => 'US Dollar', 'CAD' => 'Canadian Dollar');
+    return isset($names[$code]) ? $names[$code] : $code;
+}
+
 function af_active_currency() {
     static $cur = null;
     if ($cur !== null) return $cur;
@@ -15307,3 +15317,74 @@ function af_sidebar_cat_label($name, $category = null) {
 }
 add_filter('list_cats', 'af_sidebar_cat_label', 20, 2);
 add_filter('list_product_cats', 'af_sidebar_cat_label', 20, 2);
+
+// ─────────────────────────────────────────────────────────────
+// CURRENCY SWITCHER — say what the money is
+// The switcher lists "$ USD" and "CA$ CAD". That is a symbol and a code and
+// no words: it tells you how the price will be punctuated, not which
+// country's dollars you are about to be charged in — which is the one thing
+// a shopper actually needs to know before switching.
+//
+// The list now reads "CA$ CAD — Canadian Dollar". The button keeps the short
+// form, because it sits in a header row that has to stay on one line.
+//
+// Relabelled in the browser: the switcher is a plugin's, and its markup
+// differs between the header dropdown and the <select> it falls back to.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function () {
+    if (is_admin()) return;
+    $names = array();
+    foreach (af_allowed_currencies() as $code) {
+        $names[$code] = array(af_currency_symbol_for($code), af_currency_name_for($code));
+    }
+    ?>
+<script>
+(function(){
+  var CUR = <?php echo wp_json_encode($names); ?>;
+  // "$ USD", "CA$ CAD", "USD", "CA$" — the shapes the plugin prints
+  var RE = /^\s*(?:(CA\$|C\$|US\$|\$)\s*)?(USD|CAD)\s*$/i;
+
+  function label(code, sym){ return sym + ' ' + code + ' — ' + CUR[code][1]; }
+
+  function relabel(el, text){
+    var m = RE.exec(text);
+    if (!m) return false;
+    var code = m[2].toUpperCase();
+    if (!CUR[code]) return false;
+    var sym = m[1] || CUR[code][0];
+    var full = label(code, sym);
+    if (el.tagName === 'OPTION') { el.textContent = full; return true; }
+    // only the dropdown list is spelled out — the trigger stays short so the
+    // header row it lives in keeps to one line
+    var inList = el.closest('ul, ol, [class*="dropdown"], [class*="menu"], [class*="list"]');
+    var isTrigger = el.closest('[aria-haspopup], [class*="current"], [class*="selected"], [class*="toggle"], [class*="active"]');
+    if (!inList || isTrigger) return false;
+    el.textContent = full;
+    return true;
+  }
+
+  function scan(){
+    document.querySelectorAll('option').forEach(function(o){
+      if (o.dataset.afCur) return;
+      if (relabel(o, o.textContent)) o.dataset.afCur = '1';
+    });
+    // leaf elements only, so a wrapper is never rewritten over its own child
+    document.querySelectorAll('a, span, li, button, div').forEach(function(el){
+      if (el.dataset.afCur || el.children.length) return;
+      var t = el.textContent || '';
+      if (t.length > 12) return;                 // cheap reject before the regex
+      if (relabel(el, t)) el.dataset.afCur = '1';
+    });
+  }
+  if (document.readyState !== 'loading') scan();
+  else document.addEventListener('DOMContentLoaded', scan);
+  window.addEventListener('load', scan);
+  var t = null;
+  try {
+    new MutationObserver(function(){ clearTimeout(t); t = setTimeout(scan, 150); })
+      .observe(document.body, { childList:true, subtree:true });
+  } catch(e){}
+})();
+</script>
+    <?php
+}, 44);
