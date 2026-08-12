@@ -15235,23 +15235,55 @@ function af_sidebar_cat_terms() {
     return $map;
 }
 
+/**
+ * The nine parents plus their DIRECT children, in display order.
+ *
+ * Direct children only, on purpose. Going deeper would drag the whole tree
+ * back in — art-accessories → frame-sizes → "2x3 ft", "4x6 ft" and the rest
+ * are grandchildren, and those are attribute values wearing category
+ * costumes. One level down is the shop's structure; two is its plumbing.
+ */
+function af_sidebar_cat_tree_ids() {
+    $ids = array();
+    foreach (array_keys(af_sidebar_cat_terms()) as $parent_id) {
+        $ids[] = (int) $parent_id;
+        $kids = get_terms(array(
+            'taxonomy'   => 'product_cat',
+            'parent'     => (int) $parent_id,
+            'hide_empty' => false,
+            'orderby'    => 'name',
+            'order'      => 'ASC',
+            'fields'     => 'ids',
+        ));
+        if (!is_wp_error($kids)) foreach ($kids as $k) $ids[] = (int) $k;
+    }
+    return array_values(array_unique($ids));
+}
+
 // The widget builds its list through wp_list_categories; include only these
 // terms, in this order. orderby=include is what keeps the header's order
-// rather than falling back to alphabetical.
+// rather than falling back to alphabetical, and hierarchical nests the
+// children under the parent they belong to.
 add_filter('woocommerce_product_categories_widget_args', function ($args) {
-    $terms = af_sidebar_cat_terms();
-    if (!$terms) return $args;                     // resolved nothing — leave the widget alone
-    $args['include']      = implode(',', array_keys($terms));
+    $ids = af_sidebar_cat_tree_ids();
+    if (!$ids) return $args;                       // resolved nothing — leave the widget alone
+    $args['include']      = implode(',', $ids);
     $args['orderby']      = 'include';
-    $args['hierarchical'] = 0;                     // the nine are the whole list, no branches
-    $args['depth']        = 1;
+    $args['hierarchical'] = 1;
+    $args['depth']        = 2;                     // parents and their children, no deeper
     $args['hide_empty']   = 0;                     // several are empty; the cross-sell row covers that
     return $args;
 }, 20);
 
-// Use the header's wording where the term's own name differs.
-add_filter('list_cats', function ($name, $category = null) {
+// Use the header's wording where the term's own name differs. WooCommerce's
+// widget renders through its own walker, which fires list_product_cats and
+// never list_cats — filtering only the latter is why "Home Decor Space" was
+// still coming out as the term's own "Home Decor By Space". Both are hooked
+// so it does not matter which walker is in play.
+function af_sidebar_cat_label($name, $category = null) {
     if (!$category || !is_object($category) || empty($category->term_id)) return $name;
     $terms = af_sidebar_cat_terms();
     return isset($terms[(int) $category->term_id]) ? $terms[(int) $category->term_id] : $name;
-}, 20, 2);
+}
+add_filter('list_cats', 'af_sidebar_cat_label', 20, 2);
+add_filter('list_product_cats', 'af_sidebar_cat_label', 20, 2);
