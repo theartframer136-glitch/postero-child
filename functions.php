@@ -14624,6 +14624,23 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
 .af-wl-related ul.products li.product img{width:100%!important;height:auto!important;aspect-ratio:1/1;object-fit:cover!important}
 .af-wl-related ul.products li.product .woocommerce-loop-product__title{font-size:14px!important;line-height:1.4!important;padding:10px 12px 0!important}
 .af-wl-related ul.products li.product .price{padding:0 12px 12px!important;display:block!important}
+/* the buttons must be the SAME buttons as every other card: gold cart button
+   (#c9a84c, hover #8b6a2b), black quick view, outlined brochure — the row
+   restyled the card but left the default olive button showing */
+.af-wl-related li.product .add-to-cart-btn,
+.af-wl-related li.product a.add_to_cart_button,
+.af-wl-related li.product .add-cart,
+.af-wl-related li.product [class*="add-to-cart"]{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;
+  background:#c9a84c!important;border-color:#c9a84c!important;color:#fff!important;
+  white-space:nowrap!important;transition:background .2s!important}
+.af-wl-related li.product .add-to-cart-btn:hover,
+.af-wl-related li.product a.add_to_cart_button:hover,
+.af-wl-related li.product [class*="add-to-cart"]:hover{background:#8b6a2b!important;border-color:#8b6a2b!important}
+.af-wl-related li.product .taf-broch--card{
+  background:transparent!important;border:1.5px solid #c9a84c!important;color:#8a6d1f!important;
+  opacity:1!important;border-radius:0!important}
+.af-wl-related li.product .taf-broch--card:hover{background:#c9a84c!important;color:#fff!important}
 
 @media (max-width:900px){
   .af-wl-related ul.products{grid-template-columns:repeat(2,1fr)!important}
@@ -14720,6 +14737,23 @@ add_action('woocommerce_after_cart', function () {
 .af-wl-related ul.products li.product img{width:100%!important;height:auto!important;aspect-ratio:1/1;object-fit:cover!important}
 .af-wl-related ul.products li.product .woocommerce-loop-product__title{font-size:14px!important;line-height:1.4!important;padding:10px 12px 0!important}
 .af-wl-related ul.products li.product .price{padding:0 12px 12px!important;display:block!important}
+/* the buttons must be the SAME buttons as every other card: gold cart button
+   (#c9a84c, hover #8b6a2b), black quick view, outlined brochure — the row
+   restyled the card but left the default olive button showing */
+.af-wl-related li.product .add-to-cart-btn,
+.af-wl-related li.product a.add_to_cart_button,
+.af-wl-related li.product .add-cart,
+.af-wl-related li.product [class*="add-to-cart"]{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;
+  background:#c9a84c!important;border-color:#c9a84c!important;color:#fff!important;
+  white-space:nowrap!important;transition:background .2s!important}
+.af-wl-related li.product .add-to-cart-btn:hover,
+.af-wl-related li.product a.add_to_cart_button:hover,
+.af-wl-related li.product [class*="add-to-cart"]:hover{background:#8b6a2b!important;border-color:#8b6a2b!important}
+.af-wl-related li.product .taf-broch--card{
+  background:transparent!important;border:1.5px solid #c9a84c!important;color:#8a6d1f!important;
+  opacity:1!important;border-radius:0!important}
+.af-wl-related li.product .taf-broch--card:hover{background:#c9a84c!important;color:#fff!important}
 @media (max-width:900px){.af-wl-related ul.products{grid-template-columns:repeat(2,1fr)!important}}
 </style>';
     echo $html;
