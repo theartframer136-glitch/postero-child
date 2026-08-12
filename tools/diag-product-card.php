@@ -61,47 +61,29 @@ while ( preg_match( '#<li[^>]*class="[^"]*\bproduct\b[^"]*"[^>]*>#i', $html, $m,
 if ( $card === '' ) { echo "no li.product found in the page\n=== DONE ===\n"; return; }
 
 echo "card length: " . strlen( $card ) . " bytes\n\n";
-echo "top-level blocks inside the card, in document order:\n";
 
-// walk the card's immediate children by tracking tag depth
-$depth = 0; $blocks = array(); $cur = null;
-$n = strlen( $card ); $i = 0;
-while ( $i < $n ) {
-    if ( $card[ $i ] === '<' && preg_match( '#^</?([a-z0-9]+)#i', substr( $card, $i, 20 ), $tm ) ) {
-        $tag     = strtolower( $tm[1] );
-        $closing = $card[ $i + 1 ] === '/';
-        $void    = in_array( $tag, array( 'img', 'br', 'hr', 'input', 'source', 'path', 'use', 'meta' ), true );
-        $end     = strpos( $card, '>', $i );
-        if ( $end === false ) break;
-        $selfclose = $card[ $end - 1 ] === '/';
-
-        if ( ! $closing && ! $void && ! $selfclose ) {
-            $depth++;
-            if ( $depth === 2 && $cur === null ) {
-                $cur = array( 'tag' => $tag, 'open' => substr( $card, $i, min( 160, $end - $i + 1 ) ), 'start' => $i );
-            }
-        } elseif ( $closing ) {
-            $depth--;
-            if ( $depth === 1 && $cur !== null ) {
-                $cur['html'] = substr( $card, $cur['start'], $end + 1 - $cur['start'] );
-                $blocks[] = $cur; $cur = null;
-            }
-        }
-        $i = $end + 1;
-        continue;
+// The first pass printed only the card's top-level blocks and found exactly
+// one — a single .product-block wrapping everything — so the blank band is
+// somewhere inside it and one level of structure cannot show where. The card
+// is small enough to print outright, which ends the guessing: the markup is
+// the answer, not a summary of it.
+$out = preg_replace( '/>\s+</', '><', $card );      // drop inter-tag whitespace
+$out = preg_replace( '/\s+/', ' ', $out );          // collapse the rest
+// one tag per line, indented by depth, so the nesting is readable
+$depth = 0; $lines = array();
+foreach ( preg_split( '/(?=<)/', $out ) as $chunk ) {
+    if ( $chunk === '' ) continue;
+    $closing = strpos( $chunk, '</' ) === 0;
+    if ( $closing ) $depth = max( 0, $depth - 1 );
+    $lines[] = str_repeat( '  ', $depth ) . trim( $chunk );
+    if ( ! $closing
+         && preg_match( '#^<([a-z0-9]+)#i', $chunk, $tm )
+         && ! in_array( strtolower( $tm[1] ), array( 'img','br','hr','input','source','path','use','meta' ), true )
+         && substr( rtrim( explode( '>', $chunk )[0] ), -1 ) !== '/' ) {
+        $depth++;
     }
-    $i++;
 }
+echo "card markup as delivered:\n";
+foreach ( $lines as $l ) echo "  " . substr( $l, 0, 300 ) . "\n";
 
-foreach ( $blocks as $k => $b ) {
-    $imgs  = preg_match_all( '#<img\b#i', $b['html'] );
-    $text  = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( $b['html'] ) ) );
-    echo sprintf( "\n  [%d] <%s>  imgs:%d  bytes:%d\n", $k + 1, $b['tag'], $imgs, strlen( $b['html'] ) );
-    echo "      open: " . preg_replace( '/\s+/', ' ', $b['open'] ) . "\n";
-    echo "      text: " . ( $text === '' ? '(none)' : substr( $text, 0, 90 ) ) . "\n";
-}
-
-echo "\nreading: a block AFTER the first image-carrying block that ALSO carries an\n";
-echo "image is the in-the-room preview stacking in flow — the blank band. A block\n";
-echo "with no image and no text is dead space of some other kind.\n";
-echo "=== DONE ===\n";
+echo "\n=== DONE ===\n";

@@ -939,6 +939,20 @@ jobs:
       # placed early is a check nobody can read — which is the same failure as
       # not running it. Here it also sees the finished state, after every
       # suite has had its turn.
+      - name: Thin-category cross-sell check (read-only)
+        if: always()
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Thin-category cross-sell check (read-only)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-thin-categories.php --allow-root 2>&1" \
+            || true
+
       # One-off (read-only): print the structure of a real product card, so the
       # blank band between artwork and title is diagnosed from the markup
       # instead of guessed at. Remove once the card layout is settled.
@@ -954,18 +968,4 @@ jobs:
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-product-card.php --allow-root 2>&1" \
-            || true
-
-      - name: Thin-category cross-sell check (read-only)
-        if: always()
-        run: |
-          set -uo pipefail
-          USER="${{ secrets.HOSTINGER_USERNAME }}"
-          HOST="${{ secrets.HOSTINGER_HOST }}"
-          PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
-          echo "Thin-category cross-sell check (read-only)..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-thin-categories.php --allow-root 2>&1" \
             || true
