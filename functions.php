@@ -14424,3 +14424,201 @@ add_action('wp_footer', function() {
 })();
 </script>
 <?php }, 60);
+
+// ─────────────────────────────────────────────────────────────
+// THE WISHLIST PAGE
+//
+// It shipped as the plugin's bare table: one hairline-bordered row per saved
+// piece, a date column nobody asked for, and an "add to cart" control that
+// rendered as a shopping-bag EMOJI because the button carries no label of its
+// own. There was nothing to browse afterwards either — a saved piece was a
+// dead end rather than the start of a visit.
+//
+// Three things happen here, all scoped to this page so no other template
+// changes: the row becomes a card that matches the rest of the store, the
+// emoji becomes a proper Add to Cart button in the house gold, and a "You may
+// also like" row is appended, built from the categories of whatever is
+// actually saved (falling back to the best sellers when nothing is).
+// ─────────────────────────────────────────────────────────────
+
+/** Is the page being rendered the wishlist? */
+function af_is_wishlist_page() {
+    if (is_admin()) return false;
+    if (function_exists('YITH_WCWL') && method_exists(YITH_WCWL(), 'is_wishlist_page')) {
+        if (YITH_WCWL()->is_wishlist_page()) return true;
+    }
+    if (function_exists('is_page') && (is_page('wishlist') || is_page('Wishlist'))) return true;
+    $path = trim((string) wp_parse_url(add_query_arg(array()), PHP_URL_PATH), '/');
+    return $path !== '' && strpos($path, 'wishlist') === 0;
+}
+
+/**
+ * Append "You may also like" underneath the wishlist table.
+ *
+ * The saved product ids are read out of the shortcode's own output rather than
+ * asked of the plugin: they are already in the markup as add-to-cart links, and
+ * reading them there works no matter which wishlist (session, saved, shared by
+ * link) the visitor is looking at.
+ */
+add_filter('do_shortcode_tag', function ($output, $tag) {
+    if (is_admin() || strpos((string) $tag, 'yith_wcwl') !== 0) return $output;
+    if (!is_string($output) || strpos($output, 'wishlist') === false) return $output;
+    if (!function_exists('wc_get_products')) return $output;
+
+    $ids = array();
+    if (preg_match_all('/add-to-cart=(\d+)/', $output, $m)) $ids = array_map('intval', $m[1]);
+    if (preg_match_all('/data-product-id=["\'](\d+)["\']/', $output, $m2)) {
+        $ids = array_merge($ids, array_map('intval', $m2[1]));
+    }
+    $ids = array_values(array_unique(array_filter($ids)));
+
+    // categories of what is saved — "related" should mean related to THIS
+    // wishlist, not a generic carousel
+    $cats = array();
+    foreach ($ids as $pid) {
+        $terms = get_the_terms($pid, 'product_cat');
+        if (!$terms || is_wp_error($terms)) continue;
+        foreach ($terms as $t) {
+            if (in_array($t->slug, array('uncategorized'), true)) continue;
+            $cats[$t->slug] = true;
+        }
+    }
+
+    $args = array('status' => 'publish', 'limit' => 8, 'orderby' => 'popularity',
+                  'visibility' => 'catalog', 'exclude' => $ids);
+    if ($cats) $args['category'] = array_keys($cats);
+    $picks = wc_get_products($args);
+    if (count($picks) < 4) {                       // thin category: top up with best sellers
+        $more = wc_get_products(array('status' => 'publish', 'limit' => 8, 'orderby' => 'popularity',
+                                      'visibility' => 'catalog',
+                                      'exclude' => array_merge($ids, wp_list_pluck($picks, 'id'))));
+        $picks = array_merge($picks, $more);
+    }
+    if (!$picks) return $output;
+    $picks = array_slice($picks, 0, 8);
+
+    ob_start();
+    echo '<section class="af-wl-related"><h2>You may also like</h2>';
+    echo '<ul class="products columns-4">';
+    $keep = isset($GLOBALS['post']) ? $GLOBALS['post'] : null;
+    foreach ($picks as $p) {
+        $po = get_post($p->get_id());
+        if (!$po) continue;
+        $GLOBALS['post'] = $po;
+        setup_postdata($GLOBALS['post']);
+        wc_get_template_part('content', 'product');
+    }
+    $GLOBALS['post'] = $keep;
+    wp_reset_postdata();
+    echo '</ul></section>';
+    return $output . ob_get_clean();
+}, 20, 2);
+
+add_action('wp_footer', function () {
+    if (!af_is_wishlist_page()) return;
+    ?>
+<style id="af-wishlist-style">
+.af-wl-head{max-width:1200px;margin:24px auto 8px;padding:0 16px}
+.af-wl-head h1{font-size:30px;margin:0 0 4px;color:#1a1a1a}
+.af-wl-head p{margin:0;color:#6b6b6b;font-size:14px}
+
+/* the plugin's table, read as a list of cards */
+.wishlist_table{border:0!important;border-collapse:separate!important;border-spacing:0 14px!important;width:100%!important;background:transparent!important}
+.wishlist_table thead{display:none!important}
+.wishlist_table tr{background:#fff!important;box-shadow:0 2px 14px rgba(0,0,0,.07)!important;border-radius:14px!important}
+.wishlist_table td{border:0!important;vertical-align:middle!important;padding:16px 12px!important;background:transparent!important}
+.wishlist_table td:first-child{border-radius:14px 0 0 14px!important}
+.wishlist_table td:last-child{border-radius:0 14px 14px 0!important;text-align:right!important}
+.wishlist_table td.product-thumbnail img{width:88px!important;height:88px!important;object-fit:cover!important;border-radius:10px!important;display:block!important}
+.wishlist_table td.product-name a{color:#1a1a1a!important;font-weight:600!important;font-size:15px!important;line-height:1.45!important;text-decoration:none!important}
+.wishlist_table td.product-name a:hover{color:#8b6a2b!important}
+.wishlist_table td.product-price{color:#1a1a1a!important;font-weight:700!important;white-space:nowrap!important}
+/* the date a piece was saved is noise next to the piece itself */
+.wishlist_table td.wishlist-date,.wishlist_table .dateadded{display:none!important}
+
+/* remove ("×") */
+.wishlist_table .product-remove a,.wishlist_table a.remove{
+  width:30px!important;height:30px!important;line-height:28px!important;border-radius:50%!important;
+  background:#f4f4f4!important;color:#8a8a8a!important;font-size:17px!important;text-align:center!important;
+  display:inline-block!important;transition:background .2s,color .2s!important}
+.wishlist_table .product-remove a:hover,.wishlist_table a.remove:hover{background:#e5c9c9!important;color:#a11!important}
+
+/* the add-to-cart control: a real button, not a bare emoji */
+.wishlist_table .product-add-to-cart a,
+.wishlist_table td:last-child a.button,
+.wishlist_table a.add_to_cart_button{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;
+  background:#c9a84c!important;border:0!important;color:#fff!important;font-size:14px!important;font-weight:600!important;
+  padding:11px 20px!important;border-radius:6px!important;white-space:nowrap!important;text-decoration:none!important;
+  transition:background .2s!important}
+.wishlist_table .product-add-to-cart a:hover,
+.wishlist_table td:last-child a.button:hover{background:#8b6a2b!important}
+.wishlist_table .af-wl-cart-ico{width:17px;height:17px;flex:0 0 auto}
+
+/* share link row */
+.yith-wcwl-share,.wishlist-title,.wishlist_table+form{max-width:1200px;margin-inline:auto}
+
+/* related products */
+.af-wl-related{max-width:1200px;margin:44px auto 56px;padding:0 16px}
+.af-wl-related h2{font-size:24px;margin:0 0 18px;color:#1a1a1a}
+.af-wl-related ul.products{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;margin:0!important;padding:0!important;list-style:none!important}
+.af-wl-related ul.products::before,.af-wl-related ul.products::after{display:none!important}
+.af-wl-related ul.products li.product{width:100%!important;margin:0!important;float:none!important;
+  background:#fff!important;border:1px solid #eee!important;border-radius:12px!important;overflow:hidden!important}
+.af-wl-related ul.products li.product img{width:100%!important;height:auto!important;aspect-ratio:1/1;object-fit:cover!important}
+.af-wl-related ul.products li.product .woocommerce-loop-product__title{font-size:14px!important;line-height:1.4!important;padding:10px 12px 0!important}
+.af-wl-related ul.products li.product .price{padding:0 12px 12px!important;display:block!important}
+
+@media (max-width:900px){
+  .af-wl-related ul.products{grid-template-columns:repeat(2,1fr)!important}
+  .wishlist_table td{padding:12px 8px!important}
+  .wishlist_table td.product-thumbnail img{width:64px!important;height:64px!important}
+  .wishlist_table td.product-name a{font-size:14px!important}
+}
+</style>
+<script>
+(function(){
+  // The plugin renders its add-to-cart control with no label of its own, which
+  // is why the page showed a shopping-bag emoji. Give it the words and the
+  // icon the rest of the store uses. Runs again when the table re-renders.
+  var CART = '<svg class="af-wl-cart-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+           + 'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'
+           + '<circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle>'
+           + '<path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
+
+  function label(a){
+    if (a.dataset.afWlDone) return;
+    a.dataset.afWlDone = '1';
+    a.classList.add('button');
+    a.innerHTML = CART + '<span>Add to Cart</span>';
+    a.setAttribute('aria-label', 'Add to cart');
+  }
+  function heading(){
+    var table = document.querySelector('.wishlist_table');
+    if (!table || document.querySelector('.af-wl-head')) return;
+    var h = document.createElement('div');
+    h.className = 'af-wl-head';
+    var n = table.querySelectorAll('tbody tr').length;
+    h.innerHTML = '<h1>Your Wishlist</h1><p>' +
+      (n ? n + (n === 1 ? ' piece saved' : ' pieces saved') + ' — ready when you are.'
+         : 'Nothing saved yet. Tap the heart on any piece to keep it here.') + '</p>';
+    var host = table.closest('.woocommerce, .entry-content, main') || table.parentElement;
+    host.insertBefore(h, host.firstChild);
+  }
+  function run(){
+    document.querySelectorAll('.wishlist_table a[href*="add-to-cart="]').forEach(label);
+    heading();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+  window.addEventListener('load', run);
+  [400, 1200, 2500].forEach(function(d){ setTimeout(run, d); });
+  try {
+    new MutationObserver(function(m){
+      for (var i = 0; i < m.length; i++) { if (m[i].addedNodes && m[i].addedNodes.length) { run(); break; } }
+    }).observe(document.body, {childList:true, subtree:true});
+  } catch(e){}
+})();
+</script>
+    <?php
+}, 20);

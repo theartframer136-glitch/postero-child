@@ -707,6 +707,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/restore-shipping-copy.php --allow-root 2>&1" \
             || true
 
+          echo "Verifying the wishlist page..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/verify-wishlist-page.php --allow-root 2>&1" \
+            || true
+
           echo "Verifying the subcategory circles can filter the slider..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
