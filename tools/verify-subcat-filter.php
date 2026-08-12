@@ -77,6 +77,25 @@ foreach ((array) get_terms(array('taxonomy' => 'product_cat', 'hide_empty' => fa
     if (is_wp_error($t) || !isset($t->name)) continue;
     $map[strtolower(preg_replace('/[^a-z0-9]+/i', '', html_entity_decode($t->name)))] = $t->slug;
 }
+// Where does "Seven Horses" actually live in the RAW page? The strip the
+// visitor clicks is not in the plain markup (the previous dump proved that),
+// so it is likely built by an inline script — which the cleaned search below
+// deliberately strips. Search the raw bytes and print every context.
+echo "\n-- raw occurrences of a known circle caption --\n";
+$off = 0; $hits = 0;
+while (($posn = stripos($html, 'Seven Horses', $off)) !== false && $hits < 4) {
+    $hits++;
+    $off = $posn + 10;
+    $slice = substr($html, max(0, $posn - 900), 2200);
+    // identify the container: script, encoded blob, or plain markup
+    $before = substr($html, max(0, $posn - 4000), 4000);
+    $inScript = (strrpos($before, '<script') !== false
+              && strrpos($before, '<script') > (int) strrpos($before, '</script'));
+    printf("  hit %d at byte %d (%s):\n", $hits, $posn, $inScript ? 'inside <script>' : 'markup/other');
+    echo "  " . trim(preg_replace('/\s+/', ' ', mb_strimwidth($slice, 0, 2200))) . "\n\n";
+}
+if (!$hits) echo "  'Seven Horses' is not in the served homepage at all\n";
+
 // what strip does the homepage actually serve? Print the markup around the
 // first circle so the click wiring is aimed at real elements, not assumed ones.
 echo "\n-- the strip as served --\n";
