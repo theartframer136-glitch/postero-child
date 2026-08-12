@@ -97,16 +97,43 @@ foreach ( array_slice( $thin, 0, $FETCH ) as $t ) {
     // know the filter reached the markup instead of just the code.
     if ( ! isset( $sidebar_done ) ) {
         $sidebar_done = true;
-        if ( preg_match( '#<ul[^>]*class="[^"]*product-categories[^"]*".*?</ul>#s', $html, $sm ) ) {
-            preg_match_all( '#<a[^>]*>(.*?)</a>#s', $sm[0], $am );
-            $names = array();
-            foreach ( $am[1] as $raw ) {
-                $n = trim( html_entity_decode( wp_strip_all_tags( $raw ) ) );
-                $n = trim( preg_replace( '/\s*\(\d+\)\s*$/', '', $n ) );   // drop the count
-                if ( $n !== '' ) $names[] = $n;
+        // Non-greedy ".*?</ul>" stops at the FIRST closing tag, which with
+        // nested subcategory lists is the end of the first child list — the
+        // readout came back as one parent and its twenty children, looking
+        // exactly like the other eight parents had vanished. Walk the tags
+        // and close on the matching one instead.
+        $block = '';
+        $at = stripos( $html, 'product-categories' );
+        if ( $at !== false ) {
+            $open = strrpos( substr( $html, 0, $at ), '<ul' );
+            if ( $open !== false ) {
+                $depth = 0; $i = $open; $len = strlen( $html );
+                while ( $i < $len ) {
+                    if ( substr( $html, $i, 3 ) === '<ul' ) { $depth++; }
+                    elseif ( substr( $html, $i, 5 ) === '</ul>' ) {
+                        $depth--;
+                        if ( $depth === 0 ) { $block = substr( $html, $open, $i + 5 - $open ); break; }
+                    }
+                    $i++;
+                }
             }
-            echo "\nsidebar categories as delivered (" . count( $names ) . "):\n";
-            foreach ( $names as $n ) echo "    {$n}\n";
+        }
+        if ( $block !== '' ) {
+            // Walk the block so nesting shows: a parent and its children are
+            // the point, and a flat list of names cannot tell them apart.
+            preg_match_all( '#<ul\b|</ul>|<a[^>]*>(.*?)</a>#s', $block, $am, PREG_SET_ORDER );
+            $depth = 0; $rows = array(); $parents = 0; $kids = 0;
+            foreach ( $am as $m ) {
+                if ( $m[0] === '</ul>' )      { $depth = max( 0, $depth - 1 ); continue; }
+                if ( strpos( $m[0], '<ul' ) === 0 ) { $depth++; continue; }
+                $n = trim( html_entity_decode( wp_strip_all_tags( isset( $m[1] ) ? $m[1] : '' ) ) );
+                $n = trim( preg_replace( '/\s*\(\d+\)\s*$/', '', $n ) );   // drop the count
+                if ( $n === '' ) continue;
+                $depth > 1 ? $kids++ : $parents++;
+                $rows[] = str_repeat( '    ', max( 0, $depth - 1 ) ) . $n;
+            }
+            echo "\nsidebar as delivered — {$parents} categories, {$kids} subcategories:\n";
+            foreach ( $rows as $r ) echo "    {$r}\n";
         } else {
             echo "\nsidebar: no ul.product-categories in the page\n";
         }
