@@ -90,6 +90,27 @@ foreach ( array_slice( $thin, 0, $FETCH ) as $t ) {
     $has ? $ok++ : $missing++;
     echo sprintf( "  %-38s http %d  cross-sell: %s%s\n", $t->name, $code,
         $has ? 'PRESENT' : 'MISSING  <<<', $has ? "  ({$cards} cards)" : '' );
+
+    // The sidebar rides on these same pages, so read it off the first one
+    // that renders. The widget is filtered down to the header menu's nine
+    // categories; printing what the page actually shipped is the only way to
+    // know the filter reached the markup instead of just the code.
+    if ( ! isset( $sidebar_done ) ) {
+        $sidebar_done = true;
+        if ( preg_match( '#<ul[^>]*class="[^"]*product-categories[^"]*".*?</ul>#s', $html, $sm ) ) {
+            preg_match_all( '#<a[^>]*>(.*?)</a>#s', $sm[0], $am );
+            $names = array();
+            foreach ( $am[1] as $raw ) {
+                $n = trim( html_entity_decode( wp_strip_all_tags( $raw ) ) );
+                $n = trim( preg_replace( '/\s*\(\d+\)\s*$/', '', $n ) );   // drop the count
+                if ( $n !== '' ) $names[] = $n;
+            }
+            echo "\nsidebar categories as delivered (" . count( $names ) . "):\n";
+            foreach ( $names as $n ) echo "    {$n}\n";
+        } else {
+            echo "\nsidebar: no ul.product-categories in the page\n";
+        }
+    }
 }
 
 echo "\npresent: {$ok}  missing: {$missing}  inconclusive: {$unknown}\n";
