@@ -10,8 +10,12 @@
  * - Size comes from the title ("3x4 Feet", "60 x 36 Inch", …) via
  *   af_size_label_for_product(); titles whose size matches no selector label
  *   are priced by interpolating the card's own $-per-area curve.
- * - The pretend discount goes: regular price = card, sale price cleared. The
- *   card has no strikethrough prices, and "accurate" was the instruction.
+ * - The card price is what the product SELLS for, so it is written to the sale
+ *   price, with the struck-through reference price (af_mrp_multiplier) above
+ *   it. This script used to clear the sale price instead, which silently
+ *   undid apply-mrp-markup.php later in the same deploy — every card went
+ *   back to "$80.00  $80.00  (0% off)". Both scripts now write the same pair,
+ *   so the order they run in does not matter.
  * - The previous regular/sale pair is saved once to _af_price_backup, so
  *   this is reversible.
  * - Idempotent: a second run changes nothing.
@@ -69,17 +73,28 @@ while (true) {
             }
         }
 
+        // The card price is what the product SELLS for, so it goes in the sale
+        // field, with the struck-through reference price above it. Writing the
+        // pair here — rather than clearing the sale price, which is what this
+        // script used to do — is what stops it undoing apply-mrp-markup.php
+        // later in the same deploy. Both scripts now aim at the same two
+        // numbers, so the order they run in no longer matters.
+        $want_reg  = function_exists('af_mrp_multiplier')
+            ? round($card * af_mrp_multiplier($pid), 2) : $card;
+        $want_sale = ($want_reg > $card) ? $card : '';
+
         $cur_reg  = $p->get_regular_price();
         $cur_sale = $p->get_sale_price();
-        if ((float)$cur_reg === $card && $cur_sale === '') continue;   // already card-priced
+        if ((float)$cur_reg === (float)$want_reg
+            && (float)$cur_sale === (float)$want_sale) continue;   // already card-priced
 
         if (!get_post_meta($pid, '_af_price_backup', true)) {
             update_post_meta($pid, '_af_price_backup', wp_json_encode(array(
                 'regular' => $cur_reg, 'sale' => $cur_sale, 'when' => gmdate('c'),
             )));
         }
-        $p->set_regular_price($card);
-        $p->set_sale_price('');
+        $p->set_regular_price($want_reg);
+        $p->set_sale_price($want_sale === '' ? '' : (string) $want_sale);
         $p->save();
         $changed++;
     }
