@@ -559,11 +559,20 @@ add_action('wp_footer', function() {
   // to the category archive, which this handler used to do, replaced that
   // behaviour with a page change. Filter in place, and only fall back to the
   // archive if the request cannot be served.
-  function grid(){
-    return document.querySelector('#productGrid, .product-slider, .custom-product-track');
+  var GRID_SEL = '#productGrid, .product-slider, .custom-product-track, ul.products';
+  // The grid to swap is the one in the SAME section as the strip that was
+  // clicked — document.querySelector would happily return a product grid from
+  // a different section higher up the page and swap markup nobody is looking
+  // at, which reads as "the click did nothing".
+  function gridFor(item){
+    for (var node = item; node && node !== document.body; node = node.parentElement) {
+      var g = node.querySelector(GRID_SEL);
+      if (g && !g.contains(item)) return g;
+    }
+    return document.querySelector(GRID_SEL);
   }
   function filterTo(cat, item){
-    var box = grid();
+    var box = gridFor(item);
     if (!box || !cat || !cat.s) return false;
     var strip = item.parentElement;
     if (strip) {
@@ -597,10 +606,15 @@ add_action('wp_footer', function() {
     items.forEach(function(it){
       if (it.getAttribute('data-af-cat-link') === '') return;      // resolved: no match
       if (it.getAttribute('data-af-cat-link')) return;             // already wired
-      // an item whose link already goes somewhere real is left alone
+      // NOTE: an item is wired even when its anchor already carries a real
+      // href. The first version skipped those — and since this same script
+      // rewrites dead hrefs into real category URLs, every circle looked
+      // "already linked" on the next page load and the filter handler was
+      // never attached again. The strip's slider library then ate the native
+      // link click, so clicking a circle did nothing at all.
       var a = it.querySelector('a[href]');
-      if (a && !deadHref(a.getAttribute('href'))) { it.setAttribute('data-af-cat-link', ''); return; }
       var cat = catFor(it);
+      if (!cat && a && !deadHref(a.getAttribute('href'))) { it.setAttribute('data-af-cat-link', ''); return; }
       var url = cat ? cat.u : null;
       if (!url) { it.setAttribute('data-af-cat-link', ''); return; }
       it.setAttribute('data-af-cat-link', url);
