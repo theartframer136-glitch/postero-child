@@ -2426,7 +2426,7 @@ add_action('wp_footer', function () {
     var newV = num(now.textContent);
     if (!(newV > 0) || newV >= oldV) return;
 
-    row.classList.add('af-price-row');
+    row.classList.add('af-pricerow');
 
     // one percentage per row — never a second next to the theme's own
     if (!row.querySelector('.af-pct-off, .af-disc-badge, .discount, .discount-percentage')) {
@@ -2454,15 +2454,23 @@ add_action('wp_footer', function () {
   } catch(e){}
 })();
 </script>
-<style id="af-price-row-style">
+<style id="af-pricerow-style">
 /* Order is stated here rather than in the markup, so it holds however each
    card happens to nest its two prices. */
-.af-price-row{display:inline-flex !important;align-items:baseline;flex-wrap:wrap;gap:6px;}
-.af-price-row > ins,.af-price-row > .af-now,.af-price-row > .current-price{order:1;
+/* af-pricerow, NOT af-price-row: the listing toolbar's min/max price FILTER
+   already owns that name, and its rules (align-items, gap, and a span colour)
+   were landing on every card price on the same page. */
+.af-pricerow{display:flex !important;align-items:baseline !important;flex-wrap:wrap !important;
+  gap:4px 7px !important;margin:0 !important;}
+/* Whatever the theme sets on these — display:block, width:100%, a float —
+   would put each part on its own line inside a flex row. Neutralise it. */
+.af-pricerow > *{flex:0 0 auto !important;width:auto !important;max-width:none !important;
+  min-width:0 !important;float:none !important;margin:0 !important;clear:none !important;}
+.af-pricerow > ins,.af-pricerow > .af-now,.af-pricerow > .current-price{order:1;
   text-decoration:none !important;font-weight:700;}
-.af-price-row > del,.af-price-row > .old-price{order:2;opacity:.65;font-weight:400;
+.af-pricerow > del,.af-pricerow > .old-price{order:2;opacity:.65;font-weight:400;
   text-decoration:line-through;}
-.af-price-row > .af-pct-off{order:3;}
+.af-pricerow > .af-pct-off{order:3;}
 .af-pct-off{color:#4caf2f;font-weight:700;font-size:.85em;white-space:nowrap;
   text-decoration:none !important;}
 </style>
