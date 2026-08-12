@@ -613,14 +613,24 @@ add_action('wp_footer', function() {
     // every strip variant this theme renders circles with: the Elementor
     // circle gallery (.circle-gallery-slider — the one on the homepage, per
     // the served markup), plus the older subcategory sliders
+    // The collection circles, as actually served (raw-page dump, 2026-08-12):
+    // <li class="cat-item"><a class="pf-value" data-val="seven-horses"
+    // data-title="Seven Horses" href=".../seven-horses/">…</a></li>
+    // The data-val IS the slug the load_products endpoint expects — no caption
+    // matching needed for these.
     var items = document.querySelectorAll(
+      'li.cat-item, a.pf-value, ' +
       '.circle-gallery-slider > *, .circle-gallery-slider .circle-item, ' +
-      '#subcategorySlider > *, .subcategory-slider > *, .subcategory-slider .sub-cat, ' +
-      'ul.postero-scroll-content > li.cat-item'
+      '#subcategorySlider > *, .subcategory-slider > *, .subcategory-slider .sub-cat'
     );
     items.forEach(function(it){
       if (it.getAttribute('data-af-cat-link') === '') return;      // resolved: no match
       if (it.getAttribute('data-af-cat-link')) return;             // already wired
+      // when both an li and its own anchor matched the list, one wiring is
+      // enough — a second handler would double the fetch
+      if (it.parentElement && it.parentElement.closest('[data-af-cat-link]')) {
+        it.setAttribute('data-af-cat-link', ''); return;
+      }
       // NOTE: an item is wired even when its anchor already carries a real
       // href. The first version skipped those — and since this same script
       // rewrites dead hrefs into real category URLs, every circle looked
@@ -628,8 +638,19 @@ add_action('wp_footer', function() {
       // never attached again. The strip's slider library then ate the native
       // link click, so clicking a circle did nothing at all.
       if (it.matches && it.matches('.next-circle,.prev-circle,[class*="arrow"],button')) { it.setAttribute('data-af-cat-link', ''); return; }
-      var a = it.querySelector('a[href]');
-      var cat = catFor(it);
+      // a.pf-value may be selected directly or as the li's child — normalise
+      // to the element that carries data-val, and trust it over the caption
+      var a = it.querySelector('a[href]') || (it.tagName === 'A' ? it : null);
+      var pf = (it.matches && it.matches('a.pf-value,[data-val]')) ? it
+             : (it.querySelector ? it.querySelector('a.pf-value,[data-val]') : null);
+      var cat = null;
+      if (pf && pf.getAttribute('data-val')) {
+        cat = { s: pf.getAttribute('data-val'),
+                u: (pf.getAttribute('href') && !deadHref(pf.getAttribute('href')))
+                   ? pf.getAttribute('href')
+                   : ((CATS[norm(pf.getAttribute('data-title') || '')] || {}).u || '#') };
+      }
+      if (!cat) cat = catFor(it);
       if (!cat && a && !deadHref(a.getAttribute('href'))) { it.setAttribute('data-af-cat-link', ''); return; }
       var url = cat ? cat.u : null;
       if (!url) { it.setAttribute('data-af-cat-link', ''); return; }

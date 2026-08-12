@@ -83,7 +83,7 @@ foreach ((array) get_terms(array('taxonomy' => 'product_cat', 'hide_empty' => fa
 // deliberately strips. Search the raw bytes and print every context.
 echo "\n-- raw occurrences of a known circle caption --\n";
 $off = 0; $hits = 0;
-while (($posn = stripos($html, 'Seven Horses', $off)) !== false && $hits < 4) {
+while (($posn = stripos($html, 'Seven Horses', $off)) !== false && $hits < 8) {
     $hits++;
     $off = $posn + 10;
     $slice = substr($html, max(0, $posn - 900), 2200);
