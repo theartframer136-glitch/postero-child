@@ -14694,3 +14694,44 @@ add_action('woocommerce_after_cart', function () {
 </style>';
     echo $html;
 }, 30);
+
+// ─────────────────────────────────────────────────────────────
+// Cart totals box (owner: "give some more"). The box held only Subtotal, the
+// gift-card field and Total. Add the reassurance a buyer looks for at exactly
+// this moment — shipping terms, secure checkout, a human to call — using the
+// site's single sources (af_shipping_copy / af_studio_contact) so nothing
+// here can drift from the rest of the site. Scoped to the cart page.
+// ─────────────────────────────────────────────────────────────
+add_action('woocommerce_after_cart_totals', function () {
+    if (!function_exists('af_shipping_copy') || !function_exists('af_studio_contact')) return;
+    $ship = af_shipping_copy();
+    $c    = af_studio_contact();
+    ?>
+<div class="af-ct-extra">
+  <div class="af-ct-row">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
+    <span><?php echo esc_html($ship['short']); ?></span>
+  </div>
+  <div class="af-ct-row">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+    <span>Secure SSL checkout &mdash; cards, PayPal &amp; more</span>
+  </div>
+  <div class="af-ct-row">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+    <span>Questions? <a href="<?php echo esc_attr($c['tel']); ?>"><?php echo esc_html($c['phone']); ?></a></span>
+  </div>
+  <div class="af-ct-row">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+    <span>Gallery-wrapped &amp; carefully packed</span>
+  </div>
+</div>
+<style id="af-ct-style">
+.cart_totals, .cart-collaterals .cart_totals{border-radius:14px!important}
+.af-ct-extra{margin-top:18px;padding-top:16px;border-top:1px solid #eee;display:flex;flex-direction:column;gap:11px}
+.af-ct-row{display:flex;align-items:flex-start;gap:10px;font-size:13.5px;color:#444;line-height:1.45}
+.af-ct-row svg{width:18px;height:18px;flex:0 0 auto;margin-top:1px;color:#c9a84c}
+.af-ct-row a{color:#8b6a2b;font-weight:600;text-decoration:none}
+.af-ct-row a:hover{text-decoration:underline}
+</style>
+    <?php
+}, 20);
