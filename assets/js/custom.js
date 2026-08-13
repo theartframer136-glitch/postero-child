@@ -99,11 +99,15 @@ jQuery(document).ready(function($) {
       moved = false;
       startX = e.clientX;
       startScroll = el.scrollLeft;
-      el.classList.add('af-dragging');
-      // Deliberately NO setPointerCapture here. Capturing on pointerdown
-      // retargets the follow-up click to this container, so a plain click on
-      // a subcategory circle never reached its link and products stopped
-      // loading. Capture only once real dragging starts (below).
+      // Deliberately NO setPointerCapture here, and — just as important — NO
+      // af-dragging class yet. Both retarget the follow-up click away from
+      // the circle: capture does it directly, and af-dragging does it through
+      // the stylesheet's `.af-dragging * { pointer-events:none }` rule, which
+      // makes the pointerup hit-test miss every child so the click lands on
+      // this container instead of the circle's link. That rule armed on
+      // pointerdown is why a plain mouse click on a circle did nothing while
+      // DevTools' touch emulation (which skips this handler) worked fine.
+      // Both engage only once real dragging starts (below).
     });
 
     el.addEventListener('pointermove', function(e) {
@@ -111,8 +115,11 @@ jQuery(document).ready(function($) {
       var dx = e.clientX - startX;
       if (!moved && Math.abs(dx) > 3) {
         moved = true;
-        // now it is a drag, not a click — safe to capture so the drag
-        // survives the cursor leaving the row
+        // now it is a drag, not a click — safe to capture and to arm the
+        // af-dragging class (grabbing cursor + pointer-events:none on the
+        // children) so the drag survives the cursor leaving the row and no
+        // link gets hovered mid-drag
+        el.classList.add('af-dragging');
         if (el.setPointerCapture) { try { el.setPointerCapture(e.pointerId); } catch (err) {} }
       }
       if (moved) el.scrollLeft = startScroll - dx;
