@@ -15086,8 +15086,51 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
     var host = table.closest('.woocommerce, .entry-content, main') || table.parentElement;
     host.insertBefore(h, host.firstChild);
   }
+  // Inline styles, deliberately. The stylesheet version of these rules ships
+  // on the page and still loses — the control is positioned by rules this
+  // theme applies with higher specificity, so a stylesheet fight is not
+  // winnable here. An inline property with priority beats every stylesheet,
+  // which is the same lesson the product-card buttons taught earlier.
+  function forceButton(a){
+    var st = {display:'inline-flex', alignItems:'center', justifyContent:'center', gap:'8px',
+              background:'#c9a84c', border:'0', color:'#fff', fontSize:'14px', fontWeight:'600',
+              padding:'11px 20px', borderRadius:'6px', whiteSpace:'nowrap', textDecoration:'none',
+              position:'static', transform:'none', opacity:'1', visibility:'visible',
+              margin:'0', right:'auto', left:'auto', top:'auto', bottom:'auto'};
+    for (var k in st) a.style.setProperty(k.replace(/[A-Z]/g, function(m){return '-'+m.toLowerCase();}), st[k], 'important');
+    a.addEventListener('mouseenter', function(){ a.style.setProperty('background', '#8b6a2b', 'important'); });
+    a.addEventListener('mouseleave', function(){ a.style.setProperty('background', '#c9a84c', 'important'); });
+    // the wrappers the theme parks off-edge
+    var n = a.parentElement, hops = 0;
+    while (n && hops++ < 4 && !n.matches('td,.woosw-item')) {
+      ['position','transform','opacity','visibility','right','left','margin','overflow'].forEach(function(prop){
+        n.style.setProperty(prop, prop === 'position' ? 'static'
+                                : prop === 'transform' ? 'none'
+                                : prop === 'opacity' ? '1'
+                                : prop === 'visibility' ? 'visible'
+                                : prop === 'overflow' ? 'visible'
+                                : prop === 'margin' ? '0' : 'auto', 'important');
+      });
+      n.style.setProperty('display', 'block', 'important');
+      n = n.parentElement;
+    }
+    if (n && n.matches('td')) {
+      n.style.setProperty('overflow', 'visible', 'important');
+      n.style.setProperty('min-width', '190px', 'important');
+      n.style.setProperty('text-align', 'right', 'important');
+    }
+  }
+  // an art code printed outside a product card is noise between sections
+  function dropStrayCodes(){
+    document.querySelectorAll('.af-art-code').forEach(function(el){
+      if (el.closest('li.product') || el.closest('.woosw-item')) return;   // inside a card: keep
+      el.style.setProperty('display', 'none', 'important');
+    });
+  }
   function run(){
     document.querySelectorAll('.woosw-items a[href*="add-to-cart="], .wishlist_table a[href*="add-to-cart="]').forEach(label);
+    document.querySelectorAll('.woosw-item a[href*="add-to-cart="], .woosw-item--atc a.button').forEach(forceButton);
+    dropStrayCodes();
     // the same control wherever the plugin put it, as long as it is wordless
     document.querySelectorAll('a[href*="add-to-cart="]').forEach(function(a){
       if (!a.closest('.af-wl-related') && bare(a)) label(a);
