@@ -1,7 +1,8 @@
 // Click a collection circle on the LIVE homepage with a real Chromium mouse
-// and report exactly what happens — served assets, page markers, the click's
-// AJAX, and whether the visible products changed. Run from GitHub Actions
-// (Verify Circles Live workflow); exits 0 when the click visibly works.
+// and report exactly what happens — how custom.js is served (an optimizer may
+// combine it), what element actually sits under the pointer, and whether the
+// visible products change. Run from the Verify Circles Live workflow.
+// Read-only against the site; exits 0 only when the click visibly works.
 import { chromium } from 'playwright';
 
 const SITE = 'https://theartframer.us/?af_debug_circles=1&afv=' + Math.floor(Date.now() / 1000);
@@ -15,104 +16,117 @@ const page = await ctx.newPage();
 
 const ajax = [];
 page.on('response', r => {
-  if (r.url().includes('admin-ajax.php')) ajax.push(r.status() + ' <- ' + (r.request().postData() || '').slice(0, 120));
+  const u = r.url();
+  if (u.includes('admin-ajax.php')) {
+    const body = (r.request().postData() || '').slice(0, 90);
+    if (!body.includes('WebKitFormBoundary')) ajax.push(r.status() + ' <- ' + body);
+  }
 });
-page.on('pageerror', e => console.log('PAGE ERROR:', e.message.slice(0, 300)));
+page.on('pageerror', e => console.log('PAGE ERROR:', e.message.slice(0, 200)));
 
 console.log('loading', SITE);
 await page.goto(SITE, { waitUntil: 'load', timeout: 120000 });
-await page.waitForTimeout(8000); // let late scripts settle
+await page.waitForTimeout(9000);
 
-// ── which custom.js does a fresh visitor get? ──
-const jsUrl = await page.evaluate(() => {
-  const s = document.querySelector('script[src*="assets/js/custom.js"]');
-  return s ? s.src : 'NOT FOUND';
-});
-console.log('custom.js URL as served:', jsUrl);
-if (jsUrl !== 'NOT FOUND') {
-  const info = await page.evaluate(async (u) => {
-    const t = await (await fetch(u, { cache: 'reload' })).text();
-    const i = t.indexOf('pointerdown');
-    const downHandler = i >= 0 ? t.slice(i, i + 1100) : '';
-    return {
-      bytes: t.length,
-      // old code: the pointerdown handler itself arms af-dragging (the click killer)
-      pointerdownArmsDragging: /classList\.add\('af-dragging'\)/.test(downHandler),
-      hasStaleMovedFix: t.includes("e.type !== 'pointerup'"),
-    };
-  }, jsUrl);
-  console.log('custom.js served content:', JSON.stringify(info));
-}
+// ── 1. How is our JS actually delivered? An optimizer may combine/minify it. ──
+const scripts = await page.evaluate(() => Array.from(document.querySelectorAll('script[src]'))
+  .map(s => s.src)
+  .filter(u => /custom|litespeed|min\.js|combined|\/cache\//i.test(u))
+  .slice(0, 12));
+console.log('candidate script URLs:', JSON.stringify(scripts, null, 1));
 
-const markers = await page.evaluate(() => ({
-  circleActiveCss: !!document.getElementById('af-circle-active'),
-  strips: document.querySelectorAll('#subcategorySlider, .subcategory-slider, ul.postero-scroll-content').length,
-  pfAnchors: document.querySelectorAll('a.pf-value').length,
-  subCats: document.querySelectorAll('.sub-cat').length,
-  catItems: document.querySelectorAll('li.cat-item').length,
-  grids: ['#productGrid', '.product-slider', 'ul.products', '.af-shell'].map(s => s + ':' + document.querySelectorAll(s).length).join('  '),
-}));
-console.log('page markers:', JSON.stringify(markers));
-
-// ── pick the third circle in the first populated strip ──
-const circle = await page.evaluateHandle(() => {
-  const strips = document.querySelectorAll('#subcategorySlider, .subcategory-slider, ul.postero-scroll-content');
-  for (const strip of strips) {
-    const items = strip.querySelectorAll('li.cat-item, .sub-cat');
-    if (items.length >= 3) { items[2].scrollIntoView({ block: 'center' }); return items[2]; }
+// The fix is identifiable by source: old code arms af-dragging inside the
+// pointerdown handler; fixed code arms it only after real movement.
+const jsCheck = await page.evaluate(async (urls) => {
+  const out = [];
+  for (const u of urls) {
+    try {
+      const t = await (await fetch(u, { cache: 'reload' })).text();
+      if (!t.includes('af-dragging')) continue;
+      const i = t.indexOf('pointerdown');
+      const seg = i >= 0 ? t.slice(i, i + 1200) : '';
+      out.push({
+        url: u.slice(-90),
+        bytes: t.length,
+        OLD_pointerdownArmsDragging: /af-dragging['"]\s*\)/.test(seg) && seg.indexOf('pointermove') === -1,
+        NEW_hasStaleMovedFix: t.includes("pointerup") && t.includes("moved = false"),
+      });
+    } catch (e) { out.push({ url: u.slice(-90), error: String(e).slice(0, 80) }); }
   }
-  return null;
+  return out;
+}, scripts);
+console.log('js carrying the drag guard:', JSON.stringify(jsCheck, null, 1));
+
+// ── 2. Find a circle that a human can actually see and click ──
+const target = await page.evaluate(() => {
+  const strips = Array.from(document.querySelectorAll('#subcategorySlider, .subcategory-slider, ul.postero-scroll-content'));
+  const report = strips.map(s => {
+    const r = s.getBoundingClientRect();
+    return { cls: (s.id || s.className).toString().slice(0, 40), w: Math.round(r.width), h: Math.round(r.height), items: s.querySelectorAll('li.cat-item, .sub-cat').length, visible: !!s.offsetParent && r.width > 0 && r.height > 0 };
+  });
+  for (const strip of strips) {
+    if (!strip.offsetParent) continue;
+    const items = Array.from(strip.querySelectorAll('li.cat-item, .sub-cat'));
+    for (const it of items) {
+      const r = it.getBoundingClientRect();
+      if (r.width > 20 && r.height > 20 && it.offsetParent) {
+        it.scrollIntoView({ block: 'center' });
+        return { report, label: (it.textContent || '').trim().slice(0, 40), found: true };
+      }
+    }
+  }
+  return { report, found: false };
 });
-if (!(await circle.evaluate(el => !!el))) {
-  console.log('RESULT: NO CIRCLE FOUND on the page');
-  await page.screenshot({ path: 'before.png' });
-  await browser.close();
-  process.exit(2);
-}
-await page.waitForTimeout(600); // scrollIntoView settle
-const label = await circle.evaluate(el => (el.textContent || '').trim().slice(0, 40));
-console.log('clicking circle:', JSON.stringify(label));
+console.log('strips on page:', JSON.stringify(target.report));
+if (!target.found) { console.log('RESULT: NO VISIBLE CIRCLE FOUND'); await page.screenshot({ path: 'before.png' }); await browser.close(); process.exit(2); }
+await page.waitForTimeout(1200);
+
+// Re-locate after scrolling and see WHAT IS ON TOP at the click point
+const hit = await page.evaluate((label) => {
+  const items = Array.from(document.querySelectorAll('li.cat-item, .sub-cat'))
+    .filter(e => (e.textContent || '').trim().slice(0, 40) === label && e.offsetParent);
+  const el = items[0];
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  const x = r.x + r.width / 2, y = r.y + Math.min(r.height / 2, 40);
+  const top = document.elementFromPoint(x, y);
+  return {
+    x, y,
+    topElement: top ? (top.tagName + '.' + (top.className || '').toString().slice(0, 60)) : 'none',
+    topIsInsideCircle: !!(top && el.contains(top)),
+  };
+}, target.label);
+console.log('click point:', JSON.stringify(hit));
 
 const snap = () => page.evaluate(() => {
-  const g = document.querySelector('#productGrid, .product-slider, ul.products');
   const shell = document.querySelector('.af-shell');
+  const g = document.querySelector('#productGrid, .product-slider');
   return {
     url: location.href.split('&afv=')[0],
-    gridSig: g ? g.innerHTML.length + '|' + (g.innerText || '').replace(/\s+/g, ' ').slice(0, 150) : 'none',
-    shellSig: shell ? (shell.innerText || '').replace(/\s+/g, ' ').slice(0, 150) : 'no shell',
-    active: Array.from(document.querySelectorAll('.subcategory-slider .active, #subcategorySlider .active, li.cat-item.active'))
-      .map(e => (e.textContent || '').trim().slice(0, 30)),
-    dbg: (document.getElementById('af-circdbg') || { innerText: 'absent' }).innerText,
+    visibleProducts: (shell || g ? (shell || g).innerText : '').replace(/\s+/g, ' ').slice(0, 120),
+    active: Array.from(document.querySelectorAll('.active')).map(e => (e.textContent || '').trim().slice(0, 25)).slice(0, 5),
+    dbg: (document.getElementById('af-circdbg') || { innerText: 'absent' }).innerText.replace(/\s+/g, ' ').slice(0, 400),
   };
 });
 
 const before = await snap();
 await page.screenshot({ path: 'before.png' });
+console.log('clicking:', JSON.stringify(target.label));
 
-// human-speed press: move, down, hold, up
-const box = await circle.evaluate(el => {
-  const r = el.getBoundingClientRect();
-  return { x: r.x + r.width / 2, y: r.y + Math.min(r.height / 2, 45) };
-});
-await page.mouse.move(box.x, box.y);
+await page.mouse.move(hit.x, hit.y);
 await page.mouse.down();
 await page.waitForTimeout(140);
 await page.mouse.up();
+await page.waitForTimeout(8000);
 
-await page.waitForTimeout(7000); // ajax + shell rebuild time
-const after = await snap().catch(() => ({ url: page.url(), note: 'page navigated' }));
+const after = await snap().catch(() => ({ url: page.url(), visibleProducts: 'NAVIGATED', dbg: '' }));
 await page.screenshot({ path: 'after.png' }).catch(() => {});
 
-console.log('ajax during/after click:', JSON.stringify(ajax));
+console.log('ajax:', JSON.stringify(ajax));
 console.log('BEFORE:', JSON.stringify(before));
 console.log('AFTER :', JSON.stringify(after));
 
-const changed = after.note === 'page navigated'
-  || after.url !== before.url
-  || after.gridSig !== before.gridSig
-  || after.shellSig !== before.shellSig;
-console.log(changed
-  ? 'RESULT: CLICK WORKED — products changed or the page navigated'
-  : 'RESULT: CLICK DEAD — nothing changed after a normal mouse click');
+const worked = after.url !== before.url || after.visibleProducts !== before.visibleProducts;
+console.log(worked ? 'RESULT: CLICK WORKED' : 'RESULT: CLICK DEAD');
 await browser.close();
-process.exit(changed ? 0 : 1);
+process.exit(worked ? 0 : 1);
