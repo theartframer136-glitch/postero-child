@@ -2427,7 +2427,14 @@ add_action('wp_footer', function () {
         n = row.childNodes[i];
         if (n === was || was.contains(n)) continue;
         if (n.nodeType === 3 && !n.nodeValue.trim()) continue;
-        if (n.nodeType === 1 && n.classList && n.classList.contains('af-pct-off')) continue;
+        // The saving belongs to the row, not inside the pay price. Sweeping
+        // the theme's own .discount in here made the wrapper as narrow as
+        // "$80.00" and stacked the two inside it — the pay price on one line,
+        // the saving on the next, overflowing up into the rating row.
+        if (n.nodeType === 1 && n.classList && (
+              n.classList.contains('af-pct-off') ||
+              n.classList.contains('discount') ||
+              n.classList.contains('discount-percentage'))) continue;
         moved.push(n);
       }
       if (!moved.length) return;
@@ -2483,9 +2490,19 @@ add_action('wp_footer', function () {
   text-decoration:none !important;font-weight:700;}
 .af-pricerow > del,.af-pricerow > .old-price{order:2;opacity:.65;font-weight:400;
   text-decoration:line-through;}
-.af-pricerow > .af-pct-off{order:3;}
+.af-pricerow > .af-pct-off,.af-pricerow > .discount,
+.af-pricerow > .discount-percentage{order:3;}
 .af-pct-off{color:#4caf2f;font-weight:700;font-size:.85em;white-space:nowrap;
   text-decoration:none !important;}
+/* The pay price is one line, whatever ends up inside it. A card that already
+   nests its saving in there (or any theme markup that turns a child into a
+   block) would otherwise stack them and grow the wrapper past the row. */
+.af-pricerow > .af-now{display:inline-flex !important;flex-direction:row !important;
+  flex-wrap:nowrap !important;align-items:baseline !important;gap:6px !important;
+  width:auto !important;white-space:nowrap !important;}
+.af-pricerow .af-now > *{display:inline !important;width:auto !important;
+  max-width:none !important;float:none !important;margin:0 !important;
+  padding:0 !important;white-space:nowrap !important;}
 </style>
     <?php
 }, 41);
