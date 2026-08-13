@@ -15709,13 +15709,23 @@ add_action('wp_footer', function () {
     var hostBox = host.getBoundingClientRect();
     var formBox = form.getBoundingClientRect();
     if (!formBox.width || !hostBox.width) return;
-    var left  = Math.round(formBox.left  - hostBox.left);
-    var right = Math.round(hostBox.right - formBox.right);
+    // The cart is two columns: the items form on the left, the totals box on
+    // the right. Aligning the related row to the FORM alone made it stop at the
+    // form edge and leave the whole totals column empty beside it — the gap in
+    // the recording. The content width is the union of both columns, so the
+    // related row spans from the form's left edge to the totals' right edge.
+    var totals = document.querySelector('.cart-collaterals, .cart_totals');
+    var totalsBox = totals ? totals.getBoundingClientRect() : null;
+    var contentLeft  = formBox.left;
+    var contentRight = formBox.right;
+    if (totalsBox && totalsBox.width) {
+      contentLeft  = Math.min(contentLeft,  totalsBox.left);
+      contentRight = Math.max(contentRight, totalsBox.right);
+    }
+    var left  = Math.round(contentLeft  - hostBox.left);
+    var right = Math.round(hostBox.right - contentRight);
     if (left < 0 || right < 0) return;
-    // the coupon row and the related row adopt the items table's edges
     var targets = [];
-    var coupon = document.querySelector('.woocommerce-cart-form .coupon, .cart .actions, .woocommerce-cart-form__contents ~ *');
-    if (coupon && !form.contains(coupon)) targets.push(coupon);
     if (rel) targets.push(rel);
     targets.forEach(function(el){
       el.style.setProperty('box-sizing', 'border-box', 'important');
