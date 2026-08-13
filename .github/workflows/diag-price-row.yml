@@ -1,7 +1,7 @@
-name: Diagnose Card Price Row
+name: Diagnose Layout
 
-# Dumps how a live product card's price area is built and laid out, so the
-# three-line price can be fixed from evidence. Manual trigger, read-only.
+# Dumps live layout facts (card price row, header nav space) so fixes land on
+# the real cause instead of guesswork. Manual trigger, read-only.
 on: workflow_dispatch
 
 concurrency:
@@ -24,6 +24,9 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Dump the price row as served
         run: node tools/diag-price-row.mjs
+      - name: Measure the header nav's free space
+        if: always()
+        run: node tools/diag-nav-space.mjs
       - name: Upload card screenshot
         if: always()
         uses: actions/upload-artifact@v4

@@ -14078,21 +14078,139 @@ add_action('admin_bar_menu', function($bar) {
     }
 }, 80);
 
-// The Admin Console is reached from the WordPress admin bar, not the storefront
-// nav (2026-08-13). Injecting it into the header menu kept breaking the header
-// for the owner: the item does not carry the theme's own menu classes, and once
-// forced inline it still had to fit a row already filled by CATEGORIES…BLOG, so
-// it wrapped onto a second line under the customer-facing nav. It is an admin
-// tool sitting in shop chrome, and the admin-bar entry below already gives the
-// same people the same link on every page. The filter, its stylesheet, and the
-// Elementor DOM fallback that all fought that layout are gone with this note.
-//
-// The admin bar is the single entry point now, so make sure it is actually
-// shown to everyone who can open the console — a user whose profile has the
-// toolbar switched off would otherwise lose their only way in.
-add_filter('show_admin_bar', function($show) {
-    return af_console_can_access() ? true : $show;
-}, 100);
+// This adds the item to EVERY menu carrying a Contact Us link, not just the
+// first. The first version stopped after one menu to avoid repeating it, but
+// themes commonly emit a hidden mobile/off-canvas copy of the nav ahead of the
+// desktop one — so the single insert landed in markup that is never visible on
+// desktop. Adding to each matching menu also means the link works on mobile.
+add_filter('wp_nav_menu_items', function($items, $args) {
+    // Contact Us is removed from the header nav, so match on what remains
+    // there too — otherwise this link would disappear along with it.
+    if (stripos($items, 'contact') === false
+        && stripos($items, 'about') === false
+        && stripos($items, 'blog') === false) return $items;
+    if (!af_console_can_access()) return $items;
+    if (strpos($items, 'af-console-navitem') !== false) return $items;
+
+    return $items . '<li class="menu-item af-console-navitem"><a href="' . esc_url(af_console_url()) . '">Admin Console</a></li>';
+}, 20, 2);
+
+add_action('wp_head', function() {
+    if (!af_console_can_access()) return;
+    ?>
+    <style>
+    /* Marks the injected link as an admin-only tool so it reads as distinct
+       from the customer-facing nav items it sits beside. */
+    .af-console-navitem > a{position:relative;color:#c9a84c !important;}
+    .af-console-navitem > a::after{content:'ADMIN';margin-left:6px;font-size:8.5px;font-weight:800;
+      letter-spacing:.06em;vertical-align:super;opacity:.75;}
+    /* The item must sit INLINE with its siblings. The theme gives its own
+       menu lis their inline layout through theme-specific classes this
+       injected li does not carry, so without these rules it falls back to a
+       full-width block li and lands alone on a second nav row. */
+    .af-console-navitem{display:inline-flex !important;align-items:center !important;
+      width:auto !important;max-width:none !important;flex:0 0 auto !important;
+      float:none !important;clear:none !important;white-space:nowrap !important;
+      vertical-align:middle !important;}
+    .af-console-navitem > a{display:inline-block !important;width:auto !important;
+      white-space:nowrap !important;}
+    /* Displaying inline is not enough on its own: the nav row is a wrapping
+       flex line already filled by the shop's own items, so a seventh one at
+       their size still breaks to a second row. Make this item the compact
+       one — it is a tool, not a shop link, so it need not match them — which
+       is what lets it share the row. (The script also holds the row to one
+       line where there is room; it measures first, so a row that cannot take
+       the item wraps as before rather than overflowing the header.) */
+    .af-console-navitem > a{font-size:11px !important;letter-spacing:.03em !important;
+      padding-left:10px !important;padding-right:0 !important;}
+    .af-console-navitem > a::after{font-size:7.5px;margin-left:4px;}
+    </style>
+    <?php
+}, 99);
+
+// Last-resort DOM fallback. Headers built by Elementor or a page builder can
+// render their nav without ever passing through wp_nav_menu_items, in which
+// case the PHP filter above adds nothing. This checks the rendered page and,
+// only if no Inventory item is present, appends one to the nav list that
+// actually holds the Contact link — matching what the visitor really sees
+// rather than what the theme was assumed to output.
+add_action('wp_footer', function() {
+    if (!af_console_can_access()) return;
+    ?>
+    <script>
+    (function(){
+      var ITEMS = [{cls:'af-console-navitem', label:'Admin Console', href:<?php echo wp_json_encode(af_console_url()); ?>}];
+
+      function findNav(){
+        var lists = document.querySelectorAll('ul');
+        var best = null, bestScore = 0;
+        for (var i = 0; i < lists.length; i++) {
+          var ul = lists[i];
+          var links = ul.querySelectorAll(':scope > li > a');
+          if (links.length < 2) continue; // not a real nav bar
+          // Contact Us no longer sits in the header nav, so score on the
+          // items that remain there.
+          var markers = 0;
+          for (var j = 0; j < links.length; j++) {
+            if (/contact|about|blog/i.test(links[j].textContent || '')) markers++;
+          }
+          if (markers < 2) continue;
+          // Prefer the visible nav: a hidden mobile copy has no layout box.
+          var visible = ul.getBoundingClientRect().width > 0;
+          var score = links.length + (visible ? 1000 : 0);
+          if (score > bestScore) { bestScore = score; best = ul; }
+        }
+        return best;
+      }
+
+      function inject(){
+        var best = null;
+        ITEMS.forEach(function(item){
+          if (document.querySelector('.' + item.cls)) return; // PHP filter already added it
+          if (!best) best = findNav();
+          if (!best) return;
+          var first = best.querySelector(':scope > li');
+          var li = document.createElement('li');
+          li.className = (first ? first.className + ' ' : 'menu-item ') + item.cls;
+          var a = document.createElement('a');
+          a.href = item.href;
+          a.textContent = item.label;
+          li.appendChild(a);
+          best.appendChild(li);
+        });
+      }
+      // Hold the row the item ended up in to a single line. The stylesheet
+      // says the same thing with :has(), which every current browser
+      // supports; this repeats it on the element so the item never drops to
+      // a second row on an older one, and so it applies to whichever list
+      // actually received it — the theme's menu or the one found above.
+      function pinRow(){
+        document.querySelectorAll('.af-console-navitem').forEach(function(li){
+          var ul = li.parentElement;
+          if (!ul) return;
+          ul.style.removeProperty('flex-wrap');
+          if (window.innerWidth < 1100) return;
+          if (getComputedStyle(ul).display.indexOf('flex') === -1) return;
+          ul.style.setProperty('flex-wrap', 'nowrap', 'important');
+          // Only hold the line while the line can actually hold it. Forcing
+          // nowrap on a row with no room left does not save the item — it
+          // pushes the whole nav past its container, which is worse than the
+          // second row it was there to prevent. Measure, and stand down.
+          if (ul.scrollWidth > ul.clientWidth + 1) ul.style.removeProperty('flex-wrap');
+        });
+      }
+      function run(){ inject(); pinRow(); }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+      else run();
+      window.addEventListener('load', run);
+      var _navTimer = null;
+      window.addEventListener('resize', function(){
+        clearTimeout(_navTimer); _navTimer = setTimeout(pinRow, 150);
+      });
+    })();
+    </script>
+    <?php
+}, 99);
 
 // ── PHASE 29 — Visitor activity log (logged-in users only) ──────────────────
 // Records, for signed-in visitors ONLY, a timestamp + what they did + their IP
