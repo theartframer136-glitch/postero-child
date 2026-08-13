@@ -15091,6 +15091,51 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
   // theme applies with higher specificity, so a stylesheet fight is not
   // winnable here. An inline property with priority beats every stylesheet,
   // which is the same lesson the product-card buttons taught earlier.
+  // The button was styled and still clipped: the plugin's table's column
+  // minimums push the actions cell past the card edge — geometry, not cascade.
+  // Stop using table layout entirely: each row becomes a flex line (image,
+  // shrinking title block, button pinned right), which cannot overflow.
+  function unclip(){
+    var table = document.querySelector('.woosw-items');
+    if (!table) return;
+    table.style.setProperty('width', '100%', 'important');
+    table.style.setProperty('max-width', '100%', 'important');
+    table.style.setProperty('display', 'block', 'important');
+    table.querySelectorAll('tbody').forEach(function(tb){
+      tb.style.setProperty('display', 'block', 'important');
+    });
+    table.querySelectorAll('tr').forEach(function(tr){
+      tr.style.setProperty('display', 'flex', 'important');
+      tr.style.setProperty('align-items', 'center', 'important');
+      tr.style.setProperty('gap', '14px', 'important');
+      tr.style.setProperty('width', '100%', 'important');
+      tr.style.setProperty('box-sizing', 'border-box', 'important');
+      tr.style.setProperty('padding', '14px 18px', 'important');
+    });
+    table.querySelectorAll('td').forEach(function(td){
+      td.style.setProperty('display', 'block', 'important');
+      td.style.setProperty('overflow', 'visible', 'important');
+      td.style.setProperty('padding', '0', 'important');
+      td.style.setProperty('border', '0', 'important');
+      var isInfo = td.className.indexOf('info') !== -1 || td.querySelector('.woosw-item--name');
+      td.style.setProperty('flex', isInfo ? '1 1 auto' : 'none', 'important');
+      if (isInfo) td.style.setProperty('min-width', '0', 'important');
+      if (td.className.indexOf('actions') !== -1 || td.querySelector('a[href*="add-to-cart="]')) {
+        td.style.setProperty('margin-left', 'auto', 'important');
+        td.style.setProperty('min-width', '0', 'important');
+        td.style.setProperty('text-align', 'right', 'important');
+        td.style.setProperty('flex', 'none', 'important');
+      }
+    });
+    table.querySelectorAll('.woosw-item--image img, td img').forEach(function(im){
+      im.style.setProperty('width', '88px', 'important');
+      im.style.setProperty('height', '88px', 'important');
+      im.style.setProperty('object-fit', 'cover', 'important');
+      im.style.setProperty('border-radius', '10px', 'important');
+    });
+    var name = table.querySelector('.woosw-item--info, .woosw-item--name');
+    if (name) name.style.setProperty('word-break', 'break-word', 'important');
+  }
   function forceButton(a){
     var st = {display:'inline-flex', alignItems:'center', justifyContent:'center', gap:'8px',
               background:'#c9a84c', border:'0', color:'#fff', fontSize:'14px', fontWeight:'600',
@@ -15130,6 +15175,7 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
   function run(){
     document.querySelectorAll('.woosw-items a[href*="add-to-cart="], .wishlist_table a[href*="add-to-cart="]').forEach(label);
     document.querySelectorAll('.woosw-item a[href*="add-to-cart="], .woosw-item--atc a.button').forEach(forceButton);
+    unclip();
     dropStrayCodes();
     // the same control wherever the plugin put it, as long as it is wordless
     document.querySelectorAll('a[href*="add-to-cart="]').forEach(function(a){
