@@ -15137,17 +15137,26 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
     if (name) name.style.setProperty('word-break', 'break-word', 'important');
   }
   function forceButton(a){
+    // Width matters most: the theme renders this control as a small round icon
+    // button (fixed width, overflow hidden), which is why the label showed as
+    // the middle fragment "D TO" of "ADD TO CART" rather than the whole words.
+    // Releasing the width is what makes the button whole.
     var st = {display:'inline-flex', alignItems:'center', justifyContent:'center', gap:'8px',
               background:'#c9a84c', border:'0', color:'#fff', fontSize:'14px', fontWeight:'600',
               padding:'11px 20px', borderRadius:'6px', whiteSpace:'nowrap', textDecoration:'none',
               position:'static', transform:'none', opacity:'1', visibility:'visible',
-              margin:'0', right:'auto', left:'auto', top:'auto', bottom:'auto'};
+              margin:'0', right:'auto', left:'auto', top:'auto', bottom:'auto',
+              width:'auto', minWidth:'0', maxWidth:'none', height:'auto', minHeight:'0',
+              overflow:'visible', textIndent:'0', lineHeight:'1.2', flex:'none',
+              boxSizing:'border-box', textTransform:'none'};
     for (var k in st) a.style.setProperty(k.replace(/[A-Z]/g, function(m){return '-'+m.toLowerCase();}), st[k], 'important');
     a.addEventListener('mouseenter', function(){ a.style.setProperty('background', '#8b6a2b', 'important'); });
     a.addEventListener('mouseleave', function(){ a.style.setProperty('background', '#c9a84c', 'important'); });
     // the wrappers the theme parks off-edge
     var n = a.parentElement, hops = 0;
     while (n && hops++ < 4 && !n.matches('td,.woosw-item')) {
+      n.style.setProperty('width', 'auto', 'important');
+      n.style.setProperty('max-width', 'none', 'important');
       ['position','transform','opacity','visibility','right','left','margin','overflow'].forEach(function(prop){
         n.style.setProperty(prop, prop === 'position' ? 'static'
                                 : prop === 'transform' ? 'none'
