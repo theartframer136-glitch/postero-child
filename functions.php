@@ -14970,6 +14970,15 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
 .af-wl-related h2{font-size:24px;margin:0 0 18px;color:#1a1a1a}
 .af-wl-related ul.products{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;margin:0!important;padding:0!important;list-style:none!important}
 .af-wl-related ul.products::before,.af-wl-related ul.products::after{display:none!important}
+/* Uniform image box, same measurement the shop uses. The card script builds a
+   fixed 300px box (260 under 520px) only for cards shipping TWO images, main
+   plus hover. A single-image card never gets that box, so it keeps the natural
+   ratio and the row goes ragged. Give those cards the same box; images already
+   inside a built box stay under the script control. */
+.af-wl-related li.product img:not(.af-main-img):not(.af-hover-img){
+  height:300px!important;width:100%!important;object-fit:cover!important;display:block!important}
+@media (max-width:520px){
+  .af-wl-related li.product img:not(.af-main-img):not(.af-hover-img){height:260px!important}}
 
 @media (max-width:900px){
   .af-wl-related ul.products{grid-template-columns:repeat(2,1fr)!important}
@@ -15062,6 +15071,15 @@ add_action('woocommerce_after_cart', function () {
 .af-wl-related h2{font-size:24px;margin:0 0 18px;color:#1a1a1a}
 .af-wl-related ul.products{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;margin:0!important;padding:0!important;list-style:none!important}
 .af-wl-related ul.products::before,.af-wl-related ul.products::after{display:none!important}
+/* Uniform image box, same measurement the shop uses. The card script builds a
+   fixed 300px box (260 under 520px) only for cards shipping TWO images, main
+   plus hover. A single-image card never gets that box, so it keeps the natural
+   ratio and the row goes ragged. Give those cards the same box; images already
+   inside a built box stay under the script control. */
+.af-wl-related li.product img:not(.af-main-img):not(.af-hover-img){
+  height:300px!important;width:100%!important;object-fit:cover!important;display:block!important}
+@media (max-width:520px){
+  .af-wl-related li.product img:not(.af-main-img):not(.af-hover-img){height:260px!important}}
 @media (max-width:900px){.af-wl-related ul.products{grid-template-columns:repeat(2,1fr)!important}}
 </style>';
     echo $html;
