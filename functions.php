@@ -15748,3 +15748,110 @@ add_action('wp_footer', function () {
 </script>
     <?php
 }, 23);
+
+// ─────────────────────────────────────────────────────────────
+// Related products as a slider (owner request 2026-08-13): one row that
+// scrolls, with next/previous buttons, instead of two stacked rows of four.
+// Runs wherever the related row exists — wishlist and cart. Layout only: the
+// cards themselves, their links, buttons and prices are untouched.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function () {
+    ?>
+<style id="af-rel-slider-css">
+.af-rel-vp{position:relative;width:100%;overflow:hidden}
+.af-rel-vp ul.products{scrollbar-width:none;-ms-overflow-style:none}
+.af-rel-vp ul.products::-webkit-scrollbar{display:none}
+.af-rel-nav{position:absolute;top:38%;transform:translateY(-50%);z-index:5;
+  width:44px;height:44px;border-radius:50%;border:0;cursor:pointer;
+  background:#c9a84c;color:#fff;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 10px rgba(0,0,0,.22);transition:background .2s,opacity .2s}
+.af-rel-nav:hover{background:#8b6a2b}
+.af-rel-nav[hidden]{display:none!important}
+.af-rel-prev{left:-6px}
+.af-rel-next{right:-6px}
+.af-rel-nav svg{width:20px;height:20px}
+@media (max-width:600px){.af-rel-nav{width:38px;height:38px}}
+</style>
+<script>
+(function(){
+  var GAP = 20;
+  function perView(){
+    var w = window.innerWidth;
+    if (w <= 600) return 1;
+    if (w <= 900) return 2;
+    if (w <= 1200) return 3;
+    return 4;
+  }
+  function sizeCards(ul){
+    var n = perView();
+    ul.querySelectorAll('li.product').forEach(function(li){
+      li.style.setProperty('flex', '0 0 calc((100% - ' + (GAP * (n - 1)) + 'px) / ' + n + ')', 'important');
+      li.style.setProperty('max-width', 'calc((100% - ' + (GAP * (n - 1)) + 'px) / ' + n + ')', 'important');
+      li.style.setProperty('margin', '0', 'important');
+      li.style.setProperty('scroll-snap-align', 'start', 'important');
+    });
+  }
+  function build(){
+    document.querySelectorAll('.af-wl-related').forEach(function(sec){
+      var ul = sec.querySelector('ul.products');
+      if (!ul || sec.dataset.afRelSlider) return;
+      sec.dataset.afRelSlider = '1';
+
+      var vp = document.createElement('div');
+      vp.className = 'af-rel-vp';
+      ul.parentNode.insertBefore(vp, ul);
+      vp.appendChild(ul);
+
+      // one scrolling line instead of a wrapping grid
+      ul.style.setProperty('display', 'flex', 'important');
+      ul.style.setProperty('flex-wrap', 'nowrap', 'important');
+      ul.style.setProperty('gap', GAP + 'px', 'important');
+      ul.style.setProperty('overflow-x', 'auto', 'important');
+      ul.style.setProperty('scroll-behavior', 'smooth', 'important');
+      ul.style.setProperty('scroll-snap-type', 'x mandatory', 'important');
+      ul.style.setProperty('margin', '0', 'important');
+      ul.style.setProperty('padding', '0', 'important');
+      ul.style.setProperty('list-style', 'none', 'important');
+      sizeCards(ul);
+
+      var prev = document.createElement('button');
+      var next = document.createElement('button');
+      prev.className = 'af-rel-nav af-rel-prev';
+      next.className = 'af-rel-nav af-rel-next';
+      prev.type = next.type = 'button';
+      prev.setAttribute('aria-label', 'Previous products');
+      next.setAttribute('aria-label', 'Next products');
+      prev.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>';
+      next.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>';
+      vp.appendChild(prev);
+      vp.appendChild(next);
+
+      function step(){
+        var card = ul.querySelector('li.product');
+        return card ? (card.getBoundingClientRect().width + GAP) : ul.clientWidth;
+      }
+      prev.addEventListener('click', function(){ ul.scrollBy({left: -step(), behavior: 'smooth'}); });
+      next.addEventListener('click', function(){ ul.scrollBy({left:  step(), behavior: 'smooth'}); });
+
+      function paint(){
+        var max = ul.scrollWidth - ul.clientWidth - 2;
+        prev.hidden = ul.scrollLeft <= 2;
+        next.hidden = ul.scrollLeft >= max;
+      }
+      ul.addEventListener('scroll', paint, {passive: true});
+      paint();
+      var rt;
+      window.addEventListener('resize', function(){
+        clearTimeout(rt);
+        rt = setTimeout(function(){ sizeCards(ul); paint(); }, 180);
+      });
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build);
+  else build();
+  window.addEventListener('load', build);
+  [500, 1500, 3000].forEach(function(d){ setTimeout(build, d); });
+})();
+</script>
+    <?php
+}, 24);
