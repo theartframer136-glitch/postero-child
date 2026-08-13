@@ -1,0 +1,33 @@
+name: Diagnose Card Price Row
+
+# Dumps how a live product card's price area is built and laid out, so the
+# three-line price can be fixed from evidence. Manual trigger, read-only.
+on: workflow_dispatch
+
+concurrency:
+  group: diag-price-row
+  cancel-in-progress: true
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Playwright Chromium
+        run: |
+          npm init -y >/dev/null
+          npm i playwright@1.56 >/dev/null
+          npx playwright install --with-deps chromium
+      - name: Dump the price row as served
+        run: node tools/diag-price-row.mjs
+      - name: Upload card screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: price-row-card
+          path: card.png
+          if-no-files-found: ignore
