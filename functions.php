@@ -14057,23 +14057,6 @@ add_action('template_redirect', function(){
 // item would be visible to everyone) the link is injected at render time and
 // only for users who can actually open the page.
 //
-// This adds the item to EVERY menu carrying a Contact Us link, not just the
-// first. The first version stopped after one menu to avoid repeating it, but
-// themes commonly emit a hidden mobile/off-canvas copy of the nav ahead of the
-// desktop one — so the single insert landed in markup that is never visible on
-// desktop. Adding to each matching menu also means the link works on mobile.
-add_filter('wp_nav_menu_items', function($items, $args) {
-    // Contact Us is removed from the header nav, so match on what remains
-    // there too — otherwise this link would disappear along with it.
-    if (stripos($items, 'contact') === false
-        && stripos($items, 'about') === false
-        && stripos($items, 'blog') === false) return $items;
-    if (!af_console_can_access()) return $items;
-    if (strpos($items, 'af-console-navitem') !== false) return $items;
-
-    return $items . '<li class="menu-item af-console-navitem"><a href="' . esc_url(af_console_url()) . '">Admin Console</a></li>';
-}, 20, 2);
-
 // Admin-bar entry: works no matter how the header is built, so there is always
 // one reliable way in even if the theme renders its nav without wp_nav_menu().
 // The console is the parent; the individual tools hang off it as children.
@@ -14095,86 +14078,21 @@ add_action('admin_bar_menu', function($bar) {
     }
 }, 80);
 
-add_action('wp_head', function() {
-    if (!af_console_can_access()) return;
-    ?>
-    <style>
-    /* Marks the injected link as an admin-only tool so it reads as distinct
-       from the customer-facing nav items it sits beside. */
-    .af-console-navitem > a{position:relative;color:#c9a84c !important;}
-    .af-console-navitem > a::after{content:'ADMIN';margin-left:6px;font-size:8.5px;font-weight:800;
-      letter-spacing:.06em;vertical-align:super;opacity:.75;}
-    /* The item must sit INLINE with its siblings. The theme gives its own
-       menu lis their inline layout through theme-specific classes this
-       injected li does not carry, so without these rules it falls back to a
-       full-width block li and lands alone on a second nav row. */
-    .af-console-navitem{display:inline-flex !important;align-items:center !important;
-      width:auto !important;max-width:none !important;flex:0 0 auto !important;
-      float:none !important;clear:none !important;white-space:nowrap !important;
-      vertical-align:middle !important;}
-    .af-console-navitem > a{display:inline-block !important;width:auto !important;
-      white-space:nowrap !important;}
-    </style>
-    <?php
-}, 99);
-
-// Last-resort DOM fallback. Headers built by Elementor or a page builder can
-// render their nav without ever passing through wp_nav_menu_items, in which
-// case the PHP filter above adds nothing. This checks the rendered page and,
-// only if no Inventory item is present, appends one to the nav list that
-// actually holds the Contact link — matching what the visitor really sees
-// rather than what the theme was assumed to output.
-add_action('wp_footer', function() {
-    if (!af_console_can_access()) return;
-    ?>
-    <script>
-    (function(){
-      var ITEMS = [{cls:'af-console-navitem', label:'Admin Console', href:<?php echo wp_json_encode(af_console_url()); ?>}];
-
-      function findNav(){
-        var lists = document.querySelectorAll('ul');
-        var best = null, bestScore = 0;
-        for (var i = 0; i < lists.length; i++) {
-          var ul = lists[i];
-          var links = ul.querySelectorAll(':scope > li > a');
-          if (links.length < 2) continue; // not a real nav bar
-          // Contact Us no longer sits in the header nav, so score on the
-          // items that remain there.
-          var markers = 0;
-          for (var j = 0; j < links.length; j++) {
-            if (/contact|about|blog/i.test(links[j].textContent || '')) markers++;
-          }
-          if (markers < 2) continue;
-          // Prefer the visible nav: a hidden mobile copy has no layout box.
-          var visible = ul.getBoundingClientRect().width > 0;
-          var score = links.length + (visible ? 1000 : 0);
-          if (score > bestScore) { bestScore = score; best = ul; }
-        }
-        return best;
-      }
-
-      function inject(){
-        var best = null;
-        ITEMS.forEach(function(item){
-          if (document.querySelector('.' + item.cls)) return; // PHP filter already added it
-          if (!best) best = findNav();
-          if (!best) return;
-          var first = best.querySelector(':scope > li');
-          var li = document.createElement('li');
-          li.className = (first ? first.className + ' ' : 'menu-item ') + item.cls;
-          var a = document.createElement('a');
-          a.href = item.href;
-          a.textContent = item.label;
-          li.appendChild(a);
-          best.appendChild(li);
-        });
-      }
-      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', inject);
-      else inject();
-    })();
-    </script>
-    <?php
-}, 99);
+// The Admin Console is reached from the WordPress admin bar, not the storefront
+// nav (2026-08-13). Injecting it into the header menu kept breaking the header
+// for the owner: the item does not carry the theme's own menu classes, and once
+// forced inline it still had to fit a row already filled by CATEGORIES…BLOG, so
+// it wrapped onto a second line under the customer-facing nav. It is an admin
+// tool sitting in shop chrome, and the admin-bar entry below already gives the
+// same people the same link on every page. The filter, its stylesheet, and the
+// Elementor DOM fallback that all fought that layout are gone with this note.
+//
+// The admin bar is the single entry point now, so make sure it is actually
+// shown to everyone who can open the console — a user whose profile has the
+// toolbar switched off would otherwise lose their only way in.
+add_filter('show_admin_bar', function($show) {
+    return af_console_can_access() ? true : $show;
+}, 100);
 
 // ── PHASE 29 — Visitor activity log (logged-in users only) ──────────────────
 // Records, for signed-in visitors ONLY, a timestamp + what they did + their IP
