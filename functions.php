@@ -15038,10 +15038,10 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
    plus hover. A single-image card never gets that box, so it keeps the natural
    ratio and the row goes ragged. Give those cards the same box; images already
    inside a built box stay under the script control. */
-.af-wl-related li.product img:not(.af-main-img):not(.af-hover-img){
+.af-wl-related li.product > a:first-of-type > img:not(.af-main-img):not(.af-hover-img){
   height:300px!important;width:100%!important;object-fit:cover!important;display:block!important}
 @media (max-width:520px){
-  .af-wl-related li.product img:not(.af-main-img):not(.af-hover-img){height:260px!important}}
+  .af-wl-related li.product > a:first-of-type > img:not(.af-main-img):not(.af-hover-img){height:260px!important}}
 
 @media (max-width:900px){
   .af-wl-related ul.products{grid-template-columns:repeat(2,1fr)!important}
@@ -15139,10 +15139,10 @@ add_action('woocommerce_after_cart', function () {
    plus hover. A single-image card never gets that box, so it keeps the natural
    ratio and the row goes ragged. Give those cards the same box; images already
    inside a built box stay under the script control. */
-.af-wl-related li.product img:not(.af-main-img):not(.af-hover-img){
+.af-wl-related li.product > a:first-of-type > img:not(.af-main-img):not(.af-hover-img){
   height:300px!important;width:100%!important;object-fit:cover!important;display:block!important}
 @media (max-width:520px){
-  .af-wl-related li.product img:not(.af-main-img):not(.af-hover-img){height:260px!important}}
+  .af-wl-related li.product > a:first-of-type > img:not(.af-main-img):not(.af-hover-img){height:260px!important}}
 @media (max-width:900px){.af-wl-related ul.products{grid-template-columns:repeat(2,1fr)!important}}
 </style>';
     echo $html;
@@ -15277,9 +15277,15 @@ add_action('woocommerce_after_cart_totals', function () {
 add_action('wp_footer', function () {
     ?>
 <style id="af-wl-related-stray">
-/* an art-code line printed outside its card is noise between sections; the
-   codes INSIDE cards keep showing */
-.af-wl-related .af-art-code:not(li .af-art-code){display:none!important}
+/* An art code printed outside a card is noise between sections. The earlier
+   rule was scoped inside .af-wl-related, but the stray line sits BEFORE that
+   section, so it kept showing above the heading. Hide art codes that are not
+   inside a product card, on the wishlist and cart pages only. Codes inside
+   cards are untouched. */
+.woosw-list .af-art-code,
+.entry-content > .af-art-code,
+.entry-content > * > .af-art-code:not(li .af-art-code),
+.af-wl-related > .af-art-code{display:none!important}
 </style>
     <?php
 }, 21);
