@@ -8,8 +8,15 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), '3.4.12');
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), '1.3.6', true);
+    // Version by file mtime: every deploy rewrites the files, so the URL
+    // changes and no browser or edge cache can keep serving a stale copy.
+    // (The hand-bumped strings before this were forgotten on deploy — the
+    // Aug-13 drag-guard fix shipped server-side while every visitor's
+    // browser kept the old custom.js?ver=1.3.6 for days.)
+    $af_css_ver = @filemtime(get_stylesheet_directory() . '/assets/css/custom.css') ?: '3.4.13';
+    $af_js_ver  = @filemtime(get_stylesheet_directory() . '/assets/js/custom.js') ?: '1.4.0';
+    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), $af_css_ver);
+    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), $af_js_ver, true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 }, 20);
 
