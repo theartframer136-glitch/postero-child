@@ -15666,3 +15666,75 @@ add_action('wp_footer', function () {
 </script>
     <?php
 }, 22);
+
+// ─────────────────────────────────────────────────────────────
+// Cart page LAYOUT only (owner request, video 2026-08-13). Three things, all
+// measured in the browser and applied to this page alone. No cart behaviour,
+// totals, coupon handling or checkout logic is touched.
+//
+//   1. Three different left edges: the items table, the coupon row and the
+//      related row each sat on their own margin. They are put on one edge.
+//   2. Product titles broke mid-word ("Wa / ll Art", "Pre / mium") because a
+//      break-anywhere rule applies in the narrow name column. Words wrap at
+//      word boundaries again.
+//   3. An art code printed inside the Cart totals box, where it belongs to no
+//      product. Hidden, exactly as on the wishlist page.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function () {
+    if (!function_exists('is_cart') || !is_cart()) return;
+    ?>
+<script>
+(function(){
+  function titles(){
+    document.querySelectorAll('.woocommerce-cart-form .product-name a, .woocommerce-cart-form .product-name')
+      .forEach(function(el){
+        el.style.setProperty('word-break', 'normal', 'important');
+        el.style.setProperty('overflow-wrap', 'break-word', 'important');
+        el.style.setProperty('hyphens', 'manual', 'important');
+      });
+  }
+  function strayCodes(){
+    document.querySelectorAll('.af-art-code').forEach(function(el){
+      if (el.closest('li.product') || el.closest('tr.cart_item')) return;  // inside a product: keep
+      el.style.setProperty('display', 'none', 'important');
+    });
+  }
+  // one shared left/right edge for every block on the page
+  function align(){
+    var form = document.querySelector('.woocommerce-cart-form');
+    var rel  = document.querySelector('.af-wl-related');
+    if (!form) return;
+    var host = form.parentElement;
+    if (!host) return;
+    var hostBox = host.getBoundingClientRect();
+    var formBox = form.getBoundingClientRect();
+    if (!formBox.width || !hostBox.width) return;
+    var left  = Math.round(formBox.left  - hostBox.left);
+    var right = Math.round(hostBox.right - formBox.right);
+    if (left < 0 || right < 0) return;
+    // the coupon row and the related row adopt the items table's edges
+    var targets = [];
+    var coupon = document.querySelector('.woocommerce-cart-form .coupon, .cart .actions, .woocommerce-cart-form__contents ~ *');
+    if (coupon && !form.contains(coupon)) targets.push(coupon);
+    if (rel) targets.push(rel);
+    targets.forEach(function(el){
+      el.style.setProperty('box-sizing', 'border-box', 'important');
+      el.style.setProperty('max-width', 'none', 'important');
+      el.style.setProperty('margin-left', left + 'px', 'important');
+      el.style.setProperty('margin-right', right + 'px', 'important');
+      el.style.setProperty('padding-left', '0', 'important');
+      el.style.setProperty('padding-right', '0', 'important');
+    });
+  }
+  function run(){ titles(); strayCodes(); align(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+  else run();
+  window.addEventListener('load', run);
+  [400, 1200, 2500].forEach(function(d){ setTimeout(run, d); });
+  var rt; window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(run, 200); });
+  // the cart re-renders its contents over ajax on quantity changes
+  if (window.jQuery) jQuery(document.body).on('updated_cart_totals updated_wc_div', run);
+})();
+</script>
+    <?php
+}, 23);
