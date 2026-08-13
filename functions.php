@@ -14104,6 +14104,16 @@ add_action('wp_head', function() {
     .af-console-navitem > a{position:relative;color:#c9a84c !important;}
     .af-console-navitem > a::after{content:'ADMIN';margin-left:6px;font-size:8.5px;font-weight:800;
       letter-spacing:.06em;vertical-align:super;opacity:.75;}
+    /* The item must sit INLINE with its siblings. The theme gives its own
+       menu lis their inline layout through theme-specific classes this
+       injected li does not carry, so without these rules it falls back to a
+       full-width block li and lands alone on a second nav row. */
+    .af-console-navitem{display:inline-flex !important;align-items:center !important;
+      width:auto !important;max-width:none !important;flex:0 0 auto !important;
+      float:none !important;clear:none !important;white-space:nowrap !important;
+      vertical-align:middle !important;}
+    .af-console-navitem > a{display:inline-block !important;width:auto !important;
+      white-space:nowrap !important;}
     </style>
     <?php
 }, 99);
