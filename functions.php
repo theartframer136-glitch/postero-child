@@ -14727,7 +14727,11 @@ function af_wl_related_html($markup) {
     $picks = array_slice($picks, 0, 8);
 
     ob_start();
-    echo '<section class="af-wl-related"><h2>You may also like</h2>';
+    // The wrapper carries the woocommerce class deliberately: the shop's card
+    // styling is written as ".woocommerce ul.products li.product …", so without
+    // it these cards fall back to unstyled defaults and need hand-written css —
+    // which is exactly what went wrong here before.
+    echo '<section class="af-wl-related woocommerce"><h2>You may also like</h2>';
     echo '<ul class="products columns-4">';
     $keep = isset($GLOBALS['post']) ? $GLOBALS['post'] : null;
     foreach ($picks as $p) {
@@ -14966,42 +14970,6 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
 .af-wl-related h2{font-size:24px;margin:0 0 18px;color:#1a1a1a}
 .af-wl-related ul.products{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;margin:0!important;padding:0!important;list-style:none!important}
 .af-wl-related ul.products::before,.af-wl-related ul.products::after{display:none!important}
-.af-wl-related ul.products li.product{width:100%!important;margin:0!important;float:none!important;
-  background:#fff!important;border:1px solid #eee!important;border-radius:12px!important;overflow:hidden!important;
-  display:flex!important;flex-direction:column!important}
-/* anchor price and buttons to the card bottom so the row aligns (see cart copy) */
-.af-wl-related ul.products li.product .price{margin-top:auto!important}
-/* the sale ribbon and wishlist heart are positioned by the theme only inside
-   .product-slider; in this row they drift to a different offset on every card.
-   Pin them to the same corner on all cards. */
-.af-wl-related ul.products li.product{position:relative!important}
-.af-wl-related li.product .sale-ribbon,
-.af-wl-related li.product [class*="sale-ribbon"],
-.af-wl-related li.product .onsale{position:absolute!important;top:0!important;left:0!important;margin:0!important;z-index:3!important}
-.af-wl-related li.product .wishlist-btn{position:absolute!important;top:10px!important;right:10px!important;z-index:3!important}
-.af-wl-related li.product .product-image,
-.af-wl-related li.product .image-wrapper{position:relative!important;overflow:hidden!important}
-.af-wl-related ul.products li.product .woocommerce-loop-product__title{min-height:2.9em}
-.af-wl-related ul.products li.product img{width:100%!important;height:auto!important;aspect-ratio:1/1;object-fit:cover!important}
-.af-wl-related ul.products li.product .woocommerce-loop-product__title{font-size:14px!important;line-height:1.4!important;padding:10px 12px 0!important}
-.af-wl-related ul.products li.product .price{padding:0 12px 12px!important;display:block!important}
-/* the buttons must be the SAME buttons as every other card: gold cart button
-   (#c9a84c, hover #8b6a2b), black quick view, outlined brochure — the row
-   restyled the card but left the default olive button showing */
-.af-wl-related li.product .add-to-cart-btn,
-.af-wl-related li.product a.add_to_cart_button,
-.af-wl-related li.product .add-cart,
-.af-wl-related li.product [class*="add-to-cart"]{
-  display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;
-  background:#c9a84c!important;border-color:#c9a84c!important;color:#fff!important;
-  white-space:nowrap!important;transition:background .2s!important}
-.af-wl-related li.product .add-to-cart-btn:hover,
-.af-wl-related li.product a.add_to_cart_button:hover,
-.af-wl-related li.product [class*="add-to-cart"]:hover{background:#8b6a2b!important;border-color:#8b6a2b!important}
-.af-wl-related li.product .taf-broch--card{
-  background:transparent!important;border:1.5px solid #c9a84c!important;color:#8a6d1f!important;
-  opacity:1!important;border-radius:0!important}
-.af-wl-related li.product .taf-broch--card:hover{background:#c9a84c!important;color:#fff!important}
 
 @media (max-width:900px){
   .af-wl-related ul.products{grid-template-columns:repeat(2,1fr)!important}
@@ -15094,43 +15062,6 @@ add_action('woocommerce_after_cart', function () {
 .af-wl-related h2{font-size:24px;margin:0 0 18px;color:#1a1a1a}
 .af-wl-related ul.products{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;margin:0!important;padding:0!important;list-style:none!important}
 .af-wl-related ul.products::before,.af-wl-related ul.products::after{display:none!important}
-.af-wl-related ul.products li.product{width:100%!important;margin:0!important;float:none!important;background:#fff!important;border:1px solid #eee!important;border-radius:12px!important;overflow:hidden!important;display:flex!important;flex-direction:column!important}
-/* cards hold different amounts of text (some have an art code, some a second
-   title line) — anchor the price and the buttons to the bottom so every card
-   in the row lines up regardless */
-.af-wl-related ul.products li.product .price{margin-top:auto!important}
-/* the sale ribbon and wishlist heart are positioned by the theme only inside
-   .product-slider; in this row they drift to a different offset on every card.
-   Pin them to the same corner on all cards. */
-.af-wl-related ul.products li.product{position:relative!important}
-.af-wl-related li.product .sale-ribbon,
-.af-wl-related li.product [class*="sale-ribbon"],
-.af-wl-related li.product .onsale{position:absolute!important;top:0!important;left:0!important;margin:0!important;z-index:3!important}
-.af-wl-related li.product .wishlist-btn{position:absolute!important;top:10px!important;right:10px!important;z-index:3!important}
-.af-wl-related li.product .product-image,
-.af-wl-related li.product .image-wrapper{position:relative!important;overflow:hidden!important}
-.af-wl-related ul.products li.product .woocommerce-loop-product__title{min-height:2.9em}
-.af-wl-related li.product .taf-broch--card,.af-wl-related li.product [class*="broch"]{margin-top:0!important}
-.af-wl-related ul.products li.product img{width:100%!important;height:auto!important;aspect-ratio:1/1;object-fit:cover!important}
-.af-wl-related ul.products li.product .woocommerce-loop-product__title{font-size:14px!important;line-height:1.4!important;padding:10px 12px 0!important}
-.af-wl-related ul.products li.product .price{padding:0 12px 12px!important;display:block!important}
-/* the buttons must be the SAME buttons as every other card: gold cart button
-   (#c9a84c, hover #8b6a2b), black quick view, outlined brochure — the row
-   restyled the card but left the default olive button showing */
-.af-wl-related li.product .add-to-cart-btn,
-.af-wl-related li.product a.add_to_cart_button,
-.af-wl-related li.product .add-cart,
-.af-wl-related li.product [class*="add-to-cart"]{
-  display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;
-  background:#c9a84c!important;border-color:#c9a84c!important;color:#fff!important;
-  white-space:nowrap!important;transition:background .2s!important}
-.af-wl-related li.product .add-to-cart-btn:hover,
-.af-wl-related li.product a.add_to_cart_button:hover,
-.af-wl-related li.product [class*="add-to-cart"]:hover{background:#8b6a2b!important;border-color:#8b6a2b!important}
-.af-wl-related li.product .taf-broch--card{
-  background:transparent!important;border:1.5px solid #c9a84c!important;color:#8a6d1f!important;
-  opacity:1!important;border-radius:0!important}
-.af-wl-related li.product .taf-broch--card:hover{background:#c9a84c!important;color:#fff!important}
 @media (max-width:900px){.af-wl-related ul.products{grid-template-columns:repeat(2,1fr)!important}}
 </style>';
     echo $html;
@@ -15254,71 +15185,16 @@ add_action('woocommerce_after_cart_totals', function () {
 }, 20);
 
 // ─────────────────────────────────────────────────────────────
-// Related-row cards: the room-preview block rendered IN FLOW.
-//
-// The card template ships a second, framed "in the room" preview with an icon
-// strip. Inside .product-slider the theme overlays it on the artwork and shows
-// it on hover; in the related row it fell into normal flow below the image —
-// giant cards, blank gaps where a card has no preview (the owner's recording).
-//
-// Class names for that block vary between card variants, so this does not
-// guess them: any top-level block of the card that comes after the primary
-// image container and itself contains an <img> is the preview, and it gets
-// stacked over the primary image and revealed on hover — the same behaviour
-// the theme intends elsewhere. Title, price, rating and buttons carry no <img>
-// (icons are inline svg), so they can never match.
+// Related-row cards are SHOP-PAGE cards. They come from the same template
+// (wc_get_template_part content-product), so the site's own card machinery —
+// the uniform image box, the hover second image, the button styling — already
+// treats them correctly. Earlier passes here added their own image sizing and
+// moved the hover block around by hand, which fought that machinery and
+// produced the tall white gaps under the artwork. Nothing does that now: the
+// row only lays the cards out in a grid, and the cards style themselves.
 // ─────────────────────────────────────────────────────────────
 add_action('wp_footer', function () {
     ?>
-<script>
-(function(){
-  function fixRow(){
-    document.querySelectorAll('.af-wl-related li.product').forEach(function(card){
-      if (card.dataset.afPreviewFixed) return;
-      var img = card.querySelector('img');
-      if (!img) return;
-      // the primary image's top-level container inside the card
-      var top = img;
-      while (top.parentElement && top.parentElement !== card) top = top.parentElement;
-      var moved = false;
-      var n = top.nextElementSibling;
-      while (n) {
-        var next = n.nextElementSibling;
-        if (n.querySelector && n.querySelector('img')) {
-          top.style.setProperty('position', 'relative', 'important');
-          n.style.setProperty('position', 'absolute', 'important');
-          n.style.setProperty('inset', '0', 'important');
-          n.style.setProperty('margin', '0', 'important');
-          n.style.setProperty('opacity', '0', 'important');
-          n.style.setProperty('transition', 'opacity .3s', 'important');
-          n.style.setProperty('z-index', '4', 'important');
-          n.style.setProperty('overflow', 'hidden', 'important');
-          top.appendChild(n);
-          moved = true;
-        }
-        n = next;
-      }
-      if (moved) {
-        card.addEventListener('mouseenter', function(){
-          top.querySelectorAll(':scope > [style*="opacity"]').forEach(function(el){
-            if (el.style.position === 'absolute') el.style.setProperty('opacity', '1', 'important');
-          });
-        });
-        card.addEventListener('mouseleave', function(){
-          top.querySelectorAll(':scope > [style*="opacity"]').forEach(function(el){
-            if (el.style.position === 'absolute') el.style.setProperty('opacity', '0', 'important');
-          });
-        });
-      }
-      card.dataset.afPreviewFixed = '1';
-    });
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fixRow);
-  else fixRow();
-  window.addEventListener('load', fixRow);
-  [400, 1200, 2500].forEach(function(d){ setTimeout(fixRow, d); });
-})();
-</script>
 <style id="af-wl-related-stray">
 /* an art-code line printed outside its card is noise between sections; the
    codes INSIDE cards keep showing */
