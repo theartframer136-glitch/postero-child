@@ -15769,7 +15769,11 @@ add_action('wp_footer', function () {
 .af-rel-nav[hidden]{display:none!important}
 .af-rel-prev{left:-6px}
 .af-rel-next{right:-6px}
-.af-rel-nav svg{width:20px;height:20px}
+/* the theme's global button rules flatten inline svg; state the icon size and
+   colour here too, so the chevrons survive even before the script runs */
+.af-rel-nav svg{width:20px!important;height:20px!important;display:block!important;
+  fill:none!important;stroke:currentColor!important;stroke-width:2.5!important;opacity:1!important}
+.af-rel-nav *{color:#fff!important}
 @media (max-width:600px){.af-rel-nav{width:38px;height:38px}}
 </style>
 <script>
@@ -15825,6 +15829,43 @@ add_action('wp_footer', function () {
       next.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>';
       vp.appendChild(prev);
       vp.appendChild(next);
+
+      // The chevrons rendered blank: this theme has global button rules that
+      // flatten inline svg inside buttons (the same fault that once produced
+      // icon-less black circles on the chat launcher). Inline properties beat
+      // those rules; and if the svg still measures zero after paint, swap in a
+      // text chevron, which no button rule can shrink away.
+      function forceIcon(btn, chr){
+        btn.style.setProperty('color', '#fff', 'important');
+        btn.style.setProperty('padding', '0', 'important');
+        btn.style.setProperty('overflow', 'visible', 'important');
+        btn.style.setProperty('line-height', '1', 'important');
+        btn.style.setProperty('font-size', '26px', 'important');
+        var svg = btn.querySelector('svg');
+        if (svg) {
+          svg.setAttribute('width', '20');
+          svg.setAttribute('height', '20');
+          svg.style.setProperty('width', '20px', 'important');
+          svg.style.setProperty('height', '20px', 'important');
+          svg.style.setProperty('display', 'block', 'important');
+          svg.style.setProperty('fill', 'none', 'important');
+          svg.style.setProperty('stroke', 'currentColor', 'important');
+          svg.style.setProperty('stroke-width', '2.5', 'important');
+          svg.style.setProperty('opacity', '1', 'important');
+          svg.style.setProperty('visibility', 'visible', 'important');
+        }
+        setTimeout(function(){
+          var g = btn.querySelector('svg');
+          var w = g ? g.getBoundingClientRect().width : 0;
+          if (w < 4) {
+            btn.textContent = chr;
+            btn.style.setProperty('font-weight', '700', 'important');
+            btn.style.setProperty('font-family', 'system-ui, -apple-system, Segoe UI, sans-serif', 'important');
+          }
+        }, 300);
+      }
+      forceIcon(prev, '\u2039');
+      forceIcon(next, '\u203A');
 
       function step(){
         var card = ul.querySelector('li.product');
