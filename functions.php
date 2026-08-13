@@ -15136,6 +15136,41 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
     var name = table.querySelector('.woosw-item--info, .woosw-item--name');
     if (name) name.style.setProperty('word-break', 'break-word', 'important');
   }
+
+  // The saved-item card and the related row sat on different left/right edges,
+  // because each is constrained by a different container. Rather than guess a
+  // width that matches, measure where the related row's cards actually start
+  // and end and put the saved-item card on exactly those edges.
+  function alignSections(){
+    var rel  = document.querySelector('.af-wl-related');
+    var list = document.querySelector('.woosw-list');
+    if (!rel || !list || !list.parentElement) return;
+    var cards = rel.querySelectorAll('li.product');
+    if (!cards.length) return;
+    var first = cards[0].getBoundingClientRect();
+    var last  = cards[cards.length - 1].getBoundingClientRect();
+    var host  = list.parentElement.getBoundingClientRect();
+    if (!first.width || !host.width) return;
+    var left  = Math.round(first.left - host.left);
+    var right = Math.round(host.right - last.right);
+    if (left < 0 || right < 0) return;
+    list.style.setProperty('box-sizing', 'border-box', 'important');
+    list.style.setProperty('width', 'auto', 'important');
+    list.style.setProperty('max-width', 'none', 'important');
+    list.style.setProperty('margin-left', left + 'px', 'important');
+    list.style.setProperty('margin-right', right + 'px', 'important');
+    // the heading and the share row belong on the same edges
+    ['.af-wl-head', '.woosw-actions'].forEach(function(sel){
+      var el = document.querySelector(sel);
+      if (!el) return;
+      el.style.setProperty('box-sizing', 'border-box', 'important');
+      el.style.setProperty('max-width', 'none', 'important');
+      el.style.setProperty('margin-left', left + 'px', 'important');
+      el.style.setProperty('margin-right', right + 'px', 'important');
+      el.style.setProperty('padding-left', '0', 'important');
+      el.style.setProperty('padding-right', '0', 'important');
+    });
+  }
   function forceButton(a){
     // Width matters most: the theme renders this control as a small round icon
     // button (fixed width, overflow hidden), which is why the label showed as
@@ -15185,6 +15220,7 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
     document.querySelectorAll('.woosw-items a[href*="add-to-cart="], .wishlist_table a[href*="add-to-cart="]').forEach(label);
     document.querySelectorAll('.woosw-item a[href*="add-to-cart="], .woosw-item--atc a.button').forEach(forceButton);
     unclip();
+    alignSections();
     dropStrayCodes();
     // the same control wherever the plugin put it, as long as it is wordless
     document.querySelectorAll('a[href*="add-to-cart="]').forEach(function(a){
@@ -15196,6 +15232,7 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
   else run();
   window.addEventListener('load', run);
   [400, 1200, 2500].forEach(function(d){ setTimeout(run, d); });
+  var _art; window.addEventListener('resize', function(){ clearTimeout(_art); _art = setTimeout(run, 200); });
   try {
     new MutationObserver(function(m){
       for (var i = 0; i < m.length; i++) { if (m[i].addedNodes && m[i].addedNodes.length) { run(); break; } }
