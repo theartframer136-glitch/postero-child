@@ -15531,3 +15531,46 @@ font:12px/1.5 monospace;padding:10px 14px;border-radius:8px;max-width:460px;max-
 </script>
     <?php
 }, 9998);
+
+// ─────────────────────────────────────────────────────────────
+// Related row: uniform artwork height, measured from the DOM.
+// The shop-card script builds its fixed image box only for cards shipping a
+// main AND a hover image; a single-image card keeps its natural ratio and sits
+// visibly shorter than the row. Two stylesheet attempts at this missed because
+// they assumed where the img lives in the card; this finds it wherever it is
+// and sizes it inline, which no stylesheet can override. Cards the script
+// already boxed (.af-main-img) are left to the script. Runs only where the
+// related row exists.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function () {
+    ?>
+<script>
+(function(){
+  function even(){
+    var cards = document.querySelectorAll('.af-wl-related li.product');
+    if (!cards.length) return;
+    var H = (window.innerWidth <= 520) ? 260 : 300;
+    cards.forEach(function(card){
+      var img = card.querySelector('img');
+      if (!img || img.classList.contains('af-main-img') || img.classList.contains('af-hover-img')) return;
+      img.style.setProperty('height', H + 'px', 'important');
+      img.style.setProperty('width', '100%', 'important');
+      img.style.setProperty('object-fit', 'cover', 'important');
+      img.style.setProperty('display', 'block', 'important');
+      var box = img.parentElement;
+      if (box && box !== card) {
+        box.style.setProperty('display', 'block', 'important');
+        box.style.setProperty('height', H + 'px', 'important');
+        box.style.setProperty('overflow', 'hidden', 'important');
+      }
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', even);
+  else even();
+  window.addEventListener('load', even);
+  [600, 1500, 3000].forEach(function(d){ setTimeout(even, d); });
+  var rt; window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(even, 200); });
+})();
+</script>
+    <?php
+}, 22);
