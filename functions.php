@@ -525,11 +525,187 @@ div.list-wrapper.postero-scroll {
 <?php }, 9999);
 
 
-// 9b (removed 2026-08-12): a capture-phase click handler added on Aug 11 to
-// make the collection circles 'clickable' swallowed every click before the
-// parent theme's own subcategory filter could see it — the circles had been
-// working since the July 30 drag-gesture fix in assets/js/custom.js, which
-// still stands. The theme's handler now receives clicks again, untouched.
+// 9b. Collection circles: the child theme owns the click (2026-08-13).
+// History: an Aug-11 capture-phase interceptor swallowed circle clicks; the
+// Aug-12 restore (bee70f9) removed the child's wiring entirely, betting the
+// parent theme's own handler would take the clicks back. The Aug-12 server
+// diagnostics disprove that bet: the circles are a.pf-value anchors produced
+// by the parent's category walker (inc/woocommerce/woocommerce-template-
+// functions.php), its load_products AJAX endpoint is registered and answers
+// with product cards — but NO code in the parent theme or any plugin binds a
+// click to the circles ("no direct click binding found by pattern",
+// diag-pf-handler.php / diag-subcat-click.php, deploy runs 31599177961 and
+// 31602796393). The endpoint is an orphan; with the child wiring gone every
+// circle click has been dead, which is exactly what the owner's Aug-13
+// screen recording shows. So the child owns the interaction, with three
+// guarantees:
+//   1. instant response — the clicked circle is marked active and the
+//      visible product area dims while products load;
+//   2. products swap in place through the theme's own contract
+//      (POST action=load_products&subcategory=<data-val slug>);
+//   3. never a dead click — if the request fails or answers without cards,
+//      the browser navigates to the circle's real category archive URL.
+// Delegated from document (bubble phase), so circles re-rendered later by
+// tab switches or AJAX are covered without re-wiring, and the drag guard in
+// assets/js/custom.js still cancels post-drag clicks before they get here.
+// Handles every strip variant the theme renders: li.cat-item > a.pf-value
+// (data-val + real href), and the .sub-cat <img>+<span> circles (no anchor —
+// resolved by caption against the category map below).
+add_action('wp_footer', function() {
+  if (is_admin()) return;
+  $terms = get_terms(array('taxonomy' => 'product_cat', 'hide_empty' => false));
+  if (is_wp_error($terms) || !$terms) return;
+  $map = array();
+  foreach ($terms as $t) {
+    $link = get_term_link($t);
+    if (is_wp_error($link)) continue;
+    $key = strtolower(preg_replace('/[^a-z0-9]+/i', '', html_entity_decode($t->name)));
+    if ($key !== '') $map[$key] = array('u' => $link, 's' => $t->slug);
+  }
+  if (!$map) return;
+  ?>
+<style id="af-circle-active">
+/* The chosen circle keeps a visible gold ring until another is chosen */
+#subcategorySlider .active img, .subcategory-slider .active img,
+li.cat-item.active img, .sub-cat.active img,
+ul.postero-scroll-content li.cat-item.active img {
+    outline: 3px solid #c9a84c !important;
+    outline-offset: 2px !important;
+    border-radius: 50% !important;
+}
+</style>
+<script>
+(function(){
+  var AJAX = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
+  var CATS = <?php echo wp_json_encode($map); ?>;
+  function dbg(m){ if (window.afdbg) window.afdbg(m); }
+  function norm(s){ return (s||'').toLowerCase().replace(/[^a-z0-9]+/g,''); }
+
+  var STRIPS   = '#subcategorySlider, .subcategory-slider, ul.postero-scroll-content, .subcategory-container';
+  var ITEM     = 'a.pf-value, li.cat-item, .sub-cat';
+  var GRID_SEL = '#productGrid, .product-slider, .custom-product-track, ul.products';
+
+  // Resolve which category a circle stands for: trust data-val (the exact
+  // slug load_products expects) and the anchor's real href when present;
+  // otherwise match the caption against the category map.
+  function catFor(item){
+    var a = (item.matches && item.matches('a.pf-value,[data-val]')) ? item
+          : (item.querySelector ? item.querySelector('a.pf-value,[data-val]') : null);
+    if (a && a.getAttribute('data-val')) {
+      var href = (a.tagName === 'A' && a.getAttribute('href')) || '';
+      if (!href || href === '#' || href.indexOf('javascript:') === 0) {
+        var m = CATS[norm(a.getAttribute('data-title') || a.textContent)];
+        href = m ? m.u : '';
+      }
+      return { s: a.getAttribute('data-val'), u: href };
+    }
+    var label = norm((item.getAttribute && item.getAttribute('data-title')) || item.textContent);
+    if (!label) return null;
+    if (CATS[label]) return CATS[label];
+    var best = null, bestLen = 0;
+    for (var k in CATS) {
+      if (k.length > bestLen && label.indexOf(k) !== -1) { best = CATS[k]; bestLen = k.length; }
+    }
+    return best;
+  }
+
+  // The grid to swap is the one in the SAME section as the clicked strip —
+  // walking up keeps a grid from an unrelated section out of the swap.
+  function gridFor(item){
+    for (var node = item; node && node !== document.body; node = node.parentElement) {
+      var g = node.querySelector(GRID_SEL);
+      if (g && !g.contains(item)) return g;
+    }
+    return document.querySelector(GRID_SEL);
+  }
+
+  // What the visitor actually SEES may be the af-shell carousel built from
+  // the (then hidden) grid — dim that, not the hidden element.
+  function visibleAreaFor(grid){
+    if (grid.classList.contains('af-grid-hidden') && grid.parentNode) {
+      var shell = grid.parentNode.querySelector('.af-shell');
+      if (shell) return shell;
+    }
+    return grid;
+  }
+
+  function markActive(item){
+    var circle = (item.closest && (item.closest('li.cat-item, .sub-cat') || item)) || item;
+    var strip = item.closest ? item.closest(STRIPS) : null;
+    if (strip) {
+      strip.querySelectorAll('.active').forEach(function(x){ x.classList.remove('active'); });
+    }
+    circle.classList.add('active');
+  }
+
+  var busy = false;
+  function filterTo(cat, item, e){
+    var grid = gridFor(item);
+    dbg('click slug=' + cat.s + ' grid=' + (grid ? (grid.id || grid.className || grid.tagName).toString().slice(0,50) : 'NONE'));
+    if (!grid) {
+      // nothing to filter on this page — the click must still go somewhere
+      var a = item.tagName === 'A' ? item : (item.querySelector && item.querySelector('a[href]'));
+      if (!a && cat.u) { e.preventDefault(); window.location.href = cat.u; }
+      return; // real anchors navigate natively
+    }
+    e.preventDefault();
+    if (busy) return; // one request at a time; the click is already answered
+    busy = true;
+    markActive(item);
+
+    var area = visibleAreaFor(grid);
+    area.style.opacity = '.45';
+    // Safety: never leave the page dimmed (shell rebuilds replace the dimmed
+    // element on success; this covers a rebuild that never comes)
+    var unDim = setTimeout(function(){ area.style.opacity = ''; }, 4000);
+
+    var body = new URLSearchParams();
+    body.set('action', 'load_products');
+    body.set('subcategory', cat.s);
+    fetch(AJAX, { method: 'POST', credentials: 'same-origin',
+                  headers: {'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'},
+                  body: body.toString() })
+      .then(function(r){ dbg('ajax http=' + r.status); if (!r.ok) throw new Error('http ' + r.status); return r.text(); })
+      .then(function(html){
+        var ok = html && (html.indexOf('product-card') !== -1 || html.indexOf('woocommerce-loop-product') !== -1);
+        dbg('ajax bytes=' + (html ? html.length : 0) + (ok ? '' : ' (no cards)'));
+        busy = false;
+        if (!ok) {
+          // an empty category reads better on its archive page, which offers
+          // similar pieces — and the click still visibly does something
+          clearTimeout(unDim); area.style.opacity = '';
+          if (cat.u) { window.location.href = cat.u; }
+          return;
+        }
+        grid.innerHTML = html;
+        // A visible grid is done now; a shell-backed grid is rebuilt by the
+        // slider's own MutationObserver moments later (it replaces the shell).
+        if (area === grid) { clearTimeout(unDim); area.style.opacity = ''; }
+        document.dispatchEvent(new Event('af_products_appended'));
+        if (window.jQuery) jQuery(document.body).trigger('wc_fragments_refreshed');
+        dbg('swapped into ' + (grid.id || grid.className || grid.tagName).toString().slice(0,50));
+      })
+      .catch(function(err){
+        dbg('ajax FAILED ' + err);
+        busy = false;
+        clearTimeout(unDim); area.style.opacity = '';
+        if (cat.u) window.location.href = cat.u; // never a dead click
+      });
+  }
+
+  document.addEventListener('click', function(e){
+    if (e.defaultPrevented) return;                 // someone else owns this click
+    if (!e.target || !e.target.closest) return;
+    var item = e.target.closest(ITEM);
+    if (!item || !item.closest(STRIPS)) return;     // only circles inside a strip
+    if (e.target.closest('button, .next-circle, .prev-circle, [class*="arrow"]')) return;
+    var cat = catFor(item);
+    if (!cat || !cat.s) { dbg('click: no category match for "' + (item.textContent||'').trim().slice(0,40) + '"'); return; }
+    filterTo(cat, item, e);
+  });
+})();
+</script>
+<?php }, 9999);
 
 // 10. Product card slider
 add_action('wp_footer', function() { ?>
@@ -15329,12 +15505,12 @@ font:12px/1.5 monospace;padding:10px 14px;border-radius:8px;max-width:460px;max-
   window.afdbg = function(m){ box.innerHTML += '<br>' + m; };
   window.addEventListener('load', function(){
     setTimeout(function(){
-      var wired = document.querySelectorAll('[data-af-cat-link]:not([data-af-cat-link=""])').length;
-      var resolvedEmpty = document.querySelectorAll('[data-af-cat-link=""]').length;
+      var strips = document.querySelectorAll('#subcategorySlider, .subcategory-slider, ul.postero-scroll-content').length;
+      var items = document.querySelectorAll('a.pf-value, li.cat-item, .sub-cat').length;
       var pf = document.querySelectorAll('a.pf-value').length;
       var grids = ['#productGrid','.product-slider','.custom-product-track','ul.products']
         .map(function(sel){ return sel + ':' + document.querySelectorAll(sel).length; }).join('  ');
-      afdbg('wired:' + wired + '  skipped:' + resolvedEmpty + '  pf-value anchors:' + pf);
+      afdbg('delegated handler on document  strips:' + strips + '  circle items:' + items + '  pf-value anchors:' + pf);
       afdbg('grids ' + grids);
     }, 1500);
   });

@@ -124,6 +124,14 @@ jQuery(document).ready(function($) {
       if (e && el.hasPointerCapture && el.hasPointerCapture(e.pointerId)) {
         try { el.releasePointerCapture(e.pointerId); } catch (err) {}
       }
+      // A stale moved=true silently swallows the NEXT genuine click (the
+      // click suppressor below checks it). Only a pointerup is followed by a
+      // click, and that click arrives within the same input sequence — so on
+      // any other ending (pointerleave, pointercancel: the drag left the row)
+      // clear the flag now, and after a pointerup let the follow-up click be
+      // suppressed but expire the flag shortly after in case none arrives.
+      if (!e || e.type !== 'pointerup') { moved = false; }
+      else if (moved) { setTimeout(function () { moved = false; }, 400); }
     }
     el.addEventListener('pointerup', stopDrag);
     el.addEventListener('pointerleave', stopDrag);
