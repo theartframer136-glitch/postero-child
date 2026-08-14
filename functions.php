@@ -15839,6 +15839,85 @@ add_action('wp_footer', function () {
     });
   }
 
+  // The four card actions — cart, compare, quick view, wishlist — appear as a
+  // scattered cluster over the artwork. Collect whichever of them a card ships
+  // and lay them out as one centred row of equal buttons at the foot of the
+  // image, revealed on hover. The elements themselves are MOVED, not rebuilt,
+  // so their own links and click handlers travel with them untouched.
+  function arrangeActions(sec){
+    sec.querySelectorAll('li.product').forEach(function(li){
+      if (li.dataset.afActionRow) return;
+      var firstImg = li.querySelector('a img');
+      var host = firstImg ? firstImg.parentElement : null;
+      if (!host) return;
+
+      var picks = [];
+      function grab(sel){
+        var el = li.querySelector(sel);
+        if (el && picks.indexOf(el) === -1 && !el.closest('.af-card-actions')) picks.push(el);
+      }
+      grab('.add-to-cart-btn, a.add_to_cart_button, [class*="add-to-cart"]');
+      grab('[class*="compare"]');
+      grab('[class*="quick-view"], [class*="quickview"], [class*="quick_view"], .view-btn');
+      grab('[class*="wishlist"], [class*="wcwl"]');
+      if (picks.length < 2) return;
+      li.dataset.afActionRow = '1';
+
+      var bar = document.createElement('div');
+      bar.className = 'af-card-actions';
+      [['position','absolute'],['left','0'],['right','0'],['bottom','10px'],
+       ['display','flex'],['justify-content','center'],['align-items','center'],
+       ['gap','8px'],['z-index','6'],['opacity','0'],['transition','opacity .25s ease'],
+       ['pointer-events','none']].forEach(function(p){
+        bar.style.setProperty(p[0], p[1], 'important');
+      });
+
+      // remember where each button lived, so the empty shell it leaves behind
+      // (which still reserves height — the grey strip under the artwork) can be
+      // collapsed once it is genuinely empty
+      var oldHomes = picks.map(function(el){ return el.parentElement; });
+
+      picks.forEach(function(el){
+        [['width','38px'],['height','38px'],['min-width','38px'],['max-width','38px'],
+         ['padding','0'],['margin','0'],['border-radius','50%'],['display','inline-flex'],
+         ['align-items','center'],['justify-content','center'],['position','static'],
+         ['transform','none'],['opacity','1'],['visibility','visible'],['overflow','hidden'],
+         ['box-shadow','0 2px 8px rgba(0,0,0,.18)'],['border','0'],['flex','0 0 auto'],
+         ['pointer-events','auto']].forEach(function(p){
+          el.style.setProperty(p[0], p[1], 'important');
+        });
+        var isCart = /add[-_ ]?(to[-_ ]?)?cart/i.test(el.className || '');
+        el.style.setProperty('background', isCart ? '#c9a84c' : '#fff', 'important');
+        el.style.setProperty('color', isCart ? '#fff' : '#1a1a1a', 'important');
+        // an icon-only button: keep the icon, drop the words that would wrap
+        var icon = el.querySelector('svg, i, img');
+        if (icon) {
+          el.style.setProperty('font-size', '0', 'important');
+          icon.style.setProperty('width', '17px', 'important');
+          icon.style.setProperty('height', '17px', 'important');
+          icon.style.setProperty('font-size', '16px', 'important');
+          icon.style.setProperty('display', 'block', 'important');
+          icon.style.setProperty('opacity', '1', 'important');
+        } else {
+          el.style.setProperty('font-size', '11px', 'important');
+        }
+        bar.appendChild(el);
+      });
+
+      host.style.setProperty('position', 'relative', 'important');
+      host.appendChild(bar);
+
+      oldHomes.forEach(function(home){
+        if (!home || home === host || home.contains(bar)) return;
+        if (home.querySelector('img, svg, a, button')) return;      // still holds something
+        if ((home.textContent || '').trim() !== '') return;
+        home.style.setProperty('display', 'none', 'important');
+      });
+      li.addEventListener('mouseenter', function(){ bar.style.setProperty('opacity', '1', 'important'); });
+      li.addEventListener('mouseleave', function(){ bar.style.setProperty('opacity', '0', 'important'); });
+    });
+  }
+
   function build(){
     document.querySelectorAll('.af-wl-related').forEach(function(sec){
       var ul = sec.querySelector('ul.products');
@@ -15862,6 +15941,7 @@ add_action('wp_footer', function () {
       ul.style.setProperty('list-style', 'none', 'important');
       sizeCards(ul);
       fillImages(sec);
+      arrangeActions(sec);
 
       var prev = document.createElement('button');
       var next = document.createElement('button');
@@ -15939,7 +16019,11 @@ add_action('wp_footer', function () {
   [500, 1500, 3000].forEach(function(d){ setTimeout(build, d); });
   // images arrive lazily; re-fit after they land
   [800, 2000, 3500].forEach(function(d){
-    setTimeout(function(){ document.querySelectorAll('.af-wl-related').forEach(fillImages); }, d);
+    setTimeout(function(){
+      document.querySelectorAll('.af-wl-related').forEach(function(sec){
+        fillImages(sec); arrangeActions(sec);
+      });
+    }, d);
   });
 })();
 </script>
