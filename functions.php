@@ -15841,116 +15841,144 @@ add_action('wp_footer', function () {
     });
   }
 
-  // The four card actions — cart, compare, quick view, wishlist — appear as a
-  // scattered cluster over the artwork. Collect whichever of them a card ships
-  // and lay them out as one centred row of equal buttons at the foot of the
-  // image, revealed on hover. The elements themselves are MOVED, not rebuilt,
-  // so their own links and click handlers travel with them untouched.
+  // The four card actions — cart, compare, quick view, wishlist — as one row.
+  //
+  // Moving the theme's own controls into a row did not hold: several other
+  // scripts on this site restyle those elements with inline !important rules
+  // of their own, so whatever we set was overwritten moments later, and some
+  // of the controls are injected only on first hover. So build a row of our
+  // own buttons — elements nothing else on the site knows about — and have
+  // each one CLICK the original control, which keeps every plugin behaviour
+  // (ajax add to cart, compare list, quick view modal, wishlist save) exactly
+  // as it is. The originals are parked in a zero-size holder rather than
+  // removed, so any plugin that looks for them still finds them.
+  var ICONS = {
+    cart:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>',
+    compare: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>',
+    quick:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+    wish:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1.1 1L12 21l7.7-7.6 1.1-1a5.5 5.5 0 0 0 0-7.8z"></path></svg>'
+  };
+
+  function findControl(li, sels){
+    var found = null;
+    sels.split(',').some(function(sel){
+      var list = li.querySelectorAll(sel.trim());
+      for (var i = 0; i < list.length; i++) {
+        var el = list[i];
+        if (el.closest('.af-card-actions') || el.closest('.af-card-orig')) continue;
+        if (el.tagName === 'A' && el.querySelector('img')) continue;   // the product link
+        found = el;
+        return true;
+      }
+      return false;
+    });
+    return found;
+  }
+
+  function makeBtn(kind, title, orig, gold){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'af-ca-btn af-ca-' + kind;
+    b.title = title;
+    b.setAttribute('aria-label', title);
+    b.innerHTML = ICONS[kind];
+    [['width','38px'],['height','38px'],['min-width','38px'],['border-radius','50%'],
+     ['display','inline-flex'],['align-items','center'],['justify-content','center'],
+     ['padding','0'],['margin','0'],['border','0'],['cursor','pointer'],
+     ['box-shadow','0 2px 8px rgba(0,0,0,.18)'],['flex','0 0 auto'],
+     ['background', gold ? '#c9a84c' : '#fff'],['color', gold ? '#fff' : '#1a1a1a'],
+     ['transition','background .2s,color .2s']].forEach(function(p){
+      b.style.setProperty(p[0], p[1], 'important');
+    });
+    var svg = b.querySelector('svg');
+    if (svg) {
+      svg.style.setProperty('width', '17px', 'important');
+      svg.style.setProperty('height', '17px', 'important');
+      svg.style.setProperty('display', 'block', 'important');
+      svg.style.setProperty('fill', 'none', 'important');
+      svg.style.setProperty('stroke', 'currentColor', 'important');
+    }
+    b.addEventListener('mouseenter', function(){
+      b.style.setProperty('background', gold ? '#8b6a2b' : '#c9a84c', 'important');
+      b.style.setProperty('color', '#fff', 'important');
+    });
+    b.addEventListener('mouseleave', function(){
+      b.style.setProperty('background', gold ? '#c9a84c' : '#fff', 'important');
+      b.style.setProperty('color', gold ? '#fff' : '#1a1a1a', 'important');
+    });
+    b.addEventListener('click', function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      if (orig && typeof orig.click === 'function') orig.click();
+    });
+    return b;
+  }
+
   function arrangeActions(sec){
     sec.querySelectorAll('li.product').forEach(function(li){
       if (li.dataset.afActionRow) return;
       var firstImg = li.querySelector('img');
       var imgHost  = firstImg ? firstImg.parentElement : null;
       if (!imgHost) return;
-      // Never nest the buttons inside the product link: a click there would
-      // navigate to the product instead of running the action. If the image
-      // sits in an <a>, hang the row off the card itself.
-      var host = imgHost.closest('a') ? li : imgHost;
 
-      var picks = [];
-      function grab(sel){
-        li.querySelectorAll(sel).forEach(function(el){
-          if (picks.indexOf(el) !== -1) return;
-          if (el.closest('.af-card-actions')) return;
-          // skip wrappers: only take the clickable control itself
-          if (!el.matches('a,button')) return;
-          // and skip anything that is the product link
-          var href = el.getAttribute('href') || '';
-          if (el.tagName === 'A' && el.querySelector('img')) return;
-          if (picks.some(function(p){ return p.contains(el) || el.contains(p); })) return;
-          picks.push(el);
-        });
-      }
-      grab('.add-to-cart-btn, a.add_to_cart_button, [class*="add-to-cart"], [class*="add_to_cart"]');
-      grab('[class*="compare"]');
-      grab('[class*="quick-view"], [class*="quickview"], [class*="quick_view"], .view-btn, [data-quick-view]');
-      grab('[class*="wishlist"], [class*="wcwl"], [class*="wl-btn"]');
-      // One action is still worth placing: the row exists so nothing floats.
-      if (!picks.length) return;
+      var cart    = findControl(li, '.add-to-cart-btn, a.add_to_cart_button, [class*="add-to-cart"], [class*="add_to_cart"]');
+      var compare = findControl(li, '[class*="compare"]');
+      var quick   = findControl(li, '[class*="quick-view"], [class*="quickview"], [class*="quick_view"], .view-btn, [data-quick-view]');
+      var wish    = findControl(li, '[class*="wishlist"], [class*="wcwl"], [class*="wl-btn"]');
+      if (!cart && !compare && !quick && !wish) return;
       li.dataset.afActionRow = '1';
 
       var bar = document.createElement('div');
       bar.className = 'af-card-actions';
       [['position','absolute'],['left','0'],['right','0'],['bottom','10px'],
        ['display','flex'],['justify-content','center'],['align-items','center'],
-       ['gap','8px'],['z-index','6'],['opacity','0'],['transition','opacity .25s ease'],
-       ['pointer-events','none']].forEach(function(p){
+       ['gap','8px'],['z-index','7'],['pointer-events','auto']].forEach(function(p){
         bar.style.setProperty(p[0], p[1], 'important');
       });
 
-      // remember where each button lived, so the empty shell it leaves behind
-      // (which still reserves height — the grey strip under the artwork) can be
-      // collapsed once it is genuinely empty
-      var oldHomes = picks.map(function(el){ return el.parentElement; });
+      if (cart)    bar.appendChild(makeBtn('cart',    'Add to cart',   cart,    true));
+      if (compare) bar.appendChild(makeBtn('compare', 'Compare',       compare, false));
+      if (quick)   bar.appendChild(makeBtn('quick',   'Quick view',    quick,   false));
+      if (wish)    bar.appendChild(makeBtn('wish',    'Add to wishlist', wish,  false));
 
-      picks.forEach(function(el){
-        [['width','38px'],['height','38px'],['min-width','38px'],['max-width','38px'],
-         ['padding','0'],['margin','0'],['border-radius','50%'],['display','inline-flex'],
-         ['align-items','center'],['justify-content','center'],['position','static'],
-         ['transform','none'],['opacity','1'],['visibility','visible'],['overflow','hidden'],
-         ['box-shadow','0 2px 8px rgba(0,0,0,.18)'],['border','0'],['flex','0 0 auto'],
-         ['pointer-events','auto']].forEach(function(p){
-          el.style.setProperty(p[0], p[1], 'important');
-        });
-        var isCart = /add[-_ ]?(to[-_ ]?)?cart/i.test(el.className || '');
-        el.style.setProperty('background', isCart ? '#c9a84c' : '#fff', 'important');
-        el.style.setProperty('color', isCart ? '#fff' : '#1a1a1a', 'important');
-        // an icon-only button: keep the icon, drop the words that would wrap
-        var icon = el.querySelector('svg, i, img');
-        if (icon) {
-          el.style.setProperty('font-size', '0', 'important');
-          icon.style.setProperty('width', '17px', 'important');
-          icon.style.setProperty('height', '17px', 'important');
-          icon.style.setProperty('font-size', '16px', 'important');
-          icon.style.setProperty('display', 'block', 'important');
-          icon.style.setProperty('opacity', '1', 'important');
-        } else {
-          el.style.setProperty('font-size', '11px', 'important');
-        }
-        bar.appendChild(el);
+      // park the originals out of sight but still in the document
+      var holder = document.createElement('div');
+      holder.className = 'af-card-orig';
+      [['position','absolute'],['width','1px'],['height','1px'],['overflow','hidden'],
+       ['opacity','0'],['pointer-events','none'],['left','-9999px'],['top','0']].forEach(function(p){
+        holder.style.setProperty(p[0], p[1], 'important');
       });
+      [cart, compare, quick, wish].forEach(function(el){
+        if (!el) return;
+        var home = el.parentElement;
+        holder.appendChild(el);
+        if (home && !home.querySelector('img, svg, a, button') && (home.textContent || '').trim() === '') {
+          home.style.setProperty('display', 'none', 'important');
+        }
+      });
+      li.appendChild(holder);
 
-      host.style.setProperty('position', 'relative', 'important');
-      if (host === li) {
-        // place the row at the foot of the image area rather than the card
+      // the row sits at the foot of the artwork, inside the image area
+      var target = imgHost.closest('a') ? li : imgHost;
+      target.style.setProperty('position', 'relative', 'important');
+      if (target === li) {
         var h = imgHost.getBoundingClientRect().height ||
                 ((window.innerWidth <= 520) ? 260 : 300);
         bar.style.setProperty('bottom', 'auto', 'important');
         bar.style.setProperty('top', Math.max(0, Math.round(h - 52)) + 'px', 'important');
       }
-      host.appendChild(bar);
-
-      oldHomes.forEach(function(home){
-        if (!home || home === host || home.contains(bar)) return;
-        if (home.querySelector('img, svg, a, button')) return;      // still holds something
-        if ((home.textContent || '').trim() !== '') return;
-        home.style.setProperty('display', 'none', 'important');
-      });
-      li.addEventListener('mouseenter', function(){ bar.style.setProperty('opacity', '1', 'important'); });
-      li.addEventListener('mouseleave', function(){ bar.style.setProperty('opacity', '0', 'important'); });
+      target.appendChild(bar);
     });
   }
 
-  // Some of these controls are injected by the theme only when a card is first
-  // hovered, so a single pass at load can miss them. Re-collect on hover and
-  // whenever a card gains children.
+  // Some controls are injected by the theme only when a card is first hovered,
+  // so one pass at load can miss them. Re-collect on hover and on DOM changes.
   function watchCards(sec){
     if (sec.dataset.afActionWatch) return;
     sec.dataset.afActionWatch = '1';
     sec.querySelectorAll('li.product').forEach(function(li){
       li.addEventListener('mouseenter', function(){
-        if (li.dataset.afActionRow) return;
-        arrangeActions(sec);
+        if (!li.dataset.afActionRow) arrangeActions(sec);
       });
     });
     try {
