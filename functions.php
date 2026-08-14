@@ -15896,3 +15896,92 @@ add_action('wp_footer', function () {
 </script>
     <?php
 }, 24);
+
+// ─────────────────────────────────────────────────────────────
+// "Filter by Tag" — show only tags that actually have products here.
+//
+// The filter itself works (clicking #Canvas Art applies ?product_tag=canvas-art
+// and the grid changes). The complaint is the tags that lead nowhere: the
+// widget lists every tag in the store, including ones with no product in the
+// category being browsed, so clicking them empties the page. Work out which
+// tags have at least one product in this context and hide the rest. The filter
+// logic, the widget and the links are untouched — only dead chips disappear.
+//
+// Two queries, cached for six hours per category.
+// ─────────────────────────────────────────────────────────────
+function af_live_tag_slugs() {
+    if (!function_exists('is_shop')) return array();
+    $term = (function_exists('is_product_category') && is_product_category())
+          ? get_queried_object() : null;
+    $key  = 'af_live_tags_' . (($term && !is_wp_error($term)) ? (int) $term->term_id : 'shop');
+
+    $cached = get_transient($key);
+    if (is_array($cached)) return $cached;
+
+    $args = array('post_type' => 'product', 'post_status' => 'publish',
+                  'posts_per_page' => -1, 'fields' => 'ids', 'no_found_rows' => true);
+    if ($term && !is_wp_error($term)) {
+        $args['tax_query'] = array(array(
+            'taxonomy' => 'product_cat', 'field' => 'term_id',
+            'terms' => (int) $term->term_id, 'include_children' => true,
+        ));
+    }
+    $ids = get_posts($args);
+    $slugs = array();
+    if ($ids) {
+        $tags = wp_get_object_terms($ids, 'product_tag', array('fields' => 'all'));
+        if (!is_wp_error($tags)) {
+            foreach ($tags as $t) $slugs[$t->slug] = true;
+        }
+    }
+    $slugs = array_keys($slugs);
+    set_transient($key, $slugs, 6 * HOUR_IN_SECONDS);
+    return $slugs;
+}
+
+add_action('wp_footer', function () {
+    if (is_admin()) return;
+    if (!function_exists('is_shop')) return;
+    if (!is_shop() && !(function_exists('is_product_category') && is_product_category())) return;
+    $live = af_live_tag_slugs();
+    if (!$live) return;
+    ?>
+<script>
+(function(){
+  var LIVE = <?php echo wp_json_encode(array_values($live)); ?>;
+  var ok = {};
+  LIVE.forEach(function(s){ ok[s] = 1; });
+
+  function slugOf(a){
+    var d = a.getAttribute('data-val');
+    if (d) return d;
+    var href = a.getAttribute('href') || '';
+    var m = href.match(/[?&]product_tag=([^&#]+)/);
+    if (m) return decodeURIComponent(m[1]);
+    m = href.match(/\/product-tag\/([^\/?#]+)/);
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  function prune(){
+    document.querySelectorAll('a[href*="product_tag="], a[href*="/product-tag/"], a.pf-value[data-val]')
+      .forEach(function(a){
+        // only inside a tag filter list — never touch tags printed on a product
+        if (a.closest('li.product, .product-card, .woosw-item, .af-wl-related')) return;
+        var slug = slugOf(a);
+        if (!slug || ok[slug]) return;
+        var chip = a.closest('li') || a;
+        chip.style.setProperty('display', 'none', 'important');
+      });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', prune);
+  else prune();
+  window.addEventListener('load', prune);
+  [400, 1200, 2500].forEach(function(d){ setTimeout(prune, d); });
+  try {
+    new MutationObserver(function(m){
+      for (var i = 0; i < m.length; i++) { if (m[i].addedNodes && m[i].addedNodes.length) { prune(); break; } }
+    }).observe(document.body, {childList:true, subtree:true});
+  } catch(e){}
+})();
+</script>
+    <?php
+}, 25);
