@@ -15914,60 +15914,110 @@ add_action('wp_footer', function () {
     return b;
   }
 
+  var KINDS = [
+    ['cart',    'Add to cart',      '.add-to-cart-btn, a.add_to_cart_button, [class*="add-to-cart"], [class*="add_to_cart"]', true],
+    ['compare', 'Compare',          '[class*="compare"]', false],
+    ['quick',   'Quick view',       '[class*="quick-view"], [class*="quickview"], [class*="quick_view"], .view-btn, [data-quick-view]', false],
+    ['wish',    'Add to wishlist',  '[class*="wishlist"], [class*="wcwl"], [class*="wl-btn"]', false]
+  ];
+
+  // Incremental on purpose: the theme injects wishlist and quick view only when
+  // a card is first hovered, so a card that has just cart and compare at load
+  // must be able to gain the other two later. Each pass adds whatever kinds are
+  // now present and have not been added yet, keeping the row in a fixed order.
   function arrangeActions(sec){
     sec.querySelectorAll('li.product').forEach(function(li){
-      if (li.dataset.afActionRow) return;
       var firstImg = li.querySelector('img');
       var imgHost  = firstImg ? firstImg.parentElement : null;
       if (!imgHost) return;
 
-      var cart    = findControl(li, '.add-to-cart-btn, a.add_to_cart_button, [class*="add-to-cart"], [class*="add_to_cart"]');
-      var compare = findControl(li, '[class*="compare"]');
-      var quick   = findControl(li, '[class*="quick-view"], [class*="quickview"], [class*="quick_view"], .view-btn, [data-quick-view]');
-      var wish    = findControl(li, '[class*="wishlist"], [class*="wcwl"], [class*="wl-btn"]');
-      if (!cart && !compare && !quick && !wish) return;
-      li.dataset.afActionRow = '1';
+      var bar = li.querySelector(':scope > .af-card-actions')
+             || (imgHost.querySelector(':scope > .af-card-actions'));
+      var holder = li.querySelector('.af-card-orig');
+      var have = (li.dataset.afKinds || '').split(',').filter(Boolean);
 
-      var bar = document.createElement('div');
-      bar.className = 'af-card-actions';
-      [['position','absolute'],['left','0'],['right','0'],['bottom','10px'],
-       ['display','flex'],['justify-content','center'],['align-items','center'],
-       ['gap','8px'],['z-index','7'],['pointer-events','auto']].forEach(function(p){
-        bar.style.setProperty(p[0], p[1], 'important');
+      var pending = KINDS.filter(function(k){ return have.indexOf(k[0]) === -1; });
+      if (!pending.length) return;
+
+      var additions = [];
+      pending.forEach(function(k){
+        var el = findControl(li, k[2]);
+        if (el) additions.push([k, el]);
       });
+      if (!additions.length) return;
 
-      if (cart)    bar.appendChild(makeBtn('cart',    'Add to cart',   cart,    true));
-      if (compare) bar.appendChild(makeBtn('compare', 'Compare',       compare, false));
-      if (quick)   bar.appendChild(makeBtn('quick',   'Quick view',    quick,   false));
-      if (wish)    bar.appendChild(makeBtn('wish',    'Add to wishlist', wish,  false));
+      if (!bar) {
+        bar = document.createElement('div');
+        bar.className = 'af-card-actions';
+        [['position','absolute'],['left','0'],['right','0'],['bottom','10px'],
+         ['display','flex'],['justify-content','center'],['align-items','center'],
+         ['gap','8px'],['z-index','7'],
+         // hidden until the card is hovered — every action appears together
+         ['opacity','0'],['pointer-events','none'],['transition','opacity .25s ease']
+        ].forEach(function(p){ bar.style.setProperty(p[0], p[1], 'important'); });
 
-      // park the originals out of sight but still in the document
-      var holder = document.createElement('div');
-      holder.className = 'af-card-orig';
-      [['position','absolute'],['width','1px'],['height','1px'],['overflow','hidden'],
-       ['opacity','0'],['pointer-events','none'],['left','-9999px'],['top','0']].forEach(function(p){
-        holder.style.setProperty(p[0], p[1], 'important');
-      });
-      [cart, compare, quick, wish].forEach(function(el){
-        if (!el) return;
+        var target = imgHost.closest('a') ? li : imgHost;
+        target.style.setProperty('position', 'relative', 'important');
+        if (target === li) {
+          var h = imgHost.getBoundingClientRect().height ||
+                  ((window.innerWidth <= 520) ? 260 : 300);
+          bar.style.setProperty('bottom', 'auto', 'important');
+          bar.style.setProperty('top', Math.max(0, Math.round(h - 52)) + 'px', 'important');
+        }
+        target.appendChild(bar);
+
+        li.addEventListener('mouseenter', function(){
+          bar.style.setProperty('opacity', '1', 'important');
+          bar.style.setProperty('pointer-events', 'auto', 'important');
+        });
+        li.addEventListener('mouseleave', function(){
+          bar.style.setProperty('opacity', '0', 'important');
+          bar.style.setProperty('pointer-events', 'none', 'important');
+        });
+      }
+      if (!holder) {
+        holder = document.createElement('div');
+        holder.className = 'af-card-orig';
+        [['position','absolute'],['width','1px'],['height','1px'],['overflow','hidden'],
+         ['opacity','0'],['pointer-events','none'],['left','-9999px'],['top','0']
+        ].forEach(function(p){ holder.style.setProperty(p[0], p[1], 'important'); });
+        li.appendChild(holder);
+      }
+
+      additions.forEach(function(pair){
+        var k = pair[0], el = pair[1];
+        bar.appendChild(makeBtn(k[0], k[1], el, k[3]));
         var home = el.parentElement;
         holder.appendChild(el);
-        if (home && !home.querySelector('img, svg, a, button') && (home.textContent || '').trim() === '') {
+        if (home && home !== holder && !home.querySelector('img, svg, a, button')
+            && (home.textContent || '').trim() === '') {
           home.style.setProperty('display', 'none', 'important');
         }
+        have.push(k[0]);
       });
-      li.appendChild(holder);
+      li.dataset.afKinds = have.join(',');
 
-      // the row sits at the foot of the artwork, inside the image area
-      var target = imgHost.closest('a') ? li : imgHost;
-      target.style.setProperty('position', 'relative', 'important');
-      if (target === li) {
-        var h = imgHost.getBoundingClientRect().height ||
-                ((window.innerWidth <= 520) ? 260 : 300);
-        bar.style.setProperty('bottom', 'auto', 'important');
-        bar.style.setProperty('top', Math.max(0, Math.round(h - 52)) + 'px', 'important');
-      }
-      target.appendChild(bar);
+      // Any control the theme leaves floating over the artwork after our row
+      // exists would duplicate it — park those too, so the card shows exactly
+      // one set of actions and only on hover.
+      KINDS.forEach(function(k){
+        var stray = findControl(li, k[2]);
+        if (stray && !stray.closest('.af-card-orig') && !stray.closest('.af-card-actions')) {
+          holder.appendChild(stray);
+        }
+      });
+
+      // keep the fixed order regardless of when each kind arrived
+      var order = {cart: 1, compare: 2, quick: 3, wish: 4};
+      Array.prototype.slice.call(bar.children)
+        .sort(function(a, b){
+          function rank(el){
+            var m = (el.className || '').match(/af-ca-(\w+)/);
+            return m ? (order[m[1]] || 9) : 9;
+          }
+          return rank(a) - rank(b);
+        })
+        .forEach(function(el){ bar.appendChild(el); });
     });
   }
 
@@ -15977,8 +16027,11 @@ add_action('wp_footer', function () {
     if (sec.dataset.afActionWatch) return;
     sec.dataset.afActionWatch = '1';
     sec.querySelectorAll('li.product').forEach(function(li){
+      // run on the FIRST hover too: that is when the theme injects wishlist
+      // and quick view, and the row must pick them up straight away
       li.addEventListener('mouseenter', function(){
-        if (!li.dataset.afActionRow) arrangeActions(sec);
+        arrangeActions(sec);
+        setTimeout(function(){ arrangeActions(sec); }, 60);
       });
     });
     try {
