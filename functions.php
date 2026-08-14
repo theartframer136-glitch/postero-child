@@ -15795,6 +15795,50 @@ add_action('wp_footer', function () {
       li.style.setProperty('scroll-snap-align', 'start', 'important');
     });
   }
+  // Make every card's image area one fixed box that both the artwork and the
+  // room preview fill. Without this the preview keeps its own proportions on
+  // hover and leaves a white band under it, and the card visibly changes shape
+  // as the pointer moves across the row.
+  function fillImages(sec){
+    var H = (window.innerWidth <= 520) ? 260 : 300;
+    sec.querySelectorAll('li.product').forEach(function(li){
+      var link = li.querySelector('a');
+      if (!link) return;
+      var imgs = link.querySelectorAll('img');
+      if (!imgs.length) return;
+      var host = imgs[0].parentElement;   // whatever wraps the artwork
+      if (!host) return;
+      host.style.setProperty('position', 'relative', 'important');
+      host.style.setProperty('display', 'block', 'important');
+      host.style.setProperty('height', H + 'px', 'important');
+      host.style.setProperty('min-height', H + 'px', 'important');
+      host.style.setProperty('overflow', 'hidden', 'important');
+      host.style.setProperty('padding-bottom', '0', 'important');
+      Array.prototype.forEach.call(imgs, function(im, i){
+        im.style.setProperty('position', 'absolute', 'important');
+        im.style.setProperty('top', '0', 'important');
+        im.style.setProperty('left', '0', 'important');
+        im.style.setProperty('width', '100%', 'important');
+        im.style.setProperty('height', '100%', 'important');
+        im.style.setProperty('max-width', 'none', 'important');
+        im.style.setProperty('object-fit', 'cover', 'important');
+        im.style.setProperty('margin', '0', 'important');
+        im.style.setProperty('z-index', i === 0 ? '1' : '2', 'important');
+      });
+      // If the site's own hover swap never initialised on these cards, the
+      // second image would simply sit on top forever. Give it the same
+      // behaviour: hidden until the card is hovered.
+      if (imgs.length > 1 && !li.dataset.afRelHover) {
+        li.dataset.afRelHover = '1';
+        var hover = imgs[1];
+        hover.style.setProperty('opacity', '0', 'important');
+        hover.style.setProperty('transition', 'opacity .35s ease', 'important');
+        li.addEventListener('mouseenter', function(){ hover.style.setProperty('opacity', '1', 'important'); });
+        li.addEventListener('mouseleave', function(){ hover.style.setProperty('opacity', '0', 'important'); });
+      }
+    });
+  }
+
   function build(){
     document.querySelectorAll('.af-wl-related').forEach(function(sec){
       var ul = sec.querySelector('ul.products');
@@ -15817,6 +15861,7 @@ add_action('wp_footer', function () {
       ul.style.setProperty('padding', '0', 'important');
       ul.style.setProperty('list-style', 'none', 'important');
       sizeCards(ul);
+      fillImages(sec);
 
       var prev = document.createElement('button');
       var next = document.createElement('button');
@@ -15884,7 +15929,7 @@ add_action('wp_footer', function () {
       var rt;
       window.addEventListener('resize', function(){
         clearTimeout(rt);
-        rt = setTimeout(function(){ sizeCards(ul); paint(); }, 180);
+        rt = setTimeout(function(){ sizeCards(ul); fillImages(sec); paint(); }, 180);
       });
     });
   }
@@ -15892,6 +15937,10 @@ add_action('wp_footer', function () {
   else build();
   window.addEventListener('load', build);
   [500, 1500, 3000].forEach(function(d){ setTimeout(build, d); });
+  // images arrive lazily; re-fit after they land
+  [800, 2000, 3500].forEach(function(d){
+    setTimeout(function(){ document.querySelectorAll('.af-wl-related').forEach(fillImages); }, d);
+  });
 })();
 </script>
     <?php
