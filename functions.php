@@ -15758,6 +15758,8 @@ add_action('wp_footer', function () {
 add_action('wp_footer', function () {
     ?>
 <style id="af-rel-slider-css">
+/* Owner-only probe: /cart/?af_debug_cards=1 reports what each card actually
+   ships, since a browser click cannot be inspected from the server. */
 .af-rel-vp{position:relative;width:100%;overflow:hidden}
 .af-rel-vp ul.products{scrollbar-width:none;-ms-overflow-style:none}
 .af-rel-vp ul.products::-webkit-scrollbar{display:none}
@@ -15847,20 +15849,34 @@ add_action('wp_footer', function () {
   function arrangeActions(sec){
     sec.querySelectorAll('li.product').forEach(function(li){
       if (li.dataset.afActionRow) return;
-      var firstImg = li.querySelector('a img');
-      var host = firstImg ? firstImg.parentElement : null;
-      if (!host) return;
+      var firstImg = li.querySelector('img');
+      var imgHost  = firstImg ? firstImg.parentElement : null;
+      if (!imgHost) return;
+      // Never nest the buttons inside the product link: a click there would
+      // navigate to the product instead of running the action. If the image
+      // sits in an <a>, hang the row off the card itself.
+      var host = imgHost.closest('a') ? li : imgHost;
 
       var picks = [];
       function grab(sel){
-        var el = li.querySelector(sel);
-        if (el && picks.indexOf(el) === -1 && !el.closest('.af-card-actions')) picks.push(el);
+        li.querySelectorAll(sel).forEach(function(el){
+          if (picks.indexOf(el) !== -1) return;
+          if (el.closest('.af-card-actions')) return;
+          // skip wrappers: only take the clickable control itself
+          if (!el.matches('a,button')) return;
+          // and skip anything that is the product link
+          var href = el.getAttribute('href') || '';
+          if (el.tagName === 'A' && el.querySelector('img')) return;
+          if (picks.some(function(p){ return p.contains(el) || el.contains(p); })) return;
+          picks.push(el);
+        });
       }
-      grab('.add-to-cart-btn, a.add_to_cart_button, [class*="add-to-cart"]');
+      grab('.add-to-cart-btn, a.add_to_cart_button, [class*="add-to-cart"], [class*="add_to_cart"]');
       grab('[class*="compare"]');
-      grab('[class*="quick-view"], [class*="quickview"], [class*="quick_view"], .view-btn');
-      grab('[class*="wishlist"], [class*="wcwl"]');
-      if (picks.length < 2) return;
+      grab('[class*="quick-view"], [class*="quickview"], [class*="quick_view"], .view-btn, [data-quick-view]');
+      grab('[class*="wishlist"], [class*="wcwl"], [class*="wl-btn"]');
+      // One action is still worth placing: the row exists so nothing floats.
+      if (!picks.length) return;
       li.dataset.afActionRow = '1';
 
       var bar = document.createElement('div');
@@ -15905,6 +15921,13 @@ add_action('wp_footer', function () {
       });
 
       host.style.setProperty('position', 'relative', 'important');
+      if (host === li) {
+        // place the row at the foot of the image area rather than the card
+        var h = imgHost.getBoundingClientRect().height ||
+                ((window.innerWidth <= 520) ? 260 : 300);
+        bar.style.setProperty('bottom', 'auto', 'important');
+        bar.style.setProperty('top', Math.max(0, Math.round(h - 52)) + 'px', 'important');
+      }
       host.appendChild(bar);
 
       oldHomes.forEach(function(home){
@@ -15916,6 +15939,24 @@ add_action('wp_footer', function () {
       li.addEventListener('mouseenter', function(){ bar.style.setProperty('opacity', '1', 'important'); });
       li.addEventListener('mouseleave', function(){ bar.style.setProperty('opacity', '0', 'important'); });
     });
+  }
+
+  // Some of these controls are injected by the theme only when a card is first
+  // hovered, so a single pass at load can miss them. Re-collect on hover and
+  // whenever a card gains children.
+  function watchCards(sec){
+    if (sec.dataset.afActionWatch) return;
+    sec.dataset.afActionWatch = '1';
+    sec.querySelectorAll('li.product').forEach(function(li){
+      li.addEventListener('mouseenter', function(){
+        if (li.dataset.afActionRow) return;
+        arrangeActions(sec);
+      });
+    });
+    try {
+      new MutationObserver(function(){ arrangeActions(sec); })
+        .observe(sec, {childList: true, subtree: true});
+    } catch(e){}
   }
 
   function build(){
@@ -15942,6 +15983,7 @@ add_action('wp_footer', function () {
       sizeCards(ul);
       fillImages(sec);
       arrangeActions(sec);
+      watchCards(sec);
 
       var prev = document.createElement('button');
       var next = document.createElement('button');
@@ -16013,10 +16055,34 @@ add_action('wp_footer', function () {
       });
     });
   }
+  function report(){
+    if (location.search.indexOf('af_debug_cards=1') === -1) return;
+    var box = document.getElementById('af-carddbg');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = 'af-carddbg';
+      box.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;background:#111;color:#9f9;'
+        + 'font:12px/1.5 monospace;padding:10px 14px;border-radius:8px;max-width:520px;max-height:45vh;overflow:auto';
+      document.body.appendChild(box);
+    }
+    var out = [];
+    document.querySelectorAll('.af-wl-related li.product').forEach(function(li, i){
+      if (i > 2) return;
+      var found = [];
+      li.querySelectorAll('a,button').forEach(function(el){
+        var c = (el.className || '').toString().slice(0, 46);
+        if (/cart|compare|quick|wish|wcwl|view/i.test(c)) found.push(el.tagName.toLowerCase() + '.' + c);
+      });
+      out.push('card ' + (i + 1) + ' row:' + (li.dataset.afActionRow || 'no') + '<br>&nbsp;&nbsp;' + (found.join('<br>&nbsp;&nbsp;') || 'none'));
+    });
+    box.innerHTML = out.join('<br>');
+  }
+
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', build);
   else build();
   window.addEventListener('load', build);
   [500, 1500, 3000].forEach(function(d){ setTimeout(build, d); });
+  [1200, 3200].forEach(function(d){ setTimeout(report, d); });
   // images arrive lazily; re-fit after they land
   [800, 2000, 3500].forEach(function(d){
     setTimeout(function(){
