@@ -18,6 +18,13 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), $af_css_ver);
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), $af_js_ver, true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
+
+    // Checkout-only form styling — kept out of custom.css so the other
+    // pages don't carry it.
+    if (function_exists('is_checkout') && is_checkout()) {
+        $af_co_ver = @filemtime(get_stylesheet_directory() . '/assets/css/checkout.css') ?: '1.0.0';
+        wp_enqueue_style('postero-child-checkout', get_stylesheet_directory_uri() . '/assets/css/checkout.css', array('postero-child-custom'), $af_co_ver);
+    }
 }, 20);
 
 // 1b. Tag Sign Up / Login / user-icon nav items with CSS classes (server-side, reliable)
