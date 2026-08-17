@@ -697,6 +697,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/restore-shipping-copy.php --allow-root 2>&1" \
             || true
 
+          echo "Checking what DIY kit parts the store already has (read-only)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-diy-components.php --allow-root 2>&1" \
+            || true
+
           echo "Loading the ZIP distance table (idempotent)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
