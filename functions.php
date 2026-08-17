@@ -10207,8 +10207,12 @@ add_shortcode('af_country_selector', function() {
     $sel  = $list[$cur];
     ob_start(); ?>
 <div class="af-cty" id="afCty">
-  <button type="button" class="af-cty-btn" aria-haspopup="true" aria-expanded="false">
+  <button type="button" class="af-cty-btn" aria-haspopup="true" aria-expanded="false"
+          title="Choose the country you are shipping to">
     <span class="af-cty-flag"><?php echo $sel['flag']; ?></span>
+    <svg class="af-cty-globe" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+         stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20"></path><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg>
+    <span class="af-cty-label">Ship to</span>
     <span class="af-cty-code"><?php echo esc_html($cur); ?></span>
     <span class="af-cty-caret">▾</span>
   </button>
@@ -10394,6 +10398,31 @@ add_shortcode('af_country_selector', function() {
    next to the code reads as "GB GB". Drop the flag in the inline placement so
    it shows just the code + caret, and it's narrower — helping the one-line fit. */
 .af-cty--inline .af-cty-flag{display:none !important;}
+/* The chip read as faint grey "GB" on a dark bar: too low-contrast to notice
+   and too terse to understand. Give it readable colour, a quiet pill outline so
+   it looks clickable, a globe mark and the words "Ship to" — the label folds
+   away on narrow screens where the row has no room for it. */
+.af-cty--inline .af-cty-btn{
+  color:#f4efe3 !important;
+  padding:4px 10px !important;
+  border:1px solid rgba(244,239,227,.35) !important;
+  border-radius:999px !important;
+  background:rgba(255,255,255,.07) !important;
+  gap:6px !important;
+  transition:border-color .2s,background .2s,color .2s;}
+.af-cty--inline .af-cty-btn:hover,
+.af-cty--inline .af-cty-btn:focus-visible{
+  color:#fff !important;
+  border-color:var(--taf-gold,#c9a84c) !important;
+  background:rgba(201,168,76,.22) !important;}
+.af-cty--inline .af-cty-globe{width:14px;height:14px;flex:0 0 auto;opacity:.9;}
+.af-cty--inline .af-cty-label{font-weight:500;opacity:.85;}
+.af-cty--inline .af-cty-code{letter-spacing:.02em;}
+.af-cty--inline .af-cty-caret{opacity:.9;}
+@media (max-width:1100px){
+  .af-cty--inline .af-cty-label{display:none;}
+  .af-cty--inline .af-cty-btn{padding:4px 8px !important;}
+}
 /* Last-resort corner placement if the contact row can't be found. */
 .af-cty--fallback{position:fixed !important;top:8px;right:14px;z-index:100000;
   background:rgba(20,20,20,.9);border:1px solid rgba(201,168,76,.5);border-radius:6px;
