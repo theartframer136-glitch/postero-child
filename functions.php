@@ -16316,12 +16316,19 @@ add_action('wp_footer', function () {
 // "MY ACCOUNT" across "theartframer136@gmail.com".
 //
 // FIX: keep the one-line intent, but never at the cost of legible
-// text. Each item is pinned to its content width (so nothing can
-// overflow its box) and the row is allowed to wrap as a safety
-// valve. With room, the row still renders on one line exactly as
-// before; without room it becomes two clean lines instead of
-// overlapping text. Measured, and only touched when items really
-// do collide.
+// text. The row is anchored on the mailto link — the one node in it
+// that is certain to exist — and normalised unconditionally rather
+// than only when a collision is detected: matching "MY ACCOUNT" by
+// its text is guesswork against theme markup we cannot see, and a
+// detector that misses simply leaves the bug on screen.
+//
+// Ladder, each step only taken if the one before it left text
+// still colliding:
+//   1. pin every item to its content width and let the row wrap —
+//      one line when there is room, two clean lines when not
+//   2. drop the forced nowrap so text wraps inside its own item
+// Step 1 preserves the look; step 2 is the guarantee that two
+// different things can never be printed on top of each other.
 // ─────────────────────────────────────────────────────────────
 add_action('wp_footer', function () {
     if (is_admin()) return;
@@ -16347,15 +16354,6 @@ add_action('wp_footer', function () {
       if (!childHit) return el;
     }
     return null;
-  }
-  function accountEl(){
-    return deepest(function(el){
-      var t = (el.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-      if (!t || t.length > 24) return false;      // a container, not the link
-      // the label often carries an icon glyph ("\u{1F464} MY ACCOUNT") — compare letters only
-      t = t.replace(/[^a-z ]+/g, ' ').replace(/\s+/g, ' ').trim();
-      return t === 'my account' || t === 'my accounts';
-    });
   }
   function emailEl(){
     var a = document.querySelector('a[href^="mailto:"]');
@@ -16389,44 +16387,79 @@ add_action('wp_footer', function () {
     return r1.left < r2.right - 1 && r2.left < r1.right - 1
         && r1.top  < r2.bottom   && r2.top  < r1.bottom;
   }
-  // The flex row that lays both of them out.
-  function rowFor(a, b){
-    var p = a.parentElement, hops = 0;
+  // The utility bar itself: the nearest flex ancestor of the email link that
+  // actually lays several items out side by side.
+  function contactRow(){
+    var mail = emailEl();
+    if (!mail) return null;
+    var p = mail.parentElement, hops = 0;
     while (p && hops < 8) {
       var cs = window.getComputedStyle(p);
-      if ((cs.display === 'flex' || cs.display === 'inline-flex') && p.contains(b)) return p;
+      if ((cs.display === 'flex' || cs.display === 'inline-flex') && p.children.length >= 3) return p;
       p = p.parentElement; hops++;
     }
     return null;
   }
+  // Any two neighbours whose painted text runs into each other.
+  function rowCollides(row){
+    var kids = row.children;
+    for (var i = 0; i < kids.length - 1; i++) {
+      for (var j = i + 1; j < kids.length; j++) {
+        if (overlaps(kids[i], kids[j])) return true;
+      }
+    }
+    return false;
+  }
 
   function fix(){
-    var acc = accountEl(), mail = emailEl();
-    if (!acc || !mail) return;
-    // Text can spill past its own box only when nowrap was forced on a
-    // shrunken item; pin every item to its content width so it cannot.
-    if (!overlaps(acc, mail)) return;
-    var row = rowFor(acc, mail);
+    var row = contactRow();
     if (!row) return;
-    // Guard: only ever restyle a slim one-line utility bar. If the nearest
-    // shared flex ancestor is tall or has almost no children we have grabbed
-    // some larger header container — leave it alone rather than reflow it.
-    var rb = row.getBoundingClientRect();
-    if (rb.height > 120 || row.children.length < 3) return;
+    // Guard: only ever restyle a slim one-line utility bar. Anything taller
+    // is a larger header container we grabbed by mistake — leave it alone.
+    if (row.getBoundingClientRect().height > 120) return;
 
-    for (var i = 0; i < row.children.length; i++) {
-      var c = row.children[i];
+    // Step 1 — nothing may be squeezed below its own text, and the row may
+    // wrap rather than overflow. Applied every time, so a header that only
+    // overflows at certain widths (or once logged in) is covered too.
+    var i, c;
+    for (i = 0; i < row.children.length; i++) {
+      c = row.children[i];
       c.style.setProperty('flex', '0 0 auto', 'important');
       c.style.setProperty('min-width', 'max-content', 'important');
       c.style.setProperty('max-width', '100%', 'important');
+      // An absolutely positioned item is out of flow and paints over whatever
+      // is beneath it — put it back in the row. Its offsets have to go too, or
+      // relative positioning just re-applies them and moves the overlap along.
+      // relative (not static) so any dropdown anchored to it still has its
+      // containing block.
+      var cs = window.getComputedStyle(c);
+      if (cs.position === 'absolute' || cs.position === 'fixed') {
+        c.style.setProperty('position', 'relative', 'important');
+        ['left', 'right', 'top', 'bottom'].forEach(function(side){
+          c.style.setProperty(side, 'auto', 'important');
+        });
+      }
     }
-    // the safety valve: a row that still cannot fit breaks onto a second
-    // line rather than printing two items on top of each other
     row.style.setProperty('flex-wrap', 'wrap', 'important');
     row.style.setProperty('align-items', 'center', 'important');
     row.style.setProperty('row-gap', '4px', 'important');
     if ((parseFloat(window.getComputedStyle(row).columnGap) || 0) < 14) {
       row.style.setProperty('column-gap', '16px', 'important');
+    }
+
+    // Step 2 — still colliding means something upstream is holding an item
+    // narrower than its text. Let the text wrap inside its own box: the row
+    // grows a line, but two different labels can never share the same pixels.
+    if (rowCollides(row)) {
+      for (i = 0; i < row.children.length; i++) {
+        c = row.children[i];
+        c.style.setProperty('white-space', 'normal', 'important');
+        c.style.setProperty('min-width', '0', 'important');
+        var inner = c.querySelectorAll('*');
+        for (var k = 0; k < inner.length; k++) {
+          inner[k].style.setProperty('white-space', 'normal', 'important');
+        }
+      }
     }
   }
 
