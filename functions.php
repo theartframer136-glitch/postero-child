@@ -16301,3 +16301,142 @@ add_action('wp_footer', function () {
 </script>
     <?php
 }, 25);
+
+// ─────────────────────────────────────────────────────────────
+// Header contact row — "MY ACCOUNT" printed on top of the email
+// address (owner screenshot, 2026-08-17).
+//
+// ROOT CAUSE: the country-selector relocation above forces
+// flex-wrap:nowrap + white-space:nowrap on the contact row so the
+// email and phone stop wrapping onto two lines. That row was sized
+// for the logged-OUT header. Logged in, the theme adds a "MY
+// ACCOUNT" link; the row now wants more width than it has, every
+// item shrinks, and because the text can no longer wrap it spills
+// out of its own shrunken box and paints over the neighbour —
+// "MY ACCOUNT" across "theartframer136@gmail.com".
+//
+// FIX: keep the one-line intent, but never at the cost of legible
+// text. Each item is pinned to its content width (so nothing can
+// overflow its box) and the row is allowed to wrap as a safety
+// valve. With room, the row still renders on one line exactly as
+// before; without room it becomes two clean lines instead of
+// overlapping text. Measured, and only touched when items really
+// do collide.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function () {
+    if (is_admin()) return;
+    ?>
+<script>
+(function(){
+  var EMAIL = 'theartframer136@gmail.com';
+
+  function inFooter(el){
+    return !!(el.closest && el.closest('footer, .site-footer, #footer, .elementor-location-footer, .footer'));
+  }
+  // Deepest element in the header whose own text is the match — the parents
+  // all contain it too, and styling those would move the whole row.
+  function deepest(test){
+    var all = document.body ? document.body.querySelectorAll('a,span,div,p,li,strong,em') : [];
+    for (var i = 0; i < all.length; i++) {
+      var el = all[i];
+      if (inFooter(el) || !test(el)) continue;
+      var childHit = false;
+      for (var j = 0; j < el.children.length; j++) {
+        if (test(el.children[j])) { childHit = true; break; }
+      }
+      if (!childHit) return el;
+    }
+    return null;
+  }
+  function accountEl(){
+    return deepest(function(el){
+      var t = (el.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      if (!t || t.length > 24) return false;      // a container, not the link
+      // the label often carries an icon glyph ("\u{1F464} MY ACCOUNT") — compare letters only
+      t = t.replace(/[^a-z ]+/g, ' ').replace(/\s+/g, ' ').trim();
+      return t === 'my account' || t === 'my accounts';
+    });
+  }
+  function emailEl(){
+    var a = document.querySelector('a[href^="mailto:"]');
+    if (a && !inFooter(a)) return a;
+    return deepest(function(el){
+      return (el.textContent || '').toLowerCase().indexOf(EMAIL) > -1;
+    });
+  }
+  // The box of a shrunken item is NOT where its text is painted — nowrap text
+  // spills straight out of it, which is the whole failure here. Measure the
+  // painted text (via a Range over the contents) and union it with the box, so
+  // a collision is caught whether the item overflowed or simply sits too close.
+  function paintedRect(el){
+    var box = el.getBoundingClientRect();
+    try {
+      var rg = document.createRange();
+      rg.selectNodeContents(el);
+      var t = rg.getBoundingClientRect();
+      if (t && t.width) {
+        return { left:   Math.min(box.left,   t.left),
+                 right:  Math.max(box.right,  t.right),
+                 top:    Math.min(box.top,    t.top),
+                 bottom: Math.max(box.bottom, t.bottom) };
+      }
+    } catch (e) {}
+    return box;
+  }
+  function overlaps(a, b){
+    var r1 = paintedRect(a), r2 = paintedRect(b);
+    if (r1.right <= r1.left || r2.right <= r2.left) return false;
+    return r1.left < r2.right - 1 && r2.left < r1.right - 1
+        && r1.top  < r2.bottom   && r2.top  < r1.bottom;
+  }
+  // The flex row that lays both of them out.
+  function rowFor(a, b){
+    var p = a.parentElement, hops = 0;
+    while (p && hops < 8) {
+      var cs = window.getComputedStyle(p);
+      if ((cs.display === 'flex' || cs.display === 'inline-flex') && p.contains(b)) return p;
+      p = p.parentElement; hops++;
+    }
+    return null;
+  }
+
+  function fix(){
+    var acc = accountEl(), mail = emailEl();
+    if (!acc || !mail) return;
+    // Text can spill past its own box only when nowrap was forced on a
+    // shrunken item; pin every item to its content width so it cannot.
+    if (!overlaps(acc, mail)) return;
+    var row = rowFor(acc, mail);
+    if (!row) return;
+    // Guard: only ever restyle a slim one-line utility bar. If the nearest
+    // shared flex ancestor is tall or has almost no children we have grabbed
+    // some larger header container — leave it alone rather than reflow it.
+    var rb = row.getBoundingClientRect();
+    if (rb.height > 120 || row.children.length < 3) return;
+
+    for (var i = 0; i < row.children.length; i++) {
+      var c = row.children[i];
+      c.style.setProperty('flex', '0 0 auto', 'important');
+      c.style.setProperty('min-width', 'max-content', 'important');
+      c.style.setProperty('max-width', '100%', 'important');
+    }
+    // the safety valve: a row that still cannot fit breaks onto a second
+    // line rather than printing two items on top of each other
+    row.style.setProperty('flex-wrap', 'wrap', 'important');
+    row.style.setProperty('align-items', 'center', 'important');
+    row.style.setProperty('row-gap', '4px', 'important');
+    if ((parseFloat(window.getComputedStyle(row).columnGap) || 0) < 14) {
+      row.style.setProperty('column-gap', '16px', 'important');
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fix);
+  else fix();
+  window.addEventListener('load', fix);
+  // the selector relocation runs on its own retries — re-check after each
+  [300, 800, 1600, 3000].forEach(function(d){ setTimeout(fix, d); });
+  var rt; window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(fix, 150); });
+})();
+</script>
+    <?php
+}, 120);
