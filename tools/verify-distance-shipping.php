@@ -23,7 +23,16 @@ if (!function_exists('af_zip_distance_miles')) {
     echo "=== DONE ===\n"; return;
 }
 
-// expected straight-line miles from 19707, generous ±20% band
+// expected straight-line miles from 19707, generous ±20% band. The rate shown
+// is for two real parcels, so the price can be judged against reality:
+//   rolled  = 3x4 ft unframed print in a tube
+//   framed  = the same piece framed, flat crate
+$rolled = function_exists('af_ship_package') ? af_ship_package('3×4 ft (36×48 in)', 'Without Frame') : null;
+$framed = function_exists('af_ship_package') ? af_ship_package('3×4 ft (36×48 in)', 'Floating Frame') : null;
+$wr = ($rolled && function_exists('af_ship_billable_weight')) ? af_ship_billable_weight($rolled) : 12;
+$wf = ($framed && function_exists('af_ship_billable_weight')) ? af_ship_billable_weight($framed) : 40;
+printf("\n  parcels: rolled tube %.0f lb billable, framed crate %.0f lb billable\n\n", $wr, $wf);
+
 $samples = array(
     '19711' => array('Newark DE',        8),
     '19104' => array('Philadelphia PA', 28),
@@ -35,19 +44,33 @@ $samples = array(
 foreach ($samples as $zip => $info) {
     $mi = af_zip_distance_miles('19707', $zip);
     if ($mi === null) {
-        printf("  %-6s %-16s distance: UNKNOWN  rate: $%.2f (fallback)\n", $zip, $info[0], af_distance_rate(null));
+        printf("  %-6s %-16s distance: UNKNOWN  rolled $%.2f  framed $%.2f\n",
+            $zip, $info[0], af_distance_rate(null, $wr), af_distance_rate(null, $wf));
         $fail++;
         continue;
     }
     $ok = abs($mi - $info[1]) <= $info[1] * 0.2 + 5;
-    printf("  %-6s %-16s ~%4d mi (expected ~%d)  rate: $%.2f  %s\n",
-        $zip, $info[0], round($mi), $info[1], af_distance_rate($mi), $ok ? 'OK' : 'OUT OF BAND');
+    printf("  %-6s %-16s ~%4d mi   rolled $%-7.2f framed $%-7.2f %s\n",
+        $zip, $info[0], round($mi), af_distance_rate($mi, $wr), af_distance_rate($mi, $wf),
+        $ok ? 'OK' : 'DISTANCE OUT OF BAND');
     if (!$ok) $fail++;
 }
 
+// a download-only basket must never be charged
+echo "\n-- digital download basket --\n";
+$fake = array('contents' => array(array(
+    'data' => new WC_Product_Simple(), 'quantity' => 1)));
+$fake['contents'][0]['data']->set_virtual(true);
+list($dl_lbs, $dl_phys) = af_distance_package_weight($fake);
+printf("  virtual-only package: physical items %d, billable %.1f lb  %s\n",
+    $dl_phys, $dl_lbs, ($dl_phys === 0) ? 'OK — no delivery charge' : 'FAIL — would be charged');
+if ($dl_phys !== 0) $fail++;
+
 echo "\n-- tiers in force --\n";
 foreach (af_distance_tiers() as $tier) {
-    printf("  up to %5d mi  $%-6.2f %s\n", (int) $tier['mi'], (float) $tier['cost'],
+    printf("  up to %5d mi   base $%-6.2f + $%.2f/lb   %s\n", (int) $tier['mi'],
+        isset($tier['base']) ? (float) $tier['base'] : 0,
+        isset($tier['per_lb']) ? (float) $tier['per_lb'] : 0,
         isset($tier['label']) ? $tier['label'] : '');
 }
 printf("  source: %s\n", get_option('af_distance_tiers') ? 'af_distance_tiers option (owner-set)' : 'DEFAULTS — owner has not set real rates yet');

@@ -50,35 +50,90 @@ function af_zip_distance_miles($from, $to) {
 }
 
 /**
- * The owner's tier table. DEFAULTS ARE PLACEHOLDERS chosen to be plausible for
- * a large framed canvas (ground shipping, packed) — they are NOT researched
- * carrier prices and the owner should replace them after checking real quotes.
+ * Zone bands by distance from the studio. Carriers price on TWO things — how
+ * far the parcel goes AND how big/heavy it is — so a flat per-distance charge
+ * was wrong: it billed $65 to ship a rolled print that a carrier moves for a
+ * fraction of that, and would have undercharged a large framed crate.
+ *
+ * Each band therefore carries a handling base plus a per-pound rate, applied
+ * to the parcel's BILLABLE weight (the greater of real weight and dimensional
+ * weight, which is how every carrier bills). A rolled tube is light and small
+ * and lands cheap; a 4 ft framed crate is bulky and lands dear, automatically.
+ *
+ * STILL PLACEHOLDERS until the owner supplies carrier quotes. One option to
+ * change, no deploy:
+ *   wp option update af_distance_tiers '[{"mi":50,"base":8,"per_lb":0.6}, ...]' --format=json
  */
 function af_distance_tiers() {
     $t = get_option('af_distance_tiers');
     if (is_string($t)) $t = json_decode($t, true);
     if (is_array($t) && $t) return $t;
     return array(
-        array('mi' => 15,    'cost' => 15,  'label' => 'Local (Hockessin & nearby)'),
-        array('mi' => 50,    'cost' => 25,  'label' => 'Regional (DE, SE PA, NJ, MD)'),
-        array('mi' => 150,   'cost' => 45,  'label' => 'Extended region'),
-        array('mi' => 500,   'cost' => 65,  'label' => 'East / Midwest'),
-        array('mi' => 1500,  'cost' => 85,  'label' => 'Most of the continental US'),
-        array('mi' => 99999, 'cost' => 105, 'label' => 'Far West / AK / HI'),
+        array('mi' => 50,    'base' => 8,  'per_lb' => 0.60, 'label' => 'Local / regional'),
+        array('mi' => 150,   'base' => 9,  'per_lb' => 0.90, 'label' => 'Extended region'),
+        array('mi' => 500,   'base' => 10, 'per_lb' => 1.30, 'label' => 'East coast / near Midwest'),
+        array('mi' => 1000,  'base' => 11, 'per_lb' => 1.70, 'label' => 'Midwest / South'),
+        array('mi' => 1800,  'base' => 12, 'per_lb' => 2.10, 'label' => 'Mountain / South West'),
+        array('mi' => 99999, 'base' => 14, 'per_lb' => 2.60, 'label' => 'West coast / AK / HI'),
     );
 }
 
-/** Cost for a distance; unknown ZIPs use the owner-settable fallback. */
-function af_distance_rate($miles) {
+/** The band a distance falls into; the last band when the ZIP is unknown. */
+function af_distance_band($miles) {
+    $tiers = af_distance_tiers();
     if ($miles === null) {
-        $f = get_option('af_distance_fallback', '');
-        return $f === '' ? 65.0 : (float) $f;
+        $i = (int) get_option('af_distance_fallback_band', 2);
+        return isset($tiers[$i]) ? $tiers[$i] : end($tiers);
     }
-    foreach (af_distance_tiers() as $t) {
-        if ($miles <= (float) $t['mi']) return (float) $t['cost'];
+    foreach ($tiers as $t) {
+        if ($miles <= (float) $t['mi']) return $t;
     }
-    $last = end(af_distance_tiers());
-    return (float) $last['cost'];
+    return end($tiers);
+}
+
+/**
+ * What actually has to travel, and what it weighs to a carrier.
+ *
+ * Digital downloads travel by email: they add nothing here, so a download-only
+ * order is never charged delivery — that was the $65 on an $80 download.
+ */
+function af_distance_package_weight($package) {
+    $lbs = 0.0;
+    $physical = 0;
+    foreach ((array) $package['contents'] as $item) {
+        $product = isset($item['data']) ? $item['data'] : null;
+        if (!$product) continue;
+        // a download or a virtual line ships nothing
+        if ((method_exists($product, 'is_virtual') && $product->is_virtual())
+         || (method_exists($product, 'is_downloadable') && $product->is_downloadable()
+             && !$product->needs_shipping())) {
+            continue;
+        }
+        if (method_exists($product, 'needs_shipping') && !$product->needs_shipping()) continue;
+        $physical++;
+        $qty = isset($item['quantity']) ? (int) $item['quantity'] : 1;
+
+        $w = null;
+        if (!empty($item['af_size']) && function_exists('af_ship_package')) {
+            $pkg = af_ship_package($item['af_size'], isset($item['af_frame']) ? $item['af_frame'] : '');
+            if ($pkg && function_exists('af_ship_billable_weight')) {
+                $w = (float) af_ship_billable_weight($pkg);
+            }
+        }
+        if ($w === null) {
+            $w = (float) ($product->get_weight() ? $product->get_weight() : 5);
+        }
+        $lbs += max(1.0, $w) * max(1, $qty);
+    }
+    return array($lbs, $physical);
+}
+
+/** Legacy helper kept for the verifier: flat cost for a distance. */
+function af_distance_rate($miles, $lbs = 12.0) {
+    $b = af_distance_band($miles);
+    $base   = isset($b['base'])   ? (float) $b['base']   : 10.0;
+    $per_lb = isset($b['per_lb']) ? (float) $b['per_lb'] : 1.5;
+    return round($base + $per_lb * max(1.0, (float) $lbs), 2);
 }
 
 add_action('woocommerce_shipping_init', function () {
@@ -108,14 +163,22 @@ add_action('woocommerce_shipping_init', function () {
             $country = isset($dest['country']) ? $dest['country'] : '';
             $zip     = isset($dest['postcode']) ? $dest['postcode'] : '';
 
+            list($lbs, $physical) = af_distance_package_weight($package);
+            // nothing physical in the basket: a download-only order pays no
+            // delivery at all, so no rate is offered
+            if ($physical < 1 || $lbs <= 0) return;
+
             $miles = ($country === 'US') ? af_zip_distance_miles(AF_SHIP_ORIGIN_ZIP, $zip) : null;
-            $cost  = af_distance_rate($miles);
-            if ($cost === null) return;
+            $band  = af_distance_band($miles);
+            $base   = isset($band['base'])   ? (float) $band['base']   : 10.0;
+            $per_lb = isset($band['per_lb']) ? (float) $band['per_lb'] : 1.5;
+            $cost   = round($base + $per_lb * $lbs, 2);
 
             $label = $this->title;
             if ($miles !== null) {
-                $label .= sprintf(' (~%d mi from our Hockessin, DE studio)', (int) round($miles));
+                $label .= sprintf(' (~%d mi from Hockessin, DE)', (int) round($miles));
             }
+
             $this->add_rate(array(
                 'id'      => $this->get_rate_id(),
                 'label'   => $label,
