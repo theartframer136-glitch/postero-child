@@ -10268,34 +10268,36 @@ add_shortcode('af_country_selector', function() {
     // Keep the contact row on ONE clean line and pack its items together
     // instead of letting them spread edge-to-edge (which was forcing the email
     // and phone text to wrap). Apply to the flex ancestors that hold the row.
-    // The whole row's spacing, in two numbers. GAP is between items, PAD is
-    // inside each one — the theme's padding is the larger of the two, which is
-    // why earlier passes that only touched the gap looked like they had done
-    // nothing. Tune here.
-    var GAP = '4px', PAD = '2px', SEP = '18px';
+    // The row's spacing in three numbers: GAP between items, PAD inside each
+    // one, SEP before a contact detail. PAD matters as much as GAP — the
+    // theme's own padding sits inside each item, where no gap value reaches
+    // it, which is why passes that only touched GAP appeared to do nothing.
+    // Tune here.
+    var GAP = '10px', PAD = '4px', SEP = '18px';
     var p = w.parentElement, hops = 0;
     while (p && hops < 4) {
       var cs = window.getComputedStyle(p);
       if (cs.display === 'flex' || cs.display === 'inline-flex') {
-        p.style.setProperty('flex-wrap', 'nowrap', 'important');
+        // WRAP, not nowrap. A nowrap row that does not fit has to put the
+        // overflow somewhere, and every option is bad: off the page, or —
+        // once max-width pinned it — clipped away entirely, which is how the
+        // email, phone, Ship to and both social icons vanished from this row.
+        // Wrapping drops the tail onto a second line instead. Each item still
+        // carries white-space:nowrap below, so no single item breaks mid-text;
+        // only the row breaks, and nothing is ever lost.
+        p.style.setProperty('flex-wrap', 'wrap', 'important');
         p.style.setProperty('align-items', 'center', 'important');
-        // Pack the items rather than spreading them across the full width.
-        // NOT centred: this row is nowrap, and a centred nowrap row that runs
-        // wider than its container spills past BOTH edges — which is how the
-        // Facebook and Instagram icons ended up off the right of the page,
-        // with no way to scroll to them. Packing from the start means any
-        // overflow goes one way only, and the fit pass below then removes it.
+        p.style.setProperty('overflow', 'visible', 'important');
+        // Pack from the start rather than spreading edge to edge. Centring
+        // was how the social icons first left the page: a centred row that
+        // runs wide spills past BOTH edges, and the left-hand spill cannot be
+        // scrolled back to.
         if (/space-|center/.test(cs.justifyContent)) {
           p.style.setProperty('justify-content', 'flex-start', 'important');
         }
-        p.style.setProperty('max-width', '100%', 'important');
-        // One gap for the whole row, not a range. Conditional tightening left
-        // each ancestor with whatever it happened to start with, so the items
-        // sat at uneven distances; a single value makes English, $ USD, About
-        // Us and My account read as one evenly-spaced line. 8px is close
-        // without letting neighbours touch — the letter-spacing reset below is
-        // what actually stopped the overlap, so this no longer has to hold a
-        // wide gap open to compensate. Tune here.
+        // One gap for the whole row rather than a conditional range, so the
+        // items sit at even distances instead of keeping whatever each
+        // ancestor started with.
         p.style.setProperty('column-gap', GAP, 'important');
         p.style.setProperty('gap', GAP, 'important');
         // The gap alone barely moved these items, because it is not what was
@@ -10339,7 +10341,9 @@ add_shortcode('af_country_selector', function() {
           // reads; the items keep their own size and stop being squeezed.
           ch.style.setProperty('letter-spacing', 'normal', 'important');
           ch.style.setProperty('word-spacing', 'normal', 'important');
-          ch.style.setProperty('flex', '0 0 auto', 'important');
+          // shrinkable, so a tight window narrows the row instead of
+          // pushing its last items out of the page
+          ch.style.setProperty('flex', '0 1 auto', 'important');
           ch.style.setProperty('min-width', '0', 'important');
           var kids = ch.querySelectorAll('a,span,p,div,strong,em');
           for (var q = 0; q < kids.length; q++) {
@@ -10351,27 +10355,6 @@ add_shortcode('af_country_selector', function() {
       p = p.parentElement; hops++;
     }
 
-    // Fit pass. Everything above sets spacing; this checks the result and
-    // gives ground if the row still does not fit, because an item pushed off
-    // the page is worse than an item sitting a little closer than intended.
-    // Measured, not assumed — the row's width depends on fonts and on what
-    // the theme put in it, neither of which can be known from here.
-    var row = w.parentElement, guard = 0;
-    while (row && guard < 4) {
-      var rcs = window.getComputedStyle(row);
-      if (rcs.display === 'flex' || rcs.display === 'inline-flex') {
-        if (row.scrollWidth > row.clientWidth + 1) {
-          // let the items give a little rather than overflow
-          for (var f = 0; f < row.children.length; f++) {
-            row.children[f].style.setProperty('flex', '0 1 auto', 'important');
-          }
-          row.style.setProperty('column-gap', '2px', 'important');
-          row.style.setProperty('gap', '2px', 'important');
-        }
-        break;
-      }
-      row = row.parentElement; guard++;
-    }
     return true;
   }
   // Deepest element in the header area whose text contains the phone number.
