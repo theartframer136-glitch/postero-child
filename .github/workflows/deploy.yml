@@ -1011,7 +1011,7 @@ jobs:
       # out-of-stock marking reaches the delivered HTML or is applied in the
       # browser. The sidebar filter is not this theme's markup, so this is the
       # only way to know what is actually being shipped.
-      - name: Frame filter out-of-stock check (read-only)
+      - name: Frame + size filter out-of-stock check (read-only)
         if: always()
         run: |
           set -uo pipefail
@@ -1019,10 +1019,10 @@ jobs:
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
-          echo "Frame filter out-of-stock check (read-only)..."
+          echo "Frame + size filter out-of-stock check (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/diag-frame-filter.php --allow-root 2>&1" \
+             wp eval-file wp-content/themes/postero-child/tools/diag-filter-oos.php --allow-root 2>&1" \
             || true
 
       # One-off (read-only): print the structure of a real product card, so the
