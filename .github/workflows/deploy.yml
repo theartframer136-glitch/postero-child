@@ -721,6 +721,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/setup-distance-shipping.php --allow-root 2>&1" \
             || true
 
+          echo "Verifying the clearance page (40%+ off)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/verify-deals-page.php --allow-root 2>&1" \
+            || true
+
           echo "Verifying three cards per row on the archives..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
