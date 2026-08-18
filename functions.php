@@ -15282,6 +15282,46 @@ function af_xsell_min_cards() {
     return (int) apply_filters('af_xsell_min_cards', 4);
 }
 
+/**
+ * The tags the visitor actually chose, however they chose them: a
+ * /product-tag/ archive, or the "Filter by Tag" bar, which filters in place
+ * with ?product_tag= instead of navigating away.
+ */
+function af_xsell_chosen_tags() {
+    $slugs = array();
+    $term  = get_queried_object();
+    if ($term && !empty($term->taxonomy) && $term->taxonomy === 'product_tag' && !empty($term->slug)) {
+        $slugs[$term->slug] = true;
+    }
+    if (!empty($_GET['product_tag'])) {
+        foreach (explode(',', (string) wp_unslash($_GET['product_tag'])) as $one) {
+            $one = sanitize_title($one);
+            if ($one !== '') $slugs[$one] = true;
+        }
+    }
+    return array_keys($slugs);
+}
+
+/**
+ * Tags that read as "more like this": the chosen ones first, then the tags
+ * the products already on the page also carry.
+ *
+ * The second half is what makes a one-result tag useful. Filter to
+ * "krishna wall art", find two pieces, and the tag itself has nothing left to
+ * give — but those two are also tagged Spiritual, Hindu Deities, Canvas Art,
+ * and that is a far better answer than the shop's bestsellers.
+ */
+function af_xsell_related_tags($shown_ids) {
+    $slugs = array();
+    foreach (af_xsell_chosen_tags() as $chosen) $slugs[$chosen] = true;
+    foreach ((array) $shown_ids as $pid) {
+        $terms = get_the_terms($pid, 'product_tag');
+        if (!$terms || is_wp_error($terms)) continue;
+        foreach ($terms as $t) $slugs[$t->slug] = true;
+    }
+    return array_slice(array_keys($slugs), 0, 12);
+}
+
 /** Category slugs that read as "similar" to the archive currently being viewed. */
 function af_xsell_related_slugs($shown_ids) {
     $slugs = array();
@@ -15318,6 +15358,33 @@ function af_xsell_related_slugs($shown_ids) {
 }
 
 /**
+ * Walk the stages narrowest-first and take products until the row is full,
+ * never repeating one that is already on the page or already picked.
+ *
+ * Each stage is a fragment merged into a wc_get_products() call — array('tag'
+ * => …), array('category' => …), or array() for the whole shop.
+ */
+function af_xsell_fill($stages, $exclude, $want) {
+    $picks = array();
+    $have  = (array) $exclude;
+    foreach ((array) $stages as $narrow) {
+        if (count($picks) >= $want) break;
+        $found = wc_get_products(array_merge(array(
+            'status' => 'publish', 'limit' => $want - count($picks),
+            'orderby' => 'popularity', 'visibility' => 'catalog', 'exclude' => $have,
+        ), (array) $narrow));
+        foreach ((array) $found as $f) {
+            if (count($picks) >= $want) break;
+            $id = $f->get_id();
+            if (in_array($id, $have, true)) continue;   // a stage may overlap the last
+            $picks[] = $f;
+            $have[]  = $id;
+        }
+    }
+    return $picks;
+}
+
+/**
  * Print the row. Runs at most once per request — an archive with no products
  * fires woocommerce_no_products_found, one with a few fires
  * woocommerce_after_shop_loop, and a theme may well fire both.
@@ -15326,7 +15393,13 @@ function af_xsell_render() {
     static $done = false;
     if ($done) return;
     if (!function_exists('wc_get_products') || !function_exists('is_product_category')) return;
-    if (!is_product_category() && !is_product_tag()) return;
+    // A tag chosen from the "Filter by Tag" bar filters the listing in place
+    // with ?product_tag=, so the page can still be the plain shop archive —
+    // which is exactly where a thin result most needs the row.
+    $tag_filtered = !empty($_GET['product_tag']);
+    $on_listing   = is_product_category() || is_product_tag()
+                    || ($tag_filtered && function_exists('is_shop') && is_shop());
+    if (!$on_listing) return;
     if (is_paged()) return;                       // page 2+ is not a thin page
 
     global $wp_query;
@@ -15338,25 +15411,41 @@ function af_xsell_render() {
     }
     if (count($shown_ids) >= af_xsell_min_cards()) return;   // the grid stands on its own
 
-    $slugs = af_xsell_related_slugs($shown_ids);
-    $args  = array('status' => 'publish', 'limit' => 8, 'orderby' => 'popularity',
-                   'visibility' => 'catalog', 'exclude' => $shown_ids);
-    if ($slugs) $args['category'] = $slugs;
-    $picks = wc_get_products($args);
+    // Fill the row in order of how closely each source answers what the
+    // visitor asked for, and stop as soon as it is full. Ordering the sources
+    // rather than merging them is the point: a single query over chosen tags
+    // AND co-occurring tags AND sibling categories is an OR, so the shop's
+    // bestsellers can outrank the one other piece in the tag that was
+    // actually chosen. Graded stages cannot do that — nothing from a broader
+    // source is looked at while a narrower one still has something to give.
+    $want   = 8;
+    $chosen = af_xsell_chosen_tags();
+    $stages = array();
+    if ($chosen)                              $stages[] = array('tag' => $chosen);
+    if ($cotags = af_xsell_related_tags($shown_ids)) $stages[] = array('tag' => $cotags);
+    if ($cats   = af_xsell_related_slugs($shown_ids)) $stages[] = array('category' => $cats);
+    $stages[] = array();                      // whatever the studio sells best
 
-    if (count($picks) < 8) {                      // top up from the whole shop
-        $have = array_merge($shown_ids, wp_list_pluck($picks, 'id'));
-        $more = wc_get_products(array('status' => 'publish', 'limit' => 8 - count($picks),
-                                      'orderby' => 'popularity', 'visibility' => 'catalog',
-                                      'exclude' => $have));
-        $picks = array_merge($picks, $more);
-    }
+    $picks = af_xsell_fill($stages, $shown_ids, $want);
+
     if (!$picks) return;
-    $picks = array_slice($picks, 0, 8);
+    $picks = array_slice($picks, 0, $want);
     $done  = true;
 
-    echo '<section class="af-xsell"><h2>You may also like</h2>'
-       . '<p class="af-xsell-sub">More from the studio, close to what you were looking at.</p>'
+    // Say what the row IS. "You may also like" under a tag the visitor picked
+    // themselves reads as filler; naming the tag says these were chosen.
+    $title = 'You may also like';
+    $sub   = 'More from the studio, close to what you were looking at.';
+    if ($chosen) {
+        $ct = get_term_by('slug', $chosen[0], 'product_tag');
+        if ($ct && !is_wp_error($ct)) {
+            $title = 'More in ' . $ct->name;
+            $sub   = 'Other pieces tagged ' . $ct->name . ', and a few close to them.';
+        }
+    }
+
+    echo '<section class="af-xsell"><h2>' . esc_html($title) . '</h2>'
+       . '<p class="af-xsell-sub">' . esc_html($sub) . '</p>'
        . '<ul class="products columns-4">';
     $keep = isset($GLOBALS['post']) ? $GLOBALS['post'] : null;
     foreach ($picks as $p) {

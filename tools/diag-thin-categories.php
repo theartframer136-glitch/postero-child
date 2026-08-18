@@ -140,6 +140,49 @@ foreach ( array_slice( $thin, 0, $FETCH ) as $t ) {
     }
 }
 
+// ── the same question for a TAG-filtered listing ────────────────────────
+// The "Filter by Tag" bar filters in place with ?product_tag=, so the page is
+// still whatever archive the visitor was on. Picking a tag with only a couple
+// of products is exactly the thin case, and the row is supposed to fill from
+// that tag first. Whether it does is a question about the delivered page.
+echo "\n=== TAG-FILTERED LISTINGS ===\n";
+$tags = get_terms( array( 'taxonomy' => 'product_tag', 'hide_empty' => true ) );
+if ( is_wp_error( $tags ) || ! $tags ) {
+    echo "no product tags to check\n";
+} else {
+    $thin_tags = array();
+    foreach ( $tags as $t ) if ( (int) $t->count < $MIN ) $thin_tags[] = $t;
+    usort( $thin_tags, function ( $a, $b ) { return $a->count <=> $b->count; } );
+    echo "tags total: " . count( $tags ) . "  |  thin: " . count( $thin_tags ) . "\n";
+
+    $shop = get_permalink( wc_get_page_id( 'shop' ) );
+    foreach ( array_slice( $thin_tags, 0, 2 ) as $t ) {
+        $url  = add_query_arg( array( 'product_tag' => $t->slug, 'afnocache' => time() ), $shop );
+        $resp = afx_get( $url );
+        if ( is_wp_error( $resp ) ) {
+            echo sprintf( "  %-30s FETCH ERROR (inconclusive)\n", $t->name ); continue;
+        }
+        $code = (int) wp_remote_retrieve_response_code( $resp );
+        if ( $code !== 200 ) {
+            echo sprintf( "  %-30s http %d — not rendered (inconclusive)\n", $t->name, $code ); continue;
+        }
+        $body  = wp_remote_retrieve_body( $resp );
+        $has   = strpos( $body, 'af-xsell' ) !== false;
+        $cards = 0; $head = '';
+        if ( $has && preg_match( '#<section class="af-xsell".*?</section>#s', $body, $m ) ) {
+            $cards = preg_match_all( '#<li[^>]*class="[^"]*\bproduct\b#', $m[0] );
+            if ( preg_match( '#<h2>(.*?)</h2>#s', $m[0], $hm ) ) $head = trim( wp_strip_all_tags( $hm[1] ) );
+        }
+        // Naming the tag in the heading is the visible proof the row knew
+        // WHICH tag was chosen — a generic heading means it fell through to
+        // the old category path.
+        $named = $head !== '' && stripos( $head, $t->name ) !== false;
+        echo sprintf( "  %-30s %d product(s) | row: %s%s\n", $t->name, (int) $t->count,
+            $has ? "PRESENT ({$cards} cards)" : 'MISSING  <<<',
+            $has ? '  heading: "' . $head . '"' . ( $named ? '  [names the tag]' : '  [GENERIC — tag not used?]' ) : '' );
+    }
+}
+
 echo "\npresent: {$ok}  missing: {$missing}  inconclusive: {$unknown}\n";
 if ( $missing ) {
     echo "MISSING is the real signal: the page rendered (http 200) and the row\n";
