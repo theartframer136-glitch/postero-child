@@ -10467,22 +10467,7 @@ add_shortcode('af_country_selector', function() {
   function afRefitSoon(){
     if (afFitting) return;
     clearTimeout(afFitT);
-    afFitT = setTimeout(afRefit, 120);
-  }
 
-  window.addEventListener('resize', afRefitSoon);
-  window.addEventListener('orientationchange', afRefitSoon);
-  // fonts change every width in the row, and they land after first paint
-  try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(afRefitSoon); } catch (e) {}
-  // the row can be hidden at first, or resized by something that is not the
-  // window — a ResizeObserver catches both, where a resize listener cannot
-  try {
-    var ro = new ResizeObserver(afRefitSoon);
-    var target = afRowOf(w);
-    if (target) { ro.observe(target); if (target.parentElement) ro.observe(target.parentElement); }
-  } catch (e) {}
-  // and a few late passes for anything that renders after we do
-  [300, 900, 2000].forEach(function(d){ setTimeout(afRefitSoon, d); });
   // Deepest element in the header area whose text contains the phone number.
   function phoneEl(){
     var re = /470[\s .\-]?7280/;
