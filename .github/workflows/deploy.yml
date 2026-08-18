@@ -837,6 +837,35 @@ jobs:
 
           # ── always run: boot gate, 200 gate, cache warm ──
 
+      # Rebuild the resized copies of product images so the quality and width
+      # this theme asks for actually reach the catalogue that already exists.
+      # Neither setting is retroactive — WordPress encodes the copies once, at
+      # upload — so without this the filters are shipped and invisible.
+      #
+      # Bounded on purpose. This host has returned 508 under deploy load, and
+      # re-encoding the whole library in one pass is the most expensive thing
+      # here. Each run takes a slice, records what it finished, and resumes
+      # next deploy; the timeout is a backstop well above the script's own
+      # budget so a slow host shows up as a short run, not a killed step.
+      - name: Rebuild product image sizes (batched, resumable)
+        if: env.RUN_SUITE == '1'
+        timeout-minutes: 6
+        env:
+          AF_IMG_SECONDS: '100'
+          AF_IMG_MAX: '120'
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Rebuilding product image sizes..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             AF_IMG_SECONDS=${AF_IMG_SECONDS} AF_IMG_MAX=${AF_IMG_MAX} \
+             wp eval-file wp-content/themes/postero-child/tools/regenerate-image-sizes.php --allow-root 2>&1" \
+            || true
+
       - name: Gates & warm (always)
         timeout-minutes: 10
         run: |
