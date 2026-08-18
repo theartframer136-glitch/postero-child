@@ -62,9 +62,22 @@ if ( $code !== 200 ) { echo "the host did not render the page — inconclusive\n
 
 // Frames and sizes are two separate widgets, so look at one of each rather
 // than reporting on whichever happens to come first.
+// Anchor on an option still ON SALE, never on a withdrawn one.
+//
+// The first version anchored on a withdrawn name, which worked only while
+// those names were still printed. Now that they are hidden the name is gone
+// from the filter — but it is NOT gone from the page: product titles carry
+// phrases like "Floating Frame", so the search matched a product title and
+// the walk back to the enclosing <ul> landed on the digital-download feature
+// list. Every withdrawn option was then reported "gone" from a block that
+// never contained any of them, and 12-of-12 looked like a pass. A check that
+// reports success from the wrong block is worse than no check.
+//
+// An on-sale option is guaranteed to be in the filter, so it can always be
+// found, and the block it anchors is the one that matters.
 $needles = array();
-if ( $foos ) $needles['frame'] = $foos[0];
-if ( $soos ) $needles['size']  = $soos[0];
+if ( $fin ) $needles['frame'] = $fin[0];
+if ( $sin ) $needles['size']  = $sin[0];
 
 foreach ( $needles as $what => $needle ) {
     echo "\n──── {$what} filter — anchored on '{$needle}' ────\n";
@@ -81,21 +94,42 @@ if ( $at === false ) {
     return;
 }
 
-// walk out to the enclosing list, so the whole filter is shown rather than
-// one row torn out of it
-$open = strripos( substr( $html, 0, $at ), '<ul' );
+// An option name can appear anywhere on the page — most often inside a
+// product title — so finding it once proves nothing. Walk EVERY occurrence,
+// take the list enclosing each, and keep only a list that is recognisably a
+// filter. If none of them is, say so instead of reporting on whatever text
+// happened to match.
 $block = '';
-if ( $open !== false ) {
-    $depth = 0; $i = $open; $len = strlen( $html );
+$from  = 0;
+$tried = 0;
+while ( ( $at = stripos( $html, $needle, $from ) ) !== false && $tried < 40 ) {
+    $tried++;
+    $from = $at + 1;
+    $open = strripos( substr( $html, 0, $at ), '<ul' );
+    if ( $open === false ) continue;
+    $depth = 0; $i = $open; $len = strlen( $html ); $cand = '';
     while ( $i < $len ) {
         if ( substr( $html, $i, 3 ) === '<ul' )       { $depth++; }
-        elseif ( substr( $html, $i, 5 ) === '</ul>' ) { $depth--; if ( $depth === 0 ) { $block = substr( $html, $open, $i + 5 - $open ); break; } }
+        elseif ( substr( $html, $i, 5 ) === '</ul>' ) {
+            $depth--;
+            if ( $depth === 0 ) { $cand = substr( $html, $open, $i + 5 - $open ); break; }
+        }
         $i++;
     }
+    if ( $cand === '' ) continue;
+    // What makes a list a filter: it links back into the archive with a
+    // filter_ parameter, or carries WooCommerce's layered-nav classes.
+    if ( stripos( $cand, 'filter_' ) !== false || stripos( $cand, 'layered-nav' ) !== false ) {
+        $block = $cand;
+        break;
+    }
 }
-if ( $block === '' ) {                       // not a list — take a window round it
-    $from  = max( 0, $at - 600 );
-    $block = substr( $html, $from, 1600 );
+if ( $block === '' ) {
+    echo "'{$needle}' appears on the page ({$tried} time(s)) but never inside a\n";
+    echo "filter list — no filter_ link and no layered-nav markup around any of\n";
+    echo "them. Either the filter is not on this page, or it is built in the\n";
+    echo "browser. INCONCLUSIVE — this is not evidence either way.\n";
+    return;
 }
 
 $out = preg_replace( '/>\s+</', '><', $block );
@@ -150,5 +184,4 @@ foreach ( $sale as $f ) {
     printf( "  %-24s %s\n", $f, $ok ? 'linked' : 'PRESENT BUT NOT LINKED  <<<' );
 }
 if ( $missing ) echo "  a size or frame you DO sell lost its link — that is a real fault\n";
-if ( ! $seen ) echo "  none of the withdrawn options appear in this block\n";
 }
