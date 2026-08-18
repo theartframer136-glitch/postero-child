@@ -1031,6 +1031,26 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/diag-filter-oos.php --allow-root 2>&1" \
             || true
 
+      # Read-only: how many product images are the wrong way round for the
+      # product they belong to, and — for the styled room photos, which are
+      # flattened and cannot be fixed by rotation — whether the framed art
+      # inside them can even be located. That rate decides whether "rotate the
+      # art but not the background" is viable at all, and it is worth knowing
+      # before anyone edits hundreds of irreversible files.
+      - name: Product image orientation scan (read-only)
+        if: always()
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Product image orientation scan (read-only)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-image-orientation.php --allow-root 2>&1" \
+            || true
+
       # One-off (read-only): print the structure of a real product card, so the
       # blank band between artwork and title is diagnosed from the markup
       # instead of guessed at. Remove once the card layout is settled.
