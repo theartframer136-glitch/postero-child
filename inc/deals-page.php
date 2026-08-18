@@ -113,10 +113,39 @@ add_action('wp_footer', function () {
 <script id="af-deal-banner-link">
 (function(){
   var URL = <?php echo wp_json_encode(home_url('/clearance/')); ?>;
-  function wire(){
+  function candidates(){
+    var list = [];
+    // 1) an image whose filename or alt names the sale
     document.querySelectorAll('img').forEach(function(img){
       var hay = ((img.getAttribute('src') || '') + ' ' + (img.getAttribute('alt') || '')).toLowerCase();
-      if (!/clearance|stock[-_ ]?clear|upto[-_ ]?40|40[-_ ]?off/.test(hay)) return;
+      if (/clearance|stock[-_ ]?clear|upto[-_ ]?40|40[-_ ]?off/.test(hay)) list.push(img);
+    });
+    // 2) the banner under the "Stock Clearance" heading — the filename often
+    //    says nothing (an export named by Canva), so find the section by the
+    //    words a visitor can read and take its first sizeable image
+    if (!list.length) {
+      var heads = document.querySelectorAll('h1,h2,h3,h4,.elementor-heading-title');
+      for (var i = 0; i < heads.length; i++) {
+        if (!/stock\s*clearance/i.test(heads[i].textContent || '')) continue;
+        var sec = heads[i].closest('section, .e-con, .elementor-section') || heads[i].parentElement;
+        // the heading's own container may hold only the title row; search the
+        // following sections too until an image of banner size appears
+        for (var hop = 0; sec && hop < 3; hop++) {
+          var imgs = sec.querySelectorAll('img');
+          for (var j = 0; j < imgs.length; j++) {
+            var r = imgs[j].getBoundingClientRect();
+            if (r.width > 400 && r.height > 120) { list.push(imgs[j]); break; }
+          }
+          if (list.length) break;
+          sec = sec.nextElementSibling;
+        }
+        break;
+      }
+    }
+    return list;
+  }
+  function wire(){
+    candidates().forEach(function(img){
       if (img.dataset.afDealWired) return;
       img.dataset.afDealWired = '1';
       var a = img.closest('a');
