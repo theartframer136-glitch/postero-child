@@ -58,10 +58,15 @@ $keep = array('cart' => wc_get_cart_url(), 'wishlist' => home_url('/wishlist/'))
 foreach ($keep as $name => $url) {
     $html = af_ac_get($url);
     if ($html === '') { printf("  %-24s FETCH FAILED\n", $name); continue; }
-    $rel  = strpos($html, 'af-wl-related') !== false;
+    // The row's markup, not merely the class NAME: the slider script prints
+    // '.af-wl-related' selectors site-wide, so a string match called an empty
+    // cart a failure when it simply had no related row to style.
+    $rel  = (bool) preg_match('#<section[^>]*class="[^"]*af-wl-related#', $html);
     $four = (bool) preg_match('#af-wl-related ul\.products\{[^}]*repeat\(4,\s*1fr\)#', $html);
-    printf("  %-24s related row:%-4s four-col rule:%-4s\n",
-        $name, $rel ? 'yes' : 'n/a', $four ? 'OK' : ($rel ? 'MISSING' : 'n/a'));
+    printf("  %-24s related row:%-9s four-col rule:%-4s\n",
+        $name,
+        $rel ? 'yes' : 'none (empty)',
+        $rel ? ($four ? 'OK' : 'MISSING') : 'n/a');
     if ($rel && !$four) $fail++;
 }
 
