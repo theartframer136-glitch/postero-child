@@ -16491,3 +16491,71 @@ add_action('wp_footer', function () {
 </script>
     <?php
 }, 25);
+
+// ─────────────────────────────────────────────────────────────
+// Shop and category archives: three cards to a row (owner request,
+// 2026-08-18). Four across made each card narrow enough that the titles
+// wrapped to three lines and the art itself was the smallest thing on the
+// page. Three gives the artwork room without leaving gaps.
+//
+// Scoped to the ARCHIVES only. The homepage sliders, the "You may also like"
+// row on cart and wishlist, and the cross-sell row keep their own layouts —
+// those were tuned separately and are not touched here.
+// ─────────────────────────────────────────────────────────────
+add_filter('loop_shop_columns', function () { return 3; }, 20);
+
+add_action('wp_head', function () {
+    if (is_admin()) return;
+    if (!function_exists('is_shop')) return;
+    if (!is_shop() && !is_product_category() && !is_product_tag() && !is_post_type_archive('product')) return;
+    ?>
+<style id="af-archive-3col">
+/* the grid itself — written against every column class WooCommerce may emit */
+body.woocommerce ul.products:not(.af-wl-related ul.products):not(.af-xsell ul.products),
+body.woocommerce-page ul.products:not(.af-wl-related ul.products):not(.af-xsell ul.products),
+.woocommerce ul.products.columns-1,
+.woocommerce ul.products.columns-2,
+.woocommerce ul.products.columns-4,
+.woocommerce ul.products.columns-5,
+.woocommerce ul.products.columns-6 {
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 22px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  list-style: none !important;
+}
+.woocommerce ul.products::before,
+.woocommerce ul.products::after { display: none !important; }
+
+/* the cards: the theme floats them at a percentage width, which fights a grid */
+.woocommerce ul.products li.product,
+.woocommerce-page ul.products li.product {
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  float: none !important;
+  clear: none !important;
+}
+
+/* the related/cross-sell rows keep their own four-across layout */
+.af-wl-related ul.products,
+.af-xsell ul.products {
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 20px !important;
+}
+
+@media (max-width: 1024px) {
+  body.woocommerce ul.products,
+  body.woocommerce-page ul.products,
+  .woocommerce ul.products.columns-4 { grid-template-columns: repeat(2, 1fr) !important; }
+}
+@media (max-width: 560px) {
+  body.woocommerce ul.products,
+  body.woocommerce-page ul.products,
+  .woocommerce ul.products.columns-4 { grid-template-columns: 1fr !important; }
+  .af-wl-related ul.products, .af-xsell ul.products { grid-template-columns: 1fr !important; }
+}
+</style>
+    <?php
+}, 99);
