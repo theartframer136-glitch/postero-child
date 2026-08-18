@@ -18,16 +18,21 @@
  *
  * Makes no changes.
  *
- * Run: wp eval-file tools/diag-frame-filter.php --allow-root
+ * Run: wp eval-file tools/diag-filter-oos.php --allow-root
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-echo "=== FRAME FILTER ===\n";
+echo "=== FRAME / SIZE FILTERS ===\n";
 
-$oos = function_exists( 'af_frames_out_of_stock' ) ? af_frames_out_of_stock() : array();
-$in  = function_exists( 'af_frames_in_stock' )     ? af_frames_in_stock()     : array();
-echo "in stock:     " . ( $in  ? implode( ', ', $in  ) : '(none)' ) . "\n";
-echo "out of stock: " . ( $oos ? implode( ', ', $oos ) : '(none)' ) . "\n";
+$foos = function_exists( 'af_frames_out_of_stock' ) ? af_frames_out_of_stock() : array();
+$soos = function_exists( 'af_sizes_out_of_stock' )  ? af_sizes_out_of_stock()  : array();
+$fin  = function_exists( 'af_frames_in_stock' )     ? af_frames_in_stock()     : array();
+$sin  = function_exists( 'af_sizes_offered' )       ? af_sizes_offered()       : array();
+echo "frames on sale:  " . ( $fin  ? implode( ', ', $fin  ) : '(none)' ) . "\n";
+echo "frames withdrawn: " . ( $foos ? implode( ', ', $foos ) : '(none)' ) . "\n";
+echo "sizes on sale:   " . count( $sin ) . " — " . ( $sin ? implode( ', ', $sin ) : '(none)' ) . "\n";
+echo "sizes withdrawn: " . count( $soos ) . "\n";
+$oos = array_merge( $foos, $soos );
 if ( ! $oos ) { echo "nothing to mark.\n=== DONE ===\n"; return; }
 
 // a category page with products on it, which is where the filter lives
@@ -55,12 +60,24 @@ $html = wp_remote_retrieve_body( $resp );
 echo "http {$code} | length " . strlen( $html ) . "\n";
 if ( $code !== 200 ) { echo "the host did not render the page — inconclusive\n=== DONE ===\n"; return; }
 
-// Where does the first out-of-stock frame name appear, and what is around it?
-$needle = $oos[0];
+// Frames and sizes are two separate widgets, so look at one of each rather
+// than reporting on whichever happens to come first.
+$needles = array();
+if ( $foos ) $needles['frame'] = $foos[0];
+if ( $soos ) $needles['size']  = $soos[0];
+
+foreach ( $needles as $what => $needle ) {
+    echo "\n──── {$what} filter — anchored on '{$needle}' ────\n";
+    af_ff_report( $html, $needle, $oos );
+}
+echo "\n=== DONE ===\n";
+return;
+
+function af_ff_report( $html, $needle, $oos ) {
 $at = stripos( $html, $needle );
 if ( $at === false ) {
     echo "'{$needle}' does not appear on this page at all — the filter may be\n";
-    echo "elsewhere, or rendered in the browser. Nothing to report.\n=== DONE ===\n";
+    echo "elsewhere, or rendered in the browser. Nothing to report.\n";
     return;
 }
 
@@ -101,11 +118,14 @@ foreach ( array_slice( $lines, 0, 80 ) as $l ) echo "  " . substr( $l, 0, 240 ) 
 if ( count( $lines ) > 80 ) echo "  … " . ( count( $lines ) - 80 ) . " more lines\n";
 
 echo "\nmarking already present in the delivered HTML:\n";
+$seen = 0;
 foreach ( $oos as $f ) {
     $pos = stripos( $block, $f );
-    $marked = $pos !== false && stripos( substr( $block, max( 0, $pos - 400 ), 800 ), 'af-fx-oos' ) !== false;
-    printf( "  %-20s %s\n", $f, $pos === false ? 'not in this block'
-        : ( $marked ? 'yes — the PHP hook reached it'
-                    : 'no  — marked in the browser instead' ) );
+    if ( $pos === false ) continue;
+    $seen++;
+    $marked = stripos( substr( $block, max( 0, $pos - 400 ), 800 ), 'af-fx-oos' ) !== false;
+    printf( "  %-24s %s\n", $f, $marked ? 'yes — the PHP hook reached it'
+                                         : 'no  — marked in the browser instead' );
 }
-echo "\n=== DONE ===\n";
+if ( ! $seen ) echo "  none of the withdrawn options appear in this block\n";
+}
