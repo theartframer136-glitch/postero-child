@@ -4475,11 +4475,8 @@ add_action('woocommerce_before_shop_loop', function() {
           <button type="button" class="af-lt-dbtn">Size ▾</button>
           <div class="af-lt-menu">
             <?php foreach ($sizes as $t): $soos = function_exists('af_filter_label_is_oos') && af_filter_label_is_oos($t->name); ?>
-              <?php if ($soos): ?>
-                <span class="af-fx-oos" aria-disabled="true"><?php echo esc_html($t->name); ?> <em class="af-fx-oos-tag">Out of stock</em></span>
-              <?php else: ?>
-                <a rel="nofollow" href="<?php echo esc_url($flink('filter_size',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
-              <?php endif; ?>
+              <?php if ($soos) continue; // not on sale: not on the menu ?>
+              <a rel="nofollow" href="<?php echo esc_url($flink('filter_size',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
             <?php endforeach; ?>
           </div>
         </div>
@@ -4501,11 +4498,8 @@ add_action('woocommerce_before_shop_loop', function() {
           <button type="button" class="af-lt-dbtn">Frame Type ▾</button>
           <div class="af-lt-menu">
             <?php foreach ($frames as $t): $foos = function_exists('af_filter_label_is_oos') && af_filter_label_is_oos($t->name); ?>
-              <?php if ($foos): ?>
-                <span class="af-fx-oos" aria-disabled="true"><?php echo esc_html($t->name); ?> <em class="af-fx-oos-tag">Out of stock</em></span>
-              <?php else: ?>
-                <a rel="nofollow" href="<?php echo esc_url($flink('filter_frame',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
-              <?php endif; ?>
+              <?php if ($foos) continue; // not on sale: not on the menu ?>
+              <a rel="nofollow" href="<?php echo esc_url($flink('filter_frame',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
             <?php endforeach; ?>
           </div>
         </div>
@@ -16900,18 +16894,30 @@ body.woocommerce-page ul.products:not(.af-wl-related ul.products):not(.af-xsell 
 //   • anything else — a theme widget, a filter block — by matching the label
 //     text on the page, which is the only handle on markup this theme builds
 //     in Elementor and does not expose a hook for.
+//
+// These options are HIDDEN, not struck through. Striking them was the first
+// answer and it was wrong twice over: ten struck rows out of fifteen made the
+// Size filter unreadable, a wall of greyed text with three live options lost
+// in it, and a filter is a way to narrow a list — an option that narrows to
+// nothing has no place in it. The product page is where a size gets explained
+// (and it already drops the ones it does not sell); the sidebar just stops
+// offering them.
 // ─────────────────────────────────────────────────────────────
 
-/** WooCommerce's layered-nav widget: strike the term and take away its link. */
+/**
+ * WooCommerce's layered-nav widget: take the term out of the list.
+ *
+ * The widget wraps whatever this returns in its own <li>, and that <li> is not
+ * ours to remove — so returning nothing would leave an empty row. Return a
+ * marker instead, which the stylesheet below hides along with the <li> holding
+ * it. Emitting the marker rather than relying on the row measuring "empty"
+ * matters: an empty row is a guess about whitespace, and a marker is a fact.
+ */
 add_filter('woocommerce_layered_nav_term_html', function ($html, $term, $link, $count) {
     if (!function_exists('af_filter_label_is_oos')) return $html;
     $name = is_object($term) && isset($term->name) ? $term->name : '';
     if (!af_filter_label_is_oos($name)) return $html;
-    // Drop the anchor but keep its text, so the row still reads as an option
-    // that exists — it is out of stock, not absent.
-    $html = preg_replace('#<a\b[^>]*>(.*?)</a>#is', '<span class="af-fx-oos-name">$1</span>', $html);
-    return '<span class="af-fx-oos" aria-disabled="true">' . $html
-         . ' <em class="af-fx-oos-tag">Out of stock</em></span>';
+    return '<span class="af-fx-gone" data-af-oos="1" aria-hidden="true"></span>';
 }, 10, 4);
 
 add_action('wp_footer', function () {
@@ -16920,17 +16926,14 @@ add_action('wp_footer', function () {
     if (!$oos) return;
     ?>
 <style id="af-filter-oos-css">
-/* Greying by opacity rather than a fixed colour: these lists live in theme
-   markup that is dark in the sidebar and light elsewhere, and one hard-coded
-   grey cannot be right in both. The badge borrows currentColor for the same
-   reason. */
-.af-fx-oos{opacity:.45 !important;text-decoration:line-through !important;cursor:not-allowed !important;}
-.af-fx-oos a,.af-fx-oos label,.af-fx-oos input,.af-fx-oos button{
-  pointer-events:none !important;cursor:not-allowed !important;}
-.af-fx-oos-tag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:4px;
-  border:1px solid currentColor;font-size:9.5px;font-weight:800;letter-spacing:.04em;
-  text-transform:uppercase;font-style:normal;text-decoration:none !important;
-  vertical-align:1px;opacity:.9;white-space:nowrap;}
+/* Hidden in the stylesheet, so the row is never painted — a row removed by
+   script after first paint flashes on screen first, and on a fifteen-row Size
+   filter that flash is the whole list jumping. The :has() rule takes the <li>
+   the widget wrapped around our marker; the script below is the fallback for
+   anything that route does not reach. */
+.af-fx-gone{display:none !important;}
+li:has(> .af-fx-gone),
+.af-fx-oos{display:none !important;}
 </style>
 <script id="af-filter-oos">
 (function(){
@@ -16953,28 +16956,23 @@ add_action('wp_footer', function () {
   }
   function isOos(el){ return OOS.indexOf(clean(el.textContent)) !== -1; }
 
-  function mark(row, label){
+  // Take the row off the page. Hidden rather than removed: these widgets
+  // re-render themselves and count their own children, and deleting nodes out
+  // from under a script that owns them is how you get a widget that breaks on
+  // the second refine.
+  function hide(row){
     row.setAttribute('data-af-fx-oos', '1');
     row.classList.add('af-fx-oos');
-    row.setAttribute('aria-disabled', 'true');
+    row.setAttribute('aria-hidden', 'true');
+    row.style.setProperty('display', 'none', 'important');
+    // Hidden is not the same as unreachable: a display:none input is still
+    // submitted with its form, and still focusable in some browsers.
     var kids = row.querySelectorAll('a, input, button');
     for (var i = 0; i < kids.length; i++) {
       var k = kids[i];
       k.setAttribute('tabindex', '-1');
-      k.setAttribute('aria-disabled', 'true');
+      k.setAttribute('aria-hidden', 'true');
       if (k.tagName === 'INPUT' || k.tagName === 'BUTTON') k.disabled = true;
-    }
-    // pointer-events makes it unclickable; this makes it unclickable even if
-    // some later stylesheet turns pointer-events back on.
-    row.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); }, true);
-    if (!row.querySelector('.af-fx-oos-tag')) {
-      var tag = document.createElement('em');
-      tag.className = 'af-fx-oos-tag';
-      tag.textContent = 'Out of stock';
-      // a space, so the row does not read as one run-together word
-      var host = label || row;
-      host.appendChild(document.createTextNode(' '));
-      host.appendChild(tag);
     }
   }
 
@@ -16983,18 +16981,29 @@ add_action('wp_footer', function () {
     for (var s = 0; s < scopes.length; s++) {
       var sc = scopes[s];
       if (sc.closest && sc.closest(SKIP)) continue;
+
+      // Rows the PHP hook already emptied. The <li> around our marker belongs
+      // to the widget, so this is the only way to reach it if :has() does not
+      // apply — and it must run BEFORE the label pass, which cannot see these
+      // rows at all now that their text is gone.
+      var gone = sc.querySelectorAll('.af-fx-gone');
+      for (var g = 0; g < gone.length; g++) {
+        var grow = gone[g].closest('li') || gone[g].parentElement;
+        if (grow && !grow.hasAttribute('data-af-fx-oos')) hide(grow);
+      }
+
       var cand = sc.querySelectorAll('li, label, a, span');
       for (var i = 0; i < cand.length; i++) {
         var el = cand[i];
         if (el.closest('[data-af-fx-oos]')) continue;   // this row is done
         if (el.closest(SKIP)) continue;
         if (!isOos(el)) continue;
-        // Prefer the whole row, so the strike covers the count and the
-        // checkbox too — but only if the row is JUST this option and not a
-        // list that happens to contain it.
+        // Prefer the whole row, so the checkbox and the count go with it —
+        // but only if the row is JUST this option and not a list that happens
+        // to contain it.
         var row = el.closest('li');
         if (!row || !isOos(row)) row = el;
-        mark(row, el === row ? null : el);
+        hide(row);
       }
     }
   }

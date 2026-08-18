@@ -22,7 +22,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-echo "=== FRAME / SIZE FILTERS ===\n";
+echo "=== FRAME / SIZE FILTERS (withdrawn options are hidden) ===\n";
 
 $foos = function_exists( 'af_frames_out_of_stock' ) ? af_frames_out_of_stock() : array();
 $soos = function_exists( 'af_sizes_out_of_stock' )  ? af_sizes_out_of_stock()  : array();
@@ -117,15 +117,38 @@ echo "\nfilter markup as delivered:\n";
 foreach ( array_slice( $lines, 0, 80 ) as $l ) echo "  " . substr( $l, 0, 240 ) . "\n";
 if ( count( $lines ) > 80 ) echo "  … " . ( count( $lines ) - 80 ) . " more lines\n";
 
-echo "\nmarking already present in the delivered HTML:\n";
-$seen = 0;
+// Withdrawn options are HIDDEN now, so the test is the opposite of what it
+// used to be: the name should not be in the list at all. A name still present
+// and a marker beside it means the PHP hook fired but the row is only being
+// hidden in the browser — which works, but flashes on first paint, so it is
+// worth knowing. A name present with no marker anywhere near it means nothing
+// reached that row and the option is still on offer.
+echo "\nwithdrawn options — should be absent from the list:\n";
+$still = 0;
 foreach ( $oos as $f ) {
     $pos = stripos( $block, $f );
-    if ( $pos === false ) continue;
-    $seen++;
-    $marked = stripos( substr( $block, max( 0, $pos - 400 ), 800 ), 'af-fx-oos' ) !== false;
-    printf( "  %-24s %s\n", $f, $marked ? 'yes — the PHP hook reached it'
-                                         : 'no  — marked in the browser instead' );
+    if ( $pos === false ) { printf( "  %-24s gone\n", $f ); continue; }
+    $near   = substr( $block, max( 0, $pos - 400 ), 800 );
+    $marker = stripos( $near, 'af-fx-gone' ) !== false || stripos( $near, 'af-fx-oos' ) !== false;
+    $still++;
+    printf( "  %-24s %s\n", $f, $marker
+        ? 'still in the markup, marked — hidden in the browser'
+        : 'STILL OFFERED  <<<  nothing reached this row' );
 }
+echo "  " . ( count( $oos ) - $still ) . " of " . count( $oos ) . " withdrawn options are out of the markup entirely\n";
+
+echo "\noptions still on sale — should ALL be present and clickable:\n";
+$sale = function_exists( 'af_frames_in_stock' ) && function_exists( 'af_sizes_offered' )
+        ? array_merge( af_frames_in_stock(), af_sizes_offered() ) : array();
+$missing = 0;
+foreach ( $sale as $f ) {
+    $pos = stripos( $block, $f );
+    if ( $pos === false ) continue;               // belongs to the other widget
+    $near = substr( $block, max( 0, $pos - 300 ), 600 );
+    $ok   = stripos( $near, '<a ' ) !== false;
+    if ( ! $ok ) $missing++;
+    printf( "  %-24s %s\n", $f, $ok ? 'linked' : 'PRESENT BUT NOT LINKED  <<<' );
+}
+if ( $missing ) echo "  a size or frame you DO sell lost its link — that is a real fault\n";
 if ( ! $seen ) echo "  none of the withdrawn options appear in this block\n";
 }
