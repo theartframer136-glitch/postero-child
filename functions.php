@@ -10272,7 +10272,7 @@ add_shortcode('af_country_selector', function() {
     // inside each one — the theme's padding is the larger of the two, which is
     // why earlier passes that only touched the gap looked like they had done
     // nothing. Tune here.
-    var GAP = '4px', PAD = '2px';
+    var GAP = '4px', PAD = '2px', SEP = '18px';
     var p = w.parentElement, hops = 0;
     while (p && hops < 4) {
       var cs = window.getComputedStyle(p);
@@ -10310,6 +10310,16 @@ add_shortcode('af_country_selector', function() {
             ins[r].style.setProperty('padding-right', PAD, 'important');
             ins[r].style.setProperty('margin-left', '0', 'important');
             ins[r].style.setProperty('margin-right', '0', 'important');
+          }
+          // The nav links want to sit close together; the contact details do
+          // NOT. "My account" hard against an email address reads as one long
+          // string, which is what made that pair look broken even once they
+          // stopped overlapping. Give anything that is a mailto: or tel: its
+          // own breathing room, so the row is tight where it should be tight
+          // and separated where the meaning changes.
+          if (it.querySelector('a[href^="mailto:"], a[href^="tel:"]') ||
+              /^(mailto|tel):/.test(it.getAttribute('href') || '')) {
+            it.style.setProperty('margin-left', SEP, 'important');
           }
         }
         for (var k = 0; k < p.children.length; k++) {
