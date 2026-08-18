@@ -10374,7 +10374,31 @@ add_shortcode('af_country_selector', function() {
   // cheapest thing first — gap, then padding, then type size, with a floor so
   // it can never shrink to unreadable.
   function afFitRow(row){
-    if (!row) return;
+    if (!row || !row.clientWidth) return;   // not rendered yet — measuring it
+                                            // would only prove it "fits"
+
+    // Start every pass from the top of the ladder, not from wherever the last
+    // pass stopped. This routine only ever gives ground, so without a reset it
+    // is a one-way trip: a phone-width pass wraps the row, and a wrapped row
+    // can never overflow, so the next pass at desktop width measures "fits"
+    // and returns — the header stays wrapped and small at a width that had
+    // room to spare. Undo the previous pass first, then re-measure.
+    row.style.removeProperty('flex-wrap');
+    row.style.removeProperty('row-gap');
+    row.style.setProperty('flex-wrap', 'nowrap', 'important');
+    // Only take back the type size if WE set it — the theme puts inline sizes
+    // on some of these elements and wiping those would be a different bug.
+    // Our own marks are unmistakable: the flag on the row, and 'inherit' on
+    // the descendants, which is the only value this routine ever writes there.
+    if (row.getAttribute('data-af-fit-size') === '1') {
+      row.style.removeProperty('font-size');
+      row.removeAttribute('data-af-fit-size');
+    }
+    var prev = row.querySelectorAll('a,span,p,div,strong,em,li');
+    for (var r = 0; r < prev.length; r++) {
+      if (prev[r].style.fontSize === 'inherit') prev[r].style.removeProperty('font-size');
+    }
+
     var gap = 10, pad = 4, size = 0;      // size 0 = leave the theme's own
     function apply(){
       row.style.setProperty('column-gap', gap + 'px', 'important');
@@ -10391,6 +10415,7 @@ add_shortcode('af_country_selector', function() {
       }
       if (size) {
         row.style.setProperty('font-size', size + 'px', 'important');
+        row.setAttribute('data-af-fit-size', '1');
         var t = row.querySelectorAll('a,span,p,div,strong,em,li');
         for (var k = 0; k < t.length; k++) t[k].style.setProperty('font-size', 'inherit', 'important');
       }
@@ -10422,168 +10447,26 @@ add_shortcode('af_country_selector', function() {
     }
   }
 
-  // Re-fit when the window changes, since the right answer depends on how
-  // much room there is — that is the whole point of measuring.
-  var afFitT = null;
-  window.addEventListener('resize', function(){
+  // ── Re-fit whenever the answer could have changed ──────────────────
+  // A single resize listener is not enough. The row is measured, so it has to
+  // be re-measured every time the measurement could differ: a narrower window,
+  // yes, but also web fonts arriving after first paint (they change every
+  // width), a container that resizes without the window doing so (the sticky
+  // header shrinking on scroll), a phone turning sideways, and the case that
+  // silently did nothing before — being measured while hidden, where
+  // clientWidth is 0 and the row looks like it fits when it has not rendered.
+  var afFitT = null, afFitting = false;
+  function afRefit(){
+    var row = afRowOf(w);
+    if (!row) return;
+    if (!row.clientWidth) return;        // hidden: nothing meaningful to measure
+    afFitting = true;                    // our own writes must not re-trigger us
+    afFitRow(row);
+    setTimeout(function(){ afFitting = false; }, 60);
+  }
+  function afRefitSoon(){
+    if (afFitting) return;
     clearTimeout(afFitT);
-    afFitT = setTimeout(function(){ afFitRow(afRowOf(w)); }, 150);
-  });
-  // ── The main navigation row ────────────────────────────────────────
-  // The bar reported broken was this one, not the contact row: at a narrower
-  // window BLOG dropped onto a second line and the header grew a row. It gets
-  // the same treatment — one line, measured — but from a different starting
-  // point. The contact bar is ours to space; the nav is the theme's, and when
-  // there is room it looks right exactly as the theme drew it. So this never
-  // tightens a nav that already fits. It records the theme's own spacing on
-  // the first pass and gives ground from there only while the row is still
-  // too wide, which also means it can always come back to the original when
-  // the window widens again.
-  function afNavRow(){
-    var label = /^(categories|try it on your wall|home decor|from artists|deals\s*&\s*discounts|blog)$/i;
-    var uls = document.querySelectorAll('ul');
-    var best = null, bestN = 0, alt = null, altN = 0;
-    for (var i = 0; i < uls.length; i++) {
-      var ul = uls[i];
-      // hidden copies of the menu — the mobile drawer, the off-canvas panel —
-      // measure as zero-width and must not be mistaken for the visible one
-      if (inFooter(ul) || !ul.clientWidth) continue;
-      // a dropdown hanging off a menu item is not the row
-      if (ul.parentElement && ul.parentElement.closest('ul')) continue;
-      var n = 0, lis = 0;
-      for (var j = 0; j < ul.children.length; j++) {
-        var li = ul.children[j];
-        if (li.tagName !== 'LI') continue;
-        lis++;
-        var a = li.querySelector('a');
-        var t = ((a ? a.textContent : li.textContent) || '').replace(/\s+/g, ' ').trim();
-        if (label.test(t)) n++;
-      }
-      if (n > bestN) { bestN = n; best = ul; }
-      // Fallback, in case the menu gets renamed later: the longest top-level
-      // list in the header area. Four items keeps it clear of the contact
-      // row's own three-item menu (About Us / Login / Sign Up).
-      if (lis >= 4 && lis > altN &&
-          ul.closest('nav, header, .elementor-location-header, [class*="nav-menu"]')) {
-        altN = lis; alt = ul;
-      }
-    }
-    // three matching labels is the menu; fewer and we fall back to shape
-    return bestN >= 3 ? best : (altN >= 4 ? alt : null);
-  }
-
-  function afFitNav(){
-    var row = afNavRow();
-    if (!row || !row.clientWidth) return;
-    var cs   = window.getComputedStyle(row);
-    var flex = /flex/.test(cs.display);
-
-    var items = [];
-    for (var i = 0; i < row.children.length; i++) {
-      if (row.children[i].tagName === 'LI') items.push(row.children[i]);
-    }
-    if (!items.length) return;
-
-    // Capture the theme's spacing ONCE, before anything here has touched it.
-    // Measuring the baseline on every pass would read back our own last
-    // answer and ratchet the row smaller and smaller.
-    if (!row.hasAttribute('data-af-nav-base')) {
-      var g = parseFloat(cs.columnGap);
-      row.setAttribute('data-af-nav-base', isNaN(g) ? 0 : g);
-      for (var b = 0; b < items.length; b++) {
-        var parts = [items[b]], ba = items[b].querySelector('a');
-        if (ba) parts.push(ba);
-        for (var c = 0; c < parts.length; c++) {
-          var pcs = window.getComputedStyle(parts[c]);
-          parts[c].setAttribute('data-af-nav-pad',
-            (parseFloat(pcs.paddingLeft) || 0) + ',' + (parseFloat(pcs.paddingRight) || 0));
-          parts[c].setAttribute('data-af-nav-fs', parseFloat(pcs.fontSize) || 14);
-        }
-      }
-    }
-    var baseGap = parseFloat(row.getAttribute('data-af-nav-base')) || 0;
-
-    // s scales the theme's spacing, fs its type. Both are fractions of the
-    // captured baseline, so s = 1, fs = 1 puts the row back exactly as found.
-    function apply(s, fs){
-      if (baseGap) {
-        row.style.setProperty('column-gap', (baseGap * s) + 'px', 'important');
-      }
-      for (var i = 0; i < items.length; i++) {
-        var els = [items[i]], a = items[i].querySelector('a');
-        if (a) els.push(a);
-        for (var k = 0; k < els.length; k++) {
-          var pad = (els[k].getAttribute('data-af-nav-pad') || '').split(',');
-          if (pad.length === 2) {
-            els[k].style.setProperty('padding-left',  (parseFloat(pad[0]) * s) + 'px', 'important');
-            els[k].style.setProperty('padding-right', (parseFloat(pad[1]) * s) + 'px', 'important');
-          }
-          var base = parseFloat(els[k].getAttribute('data-af-nav-fs')) || 14;
-          if (fs < 1) els[k].style.setProperty('font-size', (base * fs) + 'px', 'important');
-          else        els[k].style.removeProperty('font-size');
-        }
-      }
-    }
-    function tooWide(){ return row.scrollWidth > row.clientWidth + 1; }
-
-    // One line first — the second line is the fault being fixed, and a
-    // wrapped row never overflows, so nothing can be measured until it is
-    // told to stay on one line again.
-    if (flex) row.style.setProperty('flex-wrap', 'nowrap', 'important');
-    else      row.style.setProperty('white-space', 'nowrap', 'important');
-
-    apply(1, 1);
-    if (!tooWide()) { row.style.removeProperty('row-gap'); return; }   // the theme's own spacing fits
-
-    // Close the spaces between the links before touching the letters: a
-    // slightly tighter menu reads the same, a smaller one does not.
-    var s = 1;
-    while (tooWide() && s > 0.4) { s -= 0.05; apply(s, 1); }
-    var fs = 1;
-    while (tooWide() && fs > 0.78) { fs -= 0.02; apply(s, fs); }
-
-    // Below that the window genuinely cannot hold the menu on one line, and
-    // two readable lines beat one unreadable one.
-    if (tooWide()) {
-      if (flex) row.style.setProperty('flex-wrap', 'wrap', 'important');
-      else      row.style.removeProperty('white-space');
-      row.style.setProperty('row-gap', '4px', 'important');
-    } else {
-      row.style.removeProperty('row-gap');
-    }
-  }
-
-  // Re-fit the nav whenever the answer could have changed. A single pass at
-  // load is not enough for a row that is measured: web fonts land after first
-  // paint and change every width in it, the sticky header resizes the row
-  // without the window resizing, a phone turns sideways, and a row measured
-  // before it renders reports zero width and looks like it fits. The guard
-  // matters as much as the triggers — this writes styles to the row, and a
-  // ResizeObserver watching that row would otherwise wake it on its own work.
-  var afNavT = null, afNavBusy = false;
-  function afNavFit(){
-    afNavBusy = true;
-    afFitNav();
-    setTimeout(function(){ afNavBusy = false; }, 60);
-  }
-  function afNavFitSoon(){
-    if (afNavBusy) return;
-    clearTimeout(afNavT);
-    afNavT = setTimeout(afNavFit, 120);
-  }
-  window.addEventListener('resize', afNavFitSoon);
-  window.addEventListener('orientationchange', afNavFitSoon);
-  try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(afNavFitSoon); } catch (e) {}
-  try {
-    var afNavRo = new ResizeObserver(afNavFitSoon);
-    var afNavEl = afNavRow();
-    if (afNavEl) {
-      afNavRo.observe(afNavEl);
-      if (afNavEl.parentElement) afNavRo.observe(afNavEl.parentElement);
-    }
-  } catch (e) {}
-  [300, 900, 2000].forEach(function(d){ setTimeout(afNavFitSoon, d); });
-  afNavFitSoon();
 
   // Deepest element in the header area whose text contains the phone number.
   function phoneEl(){
