@@ -10278,16 +10278,33 @@ add_shortcode('af_country_selector', function() {
         if (/space-/.test(cs.justifyContent)) {
           p.style.setProperty('justify-content', 'center', 'important');
         }
-        // tighten oversized gaps
+        // Gaps: too wide spreads the row, too narrow lets neighbours touch.
+        // Both ends matter — with no gap at all, MY ACCOUNT ran straight into
+        // the email address next to it.
         var gap = parseFloat(cs.columnGap || cs.gap || '0') || 0;
-        if (gap > 16) {
-          p.style.setProperty('column-gap', '14px', 'important');
-          p.style.setProperty('gap', '14px', 'important');
+        if (gap > 16 || gap < 10) {
+          var want = gap > 16 ? '14px' : '12px';
+          p.style.setProperty('column-gap', want, 'important');
+          p.style.setProperty('gap', want, 'important');
         }
-        // white-space is inherited, so this stops the email/phone text inside
-        // each item from breaking onto two lines
         for (var k = 0; k < p.children.length; k++) {
-          p.children[k].style.setProperty('white-space', 'nowrap', 'important');
+          var ch = p.children[k];
+          // white-space is inherited, so this stops the email/phone text inside
+          // each item from breaking onto two lines
+          ch.style.setProperty('white-space', 'nowrap', 'important');
+          // Tracked-out uppercase (MY ACCOUNT) is wider than the box the theme
+          // measured for it, so the tail of one item printed on top of the
+          // next. Normal spacing costs a little style and buys a row that
+          // reads; the items keep their own size and stop being squeezed.
+          ch.style.setProperty('letter-spacing', 'normal', 'important');
+          ch.style.setProperty('word-spacing', 'normal', 'important');
+          ch.style.setProperty('flex', '0 0 auto', 'important');
+          ch.style.setProperty('min-width', '0', 'important');
+          var kids = ch.querySelectorAll('a,span,p,div,strong,em');
+          for (var q = 0; q < kids.length; q++) {
+            kids[q].style.setProperty('letter-spacing', 'normal', 'important');
+            kids[q].style.setProperty('word-spacing', 'normal', 'important');
+          }
         }
       }
       p = p.parentElement; hops++;
