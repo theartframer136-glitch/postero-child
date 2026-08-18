@@ -10268,16 +10268,27 @@ add_shortcode('af_country_selector', function() {
     // Keep the contact row on ONE clean line and pack its items together
     // instead of letting them spread edge-to-edge (which was forcing the email
     // and phone text to wrap). Apply to the flex ancestors that hold the row.
+    // The whole row's spacing, in two numbers. GAP is between items, PAD is
+    // inside each one — the theme's padding is the larger of the two, which is
+    // why earlier passes that only touched the gap looked like they had done
+    // nothing. Tune here.
+    var GAP = '4px', PAD = '2px', SEP = '18px';
     var p = w.parentElement, hops = 0;
     while (p && hops < 4) {
       var cs = window.getComputedStyle(p);
       if (cs.display === 'flex' || cs.display === 'inline-flex') {
         p.style.setProperty('flex-wrap', 'nowrap', 'important');
         p.style.setProperty('align-items', 'center', 'important');
-        // pack the items rather than spreading them across the full width
-        if (/space-/.test(cs.justifyContent)) {
-          p.style.setProperty('justify-content', 'center', 'important');
+        // Pack the items rather than spreading them across the full width.
+        // NOT centred: this row is nowrap, and a centred nowrap row that runs
+        // wider than its container spills past BOTH edges — which is how the
+        // Facebook and Instagram icons ended up off the right of the page,
+        // with no way to scroll to them. Packing from the start means any
+        // overflow goes one way only, and the fit pass below then removes it.
+        if (/space-|center/.test(cs.justifyContent)) {
+          p.style.setProperty('justify-content', 'flex-start', 'important');
         }
+        p.style.setProperty('max-width', '100%', 'important');
         // One gap for the whole row, not a range. Conditional tightening left
         // each ancestor with whatever it happened to start with, so the items
         // sat at uneven distances; a single value makes English, $ USD, About
@@ -10285,12 +10296,37 @@ add_shortcode('af_country_selector', function() {
         // without letting neighbours touch — the letter-spacing reset below is
         // what actually stopped the overlap, so this no longer has to hold a
         // wide gap open to compensate. Tune here.
-        p.style.setProperty('column-gap', '8px', 'important');
-        p.style.setProperty('gap', '8px', 'important');
-        // theme padding on each item widens the visual gap well past the 8px
+        p.style.setProperty('column-gap', GAP, 'important');
+        p.style.setProperty('gap', GAP, 'important');
+        // The gap alone barely moved these items, because it is not what was
+        // holding them apart: each one carries the theme's own horizontal
+        // PADDING, and padding sits inside the item, so no gap value can
+        // shrink it. Margin and padding both have to come down for the row to
+        // actually close up.
         for (var m = 0; m < p.children.length; m++) {
-          p.children[m].style.setProperty('margin-left', '0', 'important');
-          p.children[m].style.setProperty('margin-right', '0', 'important');
+          var it = p.children[m];
+          it.style.setProperty('margin-left', '0', 'important');
+          it.style.setProperty('margin-right', '0', 'important');
+          it.style.setProperty('padding-left', PAD, 'important');
+          it.style.setProperty('padding-right', PAD, 'important');
+          // …and on the link inside it, which usually carries the padding
+          var ins = it.querySelectorAll('a,.elementor-widget-container,.menu-item');
+          for (var r = 0; r < ins.length; r++) {
+            ins[r].style.setProperty('padding-left', PAD, 'important');
+            ins[r].style.setProperty('padding-right', PAD, 'important');
+            ins[r].style.setProperty('margin-left', '0', 'important');
+            ins[r].style.setProperty('margin-right', '0', 'important');
+          }
+          // The nav links want to sit close together; the contact details do
+          // NOT. "My account" hard against an email address reads as one long
+          // string, which is what made that pair look broken even once they
+          // stopped overlapping. Give anything that is a mailto: or tel: its
+          // own breathing room, so the row is tight where it should be tight
+          // and separated where the meaning changes.
+          if (it.querySelector('a[href^="mailto:"], a[href^="tel:"]') ||
+              /^(mailto|tel):/.test(it.getAttribute('href') || '')) {
+            it.style.setProperty('margin-left', SEP, 'important');
+          }
         }
         for (var k = 0; k < p.children.length; k++) {
           var ch = p.children[k];
@@ -10313,6 +10349,28 @@ add_shortcode('af_country_selector', function() {
         }
       }
       p = p.parentElement; hops++;
+    }
+
+    // Fit pass. Everything above sets spacing; this checks the result and
+    // gives ground if the row still does not fit, because an item pushed off
+    // the page is worse than an item sitting a little closer than intended.
+    // Measured, not assumed — the row's width depends on fonts and on what
+    // the theme put in it, neither of which can be known from here.
+    var row = w.parentElement, guard = 0;
+    while (row && guard < 4) {
+      var rcs = window.getComputedStyle(row);
+      if (rcs.display === 'flex' || rcs.display === 'inline-flex') {
+        if (row.scrollWidth > row.clientWidth + 1) {
+          // let the items give a little rather than overflow
+          for (var f = 0; f < row.children.length; f++) {
+            row.children[f].style.setProperty('flex', '0 1 auto', 'important');
+          }
+          row.style.setProperty('column-gap', '2px', 'important');
+          row.style.setProperty('gap', '2px', 'important');
+        }
+        break;
+      }
+      row = row.parentElement; guard++;
     }
     return true;
   }
