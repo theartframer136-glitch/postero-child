@@ -4474,8 +4474,12 @@ add_action('woocommerce_before_shop_loop', function() {
         <div class="af-lt-drop">
           <button type="button" class="af-lt-dbtn">Size ▾</button>
           <div class="af-lt-menu">
-            <?php foreach ($sizes as $t): ?>
-              <a rel="nofollow" href="<?php echo esc_url($flink('filter_size',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
+            <?php foreach ($sizes as $t): $soos = function_exists('af_filter_label_is_oos') && af_filter_label_is_oos($t->name); ?>
+              <?php if ($soos): ?>
+                <span class="af-fx-oos" aria-disabled="true"><?php echo esc_html($t->name); ?> <em class="af-fx-oos-tag">Out of stock</em></span>
+              <?php else: ?>
+                <a rel="nofollow" href="<?php echo esc_url($flink('filter_size',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
+              <?php endif; ?>
             <?php endforeach; ?>
           </div>
         </div>
@@ -4496,7 +4500,7 @@ add_action('woocommerce_before_shop_loop', function() {
         <div class="af-lt-drop">
           <button type="button" class="af-lt-dbtn">Frame Type ▾</button>
           <div class="af-lt-menu">
-            <?php foreach ($frames as $t): $foos = function_exists('af_frame_label_is_oos') && af_frame_label_is_oos($t->name); ?>
+            <?php foreach ($frames as $t): $foos = function_exists('af_filter_label_is_oos') && af_filter_label_is_oos($t->name); ?>
               <?php if ($foos): ?>
                 <span class="af-fx-oos" aria-disabled="true"><?php echo esc_html($t->name); ?> <em class="af-fx-oos-tag">Out of stock</em></span>
               <?php else: ?>
@@ -5413,6 +5417,43 @@ function af_frames_out_of_stock() {
         array_keys( af_pricing_config()['frames'] ),
         function ( $f ) { return ! af_frame_is_in_stock( $f ); }
     ) );
+}
+
+/** The sizes we no longer sell, in the order the price book lists them. */
+function af_sizes_out_of_stock() {
+    return array_values( array_filter(
+        array_keys( af_pricing_config()['sizes'] ),
+        function ( $s ) { return ! af_size_is_offered( $s ); }
+    ) );
+}
+
+/**
+ * Every option a filter may list that cannot actually be bought — frames we
+ * cannot make and sizes we no longer sell, in one list.
+ */
+function af_filter_oos_labels() {
+    return array_merge( af_frames_out_of_stock(), af_sizes_out_of_stock() );
+}
+
+/**
+ * Does this label name an option we cannot sell — either frame or size?
+ *
+ * Sizes needed the same treatment as frames and for the same reason: the
+ * filter offered all fourteen with a count beside each while the product page
+ * sells five. It is worth being clear about one difference, because it looks
+ * like an inconsistency and is not: the product page DROPS a size it does not
+ * sell and STRIKES a frame it cannot make. In the filter both are struck, so
+ * a shopper who knows the size exists is told plainly that it is unavailable
+ * rather than left wondering where it went.
+ */
+function af_filter_label_is_oos( $label ) {
+    $clean = trim( preg_replace( '/\s+/', ' ',
+        preg_replace( '/\s*\(\s*\d+\s*\)\s*$/', '', wp_strip_all_tags( (string) $label ) ) ) );
+    if ( $clean === '' ) return false;
+    foreach ( af_filter_oos_labels() as $oos ) {
+        if ( strcasecmp( $oos, $clean ) === 0 ) return true;
+    }
+    return false;
 }
 
 /**
@@ -16749,22 +16790,24 @@ body.woocommerce-page ul.products:not(.af-wl-related ul.products):not(.af-xsell 
 
 
 // ─────────────────────────────────────────────────────────────
-// Frame filters must say the same thing as the product page.
+// Filters must say the same thing as the product page.
 //
-// The product page has offered only Without Frame and Aluminium Frame since
-// af_frames_in_stock() was introduced — Fibre and Floating are shown struck
-// through and cannot be picked. The sidebar filter never got the message: it
-// still listed all four as equal, live choices with a count beside each, so a
-// shopper could filter to 337 "Fibre Frame" products and then find the frame
-// unbuyable on every one of them.
+// Frames: the product page has offered only Without Frame and Aluminium
+// Frame since af_frames_in_stock() was introduced — Fibre and Floating are
+// shown struck through and cannot be picked. Sizes: the page sells the five
+// in af_sizes_offered() and no others. Neither restriction reached the
+// filters, which listed all four frames and all fourteen sizes as equal,
+// live choices with a count beside each — so a shopper could filter down to
+// 337 products in a size or frame that is unbuyable on every one of them.
 //
-// The same single list drives both, so putting a frame back on sale still
-// means editing af_frames_in_stock() and nothing else.
+// The same two lists drive the filters and the product page, so putting an
+// option back on sale is still one edit to af_frames_in_stock() or
+// af_sizes_offered() and nothing else.
 //
-// Two routes in, because the frame list appears in markup we own and markup
-// we do not:
+// Three routes in, because these lists appear in markup we own and markup we
+// do not:
 //   • WooCommerce's own layered-nav widget, via its term-html filter;
-//   • our archive toolbar's Frame Type dropdown, handled where it is built;
+//   • our archive toolbar's Frame Type and Size dropdowns, where they are built;
 //   • anything else — a theme widget, a filter block — by matching the label
 //     text on the page, which is the only handle on markup this theme builds
 //     in Elementor and does not expose a hook for.
@@ -16772,9 +16815,9 @@ body.woocommerce-page ul.products:not(.af-wl-related ul.products):not(.af-xsell 
 
 /** WooCommerce's layered-nav widget: strike the term and take away its link. */
 add_filter('woocommerce_layered_nav_term_html', function ($html, $term, $link, $count) {
-    if (!function_exists('af_frame_label_is_oos')) return $html;
+    if (!function_exists('af_filter_label_is_oos')) return $html;
     $name = is_object($term) && isset($term->name) ? $term->name : '';
-    if (!af_frame_label_is_oos($name)) return $html;
+    if (!af_filter_label_is_oos($name)) return $html;
     // Drop the anchor but keep its text, so the row still reads as an option
     // that exists — it is out of stock, not absent.
     $html = preg_replace('#<a\b[^>]*>(.*?)</a>#is', '<span class="af-fx-oos-name">$1</span>', $html);
@@ -16784,10 +16827,10 @@ add_filter('woocommerce_layered_nav_term_html', function ($html, $term, $link, $
 
 add_action('wp_footer', function () {
     if (is_admin()) return;
-    $oos = function_exists('af_frames_out_of_stock') ? af_frames_out_of_stock() : array();
+    $oos = function_exists('af_filter_oos_labels') ? af_filter_oos_labels() : array();
     if (!$oos) return;
     ?>
-<style id="af-frame-filter-oos-css">
+<style id="af-filter-oos-css">
 /* Greying by opacity rather than a fixed colour: these lists live in theme
    markup that is dark in the sidebar and light elsewhere, and one hard-coded
    grey cannot be right in both. The badge borrows currentColor for the same
@@ -16800,14 +16843,14 @@ add_action('wp_footer', function () {
   text-transform:uppercase;font-style:normal;text-decoration:none !important;
   vertical-align:1px;opacity:.9;white-space:nowrap;}
 </style>
-<script id="af-frame-filter-oos">
+<script id="af-filter-oos">
 (function(){
   var OOS = <?php echo wp_json_encode(array_map('strtolower', $oos)); ?>;
   if (!OOS.length) return;
 
-  // Where a frame filter can plausibly live. Deliberately broad, because the
-  // match itself is exact — an element only gets touched when its whole text
-  // is the name of a frame we cannot make, so a wide net costs nothing.
+  // Where a filter can plausibly live. Deliberately broad, because the match
+  // itself is exact — an element only gets touched when its whole text is the
+  // name of an option we cannot sell, so a wide net costs nothing.
   var SCOPE = '.widget, aside, .sidebar, .widget-area, .elementor-widget-woocommerce-products,' +
               '[class*="layered"], [class*="filter"], [class*="facet"], [class*="attribute"]';
   // …except the product page's own picker, which already says all this and
