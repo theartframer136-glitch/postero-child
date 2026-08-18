@@ -9648,6 +9648,31 @@ add_action('woocommerce_checkout_create_order', function($order) {
 add_filter('jpeg_quality',          function() { return 100; }, 10, 0);
 add_filter('wp_editor_set_quality', function() { return 100; }, 10, 0);
 
+// ── The size the cards actually need ─────────────────────────
+// WooCommerce generates the catalogue thumbnail at 600px wide. A card on the
+// three-up grid is about 380 CSS px across, which is comfortable on an
+// ordinary screen and half of what a 2x phone or laptop asks for — so on
+// every retina display the browser is stretching a 600px file across 760
+// device pixels, and flat-colour artwork with hard edges shows that as soft,
+// slightly furry outlines. 800px covers the 2x case with a little headroom.
+//
+// Width only. Height and crop are left exactly as WooCommerce has them,
+// because those decide the SHAPE of every card on the site and this is a
+// change about resolution, not layout. And only ever upward: if the setting
+// is already larger than this, it is deliberate and stays.
+add_filter('woocommerce_get_image_size_thumbnail', function ($size) {
+    $want = (int) apply_filters('af_card_image_width', 800);
+    if (empty($size['width']) || (int) $size['width'] < $want) {
+        // An uncropped size scales its height from the width, so a height
+        // carried over from the smaller setting would squash the image.
+        if (empty($size['crop']) && !empty($size['height']) && !empty($size['width'])) {
+            $size['height'] = (int) round($size['height'] * ($want / (int) $size['width']));
+        }
+        $size['width'] = $want;
+    }
+    return $size;
+});
+
 // WordPress also silently downscales any upload wider or taller than 2560px
 // on the way in, and that scaled-down copy — not the original — becomes the
 // "full" size used everywhere (product pages, zoom, etc.); the true original
