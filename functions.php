@@ -10279,10 +10279,16 @@ add_shortcode('af_country_selector', function() {
       if (cs.display === 'flex' || cs.display === 'inline-flex') {
         p.style.setProperty('flex-wrap', 'nowrap', 'important');
         p.style.setProperty('align-items', 'center', 'important');
-        // pack the items rather than spreading them across the full width
-        if (/space-/.test(cs.justifyContent)) {
-          p.style.setProperty('justify-content', 'center', 'important');
+        // Pack the items rather than spreading them across the full width.
+        // NOT centred: this row is nowrap, and a centred nowrap row that runs
+        // wider than its container spills past BOTH edges — which is how the
+        // Facebook and Instagram icons ended up off the right of the page,
+        // with no way to scroll to them. Packing from the start means any
+        // overflow goes one way only, and the fit pass below then removes it.
+        if (/space-|center/.test(cs.justifyContent)) {
+          p.style.setProperty('justify-content', 'flex-start', 'important');
         }
+        p.style.setProperty('max-width', '100%', 'important');
         // One gap for the whole row, not a range. Conditional tightening left
         // each ancestor with whatever it happened to start with, so the items
         // sat at uneven distances; a single value makes English, $ USD, About
@@ -10343,6 +10349,28 @@ add_shortcode('af_country_selector', function() {
         }
       }
       p = p.parentElement; hops++;
+    }
+
+    // Fit pass. Everything above sets spacing; this checks the result and
+    // gives ground if the row still does not fit, because an item pushed off
+    // the page is worse than an item sitting a little closer than intended.
+    // Measured, not assumed — the row's width depends on fonts and on what
+    // the theme put in it, neither of which can be known from here.
+    var row = w.parentElement, guard = 0;
+    while (row && guard < 4) {
+      var rcs = window.getComputedStyle(row);
+      if (rcs.display === 'flex' || rcs.display === 'inline-flex') {
+        if (row.scrollWidth > row.clientWidth + 1) {
+          // let the items give a little rather than overflow
+          for (var f = 0; f < row.children.length; f++) {
+            row.children[f].style.setProperty('flex', '0 1 auto', 'important');
+          }
+          row.style.setProperty('column-gap', '2px', 'important');
+          row.style.setProperty('gap', '2px', 'important');
+        }
+        break;
+      }
+      row = row.parentElement; guard++;
     }
     return true;
   }
