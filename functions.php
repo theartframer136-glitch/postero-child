@@ -10278,14 +10278,11 @@ add_shortcode('af_country_selector', function() {
     while (p && hops < 4) {
       var cs = window.getComputedStyle(p);
       if (cs.display === 'flex' || cs.display === 'inline-flex') {
-        // WRAP, not nowrap. A nowrap row that does not fit has to put the
-        // overflow somewhere, and every option is bad: off the page, or —
-        // once max-width pinned it — clipped away entirely, which is how the
-        // email, phone, Ship to and both social icons vanished from this row.
-        // Wrapping drops the tail onto a second line instead. Each item still
-        // carries white-space:nowrap below, so no single item breaks mid-text;
-        // only the row breaks, and nothing is ever lost.
-        p.style.setProperty('flex-wrap', 'wrap', 'important');
+        // ONE line, and one that fits. Wrapping put the tail on a second row
+        // and the row read as two half-rows; nowrap on its own overflowed or
+        // got clipped. Neither is what this bar should do — so it stays on one
+        // line and afFitRow() below shrinks it until it fits the page.
+        p.style.setProperty('flex-wrap', 'nowrap', 'important');
         p.style.setProperty('align-items', 'center', 'important');
         p.style.setProperty('overflow', 'visible', 'important');
         // Pack from the start rather than spreading edge to edge. Centring
@@ -10354,9 +10351,84 @@ add_shortcode('af_country_selector', function() {
       }
       p = p.parentElement; hops++;
     }
-
+    afFitRow(afRowOf(w));
     return true;
   }
+
+  // The flex row that actually holds these items.
+  function afRowOf(el){
+    var n = el && el.parentElement, guard = 0;
+    while (n && guard < 4) {
+      var d = window.getComputedStyle(n).display;
+      if (d === 'flex' || d === 'inline-flex') return n;
+      n = n.parentElement; guard++;
+    }
+    return null;
+  }
+
+  // Make the row fit its container on ONE line, by measuring rather than
+  // guessing. Every fixed set of numbers tried here was wrong at some window
+  // width — too loose and the tail left the page, too tight and the row was
+  // unreadable at widths where it did not need to be. So: start at a
+  // comfortable spacing, and give ground only while the row is still too wide,
+  // cheapest thing first — gap, then padding, then type size, with a floor so
+  // it can never shrink to unreadable.
+  function afFitRow(row){
+    if (!row) return;
+    var gap = 10, pad = 4, size = 0;      // size 0 = leave the theme's own
+    function apply(){
+      row.style.setProperty('column-gap', gap + 'px', 'important');
+      row.style.setProperty('gap', gap + 'px', 'important');
+      for (var i = 0; i < row.children.length; i++) {
+        var it = row.children[i];
+        it.style.setProperty('padding-left', pad + 'px', 'important');
+        it.style.setProperty('padding-right', pad + 'px', 'important');
+        var ins = it.querySelectorAll('a,.elementor-widget-container,.menu-item');
+        for (var j = 0; j < ins.length; j++) {
+          ins[j].style.setProperty('padding-left', pad + 'px', 'important');
+          ins[j].style.setProperty('padding-right', pad + 'px', 'important');
+        }
+      }
+      if (size) {
+        row.style.setProperty('font-size', size + 'px', 'important');
+        var t = row.querySelectorAll('a,span,p,div,strong,em,li');
+        for (var k = 0; k < t.length; k++) t[k].style.setProperty('font-size', 'inherit', 'important');
+      }
+    }
+    function tooWide(){ return row.scrollWidth > row.clientWidth + 1; }
+
+    apply();
+    if (!tooWide()) return;               // it already fits — leave it alone
+
+    var guard = 0;
+    while (tooWide() && guard < 40) {
+      if (gap > 2)            gap -= 1;
+      else if (pad > 0)       pad -= 1;
+      else if (!size)         size = 13;  // only now start on the type
+      else if (size > 10)     size -= 0.5;
+      else break;                          // floor: readable beats fitting
+      apply();
+      guard++;
+    }
+
+    // Narrow enough — a phone — and one line is simply not possible without
+    // shrinking the text past reading. Wrap there instead: a second line is a
+    // worse layout than one line, but it is a far better outcome than text at
+    // 8px or a row running off the screen. One line where it fits, legible
+    // everywhere.
+    if (tooWide()) {
+      row.style.setProperty('flex-wrap', 'wrap', 'important');
+      row.style.setProperty('row-gap', '4px', 'important');
+    }
+  }
+
+  // Re-fit when the window changes, since the right answer depends on how
+  // much room there is — that is the whole point of measuring.
+  var afFitT = null;
+  window.addEventListener('resize', function(){
+    clearTimeout(afFitT);
+    afFitT = setTimeout(function(){ afFitRow(afRowOf(w)); }, 150);
+  });
   // Deepest element in the header area whose text contains the phone number.
   function phoneEl(){
     var re = /470[\s .\-]?7280/;
