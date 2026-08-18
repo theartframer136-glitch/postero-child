@@ -10374,7 +10374,31 @@ add_shortcode('af_country_selector', function() {
   // cheapest thing first — gap, then padding, then type size, with a floor so
   // it can never shrink to unreadable.
   function afFitRow(row){
-    if (!row) return;
+    if (!row || !row.clientWidth) return;   // not rendered yet — measuring it
+                                            // would only prove it "fits"
+
+    // Start every pass from the top of the ladder, not from wherever the last
+    // pass stopped. This routine only ever gives ground, so without a reset it
+    // is a one-way trip: a phone-width pass wraps the row, and a wrapped row
+    // can never overflow, so the next pass at desktop width measures "fits"
+    // and returns — the header stays wrapped and small at a width that had
+    // room to spare. Undo the previous pass first, then re-measure.
+    row.style.removeProperty('flex-wrap');
+    row.style.removeProperty('row-gap');
+    row.style.setProperty('flex-wrap', 'nowrap', 'important');
+    // Only take back the type size if WE set it — the theme puts inline sizes
+    // on some of these elements and wiping those would be a different bug.
+    // Our own marks are unmistakable: the flag on the row, and 'inherit' on
+    // the descendants, which is the only value this routine ever writes there.
+    if (row.getAttribute('data-af-fit-size') === '1') {
+      row.style.removeProperty('font-size');
+      row.removeAttribute('data-af-fit-size');
+    }
+    var prev = row.querySelectorAll('a,span,p,div,strong,em,li');
+    for (var r = 0; r < prev.length; r++) {
+      if (prev[r].style.fontSize === 'inherit') prev[r].style.removeProperty('font-size');
+    }
+
     var gap = 10, pad = 4, size = 0;      // size 0 = leave the theme's own
     function apply(){
       row.style.setProperty('column-gap', gap + 'px', 'important');
@@ -10391,6 +10415,7 @@ add_shortcode('af_country_selector', function() {
       }
       if (size) {
         row.style.setProperty('font-size', size + 'px', 'important');
+        row.setAttribute('data-af-fit-size', '1');
         var t = row.querySelectorAll('a,span,p,div,strong,em,li');
         for (var k = 0; k < t.length; k++) t[k].style.setProperty('font-size', 'inherit', 'important');
       }
@@ -10422,13 +10447,42 @@ add_shortcode('af_country_selector', function() {
     }
   }
 
-  // Re-fit when the window changes, since the right answer depends on how
-  // much room there is — that is the whole point of measuring.
-  var afFitT = null;
-  window.addEventListener('resize', function(){
+  // ── Re-fit whenever the answer could have changed ──────────────────
+  // A single resize listener is not enough. The row is measured, so it has to
+  // be re-measured every time the measurement could differ: a narrower window,
+  // yes, but also web fonts arriving after first paint (they change every
+  // width), a container that resizes without the window doing so (the sticky
+  // header shrinking on scroll), a phone turning sideways, and the case that
+  // silently did nothing before — being measured while hidden, where
+  // clientWidth is 0 and the row looks like it fits when it has not rendered.
+  var afFitT = null, afFitting = false;
+  function afRefit(){
+    var row = afRowOf(w);
+    if (!row) return;
+    if (!row.clientWidth) return;        // hidden: nothing meaningful to measure
+    afFitting = true;                    // our own writes must not re-trigger us
+    afFitRow(row);
+    setTimeout(function(){ afFitting = false; }, 60);
+  }
+  function afRefitSoon(){
+    if (afFitting) return;
     clearTimeout(afFitT);
-    afFitT = setTimeout(function(){ afFitRow(afRowOf(w)); }, 150);
-  });
+    afFitT = setTimeout(afRefit, 120);
+  }
+
+  window.addEventListener('resize', afRefitSoon);
+  window.addEventListener('orientationchange', afRefitSoon);
+  // fonts change every width in the row, and they land after first paint
+  try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(afRefitSoon); } catch (e) {}
+  // the row can be hidden at first, or resized by something that is not the
+  // window — a ResizeObserver catches both, where a resize listener cannot
+  try {
+    var ro = new ResizeObserver(afRefitSoon);
+    var target = afRowOf(w);
+    if (target) { ro.observe(target); if (target.parentElement) ro.observe(target.parentElement); }
+  } catch (e) {}
+  // and a few late passes for anything that renders after we do
+  [300, 900, 2000].forEach(function(d){ setTimeout(afRefitSoon, d); });
   // Deepest element in the header area whose text contains the phone number.
   function phoneEl(){
     var re = /470[\s .\-]?7280/;
