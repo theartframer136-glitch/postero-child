@@ -10278,14 +10278,19 @@ add_shortcode('af_country_selector', function() {
         if (/space-/.test(cs.justifyContent)) {
           p.style.setProperty('justify-content', 'center', 'important');
         }
-        // Gaps: too wide spreads the row, too narrow lets neighbours touch.
-        // Both ends matter — with no gap at all, MY ACCOUNT ran straight into
-        // the email address next to it.
-        var gap = parseFloat(cs.columnGap || cs.gap || '0') || 0;
-        if (gap > 16 || gap < 10) {
-          var want = gap > 16 ? '14px' : '12px';
-          p.style.setProperty('column-gap', want, 'important');
-          p.style.setProperty('gap', want, 'important');
+        // One gap for the whole row, not a range. Conditional tightening left
+        // each ancestor with whatever it happened to start with, so the items
+        // sat at uneven distances; a single value makes English, $ USD, About
+        // Us and My account read as one evenly-spaced line. 8px is close
+        // without letting neighbours touch — the letter-spacing reset below is
+        // what actually stopped the overlap, so this no longer has to hold a
+        // wide gap open to compensate. Tune here.
+        p.style.setProperty('column-gap', '8px', 'important');
+        p.style.setProperty('gap', '8px', 'important');
+        // theme padding on each item widens the visual gap well past the 8px
+        for (var m = 0; m < p.children.length; m++) {
+          p.children[m].style.setProperty('margin-left', '0', 'important');
+          p.children[m].style.setProperty('margin-right', '0', 'important');
         }
         for (var k = 0; k < p.children.length; k++) {
           var ch = p.children[k];
