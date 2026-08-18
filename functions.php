@@ -12216,6 +12216,24 @@ add_action('template_redirect', function () {
               </div>
               <video id="ftm-camv" class="af-ftm-camv" autoplay playsinline muted></video>
               <button type="button" id="ftm-camstop" class="af-ftm-camstop" style="display:none">✕ Stop camera</button>
+              <!-- live-camera calibration, the same measured-scale tool the
+                   Try On Wall page uses: fit the wall between ceiling and floor
+                   into the rectangle and it turns green, at which point
+                   pixels-per-foot is measured rather than assumed -->
+              <div id="ftm-cal" class="af-ftm-cal" style="display:none">
+                <div id="ftm-calbox" class="af-ftm-calbox">
+                  <span class="af-ftm-calcorner tl"></span><span class="af-ftm-calcorner tr"></span>
+                  <span class="af-ftm-calcorner bl"></span><span class="af-ftm-calcorner br"></span>
+                </div>
+                <div id="ftm-calmsg" class="af-ftm-calmsg">Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge</div>
+                <div id="ftm-calh" class="af-ftm-calh">
+                  <span>Wall height</span>
+                  <button type="button" data-ft="8" class="on">8 ft</button>
+                  <button type="button" data-ft="9">9 ft</button>
+                  <button type="button" data-ft="10">10 ft</button>
+                </div>
+              </div>
+              <button type="button" id="ftm-recal" class="af-ftm-recal" style="display:none">📐 True scale locked · tap to recalibrate</button>
               <div id="ftm-framebox" class="af-ftm-framebox" style="display:none">
                 <div id="ftm-panels" class="af-ftm-panels"></div>
               </div>
@@ -12463,8 +12481,18 @@ add_action('template_redirect', function () {
         var stage = $('ftm-stage').getBoundingClientRect();
         var WALL_FT = 10;      // assumed real wall height in the room photos
         var WALL_FRAC = 0.78;  // …of which this much of the stage is wall, not floor
-        var h = stage.height * WALL_FRAC * (ft.h / WALL_FT);
-        var w = h * (ft.w / ft.h);
+        var h, w;
+        if (typeof CAL !== 'undefined' && camOn && CAL.locked && CAL.pxPerFt > 0) {
+          // the wall has been measured through the camera: use the real
+          // pixels-per-foot rather than the assumption baked into the room
+          // photos, so the print is shown at its true size and rescales as
+          // the visitor walks towards or away from the wall
+          h = ft.h * CAL.pxPerFt;
+          w = ft.w * CAL.pxPerFt;
+        } else {
+          h = stage.height * WALL_FRAC * (ft.h / WALL_FT);
+          w = h * (ft.w / ft.h);
+        }
         // Cap generously, so a larger print never renders smaller than a smaller
         // one just because it hit the limit first on a narrow phone.
         var maxW = stage.width * 0.92, maxH = stage.height * 0.86;
@@ -12511,6 +12539,7 @@ add_action('template_redirect', function () {
         camSeq++; camStarting = false;          // cancels any start still in flight
         if (camStream){ camStream.getTracks().forEach(function(t){ t.stop(); }); camStream = null; }
         camOn = false;
+        calStop();
         var v = $('ftm-camv'); v.srcObject = null; v.style.display = 'none';
         $('ftm-camstop').style.display = 'none';
         $('ftm-wall').style.display = 'block';
@@ -12545,6 +12574,7 @@ add_action('template_redirect', function () {
             $('ftm-camstop').style.display = 'block';
             document.querySelectorAll('#ftm-scenes .af-ftm-scene').forEach(function(x){ x.classList.remove('on'); });
             camLabel();
+            calStart();
           })
           .catch(function(err){
             camStarting = false; camLabel();
@@ -12558,6 +12588,134 @@ add_action('template_redirect', function () {
       });
       $('ftm-camstop').addEventListener('click', stopCam);
       window.addEventListener('pagehide', stopCam);
+
+      // ── LIVE-CAMERA CALIBRATION — measured true scale ─────────────────
+      // Identical in behaviour to the Try On Wall page (owner request,
+      // 2026-08-18). The rectangle over the feed stands for the wall between
+      // ceiling and floor. The visitor steps back or forward until both lines
+      // sit on its edges; an edge detector watches the feed and flips the
+      // rectangle red → amber → green, and at the lock pixels-per-foot becomes
+      // MEASURED (rectangle height ÷ chosen wall height) rather than assumed.
+      // After the lock the detector keeps tracking the two lines, so walking
+      // closer or farther rescales the print exactly as a real one would grow
+      // or shrink in view. If the lines are lost the scale simply holds.
+      var CAL = { locked:false, wallFt:8, base:0, pxPerFt:0, factor:1,
+                  streak:0, spanLock:0, timer:null };
+      window.AFCalFTM = CAL;   // read-only view for the live verifier
+      var CAL_TOP = 0.16, CAL_BOT = 0.84;   // rectangle edges, fractions of stage height
+      var calCv = document.createElement('canvas');
+      calCv.width = 120; calCv.height = 90;
+      var calCx = calCv.getContext('2d', { willReadFrequently:true });
+
+      // where the rectangle's edges land in detector-row space, allowing for
+      // the object-fit:cover crop of the feed inside the stage
+      function calRows(){
+        var v = $('ftm-camv'); if (!(v.videoWidth > 0)) return null;
+        var st = $('ftm-stage').getBoundingClientRect();
+        var sc = Math.max(st.width / v.videoWidth, st.height / v.videoHeight);
+        var cropY = (v.videoHeight - st.height / sc) / 2;
+        var toRow = function(frac){
+          return (cropY + (frac * st.height) / sc) / v.videoHeight * calCv.height;
+        };
+        return { top: toRow(CAL_TOP), bot: toRow(CAL_BOT) };
+      }
+
+      // the strongest horizontal edge in the upper and the lower half of the
+      // feed — on a wall shot those are the ceiling line and the floor line
+      function calSample(){
+        var v = $('ftm-camv'); if (!(v.videoWidth > 0)) return null;
+        var d;
+        try {
+          calCx.drawImage(v, 0, 0, calCv.width, calCv.height);
+          d = calCx.getImageData(0, 0, calCv.width, calCv.height).data;
+        } catch(e){ return null; }
+        var W = calCv.width, H = calCv.height,
+            x0 = Math.round(W * 0.15), x1 = Math.round(W * 0.85);
+        function lum(x, y){ var i = (y * W + x) * 4; return d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114; }
+        var rows = [];
+        for (var y = 1; y < H - 1; y++){
+          var acc = 0;
+          for (var x = x0; x < x1; x++){ acc += Math.abs(lum(x, y+1) - lum(x, y-1)); }
+          rows[y] = acc;
+        }
+        var sorted = rows.filter(function(v2){ return v2 != null; }).sort(function(a,b){ return a-b; });
+        var med = sorted[Math.floor(sorted.length/2)] || 1;
+        function pick(a, b){
+          var best = -1, by = 0;
+          for (var y = Math.max(1, Math.round(a)); y < Math.min(H-1, Math.round(b)); y++){
+            if (rows[y] > best){ best = rows[y]; by = y; }
+          }
+          return { y: by, ok: best > med * 2.2 };
+        }
+        return { top: pick(H*0.03, H*0.48), bot: pick(H*0.52, H*0.97) };
+      }
+
+      function calTick(){
+        if (!camOn) return;
+        var sm = calSample(); if (!sm) return;
+        if (!CAL.locked){
+          var r = calRows(); if (!r) return;
+          var tol = calCv.height * 0.055;
+          var hit = sm.top.ok && sm.bot.ok &&
+                    Math.abs(sm.top.y - r.top) < tol && Math.abs(sm.bot.y - r.bot) < tol;
+          $('ftm-calbox').classList.toggle('near', hit);
+          CAL.streak = hit ? CAL.streak + 1 : 0;
+          if (CAL.streak >= 5) calLock(sm);        // ~0.8s of steady alignment
+        } else {
+          if (!(sm.top.ok && sm.bot.ok)) return;   // lines lost: hold the scale
+          var span = sm.bot.y - sm.top.y; if (span <= 4) return;
+          var f = span / CAL.spanLock; if (!(f > 0.35 && f < 2.8)) return;
+          CAL.factor += (f - CAL.factor) * 0.25;   // smooth, no jitter
+          var want = CAL.base * CAL.factor;
+          if (CAL.pxPerFt > 0 && Math.abs(want - CAL.pxPerFt) / CAL.pxPerFt > 0.015){
+            CAL.pxPerFt = want; render();
+          }
+        }
+      }
+
+      function calLock(sm){
+        var st = $('ftm-stage').getBoundingClientRect();
+        CAL.base = ((CAL_BOT - CAL_TOP) * st.height) / CAL.wallFt;   // MEASURED px per ft
+        CAL.factor = 1; CAL.pxPerFt = CAL.base;
+        CAL.spanLock = sm.bot.y - sm.top.y;
+        CAL.locked = true; CAL.streak = 0;
+        $('ftm-calbox').classList.add('locked');
+        $('ftm-calmsg').textContent = '✓ Wall locked — your print is now shown at its real size';
+        if (navigator.vibrate) try { navigator.vibrate(60); } catch(e){}
+        setTimeout(function(){
+          if (CAL.locked){ $('ftm-cal').style.display = 'none'; $('ftm-recal').style.display = 'block'; }
+        }, 1100);
+        render();
+      }
+
+      function calStart(){
+        CAL.locked = false; CAL.streak = 0; CAL.factor = 1;
+        $('ftm-cal').style.display = 'block';
+        $('ftm-recal').style.display = 'none';
+        $('ftm-calbox').classList.remove('locked','near');
+        $('ftm-calmsg').innerHTML = 'Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge';
+        if (!CAL.timer) CAL.timer = setInterval(calTick, 160);
+      }
+      function calStop(){
+        if (CAL.timer){ clearInterval(CAL.timer); CAL.timer = null; }
+        CAL.locked = false;
+        $('ftm-cal').style.display = 'none';
+        $('ftm-recal').style.display = 'none';
+        render();                                  // back to the room-photo scale
+      }
+      $('ftm-recal').addEventListener('click', calStart);
+      $('ftm-calh').addEventListener('click', function(e){
+        var b = e.target.closest('button[data-ft]'); if (!b) return;
+        this.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
+        b.classList.add('on');
+        CAL.wallFt = parseInt(b.getAttribute('data-ft'), 10) || 8;
+        if (CAL.locked){                           // re-derive, keep tracking
+          var st = $('ftm-stage').getBoundingClientRect();
+          CAL.base = ((CAL_BOT - CAL_TOP) * st.height) / CAL.wallFt;
+          CAL.pxPerFt = CAL.base * CAL.factor;
+          render();
+        }
+      });
 
       function buildSendLink(p){
         var msg = 'Hi The Art Framer! I would like to order a *Frame The Moment* custom print:%0A%0A' +
@@ -12884,6 +13042,28 @@ add_action('template_redirect', function () {
     .af-ftm-lay.on i{background:#c9a84c;}
     /* live camera backdrop */
     .af-ftm-camv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1;}
+    /* calibration overlay — same measured-scale tool as Try On Wall */
+    .af-ftm-cal{position:absolute;inset:0;z-index:7;pointer-events:none;}
+    .af-ftm-calbox{position:absolute;left:9%;right:9%;top:16%;bottom:16%;border:3px solid #e04338;border-radius:6px;
+      box-shadow:0 0 0 2000px rgba(0,0,0,.16);transition:border-color .25s,box-shadow .3s;}
+    .af-ftm-calbox.near{border-color:#e8b400;}
+    .af-ftm-calbox.locked{border-color:#2fae52;box-shadow:0 0 0 2000px rgba(0,0,0,0),0 0 26px rgba(47,174,82,.85);}
+    .af-ftm-calcorner{position:absolute;width:20px;height:20px;border-color:inherit;border-style:solid;border-width:0;}
+    .af-ftm-calcorner.tl{top:-3px;left:-3px;border-top-width:6px;border-left-width:6px;border-top-left-radius:6px;}
+    .af-ftm-calcorner.tr{top:-3px;right:-3px;border-top-width:6px;border-right-width:6px;border-top-right-radius:6px;}
+    .af-ftm-calcorner.bl{bottom:-3px;left:-3px;border-bottom-width:6px;border-left-width:6px;border-bottom-left-radius:6px;}
+    .af-ftm-calcorner.br{bottom:-3px;right:-3px;border-bottom-width:6px;border-right-width:6px;border-bottom-right-radius:6px;}
+    .af-ftm-calmsg{position:absolute;left:50%;top:4%;transform:translateX(-50%);background:rgba(16,16,16,.82);color:#fff;
+      font-size:12.5px;line-height:1.45;padding:8px 14px;border-radius:9px;max-width:78%;text-align:center;}
+    .af-ftm-calmsg strong{color:#efd48d;}
+    .af-ftm-calh{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);display:flex;gap:7px;align-items:center;
+      background:rgba(16,16,16,.82);border-radius:999px;padding:6px 10px;pointer-events:auto;}
+    .af-ftm-calh span{color:#cbc2ac;font-size:11px;font-weight:700;text-transform:none;letter-spacing:0;margin:0;}
+    .af-ftm-calh button{background:transparent;border:1px solid #6f6a5e;color:#fff;font-size:11.5px;font-weight:700;
+      border-radius:999px;padding:4px 10px;cursor:pointer;transition:background .15s;}
+    .af-ftm-calh button.on{background:#c9a84c;border-color:#c9a84c;color:#1a1a1a;}
+    .af-ftm-recal{position:absolute;top:12px;left:12px;z-index:8;background:rgba(24,110,52,.92);color:#fff;border:none;
+      border-radius:999px;padding:8px 13px;font-size:12px;font-weight:700;cursor:pointer;}
     .af-ftm-cambtn{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;margin-top:8px;padding:11px 12px;
       border:2px solid #1a1a1a;border-radius:11px;background:#1a1a1a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;
       text-transform:none;letter-spacing:0;transition:background .2s;}
