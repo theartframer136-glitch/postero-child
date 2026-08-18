@@ -4496,8 +4496,12 @@ add_action('woocommerce_before_shop_loop', function() {
         <div class="af-lt-drop">
           <button type="button" class="af-lt-dbtn">Frame Type ▾</button>
           <div class="af-lt-menu">
-            <?php foreach ($frames as $t): ?>
-              <a rel="nofollow" href="<?php echo esc_url($flink('filter_frame',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
+            <?php foreach ($frames as $t): $foos = function_exists('af_frame_label_is_oos') && af_frame_label_is_oos($t->name); ?>
+              <?php if ($foos): ?>
+                <span class="af-fx-oos" aria-disabled="true"><?php echo esc_html($t->name); ?> <em class="af-fx-oos-tag">Out of stock</em></span>
+              <?php else: ?>
+                <a rel="nofollow" href="<?php echo esc_url($flink('filter_frame',$t->slug)); ?>"><?php echo esc_html($t->name); ?></a>
+              <?php endif; ?>
             <?php endforeach; ?>
           </div>
         </div>
@@ -5401,6 +5405,32 @@ function af_frames_in_stock() {
 
 function af_frame_is_in_stock( $frame ) {
     return in_array( $frame, af_frames_in_stock(), true );
+}
+
+/** The frames currently NOT available, in the same order the card lists them. */
+function af_frames_out_of_stock() {
+    return array_values( array_filter(
+        array_keys( af_pricing_config()['frames'] ),
+        function ( $f ) { return ! af_frame_is_in_stock( $f ); }
+    ) );
+}
+
+/**
+ * Does this label name a frame we cannot currently make?
+ *
+ * Written to take a label rather than a clean name because the places that
+ * need the answer are filter widgets, where the text arrives as the term name
+ * with a count stuck on the end — "Fibre Frame (337)" — and sometimes wrapped
+ * in markup. Returns false for anything that is not one of our frames at all,
+ * so it is safe to run over every label on a page.
+ */
+function af_frame_label_is_oos( $label ) {
+    $clean = trim( preg_replace( '/\s*\(\s*\d+\s*\)\s*$/', '', wp_strip_all_tags( (string) $label ) ) );
+    if ( $clean === '' ) return false;
+    foreach ( array_keys( af_pricing_config()['frames'] ) as $frame ) {
+        if ( strcasecmp( $frame, $clean ) === 0 ) return ! af_frame_is_in_stock( $frame );
+    }
+    return false;
 }
 
 /** The frame a product opens on: the first in-stock one in config order. */
@@ -16678,3 +16708,144 @@ body.woocommerce-page ul.products:not(.af-wl-related ul.products):not(.af-xsell 
     <?php
 }, 99);
 
+
+// ─────────────────────────────────────────────────────────────
+// Frame filters must say the same thing as the product page.
+//
+// The product page has offered only Without Frame and Aluminium Frame since
+// af_frames_in_stock() was introduced — Fibre and Floating are shown struck
+// through and cannot be picked. The sidebar filter never got the message: it
+// still listed all four as equal, live choices with a count beside each, so a
+// shopper could filter to 337 "Fibre Frame" products and then find the frame
+// unbuyable on every one of them.
+//
+// The same single list drives both, so putting a frame back on sale still
+// means editing af_frames_in_stock() and nothing else.
+//
+// Two routes in, because the frame list appears in markup we own and markup
+// we do not:
+//   • WooCommerce's own layered-nav widget, via its term-html filter;
+//   • our archive toolbar's Frame Type dropdown, handled where it is built;
+//   • anything else — a theme widget, a filter block — by matching the label
+//     text on the page, which is the only handle on markup this theme builds
+//     in Elementor and does not expose a hook for.
+// ─────────────────────────────────────────────────────────────
+
+/** WooCommerce's layered-nav widget: strike the term and take away its link. */
+add_filter('woocommerce_layered_nav_term_html', function ($html, $term, $link, $count) {
+    if (!function_exists('af_frame_label_is_oos')) return $html;
+    $name = is_object($term) && isset($term->name) ? $term->name : '';
+    if (!af_frame_label_is_oos($name)) return $html;
+    // Drop the anchor but keep its text, so the row still reads as an option
+    // that exists — it is out of stock, not absent.
+    $html = preg_replace('#<a\b[^>]*>(.*?)</a>#is', '<span class="af-fx-oos-name">$1</span>', $html);
+    return '<span class="af-fx-oos" aria-disabled="true">' . $html
+         . ' <em class="af-fx-oos-tag">Out of stock</em></span>';
+}, 10, 4);
+
+add_action('wp_footer', function () {
+    if (is_admin()) return;
+    $oos = function_exists('af_frames_out_of_stock') ? af_frames_out_of_stock() : array();
+    if (!$oos) return;
+    ?>
+<style id="af-frame-filter-oos-css">
+/* Greying by opacity rather than a fixed colour: these lists live in theme
+   markup that is dark in the sidebar and light elsewhere, and one hard-coded
+   grey cannot be right in both. The badge borrows currentColor for the same
+   reason. */
+.af-fx-oos{opacity:.45 !important;text-decoration:line-through !important;cursor:not-allowed !important;}
+.af-fx-oos a,.af-fx-oos label,.af-fx-oos input,.af-fx-oos button{
+  pointer-events:none !important;cursor:not-allowed !important;}
+.af-fx-oos-tag{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:4px;
+  border:1px solid currentColor;font-size:9.5px;font-weight:800;letter-spacing:.04em;
+  text-transform:uppercase;font-style:normal;text-decoration:none !important;
+  vertical-align:1px;opacity:.9;white-space:nowrap;}
+</style>
+<script id="af-frame-filter-oos">
+(function(){
+  var OOS = <?php echo wp_json_encode(array_map('strtolower', $oos)); ?>;
+  if (!OOS.length) return;
+
+  // Where a frame filter can plausibly live. Deliberately broad, because the
+  // match itself is exact — an element only gets touched when its whole text
+  // is the name of a frame we cannot make, so a wide net costs nothing.
+  var SCOPE = '.widget, aside, .sidebar, .widget-area, .elementor-widget-woocommerce-products,' +
+              '[class*="layered"], [class*="filter"], [class*="facet"], [class*="attribute"]';
+  // …except the product page's own picker, which already says all this and
+  // says it better.
+  var SKIP  = '.af-chips, .af-opt-group, form.cart, .af-ftm-panel';
+
+  function clean(t){
+    return (t || '').replace(/\s+/g, ' ')
+                    .replace(/\(\s*\d+\s*\)\s*$/, '')   // the "(337)" count
+                    .trim().toLowerCase();
+  }
+  function isOos(el){ return OOS.indexOf(clean(el.textContent)) !== -1; }
+
+  function mark(row, label){
+    row.setAttribute('data-af-fx-oos', '1');
+    row.classList.add('af-fx-oos');
+    row.setAttribute('aria-disabled', 'true');
+    var kids = row.querySelectorAll('a, input, button');
+    for (var i = 0; i < kids.length; i++) {
+      var k = kids[i];
+      k.setAttribute('tabindex', '-1');
+      k.setAttribute('aria-disabled', 'true');
+      if (k.tagName === 'INPUT' || k.tagName === 'BUTTON') k.disabled = true;
+    }
+    // pointer-events makes it unclickable; this makes it unclickable even if
+    // some later stylesheet turns pointer-events back on.
+    row.addEventListener('click', function(e){ e.preventDefault(); e.stopPropagation(); }, true);
+    if (!row.querySelector('.af-fx-oos-tag')) {
+      var tag = document.createElement('em');
+      tag.className = 'af-fx-oos-tag';
+      tag.textContent = 'Out of stock';
+      // a space, so the row does not read as one run-together word
+      var host = label || row;
+      host.appendChild(document.createTextNode(' '));
+      host.appendChild(tag);
+    }
+  }
+
+  function sweep(){
+    var scopes = document.querySelectorAll(SCOPE);
+    for (var s = 0; s < scopes.length; s++) {
+      var sc = scopes[s];
+      if (sc.closest && sc.closest(SKIP)) continue;
+      var cand = sc.querySelectorAll('li, label, a, span');
+      for (var i = 0; i < cand.length; i++) {
+        var el = cand[i];
+        if (el.closest('[data-af-fx-oos]')) continue;   // this row is done
+        if (el.closest(SKIP)) continue;
+        if (!isOos(el)) continue;
+        // Prefer the whole row, so the strike covers the count and the
+        // checkbox too — but only if the row is JUST this option and not a
+        // list that happens to contain it.
+        var row = el.closest('li');
+        if (!row || !isOos(row)) row = el;
+        mark(row, el === row ? null : el);
+      }
+    }
+  }
+
+  var t = null, busy = false;
+  function soon(){
+    if (busy) return;
+    clearTimeout(t);
+    t = setTimeout(function(){
+      busy = true;                 // our own DOM writes must not re-trigger us
+      sweep();
+      setTimeout(function(){ busy = false; }, 80);
+    }, 100);
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', soon);
+  else soon();
+  // Filter widgets re-render themselves after an AJAX refine, which drops the
+  // marks — so watch for it rather than assuming one pass is enough.
+  try { new MutationObserver(soon).observe(document.body, {childList:true, subtree:true}); } catch (e) {}
+  [400, 1500].forEach(function(d){ setTimeout(soon, d); });
+})();
+</script>
+    <?php
+}, 98);
