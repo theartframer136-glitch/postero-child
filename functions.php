@@ -10268,6 +10268,11 @@ add_shortcode('af_country_selector', function() {
     // Keep the contact row on ONE clean line and pack its items together
     // instead of letting them spread edge-to-edge (which was forcing the email
     // and phone text to wrap). Apply to the flex ancestors that hold the row.
+    // The whole row's spacing, in two numbers. GAP is between items, PAD is
+    // inside each one — the theme's padding is the larger of the two, which is
+    // why earlier passes that only touched the gap looked like they had done
+    // nothing. Tune here.
+    var GAP = '4px', PAD = '2px';
     var p = w.parentElement, hops = 0;
     while (p && hops < 4) {
       var cs = window.getComputedStyle(p);
@@ -10285,12 +10290,27 @@ add_shortcode('af_country_selector', function() {
         // without letting neighbours touch — the letter-spacing reset below is
         // what actually stopped the overlap, so this no longer has to hold a
         // wide gap open to compensate. Tune here.
-        p.style.setProperty('column-gap', '8px', 'important');
-        p.style.setProperty('gap', '8px', 'important');
-        // theme padding on each item widens the visual gap well past the 8px
+        p.style.setProperty('column-gap', GAP, 'important');
+        p.style.setProperty('gap', GAP, 'important');
+        // The gap alone barely moved these items, because it is not what was
+        // holding them apart: each one carries the theme's own horizontal
+        // PADDING, and padding sits inside the item, so no gap value can
+        // shrink it. Margin and padding both have to come down for the row to
+        // actually close up.
         for (var m = 0; m < p.children.length; m++) {
-          p.children[m].style.setProperty('margin-left', '0', 'important');
-          p.children[m].style.setProperty('margin-right', '0', 'important');
+          var it = p.children[m];
+          it.style.setProperty('margin-left', '0', 'important');
+          it.style.setProperty('margin-right', '0', 'important');
+          it.style.setProperty('padding-left', PAD, 'important');
+          it.style.setProperty('padding-right', PAD, 'important');
+          // …and on the link inside it, which usually carries the padding
+          var ins = it.querySelectorAll('a,.elementor-widget-container,.menu-item');
+          for (var r = 0; r < ins.length; r++) {
+            ins[r].style.setProperty('padding-left', PAD, 'important');
+            ins[r].style.setProperty('padding-right', PAD, 'important');
+            ins[r].style.setProperty('margin-left', '0', 'important');
+            ins[r].style.setProperty('margin-right', '0', 'important');
+          }
         }
         for (var k = 0; k < p.children.length; k++) {
           var ch = p.children[k];
