@@ -2942,12 +2942,10 @@ add_action('wp_footer', function() {
     /* half, because the track holds the cards twice */
     to   { transform:translate3d(-50%,0,0); }
 }
-/* The row eases to a stop rather than freezing mid-stride — a visitor
-   reaching for a card should not be chasing a target that stops dead. The
-   easing itself is done in script, by ramping the animation's playback rate,
-   because animation-duration cannot be transitioned. This class is the
-   fallback for browsers that will not hand the animation over: a hard pause
-   is worse than an eased one and far better than none. */
+/* Slow to a stop under the pointer rather than freezing mid-stride, so a
+   visitor reaching for a card is not chasing a target that stops dead. */
+.af-pim-track { transition:none; }
+.af-pim-vp:hover .af-pim-track,
 .af-pim-track.af-pim-hold { animation-play-state:paused; }
 
 .af-pim-card {
@@ -2961,15 +2959,10 @@ add_action('wp_footer', function() {
     background:#111;
     cursor:pointer;
     box-shadow:0 6px 22px rgba(0,0,0,.28);
-    /* A long, soft curve. The card is already sliding sideways, so a quick
-       snappy lift reads as a jolt on top of motion that is already happening. */
-    transition:transform .45s cubic-bezier(.22,.61,.36,1),
-               box-shadow .45s cubic-bezier(.22,.61,.36,1);
-    transform:translate3d(0,0,0);            /* its own layer, so the lift does
-                                                not repaint the whole row */
+    transition:transform .3s cubic-bezier(.4,0,.2,1), box-shadow .3s cubic-bezier(.4,0,.2,1);
 }
 .af-pim-card:hover {
-    transform:translate3d(0,-6px,0) scale(1.02);
+    transform:translateY(-6px) scale(1.02);
     box-shadow:0 14px 38px rgba(0,0,0,.42);
 }
 /* The poster stays underneath the player for the whole life of the card. A
@@ -3109,17 +3102,6 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
     // makes the row longer, not faster — the apparent speed stays constant.
     $pim_dur = max(20, count($ids) * 5);
 ?>
-<?php
-/* Open the connections the players will need before any of them is created.
-   The first embed otherwise pays for DNS, TLS and the redirect before a single
-   frame arrives, which is most of the delay a visitor sees on arrival — and
-   the preload above only helps if the connection is ready when it fires. */
-?>
-<link rel="preconnect" href="https://www.youtube-nocookie.com" crossorigin>
-<link rel="preconnect" href="https://i.ytimg.com" crossorigin>
-<link rel="preconnect" href="https://www.google.com" crossorigin>
-<link rel="dns-prefetch" href="https://www.youtube-nocookie.com">
-
 <div class="af-pim-wrap" id="afPimWrap">
   <div class="af-pim-vp" id="afPimVp">
     <div class="af-pim-track" id="afPimTrack" style="--af-pim-dur:<?php echo (int) $pim_dur; ?>s">
@@ -3152,58 +3134,6 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
 
     var reduceMotion = false;
     try { reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){}
-
-    // ── Easing the row to a stop and back ───────────────────────────────
-    // The scroll itself stays a CSS animation, so at a steady speed it runs on
-    // the compositor and costs the main thread nothing — which is the whole
-    // reason it glides while six video players are working. What CSS cannot do
-    // is change speed gradually: animation-duration is not transitionable, and
-    // animation-play-state only has "running" and "stopped", so pausing on
-    // hover means stopping dead mid-stride.
-    //
-    // So take hold of the very same animation object and ramp its playbackRate
-    // instead. Script runs only during the ~450ms of a ramp; the rest of the
-    // time the compositor is left alone. If the browser will not hand the
-    // animation over, the class-based hard pause below still works.
-    var anim = null, haveAnim = false;
-    function marquee(){
-        if (haveAnim) return anim;
-        haveAnim = true;
-        try {
-            var list = track.getAnimations ? track.getAnimations() : [];
-            for (var i = 0; i < list.length; i++) {
-                if (list[i].animationName === 'af-pim-marquee') { anim = list[i]; break; }
-            }
-            if (!anim && list.length) anim = list[0];
-        } catch (e) { anim = null; }
-        return anim;
-    }
-
-    var rateNow = 1, rateWant = 1, ramping = false;
-    function ease(k){ return k < 0.5 ? 2*k*k : 1 - Math.pow(-2*k + 2, 2) / 2; }
-    function speed(target){
-        rateWant = target;
-        var a = marquee();
-        if (!a) {                                   // no handle on it: hard pause
-            track.classList.toggle('af-pim-hold', target === 0);
-            return;
-        }
-        track.classList.remove('af-pim-hold');
-        if (ramping) return;                        // the running ramp reads rateWant
-        ramping = true;
-        var from = rateNow, t0 = 0;
-        (function step(now){
-            if (!t0) t0 = now;
-            var k = Math.min(1, (now - t0) / 450);
-            rateNow = from + (rateWant - from) * ease(k);
-            try { a.playbackRate = rateNow; } catch (e) {}
-            if (k < 1) { requestAnimationFrame(step); return; }
-            ramping = false;
-            // The target may have changed while this ramp was running — chase
-            // it rather than settling on a stale one.
-            if (Math.abs(rateNow - rateWant) > 0.01) speed(rateWant);
-        })(0);
-    }
 
     // How many players may run at once. The row used to create one per card
     // and roughly twenty autoplaying YouTube embeds made the browser throttle
@@ -3251,13 +3181,7 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
                 if (e.isIntersecting) start(e.target);
                 else                  stop(e.target);
             });
-        // The vertical margin is the preload. A card begins loading while the
-        // section is still most of a screen below the fold, so by the time the
-        // visitor arrives the row is already moving — instead of a wall of
-        // stills that blink into life once they have been looked at. The
-        // horizontal margin does the same job sideways, for cards about to
-        // slide in from the right.
-        }, { root: null, rootMargin: '700px 260px 700px 260px', threshold: 0.2 });
+        }, { root: null, rootMargin: '0px 220px 0px 220px', threshold: 0.35 });
         cards.forEach(function(c){ io.observe(c); });
     } catch(e){
         cards.slice(0, MAX_LIVE).forEach(start);        // no observer: play the first few
@@ -3269,26 +3193,15 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
     try {
         new IntersectionObserver(function(en){
             en.forEach(function(e){
-                if (!e.isIntersecting) { live.slice().forEach(stop); speed(0); }
-                else                    { speed(1); }
+                if (!e.isIntersecting) {
+                    live.slice().forEach(stop);
+                    track.classList.add('af-pim-hold');
+                } else {
+                    track.classList.remove('af-pim-hold');
+                }
             });
-        // Matched to the card margin above. With a plain threshold this
-        // observer fired "not visible" for the whole approach and tore down
-        // every player the preload had just built.
-        }, { rootMargin: '750px 0px 750px 0px', threshold: 0 })
-          .observe(document.getElementById('afPimWrap'));
+        }, { threshold: 0 }).observe(document.getElementById('afPimWrap'));
     } catch(e){}
-
-    // Ease to a stop under the pointer, and back up on the way out.
-    if (!reduceMotion) {
-        vp.addEventListener('mouseenter', function(){ speed(0); });
-        vp.addEventListener('mouseleave', function(){ speed(1); });
-        // A background tab should not be animating at all, and coming back to
-        // one that kept running looks like the row jumped while you were away.
-        document.addEventListener('visibilitychange', function(){
-            speed(document.hidden ? 0 : 1);
-        });
-    }
 
     // Click still opens the video with sound.
     cards.forEach(function(c){
@@ -3299,7 +3212,7 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
                      + '?autoplay=1&rel=0&playsinline=1';
             lb.classList.add('open');
             live.slice().forEach(stop);                 // one thing playing at a time
-            speed(0);
+            track.classList.add('af-pim-hold');
         });
     });
 
@@ -3308,7 +3221,7 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         // 'about:blank', not '': an empty src navigates the iframe to the
         // page's own URL, silently re-downloading the whole page.
         lbFr.src = 'about:blank';
-        speed(1);                                // the row eases back into motion
+        track.classList.remove('af-pim-hold');   // the row starts moving again
     }
     lbX.onclick = closeLb;
     lb.addEventListener('click', function(e){ if (e.target === lb) closeLb(); });
