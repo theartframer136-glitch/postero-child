@@ -17397,3 +17397,149 @@ add_action('wp_footer', function () {
 </script>
     <?php
 }, 97);
+
+// ─────────────────────────────────────────────────────────────
+// The offers ticker: a single line of promises that scrolls under the header.
+//
+// Modelled on the reference recording, with one deliberate difference. The
+// recording is a competitor's bar and its claims are theirs — "Free Shipping
+// Across India", "Trusted by 1000+ Happy Customers", "Extra 5% OFF on Your
+// First Order". Repeating those here would put statements on this shop that
+// are either about another country or simply not established, and this file
+// already carries the scar from that: af_shipping_copy() exists because the
+// site once promised "Free Shipping across the USA" while its own popup
+// listed four states. So the shipping line is taken from that one source
+// rather than written again, and every other line is something the site
+// already tells customers on its own product pages.
+//
+// The list is filterable. Anything the owner can stand behind can go in it,
+// and nothing here has to be argued with to change it.
+// ─────────────────────────────────────────────────────────────
+function af_ticker_items() {
+    $ship = function_exists('af_shipping_copy') ? af_shipping_copy() : array('label' => 'Shipping throughout the USA');
+    return array_values( array_filter( (array) apply_filters('af_ticker_items', array(
+        '🚚 ' . $ship['label'],
+        '🖼️ Gallery-wrapped and ready to hang',
+        '💎 Fade-resistant archival inks on museum-quality canvas',
+        '✓ Inclusive of all taxes',
+        '📦 Free secure packaging',
+        '📐 Custom sizes available',
+    )) ) );
+}
+
+add_action('wp_footer', function () {
+    if (is_admin()) return;
+    $items = af_ticker_items();
+    if (!$items) return;
+    $run = '';
+    foreach ($items as $it) {
+        $run .= '<span class="af-tk-item">' . esc_html($it) . '</span><span class="af-tk-dot" aria-hidden="true">•</span>';
+    }
+    ?>
+<style id="af-ticker-css">
+.af-ticker{
+  width:100%;
+  overflow:hidden;
+  background:#161616;
+  border-top:1px solid rgba(255,255,255,.06);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  padding:9px 0;
+  position:relative;
+  z-index:5;
+}
+/* The same seam rule as the video row: spacing belongs to the ITEM as a
+   margin, never to the track as a flex gap. With gap, a run of n items is
+   (n × item) + (n−1 × gap), so sliding by half the track lands half a gap
+   short of where the second copy starts and the line twitches once a loop. */
+.af-ticker-track{
+  display:flex;
+  flex-wrap:nowrap;
+  width:max-content;
+  will-change:transform;
+  animation:af-tk-run var(--af-tk-dur,42s) linear infinite;
+}
+@keyframes af-tk-run{
+  from{ transform:translate3d(0,0,0); }
+  to  { transform:translate3d(-50%,0,0); }
+}
+.af-ticker:hover .af-ticker-track{ animation-play-state:paused; }
+.af-tk-item,.af-tk-dot{
+  flex:0 0 auto;
+  white-space:nowrap;
+  font-size:13px;
+  line-height:1.2;
+  color:#e8e2d4;
+  letter-spacing:.01em;
+}
+.af-tk-item{ margin-right:26px; font-weight:600; }
+.af-tk-dot { margin-right:26px; color:#c9a84c; }
+@media (max-width:768px){
+  .af-tk-item,.af-tk-dot{ font-size:11.5px; }
+  .af-tk-item,.af-tk-dot{ margin-right:16px; }
+  .af-ticker{ padding:7px 0; }
+}
+/* A line of text sliding sideways is exactly what "reduce motion" is about:
+   hold it still and let it be scrolled by hand instead. */
+@media (prefers-reduced-motion: reduce){
+  .af-ticker-track{ animation:none; }
+  .af-ticker{ overflow-x:auto; }
+}
+</style>
+
+<div class="af-ticker" id="afTicker" role="complementary" aria-label="Store offers">
+  <div class="af-ticker-track" id="afTickerTrack">
+    <?php echo $run; ?>
+    <?php /* The second run exists only to make the loop seamless — it must not
+             be read out twice. */ ?>
+    <span aria-hidden="true" style="display:contents"><?php echo $run; ?></span>
+  </div>
+</div>
+
+<script id="af-ticker-js">
+(function(){
+  var bar = document.getElementById('afTicker');
+  var track = document.getElementById('afTickerTrack');
+  if (!bar || !track) return;
+
+  // Sit it directly under the header, above whatever the page opens with.
+  // The header is Elementor's, not ours, so it is found on the page rather
+  // than assumed: the last header-ish element that actually sits at the top.
+  function place(){
+    if (bar.dataset.placed) return;
+    var best = null;
+    var cands = document.querySelectorAll(
+      '.elementor-location-header, header.site-header, header#masthead, header[role="banner"], header'
+    );
+    for (var i = 0; i < cands.length; i++) {
+      var h = cands[i];
+      if (h.contains(bar)) continue;
+      var r = h.getBoundingClientRect();
+      if (r.height < 40) continue;                 // a stray inner <header>
+      if (r.top > 400) continue;                   // not the page's own header
+      if (!best || r.bottom > best.getBoundingClientRect().bottom) best = h;
+    }
+    if (!best) return;
+    best.insertAdjacentElement('afterend', bar);
+    bar.dataset.placed = '1';
+  }
+
+  // Speed, not duration: the run gets longer as items are added, so tying the
+  // duration to the width keeps the pace the same however much is in it.
+  function pace(){
+    var w = track.scrollWidth / 2;               // one copy
+    if (!w) return;
+    var pxPerSec = 60;
+    track.style.setProperty('--af-tk-dur', Math.max(18, Math.round(w / pxPerSec)) + 's');
+  }
+
+  function go(){ place(); pace(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
+  else go();
+  window.addEventListener('load', go);
+  window.addEventListener('resize', pace);
+  try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(pace); } catch (e) {}
+  [300, 900, 2000].forEach(function(d){ setTimeout(go, d); });
+})();
+</script>
+    <?php
+}, 96);
