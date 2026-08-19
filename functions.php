@@ -3092,7 +3092,22 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         $vid = esc_attr($vid);
         $thumb_hq  = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
         $thumb_max = "https://img.youtube.com/vi/{$vid}/maxresdefault.jpg";
-        $embed     = "https://www.youtube-nocookie.com/embed/{$vid}?autoplay=1&mute=1&loop=1&playlist={$vid}&controls=0&rel=0&playsinline=1&modestbranding=1";
+        // NO loop=1&playlist= here, deliberately. That pair is the documented
+        // way to loop a single video, but it makes YouTube treat the embed as
+        // a PLAYLIST — and a playlist draws its own chrome over the picture:
+        // previous/next arrows and a large play-pause badge in the middle,
+        // which controls=0 does not suppress because they are playlist
+        // controls rather than player controls. That badge is what was sitting
+        // on top of the artwork.
+        //
+        // Looping is done through the iframe API instead: the script asks to
+        // be told about state changes and restarts the video when it ends.
+        // The rest of these switches turn off everything else YouTube would
+        // otherwise draw — annotations, the fullscreen button, keyboard
+        // handling, the end-screen suggestions.
+        $embed     = "https://www.youtube-nocookie.com/embed/{$vid}"
+                   . "?autoplay=1&mute=1&controls=0&rel=0&playsinline=1&modestbranding=1"
+                   . "&iv_load_policy=3&fs=0&disablekb=1&enablejsapi=1";
         $cap       = isset($titles[$vid]) ? $titles[$vid] : '';
         // NOTE: still no <iframe> in the markup. Roughly twenty autoplaying
         // YouTube players at once made the browser throttle them and left the
@@ -3237,6 +3252,13 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
             // underneath either way, so a slow or throttled embed shows a
             // still frame rather than a black hole.
             setTimeout(function(){ card.classList.add('af-pim-live'); }, 350);
+            // Ask this player to report its state. Without loop=1&playlist=
+            // nothing repeats on its own any more, so the end of a clip has to
+            // be noticed and answered.
+            try {
+                fr.contentWindow.postMessage(
+                    JSON.stringify({ event: 'listening', id: card.getAttribute('data-vid') }), '*');
+            } catch (e) {}
         });
         card.insertBefore(fr, card.firstChild);
     }
@@ -3279,7 +3301,34 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
           .observe(document.getElementById('afPimWrap'));
     } catch(e){}
 
-    // Ease to a stop under the pointer, and back up on the way out.
+    // Restart a clip that has finished. YouTube posts state changes back to the
+  // page once a player has been asked to listen; state 0 is "ended". Replying
+  // to the frame that sent the message keeps this correct when several are
+  // playing at once, which is the normal case here.
+  window.addEventListener('message', function(e){
+    // Match the HOST exactly. A suffix test would accept evil-youtube.com,
+    // which ends with youtube.com and would then be able to drive these
+    // players.
+    var host = '';
+    try { host = new URL(e.origin).hostname; } catch (err) { return; }
+    if (!/^(www\.)?youtube(-nocookie)?\.com$/.test(host)) return;
+    var d = e.data;
+    if (typeof d === 'string') { try { d = JSON.parse(d); } catch (err) { return; } }
+    if (!d || d.event !== 'onStateChange' || Number(d.info) !== 0) return;
+    for (var i = 0; i < cards.length; i++) {
+        var fr = cards[i].querySelector('iframe');
+        if (!fr || fr.contentWindow !== e.source) continue;
+        try {
+            fr.contentWindow.postMessage(JSON.stringify(
+                { event: 'command', func: 'seekTo', args: [0, true] }), '*');
+            fr.contentWindow.postMessage(JSON.stringify(
+                { event: 'command', func: 'playVideo', args: [] }), '*');
+        } catch (err) {}
+        break;
+    }
+  });
+
+  // Ease to a stop under the pointer, and back up on the way out.
     if (!reduceMotion) {
         vp.addEventListener('mouseenter', function(){ speed(0); });
         vp.addEventListener('mouseleave', function(){ speed(1); });
