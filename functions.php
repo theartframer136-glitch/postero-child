@@ -9770,17 +9770,49 @@ add_filter('wp_editor_set_quality', function() { return 100; }, 10, 0);
 // because those decide the SHAPE of every card on the site and this is a
 // change about resolution, not layout. And only ever upward: if the setting
 // is already larger than this, it is deliberate and stays.
-add_filter('woocommerce_get_image_size_thumbnail', function ($size) {
-    $want = (int) apply_filters('af_card_image_width', 800);
-    if (empty($size['width']) || (int) $size['width'] < $want) {
-        // An uncropped size scales its height from the width, so a height
-        // carried over from the smaller setting would squash the image.
-        if (empty($size['crop']) && !empty($size['height']) && !empty($size['width'])) {
-            $size['height'] = (int) round($size['height'] * ($want / (int) $size['width']));
-        }
-        $size['width'] = $want;
+// Only ever upward, width only, height scaled to match when the size is
+// uncropped — the same rule for all three below, so none of them changes the
+// SHAPE of anything, only how many pixels it is drawn from.
+function af_bump_image_width( $size, $want ) {
+    $want = (int) $want;
+    if ( ! empty( $size['width'] ) && (int) $size['width'] >= $want ) return $size;
+    // Scale the height by the same factor whether the size is cropped or not.
+    // Skipping it for cropped sizes was a bug and precisely the thing this
+    // helper exists to avoid: the gallery thumbnail ships as 100x100 cropped
+    // square, and raising the width alone turned it into 200x100 — a square
+    // thumbnail silently became a 2:1 letterbox. A cropped size's height is
+    // what defines its shape, so it has to move with the width.
+    if ( ! empty( $size['height'] ) && ! empty( $size['width'] ) ) {
+        $size['height'] = (int) round( $size['height'] * ( $want / (int) $size['width'] ) );
     }
+    $size['width'] = $want;
     return $size;
+}
+
+// ── The product page's own picture ───────────────────────────
+// This is the one that was missed, and it is the one that matters most: the
+// main image on a product page is woocommerce_single, NOT the catalogue
+// thumbnail raised below. WooCommerce ships it at 600px wide. That image is
+// drawn at roughly 570 CSS px on a desktop product page, so on any 2x screen
+// the browser is stretching 600 pixels across about 1140 — nearly double —
+// and this is precisely the picture a customer leans in to look at before
+// spending eighty dollars.
+//
+// 1200 covers 2x with a little to spare and stays inside the masters, which
+// the orientation scan measured at about 1600px on the long side, so nothing
+// here is invented from pixels that do not exist.
+add_filter('woocommerce_get_image_size_single', function ($size) {
+    return af_bump_image_width( $size, (int) apply_filters('af_single_image_width', 1200) );
+});
+
+// The little strip beside it, likewise: shipped at 100px and shown at about
+// that size, which is a blurred stamp on any modern screen.
+add_filter('woocommerce_get_image_size_gallery_thumbnail', function ($size) {
+    return af_bump_image_width( $size, (int) apply_filters('af_gallery_thumb_width', 200) );
+});
+
+add_filter('woocommerce_get_image_size_thumbnail', function ($size) {
+    return af_bump_image_width( $size, (int) apply_filters('af_card_image_width', 800) );
 });
 
 // WordPress also silently downscales any upload wider or taller than 2560px
