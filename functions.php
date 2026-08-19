@@ -17277,9 +17277,24 @@ add_action('wp_footer', function () {
     sizing = false;
   }
 
+  // position:sticky silently does nothing if ANY ancestor clips overflow —
+  // and theme wrappers often do. Walk up from the gallery and lift the clip on
+  // those containers (recorded on the element so it is visible in devtools).
+  // The gallery's own internals are left alone.
+  function unclipAncestors(){
+    for (var a = g.parentElement; a && a !== document.body; a = a.parentElement) {
+      var cs = window.getComputedStyle(a);
+      if (cs.overflow !== 'visible' || cs.overflowY !== 'visible') {
+        a.style.setProperty('overflow', 'visible', 'important');
+        a.dataset.afSgUnclipped = '1';
+      }
+    }
+  }
+
   function boot(){
     if (!pick()) return;
     wrapOnce();
+    unclipAncestors();
     size();
     window.addEventListener('resize', size);
     g.querySelectorAll('img').forEach(function(im){ im.addEventListener('load', size); });
