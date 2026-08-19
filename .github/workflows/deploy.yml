@@ -1039,6 +1039,17 @@ jobs:
       # placed early is a check nobody can read — which is the same failure as
       # not running it. Here it also sees the finished state, after every
       # suite has had its turn.
+      # Real-browser check: does the product gallery actually PIN when the page
+      # scrolls? Server-side checks can only prove the code is served; this
+      # opens the live page in Chrome on the runner, scrolls it, and reports
+      # PINNED or the exact ancestor blocking it. Read-only.
+      - name: Headless sticky-gallery check (read-only)
+        timeout-minutes: 6
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afhead/node_modules node tools/headless-sticky-check.js || true
+
       - name: Thin-category cross-sell check (read-only)
         if: always()
         run: |
