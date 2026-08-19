@@ -17195,10 +17195,36 @@ add_action('wp_footer', function () {
     z-index: 2;
   }
 }
+/* Full size at rest; smaller only once the page has actually scrolled, so
+   the picture is never permanently reduced just to make pinning possible.
+   The size is eased rather than switched, because a picture that snaps to a
+   new size mid-scroll reads as the page glitching. */
+@media (min-width: 993px) {
+  body.single-product .af-sticky-gallery .af-sg-shrink {
+    transition: max-height .35s cubic-bezier(.22,.61,.36,1) !important;
+    max-height: none;
+  }
+  body.single-product .af-sticky-gallery.af-sg-compact .af-sg-shrink {
+    max-height: var(--af-sg-max, none) !important;
+    height: auto !important;
+    width: auto !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   /* Sticky is not an animation, but it does mean the page moves in two
      speeds. Anyone who has asked for less of that gets the plain layout. */
   body.single-product .af-sticky-gallery { position: static !important; }
+  /* …and with nothing pinned, shrinking the picture buys nothing at all —
+     it would just be a smaller picture for no reason. */
+  body.single-product .af-sticky-gallery .af-sg-shrink,
+  body.single-product .af-sticky-gallery.af-sg-compact .af-sg-shrink {
+    max-height: none !important;
+    transition: none !important;
+  }
 }
 </style>
 <script id="af-sticky-gallery">
@@ -17265,9 +17291,89 @@ add_action('wp_footer', function () {
     var worthIt    = sr.height > gr.height + 80;   // nothing to pin against otherwise
     if (!sideBySide || !worthIt) {
         g.classList.remove('af-sticky-gallery');
+        g.classList.remove('af-sg-compact');
         g.style.removeProperty('top');
+        return;
     }
+
+    // ── Staying visible without being permanently smaller ───────────────
+    // A sticky element taller than the viewport cannot pin: the browser
+    // scrolls it until its bottom edge arrives. So for the picture to still
+    // be there on the way down, it has to fit — but making it fit at rest
+    // means a smaller picture on every product page, which is not a trade
+    // worth making on a shop that sells pictures.
+    //
+    // So it is full size until the page actually moves, and eases down to a
+    // fitting size only while scrolled — then eases back at the top.
+    var main = g.querySelector('.woocommerce-product-gallery__image img')
+            || g.querySelector('.flex-viewport img')
+            || g.querySelector('img');
+    if (!main) return;
+    main.classList.add('af-sg-shrink');
+
+    var top   = parseFloat(g.style.top) || 0;
+    var avail = window.innerHeight - top - 12;
+    // What the image may become: the room left after everything ELSE in the
+    // column — a thumbnail strip below it, padding, badges — has kept its
+    // space. That has to be measured with the cap OFF, or the number is of
+    // the already-shrunken column.
+    //
+    // But measuring it on every pass is what made the picture pulse: shrinking
+    // changes the column's height, the ResizeObserver notices, this runs
+    // again, drops the cap to measure, and the image springs back to full size
+    // for a frame before being shrunk once more. So the natural height is
+    // measured once per window width and remembered — no cap is disturbed
+    // unless the window itself changed.
+    var natural, rest;
+    if (g.dataset.afSgNat && +g.dataset.afSgW === window.innerWidth) {
+        natural = +g.dataset.afSgNat;
+        rest    = +g.dataset.afSgRest;
+    } else {
+        g.classList.remove('af-sg-compact');
+        natural = g.getBoundingClientRect().height;
+        rest    = Math.max(0, natural - main.getBoundingClientRect().height);
+        g.dataset.afSgNat  = natural;
+        g.dataset.afSgRest = rest;
+        g.dataset.afSgW    = window.innerWidth;
+    }
+    var cap = Math.max(260, avail - rest);
+    g.style.setProperty('--af-sg-max', Math.round(cap) + 'px');
+
+    // Below this scroll position the column has not started to leave yet, so
+    // there is no reason to touch the picture.
+    // Where the column sits in the DOCUMENT — measured from its PARENT, not
+    // from the gallery itself.
+    //
+    // A sticky element that is currently pinned reports an offsetTop that
+    // includes the displacement holding it in place, so measuring the gallery
+    // measures where the scroll has already put it. The trigger then chases
+    // the scroll position: at 800px down it computed a threshold of 800, was
+    // never exceeded, and the picture was never shrunk — sticky looked dead
+    // for the second time, from a different cause. The row never moves, so
+    // measure that.
+    var docTop = 0;
+    for (var o = g.parentElement; o; o = o.offsetParent) docTop += o.offsetTop;
+    afTrigger   = Math.max(0, docTop - top);
+    afGallery   = g;
+    afNeedsFit  = natural > avail;
+    onScroll();
   }
+
+  // Toggled from a scroll listener rather than recomputed there: the class is
+  // the only thing that changes, the sizes are already worked out, and the
+  // listener is passive and coalesced into a frame so it cannot make the
+  // scroll itself stutter.
+  var afGallery = null, afTrigger = 0, afNeedsFit = false, afTick = false;
+  function onScroll(){
+    if (!afGallery || !afNeedsFit) return;
+    afGallery.classList.toggle('af-sg-compact',
+        (window.pageYOffset || document.documentElement.scrollTop) > afTrigger + 8);
+  }
+  window.addEventListener('scroll', function(){
+    if (afTick) return;
+    afTick = true;
+    requestAnimationFrame(function(){ afTick = false; onScroll(); });
+  }, { passive: true });
 
   var t = null;
   function soon(){ clearTimeout(t); t = setTimeout(apply, 120); }
