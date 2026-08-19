@@ -17164,3 +17164,130 @@ li:has(> .af-fx-gone),
 </script>
     <?php
 }, 98);
+
+// ─────────────────────────────────────────────────────────────
+// Product page: the picture stays put while the details scroll.
+//
+// The gallery is short and the buy column is long — size, frame, colour,
+// price, delivery, the lot. Scrolling to read any of it used to carry the
+// artwork off the top of the screen, so by the time someone was choosing a
+// frame they could no longer see the thing they were framing. Pinning the
+// gallery keeps the product in view for the whole decision.
+//
+// CSS alone cannot do this here. `position: sticky` is silently cancelled by
+// any ancestor with a clipping overflow, and by a flex parent that stretches
+// its children to full height — both of which this theme does, in markup the
+// child theme does not own. So the rule is applied, and then the handful of
+// conditions that would cancel it are cleared on the ancestors between the
+// gallery and the row. Nothing else on the page is touched.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_footer', function () {
+    if (!function_exists('is_product') || !is_product()) return;
+    ?>
+<style id="af-sticky-gallery-css">
+/* Only where there are genuinely two columns. Stacked on a phone, a sticky
+   gallery would pin the image over the details underneath it. */
+@media (min-width: 993px) {
+  body.single-product .af-sticky-gallery {
+    position: sticky !important;
+    align-self: flex-start !important;   /* a stretched item is as tall as the
+                                            row and can never stick */
+    z-index: 2;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Sticky is not an animation, but it does mean the page moves in two
+     speeds. Anyone who has asked for less of that gets the plain layout. */
+  body.single-product .af-sticky-gallery { position: static !important; }
+}
+</style>
+<script id="af-sticky-gallery">
+(function(){
+  function px(el, prop){ return parseFloat(window.getComputedStyle(el)[prop]) || 0; }
+
+  function gallery(){
+    return document.querySelector('.woocommerce-product-gallery')
+        || document.querySelector('.wp-block-woocommerce-product-image-gallery')
+        || document.querySelector('div.product .images');
+  }
+  function summary(){
+    return document.querySelector('.summary.entry-summary')
+        || document.querySelector('.entry-summary')
+        || document.querySelector('div.product .summary');
+  }
+  // How far down the pinned image should sit: clear of the header if the
+  // header is one that stays on screen, otherwise a small breathing gap.
+  function topOffset(){
+    var best = 0;
+    var cands = document.querySelectorAll('header, .site-header, .elementor-location-header, .af-header-stuck');
+    for (var i = 0; i < cands.length; i++) {
+      var h = cands[i], cs = window.getComputedStyle(h);
+      if (cs.position !== 'sticky' && cs.position !== 'fixed') continue;
+      var r = h.getBoundingClientRect();
+      if (r.height > best && r.height < 240) best = r.height;   // a whole-page
+    }                                                          // overlay is not a header
+    return Math.round(best) + 16;
+  }
+
+  function apply(){
+    var g = gallery(), s = summary();
+    if (!g || !s) return;
+
+    if (window.innerWidth < 993) { g.classList.remove('af-sticky-gallery'); return; }
+
+    // A clipping ancestor cancels sticky silently, and it does so from ANY
+    // level — not just between the gallery and the row. An overflow:hidden
+    // wrapper further up makes itself the scroll container, and since it does
+    // not scroll, the element simply never sticks. So walk all the way to the
+    // body.
+    //
+    // But do not flatten a container that is genuinely scrolling something:
+    // an element whose content overflows its box is a real scroller and is
+    // clipping on purpose. One whose content fits is only clipping
+    // defensively, and that is the kind that breaks this for no benefit.
+    for (var n = g.parentElement; n && n !== document.body; n = n.parentElement) {
+      var cs = window.getComputedStyle(n);
+      if (!/(auto|hidden|scroll|clip)/.test(cs.overflow + cs.overflowX + cs.overflowY)) continue;
+      var scrolls = n.scrollHeight > n.clientHeight + 4 || n.scrollWidth > n.clientWidth + 4;
+      if (scrolls) continue;
+      n.style.setProperty('overflow', 'visible', 'important');
+    }
+    g.style.setProperty('top', topOffset() + 'px', 'important');
+    g.classList.add('af-sticky-gallery');
+
+    // Measure only AFTER the class is on. A flex row stretches its children to
+    // equal height, so until align-self:flex-start applies, the gallery box
+    // reports the same height as the summary beside it — and a check of "are
+    // the details longer than the picture?" answers no every time. The stretch
+    // that makes sticky impossible was also hiding the reason to use it.
+    var gr = g.getBoundingClientRect(), sr = s.getBoundingClientRect();
+    var sideBySide = sr.top < gr.bottom - 40;
+    var worthIt    = sr.height > gr.height + 80;   // nothing to pin against otherwise
+    if (!sideBySide || !worthIt) {
+        g.classList.remove('af-sticky-gallery');
+        g.style.removeProperty('top');
+    }
+  }
+
+  var t = null;
+  function soon(){ clearTimeout(t); t = setTimeout(apply, 120); }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply);
+  else apply();
+  window.addEventListener('resize', soon);
+  window.addEventListener('orientationchange', soon);
+  // The gallery grows when its images finish loading, and the summary grows
+  // when the price and options render — both change the comparison above.
+  window.addEventListener('load', soon);
+  try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(soon); } catch (e) {}
+  try {
+    var ro = new ResizeObserver(soon);
+    var g0 = gallery(), s0 = summary();
+    if (g0) ro.observe(g0);
+    if (s0) ro.observe(s0);
+  } catch (e) {}
+  [400, 1200, 2500].forEach(function(d){ setTimeout(soon, d); });
+})();
+</script>
+    <?php
+}, 97);
