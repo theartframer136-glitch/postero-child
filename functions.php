@@ -17288,7 +17288,54 @@ add_action('wp_footer', function () {
         a.style.setProperty('overflow', 'visible', 'important');
         a.dataset.afSgUnclipped = '1';
       }
+      // A transform / filter / perspective / paint-containment on an ancestor
+      // makes it the sticky containing block, which quietly kills the pinning
+      // just as surely as an overflow clip. Elementor's entrance animations
+      // leave exactly these behind on wrapper containers. Clear them on plain
+      // wrappers (marked for devtools); the gallery internals are untouched.
+      var breaks = (cs.transform !== 'none') || (cs.filter && cs.filter !== 'none')
+                || (cs.perspective && cs.perspective !== 'none')
+                || (cs.contain && /paint|layout|content|strict/.test(cs.contain))
+                || (cs.willChange && /transform|filter|perspective/.test(cs.willChange));
+      if (breaks) {
+        a.style.setProperty('transform', 'none', 'important');
+        a.style.setProperty('filter', 'none', 'important');
+        a.style.setProperty('perspective', 'none', 'important');
+        a.style.setProperty('contain', 'none', 'important');
+        a.style.setProperty('will-change', 'auto', 'important');
+        a.dataset.afSgUnblocked = '1';
+      }
     }
+  }
+
+  // Owner-only probe: /product-url/?af_debug_sticky=1 prints what the pinning
+  // sees — a screenshot of this panel replaces another guessing round.
+  function debugPanel(){
+    if (location.search.indexOf('af_debug_sticky=1') === -1) return;
+    var box = document.createElement('div');
+    box.style.cssText = 'position:fixed;left:10px;bottom:10px;z-index:99999;background:#111;color:#9f9;'
+      + 'font:12px/1.5 monospace;padding:10px 14px;border-radius:8px;max-width:480px;max-height:50vh;overflow:auto';
+    var out = [];
+    out.push('gallery: ' + (g ? 'found' : 'MISSING') + '  summary: ' + (s ? 'found' : 'MISSING'));
+    if (inner) {
+      var ics = getComputedStyle(inner);
+      out.push('inner position: ' + ics.position + '  top: ' + ics.top);
+    }
+    if (g) out.push('gallery height set: ' + (g.style.height || '(natural)') + '  innerH: ' + (inner ? inner.offsetHeight : '-'));
+    if (s) out.push('summary height: ' + s.offsetHeight);
+    if (g) {
+      var n = 0;
+      for (var a = g.parentElement; a && a !== document.body && n < 12; a = a.parentElement, n++) {
+        var cs = getComputedStyle(a);
+        out.push((a.className || a.tagName).toString().slice(0, 44)
+          + ' | ov:' + cs.overflow + ' tf:' + (cs.transform === 'none' ? '-' : 'YES')
+          + ' ft:' + (cs.filter === 'none' || !cs.filter ? '-' : 'YES')
+          + (a.dataset.afSgUnclipped ? ' [unclipped]' : '')
+          + (a.dataset.afSgUnblocked ? ' [unblocked]' : ''));
+      }
+    }
+    box.innerHTML = out.join('<br>');
+    document.body.appendChild(box);
   }
 
   function boot(){
@@ -17301,6 +17348,7 @@ add_action('wp_footer', function () {
     try {
       new ResizeObserver(function(){ size(); }).observe(s);
     } catch(e){}
+    debugPanel();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
   else boot();
