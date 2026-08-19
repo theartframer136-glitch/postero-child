@@ -2823,6 +2823,7 @@ add_action('wp_footer', function() {
     // Treat a too-small cached list (e.g. only the single Elementor video, left
     // over from a moment when the YouTube RSS fetch was blocked) as needing a
     // rebuild — otherwise the 1-hour transient pins the row to one video.
+    $af_yt_titles = array();
     if (!is_array($ids) || count($ids) < 3) {
         $ids = [];
 
@@ -2848,7 +2849,15 @@ add_action('wp_footer', function() {
             $xml = @simplexml_load_string(wp_remote_retrieve_body($resp));
             if ($xml) {
                 foreach ($xml->entry as $entry) {
-                    if (preg_match('/video:([A-Za-z0-9_-]{11})/', (string)$entry->id, $m)) $ids[] = $m[1];
+                    if (preg_match('/video:([A-Za-z0-9_-]{11})/', (string)$entry->id, $m)) {
+                        $ids[] = $m[1];
+                        // Keep the title too — the cards carry a caption now.
+                        // Stored separately from $ids on purpose: that list has
+                        // a last-known-good fallback tuned to survive a blocked
+                        // fetch, and changing its shape would put that at risk.
+                        $t = trim((string) $entry->title);
+                        if ($t !== '') $af_yt_titles[$m[1]] = $t;
+                    }
                 }
             }
         }
@@ -2870,7 +2879,16 @@ add_action('wp_footer', function() {
             set_transient('af_yt_ids3_' . $channel, $ids, HOUR_IN_SECONDS);
             update_option('af_yt_ids3_lastgood_' . $channel, $ids, false);
         }
+        // Merge rather than replace: a fetch that returns fewer entries than
+        // last time must not cost us captions we already had.
+        if ($af_yt_titles) {
+            $known = get_option('af_yt_titles_' . $channel);
+            update_option('af_yt_titles_' . $channel,
+                array_merge(is_array($known) ? $known : array(), $af_yt_titles), false);
+        }
     }
+    $titles = get_option('af_yt_titles_' . $channel);
+    if (!is_array($titles)) $titles = array();
 
     // Nothing to show
     if (empty($ids)) return;
@@ -2892,101 +2910,122 @@ add_action('wp_footer', function() {
     width:100%;
     padding:0 0 32px;
     box-sizing:border-box;
-    overflow:hidden;
+    overflow:hidden;          /* the track runs wider than the page on purpose */
 }
-.af-pim-row {
-    display:flex;
-    align-items:center;
-    gap:12px;
-    width:100%;
-}
-.af-pim-btn {
-    flex:0 0 44px;
-    width:44px; height:44px;
-    border-radius:50%;
-    background:#c9a84c;
-    border:none;
-    color:#fff;
-    font-size:30px;
-    line-height:1;
-    cursor:pointer;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    box-shadow:0 2px 8px rgba(0,0,0,.3);
-    padding:0;
-    flex-shrink:0;
-}
-.af-pim-btn:hover { background:#a8872e; }
+/* The row scrolls by itself, continuously, in one direction. Two copies of
+   the same cards sit end to end and the track slides exactly one copy's width
+   before the animation repeats — so the seam lands where the first copy began
+   and the loop is invisible. Animating a transform keeps it on the compositor:
+   no layout per frame, which is what makes it smooth rather than steppy. */
 .af-pim-vp {
-    flex:1 1 auto;
-    min-width:0;
+    width:100%;
     overflow:hidden;
+    -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 40px,#000 calc(100% - 40px),transparent 100%);
+            mask-image:linear-gradient(90deg,transparent 0,#000 40px,#000 calc(100% - 40px),transparent 100%);
 }
 .af-pim-track {
     display:flex;
     flex-direction:row;
     flex-wrap:nowrap;
-    gap:24px;
-    align-items:center;
-    transition:transform .42s cubic-bezier(.4,0,.2,1);
+    align-items:stretch;
+    width:max-content;
+    /* Spacing lives on the cards as a margin, NOT as flex `gap`. With gap the
+       track is (n × card) + (n−1 × gap), so translating -50% lands half a gap
+       short of where the second copy begins and the row twitches once per
+       loop. A margin belongs to the card, so each copy is exactly n × pitch
+       and half of it is exactly one copy. */
     will-change:transform;
-    padding:12px 0;
+    animation:af-pim-marquee var(--af-pim-dur,60s) linear infinite;
 }
-.af-pim-circle {
-    flex:0 0 200px;
-    width:200px; height:200px;
-    border-radius:50%;
+@keyframes af-pim-marquee {
+    from { transform:translate3d(0,0,0); }
+    /* half, because the track holds the cards twice */
+    to   { transform:translate3d(-50%,0,0); }
+}
+/* Slow to a stop under the pointer rather than freezing mid-stride, so a
+   visitor reaching for a card is not chasing a target that stops dead. */
+.af-pim-track { transition:none; }
+.af-pim-vp:hover .af-pim-track,
+.af-pim-track.af-pim-hold { animation-play-state:paused; }
+
+.af-pim-card {
+    flex:0 0 auto;
+    margin-right:22px;
+    width:clamp(150px, 21vw, 290px);
+    aspect-ratio:9 / 16;
+    border-radius:14px;
     overflow:hidden;
-    border:3px solid #c9a84c;
-    box-shadow:0 4px 18px rgba(0,0,0,.22);
-    background:#111;
     position:relative;
+    background:#111;
     cursor:pointer;
-    transition:transform .28s ease, box-shadow .28s ease;
+    box-shadow:0 6px 22px rgba(0,0,0,.28);
+    transition:transform .3s cubic-bezier(.4,0,.2,1), box-shadow .3s cubic-bezier(.4,0,.2,1);
 }
-.af-pim-circle:hover {
-    transform:scale(1.07);
-    box-shadow:0 8px 30px rgba(0,0,0,.35);
+.af-pim-card:hover {
+    transform:translateY(-6px) scale(1.02);
+    box-shadow:0 14px 38px rgba(0,0,0,.42);
 }
-.af-pim-circle iframe {
-    position:absolute;
-    top:50%; left:50%;
-    width:400%; height:225%;
-    transform:translate(-50%,-50%) scale(2.2);
-    transform-origin:center center;
-    border:none;
-    pointer-events:none;
-    z-index:1;
-}
+/* The poster stays underneath the player for the whole life of the card. A
+   YouTube embed shows black while it negotiates, and with several playing at
+   once the browser throttles some of them — that is exactly how this row
+   ended up a wall of black circles with spinners before. Keeping the still
+   behind means the worst case is a card that is not moving yet, never a hole. */
 .af-pim-thumb {
     position:absolute;
     inset:0;
     width:100%; height:100%;
     object-fit:cover;
     object-position:center;
-    z-index:2;
-    transition:opacity .6s;
+    z-index:1;
 }
-.af-pim-play {
+.af-pim-card iframe {
     position:absolute;
-    inset:0;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    z-index:3;
+    top:50%; left:50%;
+    /* A 16:9 player inside a 9:16 card: scale until the short side covers,
+       which crops the sides rather than letterboxing the top and bottom. */
+    width:177.78%;
+    height:100%;
+    transform:translate(-50%,-50%) scale(1.8);
+    transform-origin:center center;
+    border:0;
     pointer-events:none;
+    z-index:2;
+    opacity:0;
+    transition:opacity .5s ease;
 }
-.af-pim-play svg {
-    width:54px; height:54px;
-    fill:rgba(255,255,255,.9);
-    filter:drop-shadow(0 2px 6px rgba(0,0,0,.6));
+.af-pim-card.af-pim-live iframe { opacity:1; }
+.af-pim-cap {
+    position:absolute;
+    left:0; right:0; bottom:0;
+    z-index:3;
+    padding:34px 12px 12px;
+    background:linear-gradient(transparent, rgba(0,0,0,.72));
+    color:#fff;
+    font-size:13px;
+    font-weight:700;
+    line-height:1.25;
+    text-align:center;
+    text-shadow:0 1px 3px rgba(0,0,0,.6);
+    display:-webkit-box;
+    -webkit-line-clamp:2;
+    -webkit-box-orient:vertical;
+    overflow:hidden;
+    pointer-events:none;
 }
 .af-pim-overlay {
     position:absolute;
     inset:0;
-    z-index:10;
-    cursor:pointer;
+    z-index:4;
+}
+@media (max-width:768px){
+    .af-pim-card  { margin-right:14px; }
+    .af-pim-cap   { font-size:11.5px; padding:26px 8px 9px; }
+}
+/* Someone who has asked for less motion gets a still row they can scroll
+   themselves, rather than one that moves on its own. */
+@media (prefers-reduced-motion: reduce){
+    .af-pim-track { animation:none; }
+    .af-pim-vp    { overflow-x:auto; }
 }
 /* Lightbox */
 .af-pim-lb {
@@ -3016,13 +3055,6 @@ add_action('wp_footer', function() {
     border:none;
     padding:0;
 }
-@media(max-width:768px){
-    .af-pim-circle { flex:0 0 140px; width:140px; height:140px; }
-}
-@media(max-width:480px){
-    .af-pim-circle { flex:0 0 110px; width:110px; height:110px; }
-    .af-pim-btn { flex:0 0 34px; width:34px; height:34px; font-size:22px; }
-}
 /* Hide original Elementor video/playlist widgets */
 .elementor-widget-video-playlist,
 .elementor-widget-video,
@@ -3045,34 +3077,41 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
 </style>
 
 <?php
-    // Build circle HTML for each video ID
-    $circles_html = '';
+    // Build one card per video. Two copies of the run are emitted below, so
+    // the marquee can slide exactly one copy's width and start over without a
+    // visible seam.
+    $cards_html = '';
     foreach ($ids as $vid) {
         $vid = esc_attr($vid);
         $thumb_hq  = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
         $thumb_max = "https://img.youtube.com/vi/{$vid}/maxresdefault.jpg";
-        $embed     = "https://www.youtube-nocookie.com/embed/{$vid}?autoplay=1&mute=1&loop=1&playlist={$vid}&controls=0&rel=0&playsinline=1";
-        // NOTE: no <iframe> here. Embedding ~20 autoplaying YouTube players at
-        // once made the browser throttle them, leaving several circles black
-        // with a spinner (and cost seconds of load time). We render only the
-        // thumbnail; the player is created on hover/tap by the JS below.
-        $circles_html .= "
-<div class=\"af-pim-circle\" data-vid=\"{$vid}\" data-embed=\"" . esc_attr($embed) . "\">
-  <img class=\"af-pim-thumb\" src=\"{$thumb_max}\" onerror=\"this.src='{$thumb_hq}';this.onerror=null\" alt=\"\" loading=\"lazy\" decoding=\"async\">
-  <div class=\"af-pim-play\"><svg viewBox=\"0 0 24 24\"><path d=\"M8 5v14l11-7z\"/></svg></div>
-  <div class=\"af-pim-overlay\"></div>
-</div>";
+        $embed     = "https://www.youtube-nocookie.com/embed/{$vid}?autoplay=1&mute=1&loop=1&playlist={$vid}&controls=0&rel=0&playsinline=1&modestbranding=1";
+        $cap       = isset($titles[$vid]) ? $titles[$vid] : '';
+        // NOTE: still no <iframe> in the markup. Roughly twenty autoplaying
+        // YouTube players at once made the browser throttle them and left the
+        // row full of black tiles with spinners. The JS below creates a player
+        // only for the cards actually on screen, and caps how many run at once.
+        $cards_html .= '
+<div class="af-pim-card" data-vid="' . $vid . '" data-embed="' . esc_attr($embed) . '">
+  <img class="af-pim-thumb" src="' . $thumb_max . '" onerror="this.src=\'' . $thumb_hq . '\';this.onerror=null" alt="" loading="lazy" decoding="async">'
+  . ($cap !== '' ? '<div class="af-pim-cap">' . esc_html($cap) . '</div>' : '') . '
+  <div class="af-pim-overlay"></div>
+</div>';
     }
+    // Seconds for one full pass. Tied to the number of cards so adding videos
+    // makes the row longer, not faster — the apparent speed stays constant.
+    $pim_dur = max(20, count($ids) * 5);
 ?>
 <div class="af-pim-wrap" id="afPimWrap">
-  <div class="af-pim-row">
-    <button class="af-pim-btn" id="afPimPrev" aria-label="Previous">&#8249;</button>
-    <div class="af-pim-vp" id="afPimVp">
-      <div class="af-pim-track" id="afPimTrack">
-        <?php echo $circles_html; ?>
-      </div>
+  <div class="af-pim-vp" id="afPimVp">
+    <div class="af-pim-track" id="afPimTrack" style="--af-pim-dur:<?php echo (int) $pim_dur; ?>s">
+      <?php echo $cards_html; ?>
+      <?php
+      /* The second copy is decorative: it exists to make the loop seamless and
+         must not be announced twice to a screen reader. */
+      ?>
+      <span class="af-pim-dupe" aria-hidden="true" style="display:contents"><?php echo $cards_html; ?></span>
     </div>
-    <button class="af-pim-btn" id="afPimNext" aria-label="Next">&#8250;</button>
   </div>
 </div>
 
@@ -3086,123 +3125,107 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
 
 <script>
 (function(){
-    var track  = document.getElementById('afPimTrack');
-    var vp     = document.getElementById('afPimVp');
-    var lb     = document.getElementById('afPimLb');
-    var lbFr   = document.getElementById('afPimLbFrame');
-    var lbX    = document.getElementById('afPimLbX');
-    var circles = Array.from(document.querySelectorAll('#afPimTrack .af-pim-circle'));
-    var idx = 0, GAP = 24;
+    var track = document.getElementById('afPimTrack');
+    var vp    = document.getElementById('afPimVp');
+    var lb    = document.getElementById('afPimLb');
+    var lbFr  = document.getElementById('afPimLbFrame');
+    var lbX   = document.getElementById('afPimLbX');
+    var cards = Array.prototype.slice.call(document.querySelectorAll('#afPimTrack .af-pim-card'));
 
-    function cw() {
-        return window.innerWidth <= 480 ? 110 : window.innerWidth <= 768 ? 140 : 200;
-    }
-    function vis() {
-        var vpW = vp.getBoundingClientRect().width || 800;
-        return Math.max(1, Math.floor((vpW + GAP) / (cw() + GAP)));
-    }
-    function go(n) {
-        var max = Math.max(0, circles.length - vis());
-        idx = Math.max(0, Math.min(n, max));
-        track.style.transform = 'translateX(' + (-(idx * (cw() + GAP))) + 'px)';
-        // page across and the newly-leading circle takes over the playback,
-        // rather than leaving a video running somewhere off to the left
-        autoplayVisible();
-    }
-
-    document.getElementById('afPimPrev').onclick = function(){ go(idx - vis()); };
-    document.getElementById('afPimNext').onclick = function(){ go(idx + vis()); };
-    window.addEventListener('resize', function(){ idx = 0; go(0); });
-
-    // Players are created ON DEMAND (hover on desktop, tap on touch). Only ONE
-    // preview plays at a time, so the browser never throttles them — that is
-    // what left several circles black with a loading spinner before.
-    var playing = null;
-    function stopPreview(c){
-        if (!c) return;
-        var fr = c.querySelector('iframe');
-        if (fr) fr.remove();
-        var th = c.querySelector('.af-pim-thumb'), pl = c.querySelector('.af-pim-play');
-        if (th) th.style.opacity = '1';
-        if (pl) pl.style.opacity = '';
-        if (playing === c) playing = null;
-    }
-    function startPreview(c){
-        if (!c || c.querySelector('iframe')) return;
-        if (playing && playing !== c) stopPreview(playing);
-        playing = c;
-        var fr = document.createElement('iframe');
-        fr.src = c.getAttribute('data-embed');
-        fr.setAttribute('allow', 'autoplay; encrypted-media');
-        fr.setAttribute('frameborder', '0');
-        var th = c.querySelector('.af-pim-thumb'), pl = c.querySelector('.af-pim-play');
-        fr.addEventListener('load', function(){
-            setTimeout(function(){ if (th) th.style.opacity = '0'; if (pl) pl.style.opacity = '0'; }, 600);
-        });
-        c.insertBefore(fr, c.firstChild);
-    }
-    var isTouch = window.matchMedia('(hover: none)').matches;
-    circles.forEach(function(c) {
-        if (!isTouch) {
-            c.addEventListener('mouseenter', function(){ startPreview(c); });
-            c.addEventListener('mouseleave', function(){ stopPreview(c); });
-        }
-        // Click: open the lightbox with sound
-        var ov = c.querySelector('.af-pim-overlay');
-        if (ov) {
-            ov.addEventListener('click', function(){
-                var vid = c.getAttribute('data-vid');
-                lbFr.src = 'https://www.youtube-nocookie.com/embed/' + vid
-                    + '?autoplay=1&rel=0&playsinline=1';
-                lb.classList.add('open');
-            });
-        }
-    });
-    // ── Play as soon as the section is reached ──────────────────────
-    // This is the video row: arriving at it should show motion, not a wall of
-    // stills waiting to be hovered. The leading circle starts on its own and
-    // stops again when the row scrolls away, so nothing burns CPU or data off
-    // screen — and it starts again on the way back, which the old one-shot
-    // observer could not do, having disconnected itself after the first pass.
-    //
-    // Touch devices are included now. The embed is muted, which is exactly
-    // what phone browsers require before they will autoplay at all, and hover
-    // does not exist there — without this the row never moved on a phone.
-    var inView = false, reduceMotion = false;
+    var reduceMotion = false;
     try { reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch(e){}
 
-    function autoplayVisible(){
-        if (!inView || reduceMotion) return;
+    // How many players may run at once. The row used to create one per card
+    // and roughly twenty autoplaying YouTube embeds made the browser throttle
+    // them — several tiles just sat black behind a spinner. Only the cards on
+    // screen get a player, and never more than this many.
+    var MAX_LIVE = 6;
+    var live = [];      // in the order they started, so the oldest is dropped first
+
+    function stop(card){
+        var i = live.indexOf(card);
+        if (i !== -1) live.splice(i, 1);
+        card.classList.remove('af-pim-live');
+        var fr = card.querySelector('iframe');
+        // Let the fade finish before the node goes, so a card leaving the row
+        // dissolves back to its poster instead of blinking.
+        if (fr) setTimeout(function(){ if (fr.parentNode) fr.parentNode.removeChild(fr); }, 500);
+    }
+    function start(card){
+        if (reduceMotion) return;
+        if (card.querySelector('iframe')) return;
         if (lb.classList.contains('open')) return;      // the lightbox has the stage
-        var c = circles[Math.min(idx, circles.length - 1)];
-        if (c && !c.querySelector('iframe')) startPreview(c);
+        while (live.length >= MAX_LIVE) stop(live[0]);
+        live.push(card);
+        var fr = document.createElement('iframe');
+        fr.src = card.getAttribute('data-embed');
+        fr.setAttribute('allow', 'autoplay; encrypted-media');
+        fr.setAttribute('frameborder', '0');
+        fr.setAttribute('tabindex', '-1');
+        fr.addEventListener('load', function(){
+            // Reveal only once the player is really there. The poster stays
+            // underneath either way, so a slow or throttled embed shows a
+            // still frame rather than a black hole.
+            setTimeout(function(){ card.classList.add('af-pim-live'); }, 350);
+        });
+        card.insertBefore(fr, card.firstChild);
     }
-    if (circles.length) {
-        var wrap = document.getElementById('afPimWrap');
-        try {
-            new IntersectionObserver(function(en){
-                en.forEach(function(e){
-                    inView = e.isIntersecting;
-                    if (inView) autoplayVisible();
-                    else stopPreview(playing);          // off screen: stop, stay armed
-                });
-            }, { threshold: 0.25 }).observe(wrap);
-        } catch(e){
-            inView = true; autoplayVisible();           // no observer: just play
-        }
+
+    // Play what is on screen. The row moves continuously, so this fires as
+    // cards drift in and out — the generous margin means a card is already
+    // playing by the time it is properly visible, rather than starting from
+    // black in front of the visitor.
+    try {
+        var io = new IntersectionObserver(function(entries){
+            entries.forEach(function(e){
+                if (e.isIntersecting) start(e.target);
+                else                  stop(e.target);
+            });
+        }, { root: null, rootMargin: '0px 220px 0px 220px', threshold: 0.35 });
+        cards.forEach(function(c){ io.observe(c); });
+    } catch(e){
+        cards.slice(0, MAX_LIVE).forEach(start);        // no observer: play the first few
     }
+
+    // The whole section leaving the viewport stops everything, so nothing
+    // burns data or CPU further down the page — and it picks up again on the
+    // way back.
+    try {
+        new IntersectionObserver(function(en){
+            en.forEach(function(e){
+                if (!e.isIntersecting) {
+                    live.slice().forEach(stop);
+                    track.classList.add('af-pim-hold');
+                } else {
+                    track.classList.remove('af-pim-hold');
+                }
+            });
+        }, { threshold: 0 }).observe(document.getElementById('afPimWrap'));
+    } catch(e){}
+
+    // Click still opens the video with sound.
+    cards.forEach(function(c){
+        var ov = c.querySelector('.af-pim-overlay');
+        if (!ov) return;
+        ov.addEventListener('click', function(){
+            lbFr.src = 'https://www.youtube-nocookie.com/embed/' + c.getAttribute('data-vid')
+                     + '?autoplay=1&rel=0&playsinline=1';
+            lb.classList.add('open');
+            live.slice().forEach(stop);                 // one thing playing at a time
+            track.classList.add('af-pim-hold');
+        });
+    });
 
     function closeLb() {
         lb.classList.remove('open');
         // 'about:blank', not '': an empty src navigates the iframe to the
         // page's own URL, silently re-downloading the whole page.
         lbFr.src = 'about:blank';
+        track.classList.remove('af-pim-hold');   // the row starts moving again
     }
     lbX.onclick = closeLb;
     lb.addEventListener('click', function(e){ if (e.target === lb) closeLb(); });
     document.addEventListener('keydown', function(e){ if (e.key === 'Escape') closeLb(); });
-
-    go(0);
 
     // Find the "Products In Motion" section, hide its video content, inject our slider inside it
     function placeSlider() {
