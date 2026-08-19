@@ -14,7 +14,7 @@
  * changes nothing anybody can see, which is exactly the kind of "shipped but
  * invisible" result this project has been bitten by before.
  *
- * WHY IT IS BATCHED
+ * WHY IT IS BATCHED, AND WHY THE BUDGET GREW
  * This is a shared host that has returned 508 under load during deploys.
  * Re-encoding a few thousand images in one pass is the most expensive thing
  * this repo could ask of it. So the run is bounded by a wall-clock budget and
@@ -22,21 +22,32 @@
  * it left off next time. Several small deploys converge on a fully rebuilt
  * catalogue; no single deploy can hang or take the site down.
  *
+ * The first budget was deliberately timid — 100 seconds, 120 images — and at
+ * that rate about a fifth of the catalogue had been rebuilt after three full
+ * deploys, with everything else still served at the old quality. The count
+ * was never the binding constraint; the clock was, since 120 images took 105
+ * seconds. So the clock is what moved. 240 seconds is still a hard ceiling,
+ * the step still cannot fail the deploy, and it now gets through the
+ * catalogue in a handful of runs instead of a dozen and a half.
+ *
  * Safe to run repeatedly: an image already rebuilt at the current version is
  * skipped, so a finished catalogue costs one query and nothing else.
  *
  * Run: wp eval-file tools/regenerate-image-sizes.php --allow-root
- * Env: AF_IMG_SECONDS (default 100)  AF_IMG_MAX (default 120)
+ * Env: AF_IMG_SECONDS (default 240)  AF_IMG_MAX (default 400)
  *      AF_IMG_FORCE=1 rebuilds everything again, ignoring the version marker
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-// Bump this when a setting that affects the OUTPUT changes — quality, the
-// card width, a new registered size. That is what makes a rebuild happen at
-// all, and what stops one repeating forever once it is done.
-$VERSION = 'q100-w800-v1';
-$SECONDS = (int) ( getenv( 'AF_IMG_SECONDS' ) ?: 100 );
-$MAX     = (int) ( getenv( 'AF_IMG_MAX' )     ?: 120 );
+// Bump this when a setting that affects the OUTPUT changes — quality, any of
+// the widths, a new registered size. That is what makes a rebuild happen at
+// all, and what stops one repeating forever once it is done. It is bumped now
+// because the product page's own image size went from 600 to 1200: the v1
+// pass raised only the catalogue thumbnail, so the picture a customer
+// actually leans in to look at was never rebuilt any larger.
+$VERSION = 'q100-card800-single1200-thumb200-v2';
+$SECONDS = (int) ( getenv( 'AF_IMG_SECONDS' ) ?: 240 );
+$MAX     = (int) ( getenv( 'AF_IMG_MAX' )     ?: 400 );
 $FORCE   = (bool) getenv( 'AF_IMG_FORCE' );
 
 echo "=== PRODUCT IMAGE REBUILD ===\n";

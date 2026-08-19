@@ -859,12 +859,17 @@ jobs:
       # here. Each run takes a slice, records what it finished, and resumes
       # next deploy; the timeout is a backstop well above the script's own
       # budget so a slow host shows up as a short run, not a killed step.
+      # Runs on EVERY deploy, not just full ones. It used to be gated behind
+      # RUN_SUITE, and most deploys are light — so the pass that makes the
+      # image settings real was skipped on most of them and the catalogue
+      # crawled. It costs one query once the catalogue is done, so leaving it
+      # on permanently is close to free.
       - name: Rebuild product image sizes (batched, resumable)
-        if: env.RUN_SUITE == '1'
-        timeout-minutes: 6
+        if: always()
+        timeout-minutes: 10
         env:
-          AF_IMG_SECONDS: '100'
-          AF_IMG_MAX: '120'
+          AF_IMG_SECONDS: '240'
+          AF_IMG_MAX: '400'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
