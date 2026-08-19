@@ -17252,8 +17252,58 @@ add_action('wp_footer', function () {
       if (scrolls) continue;
       n.style.setProperty('overflow', 'visible', 'important');
     }
-    g.style.setProperty('top', topOffset() + 'px', 'important');
+    var top = topOffset();
+    g.style.setProperty('top', top + 'px', 'important');
     g.classList.add('af-sticky-gallery');
+
+    // A sticky element TALLER than the viewport cannot pin at the top. The
+    // browser scrolls it normally until its bottom edge arrives, and only then
+    // holds — which on a gallery half a screen too tall looks exactly like
+    // sticky doing nothing at all. That is what shipped: the rule applied, and
+    // the picture still scrolled away.
+    //
+    // So make it fit. Shrink the main image until the whole column is within
+    // the space below the header, rather than capping the column and clipping
+    // the artwork — on a shop that sells pictures, a cropped picture is worse
+    // than a small one.
+    var avail = window.innerHeight - top - 16;
+    var main  = g.querySelector('.woocommerce-product-gallery__image img')
+             || g.querySelector('.flex-viewport img')
+             || g.querySelector('img');
+    if (main && avail > 240) {
+        // Measure the column WITHOUT any cap this code applied earlier.
+        // Measuring the capped height asks "does the fitted thing fit?", the
+        // answer is always yes, the cap comes off, the column is too tall
+        // again — and it oscillates on every resize and every re-check.
+        main.style.removeProperty('max-height');
+        var gh = g.getBoundingClientRect().height;      // the natural height
+        var mh = main.getBoundingClientRect().height;
+        // Everything in the column that is NOT the main image — the thumbnail
+        // strip, padding, badges — has to keep its room.
+        var rest  = Math.max(0, gh - mh);
+        var allow = Math.max(240, avail - rest);
+        if (gh > avail) {
+            main.style.setProperty('max-height', Math.round(allow) + 'px', 'important');
+            main.style.setProperty('height', 'auto', 'important');
+            main.style.setProperty('width', 'auto', 'important');
+            main.style.setProperty('max-width', '100%', 'important');
+            main.style.setProperty('object-fit', 'contain', 'important');
+            main.style.setProperty('margin-left', 'auto', 'important');
+            main.style.setProperty('margin-right', 'auto', 'important');
+            // Wrappers between the image and the column often carry a height
+            // set in script by the gallery slider, which would keep the column
+            // tall no matter what the image does.
+            for (var w = main.parentElement; w && w !== g; w = w.parentElement) {
+                w.style.setProperty('height', 'auto', 'important');
+                w.style.setProperty('max-height', 'none', 'important');
+            }
+            g.setAttribute('data-af-sg-fit', '1');
+        } else {
+            // It fits on its own — the cap is already off from the measurement
+            // above, so there is nothing to undo.
+            g.removeAttribute('data-af-sg-fit');
+        }
+    }
 
     // Measure only AFTER the class is on. A flex row stretches its children to
     // equal height, so until align-self:flex-start applies, the gallery box
