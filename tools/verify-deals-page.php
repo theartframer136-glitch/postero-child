@@ -82,5 +82,25 @@ if (is_wp_error($r)) {
     }
 }
 
+// Ground truth for the banner: what does the served homepage actually hold
+// around the Stock Clearance section? Raw bytes, scripts included, so the next
+// fix targets real markup instead of an assumption about it.
+echo "\n-- homepage markup around the Stock Clearance banner --\n";
+$hr = wp_remote_get(add_query_arg('afverify', time(), home_url('/')),
+    array('timeout' => 60, 'sslverify' => false, 'headers' => array('User-Agent' => 'Mozilla/5.0 AF-Verify')));
+if (!is_wp_error($hr)) {
+    $hb = wp_remote_retrieve_body($hr);
+    $pos = stripos($hb, 'stock clearance');
+    if ($pos === false) $pos = stripos($hb, 'clearance');
+    if ($pos !== false) {
+        echo "  " . trim(preg_replace('/\s+/', ' ',
+            mb_strimwidth(substr($hb, max(0, $pos - 300), 2600), 0, 2600))) . "\n";
+    } else {
+        echo "  no clearance text in the served homepage\n";
+    }
+    printf("  banner click script present: %s\n",
+        strpos($hb, 'af-deal-banner-link') !== false ? 'OK' : 'MISSING');
+}
+
 printf("\n=== %s ===\n", $fail ? "{$fail} CHECK(S) FAILED" : 'ALL CHECKS PASSED');
 echo "=== DONE ===\n";

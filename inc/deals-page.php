@@ -113,61 +113,74 @@ add_action('wp_footer', function () {
 <script id="af-deal-banner-link">
 (function(){
   var URL = <?php echo wp_json_encode(home_url('/clearance/')); ?>;
-  function candidates(){
-    var list = [];
-    // 1) an image whose filename or alt names the sale
-    document.querySelectorAll('img').forEach(function(img){
-      var hay = ((img.getAttribute('src') || '') + ' ' + (img.getAttribute('alt') || '')).toLowerCase();
-      if (/clearance|stock[-_ ]?clear|upto[-_ ]?40|40[-_ ]?off/.test(hay)) list.push(img);
-    });
-    // 2) the banner under the "Stock Clearance" heading — the filename often
-    //    says nothing (an export named by Canva), so find the section by the
-    //    words a visitor can read and take its first sizeable image
-    if (!list.length) {
-      var heads = document.querySelectorAll('h1,h2,h3,h4,.elementor-heading-title');
-      for (var i = 0; i < heads.length; i++) {
-        if (!/stock\s*clearance/i.test(heads[i].textContent || '')) continue;
-        var sec = heads[i].closest('section, .e-con, .elementor-section') || heads[i].parentElement;
-        // the heading's own container may hold only the title row; search the
-        // following sections too until an image of banner size appears
-        for (var hop = 0; sec && hop < 3; hop++) {
-          var imgs = sec.querySelectorAll('img');
-          for (var j = 0; j < imgs.length; j++) {
-            var r = imgs[j].getBoundingClientRect();
-            if (r.width > 400 && r.height > 120) { list.push(imgs[j]); break; }
-          }
-          if (list.length) break;
-          sec = sec.nextElementSibling;
-        }
-        break;
-      }
+  var SALE = /clearance|stock[-_ ]?clear|upto[-_ ]?40|40[-_ ]?off/;
+
+  // The first version wrapped the banner <img> in a link. That held only until
+  // the widget that owns the banner re-rendered its DOM and threw the wrapper
+  // away — and it never worked at all when the banner is painted as a CSS
+  // background rather than an <img>. So: identify the banner (img OR
+  // background-image, by filename/alt or by the Stock Clearance heading), and
+  // navigate from a DELEGATED capture-phase click handler on the document,
+  // which no re-render can remove.
+  function isBanner(el){
+    if (!el || el.nodeType !== 1) return false;
+    if (el.dataset && el.dataset.afDealBanner) return true;
+    if (el.tagName === 'IMG') {
+      var hay = ((el.getAttribute('src') || '') + ' ' + (el.getAttribute('alt') || '')).toLowerCase();
+      if (SALE.test(hay)) return true;
     }
-    return list;
+    var bg = (el.style && el.style.backgroundImage) || '';
+    if (!bg && window.getComputedStyle) bg = getComputedStyle(el).backgroundImage || '';
+    return bg && bg !== 'none' && SALE.test(bg.toLowerCase());
   }
-  function wire(){
-    candidates().forEach(function(img){
-      if (img.dataset.afDealWired) return;
-      img.dataset.afDealWired = '1';
-      var a = img.closest('a');
-      if (a) {
-        var href = a.getAttribute('href') || '';
-        var dead = href === '' || href === '#' || href.indexOf('javascript:') === 0
-                || href.replace(/\/+$/, '') === location.origin;
-        if (dead) a.setAttribute('href', URL);
+
+  // mark the banner under the Stock Clearance heading, for files whose name
+  // says nothing about the sale (a Canva export)
+  function markByHeading(){
+    var heads = document.querySelectorAll('h1,h2,h3,h4,.elementor-heading-title');
+    for (var i = 0; i < heads.length; i++) {
+      if (!/stock\s*clearance/i.test(heads[i].textContent || '')) continue;
+      var sec = heads[i].closest('section, .e-con, .elementor-section') || heads[i].parentElement;
+      for (var hop = 0; sec && hop < 3; hop++) {
+        var els = sec.querySelectorAll('img, [style*="background-image"], .elementor-widget-image, .rev_slider, [class*="slide"]');
+        for (var j = 0; j < els.length; j++) {
+          var r = els[j].getBoundingClientRect();
+          if (r.width > 400 && r.height > 120) {
+            els[j].dataset.afDealBanner = '1';
+            els[j].style.setProperty('cursor', 'pointer');
+            return;
+          }
+        }
+        sec = sec.nextElementSibling;
+      }
+      return;
+    }
+  }
+  function paintCursor(){
+    document.querySelectorAll('img').forEach(function(img){
+      if (isBanner(img)) img.style.setProperty('cursor', 'pointer');
+    });
+  }
+
+  document.addEventListener('click', function(e){
+    // walk from the click target upwards; the first banner hit navigates
+    for (var el = e.target; el && el !== document.body; el = el.parentElement) {
+      if (el.tagName === 'A' && el.getAttribute('href')
+          && el.getAttribute('href') !== '#'
+          && el.getAttribute('href').indexOf('javascript:') !== 0) return; // a real link wins
+      if (isBanner(el)) {
+        e.preventDefault();
+        window.location.href = URL;
         return;
       }
-      var link = document.createElement('a');
-      link.href = URL;
-      link.setAttribute('aria-label', 'Shop the stock clearance sale');
-      img.parentNode.insertBefore(link, img);
-      link.appendChild(img);
-      img.style.setProperty('cursor', 'pointer');
-    });
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wire);
-  else wire();
-  window.addEventListener('load', wire);
-  [800, 2000].forEach(function(d){ setTimeout(wire, d); });
+    }
+  }, true);
+
+  function boot(){ markByHeading(); paintCursor(); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+  window.addEventListener('load', boot);
+  [800, 2000, 4000].forEach(function(d){ setTimeout(boot, d); });
 })();
 </script>
     <?php
