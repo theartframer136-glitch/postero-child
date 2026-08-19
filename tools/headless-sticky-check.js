@@ -30,7 +30,22 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     });
     await sleep(3500); // let the footer scripts (wrap + size) finish
 
-    const before = await page.evaluate(() => {
+    // The site performs one self-navigation shortly after load (a currency
+    // cookie reload), which destroys the evaluation context mid-measure. So:
+    // every evaluate retries after the navigation settles.
+    const evalRetry = async (fn, arg) => {
+      for (let i = 0; i < 4; i++) {
+        try { return await page.evaluate(fn, arg); }
+        catch (e) {
+          if (!/context was destroyed|navigation/i.test(e.message)) throw e;
+          await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
+          await sleep(2500);
+        }
+      }
+      throw new Error('page kept navigating during measurement');
+    };
+
+    const before = await evalRetry(() => {
       const g = document.querySelector('div.product .woocommerce-product-gallery');
       const inner = g && g.querySelector('.af-sg-inner');
       const s = document.querySelector('div.product .summary');
@@ -64,9 +79,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     });
 
     // scroll well past the gallery top and measure where the images sit now
-    await page.evaluate(() => window.scrollTo(0, 1200));
+    await evalRetry(() => window.scrollTo(0, 1200));
     await sleep(900);
-    const after = await page.evaluate(() => {
+    const after = await evalRetry(() => {
       const inner = document.querySelector('.af-sg-inner');
       const g = document.querySelector('div.product .woocommerce-product-gallery');
       const el = inner || g;
