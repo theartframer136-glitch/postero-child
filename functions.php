@@ -17493,11 +17493,67 @@ add_action('wp_footer', function () {
     track.style.setProperty('--af-tk-dur', Math.max(18, Math.round(w / pxPerSec)) + 's');
   }
 
-  function go(){ place(); pace(); }
+  // ── Make sure the bar occupies its own space ───────────────────────
+  // Being placed after the header is not the same as having room. Two ways
+  // this page takes the room back: the header can be taken out of normal flow
+  // (a transparent header laid over the hero is a common build), which leaves
+  // the bar out of flow with it and floating over the artwork; and the section
+  // below can be pulled up under it with a negative margin, which a slider
+  // does routinely.
+  //
+  // Rather than guess which, measure the result and push whatever follows down
+  // by however much is actually covered.
+  function outOfFlow(){
+    for (var n = bar.parentElement; n && n !== document.body; n = n.parentElement) {
+      var pos = window.getComputedStyle(n).position;
+      if (pos === 'fixed' || pos === 'absolute') return true;
+    }
+    return false;
+  }
+
+  function room(){
+    var next = bar.nextElementSibling;
+    // Clear any room made earlier before measuring, or the measurement is of
+    // the gap we ourselves opened and the bar keeps pushing the page down.
+    if (next && next.dataset.afTkRoom) {
+      next.style.removeProperty('margin-top');
+      delete next.dataset.afTkRoom;
+    }
+    if (document.body.dataset.afTkRoom) {
+      document.body.style.removeProperty('padding-top');
+      delete document.body.dataset.afTkRoom;
+    }
+
+    var b = bar.getBoundingClientRect();
+    if (!b.height) return;
+
+    // Out of flow: the bar takes no space at all, so the page needs the whole
+    // of its height back at the top.
+    if (outOfFlow()) {
+      document.body.style.setProperty('padding-top', Math.ceil(b.height) + 'px', 'important');
+      document.body.dataset.afTkRoom = '1';
+      return;
+    }
+    // In flow, but something below is reaching up under it.
+    if (!next) return;
+    var overlap = b.bottom - next.getBoundingClientRect().top;
+    if (overlap > 1) {
+      // ADD to whatever margin the theme already set, never replace it. The
+      // section is usually reaching up because of a negative margin of its
+      // own, so writing the overlap straight in throws that value away and
+      // opens a gap exactly as big as the overlap used to be — the same
+      // mistake in the other direction.
+      var cur = parseFloat(window.getComputedStyle(next).marginTop) || 0;
+      next.style.setProperty('margin-top', Math.ceil(cur + overlap) + 'px', 'important');
+      next.dataset.afTkRoom = '1';
+    }
+  }
+
+  function go(){ place(); pace(); room(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
   else go();
   window.addEventListener('load', go);
-  window.addEventListener('resize', pace);
+  window.addEventListener('resize', function(){ pace(); room(); });
   try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(pace); } catch (e) {}
   [300, 900, 2000].forEach(function(d){ setTimeout(go, d); });
 })();
