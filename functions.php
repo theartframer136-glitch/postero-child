@@ -17229,170 +17229,68 @@ add_action('wp_footer', function () {
 </style>
 <script id="af-sticky-gallery">
 (function(){
-  function px(el, prop){ return parseFloat(window.getComputedStyle(el)[prop]) || 0; }
+  // The first version moved the gallery with translateY on every scroll frame.
+  // Scroll paints first and the correction lands a frame later, which the eye
+  // reads as the column JUMPING (owner recording, 2026-08-19). So no per-scroll
+  // JS at all: the gallery column is stretched to end where the details column
+  // ends, and a sticky wrapper INSIDE it pins the images while scrolling. The
+  // browser's own compositor does the pinning — glassy smooth — and the sticky
+  // range ends at the stretched column's bottom, which is exactly where the
+  // Description / Reviews tabs begin.
+  var TOP_GAP = 96;
+  var g, s, inner;
 
-  function gallery(){
-    return document.querySelector('.woocommerce-product-gallery')
-        || document.querySelector('.wp-block-woocommerce-product-image-gallery')
-        || document.querySelector('div.product .images');
+  function pick(){
+    g = document.querySelector('div.product .woocommerce-product-gallery');
+    s = document.querySelector('div.product .summary.entry-summary, div.product .summary');
+    return g && s;
   }
-  function summary(){
-    return document.querySelector('.summary.entry-summary')
-        || document.querySelector('.entry-summary')
-        || document.querySelector('div.product .summary');
-  }
-  // How far down the pinned image should sit: clear of the header if the
-  // header is one that stays on screen, otherwise a small breathing gap.
-  function topOffset(){
-    var best = 0;
-    var cands = document.querySelectorAll('header, .site-header, .elementor-location-header, .af-header-stuck');
-    for (var i = 0; i < cands.length; i++) {
-      var h = cands[i], cs = window.getComputedStyle(h);
-      if (cs.position !== 'sticky' && cs.position !== 'fixed') continue;
-      var r = h.getBoundingClientRect();
-      if (r.height > best && r.height < 240) best = r.height;   // a whole-page
-    }                                                          // overlay is not a header
-    return Math.round(best) + 16;
+  function absTop(el){ var r = el.getBoundingClientRect(); return r.top + window.pageYOffset; }
+
+  function wrapOnce(){
+    if (inner) return;
+    inner = document.createElement('div');
+    inner.className = 'af-sg-inner';
+    inner.style.setProperty('position', 'sticky');
+    inner.style.setProperty('top', TOP_GAP + 'px');
+    while (g.firstChild) inner.appendChild(g.firstChild);
+    g.appendChild(inner);
   }
 
-  function apply(){
-    var g = gallery(), s = summary();
-    if (!g || !s) return;
-
-    if (window.innerWidth < 993) { g.classList.remove('af-sticky-gallery'); return; }
-
-    // A clipping ancestor cancels sticky silently, and it does so from ANY
-    // level — not just between the gallery and the row. An overflow:hidden
-    // wrapper further up makes itself the scroll container, and since it does
-    // not scroll, the element simply never sticks. So walk all the way to the
-    // body.
-    //
-    // But do not flatten a container that is genuinely scrolling something:
-    // an element whose content overflows its box is a real scroller and is
-    // clipping on purpose. One whose content fits is only clipping
-    // defensively, and that is the kind that breaks this for no benefit.
-    for (var n = g.parentElement; n && n !== document.body; n = n.parentElement) {
-      var cs = window.getComputedStyle(n);
-      if (!/(auto|hidden|scroll|clip)/.test(cs.overflow + cs.overflowX + cs.overflowY)) continue;
-      var scrolls = n.scrollHeight > n.clientHeight + 4 || n.scrollWidth > n.clientWidth + 4;
-      if (scrolls) continue;
-      n.style.setProperty('overflow', 'visible', 'important');
+  var sizing = false;
+  function size(){
+    if (!g || !s || sizing) return;
+    sizing = true;
+    if (window.innerWidth < 992) {              // stacked layout: no pinning
+      g.style.height = '';
+      if (inner) inner.style.position = 'static';
+      sizing = false;
+      return;
     }
-    g.style.setProperty('top', topOffset() + 'px', 'important');
-    g.classList.add('af-sticky-gallery');
-
-    // Measure only AFTER the class is on. A flex row stretches its children to
-    // equal height, so until align-self:flex-start applies, the gallery box
-    // reports the same height as the summary beside it — and a check of "are
-    // the details longer than the picture?" answers no every time. The stretch
-    // that makes sticky impossible was also hiding the reason to use it.
-    var gr = g.getBoundingClientRect(), sr = s.getBoundingClientRect();
-    var sideBySide = sr.top < gr.bottom - 40;
-    var worthIt    = sr.height > gr.height + 80;   // nothing to pin against otherwise
-    if (!sideBySide || !worthIt) {
-        g.classList.remove('af-sticky-gallery');
-        g.classList.remove('af-sg-compact');
-        g.style.removeProperty('top');
-        return;
+    if (inner) inner.style.position = 'sticky';
+    g.style.height = '';                        // measure natural sizes first
+    var innerH = inner ? inner.offsetHeight : g.offsetHeight;
+    var target = absTop(s) + s.offsetHeight - absTop(g);
+    if (target > innerH + 40) {
+      g.style.height = Math.round(target) + 'px';
     }
-
-    // ── Staying visible without being permanently smaller ───────────────
-    // A sticky element taller than the viewport cannot pin: the browser
-    // scrolls it until its bottom edge arrives. So for the picture to still
-    // be there on the way down, it has to fit — but making it fit at rest
-    // means a smaller picture on every product page, which is not a trade
-    // worth making on a shop that sells pictures.
-    //
-    // So it is full size until the page actually moves, and eases down to a
-    // fitting size only while scrolled — then eases back at the top.
-    var main = g.querySelector('.woocommerce-product-gallery__image img')
-            || g.querySelector('.flex-viewport img')
-            || g.querySelector('img');
-    if (!main) return;
-    main.classList.add('af-sg-shrink');
-
-    var top   = parseFloat(g.style.top) || 0;
-    var avail = window.innerHeight - top - 12;
-    // What the image may become: the room left after everything ELSE in the
-    // column — a thumbnail strip below it, padding, badges — has kept its
-    // space. That has to be measured with the cap OFF, or the number is of
-    // the already-shrunken column.
-    //
-    // But measuring it on every pass is what made the picture pulse: shrinking
-    // changes the column's height, the ResizeObserver notices, this runs
-    // again, drops the cap to measure, and the image springs back to full size
-    // for a frame before being shrunk once more. So the natural height is
-    // measured once per window width and remembered — no cap is disturbed
-    // unless the window itself changed.
-    var natural, rest;
-    if (g.dataset.afSgNat && +g.dataset.afSgW === window.innerWidth) {
-        natural = +g.dataset.afSgNat;
-        rest    = +g.dataset.afSgRest;
-    } else {
-        g.classList.remove('af-sg-compact');
-        natural = g.getBoundingClientRect().height;
-        rest    = Math.max(0, natural - main.getBoundingClientRect().height);
-        g.dataset.afSgNat  = natural;
-        g.dataset.afSgRest = rest;
-        g.dataset.afSgW    = window.innerWidth;
-    }
-    var cap = Math.max(260, avail - rest);
-    g.style.setProperty('--af-sg-max', Math.round(cap) + 'px');
-
-    // Below this scroll position the column has not started to leave yet, so
-    // there is no reason to touch the picture.
-    // Where the column sits in the DOCUMENT — measured from its PARENT, not
-    // from the gallery itself.
-    //
-    // A sticky element that is currently pinned reports an offsetTop that
-    // includes the displacement holding it in place, so measuring the gallery
-    // measures where the scroll has already put it. The trigger then chases
-    // the scroll position: at 800px down it computed a threshold of 800, was
-    // never exceeded, and the picture was never shrunk — sticky looked dead
-    // for the second time, from a different cause. The row never moves, so
-    // measure that.
-    var docTop = 0;
-    for (var o = g.parentElement; o; o = o.offsetParent) docTop += o.offsetTop;
-    afTrigger   = Math.max(0, docTop - top);
-    afGallery   = g;
-    afNeedsFit  = natural > avail;
-    onScroll();
+    sizing = false;
   }
 
-  // Toggled from a scroll listener rather than recomputed there: the class is
-  // the only thing that changes, the sizes are already worked out, and the
-  // listener is passive and coalesced into a frame so it cannot make the
-  // scroll itself stutter.
-  var afGallery = null, afTrigger = 0, afNeedsFit = false, afTick = false;
-  function onScroll(){
-    if (!afGallery || !afNeedsFit) return;
-    afGallery.classList.toggle('af-sg-compact',
-        (window.pageYOffset || document.documentElement.scrollTop) > afTrigger + 8);
+  function boot(){
+    if (!pick()) return;
+    wrapOnce();
+    size();
+    window.addEventListener('resize', size);
+    g.querySelectorAll('img').forEach(function(im){ im.addEventListener('load', size); });
+    try {
+      new ResizeObserver(function(){ size(); }).observe(s);
+    } catch(e){}
   }
-  window.addEventListener('scroll', function(){
-    if (afTick) return;
-    afTick = true;
-    requestAnimationFrame(function(){ afTick = false; onScroll(); });
-  }, { passive: true });
-
-  var t = null;
-  function soon(){ clearTimeout(t); t = setTimeout(apply, 120); }
-
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply);
-  else apply();
-  window.addEventListener('resize', soon);
-  window.addEventListener('orientationchange', soon);
-  // The gallery grows when its images finish loading, and the summary grows
-  // when the price and options render — both change the comparison above.
-  window.addEventListener('load', soon);
-  try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(soon); } catch (e) {}
-  try {
-    var ro = new ResizeObserver(soon);
-    var g0 = gallery(), s0 = summary();
-    if (g0) ro.observe(g0);
-    if (s0) ro.observe(s0);
-  } catch (e) {}
-  [400, 1200, 2500].forEach(function(d){ setTimeout(soon, d); });
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
+  window.addEventListener('load', boot);
+  setTimeout(boot, 1200);
 })();
 </script>
     <?php
