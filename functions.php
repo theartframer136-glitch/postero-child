@@ -17351,7 +17351,34 @@ add_action('wp_footer', function () {
   // and theme wrappers often do. Walk up from the gallery and lift the clip on
   // those containers (recorded on the element so it is visible in devtools).
   // The gallery's own internals are left alone.
+  // The walk below stops at <body> — but the two elements ABOVE it decide
+  // whether anything can stick at all. When html AND body both set an overflow
+  // (themes add overflow-x:hidden to both to kill a horizontal scrollbar),
+  // body no longer propagates its value to the viewport and becomes a scroll
+  // container in its own right. That container never scrolls, so a sticky
+  // element inside it can never move. Reproduced in Chromium against the live
+  // geometry: with both set the wrapper tracked the page 1:1 (top 300 - scrollY)
+  // even with a 1020px wrapper inside a 2275px column.
+  //
+  // Simply clearing it would undo what the theme wanted: measured in Chromium,
+  // an overflowing element then scrolls the page sideways again. So swap the
+  // hidden for CLIP, which crops exactly the same but does NOT make the element
+  // a scroll container -- the horizontal scrollbar stays gone and sticky works.
+  // Only the horizontal axis is touched, and only where it was already hidden.
+  function unclipRoot(){
+    [document.documentElement, document.body].forEach(function(el){
+      if (!el) return;
+      var cs = window.getComputedStyle(el);
+      if (cs.overflowX === 'hidden' && cs.overflowY !== 'hidden' && cs.overflowY !== 'scroll') {
+        el.style.setProperty('overflow-x', 'clip', 'important');
+        el.style.setProperty('overflow-y', 'visible', 'important');
+        el.dataset.afSgRootClipped = '1';
+      }
+    });
+  }
+
   function unclipAncestors(){
+    unclipRoot();
     for (var a = g.parentElement; a && a !== document.body; a = a.parentElement) {
       var cs = window.getComputedStyle(a);
       if (cs.overflow !== 'visible' || cs.overflowY !== 'visible') {

@@ -84,14 +84,39 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
           });
         }
       }
+      // The two elements the ancestor walk never looks at. If BOTH html and
+      // body set an overflow, body stops propagating its value to the viewport
+      // and becomes a scroll container of its own -- and a sticky element whose
+      // nearest scrollport never scrolls can never move. That is invisible in
+      // the ancestor list above, which stops at body.
+      const hs = getComputedStyle(document.documentElement);
+      const bs = getComputedStyle(document.body);
+      const gcs = g ? getComputedStyle(g) : null;
+      const ics = inner ? getComputedStyle(inner) : null;
       return {
         galleryFound: !!g,
         innerFound: !!inner,
-        innerPosition: inner ? getComputedStyle(inner).position : null,
-        innerTopCss: inner ? getComputedStyle(inner).top : null,
+        innerPosition: ics ? ics.position : null,
+        innerTopCss: ics ? ics.top : null,
         galleryHeightStyle: g ? g.style.height : null,
         galleryNaturalTop: g ? Math.round(g.getBoundingClientRect().top + window.pageYOffset) : null,
         summaryHeight: s ? s.offsetHeight : null,
+        // does the wrapper have any room to slide inside the column?
+        galleryDisplay: gcs ? gcs.display : null,
+        galleryPosition: gcs ? gcs.position : null,
+        galleryOffsetHeight: g ? g.offsetHeight : null,
+        innerOffsetHeight: inner ? inner.offsetHeight : null,
+        innerAlignSelf: ics ? ics.alignSelf : null,
+        innerFlex: ics ? ics.flex : null,
+        stickyRange: (g && inner) ? g.offsetHeight - inner.offsetHeight : null,
+        root: {
+          htmlOverflow: hs.overflow + ' / x:' + hs.overflowX + ' y:' + hs.overflowY,
+          bodyOverflow: bs.overflow + ' / x:' + bs.overflowX + ' y:' + bs.overflowY,
+          bodyPosition: bs.position,
+          bodyHeight: bs.height,
+          scrollingElement: document.scrollingElement
+            ? document.scrollingElement.tagName : null,
+        },
         ancestors: anc,
       };
     });
@@ -109,6 +134,50 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       };
     });
 
+    // If it did not pin, try the candidate causes ONE AT A TIME in the live
+    // page and report which one makes it hold. A measured answer beats another
+    // round of theories: each entry is what the wrapper's viewport top became
+    // after applying that remedy, and anything near 96 is the culprit found.
+    const probes = (after.innerViewportTop !== null && after.innerViewportTop < 40)
+      ? await evalRetry(() => {
+          const g = document.querySelector('div.product .woocommerce-product-gallery');
+          const inner = document.querySelector('.af-sg-inner');
+          const out = [];
+          const top = () => Math.round(inner.getBoundingClientRect().top);
+          const undo = [];
+          const step = (label, apply, revert) => {
+            apply();
+            out.push({ tried: label, innerViewportTop: top(), innerH: inner.offsetHeight });
+            revert();
+          };
+          step('inner align-self:flex-start',
+            () => inner.style.setProperty('align-self', 'flex-start', 'important'),
+            () => inner.style.removeProperty('align-self'));
+          step('inner height:fit-content',
+            () => inner.style.setProperty('height', 'fit-content', 'important'),
+            () => inner.style.removeProperty('height'));
+          step('gallery display:block',
+            () => g.style.setProperty('display', 'block', 'important'),
+            () => g.style.removeProperty('display'));
+          step('html+body overflow:visible', () => {
+            document.documentElement.style.setProperty('overflow', 'visible', 'important');
+            document.body.style.setProperty('overflow', 'visible', 'important');
+          }, () => {
+            document.documentElement.style.removeProperty('overflow');
+            document.body.style.removeProperty('overflow');
+          });
+          step('body position/height cleared', () => {
+            document.body.style.setProperty('position', 'static', 'important');
+            document.body.style.setProperty('height', 'auto', 'important');
+          }, () => {
+            document.body.style.removeProperty('position');
+            document.body.style.removeProperty('height');
+          });
+          void undo;
+          return out;
+        })
+      : null;
+
     // pinned = the wrapper is holding near its sticky offset (96px) instead of
     // having scrolled away (which would put its top far negative)
     const pinned = after.innerViewportTop !== null
@@ -118,7 +187,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
     console.log('=== HEADLESS STICKY CHECK ===');
     console.log(JSON.stringify({
-      url: URL, httpStatus, before, after,
+      url: URL, httpStatus, before, after, probes,
       PINNED: measured ? pinned : null,
     }, null, 2));
     console.log(!measured
