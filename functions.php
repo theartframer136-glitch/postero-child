@@ -17671,3 +17671,178 @@ add_action('wp_footer', function () {
 // one element is how this page got here.
 // ─────────────────────────────────────────────────────────────
 
+
+// ─────────────────────────────────────────────────────────────
+// Icons for the My Account rows.
+//
+// The list reads as a wall of words — Dashboard, Orders, Track Order,
+// Downloads, Account details, Help, Log out — and a customer scanning it has
+// nothing to aim at. One small mark per row makes each one findable at a
+// glance without changing a single label.
+//
+// The rows live in two different places: the My Account page nav (WooCommerce
+// markup, one class per endpoint) and the header account dropdown (theme
+// markup, no useful classes at all). The endpoint classes carry the page nav;
+// the dropdown rows are tagged client-side from their own label text.
+//
+// The icons are inline SVG masks, not images: the mark is painted in
+// currentColor, so it takes the row's own colour on the dark dropdown and on
+// the light page alike, and follows hover states for free. Nothing is fetched.
+// ─────────────────────────────────────────────────────────────
+function af_account_icons() {
+    // 24x24, stroked, no fill — the shapes read at 16px, which is the size
+    // they are actually drawn at next to the text.
+    return array(
+        'dashboard' => '<rect x="3" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="3" width="7.5" height="7.5" rx="1.6"/><rect x="3" y="13.5" width="7.5" height="7.5" rx="1.6"/><rect x="13.5" y="13.5" width="7.5" height="7.5" rx="1.6"/>',
+        'orders' => '<path d="M20.5 7.8v8.4a1.8 1.8 0 0 1-1 1.6l-6.6 3a2 2 0 0 1-1.8 0l-6.6-3a1.8 1.8 0 0 1-1-1.6V7.8"/><path d="M3.8 7.2 12 3.3l8.2 3.9L12 11.1z"/><path d="M12 11.1V21"/>',
+        'track-order' => '<path d="M3 6.5h10.5v9H3z"/><path d="M13.5 9.5H17l3.5 3.2v2.8h-7z"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/>',
+        'downloads' => '<path d="M12 3v11.5"/><path d="m7.5 10.5 4.5 4.5 4.5-4.5"/><path d="M4 20.2h16"/>',
+        'edit-account' => '<circle cx="12" cy="8" r="4"/><path d="M4.2 20.8c0-3.9 3.5-5.9 7.8-5.9s7.8 2 7.8 5.9"/>',
+        'help' => '<circle cx="12" cy="12" r="9"/><path d="M9.4 9.3a2.7 2.7 0 1 1 3.5 2.6c-.7.3-1 .9-1 1.6v.4"/><path d="M11.95 17.2h.1"/>',
+        'logout' => '<path d="M14.5 3.8H18a2 2 0 0 1 2 2v12.4a2 2 0 0 1-2 2h-3.5"/><path d="M9.5 8 5.5 12l4 4"/><path d="M5.5 12h9"/>',
+        'messages' => '<path d="M20 4.8H4a1.2 1.2 0 0 0-1.2 1.2v9.6A1.2 1.2 0 0 0 4 16.8h3v4l5-4h8a1.2 1.2 0 0 0 1.2-1.2V6A1.2 1.2 0 0 0 20 4.8z"/>',
+        'returns' => '<path d="M9 4.2 4.2 9 9 13.8"/><path d="M4.2 9h9.3a6.3 6.3 0 1 1 0 12.6H8.5"/>',
+        'saved-previews' => '<rect x="3" y="4.5" width="18" height="15" rx="2"/><circle cx="8.6" cy="10" r="1.8"/><path d="m3.6 17.4 5-4.8 3.9 3.8 2.9-2 5 4.4"/>',
+        'edit-address' => '<path d="M12 21.2s6.8-5.4 6.8-10.6a6.8 6.8 0 1 0-13.6 0c0 5.2 6.8 10.6 6.8 10.6z"/><circle cx="12" cy="10.2" r="2.6"/>',
+        'payment-methods' => '<rect x="2.8" y="5.2" width="18.4" height="13.6" rx="2"/><path d="M2.8 10h18.4"/>',
+        'wishlist' => '<path d="M12 20.4 4.9 13.5a4.6 4.6 0 0 1 6.4-6.6l.7.7.7-.7a4.6 4.6 0 1 1 6.4 6.6z"/>',
+    );
+}
+
+// Which selectors each icon answers to. The page nav gives us an endpoint
+// class; the dropdown gives us only the tag the script below writes on.
+function af_account_icon_selectors( $key ) {
+    $endpoints = array(
+        'dashboard'       => array( 'dashboard' ),
+        'orders'          => array( 'orders' ),
+        'track-order'     => array( 'af-track-order' ),
+        'downloads'       => array( 'downloads' ),
+        'edit-account'    => array( 'edit-account' ),
+        'help'            => array( 'af-help' ),
+        'logout'          => array( 'customer-logout' ),
+        'messages'        => array( 'messages' ),
+        'returns'         => array( 'returns' ),
+        'saved-previews'  => array( 'saved-previews' ),
+        'edit-address'    => array( 'edit-address', 'edit-addresses' ),
+        'payment-methods' => array( 'payment-methods' ),
+        'wishlist'        => array( 'wishlist' ),
+    );
+    $sel = array( 'li[data-af-acc-icon="' . $key . '"] > a' );
+    foreach ( ( isset( $endpoints[ $key ] ) ? $endpoints[ $key ] : array() ) as $ep ) {
+        $sel[] = '.woocommerce-MyAccount-navigation li.woocommerce-MyAccount-navigation-link--' . $ep . ' > a';
+    }
+    return $sel;
+}
+
+add_action( 'wp_footer', function () {
+    if ( is_admin() ) {
+        return;
+    }
+    $icons = af_account_icons();
+    $all   = array();
+    $rules = '';
+    foreach ( $icons as $key => $paths ) {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
+             . 'stroke="#000" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'
+             . $paths . '</svg>';
+        $sel = af_account_icon_selectors( $key );
+        $all = array_merge( $all, $sel );
+        $rules .= implode( ",\n", $sel ) . " {\n  --af-acc-icon: url(\"data:image/svg+xml;charset=utf-8,"
+                . rawurlencode( $svg ) . "\");\n}\n";
+    }
+    $everything = implode( ",\n", $all );
+    ?>
+<style id="af-account-icons-css">
+<?php echo $rules; // built above from the icon table ?>
+<?php echo $everything; ?> {
+  display: inline-flex;
+  align-items: center;
+  gap: .6em;
+}
+<?php echo str_replace( ' > a', ' > a::before', $everything ); ?> {
+  content: "";
+  flex: 0 0 auto;
+  width: 1.05em;
+  height: 1.05em;
+  background-color: currentColor;
+  opacity: .8;
+  -webkit-mask-image: var(--af-acc-icon);
+          mask-image: var(--af-acc-icon);
+  -webkit-mask-repeat: no-repeat;
+          mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+          mask-position: center;
+  -webkit-mask-size: contain;
+          mask-size: contain;
+}
+/* The mark belongs to the row, so it brightens with it rather than staying
+   a flat grey while the words light up. */
+<?php echo str_replace( ' > a', ' > a:hover::before', $everything ); ?>,
+<?php echo str_replace( ' > a', '.is-active > a::before', $everything ); ?>,
+<?php echo str_replace( ' > a', '.woocommerce-MyAccount-navigation-link--active > a::before', $everything ); ?> {
+  opacity: 1;
+}
+/* Without mask support there is no way to tint the shape to the row's colour,
+   and a black mark on a dark dropdown would be worse than none. */
+@supports not ((-webkit-mask-image: none) or (mask-image: none)) {
+  <?php echo str_replace( ' > a', ' > a::before', $everything ); ?> { display: none; }
+}
+</style>
+<script id="af-account-icons">
+(function(){
+  // The dropdown is the theme's own markup with no endpoint classes on it, so
+  // each row is identified by the words the customer reads. Matching is exact
+  // on the trimmed label — a substring test would tag "Order history" as the
+  // logout row on any site that renames things.
+  var MAP = {
+    'dashboard': 'dashboard',
+    'orders': 'orders', 'my orders': 'orders',
+    'track order': 'track-order', 'track your order': 'track-order',
+    'downloads': 'downloads',
+    'account details': 'edit-account', 'account detail': 'edit-account',
+    'help': 'help', 'help & support': 'help', 'help and support': 'help',
+    'log out': 'logout', 'logout': 'logout', 'sign out': 'logout',
+    'messages': 'messages',
+    'returns': 'returns',
+    'saved previews': 'saved-previews',
+    'addresses': 'edit-address', 'address': 'edit-address',
+    'payment methods': 'payment-methods',
+    'wishlist': 'wishlist'
+  };
+
+  function looksLikeAccountMenu(list){
+    // Only tag a list that is genuinely the account menu. "Log out" is the
+    // giveaway no other menu on the site carries.
+    var t = (list.textContent || '').toLowerCase();
+    return t.indexOf('log out') !== -1 || t.indexOf('logout') !== -1
+        || t.indexOf('sign out') !== -1 || t.indexOf('account details') !== -1;
+  }
+
+  function tag(){
+    var lists = document.querySelectorAll('ul, ol');
+    for (var i = 0; i < lists.length; i++) {
+      var list = lists[i];
+      if (!looksLikeAccountMenu(list)) continue;
+      var items = list.children;
+      for (var j = 0; j < items.length; j++) {
+        var li = items[j];
+        if (li.tagName !== 'LI' || li.hasAttribute('data-af-acc-icon')) continue;
+        var a = li.querySelector(':scope > a');
+        if (!a) continue;
+        var label = (a.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+        var key = MAP[label];
+        if (key) li.setAttribute('data-af-acc-icon', key);
+      }
+    }
+  }
+
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tag);
+  else tag();
+  // The dropdown is often built (or cloned into) after load, and the Track
+  // Order / Help rows are added by our own later script.
+  [400, 1200, 2500].forEach(function(d){ setTimeout(tag, d); });
+  document.addEventListener('click', function(){ setTimeout(tag, 60); }, true);
+})();
+</script>
+    <?php
+}, 95 );
