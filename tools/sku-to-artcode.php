@@ -11,11 +11,11 @@
  * Two rules do the work:
  *
  *   1. The SKU is the art code verbatim — "RK 01" is stored as "RK 01".
- *      But a SKU must be UNIQUE in WooCommerce, and several products can
- *      legitimately share one art code (the same artwork in several sizes).
- *      The first claimant keeps the code untouched and the rest get their size
- *      after it — "RK 01 3X4FT" reads correctly on an invoice, which "RK 01 2"
- *      does not. A number is the last resort, only when no size can be read.
+ *      A SKU must be UNIQUE, so only a product whose art code is its own gets
+ *      it. Where one code sits on several products the SKU is left alone and
+ *      the whole group is listed, because on this shop those products are
+ *      unrelated artworks, not sizes of one — inventing "RK 01 2" would mint a
+ *      code the shop never assigned.
  *   2. Nothing is destroyed. The SKU a product had before is kept in
  *      _af_sku_before_artcode, so tools/restore-sku-from-backup.php can put
  *      every one of them back exactly as it was.
@@ -30,7 +30,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$VERSION = 'artcode-sku-v1';
+$VERSION = 'artcode-sku-v2';
 $SECONDS = (int) ( getenv( 'AF_SKU_SECONDS' ) ?: 200 );
 $MAX     = (int) ( getenv( 'AF_SKU_MAX' )     ?: 800 );
 $DRY     = (bool) getenv( 'AF_SKU_DRYRUN' );
@@ -51,56 +51,6 @@ echo "target: {$VERSION}  |  budget: {$SECONDS}s or {$MAX} products per run"
 function af_sku_from_code( $code ) {
 	$s = trim( (string) $code );
 	return (string) preg_replace( '/\s+/', ' ', $s );
-}
-
-/**
- * A short, readable token for the product's size, used only to tell apart two
- * products that share an art code. "3x4 Feet" becomes 3X4FT. Returns '' when
- * the product has no size worth printing.
- */
-function af_sku_size_token( $pid ) {
-	$candidates = array();
-
-	$product = function_exists( 'wc_get_product' ) ? wc_get_product( $pid ) : null;
-	if ( $product ) {
-		foreach ( array( 'pa_size', 'size', 'pa_dimensions' ) as $key ) {
-			$v = $product->get_attribute( $key );
-			if ( $v ) { $candidates[] = $v; }
-		}
-	}
-	// Titles on this shop carry the size when the attribute does not:
-	// "… Canvas Wall Art 3x4 Feet – Floating Frame …"
-	$title = html_entity_decode( wp_strip_all_tags( get_the_title( $pid ) ) );
-	if ( preg_match( '/(\d+(?:\.\d+)?)\s*(?:x|×)\s*(\d+(?:\.\d+)?)\s*(feet|foot|ft|inch|inches|in|cm|mm)?/i', $title, $m ) ) {
-		$candidates[] = $m[0];
-	}
-
-	foreach ( $candidates as $raw ) {
-		$raw = strtolower( (string) $raw );
-		$raw = str_replace( array( '×', '"', "'" ), array( 'x', '', '' ), $raw );
-		if ( ! preg_match( '/(\d+(?:\.\d+)?)\s*x\s*(\d+(?:\.\d+)?)\s*([a-z]*)/', $raw, $m ) ) { continue; }
-		$unit = '';
-		if ( preg_match( '/^(feet|foot|ft)/', $m[3] ) )              { $unit = 'FT'; }
-		elseif ( preg_match( '/^(inch|inches|in)/', $m[3] ) )        { $unit = 'IN'; }
-		elseif ( preg_match( '/^(cm|centimet)/', $m[3] ) )           { $unit = 'CM'; }
-		elseif ( preg_match( '/^(mm|millimet)/', $m[3] ) )           { $unit = 'MM'; }
-		// Trailing zeros only mean nothing AFTER a decimal point: 3.50 is 3.5,
-		// but 60 is not 6. Getting this wrong turned "60 x 90 cm" into 6X9CM.
-		$w = af_sku_trim_number( $m[1] );
-		$h = af_sku_trim_number( $m[2] );
-		if ( $w === '' || $h === '' ) { continue; }
-		// 3.5X4.5FT is a size a person can read; 3-5X4-5FT is not.
-		return strtoupper( $w . 'X' . $h . $unit );
-	}
-	return '';
-}
-
-function af_sku_trim_number( $n ) {
-	$n = (string) $n;
-	if ( strpos( $n, '.' ) !== false ) {
-		$n = rtrim( rtrim( $n, '0' ), '.' );
-	}
-	return $n;
 }
 
 // ── Every published product, and the art code it carries ────────────────────
@@ -140,38 +90,54 @@ echo "  WITHOUT an art code: " . count( $nocode ) . "  (SKU left exactly as it i
 // ── Decide the SKU for every product before writing anything ────────────────
 // Done in one pass so a resumed run assigns the same SKU it would have on the
 // first run: the order is by product id, not by whatever happens to be left.
-$want      = array();   // pid => sku
-$shared    = array();   // base => pids, for the report
-$fellback  = array();   // pid => sku, where a number had to be used
+$want   = array();   // pid => sku
+$shared = array();   // base => pids, left alone and reported
 
+// v1 assumed a shared art code meant one artwork sold in several sizes, and
+// appended the size to tell them apart. The live data says otherwise: of 56
+// shared codes, NOT ONE is the same artwork twice. TA 04 alone sits on 28
+// unrelated pieces — a cartoon cat, a waterfall, a Balaji temple, a family
+// photo collage. Numbering those "TA 04 2 … TA 04 28" invents codes the shop
+// never assigned and implies a relationship between pictures that have none.
+//
+// So a shared code is now treated as what it is: a data problem in the codes,
+// not something a SKU rule can paper over. Only a product whose art code is
+// its own gets that code as its SKU. The rest keep the SKU they already had
+// and are listed in full, so the codes can be corrected and this re-run.
 foreach ( $by_sku as $key => $pids ) {
 	$base = $as_written[ $key ];
 	if ( count( $pids ) === 1 ) {
 		$want[ $pids[0] ] = $base;
-		continue;
-	}
-	$shared[ $base ] = $pids;
-	$taken = array( $base => true );
-	$first = true;
-	foreach ( $pids as $pid ) {
-		if ( $first ) {                       // lowest id keeps the bare code
-			$want[ $pid ] = $base;
-			$first = false;
-			continue;
-		}
-		$size = af_sku_size_token( $pid );
-		$sku  = $size !== '' ? $base . ' ' . $size : '';
-		if ( $sku === '' || isset( $taken[ $sku ] ) ) {
-			$n = 2;
-			do { $sku = $base . ' ' . $n; $n++; } while ( isset( $taken[ $sku ] ) );
-			$fellback[ $pid ] = $sku;
-		}
-		$taken[ $sku ] = true;
-		$want[ $pid ]  = $sku;
+	} else {
+		$shared[ $base ] = $pids;
 	}
 }
 
 echo "  art codes shared by more than one product: " . count( $shared ) . "\n";
+echo "  products under a shared code (SKU left alone): "
+   . array_sum( array_map( 'count', $shared ) ) . "\n";
+
+// v1 already wrote invented SKUs for those products. Put them back.
+$undone = 0;
+foreach ( $shared as $base => $pids ) {
+	foreach ( $pids as $pid ) {
+		$was = (string) get_post_meta( $pid, '_af_sku_before_artcode', true );
+		if ( $was === '' ) { continue; }
+		$now = (string) get_post_meta( $pid, '_sku', true );
+		if ( $now === $was ) { continue; }
+		if ( $DRY ) { $undone++; continue; }
+		$product = wc_get_product( $pid );
+		if ( ! $product ) { continue; }
+		try { $product->set_sku( $was ); $product->save(); } catch ( Exception $e ) { continue; }
+		delete_post_meta( $pid, '_af_sku_artcode' );
+		delete_post_meta( $pid, '_af_sku_before_artcode' );
+		if ( function_exists( 'wc_delete_product_transients' ) ) { wc_delete_product_transients( $pid ); }
+		$undone++;
+	}
+}
+if ( $undone ) {
+	echo "  put back {$undone} SKU(s) an earlier run had invented from a shared code\n";
+}
 
 // ── Write ───────────────────────────────────────────────────────────────────
 $done = 0; $already = 0; $skipped = 0; $clash = 0; $samples = array();
@@ -246,23 +212,16 @@ if ( $samples ) {
 }
 
 if ( $shared ) {
-	echo "\nart codes on more than one product (first 10) — the lowest id keeps the\n"
-	   . "bare code, the others carry their size:\n";
-	$n = 0;
+	echo "\n--- ART CODES ON MORE THAN ONE PRODUCT ---\n";
+	echo "These " . count( $shared ) . " codes are each on several unrelated products, so\n"
+	   . "none of them can be a SKU (a SKU has to be unique). Every product below\n"
+	   . "keeps the SKU it already had. Give these pieces their own codes and this\n"
+	   . "will pick them up on the next run.\n";
 	foreach ( $shared as $base => $pids ) {
-		if ( $n++ >= 10 ) { break; }
-		$line = array();
-		foreach ( $pids as $pid ) { $line[] = '#' . $pid . '=' . $want[ $pid ]; }
-		echo "  {$base}: " . implode( '  ', $line ) . "\n";
-	}
-}
-
-if ( $fellback ) {
-	echo "\nno size could be read, so these were numbered instead (" . count( $fellback ) . "):\n";
-	$n = 0;
-	foreach ( $fellback as $pid => $sku ) {
-		if ( $n++ >= 10 ) { break; }
-		echo "  #{$pid} → {$sku}   " . get_the_title( $pid ) . "\n";
+		echo "  {$base} (" . count( $pids ) . " products)\n";
+		foreach ( $pids as $pid ) {
+			echo "     #{$pid}  " . mb_substr( html_entity_decode( wp_strip_all_tags( get_the_title( $pid ) ) ), 0, 62 ) . "\n";
+		}
 	}
 }
 
