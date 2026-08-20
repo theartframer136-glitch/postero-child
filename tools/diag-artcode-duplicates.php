@@ -101,3 +101,25 @@ if ( ! is_dir( $dir ) ) { wp_mkdir_p( $dir ); }
 if ( file_put_contents( $dir . '/artcode-duplicates.csv', implode( "\n", $csv ) ) !== false ) {
 	echo "\nfull table: " . $up['baseurl'] . "/taf-reports/artcode-duplicates.csv\n";
 }
+
+// And the same products as a form to fill in. Correcting these codes is a
+// human job — the right code for a picture lives in the design files, not in
+// anything the site can work out — so the useful thing to hand over is a sheet
+// with the products already listed and one blank column. Filled in and put
+// back as artcode-import.csv, tools/import-artcodes.php (which already runs on
+// every full deploy) writes the codes, and the SKU pass picks them up on the
+// run after that. No other step is needed.
+$tpl = array( 'product_id,new_art_code,current_shared_code,title' );
+foreach ( $shared as $key => $pids ) {
+	foreach ( $pids as $pid ) {
+		$title = html_entity_decode( wp_strip_all_tags( get_the_title( $pid ) ) );
+		$tpl[] = $pid . ',,"' . str_replace( '"', '""', $spell[ $key ] ) . '","'
+		       . str_replace( '"', '""', $title ) . '"';
+	}
+}
+if ( file_put_contents( $dir . '/artcode-import-template.csv', implode( "\n", $tpl ) ) !== false ) {
+	echo "fill this in:  " . $up['baseurl'] . "/taf-reports/artcode-import-template.csv\n";
+	echo "  put the correct code in new_art_code, save it as artcode-import.csv in\n";
+	echo "  the same folder, and the next deploy applies it. Rows left blank are\n";
+	echo "  skipped, so it can be done a few at a time.\n";
+}
