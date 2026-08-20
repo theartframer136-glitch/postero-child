@@ -24,11 +24,29 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   try {
     const page = await browser.newPage();
     await page.setViewport({ width: 1366, height: 900 });
-    // unique param defeats the page cache so we test THIS deploy's output
-    await page.goto(URL + '?afheadless=' + Date.now(), {
-      waitUntil: 'networkidle2', timeout: 120000,
-    });
-    await sleep(3500); // let the footer scripts (wrap + size) finish
+    // The host returns 508 while a deploy is still busy, and a 508 page has no
+    // product markup on it at all. Loading it once and reporting "not pinned"
+    // is a FALSE VERDICT about the gallery -- run 32343465049 did exactly that:
+    // galleryFound false, scrollY 0, and a confident NOT PINNED underneath.
+    // So: load until the product markup is actually there, and if it never is,
+    // say INCONCLUSIVE rather than passing judgement on a page we never saw.
+    let httpStatus = null;
+    let loaded = false;
+    for (let attempt = 1; attempt <= 3 && !loaded; attempt++) {
+      // unique param defeats the page cache so we test THIS deploy's output
+      const resp = await page.goto(URL + '?afheadless=' + Date.now(), {
+        waitUntil: 'networkidle2', timeout: 120000,
+      }).catch((e) => { console.log('load attempt ' + attempt + ' failed: ' + e.message); return null; });
+      httpStatus = resp ? resp.status() : null;
+      await sleep(3500); // let the footer scripts (wrap + size) finish
+      loaded = await page.evaluate(
+        () => !!document.querySelector('div.product .woocommerce-product-gallery')
+      ).catch(() => false);
+      if (!loaded) {
+        console.log('load attempt ' + attempt + ': HTTP ' + httpStatus + ', no product gallery in the page');
+        if (attempt < 3) await sleep(15000);
+      }
+    }
 
     // The site performs one self-navigation shortly after load (a currency
     // cookie reload), which destroys the evaluation context mid-measure. So:
@@ -95,12 +113,21 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     // having scrolled away (which would put its top far negative)
     const pinned = after.innerViewportTop !== null
       && after.innerViewportTop > 40 && after.innerViewportTop < 200;
+    // Nothing measured means nothing proved, in either direction.
+    const measured = before.galleryFound && before.innerFound && after.scrollY > 0;
 
     console.log('=== HEADLESS STICKY CHECK ===');
-    console.log(JSON.stringify({ url: URL, before, after, PINNED: pinned }, null, 2));
-    console.log(pinned
-      ? 'VERDICT: PINNED — the gallery holds while the page scrolls'
-      : 'VERDICT: NOT PINNED — see ancestors above for the blocker');
+    console.log(JSON.stringify({
+      url: URL, httpStatus, before, after,
+      PINNED: measured ? pinned : null,
+    }, null, 2));
+    console.log(!measured
+      ? 'VERDICT: INCONCLUSIVE — the product page never rendered here (HTTP '
+        + httpStatus + (before.galleryFound ? ', gallery found but not measured' : ', no gallery in the page')
+        + '). This says nothing about the gallery; re-run when the host is idle.'
+      : pinned
+        ? 'VERDICT: PINNED — the gallery holds while the page scrolls'
+        : 'VERDICT: NOT PINNED — see ancestors above for the blocker');
     console.log('=== DONE ===');
   } catch (e) {
     console.log('=== HEADLESS STICKY CHECK ===');
