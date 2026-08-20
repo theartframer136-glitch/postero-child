@@ -883,6 +883,25 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/regenerate-image-sizes.php --allow-root 2>&1" \
             || true
 
+      - name: SKU → art code (batched, resumable)
+        if: always()
+        timeout-minutes: 8
+        env:
+          AF_SKU_SECONDS: '200'
+          AF_SKU_MAX: '800'
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Setting product SKUs from their art codes..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             AF_SKU_SECONDS=${AF_SKU_SECONDS} AF_SKU_MAX=${AF_SKU_MAX} \
+             wp eval-file wp-content/themes/postero-child/tools/sku-to-artcode.php --allow-root 2>&1" \
+            || true
+
       - name: Gates & warm (always)
         timeout-minutes: 10
         run: |
