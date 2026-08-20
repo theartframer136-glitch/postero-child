@@ -883,6 +883,25 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/regenerate-image-sizes.php --allow-root 2>&1" \
             || true
 
+      - name: SKU → art code (batched, resumable)
+        if: always()
+        timeout-minutes: 8
+        env:
+          AF_SKU_SECONDS: '200'
+          AF_SKU_MAX: '800'
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Setting product SKUs from their art codes..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             AF_SKU_SECONDS=${AF_SKU_SECONDS} AF_SKU_MAX=${AF_SKU_MAX} \
+             wp eval-file wp-content/themes/postero-child/tools/sku-to-artcode.php --allow-root 2>&1" \
+            || true
+
       - name: Gates & warm (always)
         timeout-minutes: 10
         run: |
@@ -1105,6 +1124,21 @@ jobs:
       # One-off (read-only): print the structure of a real product card, so the
       # blank band between artwork and title is diagnosed from the markup
       # instead of guessed at. Remove once the card layout is settled.
+      - name: Shared art codes (read-only)
+        if: always()
+        timeout-minutes: 6
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Which products share an art code (read-only)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-artcode-duplicates.php --allow-root 2>&1" \
+            || true
+
       - name: Product card structure (one-off, read-only)
         if: always()
         run: |
