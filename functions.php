@@ -17289,6 +17289,40 @@ add_action('wp_footer', function () {
     g.appendChild(inner);
   }
 
+  // The gallery box is a flex container in this theme. That makes the wrapper a
+  // flex item, and a flex item's default cross-axis behaviour is STRETCH: the
+  // wrapper is pulled to the full height of the column we just stretched, so it
+  // has no room left to slide in and sticky pins nothing. Measured in Chromium:
+  //   flex gallery -> innerH 2000 of 2000, scroll 800 gives top -780 (not pinned)
+  //   align-self:flex-start -> innerH 400 of 2000, scroll 800 gives top 96 (pinned)
+  // Only the vertical stretch is cancelled. In a row flex container that is
+  // align-self; the width is kept by letting the item grow along the row. In a
+  // COLUMN container the axes are swapped -- align-self would shrink the width
+  // instead -- so there we only make sure the item is not grown vertically.
+  function unstretch(on){
+    if (!inner) return;
+    if (!on) {
+      inner.style.removeProperty('align-self');
+      inner.style.removeProperty('flex');
+      return;
+    }
+    var cs = window.getComputedStyle(g);
+    var d  = cs.display;
+    if (d === 'flex' || d === 'inline-flex') {
+      if ((cs.flexDirection || 'row').indexOf('column') === -1) {
+        inner.style.setProperty('align-self', 'flex-start');
+        inner.style.setProperty('flex', '1 1 auto');   // keep the full column width
+      } else {
+        inner.style.setProperty('flex', '0 0 auto');   // never grown down the column
+      }
+    } else if (d === 'grid' || d === 'inline-grid') {
+      inner.style.setProperty('align-self', 'start');  // block axis only; width still stretches
+    } else {
+      inner.style.removeProperty('align-self');
+      inner.style.removeProperty('flex');
+    }
+  }
+
   var sizing = false;
   function size(){
     if (!g || !s || sizing) return;
@@ -17296,10 +17330,14 @@ add_action('wp_footer', function () {
     if (window.innerWidth < 992) {              // stacked layout: no pinning
       g.style.height = '';
       if (inner) inner.style.position = 'static';
+      unstretch(false);
       sizing = false;
       return;
     }
     if (inner) inner.style.position = 'sticky';
+    unstretch(true);                            // before measuring: a stretched
+                                                // wrapper reports the column's
+                                                // height, not the images'
     g.style.height = '';                        // measure natural sizes first
     var innerH = inner ? inner.offsetHeight : g.offsetHeight;
     var target = absTop(s) + s.offsetHeight - absTop(g);
@@ -17353,6 +17391,7 @@ add_action('wp_footer', function () {
       var ics = getComputedStyle(inner);
       out.push('inner position: ' + ics.position + '  top: ' + ics.top);
     }
+    if (g) out.push('gallery display: ' + getComputedStyle(g).display + '  inner align-self: ' + (inner ? getComputedStyle(inner).alignSelf : '-'));
     if (g) out.push('gallery height set: ' + (g.style.height || '(natural)') + '  innerH: ' + (inner ? inner.offsetHeight : '-'));
     if (s) out.push('summary height: ' + s.offsetHeight);
     if (g) {
