@@ -17594,67 +17594,14 @@ add_action('wp_footer', function () {
 }, 96);
 
 // ─────────────────────────────────────────────────────────────
-// Product page: the image column stays put while the details scroll
-// (owner request, 2026-08-19). The gallery is shorter than the options
-// column, so from the What-you-receive chooser down the visitor scrolled
-// beside a blank white column. The gallery now follows the scroll until the
-// details column ends — which is exactly where the Description / Additional
-// Information / Reviews tabs begin — and stops there.
+// (Removed) Product page: the translateY version of the sticky gallery.
 //
-// Done with a measured translateY rather than position:sticky, because sticky
-// depends on the parent's layout mode and would either fail silently on a
-// floated layout or keep the gallery pinned THROUGH the tabs (its parent
-// contains them). The measurement is bounded by the details column's bottom,
-// so the tabs are the natural stopping line. Desktop only; phones stack the
-// columns and need nothing. No markup is moved and no other section changes.
+// It followed the scroll by writing g.style.transform on every scroll frame.
+// Scroll paints first and the correction lands a frame later, which the eye
+// reads as the column JUMPING — the fault the v2 block above was written to
+// cure. v2 landed but this one was never taken out, and because it is later
+// in the document its transform ran last and won, so the jump survived the
+// fix. Deleted rather than disabled: two implementations of one behaviour on
+// one element is how this page got here.
 // ─────────────────────────────────────────────────────────────
-add_action('wp_footer', function () {
-    if (!function_exists('is_product') || !is_product()) return;
-    ?>
-<script id="af-sticky-gallery">
-(function(){
-  var TOP_GAP = 96;   // clearance under the fixed header, px
-  var g, s;
 
-  function pick(){
-    g = document.querySelector('.single-product div.product .woocommerce-product-gallery, div.product .woocommerce-product-gallery');
-    s = document.querySelector('.single-product div.product .summary, div.product .summary.entry-summary, div.product .summary');
-    return g && s;
-  }
-  function absTop(el){ var r = el.getBoundingClientRect(); return r.top + window.pageYOffset; }
-
-  var raf = 0;
-  function place(){
-    raf = 0;
-    if (!g || !s) return;
-    if (window.innerWidth < 992) { g.style.transform = ''; return; }   // stacked layout
-    var gH = g.offsetHeight, sH = s.offsetHeight;
-    if (sH - gH < 60) { g.style.transform = ''; return; }              // nothing to gain
-    // undo our own offset before measuring, or the numbers chase themselves
-    var prev = g.style.transform;
-    g.style.transform = '';
-    var start = absTop(g);
-    var limit = absTop(s) + sH - gH;                                   // gallery bottom == details bottom
-    var y = Math.min(Math.max(window.pageYOffset + TOP_GAP - start, 0), Math.max(0, limit - start));
-    g.style.transform = y > 0 ? 'translateY(' + Math.round(y) + 'px)' : '';
-    if (y > 0 && prev === '') g.style.willChange = 'transform';
-  }
-  function queue(){ if (!raf) raf = requestAnimationFrame(place); }
-
-  function boot(){
-    if (!pick()) return;
-    place();
-    window.addEventListener('scroll', queue, {passive: true});
-    window.addEventListener('resize', queue);
-    // gallery images load late and change its height
-    g.querySelectorAll('img').forEach(function(im){ im.addEventListener('load', queue); });
-    try { new ResizeObserver(queue).observe(s); new ResizeObserver(queue).observe(g); } catch(e){}
-  }
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
-  else boot();
-  window.addEventListener('load', boot);
-  setTimeout(boot, 1200);
-})();
-</script>
-    <?php
-}, 27);
