@@ -10,11 +10,12 @@
  *
  * Two rules do the work:
  *
- *   1. A SKU must be UNIQUE in WooCommerce. Several products can legitimately
- *      share one art code (the same artwork sold in several sizes), so the
- *      first claimant takes the bare code and the rest get their size appended
- *      — RK-01-3X4FT reads correctly on an invoice, which -2 does not. Only
- *      when no size can be read does it fall back to a number.
+ *   1. The SKU is the art code verbatim — "RK 01" is stored as "RK 01".
+ *      But a SKU must be UNIQUE in WooCommerce, and several products can
+ *      legitimately share one art code (the same artwork in several sizes).
+ *      The first claimant keeps the code untouched and the rest get their size
+ *      after it — "RK 01 3X4FT" reads correctly on an invoice, which "RK 01 2"
+ *      does not. A number is the last resort, only when no size can be read.
  *   2. Nothing is destroyed. The SKU a product had before is kept in
  *      _af_sku_before_artcode, so tools/restore-sku-from-backup.php can put
  *      every one of them back exactly as it was.
@@ -41,15 +42,15 @@ echo "target: {$VERSION}  |  budget: {$SECONDS}s or {$MAX} products per run"
    . ( $DRY ? '  |  DRY RUN — nothing is written' : '' ) . "\n";
 
 /**
- * An art code as it is written in the book ("RK 01") turned into the form a
- * SKU should take: upper case, single hyphens, nothing exotic. Anything that
- * is not a letter, a digit or a separator is dropped rather than escaped,
- * because a SKU ends up in URLs, CSV exports and printed paperwork.
+ * The SKU IS the art code — exactly as it is written in the book. "RK 01"
+ * stays "RK 01"; it is not upper-cased, hyphenated or otherwise tidied, so
+ * what a customer reads as the SKU is character-for-character the code the
+ * shop assigned. The only change is collapsing stray whitespace, since
+ * "RK  01" and "RK 01" are the same code typed twice.
  */
 function af_sku_from_code( $code ) {
-	$s = strtoupper( trim( (string) $code ) );
-	$s = preg_replace( '/[^A-Z0-9]+/', '-', $s );
-	return trim( (string) $s, '-' );
+	$s = trim( (string) $code );
+	return (string) preg_replace( '/\s+/', ' ', $s );
 }
 
 /**
@@ -88,8 +89,7 @@ function af_sku_size_token( $pid ) {
 		$w = af_sku_trim_number( $m[1] );
 		$h = af_sku_trim_number( $m[2] );
 		if ( $w === '' || $h === '' ) { continue; }
-		// A dot survives here where af_sku_from_code would drop it, because
-		// 3.5X4.5FT is a size a person can read and 3-5X4-5FT is not.
+		// 3.5X4.5FT is a size a person can read; 3-5X4-5FT is not.
 		return strtoupper( $w . 'X' . $h . $unit );
 	}
 	return '';
@@ -114,7 +114,8 @@ $ids = get_posts( array(
 ) );
 
 $codes   = array();   // pid => art code as written
-$by_sku  = array();   // base sku => ordered list of pids that want it
+$by_sku  = array();   // KEY => ordered list of pids that want that code
+$as_written = array();// KEY => the code exactly as the first product spells it
 $nocode  = array();
 
 foreach ( $ids as $pid ) {
@@ -123,8 +124,13 @@ foreach ( $ids as $pid ) {
 	if ( $code === '' ) { $nocode[] = $pid; continue; }
 	$base = af_sku_from_code( $code );
 	if ( $base === '' ) { $nocode[] = $pid; continue; }
+	// Grouped case-insensitively because MySQL compares SKUs that way: "rk 01"
+	// and "RK 01" would collide in the database even though they differ here.
+	// The spelling that gets stored is the one the first product uses.
+	$key = strtoupper( $base );
+	if ( ! isset( $as_written[ $key ] ) ) { $as_written[ $key ] = $base; }
 	$codes[ $pid ] = $code;
-	$by_sku[ $base ][] = $pid;
+	$by_sku[ $key ][] = $pid;
 }
 
 echo "products: " . count( $ids ) . "\n";
@@ -138,7 +144,8 @@ $want      = array();   // pid => sku
 $shared    = array();   // base => pids, for the report
 $fellback  = array();   // pid => sku, where a number had to be used
 
-foreach ( $by_sku as $base => $pids ) {
+foreach ( $by_sku as $key => $pids ) {
+	$base = $as_written[ $key ];
 	if ( count( $pids ) === 1 ) {
 		$want[ $pids[0] ] = $base;
 		continue;
@@ -153,10 +160,10 @@ foreach ( $by_sku as $base => $pids ) {
 			continue;
 		}
 		$size = af_sku_size_token( $pid );
-		$sku  = $size !== '' ? $base . '-' . $size : '';
+		$sku  = $size !== '' ? $base . ' ' . $size : '';
 		if ( $sku === '' || isset( $taken[ $sku ] ) ) {
 			$n = 2;
-			do { $sku = $base . '-' . $n; $n++; } while ( isset( $taken[ $sku ] ) );
+			do { $sku = $base . ' ' . $n; $n++; } while ( isset( $taken[ $sku ] ) );
 			$fellback[ $pid ] = $sku;
 		}
 		$taken[ $sku ] = true;
