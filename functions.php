@@ -17505,8 +17505,22 @@ function af_ticker_items() {
     )) ) );
 }
 
+// The offers ticker is a shopfront thing: it talks to customers about framing
+// and shipping. On the staff tool pages it is noise running through work, so
+// it is skipped there — only there. Everywhere a customer can go, it still
+// runs exactly as before.
+function af_ticker_is_staff_page() {
+    if ( ! function_exists( 'is_page' ) ) { return false; }
+    return is_page( apply_filters( 'af_ticker_hidden_pages', array(
+        'admin-console', 'admin',
+        'inventory-management', 'inventory',
+        'activity-log', 'user-activity-log',
+    ) ) );
+}
+
 add_action('wp_footer', function () {
     if (is_admin()) return;
+    if (af_ticker_is_staff_page()) return;
     $items = af_ticker_items();
     if (!$items) return;
     $run = '';
