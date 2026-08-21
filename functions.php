@@ -14160,7 +14160,9 @@ add_action('template_redirect', function(){
             'status'  => $p->get_stock_status(),
             'draft'   => $p->get_status() !== 'publish',
             'img'     => get_the_post_thumbnail_url($pid, 'thumbnail') ?: wc_placeholder_img_src('thumbnail'),
-            'edit'    => get_edit_post_link($pid, 'raw'),
+            // The console's own edit screen, not wp-admin's — see af_pe_url().
+            'edit'    => af_pe_url($pid),
+            'wpedit'  => get_edit_post_link($pid, 'raw'),
             'view'    => get_permalink($pid),
             'cats'    => af_inv_product_cats($pid),
         );
@@ -14269,7 +14271,7 @@ add_action('template_redirect', function(){
           + '<td class="af-inv-tdstock"><input type="number" min="0" step="1" class="af-inv-qty" '
             + 'value="'+(r.managed && r.qty !== null ? r.qty : '')+'" placeholder="&mdash;" aria-label="Stock quantity"></td>'
           + '<td class="af-inv-tdstatus"><span class="af-inv-pill af-inv-pill--'+b+'">'+LABEL[b]+'</span></td>'
-          + '<td class="af-inv-tdact"><a class="af-inv-edit" href="'+esc(r.edit)+'" target="_blank" rel="noopener">Edit</a></td>'
+          + '<td class="af-inv-tdact"><a class="af-inv-edit" href="'+esc(r.edit)+'">Edit</a></td>'
           + '</tr>';
       }
 
@@ -17907,3 +17909,407 @@ add_action( 'wp_footer', function () {
 </script>
 	<?php
 }, 95 );
+
+// ─────────────────────────────────────────────────────────────
+// The Edit screen behind Inventory Management's "Edit" button.
+//
+// That button used to open wp-admin's product editor in a new tab: a large,
+// unfamiliar screen with dozens of fields, ninety per cent of which nobody
+// managing stock will ever touch. This is the small version — the handful of
+// things this shop actually edits, in the console's own styling, on the page
+// they were already on.
+//
+// It lives at /inventory-management/?af_edit=<id> rather than a page of its
+// own on purpose: the slug already exists, already has the right permission
+// gate, and "Back to inventory" is then genuinely back rather than sideways.
+// The escape hatch to the full WordPress editor is still there for the rare
+// field this screen deliberately leaves out.
+//
+// Who may change what follows the same split as the rest of the console:
+// anyone who can open Inventory may edit stock, because that is the job the
+// page exists for; the rest — title, prices, art code, published state — is
+// administrators only, and the fields are simply not rendered for others.
+// ─────────────────────────────────────────────────────────────
+
+function af_pe_can_edit_all() {
+	return is_user_logged_in() && current_user_can( 'manage_options' );
+}
+
+function af_pe_url( $pid ) {
+	return add_query_arg( 'af_edit', (int) $pid, af_inv_url() );
+}
+
+add_action( 'wp_ajax_af_product_edit_save', function () {
+	if ( ! function_exists( 'af_inv_can_access' ) || ! af_inv_can_access() ) {
+		wp_send_json_error( array( 'message' => 'You do not have permission to edit products.' ), 403 );
+	}
+	check_ajax_referer( 'af_product_edit', 'nonce' );
+
+	$pid     = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+	$product = $pid ? wc_get_product( $pid ) : null;
+	if ( ! $product ) {
+		wp_send_json_error( array( 'message' => 'That product no longer exists.' ), 404 );
+	}
+
+	$full    = af_pe_can_edit_all();
+	$changed = array();
+	$notes   = array();
+
+	// ── Stock: the part anyone with console access may change ───────────────
+	if ( isset( $_POST['manage_stock'] ) ) {
+		$manage = $_POST['manage_stock'] === '1';
+		$product->set_manage_stock( $manage );
+		if ( $manage ) {
+			$qty = isset( $_POST['stock_qty'] ) ? (int) $_POST['stock_qty'] : 0;
+			$product->set_stock_quantity( max( 0, $qty ) );
+			// Let the count decide the status while a count is being kept —
+			// a tracked product showing "in stock" at zero is how oversells
+			// happen.
+			$product->set_stock_status( $qty > 0 ? 'instock' : 'outofstock' );
+			$changed[] = 'stock count';
+		} else {
+			$product->set_stock_quantity( null );
+			$status = isset( $_POST['stock_status'] ) ? sanitize_text_field( wp_unslash( $_POST['stock_status'] ) ) : 'instock';
+			if ( ! in_array( $status, array( 'instock', 'outofstock', 'onbackorder' ), true ) ) { $status = 'instock'; }
+			$product->set_stock_status( $status );
+			$changed[] = 'stock status';
+		}
+	}
+
+	// ── Everything else: administrators only ────────────────────────────────
+	if ( $full ) {
+		if ( isset( $_POST['title'] ) ) {
+			$title = sanitize_text_field( wp_unslash( $_POST['title'] ) );
+			if ( $title === '' ) {
+				wp_send_json_error( array( 'message' => 'A product needs a name.' ), 400 );
+			}
+			if ( $title !== $product->get_name() ) {
+				$product->set_name( $title );
+				$changed[] = 'name';
+			}
+		}
+
+		if ( isset( $_POST['sku'] ) ) {
+			$sku = trim( sanitize_text_field( wp_unslash( $_POST['sku'] ) ) );
+			if ( $sku !== (string) $product->get_sku() ) {
+				$holder = $sku !== '' ? (int) wc_get_product_id_by_sku( $sku ) : 0;
+				if ( $holder && $holder !== $pid ) {
+					wp_send_json_error( array(
+						'message' => 'SKU "' . $sku . '" is already used by ' . get_the_title( $holder )
+						           . ' (#' . $holder . '). Two products cannot share one.',
+					), 409 );
+				}
+				$product->set_sku( $sku );
+				$changed[] = 'SKU';
+			}
+		}
+
+		foreach ( array( 'regular_price', 'sale_price' ) as $field ) {
+			if ( ! isset( $_POST[ $field ] ) ) { continue; }
+			$raw = trim( (string) wp_unslash( $_POST[ $field ] ) );
+			if ( $raw !== '' && ! is_numeric( $raw ) ) {
+				wp_send_json_error( array( 'message' => str_replace( '_', ' ', $field ) . ' must be a number.' ), 400 );
+			}
+			$product->{ 'set_' . $field }( $raw === '' ? '' : wc_format_decimal( $raw ) );
+		}
+		$reg  = (float) $product->get_regular_price();
+		$sale = $product->get_sale_price();
+		if ( $sale !== '' && (float) $sale > 0 && $reg > 0 && (float) $sale >= $reg ) {
+			wp_send_json_error( array(
+				'message' => 'The sale price must be below the regular price, or a customer sees a discount that is not one.',
+			), 400 );
+		}
+		$changed[] = 'price';
+
+		if ( isset( $_POST['status'] ) ) {
+			$status = wp_unslash( $_POST['status'] ) === 'publish' ? 'publish' : 'draft';
+			if ( $status !== $product->get_status() ) {
+				$product->set_status( $status );
+				$changed[] = $status === 'publish' ? 'published' : 'moved to draft';
+			}
+		}
+	}
+
+	$product->save();
+
+	if ( $full && isset( $_POST['art_code'] ) ) {
+		$code = preg_replace( '/\s+/', ' ', trim( sanitize_text_field( wp_unslash( $_POST['art_code'] ) ) ) );
+		$was  = (string) get_post_meta( $pid, '_taf_art_code', true );
+		if ( $code !== $was ) {
+			if ( $code === '' ) {
+				delete_post_meta( $pid, '_taf_art_code' );
+			} else {
+				update_post_meta( $pid, '_taf_art_code', $code );
+			}
+			$changed[] = 'art code';
+			// The SKU pass takes its cue from this marker; clearing it lets the
+			// next deploy reconsider this product with its new code.
+			delete_post_meta( $pid, '_af_sku_artcode' );
+			$notes[] = 'The SKU will follow the new art code on the next deploy, if that code is not already in use elsewhere.';
+		}
+	}
+
+	if ( function_exists( 'wc_delete_product_transients' ) ) { wc_delete_product_transients( $pid ); }
+
+	$fresh = wc_get_product( $pid );
+	wp_send_json_success( array(
+		'message' => $changed ? 'Saved — ' . implode( ', ', array_unique( $changed ) ) . '.' : 'Nothing had changed.',
+		'notes'   => $notes,
+		'product' => array(
+			'title'  => html_entity_decode( wp_strip_all_tags( $fresh->get_name() ) ),
+			'sku'    => (string) $fresh->get_sku(),
+			'price'  => (string) $fresh->get_price(),
+			'qty'    => $fresh->get_manage_stock() ? (int) $fresh->get_stock_quantity() : null,
+			'status' => $fresh->get_stock_status(),
+			'state'  => $fresh->get_status(),
+		),
+	) );
+} );
+
+// The screen. Rendered in place of the inventory table when ?af_edit=<id> is
+// present, so the permission gate, the header and the styling are already the
+// ones the console uses.
+add_action( 'template_redirect', function () {
+	if ( ! function_exists( 'is_page' ) || ! is_page( array( 'inventory-management', 'inventory' ) ) ) { return; }
+	if ( ! isset( $_GET['af_edit'] ) ) { return; }
+	if ( ! function_exists( 'af_inv_can_access' ) || ! af_inv_can_access() ) {
+		wp_die( 'You do not have permission to view this page.', 'Access Denied',
+			array( 'response' => 403, 'back_link' => true ) );
+	}
+
+	$pid     = (int) $_GET['af_edit'];
+	$product = $pid ? wc_get_product( $pid ) : null;
+	if ( ! $product ) {
+		wp_safe_redirect( af_inv_url() );
+		exit;
+	}
+
+	$full   = af_pe_can_edit_all();
+	$code   = (string) get_post_meta( $pid, '_taf_art_code', true );
+	$img    = get_the_post_thumbnail_url( $pid, 'medium' ) ?: wc_placeholder_img_src( 'medium' );
+	$sym    = function_exists( 'get_woocommerce_currency_symbol' ) ? get_woocommerce_currency_symbol() : '$';
+	$manage = (bool) $product->get_manage_stock();
+
+	get_header();
+	?>
+<div class="af-inv-wrap af-pe-wrap">
+  <a class="af-pe-back" href="<?php echo esc_url( af_inv_url() ); ?>">&larr; Back to inventory</a>
+
+  <div class="af-pe-head">
+    <div>
+      <span class="af-inv-badge">ADMIN ONLY</span>
+      <h1>Edit product</h1>
+      <p class="af-inv-sub">
+        <?php echo $full
+          ? 'Change what a customer sees, then save. Anything not here is in the full WordPress editor.'
+          : 'You can set the stock for this product. Names, prices and codes are administrators only.'; ?>
+      </p>
+    </div>
+    <div class="af-pe-headact">
+      <a class="af-inv-back" href="<?php echo esc_url( get_permalink( $pid ) ); ?>" target="_blank" rel="noopener">View on site</a>
+      <a class="af-inv-back" href="<?php echo esc_url( get_edit_post_link( $pid, 'raw' ) ); ?>" target="_blank" rel="noopener">Full editor</a>
+    </div>
+  </div>
+
+  <form class="af-pe-form" id="af-pe-form" data-id="<?php echo (int) $pid; ?>">
+    <div class="af-pe-grid">
+      <div class="af-pe-media">
+        <img src="<?php echo esc_url( $img ); ?>" alt="">
+        <span class="af-pe-pid">#<?php echo (int) $pid; ?></span>
+      </div>
+
+      <div class="af-pe-fields">
+        <?php if ( $full ) : ?>
+          <label class="af-pe-field">
+            <span class="af-pe-label">Product name</span>
+            <input type="text" name="title" value="<?php echo esc_attr( html_entity_decode( wp_strip_all_tags( $product->get_name() ) ) ); ?>" maxlength="200">
+          </label>
+
+          <div class="af-pe-row">
+            <label class="af-pe-field">
+              <span class="af-pe-label">Art code</span>
+              <input type="text" name="art_code" value="<?php echo esc_attr( $code ); ?>" placeholder="RK 01">
+              <span class="af-pe-hint">The code from the collection book.</span>
+            </label>
+            <label class="af-pe-field">
+              <span class="af-pe-label">SKU</span>
+              <input type="text" name="sku" value="<?php echo esc_attr( (string) $product->get_sku() ); ?>">
+              <span class="af-pe-hint">Must be unique across the shop.</span>
+            </label>
+          </div>
+
+          <div class="af-pe-row">
+            <label class="af-pe-field">
+              <span class="af-pe-label">Regular price (<?php echo esc_html( $sym ); ?>)</span>
+              <input type="text" inputmode="decimal" name="regular_price" value="<?php echo esc_attr( (string) $product->get_regular_price() ); ?>">
+            </label>
+            <label class="af-pe-field">
+              <span class="af-pe-label">Sale price (<?php echo esc_html( $sym ); ?>)</span>
+              <input type="text" inputmode="decimal" name="sale_price" value="<?php echo esc_attr( (string) $product->get_sale_price() ); ?>">
+              <span class="af-pe-hint">Leave empty for no sale.</span>
+            </label>
+          </div>
+        <?php else : ?>
+          <div class="af-pe-readonly">
+            <span class="af-pe-label">Product</span>
+            <strong><?php echo esc_html( html_entity_decode( wp_strip_all_tags( $product->get_name() ) ) ); ?></strong>
+            <span class="af-pe-hint">SKU <?php echo esc_html( $product->get_sku() ?: '—' ); ?></span>
+          </div>
+        <?php endif; ?>
+
+        <fieldset class="af-pe-stock">
+          <legend class="af-pe-label">Stock</legend>
+          <label class="af-pe-check">
+            <input type="checkbox" name="manage_stock" id="af-pe-manage" <?php checked( $manage ); ?>>
+            <span>Keep a count for this product</span>
+          </label>
+
+          <div class="af-pe-row af-pe-stockrow">
+            <label class="af-pe-field" id="af-pe-qtyfield" <?php echo $manage ? '' : 'hidden'; ?>>
+              <span class="af-pe-label">Units in stock</span>
+              <input type="number" min="0" step="1" name="stock_qty"
+                     value="<?php echo esc_attr( $manage ? (int) $product->get_stock_quantity() : 0 ); ?>">
+              <span class="af-pe-hint">Zero marks it out of stock.</span>
+            </label>
+
+            <label class="af-pe-field" id="af-pe-statusfield" <?php echo $manage ? 'hidden' : ''; ?>>
+              <span class="af-pe-label">Availability</span>
+              <select name="stock_status">
+                <?php foreach ( array( 'instock' => 'In stock', 'outofstock' => 'Out of stock', 'onbackorder' => 'On backorder' ) as $v => $l ) : ?>
+                  <option value="<?php echo esc_attr( $v ); ?>" <?php selected( $product->get_stock_status(), $v ); ?>><?php echo esc_html( $l ); ?></option>
+                <?php endforeach; ?>
+              </select>
+            </label>
+          </div>
+        </fieldset>
+
+        <?php if ( $full ) : ?>
+          <label class="af-pe-check af-pe-publish">
+            <input type="checkbox" name="status" <?php checked( $product->get_status(), 'publish' ); ?>>
+            <span>Visible in the shop</span>
+          </label>
+        <?php endif; ?>
+
+        <div class="af-pe-actions">
+          <button type="submit" class="af-pe-save">Save changes</button>
+          <a class="af-pe-cancel" href="<?php echo esc_url( af_inv_url() ); ?>">Cancel</a>
+          <span class="af-pe-msg" id="af-pe-msg" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+    </div>
+  </form>
+</div>
+
+<style>
+.af-pe-wrap{max-width:1000px;}
+.af-pe-back{display:inline-block;margin-bottom:14px;color:#6b6250;text-decoration:none;font-size:13px;font-weight:700;}
+.af-pe-back:hover{color:#a8801f;}
+.af-pe-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:20px;}
+.af-pe-headact{display:flex;gap:10px;flex-wrap:wrap;}
+.af-pe-form{background:#fffdf8;border:1px solid #efe6d2;border-radius:14px;padding:22px;
+  box-shadow:0 4px 18px rgba(70,54,26,.07);}
+.af-pe-grid{display:grid;grid-template-columns:220px 1fr;gap:26px;align-items:start;}
+.af-pe-media{position:relative;}
+.af-pe-media img{width:100%;border-radius:11px;border:1px solid #ece4cf;display:block;background:#f7f0df;}
+.af-pe-pid{position:absolute;left:10px;bottom:10px;background:rgba(26,26,26,.82);color:#fff;font-size:11px;
+  font-weight:800;letter-spacing:.03em;border-radius:6px;padding:3px 8px;}
+.af-pe-fields{min-width:0;display:flex;flex-direction:column;gap:16px;}
+.af-pe-row{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.af-pe-field{display:flex;flex-direction:column;gap:6px;min-width:0;}
+/* The browser's own [hidden] rule is display:none, which a class-based
+   display:flex outranks — so hiding a field by attribute alone left it on
+   screen. Restate it at higher specificity. */
+.af-pe-field[hidden]{display:none;}
+.af-pe-label{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#6b6250;}
+.af-pe-field input,.af-pe-field select{height:40px;padding:0 11px;border:1.5px solid #e2d9c4;border-radius:9px;
+  background:#fff;color:#1a1a1a;font-size:14px;font-weight:600;width:100%;box-sizing:border-box;}
+.af-pe-field input:focus,.af-pe-field select:focus{outline:none;border-color:#c9a84c;background:#fffdf8;}
+.af-pe-hint{font-size:11.5px;color:#8a8170;}
+.af-pe-readonly{display:flex;flex-direction:column;gap:4px;}
+.af-pe-stock{border:1px solid #efe6d2;border-radius:11px;padding:14px 16px;margin:0;background:#fffefb;
+  display:flex;flex-direction:column;gap:12px;}
+.af-pe-stock legend{padding:0 6px;}
+.af-pe-check{display:flex;align-items:center;gap:9px;font-size:13.5px;font-weight:600;color:#1a1a1a;cursor:pointer;}
+.af-pe-check input{width:17px;height:17px;accent-color:#c9a84c;}
+.af-pe-publish{padding-top:2px;}
+.af-pe-actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-top:4px;}
+.af-pe-save{height:42px;padding:0 22px;border:none;border-radius:9px;background:#1a1a1a;color:#fff;
+  font-size:13.5px;font-weight:800;letter-spacing:.02em;cursor:pointer;}
+.af-pe-save:hover{background:#c9a84c;color:#1a1a1a;}
+.af-pe-save[disabled]{opacity:.55;cursor:default;}
+.af-pe-cancel{color:#6b6250;text-decoration:none;font-size:13px;font-weight:700;}
+.af-pe-cancel:hover{color:#a8801f;}
+.af-pe-msg{font-size:13px;font-weight:700;}
+.af-pe-msg.is-ok{color:#1e8b56;}
+.af-pe-msg.is-bad{color:#b4453a;}
+.af-pe-note{margin:10px 0 0;font-size:12.5px;color:#8a8170;}
+@media(max-width:760px){
+  .af-pe-grid{grid-template-columns:1fr;}
+  .af-pe-row{grid-template-columns:1fr;}
+}
+</style>
+
+<script>
+(function(){
+  var form = document.getElementById('af-pe-form');
+  if (!form) return;
+  var msg    = document.getElementById('af-pe-msg');
+  var manage = document.getElementById('af-pe-manage');
+  var qty    = document.getElementById('af-pe-qtyfield');
+  var stat   = document.getElementById('af-pe-statusfield');
+  var AJAX   = <?php echo wp_json_encode( admin_url( 'admin-ajax.php' ) ); ?>;
+  var NONCE  = <?php echo wp_json_encode( wp_create_nonce( 'af_product_edit' ) ); ?>;
+
+  // A count and an availability dropdown are two ways of saying the same
+  // thing, so only the one in use is shown.
+  function sync(){
+    if (!manage) return;
+    if (qty)  qty.hidden  = !manage.checked;
+    if (stat) stat.hidden =  manage.checked;
+  }
+  if (manage) manage.addEventListener('change', sync);
+  sync();
+
+  function say(text, ok){
+    msg.textContent = text;
+    msg.className = 'af-pe-msg ' + (ok ? 'is-ok' : 'is-bad');
+  }
+
+  form.addEventListener('submit', function(e){
+    e.preventDefault();
+    var btn = form.querySelector('.af-pe-save');
+    btn.disabled = true;
+    say('Saving…', true);
+
+    var body = new URLSearchParams();
+    body.set('action', 'af_product_edit_save');
+    body.set('nonce', NONCE);
+    body.set('id', form.dataset.id);
+    form.querySelectorAll('input[name], select[name]').forEach(function(el){
+      if (el.type === 'checkbox') { body.set(el.name, el.checked ? '1' : '0'); }
+      else { body.set(el.name, el.value); }
+    });
+
+    fetch(AJAX, { method:'POST', credentials:'same-origin', body: body })
+      .then(function(r){ return r.json().catch(function(){ throw new Error('The server did not answer in a way we could read.'); }); })
+      .then(function(res){
+        if (!res || !res.success) {
+          throw new Error((res && res.data && res.data.message) || 'That did not save.');
+        }
+        say(res.data.message, true);
+        if (res.data.notes && res.data.notes.length) {
+          var n = document.createElement('p');
+          n.className = 'af-pe-note';
+          n.textContent = res.data.notes.join(' ');
+          form.querySelector('.af-pe-actions').insertAdjacentElement('afterend', n);
+        }
+      })
+      .catch(function(err){ say(err.message, false); })
+      .then(function(){ btn.disabled = false; });
+  });
+})();
+</script>
+	<?php
+	get_footer();
+	exit;
+}, 0 );
