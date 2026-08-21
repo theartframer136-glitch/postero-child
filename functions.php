@@ -13775,6 +13775,19 @@ add_action('wp_footer', function() {
       match: function(t, h){ return t === 'account details' || t === 'account detail'
                                     || /\/my-account\/edit-account\/?$/.test(h); } }
   ];
+  function tidy(u){ return (u || '').split('?')[0].split('#')[0].replace(/\/+$/, ''); }
+
+  function hasRow(list, row){
+    var target = tidy(row.url);
+    var want   = row.label.toLowerCase();
+    var links  = list.querySelectorAll('a[href]');
+    for (var k = 0; k < links.length; k++) {
+      if (tidy(links[k].getAttribute('href')) === target) return true;
+      if ((links[k].textContent || '').replace(/\s+/g, ' ').trim().toLowerCase() === want) return true;
+    }
+    return false;
+  }
+
   function add(){
     var anchors = document.querySelectorAll('a[href]');
     for (var i = 0; i < anchors.length; i++) {
@@ -13787,7 +13800,13 @@ add_action('wp_footer', function() {
         var li = a.closest('li');
         if (!li || !li.parentNode) continue;
         var list = li.parentNode;
-        if (list.querySelector('.' + row.cls)) continue;          // already added
+        // Already there? This looked only for OUR clone's class, so it never
+        // saw the copy the PHP menu filter adds on the My Account page under
+        // its own class — and that page listed Track Order and Help twice
+        // (owner screenshot, 2026-08-21). Test what a person would instead:
+        // does this menu already link to that page, or already carry that
+        // label, however it got there?
+        if (hasRow(list, row)) continue;
         // Only a dropdown/account menu — must sit alongside other account rows.
         var all = (list.textContent || '').toLowerCase();
         if (all.indexOf('log out') === -1 && all.indexOf('logout') === -1
