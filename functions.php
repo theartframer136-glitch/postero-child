@@ -17727,44 +17727,48 @@ function af_account_icon_selectors( $key ) {
         'payment-methods' => array( 'payment-methods' ),
         'wishlist'        => array( 'wishlist' ),
     );
-    $sel = array( 'li[data-af-acc-icon="' . $key . '"] > a' );
+    $sel = array( 'a[data-af-acc-icon="' . $key . '"]' );
     foreach ( ( isset( $endpoints[ $key ] ) ? $endpoints[ $key ] : array() ) as $ep ) {
         $sel[] = '.woocommerce-MyAccount-navigation li.woocommerce-MyAccount-navigation-link--' . $ep . ' > a';
+        $sel[] = '.woocommerce-MyAccount-navigation li.woocommerce-MyAccount-navigation-link--' . $ep . ' > a > span';
     }
     return $sel;
 }
 
 add_action( 'wp_footer', function () {
-    if ( is_admin() ) {
-        return;
-    }
-    $icons = af_account_icons();
-    $all   = array();
-    $rules = '';
-    foreach ( $icons as $key => $paths ) {
-        $svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
-             . 'stroke="#000" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'
-             . $paths . '</svg>';
-        $sel = af_account_icon_selectors( $key );
-        $all = array_merge( $all, $sel );
-        $rules .= implode( ",\n", $sel ) . " {\n  --af-acc-icon: url(\"data:image/svg+xml;charset=utf-8,"
-                . rawurlencode( $svg ) . "\");\n}\n";
-    }
-    $everything = implode( ",\n", $all );
-    ?>
+	if ( is_admin() ) {
+		return;
+	}
+	$icons = af_account_icons();
+	$all   = array();
+	$rules = '';
+	foreach ( $icons as $key => $paths ) {
+		$svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" '
+		     . 'stroke="#000" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'
+		     . $paths . '</svg>';
+		$sel = af_account_icon_selectors( $key );
+		$all = array_merge( $all, $sel );
+		$rules .= implode( ",\n", $sel ) . " {\n  --af-acc-icon: url(\"data:image/svg+xml;charset=utf-8,"
+		        . rawurlencode( $svg ) . "\");\n}\n";
+	}
+	// Every selector names the element that carries the mark, so a variant is
+	// built by appending to it rather than by rewriting the middle of it.
+	$with = function ( $suffix ) use ( $all ) {
+		$out = array();
+		foreach ( $all as $s ) { $out[] = $s . $suffix; }
+		return implode( ",\n", $out );
+	};
+	?>
 <style id="af-account-icons-css">
 <?php echo $rules; // built above from the icon table ?>
-<?php echo $everything; ?> {
-  display: inline-flex;
-  align-items: center;
-  gap: .6em;
-}
-<?php echo str_replace( ' > a', ' > a::before', $everything ); ?> {
-  content: "";
-  flex: 0 0 auto;
-  width: 1.05em;
-  height: 1.05em;
-  background-color: currentColor;
+<?php echo $with( '::before' ); ?> {
+  content: "" !important;
+  display: inline-block !important;
+  width: 1.05em !important;
+  height: 1.05em !important;
+  margin-right: .55em !important;
+  vertical-align: -.16em !important;
+  background-color: currentColor !important;
   opacity: .8;
   -webkit-mask-image: var(--af-acc-icon);
           mask-image: var(--af-acc-icon);
@@ -17777,23 +17781,21 @@ add_action( 'wp_footer', function () {
 }
 /* The mark belongs to the row, so it brightens with it rather than staying
    a flat grey while the words light up. */
-<?php echo str_replace( ' > a', ' > a:hover::before', $everything ); ?>,
-<?php echo str_replace( ' > a', '.is-active > a::before', $everything ); ?>,
-<?php echo str_replace( ' > a', '.woocommerce-MyAccount-navigation-link--active > a::before', $everything ); ?> {
+<?php echo $with( ':hover::before' ); ?> {
   opacity: 1;
 }
 /* Without mask support there is no way to tint the shape to the row's colour,
    and a black mark on a dark dropdown would be worse than none. */
 @supports not ((-webkit-mask-image: none) or (mask-image: none)) {
-  <?php echo str_replace( ' > a', ' > a::before', $everything ); ?> { display: none; }
+  <?php echo $with( '::before' ); ?> { display: none !important; }
 }
 </style>
 <script id="af-account-icons">
 (function(){
-  // The dropdown is the theme's own markup with no endpoint classes on it, so
-  // each row is identified by the words the customer reads. Matching is exact
-  // on the trimmed label — a substring test would tag "Order history" as the
-  // logout row on any site that renames things.
+  // The rows are identified by the words the customer reads, because the
+  // dropdown is the theme's own markup and carries nothing else to match on.
+  // Matching is exact on the trimmed label — a substring test would tag
+  // "Order history" as the logout row on any site that renames things.
   var MAP = {
     'dashboard': 'dashboard',
     'orders': 'orders', 'my orders': 'orders',
@@ -17810,29 +17812,43 @@ add_action( 'wp_footer', function () {
     'wishlist': 'wishlist'
   };
 
-  function looksLikeAccountMenu(list){
-    // Only tag a list that is genuinely the account menu. "Log out" is the
-    // giveaway no other menu on the site carries.
-    var t = (list.textContent || '').toLowerCase();
-    return t.indexOf('log out') !== -1 || t.indexOf('logout') !== -1
-        || t.indexOf('sign out') !== -1 || t.indexOf('account details') !== -1;
+  // The first version looked for ul > li > a. That is the WooCommerce page
+  // nav's shape, not the header dropdown's — the dropdown showed no icons at
+  // all (owner screenshot, 2026-08-20). The Track Order and Help rows this
+  // theme does show are injected by a script that walks ANCHORS and ignores
+  // the surrounding structure, which is the proof that anchors are the thing
+  // to match. So: walk anchors, and let the markup around them be whatever it
+  // is. The mark is drawn on the anchor itself.
+  function inAccountMenu(a){
+    // "Log out" is the giveaway no other menu on the site carries — but only
+    // when it is read from the MENU, not from the page. A first attempt walked
+    // plain ancestors and reached <body>, where the words exist somewhere, so
+    // an unrelated menu with an "Orders" link got tagged too. So: climb to the
+    // nearest thing that is actually a menu container and test only that.
+    for (var n = a.parentElement, i = 0; n && n !== document.body && i < 8; n = n.parentElement, i++) {
+      var tag = n.tagName;
+      var cls = (typeof n.className === 'string' ? n.className : '').toLowerCase();
+      var isMenu = tag === 'UL' || tag === 'OL' || tag === 'NAV'
+                || /(^|[\s_-])(menu|dropdown|submenu|nav|account)([\s_-]|$)/.test(cls);
+      if (!isMenu) continue;
+      var t = (n.textContent || '').toLowerCase();
+      if (t.indexOf('log out') !== -1 || t.indexOf('logout') !== -1
+          || t.indexOf('sign out') !== -1 || t.indexOf('account details') !== -1) {
+        return true;
+      }
+    }
+    return false;
   }
 
   function tag(){
-    var lists = document.querySelectorAll('ul, ol');
-    for (var i = 0; i < lists.length; i++) {
-      var list = lists[i];
-      if (!looksLikeAccountMenu(list)) continue;
-      var items = list.children;
-      for (var j = 0; j < items.length; j++) {
-        var li = items[j];
-        if (li.tagName !== 'LI' || li.hasAttribute('data-af-acc-icon')) continue;
-        var a = li.querySelector(':scope > a');
-        if (!a) continue;
-        var label = (a.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
-        var key = MAP[label];
-        if (key) li.setAttribute('data-af-acc-icon', key);
-      }
+    var anchors = document.querySelectorAll('a[href]:not([data-af-acc-icon])');
+    for (var i = 0; i < anchors.length; i++) {
+      var a = anchors[i];
+      var label = (a.textContent || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      var key = MAP[label];
+      if (!key) continue;
+      if (!inAccountMenu(a)) continue;
+      a.setAttribute('data-af-acc-icon', key);
     }
   }
 
@@ -17842,7 +17858,11 @@ add_action( 'wp_footer', function () {
   // Order / Help rows are added by our own later script.
   [400, 1200, 2500].forEach(function(d){ setTimeout(tag, d); });
   document.addEventListener('click', function(){ setTimeout(tag, 60); }, true);
+  document.addEventListener('mouseover', function(e){
+    // Menus that build themselves on hover would otherwise never be tagged.
+    if (e.target && e.target.closest && e.target.closest('a,li,nav')) setTimeout(tag, 60);
+  }, true);
 })();
 </script>
-    <?php
+	<?php
 }, 95 );
