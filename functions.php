@@ -17758,16 +17758,24 @@ add_action( 'wp_footer', function () {
 		foreach ( $all as $s ) { $out[] = $s . $suffix; }
 		return implode( ",\n", $out );
 	};
+	// One number moves the words and the mark together, because the mark is
+	// sized in em: at 1.1 the row is 10% larger and the icon grows with it,
+	// keeping their proportions exactly as they were.
+	$scale = (float) apply_filters( 'af_account_row_scale', 1.12 );
+	$icon  = (float) apply_filters( 'af_account_icon_scale', 1.15 );
 	?>
 <style id="af-account-icons-css">
 <?php echo $rules; // built above from the icon table ?>
+<?php echo $with( '' ); ?> {
+  font-size: <?php echo esc_html( number_format( $scale, 3, '.', '' ) ); ?>em;
+}
 <?php echo $with( '::before' ); ?> {
   content: "" !important;
   display: inline-block !important;
-  width: 1.05em !important;
-  height: 1.05em !important;
+  width: <?php echo esc_html( number_format( $icon, 3, '.', '' ) ); ?>em !important;
+  height: <?php echo esc_html( number_format( $icon, 3, '.', '' ) ); ?>em !important;
   margin-right: .55em !important;
-  vertical-align: -.16em !important;
+  vertical-align: -.18em !important;
   background-color: currentColor !important;
   opacity: .8;
   -webkit-mask-image: var(--af-acc-icon);
