@@ -32,7 +32,9 @@ MODEL = "gemini-2.5-flash"
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 # Groq — free tier, no credit card, ~1000+ requests/day (fits the whole brochure).
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
-GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+# Groq retires preview models often. Override in .env with GROQ_MODEL=... if the
+# default 404s (see https://console.groq.com/docs/models for active vision models).
+GROQ_MODEL = os.getenv("GROQ_MODEL", "meta-llama/llama-4-maverick-17b-128e-instruct")
 STATE = HERE / "output" / "brochure_state.json"  # resume progress
 RETRY_STATUS = {429, 500, 503}
 
@@ -82,7 +84,10 @@ def _post_with_retry(url, headers, body, retries=6):
             print(f"  rate-limited (HTTP {r.status_code}); waiting {wait}s ...")
             time.sleep(wait)
             continue
-        r.raise_for_status()
+        if not r.ok:
+            # Surface Groq's actual message (e.g. "model ... has been decommissioned")
+            # so a dead model ID is obvious instead of a bare 404.
+            raise RuntimeError(f"HTTP {r.status_code}: {r.text[:300]}")
         return r.json()
     raise RuntimeError("still rate-limited after retries")
 
