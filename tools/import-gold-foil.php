@@ -40,6 +40,7 @@ require_once ABSPATH . 'wp-admin/includes/image.php';
 echo "=== IMPORT GOLD FOILED & UV ===\n";
 
 /* ── where to look ────────────────────────────────────────────────────── */
+global $wpdb;
 $up  = wp_get_upload_dir();
 $raw = '';
 if (!empty($args) && is_array($args)) $raw = implode("\n", $args);   // wp eval-file passes trailing args
@@ -70,10 +71,63 @@ if (trim($raw) === '') {
     return;
 }
 
-$dirs = array();
+/**
+ * A source can also be pictures ALREADY in the Media Library, which is what a
+ * folder dragged into WordPress and never turned into products looks like:
+ *
+ *   media:unused        every image no product or category currently uses
+ *   media:<word>        every image whose filename or title contains <word>
+ *   media:123,456       these attachment ids
+ *
+ * Those are reused in place — the file is not copied or uploaded a second
+ * time, the existing attachment simply becomes the product's image.
+ */
+$media = array();
+$dirs  = array();
+foreach (preg_split('/[\r\n,]+(?![0-9])/', $raw) as $cand) {
+    $cand = trim($cand);
+    if ($cand === '' || stripos($cand, 'media:') !== 0) continue;
+    $spec = trim(substr($cand, 6));
+    if ($spec === '') continue;
+
+    if (preg_match('/^[\d,\s]+$/', $spec)) {
+        foreach (preg_split('/[,\s]+/', $spec) as $id) {
+            $id = (int) $id;
+            if ($id && wp_attachment_is_image($id)) $media[] = $id;
+        }
+        printf("  media: %d attachment id(s) named\n", count($media));
+        continue;
+    }
+
+    $all = $wpdb->get_col("SELECT ID FROM {$wpdb->posts}
+                            WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%'");
+    if (strtolower($spec) === 'unused') {
+        $used = array();
+        foreach ($wpdb->get_col("SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key = '_thumbnail_id'") as $v) {
+            $used[(int) $v] = true;
+        }
+        foreach ($wpdb->get_col("SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key = '_product_image_gallery'") as $v) {
+            foreach (explode(',', (string) $v) as $g) { $g = (int) trim($g); if ($g) $used[$g] = true; }
+        }
+        foreach ($wpdb->get_col("SELECT meta_value FROM {$wpdb->termmeta} WHERE meta_key = 'thumbnail_id'") as $v) {
+            $used[(int) $v] = true;
+        }
+        foreach ($all as $id) if (!isset($used[(int) $id])) $media[] = (int) $id;
+        printf("  media: %d image(s) in the library that nothing uses\n", count($media));
+    } else {
+        $like = '%' . $wpdb->esc_like($spec) . '%';
+        $media = array_map('intval', $wpdb->get_col($wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts}
+              WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%%'
+                AND (guid LIKE %s OR post_title LIKE %s)", $like, $like)));
+        printf("  media: %d image(s) matching \"%s\"\n", count($media), $spec);
+    }
+}
+$media = array_values(array_unique($media));
+
 foreach (preg_split('/[\r\n,]+/', $raw) as $cand) {
     $cand = trim($cand);
-    if ($cand === '') continue;
+    if ($cand === '' || stripos($cand, 'media:') === 0) continue;
     if (preg_match('#^https?://#i', $cand)) {
         echo "  SKIPPED (a web link, not a folder on this server): {$cand}\n";
         echo "    Upload the images to the site first — Media Library, FTP or\n";
@@ -97,7 +151,7 @@ foreach (preg_split('/[\r\n,]+/', $raw) as $cand) {
     $dirs[] = $found;
 }
 $dirs = array_values(array_unique(array_filter($dirs)));
-if (!$dirs) { echo "  nothing to read.\n=== DONE ===\n"; return; }
+if (!$dirs && !$media) { echo "  nothing to read.\n=== DONE ===\n"; return; }
 
 /**
  * A folder usually arrives as a zip. Unpack any that turn up — either named
@@ -110,7 +164,7 @@ foreach ($dirs as $d) {
     if (is_file($d)) { $zips[] = $d; continue; }
     foreach ((array) glob(trailingslashit($d) . '*.[Zz][Ii][Pp]') as $z) $zips[] = $z;
 }
-if ($zips) {
+if ($zips && $dirs) {
     WP_Filesystem();
     $work = trailingslashit($up['basedir']) . 'gold-foil-unpacked';
     if (!is_dir($work)) wp_mkdir_p($work);
@@ -132,10 +186,14 @@ if ($zips) {
     // a zip named directly is not itself a folder to scan
     $dirs = array_values(array_filter($dirs, 'is_dir'));
     $dirs = array_values(array_unique($dirs));
-    if (!$dirs) { echo "  nothing to read.\n=== DONE ===\n"; return; }
 }
 
-/* ── collect the files ────────────────────────────────────────────────── */
+/* ── collect the pictures ─────────────────────────────────────────────────
+ * One list, two kinds of entry: a file on disk, or an attachment already in
+ * the Media Library. Everything downstream treats them the same except at the
+ * moment the image is attached, where a library picture is reused in place
+ * rather than uploaded a second time.
+ */
 $exts  = array('jpg', 'jpeg', 'png', 'webp', 'gif');
 $files = array();
 foreach ($dirs as $dir) {
@@ -152,8 +210,20 @@ foreach ($dirs as $dir) {
     printf("  folder: %s\n", $dir);
 }
 sort($files);
-printf("  images found: %d\n\n", count($files));
-if (!$files) { echo "=== DONE ===\n"; return; }
+
+$items = array();
+foreach ($files as $p) $items[] = array('key' => $p, 'name' => basename($p), 'file' => $p);
+foreach ($media as $id) {
+    $src = get_attached_file($id);
+    $items[] = array(
+        'key'  => 'att:' . $id,
+        'name' => $src ? basename($src) : ('attachment-' . $id),
+        'att'  => (int) $id,
+    );
+}
+printf("  pictures found: %d (%d on disk, %d already in the library)\n\n",
+    count($items), count($files), count($media));
+if (!$items) { echo "=== DONE ===\n"; return; }
 
 /* ── the category everything lands in ─────────────────────────────────── */
 $term = get_term_by('slug', af_goldfoil_slug(), 'product_cat');
@@ -191,11 +261,13 @@ function af_gf_title_from_file($path) {
 }
 
 $created = 0; $skipped = 0; $failed = 0;
-foreach ($files as $path) {
-    $base = basename($path);
-    if (isset($seen[$path])) { $skipped++; continue; }
+foreach ($items as $item) {
+    $key  = $item['key'];                 // the file path, or "att:<id>"
+    $base = $item['name'];
+    $path = isset($item['file']) ? $item['file'] : '';
+    if (isset($seen[$key])) { $skipped++; continue; }
 
-    $title = af_gf_title_from_file($path);
+    $title = af_gf_title_from_file($base);
     // A size written into the filename decides the price. Everything downstream
     // — the size the selector opens on, and the deploy's repricing pass — reads
     // the size out of the TITLE, so when the filename carries none the default
@@ -220,7 +292,7 @@ foreach ($files as $path) {
     if (!empty($dupe->posts)) {
         // adopt it rather than making a near-duplicate, and remember the file
         $exists = (int) $dupe->posts[0];
-        update_post_meta($exists, '_af_goldfoil_src', $path);
+        update_post_meta($exists, '_af_goldfoil_src', $key);
         update_post_meta($exists, '_af_goldfoil', 'yes');
         wp_set_object_terms($exists, array((int) $term->term_id), 'product_cat', true);
         printf("  = %-52s adopted existing product #%d\n", $base, $exists);
@@ -265,7 +337,17 @@ foreach ($files as $path) {
 
     wp_set_object_terms($pid, array((int) $term->term_id), 'product_cat');
     update_post_meta($pid, '_af_goldfoil', 'yes');
-    update_post_meta($pid, '_af_goldfoil_src', $path);
+    update_post_meta($pid, '_af_goldfoil_src', $key);
+
+    // A picture already in the Media Library is reused where it is — attaching
+    // it costs nothing and avoids a second copy of the same file on disk.
+    if (!empty($item['att'])) {
+        set_post_thumbnail($pid, (int) $item['att']);
+        printf("  + %-52s #%-7d %-22s $%s  (library image #%d)\n",
+            $base, $pid, $label, $sell, (int) $item['att']);
+        $created++;
+        continue;
+    }
 
     // Copy, never move: media_handle_sideload() consumes the file it is given,
     // and the owner's folder must survive the import untouched.
