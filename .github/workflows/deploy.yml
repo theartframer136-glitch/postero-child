@@ -843,12 +843,6 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/reprice-from-card.php --allow-root 2>&1" \
             || true
 
-          echo "Verifying the Gold Foiled & UV price ratio agrees everywhere..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/verify-gold-foil.php --allow-root 2>&1" \
-            || true
-
           echo "Verifying prices against the printed rate card..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -1262,4 +1256,22 @@ jobs:
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-menu-icons.php --allow-root 2>&1" \
+            || true
+
+      # Deliberately the LAST step. This runs read-only, and the contact-sheet
+      # step above prints base64 image data by the megabyte — which buries
+      # anything logged before it. Verifying the section here means its result
+      # is the last thing in the log, and readable without digging.
+      - name: Gold Foiled & UV status (read-only)
+        if: always()
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Gold Foiled & UV — price ratio, icon, sidebar (read-only)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/verify-gold-foil.php --allow-root 2>&1" \
             || true
