@@ -188,7 +188,32 @@ def main():
     ap.add_argument("--append-only", action="store_true",
                     help="keep existing CSV rows frozen; only append new products "
                          "(safe --skip counting for already-published rows)")
+    ap.add_argument("--main-dir", action="append", default=None, metavar="PATH",
+                    help="source folder of main product images (repeatable); "
+                         "overrides the built-in canvas-art folders")
+    ap.add_argument("--gallery-dir", default=None, metavar="PATH",
+                    help="folder of wall/room photos to match against (optional)")
+    ap.add_argument("--force-category", default=None, metavar="NAME",
+                    help="put EVERY product in this one store category "
+                         "(e.g. \"Gold Foiled & UV\"); skips vision category guessing")
+    ap.add_argument("--out", default=None, metavar="CSV",
+                    help="output CSV path (use a separate file per catalog)")
+    ap.add_argument("--state", default=None, metavar="JSON",
+                    help="per-image cache path (use a separate file per catalog)")
     args = ap.parse_args()
+
+    # Per-catalog overrides. A distinct --state and --out keep this catalog's
+    # cache and CSV from colliding with the canvas-art run.
+    global MAIN_DIRS, GALLERY_DIR, OUT, STATE, REPORT
+    if args.main_dir:
+        MAIN_DIRS = [Path(p) for p in args.main_dir]
+    if args.gallery_dir:
+        GALLERY_DIR = Path(args.gallery_dir)
+    if args.state:
+        STATE = Path(args.state)
+    if args.out:
+        OUT = Path(args.out)
+        REPORT = OUT.with_name(OUT.stem + "_report.txt")
 
     load_dotenv(HERE / ".env")
     groq = os.getenv("GROQ_API_KEY")
@@ -342,8 +367,11 @@ def main():
         if looks_like_filename(name, mp):
             held += 1
             continue
-        cat = res["category"] if res["category"] in CATEGORIES else ""
-        cats = "Digital Canvas Prints" + (f"|{cat}" if cat else "")
+        if args.force_category:
+            cats = args.force_category
+        else:
+            cat = res["category"] if res["category"] in CATEGORIES else ""
+            cats = "Digital Canvas Prints" + (f"|{cat}" if cat else "")
         slug = re.sub(r"[^A-Z0-9]+", "-", name.upper()).strip("-")[:20]
         rows.append({
             "subject": name,
