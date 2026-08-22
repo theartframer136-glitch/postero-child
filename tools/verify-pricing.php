@@ -103,7 +103,10 @@ foreach (wc_get_products(array('status'=>'publish','limit'=>60,'return'=>'ids','
     $slabel = af_size_label_for_product($sp);
     if ($slabel === '') continue;
     $sampled++;
-    $cfg2 = af_pricing_config();
+    // priced FOR THIS PRODUCT — a Gold Foiled & UV piece rides a ratio on the
+    // same card, so asking for the plain card here would report the whole
+    // section as mispriced
+    $cfg2 = af_pricing_config($sid);
     $want = (float) $cfg2['sizes'][$slabel];
     if ((float) $sp->get_price() !== $want) $wrong[] = "#{$sid} {$slabel} lists \${$sp->get_price()} (card \${$want})";
     if (get_post_meta($sid, '_af_price_backup', true)) $backed++;

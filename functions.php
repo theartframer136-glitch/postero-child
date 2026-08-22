@@ -5403,7 +5403,29 @@ function af_shipping_copy() {
     ));
 }
 
-function af_pricing_config() {
+/**
+ * The price book.
+ *
+ * $product_id is optional and changes nothing for a normal print. It exists so
+ * a section with its own price level — Gold Foiled & UV — can be expressed as a
+ * ratio on this one card instead of a second book that would drift out of sync:
+ * pass the product and the size prices come back scaled for it. Frame and
+ * colour surcharges are never scaled; a moulding costs what a moulding costs.
+ */
+function af_pricing_config($product_id = 0) {
+    $cfg = af_pricing_config_base();
+    if ($product_id && function_exists('af_goldfoil_factor')) {
+        $factor = af_goldfoil_factor($product_id);
+        if ($factor != 1.0) {
+            foreach ($cfg['sizes'] as $label => $usd) {
+                $cfg['sizes'][$label] = af_goldfoil_scale($usd, $factor);
+            }
+        }
+    }
+    return $cfg;
+}
+
+function af_pricing_config_base() {
     return array(
         // Size label => PRICE IN USD, straight from the printed "Pine Wood
         // Framing Sizes & Pricing" rate card. These used to be multipliers on
@@ -5662,8 +5684,8 @@ function af_size_label_for_product($product) {
 // call sites don't churn, and in case a per-product premium ever returns).
 // The colour fee pays for the frame's finish, so an unframed (gallery-wrapped)
 // print is never charged for one — there is no moulding to finish.
-function af_calc_price($base, $size, $frame, $color) {
-    $cfg = af_pricing_config();
+function af_calc_price($base, $size, $frame, $color, $product_id = 0) {
+    $cfg = af_pricing_config($product_id);
     $sizes = $cfg['sizes'];
     $price = isset($sizes[$size]) ? (float)$sizes[$size] : (float)reset($sizes);
     $fee  = (isset($cfg['frames'][$frame]) ? (float)$cfg['frames'][$frame] : 0);
@@ -5677,7 +5699,9 @@ function af_calc_price($base, $size, $frame, $color) {
 add_action('woocommerce_before_add_to_cart_button', function() {
     $product = af_wc_product();
     if (!$product || !af_pricing_applies($product) || !$product->is_purchasable() || !$product->is_in_stock()) return;
-    $cfg  = af_pricing_config();
+    // priced FOR THIS PRODUCT: the Gold Foiled & UV section rides a ratio on
+    // the same card, and data-config below is what the selector recomputes from
+    $cfg  = af_pricing_config($product->get_id());
     if ($product->is_type('variable')) {
         $min  = (float) $product->get_variation_price('min');
         $base = $min > 0 ? $min : (float) wc_get_price_to_display($product);
@@ -5741,7 +5765,7 @@ add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
     if (!empty($_REQUEST['af_digital'])) return $data; // digital handled separately
     $product = wc_get_product($pid);
     if (!$product || !af_pricing_applies($product)) return $data;
-    $cfg = af_pricing_config();
+    $cfg = af_pricing_config($pid);
     // quick add-to-cart (no options chosen) defaults to the product's OWN
     // titled size, so a 4×6-titled piece is never silently sold as a 2×3
     $size  = isset($_POST['af_size'])  ? sanitize_text_field(wp_unslash($_POST['af_size']))
@@ -5759,7 +5783,7 @@ add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
     $data['af_color'] = $color;
     $af_base = $product->is_type('variable') ? (float) $product->get_variation_price('min') : (float) wc_get_price_to_display($product);
     if ($af_base <= 0) $af_base = (float) wc_get_price_to_display($product);
-    $data['af_price'] = af_calc_price($af_base, $size, $frame, $color);
+    $data['af_price'] = af_calc_price($af_base, $size, $frame, $color, $pid);
     $data['af_unique'] = md5($size.'|'.$frame.'|'.$color.'|'.$pid);
     return $data;
 }, 10, 2);
@@ -6366,6 +6390,7 @@ add_action('template_redirect', function(){
             'cats'=>wp_get_post_terms($pid,'product_cat',array('fields'=>'slugs')),
             'img'=>wp_get_attachment_image_url($p->get_image_id(),'large'),
             'price'=>(float) wc_get_price_to_display($p),
+            'gf'=>function_exists('af_goldfoil_factor') ? af_goldfoil_factor($pid) : 1,
             'url'=>get_permalink($pid),
         );
     }
@@ -7214,6 +7239,9 @@ add_action('template_redirect', function(){
         var p=current(); if(!p) return null;
         // the size IS the price, from the rate card (matches af_calc_price)
         var sizePrice=CFG.sizes[$('tow-size').value]||p.price;
+        // a Gold Foiled & UV piece rides a ratio on the same card, so the
+        // preview quotes what the product page will (1 for everything else)
+        if (p.gf && p.gf !== 1) sizePrice = Math.max(5, Math.round(sizePrice * p.gf / 5) * 5);
         var frameVal=$('tow-frame').value;
         // no frame means no frame-finish surcharge (matches af_calc_price)
         var fee=(CFG.frames[frameVal]||0)+(frameVal!=='Without Frame' ? (CFG.colors[$('tow-color').value]||0) : 0);
@@ -13515,7 +13543,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'kit-options', 'deals-page', 'reels', 'cookie-consent', 'masonry', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder') as $af_mod) {
+foreach (array('abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'kit-options', 'deals-page', 'gold-foil', 'reels', 'cookie-consent', 'masonry', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }

@@ -823,10 +823,30 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/populate-all-art-prints.php --allow-root 2>&1" \
             || true
 
+          echo "Setting up the Gold Foiled & UV section..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/setup-gold-foil.php --allow-root 2>&1" \
+            || true
+
+          # No-op until af_goldfoil_source names a folder of artwork on the
+          # server; then every new image in it becomes a product, once.
+          echo "Importing Gold Foiled & UV artwork (skips anything already imported)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/import-gold-foil.php --allow-root 2>&1" \
+            || true
+
           echo "Repricing catalogue listings from the rate card (idempotent)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/reprice-from-card.php --allow-root 2>&1" \
+            || true
+
+          echo "Verifying the Gold Foiled & UV price ratio agrees everywhere..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/verify-gold-foil.php --allow-root 2>&1" \
             || true
 
           echo "Verifying prices against the printed rate card..."

@@ -43,7 +43,7 @@ function af_rp_card_by_area($sqft) {
 
 $cfg   = af_pricing_config();
 $page  = 1;
-$done  = 0; $changed = 0; $nosize = array(); $interp = array(); $variable = 0;
+$done  = 0; $changed = 0; $nosize = array(); $interp = array(); $variable = 0; $goldfoil = 0;
 echo "=== REPRICE FROM THE RATE CARD ===\n";
 while (true) {
     $ids = wc_get_products(array('status'=>'publish','limit'=>60,'page'=>$page,'return'=>'ids','orderby'=>'ID','order'=>'ASC'));
@@ -71,6 +71,17 @@ while (true) {
                 $nosize[] = "#{$pid} {$name}";
                 continue;
             }
+        }
+
+        // A Gold Foiled & UV piece rides a ratio on the same card. Applying it
+        // HERE — rather than excluding the section from repricing — is what
+        // keeps the listed price and the price the cart charges the same
+        // number: the cart reads af_pricing_config($pid), which scales by the
+        // very same factor. Skipping the section instead would leave its prices
+        // frozen at whatever they were the day they were imported.
+        if (function_exists('af_goldfoil_factor')) {
+            $gf = af_goldfoil_factor($pid);
+            if ($gf != 1.0) { $card = af_goldfoil_scale($card, $gf); $goldfoil++; }
         }
 
         // The card price is what the product SELLS for, so it goes in the sale
@@ -103,6 +114,9 @@ while (true) {
 echo "  canvas products seen:     {$done}\n";
 echo "  repriced this run:        {$changed}\n";
 echo "  variable (skipped):       {$variable}\n";
+if (function_exists('af_goldfoil_ratio')) {
+    printf("  gold foil / UV priced at x%.2f: %d\n", af_goldfoil_ratio(), $goldfoil);
+}
 echo "  interpolated (non-selector sizes): " . count($interp) . "\n";
 foreach (array_slice($interp, 0, 8) as $l) echo "    {$l}\n";
 echo "  no size in title (untouched): " . count($nosize) . "\n";
