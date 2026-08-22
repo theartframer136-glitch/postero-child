@@ -196,6 +196,9 @@ def main():
     ap.add_argument("--force-category", default=None, metavar="NAME",
                     help="put EVERY product in this one store category "
                          "(e.g. \"Gold Foiled & UV\"); skips vision category guessing")
+    ap.add_argument("--no-gallery", action="store_true",
+                    help="do not match any wall/room photos (for catalogs that "
+                         "have none — pair with --gallery-fill at publish)")
     ap.add_argument("--out", default=None, metavar="CSV",
                     help="output CSV path (use a separate file per catalog)")
     ap.add_argument("--state", default=None, metavar="JSON",
@@ -209,6 +212,10 @@ def main():
         MAIN_DIRS = [Path(p) for p in args.main_dir]
     if args.gallery_dir:
         GALLERY_DIR = Path(args.gallery_dir)
+    elif args.main_dir:
+        # A custom catalog with no gallery given must NOT borrow the canvas
+        # gallery — that would attach wrong wall photos.
+        args.no_gallery = True
     if args.state:
         STATE = Path(args.state)
     if args.out:
@@ -250,10 +257,15 @@ def main():
         print("Loading existing store images (for visual dedupe) ...")
         store_feat = load_store_features()
         print(f"  comparing against {len(store_feat)} live products.")
-        print("Indexing gallery folder ...")
-        gallery = list_images(GALLERY_DIR)
-        gfeat = {g: features(g) for g in gallery}
-        print(f"  {len(gallery)} gallery photos.\n")
+        if args.no_gallery:
+            print("Gallery matching disabled for this catalog "
+                  "(use --gallery-fill at publish for composited mockups).\n")
+            gallery, gfeat = [], {}
+        else:
+            print("Indexing gallery folder ...")
+            gallery = list_images(GALLERY_DIR)
+            gfeat = {g: features(g) for g in gallery}
+            print(f"  {len(gallery)} gallery photos.\n")
     else:
         print("All images already analysed — using cache, nothing re-read.\n")
         store_feat, gfeat = [], {}
