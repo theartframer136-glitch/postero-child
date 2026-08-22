@@ -36,7 +36,15 @@ $args = array(
     'pad_counts'   => true,
 );
 $args = apply_filters('woocommerce_product_categories_widget_args', $args);
-printf("   hide_empty after filters: %s\n", var_export($args['hide_empty'], true));
+// EVERY key, not just hide_empty: the first run of this probe showed
+// hide_empty already 0 and the term still missing, which means something in
+// these args — an include, an exclude, a child_of — is doing the trimming.
+echo "   final args:\n";
+foreach ($args as $k => $v) {
+    printf("     %-14s %s\n", $k, is_scalar($v) || $v === null
+        ? var_export($v, true)
+        : substr(str_replace("\n", '', var_export($v, true)), 0, 160));
+}
 $got = get_terms($args);
 if (is_wp_error($got)) {
     echo '   get_terms error: ' . $got->get_error_message() . "\n";
@@ -50,15 +58,50 @@ if (is_wp_error($got)) {
     printf("   first few: %s\n", implode(', ', $names));
 }
 
-/* ── the same query WITHOUT hide_empty, as a control ──────────────────── */
-$args2 = $args;
-$args2['hide_empty'] = false;
-$got2 = get_terms($args2);
-if (!is_wp_error($got2)) {
-    $ids2 = array();
-    foreach ($got2 as $t) $ids2[] = (int) $t->term_id;
-    printf("   control (hide_empty off): %d terms, ours present: %s\n",
-        count($ids2), in_array($tid, $ids2, true) ? 'YES' : 'NO');
+/* ── controls ─────────────────────────────────────────────────────────
+ * The first version flipped hide_empty on the FILTERED args — but those
+ * already had it off, so the "control" was the identical query and proved
+ * nothing. A control has to differ from what it is controlling for.
+ */
+$plain = get_terms(array('taxonomy' => 'product_cat', 'hide_empty' => false));
+if (!is_wp_error($plain)) {
+    $ids = array();
+    foreach ($plain as $t) $ids[] = (int) $t->term_id;
+    printf("   plain get_terms (no widget args): %d terms, ours present: %s\n",
+        count($ids), in_array($tid, $ids, true) ? 'YES' : 'NO');
+}
+// straight to the database, past every filter and cache: does the row exist?
+global $wpdb;
+$row = $wpdb->get_row($wpdb->prepare(
+    "SELECT t.term_id, t.name, t.slug, tt.taxonomy, tt.parent, tt.count
+       FROM {$wpdb->terms} t
+       JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = t.term_id
+      WHERE t.term_id = %d", $tid));
+printf("   raw database row: %s\n", $row
+    ? sprintf('taxonomy=%s parent=%d count=%d name=%s', $row->taxonomy, $row->parent, $row->count, $row->name)
+    : 'NOT FOUND');
+
+/* ── who is filtering these queries ───────────────────────────────────── */
+// Naming the callback is the whole point: a list of 57 with no explanation
+// invites another guess, whereas a function name can be read.
+echo "\n   CALLBACKS ON THE HOOKS THAT COULD TRIM THIS\n";
+foreach (array('woocommerce_product_categories_widget_args', 'get_terms_args',
+               'terms_clauses', 'get_terms', 'list_product_cats') as $hook) {
+    if (empty($GLOBALS['wp_filter'][$hook])) { printf("     %-42s (none)\n", $hook); continue; }
+    $names = array();
+    foreach ($GLOBALS['wp_filter'][$hook]->callbacks as $prio => $cbs) {
+        foreach ($cbs as $cb) {
+            $f = $cb['function'];
+            if (is_string($f))                    $n = $f;
+            elseif (is_array($f))                 $n = (is_object($f[0]) ? get_class($f[0]) : (string) $f[0]) . '::' . $f[1];
+            elseif ($f instanceof Closure) {
+                $r = new ReflectionFunction($f);
+                $n = 'closure ' . basename($r->getFileName()) . ':' . $r->getStartLine();
+            } else                                $n = 'unknown';
+            $names[] = $prio . ':' . $n;
+        }
+    }
+    printf("     %-42s %s\n", $hook, implode('  |  ', $names));
 }
 
 /* ── B. what is actually registered in the sidebars ───────────────────── */
