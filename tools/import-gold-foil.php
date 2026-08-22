@@ -75,6 +75,10 @@ if (trim($raw) === '') {
  * A source can also be pictures ALREADY in the Media Library, which is what a
  * folder dragged into WordPress and never turned into products looks like:
  *
+ *   media:since:2026-08-22   every image uploaded on or after that date — the
+ *                           precise way to say "the batch I just added", and
+ *                           the easiest route for the owner: WordPress admin →
+ *                           Media → Add New → drag the whole folder in
  *   media:unused        every image no product or category currently uses
  *   media:<word>        every image whose filename or title contains <word>
  *   media:123,456       these attachment ids
@@ -101,6 +105,19 @@ foreach (preg_split('/[\r\n,]+(?![0-9])/', $raw) as $cand) {
 
     $all = $wpdb->get_col("SELECT ID FROM {$wpdb->posts}
                             WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%'");
+
+    if (stripos($spec, 'since:') === 0) {
+        $when = trim(substr($spec, 6));
+        // a bare date means from the start of that day
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $when)) $when .= ' 00:00:00';
+        $media = array_map('intval', $wpdb->get_col($wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts}
+              WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%%'
+                AND post_date >= %s ORDER BY ID ASC", $when)));
+        printf("  media: %d image(s) uploaded on or after %s\n", count($media), $when);
+        continue;
+    }
+
     if (strtolower($spec) === 'unused') {
         $used = array();
         foreach ($wpdb->get_col("SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key = '_thumbnail_id'") as $v) {
@@ -124,6 +141,42 @@ foreach (preg_split('/[\r\n,]+(?![0-9])/', $raw) as $cand) {
     }
 }
 $media = array_values(array_unique($media));
+
+/**
+ * Two guards, learned from measuring this site rather than imagined.
+ *
+ * The Media Library here holds 5,512 images, 3,502 of which no product uses —
+ * and they are not artwork waiting to be sold. They are room mockups
+ * ("…-scene1.jpg" … "…-scene5.jpg") and source files from earlier batches. A
+ * careless `media:unused` would have created three and a half thousand
+ * products. So: mockups and WordPress's own resized copies are dropped, and
+ * whatever survives is capped, with the number skipped stated out loud rather
+ * than silently truncated.
+ */
+if ($media) {
+    $before = count($media);
+    $media = array_values(array_filter($media, function ($id) {
+        $f = get_attached_file($id);
+        $n = $f ? basename($f) : '';
+        if ($n === '') return false;
+        if (preg_match('/-scene\d+/i', $n)) return false;              // room mockup
+        if (preg_match('/-\d{2,4}x\d{2,4}\.[a-z]+$/i', $n)) return false; // resized copy
+        return true;
+    }));
+    if (count($media) !== $before) {
+        printf("  media: %d dropped as mockups or resized copies, %d left\n",
+            $before - count($media), count($media));
+    }
+
+    $cap = (int) get_option('af_goldfoil_max', 400);
+    if ($cap > 0 && count($media) > $cap) {
+        printf("  media: %d is more than the %d cap — importing the first %d, SKIPPING %d.\n",
+            count($media), $cap, $cap, count($media) - $cap);
+        echo  "         Raise it deliberately if that is really the intent:\n";
+        echo  "         wp option update af_goldfoil_max 2000\n";
+        $media = array_slice($media, 0, $cap);
+    }
+}
 
 foreach (preg_split('/[\r\n,]+/', $raw) as $cand) {
     $cand = trim($cand);
