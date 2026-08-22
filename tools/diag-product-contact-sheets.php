@@ -34,6 +34,17 @@
  * back were the alphabetical tail. Asking for the codes still undecided keeps
  * the payload small enough to arrive intact, and avoids redrawing the ones
  * already read.
+ *
+ * NOT WIRED INTO THE DEPLOY, deliberately. All 47 sheets have been read, and a
+ * step that prints a megabyte of base64 on every deploy buries every check that
+ * runs before it — the log is truncated from the front, so the verifiers simply
+ * vanish. It is kept here to be run on demand instead:
+ *
+ *   wp eval-file wp-content/themes/postero-child/tools/diag-product-contact-sheets.php --allow-root
+ *
+ * or, for one group, AF_SHEET_CODES='LS 04' in front of that. Add it back as a
+ * deploy step only for as long as pictures are actually needed, and always with
+ * AF_SHEET_CODES naming a short list.
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
