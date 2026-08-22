@@ -45,19 +45,27 @@ $raw = '';
 if (!empty($args) && is_array($args)) $raw = implode("\n", $args);   // wp eval-file passes trailing args
 if (trim($raw) === '') $raw = (string) get_option('af_goldfoil_source', '');
 if (trim($raw) === '') {
-    // The convention, so dropping files in over FTP is the whole procedure —
-    // no option to set, no command to remember.
-    $conv = trailingslashit($up['basedir']) . 'gold-foil';
-    if (is_dir($conv)) {
-        $raw = $conv;
-        echo "  using the conventional folder (no af_goldfoil_source set)\n";
+    // The convention, so dropping files in over FTP or File Manager is the
+    // whole procedure — no option to set, no command to remember. The owner's
+    // folder is named "Personalised" on their own machine, so an upload that
+    // keeps that name is found too, whatever case it arrives in.
+    foreach (array('gold-foil', 'Personalised', 'personalised', 'Personalized',
+                   'personalized', 'gold-foiled-uv') as $cand) {
+        $conv = trailingslashit($up['basedir']) . $cand;
+        if (is_dir($conv) || is_file($conv . '.zip')) {
+            $raw = is_dir($conv) ? $conv : $conv . '.zip';
+            printf("  using %s (no af_goldfoil_source set)\n", $raw);
+            break;
+        }
     }
 }
 if (trim($raw) === '') {
     echo "  no artwork folder yet. Either:\n";
     echo "    (a) upload the images — or a zip of them — to wp-content/uploads/gold-foil/\n";
-    echo "        (nothing else to do; the next deploy picks them up), or\n";
+    echo "        (a folder still named Personalised is found there too), or\n";
     echo "    (b) wp option update af_goldfoil_source '/absolute/path/to/folder-or-zip'\n";
+    echo "    A path on your own PC (C:\\Users\\...) cannot be read from here —\n";
+    echo "    the files have to reach the server first.\n";
     echo "=== DONE ===\n";
     return;
 }

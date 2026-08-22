@@ -237,7 +237,8 @@ if (!$count) {
     $conv = trailingslashit($up['basedir']) . 'gold-foil';
     if ($src !== '')            echo "  image folder set to {$src} — the next deploy imports it\n";
     elseif (is_dir($conv))      echo "  artwork folder found at {$conv} — the next deploy imports it\n";
-    else                        echo "  waiting on artwork: drop the images into {$conv}\n"
-                                   . "  (or name another folder with: wp option update af_goldfoil_source '/path')\n";
+    else                        echo "  waiting on artwork: upload the images (or a zip) into {$conv}\n"
+                                   . "  a folder still named Personalised is found there too; a path on the\n"
+                                   . "  owner's own PC cannot be read from the server\n";
 }
 echo "=== DONE ===\n";

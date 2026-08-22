@@ -24,13 +24,14 @@
  * done to the print; a moulding costs what a moulding costs.
  *
  * THE RATIO IS A SETTING, NOT A CONSTANT
- * The request reads literally as "40% OF" (0.40 x — cheaper), but a foiled and
- * UV-coated piece is normally the premium line, which would read "40% MORE"
- * (1.40 x). The literal reading is the default because that is what was asked
- * for; one command changes it and every price above follows:
+ * Settled by the owner (2026-08-22): "just price is 40% more the normal product
+ * price" — so 1.40 x, the premium reading, and that is the default. The first
+ * wording ("40% of") read literally as 0.40 x and was flagged rather than
+ * assumed; this replaces it. One command changes it again, and every price the
+ * section shows or charges follows:
  *
- *     wp option update af_goldfoil_ratio 1.4    # 40% MORE than a normal print
- *     wp option update af_goldfoil_ratio 0.4    # 40% OF a normal print (default)
+ *     wp option update af_goldfoil_ratio 1.4    # 40% MORE than a normal print (default)
+ *     wp option update af_goldfoil_ratio 0.4    # 40% OF a normal print
  *
  * A whole number is read as a percentage, so `40` means 0.40 and `140` means
  * 1.40 — whichever way it gets typed, it lands where it was meant to.
@@ -48,7 +49,7 @@ function af_goldfoil_name() { return 'Gold Foiled & UV'; }
  */
 function af_goldfoil_ratio() {
     $raw = get_option('af_goldfoil_ratio', '');
-    $r = ($raw === '' || $raw === false) ? 0.40 : (float) $raw;
+    $r = ($raw === '' || $raw === false) ? 1.40 : (float) $raw;
     // typed as a percentage ("40", "140") rather than a multiplier
     if ($r > 5) $r = $r / 100;
     if ($r < 0.05) $r = 0.05;
