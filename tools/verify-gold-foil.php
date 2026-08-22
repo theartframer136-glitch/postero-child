@@ -57,10 +57,12 @@ $ids = get_posts(array('post_type' => 'product', 'post_status' => 'publish',
 
 if (!$ids) {
     echo "  section is empty — nothing priced yet.\n";
-    $src = (string) get_option('af_goldfoil_source', '');
-    echo $src === ''
-        ? "  next step: set af_goldfoil_source to the image folder, then run tools/import-gold-foil.php\n"
-        : "  image folder set to {$src} — run tools/import-gold-foil.php\n";
+    $src  = (string) get_option('af_goldfoil_source', '');
+    $up   = wp_get_upload_dir();
+    $conv = trailingslashit($up['basedir']) . 'gold-foil';
+    if ($src !== '')       echo "  image folder set to {$src}\n";
+    elseif (is_dir($conv)) echo "  artwork folder found at {$conv}\n";
+    else                   echo "  next step: drop the artwork into {$conv} (or set af_goldfoil_source)\n";
 } else {
     foreach ($ids as $pid) {
         $p = wc_get_product($pid);

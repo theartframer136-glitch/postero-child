@@ -111,9 +111,12 @@ echo "  change it with:  wp option update af_goldfoil_ratio 1.4   (or 0.4)\n";
 $count = (int) get_term($term->term_id, 'product_cat')->count;
 printf("  products in the section: %d\n", $count);
 if (!$count) {
-    $src = get_option('af_goldfoil_source', '');
-    echo $src === ''
-        ? "  no image folder set yet — set af_goldfoil_source, then run tools/import-gold-foil.php\n"
-        : "  image folder is set (" . $src . ") — run tools/import-gold-foil.php\n";
+    $src  = (string) get_option('af_goldfoil_source', '');
+    $up   = wp_get_upload_dir();
+    $conv = trailingslashit($up['basedir']) . 'gold-foil';
+    if ($src !== '')            echo "  image folder set to {$src} — the next deploy imports it\n";
+    elseif (is_dir($conv))      echo "  artwork folder found at {$conv} — the next deploy imports it\n";
+    else                        echo "  waiting on artwork: drop the images into {$conv}\n"
+                                   . "  (or name another folder with: wp option update af_goldfoil_source '/path')\n";
 }
 echo "=== DONE ===\n";

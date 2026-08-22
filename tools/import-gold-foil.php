@@ -40,17 +40,27 @@ require_once ABSPATH . 'wp-admin/includes/image.php';
 echo "=== IMPORT GOLD FOILED & UV ===\n";
 
 /* ── where to look ────────────────────────────────────────────────────── */
+$up  = wp_get_upload_dir();
 $raw = '';
 if (!empty($args) && is_array($args)) $raw = implode("\n", $args);   // wp eval-file passes trailing args
 if (trim($raw) === '') $raw = (string) get_option('af_goldfoil_source', '');
 if (trim($raw) === '') {
-    echo "  no folder configured. Set one and re-run:\n";
-    echo "    wp option update af_goldfoil_source '/absolute/path/to/folder'\n";
+    // The convention, so dropping files in over FTP is the whole procedure —
+    // no option to set, no command to remember.
+    $conv = trailingslashit($up['basedir']) . 'gold-foil';
+    if (is_dir($conv)) {
+        $raw = $conv;
+        echo "  using the conventional folder (no af_goldfoil_source set)\n";
+    }
+}
+if (trim($raw) === '') {
+    echo "  no artwork folder yet. Either:\n";
+    echo "    (a) upload the images to wp-content/uploads/gold-foil/  — nothing else to do, or\n";
+    echo "    (b) wp option update af_goldfoil_source '/absolute/path/to/folder'\n";
     echo "=== DONE ===\n";
     return;
 }
 
-$up   = wp_get_upload_dir();
 $dirs = array();
 foreach (preg_split('/[\r\n,]+/', $raw) as $cand) {
     $cand = trim($cand);
