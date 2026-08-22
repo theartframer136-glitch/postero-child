@@ -16,8 +16,10 @@ Three options were added to `build_from_images.py` for this:
 
 ## Get the change
 
-From `C:\Users\user\Documents\postero-child\tools\product-importer`:
+Git only works inside the repository, so start with the `cd` — running these
+from `C:\WINDOWS\System32` gives "fatal: not a git repository".
 
+    cd C:\Users\user\Documents\postero-child
     git fetch origin claude/exciting-sagan-ELMgW
     git checkout origin/claude/exciting-sagan-ELMgW -- tools/product-importer/build_from_images.py
 
@@ -25,13 +27,11 @@ That takes the one file and leaves the branch you are on alone.
 
 ## Build the products
 
-    python build_from_images.py ^
-      --main-dir "C:\Users\user\SynologyDrive\Personalised" ^
-      --gallery-dir none ^
-      --category "Gold Foiled & UV" ^
-      --out products_goldfoil.csv ^
-      --store-min 9999 ^
-      --delay 25
+One line. PowerShell continues a line with a backtick, not with `^` — `^` is
+Command Prompt syntax and silently breaks the command in PowerShell.
+
+    cd tools\product-importer
+    python build_from_images.py --main-dir "C:\Users\user\SynologyDrive\Personalised" --gallery-dir none --category "Gold Foiled & UV" --out products_goldfoil.csv --store-min 9999 --delay 25
 
 `--store-min 9999` is the important one. That flag normally drops any image
 that visually matches something already on the store — which is exactly what a
