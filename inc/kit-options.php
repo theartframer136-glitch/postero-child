@@ -7,15 +7,23 @@
  *   1. Digital download   — the file only. Nothing ships, so no delivery is
  *                           charged. The artwork still costs its full price.
  *   2. Painting only      — the printed canvas, rolled in a tube.
- *   3. Painting + bar     — plus the wooden structure (stretcher) bars and the
- *                           fittings needed to hang it.
- *   4. Painting + bar + frame — as above with the frame the customer picked.
+ *   3. Painting + bar + DIY kit — plus the wooden structure (stretcher) bars
+ *                           and the fittings needed to hang it.
+ *   4. Painting + bar + frame + DIY kit — as above with the frame the customer
+ *                           picked.
  *
  * Updated 2026-08-22 on the owner's instruction: the separate "Full DIY kit"
  * is gone, and what used to make it a kit — hooks, screws, screwdriver and
  * hanging strip — now comes with both of the structure-bar options instead. So
  * anything that arrives on bars arrives ready to put on the wall, and the
  * customer no longer has to work out which of two similar rows to pick.
+ *
+ * Both of those rows say "DIY kit" in their own label, because dropping the
+ * words altogether hid the thing from the people looking for it: a customer who
+ * came for a DIY kit could no longer see one anywhere on the page, even though
+ * it is now in both options. The label is the only change — the parts, the keys
+ * and the prices are exactly as they were.
+ *
  * The retired option is still understood (see af_kit_retired_options) so an
  * order already placed against it still prints what was actually sent.
  *
@@ -51,14 +59,14 @@ function af_kit_options() {
             'ships' => true,
         ),
         'painting_bar' => array(
-            'label' => 'Painting + structure bars',
+            'label' => 'Painting + structure bars + DIY kit',
             'desc'  => 'The canvas with wooden stretcher bars, plus hooks, screws, '
                      . 'screwdriver and hanging strip — everything rolled in one tube.',
             'parts' => array('bar', 'hooks', 'screws', 'driver', 'hanging'),
             'ships' => true,
         ),
         'painting_bar_frame' => array(
-            'label' => 'Painting + structure bars + frame',
+            'label' => 'Painting + structure bars + frame + DIY kit',
             'desc'  => 'Stretched and finished in the frame you choose above, with '
                      . 'hooks, screws, screwdriver and hanging strip included.',
             'parts' => array('bar', 'hooks', 'screws', 'driver', 'hanging'),
