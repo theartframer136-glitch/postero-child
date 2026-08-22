@@ -34,6 +34,24 @@ $note('category exists', (bool) ($term && !is_wp_error($term)),
     $term && !is_wp_error($term) ? '#' . $term->term_id . ', ' . (int) $term->count . ' product(s)' : '');
 if (!$term || is_wp_error($term)) { echo "=== DONE ===\n"; return; }
 
+/* ── the icon the menu draws ──────────────────────────────────────────── */
+// An entry in the Categories menu with no icon is what the owner sees when the
+// term has no thumbnail, so this is a check, not a footnote.
+$thumb = (int) get_term_meta($term->term_id, 'thumbnail_id', true);
+$file  = $thumb ? get_attached_file($thumb) : '';
+$note('category has an icon', (bool) ($thumb && $file && @file_exists($file)),
+    $thumb ? ('attachment #' . $thumb
+        . (get_term_meta($term->term_id, '_af_goldfoil_thumb_auto', true) ? ' (stand-in)' : ''))
+       : 'no thumbnail_id');
+
+// The sidebar Categories widget hides empty categories site-wide, so an empty
+// section is invisible there however it is configured. Say so plainly rather
+// than letting it read as a bug.
+if ((int) $term->count === 0) {
+    echo "  note: the shop sidebar hides empty categories, so this one appears there\n";
+    echo "        as soon as it holds its first product.\n";
+}
+
 /* ── a normal product is untouched ────────────────────────────────────── */
 $base = af_pricing_config_base();
 $plain = af_pricing_config(0);

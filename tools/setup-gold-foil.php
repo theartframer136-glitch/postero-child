@@ -48,7 +48,41 @@ if ($term && !is_wp_error($term)) {
 // page (products, not a wall of sub-category tiles).
 update_term_meta($term->term_id, 'display_type', '');
 
-/* ── 3. one entry in the menu, under "Categories" ─────────────────────── */
+/* ── 3. the icon ──────────────────────────────────────────────────────── */
+// The category menu draws each entry's icon from the term's own thumbnail, and
+// tools/fill-category-thumbs.php fills those from the first product in the
+// category — which cannot work for a category that has no products yet. So a
+// stand-in is chosen here from artwork the studio already sells, preferring a
+// piece that is itself gold, and it is MARKED as a stand-in: the moment real
+// gold-foil artwork is imported, the importer replaces it with the real thing.
+$thumb = (int) get_term_meta($term->term_id, 'thumbnail_id', true);
+$file  = $thumb ? get_attached_file($thumb) : '';
+if ($thumb && $file && @file_exists($file)) {
+    printf("  icon: already set (attachment #%d)%s\n", $thumb,
+        get_term_meta($term->term_id, '_af_goldfoil_thumb_auto', true) ? ' — a stand-in' : '');
+} else {
+    $pick = 0;
+    foreach (array('golden', 'gold', '') as $needle) {
+        $q = array('post_type' => 'product', 'post_status' => 'publish',
+                   'posts_per_page' => 12, 'fields' => 'ids', 'no_found_rows' => true,
+                   'orderby' => 'date', 'order' => 'DESC');
+        if ($needle !== '') $q['s'] = $needle;
+        foreach (get_posts($q) as $cand) {
+            $att = get_post_thumbnail_id($cand);
+            $f   = $att ? get_attached_file($att) : '';
+            if ($att && $f && @file_exists($f)) { $pick = (int) $att; break 2; }
+        }
+    }
+    if ($pick) {
+        update_term_meta($term->term_id, 'thumbnail_id', $pick);
+        update_term_meta($term->term_id, '_af_goldfoil_thumb_auto', 1);
+        printf("  icon: stand-in set (attachment #%d) — replaced by the first gold-foil artwork imported\n", $pick);
+    } else {
+        echo "  icon: NONE — no product image on the site to stand in with\n";
+    }
+}
+
+/* ── 4. one entry in the menu, under "Categories" ─────────────────────── */
 // The section is only a section if it is reachable. The site's category menu is
 // a WordPress nav menu, so the new term needs an item of its own — placed as a
 // child of whichever item is called "Categories", which is where every other
@@ -95,7 +129,7 @@ if (!$placed) {
        . get_term_link($term) . " but is not linked from the menu yet\n";
 }
 
-/* ── 4. report the price rule in force ────────────────────────────────── */
+/* ── 5. report the price rule in force ────────────────────────────────── */
 $ratio = af_goldfoil_ratio();
 printf("\n  price ratio: x%.2f  (%s a normal print)\n", $ratio,
     $ratio < 1 ? sprintf('%d%% OF', round($ratio * 100))

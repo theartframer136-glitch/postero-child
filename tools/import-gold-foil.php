@@ -286,5 +286,32 @@ if ($created) {
     delete_transient('af_deal_ids_40');
     echo "  caches cleared, category count refreshed\n";
 }
+
+/* ── the category's own icon ──────────────────────────────────────────────
+ * The menu draws each category's icon from the term thumbnail. While the
+ * section was empty, setup-gold-foil.php put a stand-in there and flagged it.
+ * Now that there is real gold-foil artwork, it should be the icon.
+ */
+$thumb = (int) get_term_meta($term->term_id, 'thumbnail_id', true);
+$file  = $thumb ? get_attached_file($thumb) : '';
+$stale = !$thumb || !$file || !@file_exists($file)
+      || get_term_meta($term->term_id, '_af_goldfoil_thumb_auto', true);
+if ($stale) {
+    $first = get_posts(array('post_type' => 'product', 'post_status' => 'publish',
+        'posts_per_page' => 6, 'fields' => 'ids', 'no_found_rows' => true,
+        'orderby' => 'date', 'order' => 'ASC',
+        'tax_query' => array(array('taxonomy' => 'product_cat', 'field' => 'term_id',
+            'terms' => array((int) $term->term_id), 'include_children' => true))));
+    foreach ($first as $fid) {
+        $att = get_post_thumbnail_id($fid);
+        $f   = $att ? get_attached_file($att) : '';
+        if ($att && $f && @file_exists($f)) {
+            update_term_meta($term->term_id, 'thumbnail_id', (int) $att);
+            delete_term_meta($term->term_id, '_af_goldfoil_thumb_auto');
+            printf("  icon: now the real artwork (attachment #%d from product #%d)\n", $att, $fid);
+            break;
+        }
+    }
+}
 echo '  section: ' . get_term_link($term) . "\n";
 echo "=== DONE ===\n";
