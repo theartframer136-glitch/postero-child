@@ -50,9 +50,23 @@ if (trim($raw) === '') {
     // whole procedure — no option to set, no command to remember. The owner's
     // folder is named "Personalised" on their own machine, so an upload that
     // keeps that name is found too, whatever case it arrives in.
+    // Two homes, checked in order.
+    //
+    // The THEME's own assets/gold-foil/ comes first, because that is the one
+    // route that works when the artwork can only reach Claude as a chat
+    // attachment: the pictures are committed alongside the code and the deploy
+    // rsyncs them to the server like any other theme file, no upload step for
+    // the owner at all. uploads/ is checked next, for a folder or zip put there
+    // by hand.
+    $homes = array();
+    foreach (array('gold-foil', 'gold-foiled-uv', 'Personalised', 'personalised') as $cand) {
+        $homes[] = trailingslashit(get_stylesheet_directory()) . 'assets/' . $cand;
+    }
     foreach (array('gold-foil', 'Personalised', 'personalised', 'Personalized',
                    'personalized', 'gold-foiled-uv') as $cand) {
-        $conv = trailingslashit($up['basedir']) . $cand;
+        $homes[] = trailingslashit($up['basedir']) . $cand;
+    }
+    foreach ($homes as $conv) {
         if (is_dir($conv) || is_file($conv . '.zip')) {
             $raw = is_dir($conv) ? $conv : $conv . '.zip';
             printf("  using %s (no af_goldfoil_source set)\n", $raw);
