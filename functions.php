@@ -16183,8 +16183,9 @@ add_action('wp_footer', function () {
 // The sidebar listed all 91 product categories — including frame sizes and
 // frame colours, which are attribute values that happen to be terms, and
 // several that hold nothing. The header menu already answers "what does this
-// shop sell" in nine lines. The sidebar now shows that same list, in the same
-// order, worded the same way.
+// shop sell" in ten lines. The sidebar now shows that same list, in the same
+// order, worded the same way — so a section added to the header menu has to be
+// added here too, or it silently goes missing from the shop sidebar.
 //
 // Kept as slugs with fallbacks rather than IDs: slugs survive a re-import,
 // and the site has near-duplicate terms (digital-downloads vs
@@ -16202,6 +16203,12 @@ function af_sidebar_cat_menu() {
         array('label' => 'Home Decor Space',      'slugs' => array('home-decor-space', 'home-decor-by-space', 'home-decor')),
         array('label' => 'Personalised Prints',   'slugs' => array('personalised-prints', 'personalized-prints')),
         array('label' => 'Gifts',                 'slugs' => array('gifts')),
+        // The header's category menu gained this section, and this list exists
+        // to mirror that menu — so it belongs here too. It carries no products
+        // yet, which does not matter: this widget is an allow-list with
+        // hide_empty off, and several of the rows above are empty for the same
+        // reason.
+        array('label' => 'Gold Foiled & UV',      'slugs' => array('gold-foiled-uv')),
     );
 }
 
