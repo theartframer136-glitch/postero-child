@@ -26,6 +26,14 @@
  *      AF_SHEET_Q      (default 55)  — JPEG quality
  *      AF_SHEET_GROUPS (default 0)   — stop after N groups, 0 = all
  *      AF_SHEET_ONLY   (default '')  — only this code, e.g. "TA 04"
+ *      AF_SHEET_CODES  (default '')  — only these codes, comma separated
+ *
+ * AF_SHEET_CODES exists because the whole set does not survive the trip. The
+ * log is fetched through an API that truncates a very long one, and 167 tiles
+ * of base64 is long enough to lose the first two thirds — the sheets that came
+ * back were the alphabetical tail. Asking for the codes still undecided keeps
+ * the payload small enough to arrive intact, and avoids redrawing the ones
+ * already read.
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
@@ -34,6 +42,12 @@ $COLS   = max( 1, (int) ( getenv( 'AF_SHEET_COLS' ) ?: 6 ) );
 $QUAL   = min( 95, max( 30, (int) ( getenv( 'AF_SHEET_Q' ) ?: 55 ) ) );
 $MAXG   = (int) ( getenv( 'AF_SHEET_GROUPS' ) ?: 0 );
 $ONLY   = strtoupper( trim( (string) getenv( 'AF_SHEET_ONLY' ) ) );
+
+$CODES = array();
+foreach ( explode( ',', (string) getenv( 'AF_SHEET_CODES' ) ) as $c ) {
+	$c = strtoupper( preg_replace( '/\s+/', ' ', trim( $c ) ) );
+	if ( $c !== '' ) { $CODES[ $c ] = true; }
+}
 
 echo "=== CONTACT SHEETS: THE PRODUCTS UNDER A SHARED ART CODE ===\n";
 
@@ -99,6 +113,7 @@ $shared = array_filter( $groups, function ( $p ) { return count( $p ) > 1; } );
 uksort( $shared, 'strcmp' );
 
 echo "shared codes: " . count( $shared ) . "\n";
+if ( $CODES ) { echo "drawing only: " . implode( ', ', array_keys( $CODES ) ) . "\n"; }
 echo "tile: {$TILE}px  |  columns: {$COLS}  |  quality: {$QUAL}\n";
 echo "Each sheet below is one JPEG, split into B64 lines. To rebuild them:\n";
 echo "  grep '^B64 ' log | awk '{print \$2\" \"\$3}' | ...  (id then chunk)\n";
@@ -107,6 +122,7 @@ $drawn = 0; $skipped = 0; $tiles_total = 0;
 
 foreach ( $shared as $key => $pids ) {
 	if ( $ONLY !== '' && $key !== $ONLY ) { continue; }
+	if ( $CODES && ! isset( $CODES[ $key ] ) ) { continue; }
 	if ( $MAXG > 0 && $drawn >= $MAXG ) { break; }
 
 	$slug = preg_replace( '/[^A-Za-z0-9]+/', '_', $key );
