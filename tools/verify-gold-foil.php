@@ -35,11 +35,26 @@ $note('category exists', (bool) ($term && !is_wp_error($term)),
 if (!$term || is_wp_error($term)) { echo "=== DONE ===\n"; return; }
 
 /* ── the icon the menu draws ──────────────────────────────────────────── */
-// An entry in the Categories menu with no icon is what the owner sees when the
-// term has no thumbnail, so this is a check, not a footnote.
+// The mega menu takes its icon from the menu ITEM's postero_megamenu_item_data,
+// not from the category thumbnail — measured, see tools/diag-menu-icons.php. So
+// this checks the field that actually paints the icon.
+$menu_icon = '';
+foreach (wp_get_nav_menus() as $m) {
+    foreach ((array) wp_get_nav_menu_items($m->term_id) as $it) {
+        if ($it->type !== 'taxonomy' || $it->object !== 'product_cat') continue;
+        if ((int) $it->object_id !== (int) $term->term_id) continue;
+        $d = get_post_meta((int) $it->ID, 'postero_megamenu_item_data', true);
+        if (is_array($d) && !empty($d['icon'])) $menu_icon = $d['icon'];
+        break 2;
+    }
+}
+$note('menu entry has an icon', $menu_icon !== '', $menu_icon ?: 'postero_megamenu_item_data has no icon');
+
+// the term thumbnail is a separate thing — it feeds category tiles and the
+// collection rows, not the menu — but an empty one still looks broken there
 $thumb = (int) get_term_meta($term->term_id, 'thumbnail_id', true);
 $file  = $thumb ? get_attached_file($thumb) : '';
-$note('category has an icon', (bool) ($thumb && $file && @file_exists($file)),
+$note('category tile image', (bool) ($thumb && $file && @file_exists($file)),
     $thumb ? ('attachment #' . $thumb
         . (get_term_meta($term->term_id, '_af_goldfoil_thumb_auto', true) ? ' (stand-in)' : ''))
        : 'no thumbnail_id');

@@ -65,14 +65,22 @@ foreach ($menus as $menu) {
         $classes = array_filter((array) $it->classes);
         printf("    classes: %s\n", $classes ? implode(' ', $classes) : '(none)');
 
-        // every custom field on the menu item, minus WordPress's own plumbing
+        // This is the one that matters: the parent theme keeps the mega-menu
+        // icon in a serialized array on the menu item, so read the icon out of
+        // it rather than eyeballing a truncated blob.
+        $mm = get_post_meta((int) $it->ID, 'postero_megamenu_item_data', true);
+        printf("    MENU ICON: %s\n",
+            (is_array($mm) && !empty($mm['icon'])) ? $mm['icon'] : 'NONE — this is why no icon shows');
+
+        // everything else on the item, for anything the above misses
         $meta = get_post_meta((int) $it->ID);
         $own  = array();
         foreach ($meta as $k => $v) {
+            if ($k === 'postero_megamenu_item_data') continue;
             if (strpos($k, '_menu_item_') === 0 && !preg_match('/icon|image|thumb|svg|glyph/i', $k)) continue;
             $own[] = $k . '=' . substr(is_array($v) ? (string) reset($v) : (string) $v, 0, 60);
         }
-        printf("    item meta: %s\n", $own ? implode('  |  ', $own) : '(nothing icon-ish)');
+        printf("    other meta: %s\n", $own ? implode('  |  ', $own) : '(nothing icon-ish)');
     }
 }
 

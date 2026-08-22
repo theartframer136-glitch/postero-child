@@ -87,21 +87,15 @@ if ($thumb && $file && @file_exists($file)) {
 // a WordPress nav menu, so the new term needs an item of its own — placed as a
 // child of whichever item is called "Categories", which is where every other
 // category already lives.
-$placed = false;
-$menus  = wp_get_nav_menus();
+// $placed_id and $sibling_ids are carried into the icon step below: the icon
+// lives on the menu ITEM, so both which item this is and which items to copy
+// its shape from have to come out of this search.
+$placed_id   = 0;
+$sibling_ids = array();
+$menus       = wp_get_nav_menus();
 foreach ($menus as $menu) {
     $items = wp_get_nav_menu_items($menu->term_id);
     if (!$items) continue;
-
-    // already there?
-    foreach ($items as $it) {
-        if ($it->type === 'taxonomy' && $it->object === 'product_cat'
-            && (int) $it->object_id === (int) $term->term_id) {
-            printf("  menu: already in \"%s\"\n", $menu->name);
-            $placed = true;
-            break 2;
-        }
-    }
 
     // find the "Categories" parent to hang it under
     $parent = 0;
@@ -110,26 +104,119 @@ foreach ($menus as $menu) {
     }
     if (!$parent) continue;
 
-    $new = wp_update_nav_menu_item($menu->term_id, 0, array(
-        'menu-item-title'     => $name,
-        'menu-item-object'    => 'product_cat',
-        'menu-item-object-id' => (int) $term->term_id,
-        'menu-item-type'      => 'taxonomy',
-        'menu-item-status'    => 'publish',
-        'menu-item-parent-id' => $parent,
-    ));
-    if (!is_wp_error($new) && $new) {
-        printf("  menu: added to \"%s\" under item #%d\n", $menu->name, $parent);
-        $placed = true;
-        break;
+    // already there? (search this menu only — the icon must come from the
+    // siblings of the item that actually exists, not from another menu's)
+    $mine = 0;
+    foreach ($items as $it) {
+        if ($it->type === 'taxonomy' && $it->object === 'product_cat'
+            && (int) $it->object_id === (int) $term->term_id) { $mine = (int) $it->ID; break; }
     }
+
+    if (!$mine) {
+        $new = wp_update_nav_menu_item($menu->term_id, 0, array(
+            'menu-item-title'     => $name,
+            'menu-item-object'    => 'product_cat',
+            'menu-item-object-id' => (int) $term->term_id,
+            'menu-item-type'      => 'taxonomy',
+            'menu-item-status'    => 'publish',
+            'menu-item-parent-id' => $parent,
+        ));
+        if (is_wp_error($new) || !$new) continue;
+        $mine = (int) $new;
+        printf("  menu: added to \"%s\" under item #%d\n", $menu->name, $parent);
+    } else {
+        printf("  menu: already in \"%s\" (item #%d)\n", $menu->name, $mine);
+    }
+
+    $placed_id = $mine;
+    foreach ($items as $it) {
+        if ((int) $it->menu_item_parent === $parent && (int) $it->ID !== $mine) {
+            $sibling_ids[] = (int) $it->ID;
+        }
+    }
+    break;
 }
-if (!$placed) {
+if (!$placed_id) {
     echo "  menu: no \"Categories\" item found — the category is live at "
        . get_term_link($term) . " but is not linked from the menu yet\n";
 }
 
-/* ── 5. report the price rule in force ────────────────────────────────── */
+/* ── 5. the menu icon ─────────────────────────────────────────────────── */
+// MEASURED, not guessed (tools/diag-menu-icons.php, deploy 805): every entry in
+// the Categories mega menu carries a `postero_megamenu_item_data` meta field on
+// the MENU ITEM, and its `icon` key holds a Postero icon-font class —
+// postero-icon-typography, postero-icon-artists, postero-icon-gift-box and so
+// on. It is not the category thumbnail: "Gifts" has no thumbnail and no
+// products and still shows its icon. A new item created through
+// wp_update_nav_menu_item() gets no such field, which is exactly why this one
+// appeared blank.
+//
+// The field is a 14-key array belonging to the parent theme, so rather than
+// inventing one, a sibling's is CLONED and only the icon swapped. That keeps
+// every default the theme expects, whatever the other thirteen keys mean.
+if ($placed_id) {
+    $existing = get_post_meta($placed_id, 'postero_megamenu_item_data', true);
+    if (!empty($existing) && is_array($existing) && !empty($existing['icon'])) {
+        printf("  menu icon: already set (%s)\n", $existing['icon']);
+    } else {
+        // a sibling to copy the shape from
+        $template = array();
+        $used     = array();
+        foreach ($sibling_ids as $sid) {
+            $d = get_post_meta($sid, 'postero_megamenu_item_data', true);
+            if (is_array($d) && !empty($d['icon'])) {
+                if (!$template) $template = $d;
+                $used[] = $d['icon'];
+            }
+        }
+
+        // which icons the theme's font actually defines — picking a class that
+        // does not exist would render nothing and look like this never worked
+        $have = array();
+        $dir  = get_template_directory();
+        if (is_dir($dir)) {
+            $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
+            $scanned = 0;
+            foreach ($it as $f) {
+                if (!$f->isFile() || strtolower($f->getExtension()) !== 'css') continue;
+                if ($scanned++ > 60) break;
+                $css = @file_get_contents($f->getPathname());
+                if ($css && preg_match_all('/\.(postero-icon-[a-z0-9\-]+)/i', $css, $m)) {
+                    foreach ($m[1] as $cls) $have[strtolower($cls)] = true;
+                }
+            }
+        }
+
+        // what a gold-foiled, UV-coated piece should look like, best first
+        $wish = array('postero-icon-star', 'postero-icon-diamond', 'postero-icon-crown',
+                      'postero-icon-gem', 'postero-icon-award', 'postero-icon-medal',
+                      'postero-icon-sparkle', 'postero-icon-shine', 'postero-icon-sun',
+                      'postero-icon-brush', 'postero-icon-frame', 'postero-icon-picture',
+                      'postero-icon-gallery', 'postero-icon-image', 'postero-icon-art');
+        $icon = '';
+        foreach ($wish as $w) { if (isset($have[$w])) { $icon = $w; break; } }
+        // nothing from the wish list exists (or no CSS was readable): fall back
+        // to an icon this very menu already proves is real
+        if ($icon === '' && $used) $icon = $used[0];
+        if ($icon === '') $icon = 'postero-icon-art';
+
+        if (!$template) $template = array('icon' => '');
+        $template['icon'] = $icon;
+        update_post_meta($placed_id, 'postero_megamenu_item_data', $template);
+        update_post_meta($placed_id, '_af_goldfoil_menu_icon', $icon);
+        printf("  menu icon: set to %s  (%d icons found in the theme's CSS, %d siblings to copy from)\n",
+            $icon, count($have), count($used));
+        // The other thirteen keys are the parent theme's business; list them so
+        // that if one of them turns out to carry per-item content rather than a
+        // default, it is visible here instead of being a mystery on the page.
+        printf("             cloned keys: %s\n", implode(', ', array_keys($template)));
+        printf("             siblings use: %s\n", implode(', ', array_unique($used)));
+    }
+} else {
+    echo "  menu icon: skipped — the menu item could not be located\n";
+}
+
+/* ── 6. report the price rule in force ────────────────────────────────── */
 $ratio = af_goldfoil_ratio();
 printf("\n  price ratio: x%.2f  (%s a normal print)\n", $ratio,
     $ratio < 1 ? sprintf('%d%% OF', round($ratio * 100))
