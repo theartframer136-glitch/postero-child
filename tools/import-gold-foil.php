@@ -55,8 +55,9 @@ if (trim($raw) === '') {
 }
 if (trim($raw) === '') {
     echo "  no artwork folder yet. Either:\n";
-    echo "    (a) upload the images to wp-content/uploads/gold-foil/  — nothing else to do, or\n";
-    echo "    (b) wp option update af_goldfoil_source '/absolute/path/to/folder'\n";
+    echo "    (a) upload the images — or a zip of them — to wp-content/uploads/gold-foil/\n";
+    echo "        (nothing else to do; the next deploy picks them up), or\n";
+    echo "    (b) wp option update af_goldfoil_source '/absolute/path/to/folder-or-zip'\n";
     echo "=== DONE ===\n";
     return;
 }
@@ -76,7 +77,10 @@ foreach (preg_split('/[\r\n,]+/', $raw) as $cand) {
     foreach (array($cand,
                    ABSPATH . ltrim($cand, '/'),
                    trailingslashit($up['basedir']) . ltrim($cand, '/')) as $try) {
-        if (is_dir($try)) { $found = realpath($try); break; }
+        if (is_dir($try) || (is_file($try) && strtolower(pathinfo($try, PATHINFO_EXTENSION)) === 'zip')) {
+            $found = realpath($try);
+            break;
+        }
     }
     if ($found === '' || $found === false) {
         echo "  NOT FOUND on this server: {$cand}\n";
@@ -86,6 +90,42 @@ foreach (preg_split('/[\r\n,]+/', $raw) as $cand) {
 }
 $dirs = array_values(array_unique(array_filter($dirs)));
 if (!$dirs) { echo "  nothing to read.\n=== DONE ===\n"; return; }
+
+/**
+ * A folder usually arrives as a zip. Unpack any that turn up — either named
+ * directly or sitting inside a folder we were pointed at — into a working copy,
+ * so the hand-off is the same whether the files were uploaded loose or zipped.
+ * The archive itself is left alone.
+ */
+$zips = array();
+foreach ($dirs as $d) {
+    if (is_file($d)) { $zips[] = $d; continue; }
+    foreach ((array) glob(trailingslashit($d) . '*.[Zz][Ii][Pp]') as $z) $zips[] = $z;
+}
+if ($zips) {
+    WP_Filesystem();
+    $work = trailingslashit($up['basedir']) . 'gold-foil-unpacked';
+    if (!is_dir($work)) wp_mkdir_p($work);
+    foreach ($zips as $z) {
+        $into = trailingslashit($work) . sanitize_title(pathinfo($z, PATHINFO_FILENAME));
+        if (is_dir($into)) {                       // already unpacked on an earlier run
+            $dirs[] = $into;
+            continue;
+        }
+        wp_mkdir_p($into);
+        $ok = unzip_file($z, $into);
+        if (is_wp_error($ok)) {
+            printf("  zip: could not unpack %s — %s\n", basename($z), $ok->get_error_message());
+            continue;
+        }
+        printf("  zip: unpacked %s\n", basename($z));
+        $dirs[] = $into;
+    }
+    // a zip named directly is not itself a folder to scan
+    $dirs = array_values(array_filter($dirs, 'is_dir'));
+    $dirs = array_values(array_unique($dirs));
+    if (!$dirs) { echo "  nothing to read.\n=== DONE ===\n"; return; }
+}
 
 /* ── collect the files ────────────────────────────────────────────────── */
 $exts  = array('jpg', 'jpeg', 'png', 'webp', 'gif');
@@ -148,11 +188,19 @@ foreach ($files as $path) {
     if (isset($seen[$path])) { $skipped++; continue; }
 
     $title = af_gf_title_from_file($path);
-    // a size written into the filename decides the price; otherwise the default
+    // A size written into the filename decides the price. Everything downstream
+    // — the size the selector opens on, and the deploy's repricing pass — reads
+    // the size out of the TITLE, so when the filename carries none the default
+    // is written into the title rather than only into the price. Otherwise this
+    // product would list at one size and open its options on another.
     $label = function_exists('af_size_label_for_product') ? af_size_label_for_product($title) : '';
-    if ($label === '' || !in_array($label, $sizes, true)) $label = $def;
+    $titled = ($label !== '' && in_array($label, $sizes, true));
+    if (!$titled) $label = $def;
     if (stripos($title, 'gold') === false) $title .= ' Gold Foiled';
     if (!preg_match('/\b(canvas|print|art)\b/i', $title)) $title .= ' UV Canvas Art';
+    if (!$titled && preg_match('/^(\d+(?:\.\d+)?)×(\d+(?:\.\d+)?) ft/u', $label, $lm)) {
+        $title .= ' ' . $lm[1] . 'x' . $lm[2] . ' Feet';
+    }
 
     // never two products with the same name (get_page_by_title() is deprecated
     // from WP 6.2, so the lookup goes through WP_Query's own title match)
