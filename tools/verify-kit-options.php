@@ -28,8 +28,26 @@ foreach (af_kit_options() as $key => $o) {
         af_kit_addon_price($key, '3×4 ft (36×48 in)'));
 }
 $n = count(af_kit_options());
-printf("  option count: %d %s\n", $n, $n === 5 ? 'OK' : 'EXPECTED 5');
-if ($n !== 5) $fail++;
+printf("  option count: %d %s\n", $n, $n === 4 ? 'OK' : 'EXPECTED 4');
+if ($n !== 4) $fail++;
+
+// The DIY kit was retired on 2026-08-22, its parts folded into both structure-bar
+// options. It must be gone from the selector but still readable, or the packing
+// slip for an order placed before the change loses its parts list.
+$live = af_kit_options();
+printf("  full DIY kit off the selector: %s\n", isset($live['full_kit']) ? 'FAIL — still offered' : 'OK');
+if (isset($live['full_kit'])) $fail++;
+$old = function_exists('af_kit_option') ? af_kit_option('full_kit') : null;
+printf("  old orders still read it: %s\n", $old ? 'OK — ' . $old['label'] : 'FAIL — an old order would lose its parts');
+if (!$old) $fail++;
+foreach (array('painting_bar', 'painting_bar_frame') as $k) {
+    $parts = $live[$k]['parts'];
+    $want  = array('bar', 'hooks', 'screws', 'driver', 'hanging');
+    $miss  = array_diff($want, $parts);
+    printf("  %-19s carries the fittings: %s\n", $k,
+        $miss ? 'FAIL — missing ' . implode(', ', $miss) : 'OK');
+    if ($miss) $fail++;
+}
 
 echo "\n-- prices (zero until the owner supplies them) --\n";
 foreach (af_kit_prices() as $part => $price) {
@@ -43,7 +61,7 @@ echo "\n-- shipping consequence --\n";
 printf("  digital ships: %s  %s\n", af_kit_ships('digital') ? 'yes' : 'no',
     af_kit_ships('digital') ? 'FAIL — a download must not ship' : 'OK');
 if (af_kit_ships('digital')) $fail++;
-foreach (array('painting', 'painting_bar', 'painting_bar_frame', 'full_kit') as $k) {
+foreach (array('painting', 'painting_bar', 'painting_bar_frame') as $k) {
     if (!af_kit_ships($k)) { printf("  %s does not ship — FAIL\n", $k); $fail++; }
 }
 printf("  physical options all ship: %s\n", $fail ? 'see above' : 'OK');

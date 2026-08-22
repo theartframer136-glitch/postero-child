@@ -1,16 +1,23 @@
 <?php
 /**
- * WHAT THE CUSTOMER RECEIVES — the five ways to buy a piece.
+ * WHAT THE CUSTOMER RECEIVES — the four ways to buy a piece.
  *
  * Owner's requirement (2026-08-17, handwritten note + explanation):
  *
  *   1. Digital download   — the file only. Nothing ships, so no delivery is
  *                           charged. The artwork still costs its full price.
  *   2. Painting only      — the printed canvas, rolled in a tube.
- *   3. Painting + bar     — plus the wooden structure (stretcher) bars.
+ *   3. Painting + bar     — plus the wooden structure (stretcher) bars and the
+ *                           fittings needed to hang it.
  *   4. Painting + bar + frame — as above with the frame the customer picked.
- *   5. Full DIY kit       — painting, bars, hooks, screws, screwdriver and
- *                           hanging strip, all rolled together in one tube.
+ *
+ * Updated 2026-08-22 on the owner's instruction: the separate "Full DIY kit"
+ * is gone, and what used to make it a kit — hooks, screws, screwdriver and
+ * hanging strip — now comes with both of the structure-bar options instead. So
+ * anything that arrives on bars arrives ready to put on the wall, and the
+ * customer no longer has to work out which of two similar rows to pick.
+ * The retired option is still understood (see af_kit_retired_options) so an
+ * order already placed against it still prints what was actually sent.
  *
  * PRICES ARE DELIBERATELY ZERO. The owner does not have supplier costs yet and
  * asked for the functionality first, so every add-on is £0/$0 until real
@@ -28,7 +35,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-/** The five options, in the order the customer sees them. */
+/** The four options, in the order the customer sees them. */
 function af_kit_options() {
     return apply_filters('af_kit_options', array(
         'digital' => array(
@@ -45,16 +52,32 @@ function af_kit_options() {
         ),
         'painting_bar' => array(
             'label' => 'Painting + structure bars',
-            'desc'  => 'The canvas with wooden stretcher bars to mount it on.',
-            'parts' => array('bar'),
+            'desc'  => 'The canvas with wooden stretcher bars, plus hooks, screws, '
+                     . 'screwdriver and hanging strip — everything rolled in one tube.',
+            'parts' => array('bar', 'hooks', 'screws', 'driver', 'hanging'),
             'ships' => true,
         ),
         'painting_bar_frame' => array(
             'label' => 'Painting + structure bars + frame',
-            'desc'  => 'Stretched and finished in the frame you choose above.',
-            'parts' => array('bar'),
+            'desc'  => 'Stretched and finished in the frame you choose above, with '
+                     . 'hooks, screws, screwdriver and hanging strip included.',
+            'parts' => array('bar', 'hooks', 'screws', 'driver', 'hanging'),
             'ships' => true,
         ),
+    ));
+}
+
+/**
+ * No longer offered, but still understood.
+ *
+ * An order placed before the DIY kit was retired carries af_kit=full_kit. Its
+ * label was written onto the order line at checkout, so the customer's copy is
+ * safe either way — but the packing slip reads the key back, and without this
+ * the studio would be handed a line with no parts on it. Nothing here is
+ * selectable: the selector only ever renders af_kit_options().
+ */
+function af_kit_retired_options() {
+    return array(
         'full_kit' => array(
             'label' => 'Full DIY kit',
             'desc'  => 'Painting, structure bars, hooks, screws, screwdriver and '
@@ -62,7 +85,15 @@ function af_kit_options() {
             'parts' => array('bar', 'hooks', 'screws', 'driver', 'hanging'),
             'ships' => true,
         ),
-    ));
+    );
+}
+
+/** One option by key, retired ones included, so an old order still reads right. */
+function af_kit_option($key) {
+    $live = af_kit_options();
+    if (isset($live[$key])) return $live[$key];
+    $gone = af_kit_retired_options();
+    return isset($gone[$key]) ? $gone[$key] : null;
 }
 
 /**
@@ -111,15 +142,15 @@ function af_tube_for_size($size_label) {
 
 /** What the chosen option adds to the price of one piece. */
 function af_kit_addon_price($key, $size_label = '') {
-    $opts = af_kit_options();
-    if (!isset($opts[$key])) return 0.0;
+    $opt = af_kit_option($key);
+    if (!$opt) return 0.0;
     $prices = af_kit_prices();
     $sum = 0.0;
-    foreach ($opts[$key]['parts'] as $part) {
+    foreach ($opt['parts'] as $part) {
         $sum += isset($prices[$part]) ? (float) $prices[$part] : 0.0;
     }
     // the tube only applies to something that actually posts
-    if (!empty($opts[$key]['ships']) && $size_label !== '') {
+    if (!empty($opt['ships']) && $size_label !== '') {
         list($len, $cost) = af_tube_for_size($size_label);
         $sum += (float) $cost;
     }
@@ -128,8 +159,8 @@ function af_kit_addon_price($key, $size_label = '') {
 
 /** Does this choice put a parcel in the post? */
 function af_kit_ships($key) {
-    $opts = af_kit_options();
-    return isset($opts[$key]) ? !empty($opts[$key]['ships']) : true;
+    $opt = af_kit_option($key);
+    return $opt ? !empty($opt['ships']) : true;
 }
 
 function af_kit_default() {
@@ -253,9 +284,9 @@ add_filter('woocommerce_cart_needs_shipping', function ($needs) {
 // show the choice in the cart, checkout and the order
 add_filter('woocommerce_get_item_data', function ($data, $item) {
     if (empty($item['af_kit'])) return $data;
-    $opts = af_kit_options();
-    if (!isset($opts[$item['af_kit']])) return $data;
-    $data[] = array('name' => 'You receive', 'value' => $opts[$item['af_kit']]['label']);
+    $opt = af_kit_option($item['af_kit']);
+    if (!$opt) return $data;
+    $data[] = array('name' => 'You receive', 'value' => $opt['label']);
     if (af_kit_ships($item['af_kit']) && !empty($item['af_size'])) {
         list($len, $cost) = af_tube_for_size($item['af_size']);
         if ($len) $data[] = array('name' => 'Ships in', 'value' => $len . '" tube');
@@ -265,9 +296,9 @@ add_filter('woocommerce_get_item_data', function ($data, $item) {
 
 add_action('woocommerce_checkout_create_order_line_item', function ($item, $key, $values) {
     if (empty($values['af_kit'])) return;
-    $opts = af_kit_options();
-    if (isset($opts[$values['af_kit']])) {
-        $item->add_meta_data('You receive', $opts[$values['af_kit']]['label']);
+    $opt = af_kit_option($values['af_kit']);
+    if ($opt) {
+        $item->add_meta_data('You receive', $opt['label']);
     }
     $item->add_meta_data('_af_kit', $values['af_kit'], true);
     if (af_kit_ships($values['af_kit']) && !empty($values['af_size'])) {
@@ -282,12 +313,12 @@ add_filter('af_packing_extra_lines', function ($lines, $order) {
     foreach ($order->get_items() as $item) {
         $kit = $item->get_meta('_af_kit');
         if (!$kit) continue;
-        $opts = af_kit_options();
-        if (!isset($opts[$kit])) continue;
-        $parts = $opts[$kit]['parts'];
+        $opt = af_kit_option($kit);
+        if (!$opt) continue;
+        $parts = $opt['parts'];
         $lines[] = sprintf('%s — %s%s',
             $item->get_name(),
-            $opts[$kit]['label'],
+            $opt['label'],
             $parts ? (' (' . implode(', ', $parts) . ')') : '');
     }
     return $lines;

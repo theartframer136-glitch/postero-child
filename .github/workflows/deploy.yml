@@ -1232,6 +1232,7 @@ jobs:
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              AF_SHEET_TILE=220 AF_SHEET_COLS=6 AF_SHEET_Q=55 \
+             AF_SHEET_CODES='AA 06,AA 10,AA 14,HD 05,HD 06,HD 19,HD 21,HD 22,HD 25,KR 07,KR 16,LB 03,LB 04,LB 06,LB 09,LB 10,LG 02,LG 03,LR 03,LR 05,LR 08,LR 09,LR 25,LR 32,LS 04,LS 05' \
              wp eval-file wp-content/themes/postero-child/tools/diag-product-contact-sheets.php --allow-root 2>&1" \
             || true
 
