@@ -160,6 +160,47 @@ add_action('wp_head', function () {
     <?php
 }, 9);
 
+/* ── The shop sidebar's Categories list ───────────────────────────────────
+ * That list is built with hide_empty, and WooCommerce rolls sub-category
+ * counts up into the parent — which is why Framed Canvases, Direct From
+ * Artists and Gifts appear there with no products of their own (their
+ * sub-categories hold products), and why this section, which has neither
+ * products nor sub-categories, did not appear at all.
+ *
+ * The owner asked for it listed regardless. hide_empty is a SQL condition
+ * (tt.count > 0), so the way in is to widen that ONE condition to also admit
+ * this term. Deliberately NOT by writing a fake count onto the term: the count
+ * is printed and padded in a dozen other places, and a lie there would surface
+ * as a wrong number somewhere else entirely.
+ *
+ * Armed only for the widget's own get_terms() call and disarmed the moment it
+ * fires, so no other category list on the site — menus, archives, the
+ * collection rows — sees a different query.
+ */
+function af_goldfoil_reveal_armed($set = null) {
+    static $armed = false;
+    if ($set !== null) $armed = (bool) $set;
+    return $armed;
+}
+
+add_filter('woocommerce_product_categories_widget_args', function ($args) {
+    if (af_goldfoil_term()) af_goldfoil_reveal_armed(true);
+    return $args;
+}, 99);
+
+add_filter('terms_clauses', function ($clauses, $taxonomies, $args) {
+    if (!af_goldfoil_reveal_armed()) return $clauses;
+    af_goldfoil_reveal_armed(false);                    // this one query only
+    if (!in_array('product_cat', (array) $taxonomies, true)) return $clauses;
+    $term = af_goldfoil_term();
+    if (!$term) return $clauses;
+    // only widen a restriction that is actually hiding it
+    if (empty($clauses['where']) || strpos($clauses['where'], 'count') === false) return $clauses;
+    $clauses['where'] = '(' . $clauses['where']
+        . " OR (tt.taxonomy = 'product_cat' AND t.term_id = " . (int) $term->term_id . '))';
+    return $clauses;
+}, 10, 3);
+
 /** A line of explanation at the top of the category archive. */
 add_action('woocommerce_archive_description', function () {
     if (!function_exists('is_product_category') || !is_product_category(af_goldfoil_slug())) return;

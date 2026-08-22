@@ -59,12 +59,28 @@ $note('category tile image', (bool) ($thumb && $file && @file_exists($file)),
         . (get_term_meta($term->term_id, '_af_goldfoil_thumb_auto', true) ? ' (stand-in)' : ''))
        : 'no thumbnail_id');
 
-// The sidebar Categories widget hides empty categories site-wide, so an empty
-// section is invisible there however it is configured. Say so plainly rather
-// than letting it read as a bug.
-if ((int) $term->count === 0) {
-    echo "  note: the shop sidebar hides empty categories, so this one appears there\n";
-    echo "        as soon as it holds its first product.\n";
+/* ── the shop sidebar's Categories list ───────────────────────────────── */
+// Checked on ANOTHER category's archive, and by the widget's own per-term CSS
+// class — not by searching for the word "Gold", which the mega menu also puts
+// on every page and which would make this pass without the sidebar changing.
+$other = null;
+foreach (get_terms(array('taxonomy' => 'product_cat', 'parent' => 0, 'hide_empty' => true,
+                         'number' => 4, 'orderby' => 'count', 'order' => 'DESC')) as $t) {
+    if ((int) $t->term_id !== (int) $term->term_id) { $other = $t; break; }
+}
+if ($other) {
+    $u = get_term_link($other);
+    $r = is_wp_error($u) ? $u : wp_remote_get(add_query_arg('afverify', time(), $u),
+        array('timeout' => 60, 'sslverify' => false,
+              'headers' => array('User-Agent' => 'Mozilla/5.0 AF-Verify')));
+    if (is_wp_error($r)) {
+        $note('sidebar lists the section', false, 'could not load ' . $other->name);
+    } else {
+        $html = wp_remote_retrieve_body($r);
+        $cls  = 'cat-item-' . (int) $term->term_id;      // the widget's own markup
+        $note('sidebar lists the section', strpos($html, $cls) !== false,
+            $cls . ' on /' . $other->slug . '/');
+    }
 }
 
 /* ── a normal product is untouched ────────────────────────────────────── */
