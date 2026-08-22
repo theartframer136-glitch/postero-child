@@ -44,7 +44,8 @@ from PIL import Image
 Image.MAX_IMAGE_PIXELS = None
 
 from visual_match import features, good_matches, list_images
-from extract_brochure import _encode_image, _post_with_retry, GROQ_URL, GROQ_MODEL
+from extract_brochure import (_encode_image, _post_with_retry, GROQ_URL,
+                              groq_model, list_groq_models)
 
 HERE = Path(__file__).parent
 OUT = HERE / "products_named.csv"
@@ -84,7 +85,7 @@ NAME_PROMPT = (
 def name_image(api_key, img_path):
     b64 = _encode_image(img_path)
     body = {
-        "model": GROQ_MODEL,
+        "model": groq_model(),
         "temperature": 0,
         "response_format": {"type": "json_object"},
         "messages": [{"role": "user", "content": [
@@ -199,6 +200,9 @@ def main():
     ap.add_argument("--no-gallery", action="store_true",
                     help="do not match any wall/room photos (for catalogs that "
                          "have none — pair with --gallery-fill at publish)")
+    ap.add_argument("--list-models", action="store_true",
+                    help="print the Groq models THIS key can use, then exit "
+                         "(use one as GROQ_MODEL=... in .env)")
     ap.add_argument("--out", default=None, metavar="CSV",
                     help="output CSV path (use a separate file per catalog)")
     ap.add_argument("--state", default=None, metavar="JSON",
@@ -226,6 +230,13 @@ def main():
     groq = os.getenv("GROQ_API_KEY")
     if not groq:
         raise SystemExit("Set GROQ_API_KEY (free) in .env first.")
+
+    if args.list_models:
+        print("Models your Groq key can use (pick a vision one for GROQ_MODEL):\n")
+        for mid in list_groq_models(groq):
+            print(f"  {mid}")
+        print(f"\nCurrent GROQ_MODEL = {groq_model()}")
+        return
 
     mains = list_main_images()
     if not mains:

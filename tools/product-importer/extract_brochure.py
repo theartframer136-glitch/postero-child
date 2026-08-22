@@ -32,9 +32,28 @@ MODEL = "gemini-2.5-flash"
 URL = f"https://generativelanguage.googleapis.com/v1beta/models/{MODEL}:generateContent"
 # Groq — free tier, no credit card, ~1000+ requests/day (fits the whole brochure).
 GROQ_URL = "https://api.groq.com/openai/v1/chat/completions"
+GROQ_MODELS_URL = "https://api.groq.com/openai/v1/models"
 # Groq retires preview models often. Override in .env with GROQ_MODEL=... if the
 # default 404s (see https://console.groq.com/docs/models for active vision models).
-GROQ_MODEL = os.getenv("GROQ_MODEL", "meta-llama/llama-4-maverick-17b-128e-instruct")
+DEFAULT_GROQ_MODEL = "meta-llama/llama-4-scout-17b-16e-instruct"
+
+
+def groq_model():
+    """Read the model at CALL time so a GROQ_MODEL set in .env takes effect
+    (a module-level constant would be frozen before load_dotenv runs)."""
+    return os.getenv("GROQ_MODEL", DEFAULT_GROQ_MODEL)
+
+
+def list_groq_models(api_key):
+    """Return the model IDs this key can actually use (authoritative)."""
+    r = requests.get(GROQ_MODELS_URL,
+                     headers={"Authorization": f"Bearer {api_key}"}, timeout=60)
+    r.raise_for_status()
+    return sorted(m["id"] for m in r.json().get("data", []))
+
+
+# Back-compat: some callers import GROQ_MODEL directly.
+GROQ_MODEL = groq_model()
 STATE = HERE / "output" / "brochure_state.json"  # resume progress
 RETRY_STATUS = {429, 500, 503}
 
@@ -109,7 +128,7 @@ def extract_page_gemini(api_key, img_path):
 def extract_page_groq(api_key, img_path):
     b64 = _encode_image(img_path)
     body = {
-        "model": GROQ_MODEL,
+        "model": groq_model(),
         "temperature": 0,
         "response_format": {"type": "json_object"},
         "messages": [{"role": "user", "content": [
