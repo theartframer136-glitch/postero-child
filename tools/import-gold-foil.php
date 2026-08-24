@@ -21,6 +21,14 @@
  * An absolute path, a path relative to the WordPress root, or a path relative
  * to the uploads folder all work. Several folders can be listed, one per line.
  *
+ * OR NO NEW ARTWORK AT ALL. Gold foil and a UV coat are a FINISH, so a piece
+ * the studio already sells can be offered in it without a single new file:
+ *   wp option update af_goldfoil_source 'category:personalised-prints'
+ *   wp option update af_goldfoil_source 'products:1234,5678'
+ * The source product's picture, gallery and words come with it — which is what
+ * makes the new listing as complete as the one it came from — while the price
+ * is computed from the rate card exactly as it is for every other piece here.
+ *
  * WHEN NOTHING IS NAMED the importer finds the artwork on its own, in order:
  * the theme's assets/gold-foil/ (pictures committed to the repo), a folder or
  * zip in uploads/ named gold-foil or Personalised, and finally media:fresh —
@@ -237,9 +245,101 @@ if ($media) {
     }
 }
 
+/**
+ * A source can also be PRODUCTS THIS SITE ALREADY SELLS.
+ *
+ *   category:personalised-prints   one premium piece per published product in
+ *                                  that category, its sub-categories included
+ *   products:1234,5678             these product ids
+ *
+ * Gold foil and a UV coat are a FINISH, not different artwork — so the same
+ * piece the studio already sells can be offered in the premium finish without
+ * a single new file. That matters here for a blunt reason: the artwork the
+ * owner named lives on their own PC, which no machine in this pipeline can
+ * read, and asking for an upload has not produced one. This route needs
+ * nothing from anybody.
+ *
+ * The source product's PICTURE is reused where it is (no second copy on disk),
+ * and so is its gallery and its description — which is what makes the new
+ * listing as complete as the one it came from. Its PRICE is not: that is
+ * computed from the rate card for the size, times the ratio, exactly as for
+ * every other piece in the section.
+ */
+$from_products = array();
+foreach (preg_split('/[\r\n]+/', $raw) as $cand) {
+    $cand = trim($cand);
+    if ($cand === '') continue;
+    $is_cat  = (stripos($cand, 'category:') === 0);
+    $is_prod = (stripos($cand, 'products:') === 0);
+    if (!$is_cat && !$is_prod) continue;
+    $spec = trim(substr($cand, strpos($cand, ':') + 1));
+    if ($spec === '') continue;
+
+    if ($is_prod) {
+        $n = 0;
+        foreach (preg_split('/[,\s]+/', $spec) as $id) {
+            $id = (int) $id;
+            if ($id && get_post_type($id) === 'product') { $from_products[] = $id; $n++; }
+        }
+        printf("  products: %d named product(s) resolved\n", $n);
+        continue;
+    }
+
+    $src_term = get_term_by('slug', $spec, 'product_cat');
+    if (!$src_term || is_wp_error($src_term)) {
+        printf("  category: there is no product category with the slug \"%s\"\n", $spec);
+        continue;
+    }
+    $ids = get_posts(array(
+        'post_type' => 'product', 'post_status' => 'publish',
+        'posts_per_page' => -1, 'fields' => 'ids', 'no_found_rows' => true,
+        'orderby' => 'date', 'order' => 'DESC',
+        'tax_query' => array(array('taxonomy' => 'product_cat', 'field' => 'term_id',
+            'terms' => array((int) $src_term->term_id), 'include_children' => true)),
+    ));
+    printf("  category: %s (#%d) holds %d published product(s)\n",
+        $spec, $src_term->term_id, count($ids));
+    foreach ($ids as $id) $from_products[] = (int) $id;
+}
+$from_products = array_values(array_unique($from_products));
+
+if ($from_products) {
+    $gfterm = get_term_by('slug', af_goldfoil_slug(), 'product_cat');
+    $gfid   = ($gfterm && !is_wp_error($gfterm)) ? (int) $gfterm->term_id : 0;
+    $before = count($from_products);
+    $from_products = array_values(array_filter($from_products, function ($pid) use ($gfid) {
+        // NEVER source from the section itself. Without this, pointing the
+        // importer at a category that contains gold-foil products would make a
+        // premium copy of a premium copy on every deploy, each one 40% dearer
+        // than the last, for as long as nobody looked.
+        if (get_post_meta($pid, '_af_goldfoil', true) === 'yes') return false;
+        if ($gfid && has_term($gfid, 'product_cat', $pid)) return false;
+        // a listing with no picture is not a listing
+        $att = get_post_thumbnail_id($pid);
+        if (!$att) return false;
+        $f = get_attached_file($att);
+        return (bool) ($f && @file_exists($f));
+    }));
+    if (count($from_products) !== $before) {
+        printf("  products: %d skipped (already premium, or no usable picture), %d left\n",
+            $before - count($from_products), count($from_products));
+    }
+
+    $cap = (int) get_option('af_goldfoil_max', 400);
+    if ($cap > 0 && count($from_products) > $cap) {
+        printf("  products: %d is more than the %d cap — taking the first %d, SKIPPING %d.\n",
+            count($from_products), $cap, $cap, count($from_products) - $cap);
+        echo  "            Raise it deliberately if that is really the intent:\n";
+        echo  "            wp option update af_goldfoil_max 2000\n";
+        $from_products = array_slice($from_products, 0, $cap);
+    }
+}
+
 foreach (preg_split('/[\r\n,]+/', $raw) as $cand) {
     $cand = trim($cand);
     if ($cand === '' || stripos($cand, 'media:') === 0) continue;
+    if (stripos($cand, 'category:') === 0 || stripos($cand, 'products:') === 0) continue;
+    if (preg_match('/^\d+$/', $cand)) continue;   // a stray id from "products:12,34"
     if (preg_match('#^https?://#i', $cand)) {
         echo "  SKIPPED (a web link, not a folder on this server): {$cand}\n";
         echo "    Upload the images to the site first — Media Library, FTP or\n";
@@ -263,7 +363,7 @@ foreach (preg_split('/[\r\n,]+/', $raw) as $cand) {
     $dirs[] = $found;
 }
 $dirs = array_values(array_unique(array_filter($dirs)));
-if (!$dirs && !$media) {
+if (!$dirs && !$media && !$from_products) {
     if ($auto) {
         echo "  no new artwork anywhere yet. The pictures have to reach the site once —\n";
         echo "  a path on the owner's PC (C:\\Users\\...) cannot be read from here. Any of:\n";
@@ -348,8 +448,19 @@ foreach ($media as $id) {
         'att'  => (int) $id,
     );
 }
-printf("  pictures found: %d (%d on disk, %d already in the library)\n\n",
-    count($items), count($files), count($media));
+// A piece the studio already sells, to be offered in the premium finish. Its
+// own picture and words come with it, which is what makes the new listing as
+// complete as the one it came from.
+foreach ($from_products as $pid) {
+    $items[] = array(
+        'key'         => 'product:' . $pid,
+        'name'        => get_the_title($pid),
+        'att'         => (int) get_post_thumbnail_id($pid),
+        'src_product' => (int) $pid,
+    );
+}
+printf("  pictures found: %d (%d on disk, %d in the library, %d from products already on the site)\n\n",
+    count($items), count($files), count($media), count($from_products));
 if (!$items) { echo "=== DONE ===\n"; return; }
 
 /* ── the category everything lands in ─────────────────────────────────── */
@@ -387,6 +498,23 @@ function af_gf_title_from_file($path) {
     return $n;
 }
 
+/**
+ * The same artwork, named as the premium finish of itself.
+ *
+ * The suffix goes on the END on purpose: the size the selector opens on and
+ * the deploy's repricing pass both read the size out of the TITLE, so
+ * everything before it has to survive untouched. The suffix carries no digits,
+ * so it cannot be mistaken for one.
+ */
+function af_gf_title_from_product($src_title) {
+    $t = trim(preg_replace('/\s{2,}/', ' ', (string) $src_title));
+    // a source that already says gold foil or UV must not end up saying it twice
+    $t = preg_replace('/\s*[\x{2014}\x{2013}-]?\s*\bgold\s*foil(ed)?\b(\s*(&|and)\s*\buv\b)?/iu', '', $t);
+    $t = trim(preg_replace('/\s{2,}/', ' ', $t));
+    if ($t === '') $t = 'Gold Foiled Artwork';
+    return $t . ' — Gold Foiled & UV';
+}
+
 $created = 0; $skipped = 0; $failed = 0;
 foreach ($items as $item) {
     $key  = $item['key'];                 // the file path, or "att:<id>"
@@ -394,7 +522,11 @@ foreach ($items as $item) {
     $path = isset($item['file']) ? $item['file'] : '';
     if (isset($seen[$key])) { $skipped++; continue; }
 
-    $title = af_gf_title_from_file($base);
+    // A product this site already sells arrives with a finished name; a bare
+    // file has to have one built out of its filename.
+    $src_pid = isset($item['src_product']) ? (int) $item['src_product'] : 0;
+    $title   = $src_pid ? af_gf_title_from_product($base) : af_gf_title_from_file($base);
+
     // A size written into the filename decides the price. Everything downstream
     // — the size the selector opens on, and the deploy's repricing pass — reads
     // the size out of the TITLE, so when the filename carries none the default
@@ -403,10 +535,12 @@ foreach ($items as $item) {
     $label = function_exists('af_size_label_for_product') ? af_size_label_for_product($title) : '';
     $titled = ($label !== '' && in_array($label, $sizes, true));
     if (!$titled) $label = $def;
-    if (stripos($title, 'gold') === false) $title .= ' Gold Foiled';
-    if (!preg_match('/\b(canvas|print|art)\b/i', $title)) $title .= ' UV Canvas Art';
-    if (!$titled && preg_match('/^(\d+(?:\.\d+)?)×(\d+(?:\.\d+)?) ft/u', $label, $lm)) {
-        $title .= ' ' . $lm[1] . 'x' . $lm[2] . ' Feet';
+    if (!$src_pid) {
+        if (stripos($title, 'gold') === false) $title .= ' Gold Foiled';
+        if (!preg_match('/\b(canvas|print|art)\b/i', $title)) $title .= ' UV Canvas Art';
+        if (!$titled && preg_match('/^(\d+(?:\.\d+)?)×(\d+(?:\.\d+)?) ft/u', $label, $lm)) {
+            $title .= ' ' . $lm[1] . 'x' . $lm[2] . ' Feet';
+        }
     }
 
     // never two products with the same name (get_page_by_title() is deprecated
@@ -449,24 +583,49 @@ foreach ($items as $item) {
     $card  = isset($cfgb['sizes'][$label]) ? (float) $cfgb['sizes'][$label] : (float) reset($cfgb['sizes']);
     $sell  = af_goldfoil_scale($card, $ratio);
 
+    // What the finish adds, said once, in front of whatever else the listing says.
+    $gf_copy =
+        '<p>Finished with genuine gold foil detailing and sealed under a UV-cured coat, this piece catches the light the way an ordinary print cannot — the foil lifts the highlights, and the UV layer keeps the colour and the sheen intact for years.</p>'
+        . '<h4>The Gold Foiled &amp; UV finish</h4><ul>'
+        . '<li>Gold foil detailing, applied by hand to the highlights</li>'
+        . '<li>UV-cured protective coat — scratch-resistant and fade-resistant</li>'
+        . '<li>Premium cotton-blend canvas with archival pigment inks</li>'
+        . '<li>Available in every size and frame the studio offers</li>'
+        . '<li>Ships ready to hang</li>'
+        . '</ul>';
+
+    // A piece already on the site brings its own words with it. Reusing them is
+    // the difference between a listing as complete as the rest of the catalogue
+    // and a stub carrying only the finish note — the source has already been
+    // through the template, the specs and the FAQ passes, and those are exactly
+    // the "all details" the owner asked these products to have. The old title
+    // inside that copy is replaced so the piece does not introduce itself by
+    // its other name.
+    $desc = '';
+    $short = '';
+    if ($src_pid) {
+        $src_desc  = (string) get_post_field('post_content', $src_pid);
+        $src_short = (string) get_post_field('post_excerpt', $src_pid);
+        $src_name  = (string) get_the_title($src_pid);
+        if (trim($src_desc) !== '') {
+            if ($src_name !== '') $src_desc = str_replace($src_name, $title, $src_desc);
+            $desc = $gf_copy . $src_desc;
+        }
+        if (trim($src_short) !== '') {
+            $short = 'Gold foil detailing sealed under a UV-cured coat. ' . $src_short;
+        }
+    }
+    if ($desc === '')  $desc  = '<h3>' . esc_html($title) . '</h3>' . $gf_copy;
+    if ($short === '') $short = 'Gold foil detailing sealed under a UV-cured coat. Printed on premium cotton-blend canvas with archival inks, in the size and frame you choose.';
+
     $p = new WC_Product_Simple();
     $p->set_name($title);
     $p->set_status('publish');
     $p->set_catalog_visibility('visible');
     $p->set_manage_stock(false);
     $p->set_stock_status('instock');
-    $p->set_short_description('Gold foil detailing sealed under a UV-cured coat. Printed on premium cotton-blend canvas with archival inks, in the size and frame you choose.');
-    $p->set_description(
-        '<h3>' . esc_html($title) . '</h3>'
-        . '<p>Finished with genuine gold foil detailing and sealed under a UV-cured coat, this piece catches the light the way an ordinary print cannot — the foil lifts the highlights, and the UV layer keeps the colour and the sheen intact for years.</p>'
-        . '<h4>Product Highlights</h4><ul>'
-        . '<li>Gold foil detailing, applied by hand to the highlights</li>'
-        . '<li>UV-cured protective coat — scratch-resistant and fade-resistant</li>'
-        . '<li>Premium cotton-blend canvas with archival pigment inks</li>'
-        . '<li>Available in every size and frame the studio offers</li>'
-        . '<li>Ships ready to hang</li>'
-        . '</ul>'
-    );
+    $p->set_short_description($short);
+    $p->set_description($desc);
     $p->set_regular_price((string) $sell);
     $pid = $p->save();
     if (!$pid) { printf("  ! %-52s could not be created\n", $base); $failed++; continue; }
@@ -481,37 +640,74 @@ foreach ($items as $item) {
         }
     }
 
+    // ONLY the section's own category. Filing the premium copy under the source
+    // product's categories too would show both versions of the same artwork
+    // side by side in every ordinary listing, which reads as a duplicated
+    // catalogue rather than a premium line.
     wp_set_object_terms($pid, array((int) $term->term_id), 'product_cat');
     update_post_meta($pid, '_af_goldfoil', 'yes');
     update_post_meta($pid, '_af_goldfoil_src', $key);
+
+    // The source's other views, reused in place. No SKU or art code is copied:
+    // WooCommerce requires SKUs to be unique, and a shared art code is the very
+    // data problem this catalogue has been untangling for weeks — the deploy's
+    // own passes give this product its own.
+    if ($src_pid) {
+        update_post_meta($pid, '_af_goldfoil_of', $src_pid);
+        $gal = (string) get_post_meta($src_pid, '_product_image_gallery', true);
+        if ($gal !== '') update_post_meta($pid, '_product_image_gallery', $gal);
+
+        // An art code identifies the ARTWORK, and this is the same artwork in a
+        // different finish — so it takes the source's code with a suffix. The
+        // suffix is not decoration: tools/sku-to-artcode.php gives a product its
+        // SKU from this field and skips anything without one, so a gold piece
+        // with no code would be the only thing in the catalogue with no SKU.
+        // Copying the code unchanged was the other option and is exactly the
+        // shared-code data problem this catalogue has spent weeks untangling.
+        $code = trim((string) get_post_meta($src_pid, '_taf_art_code', true));
+        if ($code !== '') update_post_meta($pid, '_taf_art_code', $code . '-GF');
+    }
 
     // A picture already in the Media Library is reused where it is — attaching
     // it costs nothing and avoids a second copy of the same file on disk.
     if (!empty($item['att'])) {
         set_post_thumbnail($pid, (int) $item['att']);
-        printf("  + %-52s #%-7d %-22s $%s  (library image #%d)\n",
-            $base, $pid, $label, $sell, (int) $item['att']);
+        printf("  + %-52s #%-7d %-22s $%s  (%s)\n",
+            substr($base, 0, 52), $pid, $label, $sell,
+            $src_pid ? ('from product #' . $src_pid) : ('library image #' . (int) $item['att']));
         $created++;
         continue;
     }
 
     // Copy, never move: media_handle_sideload() consumes the file it is given,
     // and the owner's folder must survive the import untouched.
-    $tmp = wp_tempnam($base);
+    $tmp    = wp_tempnam($base);
+    $why    = '';
     if ($tmp && @copy($path, $tmp)) {
         $att = media_handle_sideload(array('name' => sanitize_file_name($base), 'tmp_name' => $tmp), $pid, $title);
         if (is_wp_error($att)) {
             @unlink($tmp);
-            printf("  ! %-52s image failed: %s\n", $base, $att->get_error_message());
+            $why = $att->get_error_message();
         } else {
             set_post_thumbnail($pid, $att);
         }
     } else {
         if ($tmp) @unlink($tmp);
-        printf("  ! %-52s could not read the file\n", $base);
+        $why = 'the file could not be read';
     }
 
-    printf("  + %-52s #%-7d %-22s $%s\n", $base, $pid, $label, $sell);
+    // A product with no picture is not a listing, it is a blank card — and the
+    // deploy's own draft-imageless.php pass would quietly unpublish it later in
+    // this same run, leaving something half-made behind and a log that claimed
+    // success. Take it back out instead, and say so.
+    if ($why !== '') {
+        wp_delete_post($pid, true);
+        printf("  ! %-52s image failed (%s) — product removed\n", substr($base, 0, 52), $why);
+        $failed++;
+        continue;
+    }
+
+    printf("  + %-52s #%-7d %-22s $%s\n", substr($base, 0, 52), $pid, $label, $sell);
     $created++;
 }
 
