@@ -137,14 +137,19 @@ foreach ($cands as $t) {
         'tax_query' => array(array('taxonomy' => 'product_cat', 'field' => 'term_id',
             'terms' => array((int) $t->term_id), 'include_children' => false)),
     ));
+    // fields=>ids leaves the post and meta caches cold, so every get_the_title
+    // and get_post_meta below would be its own query — a few hundred of them
+    // across these samples, on a host that has hit its resource limit before.
+    // One prime call makes the whole loop free.
+    if ($ids) _prime_post_caches($ids, false, true);
     foreach ($ids as $pid) {
-        $p = function_exists('wc_get_product') ? wc_get_product($pid) : null;
-        $gal = get_post_meta($pid, '_product_image_gallery', true);
+        $gal  = get_post_meta($pid, '_product_image_gallery', true);
         $ngal = $gal ? count(array_filter(explode(',', $gal))) : 0;
+        $price = get_post_meta($pid, '_price', true);
         printf("      #%-7d %-44s %-9s gallery=%-3d %s\n",
             $pid,
-            substr(get_the_title($pid), 0, 44),
-            $p ? ('$' . $p->get_price()) : '?',
+            substr(html_entity_decode(wp_strip_all_tags(get_the_title($pid)), ENT_QUOTES, 'UTF-8'), 0, 44),
+            ($price !== '' ? '$' . $price : '?'),
             $ngal,
             af_gfp_thumb_name($pid));
     }
@@ -208,10 +213,14 @@ echo "\nF. FOLDERS IN uploads/ THAT HOLD IMAGES (recursive, year + plugin dirs a
 $up      = wp_get_upload_dir();
 $base    = $up['basedir'];
 $EXTS    = array('jpg', 'jpeg', 'png', 'webp', 'gif');
+// gold-foil-unpacked is deliberately NOT skipped: that is the very folder
+// import-gold-foil.php unpacks a zip into, so it is one of the likeliest places
+// on this server for the owner's artwork to be sitting — skipping it would let
+// this report say "nothing here" about the one directory that had it.
 $SKIP    = array('af-wm', 'elementor', 'essential-addons-elementor', 'premium-addons-elementor',
                  'revslider', 'rank-math', 'wpo', 'lsft', 'firebox', 'pum', 'merlin-wp',
                  'transposh', 'woocommerce_uploads', 'wc-logs', 'dfg-logs', 'insta-gallery-logs',
-                 'taf-reports', 'wpcf7_uploads', 'wpallimport', 'wc-imports', 'gold-foil-unpacked');
+                 'taf-reports', 'wpcf7_uploads', 'wpallimport', 'wc-imports');
 $counts  = array();
 $seen    = 0;
 $CAP     = 40000;
@@ -247,5 +256,65 @@ if (!$counts) {
     }
 }
 printf("   (%d directory entries examined, cap %d)\n", $seen, $CAP);
+
+/* ── G. a folder hiding inside the year tree ──────────────────────────────
+ * The walk above steps over uploads/2023, /2025, /2026 on purpose: between
+ * them they hold this site's whole library and would swamp both the cap and
+ * the report. But that is exactly where an FTP client or a File Manager
+ * "upload folder" drops things, so skipping them outright is how a report
+ * concludes "the artwork is not on this server" while it sits in
+ * uploads/2026/08/Personalised.
+ *
+ * WordPress itself never creates a directory inside YYYY/MM — only files. So
+ * this looks for DIRECTORIES ONLY, which makes it both cheap and meaningful:
+ * anything it finds was put there by a person.
+ *
+ * opendir/readdir rather than scandir, and a name with a dot in it is taken as
+ * a file without asking the filesystem — the month folders hold tens of
+ * thousands of entries, and stat()-ing each one is the kind of thing that has
+ * taken this shared host down before.
+ */
+echo "\nG. HAND-MADE FOLDERS INSIDE uploads/YYYY/ (WordPress makes none)\n";
+$hand = array();
+$looked = 0;
+$years = @scandir($base);
+if ($years) foreach ($years as $y) {
+    if (!preg_match('/^\d{4}$/', $y)) continue;
+    $ydir = $base . '/' . $y;
+    $months = @scandir($ydir);
+    if (!$months) continue;
+    foreach ($months as $m) {
+        if ($m === '.' || $m === '..') continue;
+        $mdir = $ydir . '/' . $m;
+        if (!is_dir($mdir)) continue;
+        // a month folder (or anything else a person made directly under the year)
+        if (!preg_match('/^\d{1,2}$/', $m)) { $hand[] = $y . '/' . $m; continue; }
+        $dh = @opendir($mdir);
+        if (!$dh) continue;
+        while (($e = readdir($dh)) !== false) {
+            if ($e === '.' || $e === '..') continue;
+            if ($looked++ > 60000) break;
+            if (strpos($e, '.') !== false) continue;      // has an extension: a file
+            if (is_dir($mdir . '/' . $e)) $hand[] = $y . '/' . $m . '/' . $e;
+        }
+        closedir($dh);
+    }
+}
+if (!$hand) {
+    echo "   (none — nothing was hand-placed in the year tree)\n";
+} else {
+    foreach (array_slice($hand, 0, 20) as $rel) {
+        // one glob per extension rather than GLOB_BRACE, which is not defined
+        // on every libc and would be a fatal error in the last step of a deploy
+        $n = 0;
+        foreach ($EXTS as $e) {
+            $n += count((array) glob($base . '/' . $rel . '/*.' . $e));
+            $n += count((array) glob($base . '/' . $rel . '/*.' . strtoupper($e)));
+        }
+        printf("   %-56s %d image(s)   <-- SOMEBODY PUT THIS HERE\n", $rel, $n);
+    }
+    if (count($hand) > 20) printf("   ...and %d more\n", count($hand) - 20);
+}
+printf("   (%d entries examined)\n", $looked);
 
 echo "\n=== DONE ===\n";

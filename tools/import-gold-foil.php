@@ -151,11 +151,15 @@ foreach (preg_split('/[\r\n,]+(?![0-9])/', $raw) as $cand) {
         $when = trim(substr($spec, 6));
         // a bare date means from the start of that day
         if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $when)) $when .= ' 00:00:00';
-        $media = array_map('intval', $wpdb->get_col($wpdb->prepare(
+        // added to what other specs found, never assigned over it: several
+        // sources may be listed, and one quietly erasing another's matches is
+        // the kind of thing nobody notices until the section is short
+        $found = array_map('intval', $wpdb->get_col($wpdb->prepare(
             "SELECT ID FROM {$wpdb->posts}
               WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%%'
                 AND post_date >= %s ORDER BY ID ASC", $when)));
-        printf("  media: %d image(s) uploaded on or after %s\n", count($media), $when);
+        foreach ($found as $id) $media[] = $id;
+        printf("  media: %d image(s) uploaded on or after %s\n", count($found), $when);
         continue;
     }
 
@@ -200,11 +204,12 @@ foreach (preg_split('/[\r\n,]+(?![0-9])/', $raw) as $cand) {
         printf("  media: %d image(s) in the library that nothing uses\n", count($media));
     } else {
         $like = '%' . $wpdb->esc_like($spec) . '%';
-        $media = array_map('intval', $wpdb->get_col($wpdb->prepare(
+        $found = array_map('intval', $wpdb->get_col($wpdb->prepare(
             "SELECT ID FROM {$wpdb->posts}
               WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%%'
                 AND (guid LIKE %s OR post_title LIKE %s)", $like, $like)));
-        printf("  media: %d image(s) matching \"%s\"\n", count($media), $spec);
+        foreach ($found as $id) $media[] = $id;
+        printf("  media: %d image(s) matching \"%s\"\n", count($found), $spec);
     }
 }
 $media = array_values(array_unique($media));
@@ -448,13 +453,30 @@ foreach ($media as $id) {
         'att'  => (int) $id,
     );
 }
+/**
+ * A product's name as it is actually STORED, not as a page would print it.
+ *
+ * get_the_title() runs the `the_title` filter, and wptexturize on that filter
+ * rewrites digit-x-digit — "3x4" becomes the literal seven characters
+ * "3&#215;4". Harmless on a page, ruinous here: that string would be written
+ * straight back into post_title, and af_size_label_for_product() cannot read a
+ * size out of it. The piece would then be priced from the default size instead
+ * of its own, and reprice-from-card.php would file it under "no size" and skip
+ * it on every future run, so its price would never track the rate card again.
+ * Six other tools in this folder already decode for exactly this reason
+ * (import-artcodes.php, sku-to-artcode.php, apply-artcode-batch.php, ...).
+ */
+function af_gf_stored_title($pid) {
+    return html_entity_decode(wp_strip_all_tags(get_the_title($pid)), ENT_QUOTES, 'UTF-8');
+}
+
 // A piece the studio already sells, to be offered in the premium finish. Its
 // own picture and words come with it, which is what makes the new listing as
 // complete as the one it came from.
 foreach ($from_products as $pid) {
     $items[] = array(
         'key'         => 'product:' . $pid,
-        'name'        => get_the_title($pid),
+        'name'        => af_gf_stored_title($pid),
         'att'         => (int) get_post_thumbnail_id($pid),
         'src_product' => (int) $pid,
     );
@@ -533,8 +555,19 @@ foreach ($items as $item) {
     // is written into the title rather than only into the price. Otherwise this
     // product would list at one size and open its options on another.
     $label = function_exists('af_size_label_for_product') ? af_size_label_for_product($title) : '';
-    $titled = ($label !== '' && in_array($label, $sizes, true));
-    if (!$titled) $label = $def;
+    // A size the title really names is kept whenever the RATE CARD prices it,
+    // not only when the selector currently offers it. The narrower test was
+    // resetting the price to the default size while the title went on naming
+    // the real one — so a piece called 24x48 was charged as if it were 24x36,
+    // which is the one kind of mistake a shop must never make.
+    $titled = ($label !== '' && (in_array($label, $sizes, true) || isset($cfgb['sizes'][$label])));
+    if (!$titled) {
+        if ($label !== '') {
+            printf("  ~ %-52s size \"%s\" is not on the rate card — priced as %s\n",
+                substr($base, 0, 52), $label, $def);
+        }
+        $label = $def;
+    }
     if (!$src_pid) {
         if (stripos($title, 'gold') === false) $title .= ' Gold Foiled';
         if (!preg_match('/\b(canvas|print|art)\b/i', $title)) $title .= ' UV Canvas Art';
@@ -559,8 +592,10 @@ foreach ($items as $item) {
         // The name belongs to an ORDINARY product. Adopting it would silently
         // move a normal print into this section and reprice it 40% up — the
         // request was a premium section, not a premium on the existing
-        // catalogue. The gold version gets a name of its own instead.
-        $title .= ' (Gold Foiled & UV)';
+        // catalogue. The gold version gets a name of its own instead, without
+        // naming the finish twice on a title that already ends with it.
+        $title .= (stripos($title, 'Gold Foiled & UV') === false)
+            ? ' (Gold Foiled & UV)' : ' (Premium Finish)';
         $exists = $af_gf_by_title($title);
         if ($exists && get_post_meta($exists, '_af_goldfoil', true) !== 'yes'
                     && !has_term((int) $term->term_id, 'product_cat', $exists)) {
@@ -606,7 +641,7 @@ foreach ($items as $item) {
     if ($src_pid) {
         $src_desc  = (string) get_post_field('post_content', $src_pid);
         $src_short = (string) get_post_field('post_excerpt', $src_pid);
-        $src_name  = (string) get_the_title($src_pid);
+        $src_name  = af_gf_stored_title($src_pid);
         if (trim($src_desc) !== '') {
             if ($src_name !== '') $src_desc = str_replace($src_name, $title, $src_desc);
             $desc = $gf_copy . $src_desc;
