@@ -4,6 +4,19 @@ on:
   push:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      # Reading the live database is only possible from inside a deploy, and a
+      # full one spends ~45 WP-CLI blocks and a quarter of an hour before it
+      # reaches the read-only checks at the end. Worse, that connection spree is
+      # what makes the NEXT run's rsync get refused by the host's throttle — run
+      # 822 spent 26 minutes being turned away and never deployed at all,
+      # because run 821 seventeen minutes earlier had used up the allowance.
+      # This asks a question without paying either cost: rsync the theme, skip
+      # every writing pass, run the read-only diagnostics.
+      diag_only:
+        description: 'Diagnostics only — deploy the code, skip every catalogue script'
+        type: boolean
+        default: false
 
 # One deploy at a time. Two overlapping runs each rsync --delete the theme and
 # fire a dozen WP-CLI processes at the same shared host, which is enough to hit
@@ -43,6 +56,7 @@ jobs:
           H_HOST: ${{ secrets.HOSTINGER_HOST }}
           H_PORT: ${{ secrets.HOSTINGER_PORT }}
           GH_EVENT_NAME: ${{ github.event_name }}
+          GH_DIAG_ONLY: ${{ inputs.diag_only }}
           GH_BEFORE: ${{ github.event.before }}
           GH_SHA: ${{ github.sha }}
         run: |
@@ -135,7 +149,12 @@ jobs:
               RUN_SUITE=0
             fi
           fi
-          if [ "$RUN_SUITE" = "1" ]; then
+          # A diagnostics-only run overrides everything above: it is here to ask
+          # the live database a question, not to change anything.
+          if [ "$GH_DIAG_ONLY" = "true" ]; then
+            RUN_SUITE=0
+            echo "DIAGNOSTICS ONLY: theme deployed, every catalogue script skipped."
+          elif [ "$RUN_SUITE" = "1" ]; then
             echo "FULL deploy: running the complete script suite."
           else
             echo "LIGHT deploy (theme code only): skipping the script suite. Put [full-deploy] in the commit message to force it."
