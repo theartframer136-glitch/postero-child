@@ -29,6 +29,14 @@
  * makes the new listing as complete as the one it came from — while the price
  * is computed from the rate card exactly as it is for every other piece here.
  *
+ * OR A LINK, which needs nothing installed anywhere. This catalogue's own
+ * pictures arrived that way — bulk-import-products.php pulls every image from
+ * a URL and nobody ever uploaded a file by hand:
+ *   wp option update af_goldfoil_source 'https://.../artwork.zip'
+ * A zip is unpacked and every picture in it becomes a product; a link to one
+ * picture becomes one product. Synology, Dropbox, Google Drive, WeTransfer —
+ * anything that serves the bytes without asking who you are.
+ *
  * WHEN NOTHING IS NAMED the importer finds the artwork on its own, in order:
  * the theme's assets/gold-foil/ (pictures committed to the repo), a folder or
  * zip in uploads/ named gold-foil or Personalised, and finally media:fresh —
@@ -340,15 +348,76 @@ if ($from_products) {
     }
 }
 
+$exts_link = array('jpg', 'jpeg', 'png', 'webp', 'gif');
 foreach (preg_split('/[\r\n,]+/', $raw) as $cand) {
     $cand = trim($cand);
     if ($cand === '' || stripos($cand, 'media:') === 0) continue;
     if (stripos($cand, 'category:') === 0 || stripos($cand, 'products:') === 0) continue;
     if (preg_match('/^\d+$/', $cand)) continue;   // a stray id from "products:12,34"
+    // A LINK. The server fetches it itself, which is how this catalogue's
+    // pictures arrived in the first place — bulk-import-products.php pulls
+    // every image from a URL (af_sideload_image, download_url) and nobody ever
+    // uploaded a file by hand. So a share link to the artwork — Synology,
+    // Dropbox, Google Drive, WeTransfer, anything that serves the bytes without
+    // a login — is a complete answer on its own: paste the link, and the
+    // pictures walk in.
+    //
+    // A zip is unpacked and every picture inside it is imported. A link to a
+    // single picture is imported as one product.
     if (preg_match('#^https?://#i', $cand)) {
-        echo "  SKIPPED (a web link, not a folder on this server): {$cand}\n";
-        echo "    Upload the images to the site first — Media Library, FTP or\n";
-        echo "    wp-content/uploads/gold-foil/ — then point af_goldfoil_source at that folder.\n";
+        $tmp = download_url($cand, 300);
+        if (is_wp_error($tmp)) {
+            printf("  link: could not fetch %s — %s\n", $cand, $tmp->get_error_message());
+            echo  "        A link that needs a login cannot be read from here. Use the\n";
+            echo  "        share/anyone-with-the-link version, or one that downloads\n";
+            echo  "        without asking who you are.\n";
+            continue;
+        }
+
+        // What actually came back, decided by the bytes and not by the URL —
+        // share links rarely end in .zip even when that is what they serve.
+        $magic = '';
+        $fh = @fopen($tmp, 'rb');
+        if ($fh) { $magic = (string) fread($fh, 4); fclose($fh); }
+        $is_zip = (substr($magic, 0, 2) === 'PK');
+
+        $work = trailingslashit($up['basedir']) . 'gold-foil-unpacked';
+        if (!is_dir($work)) wp_mkdir_p($work);
+
+        if ($is_zip) {
+            WP_Filesystem();
+            $into = trailingslashit($work) . 'link-' . substr(md5($cand), 0, 10);
+            if (!is_dir($into)) {
+                wp_mkdir_p($into);
+                $ok = unzip_file($tmp, $into);
+                if (is_wp_error($ok)) {
+                    @unlink($tmp);
+                    printf("  link: fetched, but could not unpack it — %s\n", $ok->get_error_message());
+                    continue;
+                }
+            }
+            @unlink($tmp);
+            printf("  link: fetched and unpacked %s\n", $cand);
+            $dirs[] = $into;
+            continue;
+        }
+
+        // a single picture: park it under its real name so the product is named
+        // after the artwork rather than after a temp file
+        $name = basename(parse_url($cand, PHP_URL_PATH));
+        if ($name === '' || strpos($name, '.') === false) $name = 'artwork-' . substr(md5($cand), 0, 8) . '.jpg';
+        $ft = wp_check_filetype($name);
+        if (empty($ft['ext']) || !in_array(strtolower($ft['ext']), $exts_link, true)) {
+            @unlink($tmp);
+            printf("  link: %s is neither a zip nor a picture — skipped\n", $cand);
+            continue;
+        }
+        $into = trailingslashit($work) . 'link-single';
+        if (!is_dir($into)) wp_mkdir_p($into);
+        @rename($tmp, trailingslashit($into) . sanitize_file_name($name));
+        @unlink($tmp);
+        printf("  link: fetched %s\n", $name);
+        $dirs[] = $into;
         continue;
     }
     // an absolute path, a path from the WordPress root, or one from uploads/
