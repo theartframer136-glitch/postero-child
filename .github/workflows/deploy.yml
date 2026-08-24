@@ -920,6 +920,16 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/populate-all-art-prints.php --allow-root 2>&1" \
             || true
 
+          # Straight after the passes that append categories to every product:
+          # the premium finish belongs in its own section, and both of those
+          # sweeps would otherwise leave the same artwork listed twice in the
+          # ordinary categories at two different prices.
+          echo "Keeping Gold Foiled & UV in its own section..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/enforce-goldfoil-category.php --allow-root 2>&1" \
+            || true
+
           # Gold Foiled & UV setup + import moved to the TOP of suite 1: products
           # created by the importer must exist before apply-template,
           # assign-filter-attributes, assign-tags, apply-mrp-markup and the SEO
