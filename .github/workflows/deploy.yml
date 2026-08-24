@@ -897,6 +897,22 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/regenerate-image-sizes.php --allow-root 2>&1" \
             || true
 
+      - name: Apply the checked art-code corrections
+        if: always()
+        timeout-minutes: 8
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Write the art codes that were checked against the book..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             AF_APPLY=1 \
+             wp eval-file wp-content/themes/postero-child/tools/apply-artcode-corrections.php --allow-root 2>&1" \
+            || true
+
       - name: SKU → art code (batched, resumable)
         if: always()
         timeout-minutes: 8
@@ -1211,22 +1227,6 @@ jobs:
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-artcode-duplicates.php --allow-root 2>&1" \
-            || true
-
-      - name: Apply the checked art-code corrections
-        if: always()
-        timeout-minutes: 8
-        run: |
-          set -uo pipefail
-          USER="${{ secrets.HOSTINGER_USERNAME }}"
-          HOST="${{ secrets.HOSTINGER_HOST }}"
-          PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
-          echo "Write the art codes that were checked against the book..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             AF_APPLY=1 \
-             wp eval-file wp-content/themes/postero-child/tools/apply-artcode-corrections.php --allow-root 2>&1" \
             || true
 
       - name: Product card structure (one-off, read-only)
