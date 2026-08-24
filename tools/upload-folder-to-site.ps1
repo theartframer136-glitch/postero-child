@@ -19,22 +19,32 @@
 
     How to run it
     -------------
-    Right-click the file  ->  "Run with PowerShell".
-    Or, in a PowerShell window:
+    Double-click  "Upload artwork to The Art Framer.bat"  in this same folder.
+    That is the whole procedure. (The .bat exists because Windows refuses to
+    run a .ps1 on a double-click, and loosening that setting for the whole
+    machine to run one script is a worse idea than bypassing it for this one.)
 
-        powershell -ExecutionPolicy Bypass -File .\upload-folder-to-site.ps1
+    It finds the artwork folder by itself — it looks through Synology Drive for
+    a folder called Personalised or Personalized. If it cannot find one, it
+    asks, and you can drag the folder onto the window instead of typing a path.
 
-    To send a different folder:
+    To send a different folder deliberately:
 
         .\upload-folder-to-site.ps1 -Folder "C:\Users\user\SynologyDrive\Other"
 
     Safe to re-run: the site keeps its own copy, and the originals in your
     folder are never moved, renamed or altered.
+
+    Afterwards
+    ----------
+    Tell Claude it is done. One deploy then turns every picture into a
+    published product — title, the 40%-above-normal price, description, size
+    and frame options, SKU and SEO — with nothing else to do.
 #>
 
 [CmdletBinding()]
 param(
-    [string] $Folder = 'C:\Users\user\SynologyDrive\Personalised',
+    [string] $Folder = '',
     [string] $Site   = 'https://theartframer.us',
     [string] $User   = ''
 )
@@ -46,9 +56,39 @@ Write-Host ''
 Write-Host '  Artwork upload -> The Art Framer' -ForegroundColor Cyan
 Write-Host '  --------------------------------'
 
+# Find the folder rather than insisting on one spelling of it. Synology Drive
+# puts its root in a different place depending on how it was set up, and the
+# folder has been called Personalised and Personalized at different times, so
+# the likely places are tried in order and anything matching is accepted.
+if ([string]::IsNullOrWhiteSpace($Folder)) {
+    $roots = @(
+        (Join-Path $env:USERPROFILE 'SynologyDrive'),
+        (Join-Path $env:USERPROFILE 'SynologyDrive\SynologyDrive'),
+        (Join-Path $env:USERPROFILE 'Synology Drive'),
+        'C:\SynologyDrive',
+        $env:USERPROFILE
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) }
+
+    foreach ($r in $roots) {
+        $hit = Get-ChildItem -LiteralPath $r -Directory -Recurse -Depth 3 -ErrorAction SilentlyContinue |
+               Where-Object { $_.Name -match '^personali[sz]ed?$' } |
+               Select-Object -First 1
+        if ($hit) { $Folder = $hit.FullName; break }
+    }
+    if ($Folder) {
+        Write-Host "  Found your folder: $Folder" -ForegroundColor Green
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($Folder) -or -not (Test-Path -LiteralPath $Folder)) {
+    Write-Host '  Could not find the artwork folder automatically.' -ForegroundColor Yellow
+    Write-Host '  Drag the folder onto this window and press Enter (or paste its path):'
+    $typed = Read-Host '  Folder'
+    $Folder = $typed.Trim().Trim('"')
+}
+
 if (-not (Test-Path -LiteralPath $Folder)) {
     Write-Host "  Folder not found: $Folder" -ForegroundColor Red
-    Write-Host '  Pass the right one with:  -Folder "C:\path\to\folder"'
     Read-Host '  Press Enter to close'
     exit 1
 }
@@ -68,6 +108,15 @@ $totalMb = [math]::Round((($files | Measure-Object -Property Length -Sum).Sum / 
 Write-Host "  Folder : $Folder"
 Write-Host "  Found  : $($files.Count) image(s), $totalMb MB"
 Write-Host "  Site   : $Site"
+Write-Host ''
+
+Write-Host ''
+Write-Host '  You need a WordPress APPLICATION PASSWORD (not your login password).' -ForegroundColor Yellow
+Write-Host '  Opening the page where you create one...'
+try { Start-Process "$Site/wp-admin/profile.php#application-passwords-section" } catch { }
+Write-Host '  On that page: scroll to "Application Passwords", type a name such as'
+Write-Host '  "Artwork upload", click Add. It shows once, as six blocks of four'
+Write-Host '  characters. Copy it and paste it below. You can revoke it any time.'
 Write-Host ''
 
 if ([string]::IsNullOrWhiteSpace($User)) {
