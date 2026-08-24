@@ -17,6 +17,18 @@ on:
         description: 'Diagnostics only — deploy the code, skip every catalogue script'
         type: boolean
         default: false
+      # Which artwork the Gold Foiled & UV importer should build from. Set here
+      # rather than committed, because it is an instruction for one run and not
+      # a fact about the theme — and because the answer depends on what the
+      # diagnostics find in the live database, which nothing in the repo knows.
+      #   category:personalised-prints   every published piece in that category
+      #   products:1234,5678             these pieces
+      #   media:fresh                    new Media Library uploads (the default)
+      #   off                            stop importing entirely
+      goldfoil_source:
+        description: 'Gold Foiled & UV source (e.g. category:some-slug). Blank changes nothing.'
+        type: string
+        default: ''
 
 # One deploy at a time. Two overlapping runs each rsync --delete the theme and
 # fire a dozen WP-CLI processes at the same shared host, which is enough to hit
@@ -160,6 +172,31 @@ jobs:
             echo "LIGHT deploy (theme code only): skipping the script suite. Put [full-deploy] in the commit message to force it."
           fi
           echo "RUN_SUITE=$RUN_SUITE" >> "$GITHUB_ENV"
+
+      - name: Point the Gold Foiled & UV importer at a source
+        if: inputs.goldfoil_source != ''
+        env:
+          H_USER: ${{ secrets.HOSTINGER_USERNAME }}
+          H_HOST: ${{ secrets.HOSTINGER_HOST }}
+          H_PORT: ${{ secrets.HOSTINGER_PORT }}
+          GF_SOURCE: ${{ inputs.goldfoil_source }}
+        run: |
+          set -uo pipefail
+          # This value reaches a shell on the production server, so it is checked
+          # against what a source spec can legitimately contain before it gets
+          # anywhere near one. Every real spec — category:a-slug, products:1,2,
+          # media:since:2026-08-22, off, an absolute path — fits inside this set.
+          case "$GF_SOURCE" in
+            *[!A-Za-z0-9:,._/-]*)
+              echo "::error::Refusing '$GF_SOURCE' — a source spec cannot contain those characters."
+              exit 1 ;;
+          esac
+          SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Setting af_goldfoil_source to '${GF_SOURCE}'..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp option update af_goldfoil_source '${GF_SOURCE}' --allow-root 2>&1" \
+            || echo "  (could not set it — the import below will use whatever is already stored)"
 
       - name: Script suite 1 — catalogue & content
         if: env.RUN_SUITE == '1'

@@ -241,6 +241,10 @@ if (!$count) {
                                    . "  whole folder in — the next deploy turns each new picture into a product\n"
                                    . "  automatically. A folder or zip in {$conv}\n"
                                    . "  (or still named Personalised) works too; a path on the owner's own PC\n"
-                                   . "  cannot be read from the server\n";
+                                   . "  cannot be read from the server.\n"
+                                   . "  Or skip the wait entirely: gold foil is a FINISH, so pieces already in\n"
+                                   . "  the catalogue can be offered in it with no new files at all —\n"
+                                   . "    wp option update af_goldfoil_source 'category:<a-category-slug>'\n"
+                                   . "  (tools/diag-goldfoil-populate.php lists every category and its count)\n";
 }
 echo "=== DONE ===\n";
