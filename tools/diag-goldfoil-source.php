@@ -114,6 +114,29 @@ if ($loose) {
     }
 }
 
+/* ── C½. what the importer's automatic route would take right now ─────── */
+// The importer's default (media:fresh) is the unused images above, kept only
+// when uploaded after the section shipped and not shaped like a mockup or a
+// resized copy. Listing them here makes the deploy log state, in one place,
+// exactly what the import pass of this same deploy picked up — or, when this
+// list is empty, that the artwork has still not reached the site.
+echo "\nC-half. UNUSED UPLOADS NEW ENOUGH TO IMPORT AUTOMATICALLY\n";
+$since = (string) get_option('af_goldfoil_fresh_since', '2026-08-22 12:00:00');
+$fresh = array();
+foreach ($loose as $a) {
+    if ($a->post_date < $since) continue;
+    $n = basename(parse_url($a->guid, PHP_URL_PATH));
+    if (preg_match('/-scene\d+/i', $n)) continue;
+    if (preg_match('/-\d{2,4}x\d{2,4}\.[a-z]+$/i', $n)) continue;
+    $fresh[] = $a;
+}
+printf("   uploaded on or after %s and shaped like artwork: %d\n", $since, count($fresh));
+foreach (array_slice($fresh, 0, 25) as $a) {
+    printf("     #%-8d %-16s %s\n", $a->ID, substr($a->post_date, 0, 16),
+        basename(parse_url($a->guid, PHP_URL_PATH)));
+}
+if (!$fresh) echo "   (none — nothing new has been uploaded since the section went up)\n";
+
 /* ── D. anything named like the owner's folder ────────────────────────── */
 echo "\nD. ATTACHMENTS WHOSE NAME MENTIONS personalised / gold / foil / uv\n";
 $named = $wpdb->get_results(

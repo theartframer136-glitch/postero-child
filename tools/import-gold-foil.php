@@ -21,6 +21,13 @@
  * An absolute path, a path relative to the WordPress root, or a path relative
  * to the uploads folder all work. Several folders can be listed, one per line.
  *
+ * WHEN NOTHING IS NAMED the importer finds the artwork on its own, in order:
+ * the theme's assets/gold-foil/ (pictures committed to the repo), a folder or
+ * zip in uploads/ named gold-foil or Personalised, and finally media:fresh —
+ * Media Library uploads newer than this section that nothing uses yet, so
+ * dragging the folder into wp-admin → Media → Add New is the whole procedure.
+ * `wp option update af_goldfoil_source off` stops every automatic route.
+ *
  * SAFE TO RE-RUN
  * Each product records the file it came from (_af_goldfoil_src). A second run
  * skips files that already have a product, so the deploy can call this every
@@ -45,6 +52,11 @@ $up  = wp_get_upload_dir();
 $raw = '';
 if (!empty($args) && is_array($args)) $raw = implode("\n", $args);   // wp eval-file passes trailing args
 if (trim($raw) === '') $raw = (string) get_option('af_goldfoil_source', '');
+if (in_array(strtolower(trim($raw)), array('off', 'none', 'disabled'), true)) {
+    // the one word that stops every automatic route below
+    echo "  imports switched off (af_goldfoil_source = '" . trim($raw) . "')\n=== DONE ===\n";
+    return;
+}
 if (trim($raw) === '') {
     // The convention, so dropping files in over FTP or File Manager is the
     // whole procedure — no option to set, no command to remember. The owner's
@@ -74,25 +86,32 @@ if (trim($raw) === '') {
         }
     }
 }
+$auto = false;
 if (trim($raw) === '') {
-    echo "  no artwork folder yet. Either:\n";
-    echo "    (a) upload the images — or a zip of them — to wp-content/uploads/gold-foil/\n";
-    echo "        (a folder still named Personalised is found there too), or\n";
-    echo "    (b) wp option update af_goldfoil_source '/absolute/path/to/folder-or-zip'\n";
-    echo "    A path on your own PC (C:\\Users\\...) cannot be read from here —\n";
-    echo "    the files have to reach the server first.\n";
-    echo "=== DONE ===\n";
-    return;
+    // No folder, no zip, no option: fall through to the Media Library. Pictures
+    // dragged into wp-admin → Media → Add New are the least work the owner can
+    // possibly do, so that has to be enough by itself — media:fresh picks up
+    // exactly the uploads that arrived after this section shipped and that
+    // nothing on the site uses yet. Everything older was measured (deploy 818):
+    // 3,502 unused images, all room mockups and source files, none of them this
+    // artwork — which is what the date floor is for.
+    $auto = true;
+    $raw  = 'media:fresh';
+    echo "  no folder or zip on the server — checking the Media Library for new uploads\n";
+    echo "  (pictures dragged into wp-admin -> Media -> Add New become products automatically)\n";
 }
 
 /**
  * A source can also be pictures ALREADY in the Media Library, which is what a
  * folder dragged into WordPress and never turned into products looks like:
  *
+ *   media:fresh         every image uploaded after this section shipped that
+ *                       nothing on the site uses yet — what a folder dragged
+ *                       into Media → Add New looks like. This is the DEFAULT
+ *                       when no folder, zip or option names anything else, so
+ *                       dragging the folder in IS the whole procedure.
  *   media:since:2026-08-22   every image uploaded on or after that date — the
- *                           precise way to say "the batch I just added", and
- *                           the easiest route for the owner: WordPress admin →
- *                           Media → Add New → drag the whole folder in
+ *                           precise way to say "the batch I just added"
  *   media:unused        every image no product or category currently uses
  *   media:<word>        every image whose filename or title contains <word>
  *   media:123,456       these attachment ids
@@ -129,6 +148,32 @@ foreach (preg_split('/[\r\n,]+(?![0-9])/', $raw) as $cand) {
               WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%%'
                 AND post_date >= %s ORDER BY ID ASC", $when)));
         printf("  media: %d image(s) uploaded on or after %s\n", count($media), $when);
+        continue;
+    }
+
+    if (strtolower($spec) === 'fresh') {
+        // Uploads that arrived AFTER the section existed and that nothing uses.
+        // The floor sits past deploy 818's measurement of the library (every
+        // unused image then was a mockup or source file), so none of that
+        // backlog can ever ride in on this route.
+        $since = (string) get_option('af_goldfoil_fresh_since', '2026-08-22 12:00:00');
+        $recent = array_map('intval', $wpdb->get_col($wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts}
+              WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%%'
+                AND post_date >= %s ORDER BY ID ASC", $since)));
+        $used = array();
+        foreach ($wpdb->get_col("SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key = '_thumbnail_id'") as $v) {
+            $used[(int) $v] = true;
+        }
+        foreach ($wpdb->get_col("SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key = '_product_image_gallery'") as $v) {
+            foreach (explode(',', (string) $v) as $g) { $g = (int) trim($g); if ($g) $used[$g] = true; }
+        }
+        foreach ($wpdb->get_col("SELECT meta_value FROM {$wpdb->termmeta} WHERE meta_key = 'thumbnail_id'") as $v) {
+            $used[(int) $v] = true;
+        }
+        foreach ($recent as $id) if (!isset($used[$id])) $media[] = $id;
+        printf("  media: %d upload(s) since %s, %d not yet used by anything\n",
+            count($recent), $since, count($media));
         continue;
     }
 
@@ -218,7 +263,22 @@ foreach (preg_split('/[\r\n,]+/', $raw) as $cand) {
     $dirs[] = $found;
 }
 $dirs = array_values(array_unique(array_filter($dirs)));
-if (!$dirs && !$media) { echo "  nothing to read.\n=== DONE ===\n"; return; }
+if (!$dirs && !$media) {
+    if ($auto) {
+        echo "  no new artwork anywhere yet. The pictures have to reach the site once —\n";
+        echo "  a path on the owner's PC (C:\\Users\\...) cannot be read from here. Any of:\n";
+        echo "    (a) wp-admin -> Media -> Add New -> drag the whole folder in\n";
+        echo "        (the next deploy imports it automatically — nothing else to do)\n";
+        echo "    (b) upload the folder, or a zip of it, to wp-content/uploads/gold-foil/\n";
+        echo "        (a folder still named Personalised is found there too)\n";
+        echo "    (c) attach the pictures in the Claude chat — they get committed to\n";
+        echo "        assets/gold-foil/ and arrive with the deploy\n";
+    } else {
+        echo "  nothing to read.\n";
+    }
+    echo "=== DONE ===\n";
+    return;
+}
 
 /**
  * A folder usually arrives as a zip. Unpack any that turn up — either named
@@ -351,18 +411,37 @@ foreach ($items as $item) {
 
     // never two products with the same name (get_page_by_title() is deprecated
     // from WP 6.2, so the lookup goes through WP_Query's own title match)
-    $dupe = new WP_Query(array(
-        'post_type' => 'product', 'post_status' => array('publish', 'draft', 'pending', 'private'),
-        'title' => $title, 'posts_per_page' => 1, 'fields' => 'ids',
-        'no_found_rows' => true, 'update_post_meta_cache' => false, 'update_post_term_cache' => false,
-    ));
-    if (!empty($dupe->posts)) {
-        // adopt it rather than making a near-duplicate, and remember the file
-        $exists = (int) $dupe->posts[0];
+    $af_gf_by_title = function ($t) {
+        $q = new WP_Query(array(
+            'post_type' => 'product', 'post_status' => array('publish', 'draft', 'pending', 'private'),
+            'title' => $t, 'posts_per_page' => 1, 'fields' => 'ids',
+            'no_found_rows' => true, 'update_post_meta_cache' => false, 'update_post_term_cache' => false,
+        ));
+        return empty($q->posts) ? 0 : (int) $q->posts[0];
+    };
+    $exists = $af_gf_by_title($title);
+    if ($exists && get_post_meta($exists, '_af_goldfoil', true) !== 'yes'
+                && !has_term((int) $term->term_id, 'product_cat', $exists)) {
+        // The name belongs to an ORDINARY product. Adopting it would silently
+        // move a normal print into this section and reprice it 40% up — the
+        // request was a premium section, not a premium on the existing
+        // catalogue. The gold version gets a name of its own instead.
+        $title .= ' (Gold Foiled & UV)';
+        $exists = $af_gf_by_title($title);
+        if ($exists && get_post_meta($exists, '_af_goldfoil', true) !== 'yes'
+                    && !has_term((int) $term->term_id, 'product_cat', $exists)) {
+            printf("  ! %-52s its name is taken twice over by ordinary products — left alone\n", $base);
+            $skipped++;
+            continue;
+        }
+    }
+    if ($exists) {
+        // the same piece imported before (or created by hand in this section):
+        // remember the file rather than making a near-duplicate
         update_post_meta($exists, '_af_goldfoil_src', $key);
         update_post_meta($exists, '_af_goldfoil', 'yes');
         wp_set_object_terms($exists, array((int) $term->term_id), 'product_cat', true);
-        printf("  = %-52s adopted existing product #%d\n", $base, $exists);
+        printf("  = %-52s adopted existing gold-foil product #%d\n", $base, $exists);
         $skipped++;
         continue;
     }

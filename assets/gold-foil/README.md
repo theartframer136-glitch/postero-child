@@ -41,5 +41,8 @@ stripped, and a leading sequence number is dropped.
 
 Keep this to real artwork. Git stores every version of every file forever, so
 a hundred 8 MB photographs make the repository permanently heavier for
-everyone who clones it. For a large library, upload to the Media Library
-instead and import with `media:since:<date>`.
+everyone who clones it. For a large library, drag the folder into the site's
+own Media Library instead (wp-admin → Media → Add New) — new uploads that
+nothing on the site uses yet are imported automatically on the next deploy,
+so that drag is the whole procedure. `wp option update af_goldfoil_source off`
+switches the automatic routes off.

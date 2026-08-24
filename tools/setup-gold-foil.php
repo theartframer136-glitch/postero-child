@@ -237,8 +237,10 @@ if (!$count) {
     $conv = trailingslashit($up['basedir']) . 'gold-foil';
     if ($src !== '')            echo "  image folder set to {$src} — the next deploy imports it\n";
     elseif (is_dir($conv))      echo "  artwork folder found at {$conv} — the next deploy imports it\n";
-    else                        echo "  waiting on artwork: upload the images (or a zip) into {$conv}\n"
-                                   . "  a folder still named Personalised is found there too; a path on the\n"
-                                   . "  owner's own PC cannot be read from the server\n";
+    else                        echo "  waiting on artwork. Easiest: wp-admin -> Media -> Add New -> drag the\n"
+                                   . "  whole folder in — the next deploy turns each new picture into a product\n"
+                                   . "  automatically. A folder or zip in {$conv}\n"
+                                   . "  (or still named Personalised) works too; a path on the owner's own PC\n"
+                                   . "  cannot be read from the server\n";
 }
 echo "=== DONE ===\n";

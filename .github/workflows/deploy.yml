@@ -154,6 +154,28 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
+          # Gold Foiled & UV runs FIRST: the importer creates this suite's only
+          # brand-new products, and every pass below (template, filterable
+          # attributes, tags, MRP markup, SEO meta, category thumbs) sweeps all
+          # published products — so a product born here leaves this deploy with
+          # the same details as the rest of the catalogue instead of waiting a
+          # deploy for them.
+          echo "Setting up the Gold Foiled & UV section..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/setup-gold-foil.php --allow-root 2>&1" \
+            || true
+
+          # Reads, in order: the theme's assets/gold-foil/, a folder or zip in
+          # uploads/ (gold-foil / Personalised), then Media Library uploads
+          # newer than the section that nothing uses yet — so a folder dragged
+          # into Media -> Add New becomes products with no other step.
+          echo "Importing Gold Foiled & UV artwork (skips anything already imported)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/import-gold-foil.php --allow-root 2>&1" \
+            || true
+
           echo "Applying product template to ALL canvas products..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -823,19 +845,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/populate-all-art-prints.php --allow-root 2>&1" \
             || true
 
-          echo "Setting up the Gold Foiled & UV section..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/setup-gold-foil.php --allow-root 2>&1" \
-            || true
-
-          # No-op until af_goldfoil_source names a folder of artwork on the
-          # server; then every new image in it becomes a product, once.
-          echo "Importing Gold Foiled & UV artwork (skips anything already imported)..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/import-gold-foil.php --allow-root 2>&1" \
-            || true
+          # Gold Foiled & UV setup + import moved to the TOP of suite 1: products
+          # created by the importer must exist before apply-template,
+          # assign-filter-attributes, assign-tags, apply-mrp-markup and the SEO
+          # pass run, or their first appearance waits a whole extra deploy for
+          # the details every other product carries. The repricing below still
+          # runs after the import, as before.
 
           echo "Repricing catalogue listings from the rate card (idempotent)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
