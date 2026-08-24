@@ -37,6 +37,19 @@ The filename becomes the product name, so `radha-krishna-eternal-36x48.jpg`
 reads better than `IMG_2481.jpg`. Words like `final`, `copy` and `edited` are
 stripped, and a leading sequence number is dropped.
 
+## No new artwork at all
+
+Gold foil and a UV coat are a *finish*, so a piece the studio already sells
+can be offered in it without a single new file:
+
+    Actions → Deploy Theme → Run workflow → Gold Foiled & UV source
+    category:some-category-slug
+
+`tools/diag-goldfoil-populate.php` lists every category with a true count of
+the products in it, so the slug is chosen from what is really there. The
+source piece's picture, gallery and words come with it; the price is worked
+out from the rate card as it is for everything else in the section.
+
 ## Size
 
 Keep this to real artwork. Git stores every version of every file forever, so
