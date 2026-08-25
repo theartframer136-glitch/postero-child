@@ -120,8 +120,12 @@ if ( $blank ) { printf( "  note  %d product(s) carry no SKU at all\n", $blank );
 
 // ── the letter is stable ────────────────────────────────────────────────────
 // A letter is only valid for the code it was issued under. If a product's art
-// code has changed since, the stored letter is stale and the SKU pass will
-// reissue it; that is expected, but it should be visible.
+// code has changed since, the stored letter is stale and is simply ignored --
+// af_sku_for_product() only uses a letter whose issued-for code matches the
+// current one. So a stale letter is inert, not wrong: the product gets its
+// plain code as its SKU, and if that code later becomes shared it is issued a
+// fresh letter. Listed here so the state is visible, not because it needs
+// fixing.
 echo "\n-- stored letters still match the code they were issued for --\n";
 $stale = 0; $lettered = 0;
 foreach ( $all as $pid ) {
@@ -138,7 +142,7 @@ foreach ( $all as $pid ) {
 		}
 	}
 }
-printf( "  note  %d product(s) carry a letter; %d stale (the SKU pass will reissue)\n", $lettered, $stale );
+printf( "  note  %d product(s) carry a letter; %d stale and ignored (harmless -- see the comment above)\n", $lettered, $stale );
 
 echo "\n";
 echo $fail === 0 ? "=== ALL CHECKS PASSED ===\n" : "=== {$fail} CHECK(S) FAILED ===\n";

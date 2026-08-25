@@ -413,3 +413,245 @@ place to look.
 #19025 holds it and is white horses through water with cliffs; #23191, whose
 row was dropped in PR #193, is the same subject. At page-thumbnail size the two
 are not separable, so neither is asserted. SH 04 stays with #19025.
+
+## The book's own table of contents — page 3
+
+Page 3 of the Master Brochure is a contents page. It lists every section and
+its code range, in the book's own words. This is the authority the section map
+should have been built on from the start:
+
+| Section | Codes | | Section | Codes |
+|---|---|---|---|---|
+| Radha Krishna | RK 01 – RK 91 | | Still Life | SL 01 – SL 23 |
+| Lakshmi Ganesha | LG 01 – LG 03 | | Vaastu Art | VA 01 – VA 04 |
+| Lord Shiva | LS 01 – LS 15 | | Wildlife | WL 01 – WL 19 |
+| Seven Horses | SH 01 – SH 12 | | Kids Room | KR 01 – KR 19 |
+| Tirupati Balaji | TP 01 – TP 16 | | Living Room | LI 01 – LI 44 |
+| Murugan | MG 01 – MG 04 | | Abstract Art | AA 01 – AA 19 |
+| Lord Rama | LR 01 – LR 09 | | **Travel Art** | **TA 01 – TA 04** |
+| Hindu Deities | HD 01 – HD 28 | | Buddha | LB 01 – LB 13 |
+| Sikh Art | SA 01 – SA 03 | | Swaminarayan | SN 01 |
+| Pichwai Art | PA 01 | | Indian Culture | IC 01 – IC 04 |
+| Landscapes | LC 01 – LC 10 | | | |
+
+Every count matches the page ranges read so far, so the map is now closed and
+confirmed from both ends.
+
+Two cautions about the contents page itself. It abbreviates loosely: it writes
+Landscapes as "LS" (colliding with Lord Shiva) and Living Room as "LR"
+(colliding with Lord Rama), where the pages themselves are labelled LC and LI.
+**Where the contents page and a page label disagree, the page label wins** — it
+is what is actually printed on the artwork page.
+
+## Travel Art exists, and TA 04 has exactly one owner
+
+I had concluded there was no TA section in this book. That was wrong: TA is
+simply last, at pages 341–344, after AA ends at 340.
+
+- **TA 01** (p341) — Varanasi ghats at dusk, purple sky, hundreds of lamps, boats on the river.
+- **TA 02** (p342) — Kedarnath temple lit with lamps against snowy Himalayas, pink sunset.
+- **TA 03** (p343) — Varanasi ghats stylised flat, crimson sky meeting teal water, wide.
+- **TA 04** (p344) — a woman in a red-orange sari lifting a blazing aarti lamp, huge
+  flame, teal night sky, temple spires right, glowing crowd below.
+
+**TA 04 is #29890 "Ganga Aarti Flame", and only #29890.** Twenty-two products
+carried TA 04; the picture belongs to one of them. Having now seen all four TA
+pages, none of the other twenty-one is any of them — TA 04 was applied to them
+in bulk, not matched.
+
+### A page label in another book that means nothing
+
+The Alwars design DAHQHUtH1kg has a page labelled "TA 04" showing a Tanjore
+deity on a golden throne. It is not this TA 04 and matches no product. Labels
+in that book are unreliable — four of its pages also share one identical
+"Ganga Aarti at Varanasi" caption. **Only the Master Brochure's own labels
+count.** Checking it cost a detour; recording it so the detour is not repeated.
+
+## Sections closed in this pass
+
+**Murugan (MG 01–04, pages 141–144) — read, closed.**
+MG 01 Murugan between Valli and Devasena under a gold arch; MG 02 seated in a
+blooming garden with peacock; MG 03 standing beside the peacock in a dark
+illuminated temple; MG 04 six-faced Shanmukha before a gopuram under a moon.
+**#24169 is MG 01.** #14034, titled "Lord Murugan Art", is **not Murugan at
+all** — it is a Tanjore panel of an acharya with a tridandi staff and two
+disciples, matching no MG page. Another title naming the wrong subject.
+
+**Tirupati Balaji (TP 01–16, pages 126–140) — read, closed.**
+**TP 04 is confirmed absent from the book**: page 128 is TP 03 and page 129 is
+TP 05, so labels run one ahead of the page offset from there on.
+**#8474 is TP 05.** #24470 "Tanjore Devotion Panel" and #30905 "Balaji Heritage
+Collage" are Balaji subjects but match no TP page — every TP page is
+photographic or painterly, neither is a Tanjore panel or a collage.
+
+**Seven Horses (SH 01–12, pages 114–125) — read, closed.**
+SH 04 is the only page with a dark cliff at the left, and it is the picture
+#19025 already holds. **#19025 and #23191 are the same artwork** — #23191 is a
+brighter, tighter crop. Fourth duplicate listing found, after #31890/#15730,
+#15913/#17543 and the LR pair.
+
+**Abstract Art (AA 01–19, pages 322–340) — read, closed.**
+A firm negative: **none** of the abstract-looking products on TA 04 is in this
+section — not #19269, #30775, #23008, #7781, #23850, #25358 or #28839.
+
+**Living Room (LI 01–44, pages 278–321) — read, closed.**
+**#23008 "Teal City Mirage" is LI 04** — the Statue of Liberty dissolving into
+teal mist. Nothing else on TA 04 is anywhere in LI.
+
+Between them AA and LI are the book's two catch-alls, so closing both is what
+makes the remaining search small: whatever is left must be in RK, SL, VA, WL,
+KR or in no page at all.
+
+## Two listings of one picture may share a code — deliberately
+
+The apply tool refuses to write a code another product holds, because a clash
+is nearly always a mistake. A genuine duplicate listing is the exception: the
+same picture must carry the same art code, and the SKU letter already keeps the
+two SKUs apart (SH-04A, SH-04B).
+
+So a row may now say `SHARE:SH 04` instead of `SH 04`. The prefix has to be
+written out, so it cannot happen by accident, and the run reports each shared
+code on its own line. Without the marker the refusal stands exactly as before.
+
+## Still open
+
+Unread: **RK (91 pages), SL (23), WL (19), KR (19), VA (4)**. Partly read: HD,
+LS, LB, IC.
+
+Still carrying TA 04 with nowhere yet to go: #7765, #7781, #7800, #13414,
+#14034, #19269, #22199, #23850, #24470, #24836, #25185, #25358, #25657,
+#28103, #28839, #30775, #30905. They are not being cleared — the rule holds
+that a code is only emptied when the product is not an artwork, or when every
+section has been read and none of them fits.
+
+## Kids Room and Wildlife — read and closed
+
+**Kids Room (KR 01–19, pages 259–277).**
+**#7765 is KR 01** — the four cartoon cats stacked together: the big green one,
+the red one in a hat, the white fluffy one, the small black-and-white one. KR 02
+is also a cat, but a single sleeping cat on a colourful patchwork, so the
+section has two cat pages and only one of them is this product.
+Nothing else on TA 04 is in KR — #23850 "Melody Makers" is not here.
+
+**Wildlife (WL 01–19, pages 240–258).**
+Four separate peacock pages: WL 06 (two peacocks in a pale floral garden),
+WL 10 (art-nouveau ornate peacock), WL 11 (pastel watercolour peacock),
+WL 16 (peacock before a red palace doorway). **#22199 is none of them** — its
+peacock has a fanned teal-and-gold tail on a dark blue painterly ground.
+Four candidates and none fits: a good example of why a subject match is not a
+picture match.
+No savanna page anywhere in WL, so **#28839 is not here either**.
+
+That leaves **RK, SL and VA** as the only unread sections in the book.
+
+## Still Life and Vaastu — read and closed
+
+**Still Life (SL 01–23, pages 213–235).**
+**#25185 is SL 22** — two white lotus flowers open in a woven basket, lily pads
+around it, on a mottled teal-green ground.
+
+**#7781 is not SL 01, though it very nearly is.** SL 01 is a spray of red,
+white, yellow and green blooms on a ground split red and cream — which is
+#7781's palette and layout exactly. But SL 01's flowers stand in a brass vase
+above a dark green band, and #7781 has no vase and no band: bare stems on the
+split ground. Closest call in the whole audit so far, and still a no.
+
+**Vaastu Art (VA 01–04, pages 236–239).**
+VA 01 peacock among white blossoms in teal and gold; VA 02 Garuda in blue and
+gold on a gold ground; VA 03 two sacred cows on teal; VA 04 pairs Garuda with
+the sun against the tulip page that is LI 03.
+VA 01 is a fifth peacock page, and **still not #22199**.
+
+## What is left
+
+**Radha Krishna, RK 01–91, pages 5–95 — the only section not yet read.**
+Everything else in the book has now been looked at page by page. Whatever is
+still misplaced is either in RK or in no page at all.
+
+## Radha Krishna (RK 01–91, pages 5–95) — read
+
+The largest section in the book, and the last of the big ones. Pages run one
+ahead of the label by four: page 5 is RK 01, page 95 is RK 91.
+
+**Neither #28103 nor #13414 is in it.** #28103 is a large frontal blue-green
+Krishna face, eyes closed, a peacock feather top right and pink lotus buds at
+the right, on a blocky abstract ground of blue, orange, yellow and white. RK has
+several Krishna faces — RK 11 a pale profile with a flute, RK 17 a black face
+among marigolds, RK 42 and RK 59 and RK 70 and RK 75 and RK 85 all portraits —
+and #28103 is none of them.
+
+### Two things worth recording about the section itself
+
+**RK 76 is struck through with a large red X** on the page. Whatever that page
+was, the book has withdrawn it, so no product should be given RK 76.
+
+**RK 56's caption is the boilerplate "Ganga Aarti at Varanasi" text**, on a page
+showing Radha and Krishna dancing. That is the same stray caption found on four
+pages of the Alwars book. It is now confirmed to appear in the Master Brochure
+too, so the caption is worthless as evidence anywhere. Only the picture counts.
+
+## The book is read
+
+Hindu Deities (HD 01–28, pages 154–180), Buddha (LB 01–13, pages 181–193) and
+Indian Culture (IC 01–04, pages 199–202) were the last three partially-read
+sections. **HD 14 is confirmed absent** — page 166 is HD 13 and page 167 is
+HD 15 — which is the second gap in the book after TP 04.
+
+With those closed, **every page of the Master Brochure has been looked at.**
+That matters because it is the condition the clearing rule was waiting on.
+
+## TA 04, settled
+
+Twenty-two products carried TA 04. Now that the whole book has been read:
+
+| Product | Where it actually belongs |
+|---|---|
+| #29890 Ganga Aarti Flame | **TA 04** — correct all along |
+| #24169 Murugan Sanctum Darshan | **MG 01** |
+| #8474 Divine Lord Balaji Temple | **TP 05** |
+| #23008 Teal City Mirage | **LI 04** |
+| #7765 Cute Cartoon Cat | **KR 01** |
+| #25185 Lotus Basket Still Life | **SL 22** |
+| #13414 Shiva and Parvati | **LS 06** |
+| #24897 Crimson Horse Reverie | **LI 36** (already staged) |
+| #23191 Seven Horses Cliff Dawn | **SH 04**, shared — same painting as #19025 |
+
+The remaining **fourteen are on no page of the book at all**: #7781, #7800,
+#14034, #19269, #22199, #23850, #24470, #24836, #25358, #25657, #28103,
+#28839, #30775, #30905.
+
+Under the owner's instruction — *if a picture does not match any one picture,
+leave it with no art code* — those fourteen are cleared. Each row says which
+pages were the near misses and why each failed, so the reasoning can be checked
+rather than taken on trust.
+
+**A consequence worth stating plainly:** an art code is what a SKU is built
+from, so clearing these fourteen also removes their SKUs. That is the rule
+working as intended — a SKU that encodes a catalogue position the product does
+not occupy is worse than no SKU — but it is a visible change in the shop, and
+it is the owner's call whether to accept it. The pictures are real products;
+they simply are not in this book.
+
+## Every section, and how it was closed
+
+| Section | Pages | Status |
+|---|---|---|
+| Radha Krishna RK 01–91 | 5–95 | read — RK 76 struck out in the book |
+| Lakshmi Ganesha LG 01–03 | 96–98 | read |
+| Lord Shiva LS 01–15 | 99–113 | read |
+| Seven Horses SH 01–12 | 114–125 | read |
+| Tirupati Balaji TP 01–16 | 126–140 | read — **TP 04 absent** |
+| Murugan MG 01–04 | 141–144 | read |
+| Lord Rama LR 01–09 | 145–153 | read |
+| Hindu Deities HD 01–28 | 154–180 | read — **HD 14 absent** |
+| Buddha LB 01–13 | 181–193 | read |
+| Sikh SA, Swaminarayan SN, Pichwai PA | 194–198 | read |
+| Indian Culture IC 01–04 | 199–202 | read |
+| Landscapes LC 01–10 | 203–212 | read |
+| Still Life SL 01–23 | 213–235 | read |
+| Vaastu VA 01–04 | 236–239 | read |
+| Wildlife WL 01–19 | 240–258 | read |
+| Kids Room KR 01–19 | 259–277 | read |
+| Living Room LI 01–44 | 278–321 | read |
+| Abstract AA 01–19 | 322–340 | read |
+| Travel Art TA 01–04 | 341–344 | read |
