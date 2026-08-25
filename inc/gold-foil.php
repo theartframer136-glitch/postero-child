@@ -127,11 +127,15 @@ function af_goldfoil_badge_html() {
     return '<span class="af-gf-badge">Gold Foiled &amp; UV</span>';
 }
 
-add_action('woocommerce_before_shop_loop_item_title', function () {
+// after_shop_loop_item_title, not before_: measured on the live grid, this
+// theme's card template never fires the before_ hook — the badge rendered
+// nowhere. after_ is the hook the Art Code line (PHASE 25) already proves out;
+// priority 8 puts the badge above that line.
+add_action('woocommerce_after_shop_loop_item_title', function () {
     $product = function_exists('af_wc_product') ? af_wc_product() : ($GLOBALS['product'] ?? null);
     if (!($product instanceof WC_Product) || !af_is_goldfoil($product)) return;
     echo '<span class="af-gf-flag">' . af_goldfoil_badge_html() . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput
-}, 14);
+}, 8);
 
 add_action('woocommerce_single_product_summary', function () {
     $product = function_exists('af_wc_product') ? af_wc_product() : ($GLOBALS['product'] ?? null);
