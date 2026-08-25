@@ -19,6 +19,10 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # The contact sheets are delivered by pushing them to a branch, because the
+    # log cannot carry them. See the two sheet steps near the end of this file.
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -1244,7 +1248,80 @@ jobs:
              AF_SHEET_IDS=148,21259,11560,25240,22077,21893,18229 \
              AF_SHEET_TILE=220 AF_SHEET_Q=55 \
              wp eval-file wp-content/themes/postero-child/tools/diag-product-contact-sheets.php --allow-root 2>&1" \
-            || true
+            > /tmp/af-sheets.txt || true
+          # Everything except the image data goes to the log — which products were
+          # drawn, and any error. The base64 itself is deliberately withheld. The
+          # log truncates from the FRONT, so a megabyte of it erases every check
+          # that ran before it; that has already cost this project 35 sheets and
+          # three deploys' worth of verifier output. The next step delivers the
+          # pictures by a route that works.
+          grep -v '^B64' /tmp/af-sheets.txt || true
+          echo "b64 lines withheld from the log: $(grep -c '^B64 ' /tmp/af-sheets.txt || true)"
+
+      - name: Publish the contact sheets to the art-sheets branch
+        if: always()
+        run: |
+          set -uo pipefail
+          # Why a branch, and not the log, an artifact, or the site itself: the log
+          # truncates from the front; the artifact and log blob hosts are not
+          # reachable from where these sheets have to be read; and neither is the
+          # site. A git ref is. So the sheets travel as a ref.
+          #
+          # This branch is a delivery channel, not history. It is force-pushed on
+          # every deploy and holds only the newest sheets, and it should be deleted
+          # once the art-code audit is finished so the images do not sit in the
+          # repository forever.
+          test -s /tmp/af-sheets.txt || { echo "no sheet output to publish"; exit 0; }
+          rm -rf /tmp/af-sheetout && mkdir -p /tmp/af-sheetout
+          awk '/^B64 /{print $2" "$3}' /tmp/af-sheets.txt | while read -r slug chunk; do
+            printf '%s' "$chunk" >> "/tmp/af-sheetout/${slug}.b64"
+          done
+          shopt -s nullglob
+          n=0
+          for f in /tmp/af-sheetout/*.b64; do
+            if base64 -d "$f" > "${f%.b64}.jpg" 2>/dev/null; then
+              rm -f "$f"; n=$((n+1))
+              echo "  rebuilt $(basename "${f%.b64}").jpg  $(stat -c%s "${f%.b64}.jpg") bytes"
+            else
+              echo "  FAILED to decode $(basename "$f")"; rm -f "$f"
+            fi
+          done
+          if [ "$n" -eq 0 ]; then echo "no sheets rebuilt, nothing to publish"; exit 0; fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # In a worktree, so the checked-out workspace the rest of the deploy may
+          # still be reading is never touched.
+          rm -rf /tmp/af-sheetwt
+          git worktree add --detach /tmp/af-sheetwt >/dev/null
+          rc=0
+          (
+            cd /tmp/af-sheetwt || exit 1
+            git checkout --orphan art-sheets >/dev/null 2>&1 || exit 1
+            git rm -rf --cached . >/dev/null 2>&1 || true
+            find . -maxdepth 1 -mindepth 1 ! -name '.git' -exec rm -rf {} + 2>/dev/null || true
+            cp /tmp/af-sheetout/*.jpg . || exit 1
+            {
+              echo "# Contact sheets"
+              echo
+              echo "Product pictures drawn out of the live catalogue so they can be held"
+              echo "against the pages of TheARTFramer Master Brochure."
+              echo
+              echo "This branch is a delivery channel, not history. It is force-pushed on"
+              echo "every deploy and holds only the newest sheets. Delete it when the"
+              echo "art-code audit is done."
+              echo
+              echo "From deploy run ${GITHUB_RUN_NUMBER}, commit ${GITHUB_SHA}."
+            } > README.md
+            git add -A
+            git commit -q -m "Contact sheets from deploy run ${GITHUB_RUN_NUMBER}" || exit 1
+            git push --force origin art-sheets
+          ) || rc=$?
+          git worktree remove --force /tmp/af-sheetwt >/dev/null 2>&1 || true
+          if [ "$rc" -eq 0 ]; then
+            echo "published ${n} sheet(s) to the art-sheets branch"
+          else
+            echo "could not publish the art-sheets branch (exit ${rc})"
+          fi
 
       - name: Product card structure (one-off, read-only)
         if: always()
