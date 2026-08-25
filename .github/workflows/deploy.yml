@@ -1248,7 +1248,7 @@ jobs:
           echo "Draw the Rama idols and the fourteen whose sheet the log ate..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             AF_SHEET_IDS=15913,17543,31588,26023,23911,7662,19759,21014,20169,21954,17341,14739,19453,21442,141,14678,229,20587,20410 \
+             AF_SHEET_IDS=15913,17543,31588,26023,23911,7662,19759,21014,20169,21954,17341,14739,19453,21442,141,14678,229,20587,20410,8585 \
              AF_SHEET_TILE=420 AF_SHEET_Q=72 \
              wp eval-file wp-content/themes/postero-child/tools/diag-product-contact-sheets.php --allow-root 2>&1" \
             > /tmp/af-sheets.txt || true
