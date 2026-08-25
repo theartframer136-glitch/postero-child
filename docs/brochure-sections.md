@@ -196,3 +196,25 @@ code, so nothing is written, but they are not candidates for LR 07/08/09.
 
 **#229 (TP 05) is not verified.** Its listing image is a room mockup, not the
 artwork, and the framed piece inside is too small to judge. No row either way.
+
+## APPLIED.txt — what actually reached the database
+The one thing this audit could not verify was whether the corrections were
+really written. The apply step reports it, but twenty verbose read-only checks
+run after it, and the log truncates from the front, so by the time anyone reads
+it that report is gone. Three attempts to pull it back failed: a 340-line tail
+reached only fifteen seconds; the log's blob host is refused at the proxy; and
+pulling thousands of lines to find one short report is not a workable habit.
+
+So the apply report now travels the same way the pictures do. It is written to a
+file as well as the log, and the publish step carries it to the art-sheets
+branch as **APPLIED.txt**, next to the sheets. Every run, one short file, saying
+what changed, what was cleared, what was refused as a clash and what was already
+correct.
+
+The publish step will now push for that file alone, on a run that draws no
+pictures at all.
+
+## #8585 confirmed by picture
+Its listing image is a room mockup of an EMPTY white framed canvas. That settles
+the one product #189 deliberately left open rather than clear on its title.
+Eleven products are now known not to be artworks.

@@ -915,7 +915,12 @@ jobs:
             "cd ~/websites/OPu0sKi4J/public_html && \
              AF_APPLY=1 \
              wp eval-file wp-content/themes/postero-child/tools/apply-artcode-corrections.php --allow-root 2>&1" \
-            || true
+            2>&1 | tee /tmp/af-apply.txt || true
+          # Also kept as a file, because this is the one output that says what
+          # actually reached the database and the log cannot be relied on to
+          # still be holding it by the time anyone reads it — twenty verbose
+          # read-only checks run after this one. The publish step carries it out
+          # on the art-sheets branch next to the pictures.
 
       - name: SKU → art code (batched, resumable)
         if: always()
@@ -1274,11 +1279,20 @@ jobs:
           # every deploy and holds only the newest sheets, and it should be deleted
           # once the art-code audit is finished so the images do not sit in the
           # repository forever.
-          test -s /tmp/af-sheets.txt || { echo "no sheet output to publish"; exit 0; }
           rm -rf /tmp/af-sheetout && mkdir -p /tmp/af-sheetout
-          awk '/^B64 /{print $2" "$3}' /tmp/af-sheets.txt | while read -r slug chunk; do
-            printf '%s' "$chunk" >> "/tmp/af-sheetout/${slug}.b64"
-          done
+          # The apply step's own report travels with the pictures. It is the only
+          # record of what actually reached the database, and it is short.
+          if [ -s /tmp/af-apply.txt ]; then
+            cp /tmp/af-apply.txt /tmp/af-sheetout/APPLIED.txt
+            echo "carrying the apply report ($(wc -l < /tmp/af-apply.txt) lines)"
+          fi
+          if [ -s /tmp/af-sheets.txt ]; then
+            awk '/^B64 /{print $2" "$3}' /tmp/af-sheets.txt | while read -r slug chunk; do
+              printf '%s' "$chunk" >> "/tmp/af-sheetout/${slug}.b64"
+            done
+          else
+            echo "no sheet output this run"
+          fi
           shopt -s nullglob
           n=0
           for f in /tmp/af-sheetout/*.b64; do
@@ -1289,7 +1303,10 @@ jobs:
               echo "  FAILED to decode $(basename "$f")"; rm -f "$f"
             fi
           done
-          if [ "$n" -eq 0 ]; then echo "no sheets rebuilt, nothing to publish"; exit 0; fi
+          # Publish if there is anything at all to carry — the apply report alone
+          # is worth a push even on a run that drew no pictures.
+          carried=$(ls -1 /tmp/af-sheetout 2>/dev/null | wc -l)
+          if [ "$carried" -eq 0 ]; then echo "nothing to publish"; exit 0; fi
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           # In a worktree, so the checked-out workspace the rest of the deploy may
@@ -1302,12 +1319,15 @@ jobs:
             git checkout --orphan art-sheets >/dev/null 2>&1 || exit 1
             git rm -rf --cached . >/dev/null 2>&1 || true
             find . -maxdepth 1 -mindepth 1 ! -name '.git' -exec rm -rf {} + 2>/dev/null || true
-            cp /tmp/af-sheetout/*.jpg . || exit 1
+            cp /tmp/af-sheetout/* . || exit 1
             {
               echo "# Contact sheets"
               echo
               echo "Product pictures drawn out of the live catalogue so they can be held"
               echo "against the pages of TheARTFramer Master Brochure."
+              echo
+              echo "APPLIED.txt is the art-code apply step's own report: what it"
+              echo "changed, cleared, refused as a clash, or found already correct."
               echo
               echo "This branch is a delivery channel, not history. It is force-pushed on"
               echo "every deploy and holds only the newest sheets. Delete it when the"
@@ -1321,7 +1341,7 @@ jobs:
           ) || rc=$?
           git worktree remove --force /tmp/af-sheetwt >/dev/null 2>&1 || true
           if [ "$rc" -eq 0 ]; then
-            echo "published ${n} sheet(s) to the art-sheets branch"
+            echo "published ${n} sheet(s) and ${carried} file(s) to the art-sheets branch"
           else
             echo "could not publish the art-sheets branch (exit ${rc})"
           fi
