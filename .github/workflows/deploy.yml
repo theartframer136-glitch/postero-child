@@ -1238,10 +1238,10 @@ jobs:
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
-          echo "Draw the horse, Shiva and Tirupati products whose picture has never been seen..."
+          echo "Draw the Lord Rama products whose picture has never been seen..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             AF_SHEET_IDS=7662,19759,21014,20169,21954,17341,14739,19453,21442,141,14678,229,20587,20410 \
+             AF_SHEET_IDS=148,21259,11560,25240,22077,21893,18229 \
              AF_SHEET_TILE=220 AF_SHEET_Q=55 \
              wp eval-file wp-content/themes/postero-child/tools/diag-product-contact-sheets.php --allow-root 2>&1" \
             || true
