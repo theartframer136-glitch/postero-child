@@ -30,6 +30,8 @@
  *      AF_SHEET_SCOPE  (default shared) — shared | unique | nocode | all
  *      AF_SHEET_SKIP   (default 0)   — skip this many groups (batching)
  *      AF_SHEET_TAKE   (default 0)   — draw at most this many groups, 0 = no cap
+ *      AF_SHEET_PREFIX (default '')  — only codes starting with this, e.g. "SH"
+ *      AF_SHEET_IDS    (default '')  — draw exactly these product ids, one sheet
  *
  * AF_SHEET_CODES exists because the whole set does not survive the trip. The
  * log is fetched through an API that truncates a very long one, and 167 tiles
@@ -64,6 +66,16 @@ $COLS   = max( 1, (int) ( getenv( 'AF_SHEET_COLS' ) ?: 6 ) );
 $QUAL   = min( 95, max( 30, (int) ( getenv( 'AF_SHEET_Q' ) ?: 55 ) ) );
 $MAXG   = (int) ( getenv( 'AF_SHEET_GROUPS' ) ?: 0 );
 $ONLY   = strtoupper( trim( (string) getenv( 'AF_SHEET_ONLY' ) ) );
+$PREFIX = strtoupper( trim( (string) getenv( 'AF_SHEET_PREFIX' ) ) );
+
+// A named list of product ids, drawn as one sheet and nothing else. This is the
+// short way to see three particular pictures without waiting for the batch that
+// happens to contain them.
+$IDS = array();
+foreach ( explode( ',', (string) getenv( 'AF_SHEET_IDS' ) ) as $i ) {
+	$i = (int) trim( $i );
+	if ( $i > 0 ) { $IDS[] = $i; }
+}
 
 $CODES = array();
 foreach ( explode( ',', (string) getenv( 'AF_SHEET_CODES' ) ) as $c ) {
@@ -149,6 +161,17 @@ if ( $SCOPE === 'unique' ) {
 } else {
 	$shared = array_filter( $groups, function ( $p ) { return count( $p ) > 1; } );
 }
+// Working the book one section at a time means wanting one section's products
+// at a time. PREFIX keeps the codes that start with it — "SH" gives every
+// product carrying a Seven Horses code, which is exactly the set to hold up
+// against the Seven Horses pages.
+if ( $PREFIX !== '' ) {
+	$shared = array_filter(
+		$shared,
+		function ( $k ) use ( $PREFIX ) { return strpos( $k, $PREFIX ) === 0; },
+		ARRAY_FILTER_USE_KEY
+	);
+}
 uksort( $shared, 'strcmp' );
 
 // A group of one still has to be split into sheets of a readable size, and a
@@ -164,6 +187,15 @@ if ( $SCOPE === 'unique' || $SCOPE === 'nocode' ) {
 		$name = sprintf( 'BATCH %02d', $i + 1 );
 		$shared[ $name ] = $chunk; $spell[ $name ] = $name;
 	}
+}
+
+// An explicit list wins over everything above it: whatever the scope would have
+// chosen, these are the pictures that were asked for.
+if ( $IDS ) {
+	$shared = array( 'PICKED' => $IDS );
+	$spell  = array( 'PICKED' => 'picked by id' );
+	$SCOPE  = 'ids';
+	$SKIP   = 0; $TAKE = 0; $ONLY = ''; $CODES = array();
 }
 
 if ( $SKIP || $TAKE ) {
