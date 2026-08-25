@@ -169,3 +169,30 @@ sits next to #8582 and the title reads the same — but its listing does not say
 "blank" outright, so it is queued for a picture rather than cleared on wording.
 The easels (#8604, #8607, #8610) and the loose frames (#8444, #8616, #8619)
 already carry no code and need nothing done.
+
+## Run 837: nineteen pictures at 420px, and what they settled
+
+**Seven codes confirmed right, none previously checked:**
+#19759 SH 06, #21014 SH 09, #17341 LS 03, #21442 LS 12, #20587 TP 06,
+#20410 TP 11, and **#15913 LR 05** — the one recorded as undecidable at 220px.
+At 420px the pink-and-white garland looped over a cream-and-gold lower garment
+inside a dark carved arch separates LR 05 from LR 04 cleanly.
+
+**SH 01 settled.** #232 is SH 01: the dark treeline, the small sun disc, the
+golden reflection running down the middle. #7662 has none of those — a pale
+misty scene with a soft sun — so it clears and #232 takes the code.
+**#7662 is the nearest candidate for SH 02 or SH 03, and I am not writing it.**
+Both pages remain unowned.
+
+**#14739 -> LC 06.** The golden moon over the misty blue mountain and the
+reflective lake. It was on LS 06, which is blue Shiva and Parvati with the
+elephant. First of the six unclaimed Landscapes pages to find its product.
+
+**#31588 and #26023 are not Lord Rama at all.** Both are Venkateswara utsava
+murtis — the namam across the face is unmistakable at this size. Neither has a
+code, so nothing is written, but they are not candidates for LR 07/08/09.
+
+**LR 04, 07, 08, 09 remain unowned**, and no product seen so far matches them.
+
+**#229 (TP 05) is not verified.** Its listing image is a room mockup, not the
+artwork, and the framed piece inside is too small to judge. No row either way.

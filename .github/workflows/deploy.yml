@@ -1245,10 +1245,10 @@ jobs:
           # Tiles are large now. They used to be 220px because the log had to carry
           # them; the branch does not care, and 220px is exactly why two Rama idol
           # photographs could not be told apart.
-          echo "Draw the Rama idols and the fourteen whose sheet the log ate..."
+          echo "Draw the Hindu Deities and Living Room products never seen..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             AF_SHEET_IDS=15913,17543,31588,26023,23911,7662,19759,21014,20169,21954,17341,14739,19453,21442,141,14678,229,20587,20410,8585 \
+             AF_SHEET_IDS=17733,17795,22260,21075,30215,17605,18477,17090,14985,22825,17672,7688,7805,29639,16444,27264,16191,7838,19697,13473,7802,25535,27920,28778 \
              AF_SHEET_TILE=420 AF_SHEET_Q=72 \
              wp eval-file wp-content/themes/postero-child/tools/diag-product-contact-sheets.php --allow-root 2>&1" \
             > /tmp/af-sheets.txt || true
