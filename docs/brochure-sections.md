@@ -304,3 +304,49 @@ therefore invisible to every query. Reading "not visible" as "not created" led
 to a wrong conclusion that three merges had failed to deploy; they had not.
 The right check is whether a run for the commit has COMPLETED, made after the
 queue drains — not whether one is visible right now.
+
+## APPLIED.txt, first reading — and what it exposed
+Run 844 published it. 61 rows: 5 changed, 6 cleared, 47 already correct, **3
+refused as a clash**, 0 missing.
+
+### Three rows never landed
+| Row | Refused because |
+|---|---|
+| #16932 -> LB 13 (PR #184) | LB 13 already belongs to **#17472** |
+| #23191 -> SH 04 (PR #185) | SH 04 already belongs to **#19025** |
+| #18290 -> LS 04 (PR #187) | LS 04 already belongs to **#29517** |
+
+These were reported in three PRs as corrections. **They were never written.**
+The guard refused them, correctly — it will not move one product onto a code
+another product holds — but nothing surfaced that until now, which is precisely
+the gap APPLIED.txt was built to close.
+
+- **#23191 is dropped.** It was flagged in PR #185 as the least certain row in
+  the file, read off room mockups rather than a full-bleed page. #19025 is
+  "Seven Horses Ocean Run", which is plausibly the real SH 04. The guard
+  refusing it is evidence against it, so the row comes out rather than being
+  forced through.
+- **#16932 and #18290 stay**, refused and harmless, until #17472 and #29517
+  have been looked at. #29517 is "Lone Tree Between Worlds" and cannot be
+  LS 04, which is the multicoloured Shiva face — so it is very likely the one
+  that has to move. All three are queued for pictures.
+
+### The current_art_code column is stale
+Four rows reported a different current code than the file records:
+
+| Product | File says | Site says |
+|---|---|---|
+| #11560 | LR 03 | **RK 25** |
+| #19453 | LS 11 | **RK 41** |
+| #14678 | TP 01 | **RK 52** |
+| #8412 | (none) | **LG 02** |
+
+The column is documentation only — the tool matches on product id, so the right
+products were changed. But the *reason* written on those rows names a code the
+product no longer had, which makes the justification wrong even where the action
+was right. The working snapshot (scratchpad artcode_clean.txt) is days old and
+the deploy's own passes have been moving codes since.
+
+**Fixed at the source:** the shared-code report is now teed to a file and
+published to art-sheets as **CODES.txt** every run, next to APPLIED.txt. No more
+deciding from a stale copy.
