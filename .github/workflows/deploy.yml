@@ -36,6 +36,12 @@ on:
         description: 'Most products the import may create in one run (blank = leave as is)'
         type: string
         default: ''
+      # Takes back out the pieces that were COPIED from artwork already in the
+      # catalogue, leaving anything imported from a real file untouched.
+      goldfoil_remove_copies:
+        description: 'Remove the Gold Foiled & UV pieces copied from existing products'
+        type: boolean
+        default: false
 
 # One deploy at a time. Two overlapping runs each rsync --delete the theme and
 # fire a dozen WP-CLI processes at the same shared host, which is enough to hit
@@ -263,6 +269,21 @@ jobs:
                wp option update af_goldfoil_max '${GF_MAX}' --allow-root 2>&1" \
               || echo "  (could not set the cap — the stored one still applies)"
           fi
+
+      - name: Remove Gold Foiled & UV pieces copied from existing products
+        if: inputs.goldfoil_remove_copies
+        env:
+          H_USER: ${{ secrets.HOSTINGER_USERNAME }}
+          H_HOST: ${{ secrets.HOSTINGER_HOST }}
+          H_PORT: ${{ secrets.HOSTINGER_PORT }}
+        run: |
+          set -uo pipefail
+          SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Removing the copied pieces (artwork imported from real files is left alone)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/remove-goldfoil-copies.php --allow-root 2>&1" \
+            || echo "  (removal step failed — nothing was changed)"
 
       - name: Script suite 1 — catalogue & content
         if: env.RUN_SUITE == '1'
