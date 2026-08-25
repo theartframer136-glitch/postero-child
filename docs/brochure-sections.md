@@ -95,3 +95,29 @@ products, two different titles, one picture. Same situation as #31890/#15730.
 ### Pictures still needed for the LR section
 #148 (holds LR 01, blocking #7810), #21259, #11560, #25240, #22077, #21893,
 #18229 — plus #17543 and #15913 at full size to settle LR 04 vs LR 05.
+
+## Lakshmi–Ganesha (LG 01–03, pages 96–98) — read, and closed
+Three pages, all three now matched to a product by picture:
+
+| Code | Page shows | Product |
+|---|---|---|
+| LG 01 | Ganesha left, Lakshmi right, both on pink lotuses, warm sky | **#8412** — had no code at all |
+| LG 02 | Lakshmi left, Ganesha right, gold throne, green arch, red curtain | **#29951 — already correct** |
+| LG 03 | Lakshmi left holding raised lotuses, Ganesha right, dark maroon arch | **#26753 — already correct** |
+
+Because all three pages are claimed by a confirmed match, **any other product
+holding an LG code is wrong regardless of what its picture shows.** That
+disposes of #29456, #27981, #23558 and #8582 without needing their pictures —
+though #29456 and #27981 were checked anyway and are a Maratha war scene and a
+veiled portrait.
+
+This is a general rule worth reusing: a short section, fully matched, settles
+every remaining holder in it by elimination.
+
+## LS 04 found, from the LG section
+#18290 "Shiva Meditation Art" was parked on LG 03. Its picture is **LS 04** —
+Shiva's face with the crescent moon and gold tripundra on a field of orange,
+magenta and teal — which is exactly the Lord Shiva page that had no owner.
+LS 04 was held by three products that are none of the fifteen Shiva pages
+(#23252 a hand with prayer beads, #8424 the Ganga Aarti, #3362 a Ganesha), so
+those clear first and #18290 moves in behind them.
