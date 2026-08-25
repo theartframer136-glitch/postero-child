@@ -94,6 +94,52 @@ if ( $probe ) {
 	$ok( af_sku_full( $pid, '' ) === $base, 'no size chosen: no trailing hyphen', af_sku_full( $pid, '' ), $base );
 }
 
+// ── every SKU in the catalogue is distinct ──────────────────────────────────
+// This is the guarantee the letters exist for, so it is measured on the live
+// catalogue rather than assumed from the rule.
+echo "\n-- every product SKU is unique --\n";
+$all = get_posts( array(
+	'post_type'   => 'product',
+	'post_status' => array( 'publish', 'private', 'draft', 'pending' ),
+	'posts_per_page' => -1, 'fields' => 'ids',
+) );
+$seen = array(); $dupes = array(); $blank = 0;
+foreach ( $all as $pid ) {
+	$sku = (string) get_post_meta( $pid, '_sku', true );
+	if ( $sku === '' ) { $blank++; continue; }
+	$k = strtoupper( $sku );
+	if ( isset( $seen[ $k ] ) ) { $dupes[ $k ][] = $pid; } else { $seen[ $k ] = $pid; }
+}
+$ok( count( $dupes ) === 0, 'no two products share a SKU',
+     count( $dupes ) === 0 ? count( $seen ) . ' distinct SKUs across ' . count( $all ) . ' products'
+                           : count( $dupes ) . ' duplicated', '0 duplicated' );
+foreach ( array_slice( $dupes, 0, 10, true ) as $k => $pids ) {
+	printf( "        %-16s held by #%d and #%s\n", $k, $seen[ $k ], implode( ', #', $pids ) );
+}
+if ( $blank ) { printf( "  note  %d product(s) carry no SKU at all\n", $blank ); }
+
+// ── the letter is stable ────────────────────────────────────────────────────
+// A letter is only valid for the code it was issued under. If a product's art
+// code has changed since, the stored letter is stale and the SKU pass will
+// reissue it; that is expected, but it should be visible.
+echo "\n-- stored letters still match the code they were issued for --\n";
+$stale = 0; $lettered = 0;
+foreach ( $all as $pid ) {
+	$l = (string) get_post_meta( $pid, '_af_sku_letter', true );
+	if ( $l === '' ) { continue; }
+	$lettered++;
+	$issued = (string) get_post_meta( $pid, '_af_sku_letter_for', true );
+	$now    = af_sku_code_part( get_post_meta( $pid, '_taf_art_code', true ) );
+	if ( strcasecmp( $issued, $now ) !== 0 ) {
+		$stale++;
+		if ( $stale <= 10 ) {
+			printf( "        #%-7d letter %-3s issued for %-10s but the code is now %s\n",
+			        $pid, $l, $issued === '' ? '(none)' : $issued, $now === '' ? '(none)' : $now );
+		}
+	}
+}
+printf( "  note  %d product(s) carry a letter; %d stale (the SKU pass will reissue)\n", $lettered, $stale );
+
 echo "\n";
 echo $fail === 0 ? "=== ALL CHECKS PASSED ===\n" : "=== {$fail} CHECK(S) FAILED ===\n";
 echo "=== DONE ===\n";

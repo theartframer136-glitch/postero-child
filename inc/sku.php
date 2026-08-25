@@ -23,6 +23,10 @@
  *                              on the order line, so invoices, packing slips
  *                              and exports carry the full code
  *
+ * Where several products share one art code the SKU gains a letter — RK-01A,
+ * RK-01B — because a SKU must be unique and an art code here often is not. The
+ * letter is stored and never moves; see af_sku_for_product() below.
+ *
  * ── The size token ──────────────────────────────────────────────────────────
  *
  * Sizes are labelled '2×3 ft (24×36 in)' in the rate card. The token is the
@@ -73,10 +77,49 @@ function af_sku_size_part( $size_label ) {
 	return '';
 }
 
-/** The product's own SKU shape: RK-01, or '' when it carries no art code. */
+/**
+ * A, B, ... Z, AA, AB, ... for the nth product under a shared art code.
+ */
+function af_sku_letter_seq( $i ) {
+	$i = (int) $i;
+	if ( $i < 0 ) { return ''; }
+	$s = '';
+	do {
+		$s = chr( 65 + ( $i % 26 ) ) . $s;
+		$i = intdiv( $i, 26 ) - 1;
+	} while ( $i >= 0 );
+	return $s;
+}
+
+/**
+ * The product's own SKU: RK-01, or RK-01A when several products share the art
+ * code RK 01. '' when the product carries no code — nothing is invented.
+ *
+ * ── Why a letter, and why it never moves ────────────────────────────────────
+ *
+ * A SKU has to be unique; an art code, on this shop, often is not. 56 codes sit
+ * on more than one product and they are not sizes of one artwork — TA 04 alone
+ * carries 28 unrelated pieces. The code is what the printed book says and is
+ * left exactly as it is; the letter is the SKU's own business, added only to
+ * tell apart products the code cannot.
+ *
+ * The letter is STORED, not recomputed. Once #23191 is RK-01B it stays RK-01B
+ * even if the product listed before it is deleted, its code corrected, or the
+ * catalogue reordered — because that SKU is already on somebody's invoice. It
+ * is only reassigned if the product's own art code changes, which makes it a
+ * member of a different group; _af_sku_letter_for records which code the letter
+ * was issued under so that case can be told from the others.
+ */
 function af_sku_for_product( $product_id ) {
-	$code = get_post_meta( (int) $product_id, '_taf_art_code', true );
-	return af_sku_code_part( $code );
+	$pid  = (int) $product_id;
+	$base = af_sku_code_part( get_post_meta( $pid, '_taf_art_code', true ) );
+	if ( $base === '' ) { return ''; }
+	$letter = (string) get_post_meta( $pid, '_af_sku_letter', true );
+	$issued = (string) get_post_meta( $pid, '_af_sku_letter_for', true );
+	if ( $letter !== '' && strcasecmp( $issued, $base ) === 0 ) {
+		return $base . strtoupper( $letter );
+	}
+	return $base;
 }
 
 /**
