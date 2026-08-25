@@ -589,3 +589,69 @@ was, the book has withdrawn it, so no product should be given RK 76.
 showing Radha and Krishna dancing. That is the same stray caption found on four
 pages of the Alwars book. It is now confirmed to appear in the Master Brochure
 too, so the caption is worthless as evidence anywhere. Only the picture counts.
+
+## The book is read
+
+Hindu Deities (HD 01–28, pages 154–180), Buddha (LB 01–13, pages 181–193) and
+Indian Culture (IC 01–04, pages 199–202) were the last three partially-read
+sections. **HD 14 is confirmed absent** — page 166 is HD 13 and page 167 is
+HD 15 — which is the second gap in the book after TP 04.
+
+With those closed, **every page of the Master Brochure has been looked at.**
+That matters because it is the condition the clearing rule was waiting on.
+
+## TA 04, settled
+
+Twenty-two products carried TA 04. Now that the whole book has been read:
+
+| Product | Where it actually belongs |
+|---|---|
+| #29890 Ganga Aarti Flame | **TA 04** — correct all along |
+| #24169 Murugan Sanctum Darshan | **MG 01** |
+| #8474 Divine Lord Balaji Temple | **TP 05** |
+| #23008 Teal City Mirage | **LI 04** |
+| #7765 Cute Cartoon Cat | **KR 01** |
+| #25185 Lotus Basket Still Life | **SL 22** |
+| #13414 Shiva and Parvati | **LS 06** |
+| #24897 Crimson Horse Reverie | **LI 36** (already staged) |
+| #23191 Seven Horses Cliff Dawn | **SH 04**, shared — same painting as #19025 |
+
+The remaining **fourteen are on no page of the book at all**: #7781, #7800,
+#14034, #19269, #22199, #23850, #24470, #24836, #25358, #25657, #28103,
+#28839, #30775, #30905.
+
+Under the owner's instruction — *if a picture does not match any one picture,
+leave it with no art code* — those fourteen are cleared. Each row says which
+pages were the near misses and why each failed, so the reasoning can be checked
+rather than taken on trust.
+
+**A consequence worth stating plainly:** an art code is what a SKU is built
+from, so clearing these fourteen also removes their SKUs. That is the rule
+working as intended — a SKU that encodes a catalogue position the product does
+not occupy is worse than no SKU — but it is a visible change in the shop, and
+it is the owner's call whether to accept it. The pictures are real products;
+they simply are not in this book.
+
+## Every section, and how it was closed
+
+| Section | Pages | Status |
+|---|---|---|
+| Radha Krishna RK 01–91 | 5–95 | read — RK 76 struck out in the book |
+| Lakshmi Ganesha LG 01–03 | 96–98 | read |
+| Lord Shiva LS 01–15 | 99–113 | read |
+| Seven Horses SH 01–12 | 114–125 | read |
+| Tirupati Balaji TP 01–16 | 126–140 | read — **TP 04 absent** |
+| Murugan MG 01–04 | 141–144 | read |
+| Lord Rama LR 01–09 | 145–153 | read |
+| Hindu Deities HD 01–28 | 154–180 | read — **HD 14 absent** |
+| Buddha LB 01–13 | 181–193 | read |
+| Sikh SA, Swaminarayan SN, Pichwai PA | 194–198 | read |
+| Indian Culture IC 01–04 | 199–202 | read |
+| Landscapes LC 01–10 | 203–212 | read |
+| Still Life SL 01–23 | 213–235 | read |
+| Vaastu VA 01–04 | 236–239 | read |
+| Wildlife WL 01–19 | 240–258 | read |
+| Kids Room KR 01–19 | 259–277 | read |
+| Living Room LI 01–44 | 278–321 | read |
+| Abstract AA 01–19 | 322–340 | read |
+| Travel Art TA 01–04 | 341–344 | read |
