@@ -121,3 +121,28 @@ magenta and teal — which is exactly the Lord Shiva page that had no owner.
 LS 04 was held by three products that are none of the fifteen Shiva pages
 (#23252 a hand with prayer beads, #8424 the Ganga Aarti, #3362 a Ganesha), so
 those clear first and #18290 moves in behind them.
+
+## The delivery channel works
+Deploy run 835 published seven product pictures to the `art-sheets` branch and
+they were fetched and read at full quality, with nothing going through the log.
+That closes the bottleneck this audit has been running into since the start.
+
+Two consequences, applied immediately:
+- Tiles were 220px only because the log had to carry them. They are now 420px,
+  which is what makes two near-identical temple-idol photographs separable.
+- A batch can be large. Nineteen products are queued for the next run.
+
+## Lord Rama after the pictures arrived
+| Code | Product | How |
+|---|---|---|
+| LR 01 | **#7810** | its picture is the page; #148 vacates first in the same file |
+| LR 02 | **#21259 — already correct** | Ram, Sita, Lakshmana standing, Hanuman kneeling |
+| LR 03 | **#21136 — already correct** | the Ram and Sita portrait |
+| LR 06 | **#18229 — already correct** | black idol, yellow dhoti, banded multicoloured garlands, plain dark arch. Sold as "Lord Krishna Statue"; the figure carries a bow. |
+| LR 04, 05, 07, 08, 09 | unowned | five Rama idol photographs, still to be matched |
+
+Remaining candidates for those five: #15913 / #17543 (the same photograph, listed
+twice), #31588, #26023, #23911 — all queued at 420px.
+
+#18229 is a third product whose title names the wrong subject, after #16257
+("Buddha Art", is LS 09) and #21625 ("Krishna and Cow", is LS 11).
