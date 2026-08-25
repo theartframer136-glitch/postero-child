@@ -543,3 +543,27 @@ picture match.
 No savanna page anywhere in WL, so **#28839 is not here either**.
 
 That leaves **RK, SL and VA** as the only unread sections in the book.
+
+## Still Life and Vaastu — read and closed
+
+**Still Life (SL 01–23, pages 213–235).**
+**#25185 is SL 22** — two white lotus flowers open in a woven basket, lily pads
+around it, on a mottled teal-green ground.
+
+**#7781 is not SL 01, though it very nearly is.** SL 01 is a spray of red,
+white, yellow and green blooms on a ground split red and cream — which is
+#7781's palette and layout exactly. But SL 01's flowers stand in a brass vase
+above a dark green band, and #7781 has no vase and no band: bare stems on the
+split ground. Closest call in the whole audit so far, and still a no.
+
+**Vaastu Art (VA 01–04, pages 236–239).**
+VA 01 peacock among white blossoms in teal and gold; VA 02 Garuda in blue and
+gold on a gold ground; VA 03 two sacred cows on teal; VA 04 pairs Garuda with
+the sun against the tulip page that is LI 03.
+VA 01 is a fifth peacock page, and **still not #22199**.
+
+## What is left
+
+**Radha Krishna, RK 01–91, pages 5–95 — the only section not yet read.**
+Everything else in the book has now been looked at page by page. Whatever is
+still misplaced is either in RK or in no page at all.
