@@ -370,3 +370,46 @@ Still unplaced: #7805 (butterfly tree), #29639 (gold Jain idol), #27264
 (Nataraja bronze), #16191 (Buddha at a waterfall), #7838 (Bharatanatyam
 dancer), #7802 (Radha Krishna abstract), #25535 (jazz saxophonist), #28778
 (dancer on stage), #25474 (lantern lake), #26628 (floral arch).
+
+## CODES.txt, first reading — the audit is visibly working
+| | Before | Now |
+|---|---|---|
+| codes on more than one product | 56 | **36** |
+| products sharing a code | 167 | **100** |
+| TA 04 alone | 28 products | **22** |
+
+All seven Living Room moves from PR #192 landed, including the three that
+corrected my own wrong clears. 66 rows already correct, 2 refused — the two
+known ones, now both unblocked below.
+
+## The two refusals, settled
+**#17472 was never a Buddha page.** It holds LB 13 and blocked #16932. Its
+picture is monks in orange robes before a radiant golden idol in a lantern-lit
+temple — which is **HD 09**, whose caption says exactly that. LB 13 is
+Mahavira's enlightenment under the tree with celestial figures, and that IS
+#16932, as claimed in PR #184. So the original row was right all along; the
+blocker was simply in the wrong place. #17472 -> HD 09 frees it.
+
+**#29517 is a lone conifer** on a split teal and orange field. LS 04 is the
+multicoloured Shiva face, so it is certainly wrong there. Cleared rather than
+left, which is a deliberate exception to the PR #192 rule:
+
+> A known-wrong code that blocks a known-right move is worse than an empty one.
+
+It still needs its own page found; it is not in Landscapes (LC 07 is a red tree
+at sunrise, LC 10 is circles with tree silhouettes) so Abstract Art is the next
+place to look.
+
+## More confirmed, none previously checked
+- **#30215 HD 15** — Lakshmi in white and gold on a lotus, ivory ground.
+- **#16257 LS 09 re-confirmed.** LS 09 is shared with #29578 "Twin Faces of
+  Serenity", whose *title* describes the page better than #16257's "Buddha Art"
+  does. The pictures settle it: LS 09 is two profile faces, a blue one on
+  yellow and a red one with a white lotus — which is #16257. #29578 is two
+  large close-up faces, one yellow and one green; a different painting, and the
+  squatter. Titles remain no guide at all.
+
+## SH 04 left alone, deliberately
+#19025 holds it and is white horses through water with cliffs; #23191, whose
+row was dropped in PR #193, is the same subject. At page-thumbnail size the two
+are not separable, so neither is asserted. SH 04 stays with #19025.
