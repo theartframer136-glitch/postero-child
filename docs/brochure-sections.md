@@ -350,3 +350,23 @@ the deploy's own passes have been moving codes since.
 **Fixed at the source:** the shared-code report is now teed to a file and
 published to art-sheets as **CODES.txt** every run, next to APPLIED.txt. No more
 deciding from a stale copy.
+
+## Living Room: one more placed, three refuted
+**#19697 -> LI 28** — the tall ship at anchor among icy cliffs under a huge moon.
+LI 29 is also a sailing page, but a sepia parchment ship with a compass rose;
+different painting, so the two are separable and this one is settled.
+
+Three that the pictures refused, all with captions that fit perfectly:
+
+| Page | Caption | Fits | Actually shows |
+|---|---|---|---|
+| LI 15 | "the art of freedom - every brushstroke dances with emotion and grace" | #7838 dancer | a ballerina in white and pink impasto |
+| LI 16 | "grace meets light - a timeless dance of colour, movement and elegance" | #7838 / #28778 | a stylised silhouette dancer in orange against a sun |
+| LI 19 | "where passion meets melody - a fusion of art and music" | #25535 jazz saxophonist | a woman playing a cello in watercolour |
+
+LI 19 is the seventh time a caption alone would have produced a wrong row.
+
+Still unplaced: #7805 (butterfly tree), #29639 (gold Jain idol), #27264
+(Nataraja bronze), #16191 (Buddha at a waterfall), #7838 (Bharatanatyam
+dancer), #7802 (Radha Krishna abstract), #25535 (jazz saxophonist), #28778
+(dancer on stage), #25474 (lantern lake), #26628 (floral arch).
