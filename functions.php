@@ -17555,9 +17555,27 @@ function af_ticker_is_staff_page() {
     ) ) );
 }
 
+/**
+ * Where the ticker runs: the HOME PAGE, and nowhere else.
+ *
+ * It used to run on every page a customer could reach. On the home page it is
+ * a welcome — six things the studio promises, moving past once. On a category
+ * page it lands between the section's own description and the products, a
+ * black band across the middle of the page saying things that have nothing to
+ * do with what the shopper came to look at. The owner asked for it back on the
+ * home page only, and that is the right place for it.
+ *
+ * Filterable, so widening it again later is one line and not an edit here.
+ */
+function af_ticker_should_run() {
+    $ok = function_exists('is_front_page') ? (bool) is_front_page() : false;
+    if ($ok && af_ticker_is_staff_page()) $ok = false;
+    return (bool) apply_filters('af_ticker_should_run', $ok);
+}
+
 add_action('wp_footer', function () {
     if (is_admin()) return;
-    if (af_ticker_is_staff_page()) return;
+    if (!af_ticker_should_run()) return;
     $items = af_ticker_items();
     if (!$items) return;
     $run = '';
