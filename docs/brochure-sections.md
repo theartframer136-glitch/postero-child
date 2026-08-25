@@ -218,3 +218,89 @@ pictures at all.
 Its listing image is a room mockup of an EMPTY white framed canvas. That settles
 the one product #189 deliberately left open rather than clear on its title.
 Eleven products are now known not to be artworks.
+
+## A rule that was wrong, and the correction
+
+Three products cleared in PR #186 — #20288, #16762, #16035 — **do** have pages.
+They are `LI 05`, `LI 08` and `LI 09`, in the Living Room section, which had not
+been read when they were cleared.
+
+The rule as applied was: *if the picture is in none of the pages of the section
+its code came from, clear the code.* That is wrong. "Not in the sections read so
+far" is not the same as "not in the book". The Living Room section turns out to
+carry a whole Christian run at `LI 05`-`LI 11`, which is exactly where those
+products belong.
+
+**The rule from here on:** clear a product only when
+  (a) it is not an artwork at all — the eleven canvas rolls, blank canvases,
+      frames, decor bundles and custom photo prints. Those can never match, so
+      they are safe to clear at any time; or
+  (b) every section of the book has been read.
+
+Until the whole book is read, a wrong code should be recorded as wrong and left,
+not replaced with nothing. Several existing clears may need revisiting on the
+same grounds once the remaining sections are read — they are listed in the
+corrections file and each says which section was checked.
+
+## Hindu Deities (HD 01-HD 28, pages 154-180) — nine confirmed
+`HD 14` is missing from the book, as `TP 04` is.
+
+| Code | Page | Product |
+|---|---|---|
+| HD 10 | 163 | #17795 Hanuman on the rock with lamps — correct |
+| HD 12 | 165 | #22260 Hanuman meditating, golden halo — correct |
+| HD 13 | 166 | #21075 Saraswati with the swan — correct |
+| HD 23 | 175 | #17605 the Sai Baba photograph — correct |
+| HD 24 | 176 | #18477 on the throne with devotees — correct |
+| HD 25 | 177 | #14861 sepia, deep meditation — correct |
+| HD 26 | 178 | #17090 with the white flower garland — correct |
+| HD 27 | 179 | #14985 close-up, yellow marigold garland — correct |
+| HD 28 | 180 | #22825 the pale painted portrait — correct |
+
+Still to check in HD: #17733 (HD 07), #30215 (HD 15), #17917 (HD 19),
+#15278 (HD 21), #15607 (HD 22), #19330 (HD 05), #24775 (HD 06).
+
+## Living Room (LI 01-LI 44, pages 278-321) — begun
+Confirmed by picture: LI 05 #20288, LI 07 #22444, LI 08 #16762, LI 09 #16035,
+LI 10 #17672, LI 11 #13592, LI 12 #7688.
+
+**LI 22 is NOT #16444.** The caption reads "fiery chestnut horse with a flowing
+mane, painted in bold, expressive brushstrokes", which fits #16444's title
+exactly — and the page is a vertical close-up bust with a blazing orange mane,
+while #16444 is a full-body galloping horse in ink-wash on cream. Sixth time
+wording alone would have produced a wrong answer.
+
+## The LR-to-LI number carry
+Four products on LR codes the book does not contain turn out to belong on the
+SAME number in Living Room:
+
+| Product | Was | Is | Confirmed by |
+|---|---|---|---|
+| #16444 Running Brown Horse | LR 23 | **LI 23** | brown horse charging in ink-splash on cream |
+| #13473 Joyful Man with Bouquet | LR 31 | **LI 31** | man leaping with a bouquet among confetti hearts |
+| #23374 Moonlit White Horse | LR 32 | **LI 32** | white horse before a golden full moon (already applied) |
+| #27920 Rainbow Wings | LR 34 | **LI 34** | rainbow angel wings with butterflies |
+
+So the old Living Room numbering DID survive the rename in these cases. It is a
+strong first hypothesis for any product on LR 10-39 — and nothing more than a
+hypothesis: it fails for LR 24 and LR 25, whose products are a Nataraja bronze,
+a Buddha at a waterfall and a Bharatanatyam dancer, while LI 24 and LI 25 are
+both horses. Confirm every one against the picture.
+
+Also placed: #24897 Crimson Horse Reverie, TA 04 -> **LI 36**, the red horse
+beside the woman in the water.
+
+Still unplaced from the LR 10-39 set: #7805 (butterfly tree), #29639 (gold Jain
+idol), #27264 (Nataraja bronze), #16191 (Buddha at a waterfall), #7838
+(Bharatanatyam dancer), #19697 (sailing ship - LI 28 and LI 29 are both sailing
+pages and need separating), #7802 (Radha Krishna abstract), #25535 (jazz
+saxophonist), #28778 (dancer on stage). Plus #25474 and #26628 from Lord Shiva.
+
+## A tooling blind spot worth remembering
+Runs waiting on the deploy-production concurrency group sit in GitHub's
+"pending" state, and "pending" is not one of the statuses the run-list filter
+accepts (queued, in_progress, completed, requested, waiting). Queued runs are
+therefore invisible to every query. Reading "not visible" as "not created" led
+to a wrong conclusion that three merges had failed to deploy; they had not.
+The right check is whether a run for the commit has COMPLETED, made after the
+queue drains — not whether one is visible right now.
