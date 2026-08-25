@@ -42,6 +42,17 @@ on:
         description: 'Remove the Gold Foiled & UV pieces copied from existing products'
         type: boolean
         default: false
+      # The address of a folder living somewhere else — a Synology share link,
+      # Dropbox, Drive. Set once; the site then polls it on a schedule and turns
+      # anything new into products with nobody uploading anything.
+      goldfoil_watch_url:
+        description: 'Watch this folder link and auto-import new artwork (blank = leave as is)'
+        type: string
+        default: ''
+      goldfoil_sync_now:
+        description: 'Fetch from the watched link immediately, without waiting for the schedule'
+        type: boolean
+        default: false
 
 # One deploy at a time. Two overlapping runs each rsync --delete the theme and
 # fire a dozen WP-CLI processes at the same shared host, which is enough to hit
@@ -268,6 +279,35 @@ jobs:
               "cd ~/websites/OPu0sKi4J/public_html && \
                wp option update af_goldfoil_max '${GF_MAX}' --allow-root 2>&1" \
               || echo "  (could not set the cap — the stored one still applies)"
+          fi
+
+      - name: Point the folder watcher at a link, and sync now
+        if: inputs.goldfoil_watch_url != '' || inputs.goldfoil_sync_now
+        env:
+          H_USER: ${{ secrets.HOSTINGER_USERNAME }}
+          H_HOST: ${{ secrets.HOSTINGER_HOST }}
+          H_PORT: ${{ secrets.HOSTINGER_PORT }}
+          GF_WATCH: ${{ inputs.goldfoil_watch_url }}
+          GF_NOW: ${{ inputs.goldfoil_sync_now }}
+        run: |
+          set -uo pipefail
+          SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          if [ -n "${GF_WATCH}" ]; then
+            # base64 so a share link's ? & and = cannot be read as shell
+            W=$(printf '%s' "$GF_WATCH" | base64 -w0)
+            echo "Watching: ${GF_WATCH}"
+            ${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
+              "cd ~/websites/OPu0sKi4J/public_html && \
+               wp option update af_goldfoil_watch_url \"\$(printf %s '${W}' | base64 -d)\" --allow-root 2>&1 && \
+               wp option delete af_goldfoil_watch_hash --allow-root 2>&1 || true" \
+              || echo "  (could not set the watch link)"
+          fi
+          if [ "${GF_NOW}" = "true" ] || [ -n "${GF_WATCH}" ]; then
+            echo "Fetching from the watched folder now..."
+            ${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
+              "cd ~/websites/OPu0sKi4J/public_html && \
+               wp eval 'echo af_goldfoil_sync_run(true) . \"\\n\";' --allow-root 2>&1" \
+              || echo "  (sync failed — see the message above)"
           fi
 
       - name: Remove Gold Foiled & UV pieces copied from existing products

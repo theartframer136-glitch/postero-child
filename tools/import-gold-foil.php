@@ -1,5 +1,5 @@
 <?php
-/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI) && !defined('AF_GOLDFOIL_INTERNAL')) { http_response_code(403); exit('Forbidden'); }
 /**
  * Turn a folder of artwork files into the Gold Foiled & UV section.
  *
