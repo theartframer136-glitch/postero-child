@@ -185,3 +185,48 @@ add_action('woocommerce_archive_description', function () {
        . 'and sealed under a <strong>UV-cured coat</strong> — the same sizes and frames as the rest of the studio, '
        . 'in our premium finish.</p>';
 });
+
+/* ── The badge on the theme's own grid cards ──────────────────────────────
+ * Measured on a fresh (cache-miss) category render: the Postero main-grid
+ * card template fires NEITHER woocommerce_before_ NOR after_shop_loop_item_title
+ * — the PHP hook above only reaches the standard Woo templates (related rows,
+ * up-sells). This is the same gap the Art Code line closes with PHASE 25b's
+ * client-side pass, and the same fix applies. No per-product lookup is needed:
+ * WordPress already stamps every card <li> with product_cat-gold-foiled-uv,
+ * so the class IS the data.
+ */
+add_action('wp_footer', function () {
+    if (is_admin()) return; ?>
+<script>
+(function(){
+  var BADGE = <?php echo wp_json_encode('<span class="af-gf-flag">' . af_goldfoil_badge_html() . '</span>'); ?>;
+  function run(){
+    var cards = document.querySelectorAll(
+      'li[class*="product_cat-gold-foiled-uv"], .product-card[class*="product_cat-gold-foiled-uv"]');
+    Array.prototype.forEach.call(cards, function(card){
+      if (card.getAttribute('data-af-gf')) return;
+      card.setAttribute('data-af-gf', '1');
+      if (card.querySelector('.af-gf-flag')) return;      // a hook already placed one
+      var title = card.querySelector(
+        '.woocommerce-loop-product__title, .product-title, h2 a, h3 a, h2, h3');
+      if (!title) return;
+      var host = (title.tagName === 'A' && title.parentNode) ? title.parentNode : title;
+      var span = document.createElement('span');
+      span.innerHTML = BADGE;
+      host.parentNode.insertBefore(span.firstChild, host);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', run);
+  window.addEventListener('load', run);
+  [400, 1200, 2500].forEach(function(d){ setTimeout(run, d); });
+  try {
+    var obs = new MutationObserver(function(m){
+      for (var i = 0; i < m.length; i++){
+        if (m[i].addedNodes && m[i].addedNodes.length){ run(); break; }
+      }
+    });
+    obs.observe(document.body, {childList: true, subtree: true});
+  } catch (e) {}
+})();
+</script>
+<?php }, 61);
