@@ -80,12 +80,22 @@ foreach ( get_posts( array(
 	}
 }
 
-$changed = 0; $same = 0; $missing = 0; $clash = 0; $cleared = 0;
+$changed = 0; $same = 0; $missing = 0; $clash = 0; $cleared = 0; $shared = 0;
 
 echo "\n--- what happens to each row ---\n";
 foreach ( $rows as $row ) {
 	$pid = $row['pid'];
 	$new = $row['new'];
+
+	// A row may deliberately give two products the same code, but only when it
+	// says so. Two listings of the SAME picture must carry the same art code;
+	// the SKU letter keeps their SKUs apart. Everything else is a clash and is
+	// still refused, because that is nearly always a mistake.
+	$share = false;
+	if ( stripos( $new, 'SHARE:' ) === 0 ) {
+		$share = true;
+		$new   = trim( substr( $new, 6 ) );
+	}
 	$key = strtoupper( $new );
 
 	$post = get_post( $pid );
@@ -128,10 +138,15 @@ foreach ( $rows as $row ) {
 	}
 
 	$held = isset( $owner[ $key ] ) ? array_diff( $owner[ $key ], array( $pid ) ) : array();
-	if ( $held ) {
+	if ( $held && ! $share ) {
 		printf( "  #%-7d REFUSED — %s already belongs to #%s\n", $pid, $new, implode( ', #', $held ) );
 		$clash++;
 		continue;
+	}
+	if ( $held ) {
+		printf( "  #%-7d SHARING %-8s with #%s — the same artwork, listed twice\n",
+			$pid, $new, implode( ', #', $held ) );
+		$shared++;
 	}
 
 	printf( "  #%-7d %-8s -> %-8s %s\n", $pid, ( $now !== '' ? $now : '(none)' ), $new, $title );
@@ -155,6 +170,7 @@ foreach ( $rows as $row ) {
 echo "\n";
 printf( "to change: %d  |  codes cleared: %d  |  already correct: %d  |  refused as a clash: %d  |  missing: %d\n",
 	$changed, $cleared, $same, $clash, $missing );
+if ( $shared ) { printf( "of those, %d deliberately share a code with another listing of the same picture\n", $shared ); }
 
 if ( ! $APPLY ) {
 	echo "\nNothing was written. Set AF_APPLY=1 on this step to apply.\n";

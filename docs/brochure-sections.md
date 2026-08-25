@@ -413,3 +413,113 @@ place to look.
 #19025 holds it and is white horses through water with cliffs; #23191, whose
 row was dropped in PR #193, is the same subject. At page-thumbnail size the two
 are not separable, so neither is asserted. SH 04 stays with #19025.
+
+## The book's own table of contents — page 3
+
+Page 3 of the Master Brochure is a contents page. It lists every section and
+its code range, in the book's own words. This is the authority the section map
+should have been built on from the start:
+
+| Section | Codes | | Section | Codes |
+|---|---|---|---|---|
+| Radha Krishna | RK 01 – RK 91 | | Still Life | SL 01 – SL 23 |
+| Lakshmi Ganesha | LG 01 – LG 03 | | Vaastu Art | VA 01 – VA 04 |
+| Lord Shiva | LS 01 – LS 15 | | Wildlife | WL 01 – WL 19 |
+| Seven Horses | SH 01 – SH 12 | | Kids Room | KR 01 – KR 19 |
+| Tirupati Balaji | TP 01 – TP 16 | | Living Room | LI 01 – LI 44 |
+| Murugan | MG 01 – MG 04 | | Abstract Art | AA 01 – AA 19 |
+| Lord Rama | LR 01 – LR 09 | | **Travel Art** | **TA 01 – TA 04** |
+| Hindu Deities | HD 01 – HD 28 | | Buddha | LB 01 – LB 13 |
+| Sikh Art | SA 01 – SA 03 | | Swaminarayan | SN 01 |
+| Pichwai Art | PA 01 | | Indian Culture | IC 01 – IC 04 |
+| Landscapes | LC 01 – LC 10 | | | |
+
+Every count matches the page ranges read so far, so the map is now closed and
+confirmed from both ends.
+
+Two cautions about the contents page itself. It abbreviates loosely: it writes
+Landscapes as "LS" (colliding with Lord Shiva) and Living Room as "LR"
+(colliding with Lord Rama), where the pages themselves are labelled LC and LI.
+**Where the contents page and a page label disagree, the page label wins** — it
+is what is actually printed on the artwork page.
+
+## Travel Art exists, and TA 04 has exactly one owner
+
+I had concluded there was no TA section in this book. That was wrong: TA is
+simply last, at pages 341–344, after AA ends at 340.
+
+- **TA 01** (p341) — Varanasi ghats at dusk, purple sky, hundreds of lamps, boats on the river.
+- **TA 02** (p342) — Kedarnath temple lit with lamps against snowy Himalayas, pink sunset.
+- **TA 03** (p343) — Varanasi ghats stylised flat, crimson sky meeting teal water, wide.
+- **TA 04** (p344) — a woman in a red-orange sari lifting a blazing aarti lamp, huge
+  flame, teal night sky, temple spires right, glowing crowd below.
+
+**TA 04 is #29890 "Ganga Aarti Flame", and only #29890.** Twenty-two products
+carried TA 04; the picture belongs to one of them. Having now seen all four TA
+pages, none of the other twenty-one is any of them — TA 04 was applied to them
+in bulk, not matched.
+
+### A page label in another book that means nothing
+
+The Alwars design DAHQHUtH1kg has a page labelled "TA 04" showing a Tanjore
+deity on a golden throne. It is not this TA 04 and matches no product. Labels
+in that book are unreliable — four of its pages also share one identical
+"Ganga Aarti at Varanasi" caption. **Only the Master Brochure's own labels
+count.** Checking it cost a detour; recording it so the detour is not repeated.
+
+## Sections closed in this pass
+
+**Murugan (MG 01–04, pages 141–144) — read, closed.**
+MG 01 Murugan between Valli and Devasena under a gold arch; MG 02 seated in a
+blooming garden with peacock; MG 03 standing beside the peacock in a dark
+illuminated temple; MG 04 six-faced Shanmukha before a gopuram under a moon.
+**#24169 is MG 01.** #14034, titled "Lord Murugan Art", is **not Murugan at
+all** — it is a Tanjore panel of an acharya with a tridandi staff and two
+disciples, matching no MG page. Another title naming the wrong subject.
+
+**Tirupati Balaji (TP 01–16, pages 126–140) — read, closed.**
+**TP 04 is confirmed absent from the book**: page 128 is TP 03 and page 129 is
+TP 05, so labels run one ahead of the page offset from there on.
+**#8474 is TP 05.** #24470 "Tanjore Devotion Panel" and #30905 "Balaji Heritage
+Collage" are Balaji subjects but match no TP page — every TP page is
+photographic or painterly, neither is a Tanjore panel or a collage.
+
+**Seven Horses (SH 01–12, pages 114–125) — read, closed.**
+SH 04 is the only page with a dark cliff at the left, and it is the picture
+#19025 already holds. **#19025 and #23191 are the same artwork** — #23191 is a
+brighter, tighter crop. Fourth duplicate listing found, after #31890/#15730,
+#15913/#17543 and the LR pair.
+
+**Abstract Art (AA 01–19, pages 322–340) — read, closed.**
+A firm negative: **none** of the abstract-looking products on TA 04 is in this
+section — not #19269, #30775, #23008, #7781, #23850, #25358 or #28839.
+
+**Living Room (LI 01–44, pages 278–321) — read, closed.**
+**#23008 "Teal City Mirage" is LI 04** — the Statue of Liberty dissolving into
+teal mist. Nothing else on TA 04 is anywhere in LI.
+
+Between them AA and LI are the book's two catch-alls, so closing both is what
+makes the remaining search small: whatever is left must be in RK, SL, VA, WL,
+KR or in no page at all.
+
+## Two listings of one picture may share a code — deliberately
+
+The apply tool refuses to write a code another product holds, because a clash
+is nearly always a mistake. A genuine duplicate listing is the exception: the
+same picture must carry the same art code, and the SKU letter already keeps the
+two SKUs apart (SH-04A, SH-04B).
+
+So a row may now say `SHARE:SH 04` instead of `SH 04`. The prefix has to be
+written out, so it cannot happen by accident, and the run reports each shared
+code on its own line. Without the marker the refusal stands exactly as before.
+
+## Still open
+
+Unread: **RK (91 pages), SL (23), WL (19), KR (19), VA (4)**. Partly read: HD,
+LS, LB, IC.
+
+Still carrying TA 04 with nowhere yet to go: #7765, #7781, #7800, #13414,
+#14034, #19269, #22199, #23850, #24470, #24836, #25185, #25358, #25657,
+#28103, #28839, #30775, #30905. They are not being cleared — the rule holds
+that a code is only emptied when the product is not an artwork, or when every
+section has been read and none of them fits.
