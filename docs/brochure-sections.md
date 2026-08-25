@@ -269,3 +269,38 @@ mane, painted in bold, expressive brushstrokes", which fits #16444's title
 exactly — and the page is a vertical close-up bust with a blazing orange mane,
 while #16444 is a full-body galloping horse in ink-wash on cream. Sixth time
 wording alone would have produced a wrong answer.
+
+## The LR-to-LI number carry
+Four products on LR codes the book does not contain turn out to belong on the
+SAME number in Living Room:
+
+| Product | Was | Is | Confirmed by |
+|---|---|---|---|
+| #16444 Running Brown Horse | LR 23 | **LI 23** | brown horse charging in ink-splash on cream |
+| #13473 Joyful Man with Bouquet | LR 31 | **LI 31** | man leaping with a bouquet among confetti hearts |
+| #23374 Moonlit White Horse | LR 32 | **LI 32** | white horse before a golden full moon (already applied) |
+| #27920 Rainbow Wings | LR 34 | **LI 34** | rainbow angel wings with butterflies |
+
+So the old Living Room numbering DID survive the rename in these cases. It is a
+strong first hypothesis for any product on LR 10-39 — and nothing more than a
+hypothesis: it fails for LR 24 and LR 25, whose products are a Nataraja bronze,
+a Buddha at a waterfall and a Bharatanatyam dancer, while LI 24 and LI 25 are
+both horses. Confirm every one against the picture.
+
+Also placed: #24897 Crimson Horse Reverie, TA 04 -> **LI 36**, the red horse
+beside the woman in the water.
+
+Still unplaced from the LR 10-39 set: #7805 (butterfly tree), #29639 (gold Jain
+idol), #27264 (Nataraja bronze), #16191 (Buddha at a waterfall), #7838
+(Bharatanatyam dancer), #19697 (sailing ship - LI 28 and LI 29 are both sailing
+pages and need separating), #7802 (Radha Krishna abstract), #25535 (jazz
+saxophonist), #28778 (dancer on stage). Plus #25474 and #26628 from Lord Shiva.
+
+## A tooling blind spot worth remembering
+Runs waiting on the deploy-production concurrency group sit in GitHub's
+"pending" state, and "pending" is not one of the statuses the run-list filter
+accepts (queued, in_progress, completed, requested, waiting). Queued runs are
+therefore invisible to every query. Reading "not visible" as "not created" led
+to a wrong conclusion that three merges had failed to deploy; they had not.
+The right check is whether a run for the commit has COMPLETED, made after the
+queue drains — not whether one is visible right now.
