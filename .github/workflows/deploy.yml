@@ -1232,10 +1232,15 @@ jobs:
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          # Teed to a file for the same reason the apply report is: this is the
+          # only current picture of which product holds which code, and working
+          # from a stale copy of it has already produced rows whose stated reason
+          # named a code the product no longer had.
           echo "Which products share an art code (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-artcode-duplicates.php --allow-root 2>&1" \
+            2>&1 | tee /tmp/af-codes.txt \
             || true
 
       - name: Pictures of one book section's products (read-only)
@@ -1250,10 +1255,10 @@ jobs:
           # Tiles are large now. They used to be 220px because the log had to carry
           # them; the branch does not care, and 220px is exactly why two Rama idol
           # photographs could not be told apart.
-          echo "Draw the Hindu Deities and Living Room products never seen..."
+          echo "Draw the three products blocking refused rows, and the rest of Hindu Deities..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             AF_SHEET_IDS=17733,17795,22260,21075,30215,17605,18477,17090,14985,22825,17672,7688,7805,29639,16444,27264,16191,7838,19697,13473,7802,25535,27920,28778 \
+             AF_SHEET_IDS=17472,19025,29517,17733,30215,17917,15278,15607,19330,24775 \
              AF_SHEET_TILE=420 AF_SHEET_Q=72 \
              wp eval-file wp-content/themes/postero-child/tools/diag-product-contact-sheets.php --allow-root 2>&1" \
             > /tmp/af-sheets.txt || true
@@ -1285,6 +1290,11 @@ jobs:
           if [ -s /tmp/af-apply.txt ]; then
             cp /tmp/af-apply.txt /tmp/af-sheetout/APPLIED.txt
             echo "carrying the apply report ($(wc -l < /tmp/af-apply.txt) lines)"
+          fi
+          # And the live code map, so decisions are never made from a stale copy.
+          if [ -s /tmp/af-codes.txt ]; then
+            cp /tmp/af-codes.txt /tmp/af-sheetout/CODES.txt
+            echo "carrying the code map ($(wc -l < /tmp/af-codes.txt) lines)"
           fi
           if [ -s /tmp/af-sheets.txt ]; then
             awk '/^B64 /{print $2" "$3}' /tmp/af-sheets.txt | while read -r slug chunk; do
