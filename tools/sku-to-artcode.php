@@ -30,7 +30,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$VERSION = 'artcode-sku-v2';
+$VERSION = 'artcode-sku-v3-hyphen';
 $SECONDS = (int) ( getenv( 'AF_SKU_SECONDS' ) ?: 200 );
 $MAX     = (int) ( getenv( 'AF_SKU_MAX' )     ?: 800 );
 $DRY     = (bool) getenv( 'AF_SKU_DRYRUN' );
@@ -42,15 +42,29 @@ echo "target: {$VERSION}  |  budget: {$SECONDS}s or {$MAX} products per run"
    . ( $DRY ? '  |  DRY RUN — nothing is written' : '' ) . "\n";
 
 /**
- * The SKU IS the art code — exactly as it is written in the book. "RK 01"
- * stays "RK 01"; it is not upper-cased, hyphenated or otherwise tidied, so
- * what a customer reads as the SKU is character-for-character the code the
- * shop assigned. The only change is collapsing stray whitespace, since
- * "RK  01" and "RK 01" are the same code typed twice.
+ * The SKU is the art code in the shop's SKU shape: "RK 01" becomes "RK-01".
+ *
+ * It used to be the code verbatim, spaces and all, on the reasoning that what
+ * a customer reads should be character-for-character what the book says. The
+ * shop has since specified the format — prefix, hyphen, two-digit number, and
+ * on an order line the chosen size after another hyphen: RK-01-2/3. So the
+ * product SKU is the first two parts of that, and inc/sku.php builds the full
+ * one for the order line, where a size actually exists.
+ *
+ * The formatting lives in inc/sku.php so the product SKU and the line SKU can
+ * never drift apart. This falls back to a local copy only if the theme is not
+ * loaded, which wp eval-file always does load.
  */
 function af_sku_from_code( $code ) {
-	$s = trim( (string) $code );
-	return (string) preg_replace( '/\s+/', ' ', $s );
+	if ( function_exists( 'af_sku_code_part' ) ) {
+		return af_sku_code_part( $code );
+	}
+	$s = preg_replace( '/\s+/', ' ', trim( (string) $code ) );
+	if ( $s === '' ) { return ''; }
+	if ( preg_match( '/^([A-Za-z]+)\s*0*(\d+)$/', $s, $m ) ) {
+		return strtoupper( $m[1] ) . '-' . str_pad( $m[2], 2, '0', STR_PAD_LEFT );
+	}
+	return strtoupper( str_replace( ' ', '-', $s ) );
 }
 
 // ── Every published product, and the art code it carries ────────────────────
