@@ -939,7 +939,26 @@ jobs:
             "cd ~/websites/OPu0sKi4J/public_html && \
              AF_SKU_SECONDS=${AF_SKU_SECONDS} AF_SKU_MAX=${AF_SKU_MAX} \
              wp eval-file wp-content/themes/postero-child/tools/sku-to-artcode.php --allow-root 2>&1" \
-            || true
+            2>&1 | tee /tmp/af-sku.txt || true
+
+      - name: SKU format check (read-only)
+        if: always()
+        timeout-minutes: 5
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          # The product SKU and the order-line SKU are built in two different
+          # files. This proves they still agree, and that every size the rate
+          # card sells produces a distinct token — so portrait 2x3 and landscape
+          # 3x2 never collapse onto the same SKU.
+          echo "Checking the SKU format against the rate card (read-only)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/test-sku-format.php --allow-root 2>&1" \
+            2>&1 | tee /tmp/af-skucheck.txt || true
 
       - name: Gates & warm (always)
         timeout-minutes: 10
@@ -1295,6 +1314,15 @@ jobs:
           if [ -s /tmp/af-codes.txt ]; then
             cp /tmp/af-codes.txt /tmp/af-sheetout/CODES.txt
             echo "carrying the code map ($(wc -l < /tmp/af-codes.txt) lines)"
+          fi
+          # And what the SKU pass did, plus its format check.
+          if [ -s /tmp/af-sku.txt ]; then
+            cp /tmp/af-sku.txt /tmp/af-sheetout/SKU.txt
+            echo "carrying the SKU report ($(wc -l < /tmp/af-sku.txt) lines)"
+          fi
+          if [ -s /tmp/af-skucheck.txt ]; then
+            cp /tmp/af-skucheck.txt /tmp/af-sheetout/SKUCHECK.txt
+            echo "carrying the SKU format check"
           fi
           if [ -s /tmp/af-sheets.txt ]; then
             awk '/^B64 /{print $2" "$3}' /tmp/af-sheets.txt | while read -r slug chunk; do
