@@ -523,3 +523,23 @@ Still carrying TA 04 with nowhere yet to go: #7765, #7781, #7800, #13414,
 #28103, #28839, #30775, #30905. They are not being cleared — the rule holds
 that a code is only emptied when the product is not an artwork, or when every
 section has been read and none of them fits.
+
+## Kids Room and Wildlife — read and closed
+
+**Kids Room (KR 01–19, pages 259–277).**
+**#7765 is KR 01** — the four cartoon cats stacked together: the big green one,
+the red one in a hat, the white fluffy one, the small black-and-white one. KR 02
+is also a cat, but a single sleeping cat on a colourful patchwork, so the
+section has two cat pages and only one of them is this product.
+Nothing else on TA 04 is in KR — #23850 "Melody Makers" is not here.
+
+**Wildlife (WL 01–19, pages 240–258).**
+Four separate peacock pages: WL 06 (two peacocks in a pale floral garden),
+WL 10 (art-nouveau ornate peacock), WL 11 (pastel watercolour peacock),
+WL 16 (peacock before a red palace doorway). **#22199 is none of them** — its
+peacock has a fanned teal-and-gold tail on a dark blue painterly ground.
+Four candidates and none fits: a good example of why a subject match is not a
+picture match.
+No savanna page anywhere in WL, so **#28839 is not here either**.
+
+That leaves **RK, SL and VA** as the only unread sections in the book.
