@@ -18,6 +18,11 @@
  * LI — so a landscape sitting on an LS code is no longer half of an unavoidable
  * clash. It simply has the wrong code, and there is a right one to give it.
  *
+ * A row whose new_art_code is NONE clears the product's art code instead of
+ * setting one. That is the owner's rule for a picture that appears nowhere in
+ * the book: better no code at all than a code belonging to a different artwork,
+ * because a wrong code travels onto the SKU and onto invoices.
+ *
  * DRY RUN BY DEFAULT. Nothing is written unless AF_APPLY=1 is set, so the first
  * run on any deploy prints exactly what it would do and changes nothing.
  *
@@ -75,7 +80,7 @@ foreach ( get_posts( array(
 	}
 }
 
-$changed = 0; $same = 0; $missing = 0; $clash = 0;
+$changed = 0; $same = 0; $missing = 0; $clash = 0; $cleared = 0;
 
 echo "\n--- what happens to each row ---\n";
 foreach ( $rows as $row ) {
@@ -93,9 +98,32 @@ foreach ( $rows as $row ) {
 	$title = mb_substr( html_entity_decode( wp_strip_all_tags( get_the_title( $pid ) ) ), 0, 44 );
 	$now   = (string) get_post_meta( $pid, '_taf_art_code', true );
 
-	if ( strcasecmp( trim( $now ), $new ) === 0 ) {
+	if ( $key !== 'NONE' && strcasecmp( trim( $now ), $new ) === 0 ) {
 		printf( "  #%-7d already %-8s %s\n", $pid, $new, $title );
 		$same++;
+		continue;
+	}
+
+	// NONE means: this picture is in no book page, so it should carry no code.
+	if ( $key === 'NONE' ) {
+		if ( $now === '' ) {
+			printf( "  #%-7d already has no code   %s\n", $pid, $title );
+			$same++;
+			continue;
+		}
+		printf( "  #%-7d %-8s -> (cleared)  %s\n", $pid, $now, $title );
+		if ( $row['why'] !== '' ) { echo "            because: " . $row['why'] . "\n"; }
+		if ( $APPLY ) {
+			if ( get_post_meta( $pid, '_af_code_before_fix', true ) === '' ) {
+				update_post_meta( $pid, '_af_code_before_fix', $now );
+			}
+			delete_post_meta( $pid, '_taf_art_code' );
+			$oldkey = strtoupper( preg_replace( '/\s+/', ' ', trim( $now ) ) );
+			if ( isset( $owner[ $oldkey ] ) ) {
+				$owner[ $oldkey ] = array_values( array_diff( $owner[ $oldkey ], array( $pid ) ) );
+			}
+		}
+		$cleared++;
 		continue;
 	}
 
@@ -125,8 +153,8 @@ foreach ( $rows as $row ) {
 }
 
 echo "\n";
-printf( "to change: %d  |  already correct: %d  |  refused as a clash: %d  |  missing: %d\n",
-	$changed, $same, $clash, $missing );
+printf( "to change: %d  |  codes cleared: %d  |  already correct: %d  |  refused as a clash: %d  |  missing: %d\n",
+	$changed, $cleared, $same, $clash, $missing );
 
 if ( ! $APPLY ) {
 	echo "\nNothing was written. Set AF_APPLY=1 on this step to apply.\n";
