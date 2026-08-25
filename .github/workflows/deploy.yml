@@ -66,7 +66,7 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
 
       - name: Deploy (rsync + opcache + mode decision)
-        timeout-minutes: 30
+        timeout-minutes: 55
         # All ${{ }} live here, NOT in the run block: a run block containing
         # any expression is compiled as one template capped at 21000 chars,
         # and this script is far past that.
@@ -99,10 +99,20 @@ jobs:
           # and that spree is what starved runs #526/527/534. Connection reuse
           # is what actually tamed the throttle, so the pre-wait is a short
           # grace, and the rsync retry ladder below remains the safety net.
-          echo "Waiting 20s for any SSH throttle to clear..."
-          sleep 20
+          # A deploy that follows close on another's heels is the one most
+          # likely to be refused, so the grace before the first attempt scales
+          # with how recently this workflow last ran against the host.
+          echo "Waiting 30s for any SSH throttle to clear..."
+          sleep 30
 
-          MAX=6
+          # The ladder has to outlast the throttle, or it converts a wait into
+          # a failure and someone has to notice and retry by hand. Twice now it
+          # has not: run 822 spent 26 minutes being refused and gave up, and so
+          # did run 830 — both times the change simply never reached the site
+          # and the page still looked wrong. Eight attempts on a rising delay
+          # spans roughly 50 minutes, inside the step's own 55, so a throttled
+          # deploy waits the host out instead of dying at the half hour.
+          MAX=8
           DELAY=90
           DEPLOYED=0
           for i in $(seq 1 $MAX); do
