@@ -1274,11 +1274,14 @@ jobs:
           # Tiles are large now. They used to be 220px because the log had to carry
           # them; the branch does not care, and 220px is exactly why two Rama idol
           # photographs could not be told apart.
-          echo "Draw the three products blocking refused rows, and the rest of Hindu Deities..."
+          # Every product carrying no art code at all, in one go. The branch has
+          # no size limit the way the log did, so there is no reason to take
+          # these ten at a time — 108 products is five sheets and one deploy.
+          echo "Draw every product that carries no art code..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             AF_SHEET_IDS=17472,19025,29517,17733,30215,17917,15278,15607,19330,24775 \
-             AF_SHEET_TILE=420 AF_SHEET_Q=72 \
+             AF_SHEET_SCOPE=nocode AF_SHEET_TAKE=0 \
+             AF_SHEET_TILE=300 AF_SHEET_Q=60 \
              wp eval-file wp-content/themes/postero-child/tools/diag-product-contact-sheets.php --allow-root 2>&1" \
             > /tmp/af-sheets.txt || true
           # Everything except the image data goes to the log — which products were
