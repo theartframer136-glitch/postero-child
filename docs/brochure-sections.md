@@ -655,3 +655,49 @@ they simply are not in this book.
 | Living Room LI 01–44 | 278–321 | read |
 | Abstract AA 01–19 | 322–340 | read |
 | Travel Art TA 01–04 | 341–344 | read |
+
+## Run 852 landed, and it found two things
+
+**The SHARE: prefix works.** #23191 now holds SH 04 alongside #19025, reported
+as sharing rather than refused. 91 of 92 rows applied; the eight moves and the
+fourteen clears are all on the live shop. **TA 04 is down from 22 products to
+two.**
+
+### The one refusal was right: a fifth duplicate listing
+
+`#8474 REFUSED — TP 05 already belongs to #229.`
+
+**#229 and #8474 are the same painting.** #229 shows the framed piece whole in a
+room; #8474 is a zoomed crop of it — the same gold pillars, the same red and
+white garlands falling in a V from the shoulders, the same dark Venkateswara
+with the tall crown against a blue-green arch. So TP 05 was already correctly
+held, and #8474 is a second listing of it. The row is now `SHARE:TP 05`.
+
+The guard was doing exactly what it exists for. Worth recording, because the
+instinct on seeing a refusal is to assume the row is wrong — here the row was
+right about the picture and wrong only about the picture being unique.
+
+### And one thing the audit broke, which I missed
+
+The clears removed fourteen art codes. **The SKUs did not follow.** The count of
+products with no SKU went 41 → 44, not 41 → 55, because the SKU pass has always
+said "no art code, so the SKU was not touched".
+
+That rule was right while *no art code* meant *never had one*. The audit changed
+what it can mean. A product whose code was taken away was left carrying
+`TA-04D` — a SKU asserting the exact catalogue position the audit had just
+proved it does not occupy. That is the error the audit exists to remove,
+reproduced in the field customers and invoices actually read.
+
+The pass now undoes what it minted, and only what it minted:
+
+- if it displaced an older SKU, that original is **put back** (it was kept in
+  `_af_sku_before_artcode` all along);
+- if there was nothing to restore and the SKU matches the generated shape, it is
+  **cleared**;
+- a SKU this tool never wrote is **left alone**;
+- a restore that would collide with a SKU another product now holds clears
+  instead of colliding, and says so.
+
+The stale `_af_sku_letter` is deleted at the same time, which also drains the
+22 stale letters the format check has been listing.
