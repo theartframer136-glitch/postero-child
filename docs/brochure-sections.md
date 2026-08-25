@@ -146,3 +146,26 @@ twice), #31588, #26023, #23911 — all queued at 420px.
 
 #18229 is a third product whose title names the wrong subject, after #16257
 ("Buddha Art", is LS 09) and #21625 ("Krishna and Cow", is LS 11).
+
+## Products that are not artworks — the running list
+Ten so far, all cleared. None of them can ever match a picture in the book,
+so none should carry a code taken from one.
+
+| Product | Held | What it is |
+|---|---|---|
+| #8597 | AA 06 | cotton canvas roll |
+| #8591 | SL 08 | canvas roll for printing |
+| #8594 | (none) | artist canvas roll — already had no code |
+| #8582 | LG 02 | blank framed white canvas |
+| #8588 | HD 08 | blank pre-stretched canvas board |
+| #8447 | LS 09 | custom photo on canvas |
+| #8440 | RK 42 | custom photo canvas |
+| #8711 | TA 04 | personalised family photo collage |
+| #8853 | HD 16 | matte black floating frame, sold empty |
+| #8869 | LS 08 | three-panel decor bundle |
+
+#8585 "Elegant Large Framed White Canvas" is very likely an eleventh — the id
+sits next to #8582 and the title reads the same — but its listing does not say
+"blank" outright, so it is queued for a picture rather than cleared on wording.
+The easels (#8604, #8607, #8610) and the loose frames (#8444, #8616, #8619)
+already carry no code and need nothing done.
