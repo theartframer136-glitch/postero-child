@@ -162,8 +162,22 @@ jobs:
                 break
               fi
             done
+            # Artwork committed to the theme is the whole point of that folder:
+            # the deploy rsyncs it to the server and the importer turns each
+            # picture into a product. But a commit that adds ONLY images changes
+            # no tools/ file and carries no [full-deploy], so the guard below
+            # would skip the suite — the pictures would land on the server as
+            # inert files and nothing would happen. That is the one case where
+            # the artwork arrives and the section still looks empty, so it gets
+            # its own trigger rather than depending on anyone remembering.
+            ART_CHANGED=0
+            if printf '%s\n' "$CHANGED" | grep -qiE '^assets/gold-foil/.+\.(jpe?g|png|webp|gif)$'; then
+              ART_CHANGED=1
+              echo "Gold-foil artwork added — running the full suite so it becomes products."
+            fi
             if [ -n "$CHANGED" ] \
                && [ "$SUITE_TOOL_CHANGED" = "0" ] \
+               && [ "$ART_CHANGED" = "0" ] \
                && ! printf '%s\n' "$MSGS" | grep -qi '\[full-deploy\]'; then
               RUN_SUITE=0
             fi
@@ -190,21 +204,44 @@ jobs:
           GF_MAX: ${{ inputs.goldfoil_max }}
         run: |
           set -uo pipefail
-          # This value reaches a shell on the production server, so it is checked
-          # against what a source spec can legitimately contain before it gets
-          # anywhere near one. Every real spec — category:a-slug, products:1,2,
-          # media:since:2026-08-22, off, an absolute path — fits inside this set.
-          case "$GF_SOURCE" in
-            *[!A-Za-z0-9:,._/-]*)
-              echo "::error::Refusing '$GF_SOURCE' — a source spec cannot contain those characters."
-              exit 1 ;;
-          esac
           SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
-          echo "Setting af_goldfoil_source to '${GF_SOURCE}'..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp option update af_goldfoil_source '${GF_SOURCE}' --allow-root 2>&1" \
-            || echo "  (could not set it — the import below will use whatever is already stored)"
+
+          # "auto" means put it back to the default: no stored source, so the
+          # importer finds artwork on its own — the theme's assets/gold-foil/,
+          # a folder or zip in uploads/, then new Media Library uploads. That is
+          # the state to leave the site in, so that whichever way the artwork
+          # eventually arrives, it just works.
+          if [ "$GF_SOURCE" = "auto" ]; then
+            echo "Clearing af_goldfoil_source (back to finding artwork on its own)..."
+            ${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
+              "cd ~/websites/OPu0sKi4J/public_html && \
+               wp option delete af_goldfoil_source --allow-root 2>&1; \
+               wp option get af_goldfoil_source --allow-root 2>&1 || echo '  (now unset)'" \
+              || echo "  (could not clear it)"
+          else
+            # This value reaches a shell on the production server. It used to be
+            # screened by a character whitelist, which quietly made the easiest
+            # route impossible: a share link from Synology, Dropbox or Drive
+            # almost always carries ? & and =, so the one thing the owner was
+            # most likely to paste was the one thing the run rejected.
+            #
+            # So it is no longer screened by shape — it is carried as base64,
+            # whose alphabet cannot end a quote or start a command, and decoded
+            # on the far side. Any URL survives intact, and nothing in it can be
+            # read as shell.
+            case "$GF_SOURCE" in
+              *[![:print:]]*) echo "::error::Refusing a source containing control characters."; exit 1 ;;
+            esac
+            if [ "${#GF_SOURCE}" -gt 2000 ]; then
+              echo "::error::That source is ${#GF_SOURCE} characters — too long to be real."; exit 1
+            fi
+            GF_B64=$(printf '%s' "$GF_SOURCE" | base64 -w0)
+            echo "Setting af_goldfoil_source to '${GF_SOURCE}'..."
+            ${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
+              "cd ~/websites/OPu0sKi4J/public_html && \
+               wp option update af_goldfoil_source \"\$(printf %s '${GF_B64}' | base64 -d)\" --allow-root 2>&1" \
+              || echo "  (could not set it — the import below will use whatever is already stored)"
+          fi
 
           if [ -n "${GF_MAX}" ]; then
             case "$GF_MAX" in
