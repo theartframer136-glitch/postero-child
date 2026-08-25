@@ -12337,6 +12337,14 @@ add_action('woocommerce_single_product_summary', function() {
   global $product;
   $code = af_get_art_code($product);
   if ($code === '') return;
+  // Say so, because the short-description filter below prints the same code
+  // and cannot otherwise tell that this already has. Both land inside the
+  // product summary — this at priority 6, the excerpt template at 20 — so the
+  // page showed "Art Code: HD 15-GF" twice, once above the price and once
+  // below it. The two existing dedupes could never catch each other: this one
+  // echoes straight into the output buffer, and that one only inspects the
+  // excerpt string it was handed.
+  $GLOBALS['af_art_code_printed'] = true;
   echo '<p class="af-art-code af-art-code--single">Art Code: <strong>'
      . esc_html($code) . '</strong></p>';
 }, 6);
@@ -12358,6 +12366,11 @@ add_filter('the_content', function($content) {
 // render only the excerpt on the product page.
 add_filter('woocommerce_short_description', function($excerpt) {
   if (is_admin() || !function_exists('is_product') || !is_product()) return $excerpt;
+  // Already shown under the title. Not deleted outright, because the quick-view
+  // popup never fires woocommerce_single_product_summary — there this filter is
+  // the only thing that puts the art code in front of the shopper, and the
+  // latch is simply never set.
+  if (!empty($GLOBALS['af_art_code_printed'])) return $excerpt;
   $code = af_get_art_code(get_the_ID());
   if ($code === '' || strpos((string)$excerpt, 'af-art-code') !== false) return $excerpt;
   return '<p class="af-art-code af-art-code--desc">Art Code: <strong>'

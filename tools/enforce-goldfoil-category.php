@@ -51,6 +51,19 @@ foreach ($ids as $pid) {
         $names[] = ($t && !is_wp_error($t)) ? $t->slug : ('#' . $x);
     }
     wp_set_object_terms($pid, array($tid), 'product_cat');   // replace, not append
+
+    // The term relationship is gone, but an SEO plugin's "primary category" is
+    // POST META and survives untouched — which is why a product's breadcrumb
+    // went on reading "All Art Prints" long after it had been taken out of that
+    // category. Nothing garbage-collects that key, and Rank Math only rewrites
+    // it when the post is saved through the editor, which wp eval-file never
+    // does. Point it at the only category this product now has.
+    if ((int) get_post_meta($pid, 'rank_math_primary_product_cat', true) !== $tid) {
+        update_post_meta($pid, 'rank_math_primary_product_cat', $tid);
+    }
+    delete_post_meta($pid, '_yoast_wpseo_primary_product_cat');   // cheap insurance
+    clean_post_cache($pid);
+
     printf("  #%-7d removed from: %s\n", $pid, implode(', ', $names));
     $fixed++;
 }
@@ -59,6 +72,9 @@ if ($fixed) {
     if (function_exists('wc_delete_product_transients')) wc_delete_product_transients();
     wp_update_term_count_now(array($tid), 'product_cat');
     clean_term_cache(array($tid), 'product_cat');
+    // The deploy's own cache purge runs BEFORE this pass, so without this the
+    // corrected page could sit behind a copy cached from before the fix.
+    do_action('litespeed_purge_all');
     printf("\n  put back into their own section: %d\n", $fixed);
 } else {
     echo "  nothing to correct — every premium piece is filed only here.\n";
