@@ -567,3 +567,25 @@ VA 01 is a fifth peacock page, and **still not #22199**.
 **Radha Krishna, RK 01–91, pages 5–95 — the only section not yet read.**
 Everything else in the book has now been looked at page by page. Whatever is
 still misplaced is either in RK or in no page at all.
+
+## Radha Krishna (RK 01–91, pages 5–95) — read
+
+The largest section in the book, and the last of the big ones. Pages run one
+ahead of the label by four: page 5 is RK 01, page 95 is RK 91.
+
+**Neither #28103 nor #13414 is in it.** #28103 is a large frontal blue-green
+Krishna face, eyes closed, a peacock feather top right and pink lotus buds at
+the right, on a blocky abstract ground of blue, orange, yellow and white. RK has
+several Krishna faces — RK 11 a pale profile with a flute, RK 17 a black face
+among marigolds, RK 42 and RK 59 and RK 70 and RK 75 and RK 85 all portraits —
+and #28103 is none of them.
+
+### Two things worth recording about the section itself
+
+**RK 76 is struck through with a large red X** on the page. Whatever that page
+was, the book has withdrawn it, so no product should be given RK 76.
+
+**RK 56's caption is the boilerplate "Ganga Aarti at Varanasi" text**, on a page
+showing Radha and Krishna dancing. That is the same stray caption found on four
+pages of the Alwars book. It is now confirmed to appear in the Master Brochure
+too, so the caption is worthless as evidence anywhere. Only the picture counts.
