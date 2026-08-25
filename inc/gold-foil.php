@@ -155,8 +155,8 @@ add_action('wp_head', function () {
   box-shadow:0 1px 3px rgba(0,0,0,.18);white-space:nowrap}
 .af-gf-line{display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0 0 10px}
 .af-gf-line span{color:#6b6b6b;font-size:13.5px}
-.af-gf-intro{color:#6b6b6b;font-size:14.5px;margin:4px 0 10px}
-.af-gf-intro strong{color:#8a6d1f}
+.af-gf-intro,.tax-product_cat.term-gold-foiled-uv .term-description{color:#6b6b6b;font-size:14.5px;margin:4px 0 10px}
+.af-gf-intro strong,.tax-product_cat.term-gold-foiled-uv .term-description strong{color:#8a6d1f}
 </style>
     <?php
 }, 9);
@@ -174,10 +174,18 @@ add_action('wp_head', function () {
  * the header menu.
  */
 
-/** A line of explanation at the top of the category archive. */
-add_action('woocommerce_archive_description', function () {
-    if (!function_exists('is_product_category') || !is_product_category(af_goldfoil_slug())) return;
-    echo '<p class="af-gf-intro">Every piece in this section is finished with <strong>gold foil detailing</strong> '
-       . 'and sealed under a <strong>UV-cured coat</strong> — the same sizes and frames as the rest of the studio, '
-       . 'in our premium finish.</p>';
-});
+/**
+ * The line of explanation at the top of this archive is the CATEGORY'S OWN
+ * description, set by tools/setup-gold-foil.php and editable in wp-admin under
+ * Products -> Categories without touching this code or waiting for a deploy.
+ *
+ * There was a second paragraph printed from here, on this same
+ * woocommerce_archive_description hook, saying the same thing in different
+ * words — so the page opened with the premium finish explained twice, one
+ * sentence under the other. Removed rather than reworded: two places writing
+ * the same sentence would drift apart the moment either was edited, and the
+ * one the owner can edit is the one worth keeping.
+ *
+ * The .af-gf-intro styling above still applies — WooCommerce prints the term
+ * description inside .term-description, which the rule now covers.
+ */
