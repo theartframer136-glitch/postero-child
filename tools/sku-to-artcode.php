@@ -100,7 +100,7 @@ foreach ( $ids as $pid ) {
 
 echo "products: " . count( $ids ) . "\n";
 echo "  with an art code:    " . count( $codes ) . "\n";
-echo "  WITHOUT an art code: " . count( $nocode ) . "  (SKU left exactly as it is)\n";
+echo "  WITHOUT an art code: " . count( $nocode ) . "  (a SKU this tool minted is undone below)\n";
 
 // ── Decide the SKU for every product before writing anything ────────────────
 // Done in one pass so a resumed run assigns the same SKU it would have on the
@@ -304,9 +304,66 @@ if ( $lettered ) {
 	}
 }
 
-if ( $nocode ) {
-	echo "\nno art code, so the SKU was not touched (first 10 of " . count( $nocode ) . "):\n";
-	foreach ( array_slice( $nocode, 0, 10 ) as $pid ) {
-		echo "  #{$pid}  " . get_the_title( $pid ) . "\n";
+// ── A product whose art code was TAKEN AWAY ─────────────────────────────────
+// "No art code, leave the SKU alone" was right while no-code meant never-had-one.
+// The audit changed that: it clears a code when the picture is on no page of the
+// brochure, and the product is then left asserting a catalogue position it does
+// not occupy -- TA-04D on a piece just proved not to be TA 04. That is the exact
+// error the audit exists to remove, so it must not survive in the SKU.
+//
+// Only SKUs this tool minted are touched, identified by the backup it took of
+// whatever was there before. Restore that original where one was kept; clear it
+// where the SKU matches the generated shape and nothing was displaced. A SKU
+// that was never ours is left alone.
+$restored = 0; $emptied = 0; $kept = 0;
+$mine     = '/^[A-Z]{2}-\d+[A-Z]*$/';
+$in_use   = array();
+foreach ( $ids as $pid ) {
+	$s = strtoupper( (string) get_post_meta( $pid, '_sku', true ) );
+	if ( $s !== '' ) { $in_use[ $s ] = $pid; }
+}
+
+foreach ( $nocode as $pid ) {
+	$cur = (string) get_post_meta( $pid, '_sku', true );
+	if ( $cur === '' ) { continue; }
+	$back = (string) get_post_meta( $pid, '_af_sku_before_artcode', true );
+
+	if ( $back === '' && ! preg_match( $mine, strtoupper( $cur ) ) ) { $kept++; continue; }
+
+	// Restoring must not collide with a SKU some other product now holds.
+	$to = $back;
+	if ( $to !== '' ) {
+		$k = strtoupper( $to );
+		if ( isset( $in_use[ $k ] ) && $in_use[ $k ] !== $pid ) {
+			echo "  #{$pid} cannot take back {$to} — #" . $in_use[ $k ] . " holds it; clearing instead\n";
+			$to = '';
+		}
 	}
+
+	printf( "  #%-7d %-14s -> %-14s %s\n", $pid, $cur, $to === '' ? '(none)' : $to,
+		mb_substr( html_entity_decode( wp_strip_all_tags( get_the_title( $pid ) ) ), 0, 40 ) );
+
+	if ( $DRY ) { if ( $to === '' ) { $emptied++; } else { $restored++; } continue; }
+
+	$product = wc_get_product( $pid );
+	if ( ! $product ) { continue; }
+	try {
+		$product->set_sku( $to );
+		$product->save();
+	} catch ( Exception $e ) {
+		echo "  FAILED #{$pid} -> " . ( $to === '' ? '(none)' : $to ) . ": " . $e->getMessage() . "\n";
+		continue;
+	}
+	unset( $in_use[ strtoupper( $cur ) ] );
+	if ( $to !== '' ) { $in_use[ strtoupper( $to ) ] = $pid; }
+	delete_post_meta( $pid, '_af_sku_before_artcode' );
+	delete_post_meta( $pid, '_af_sku_letter' );
+	delete_post_meta( $pid, '_af_sku_letter_for' );
+	if ( function_exists( 'wc_delete_product_transients' ) ) { wc_delete_product_transients( $pid ); }
+	if ( $to === '' ) { $emptied++; } else { $restored++; }
+}
+
+if ( $nocode ) {
+	printf( "\nno art code: %d product(s); %d had the SKU it displaced put back, %d had a generated SKU cleared, %d left alone\n",
+		count( $nocode ), $restored, $emptied, $kept );
 }
