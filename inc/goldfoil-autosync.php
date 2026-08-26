@@ -126,6 +126,34 @@ function af_goldfoil_watch_note($msg) {
     update_option('af_goldfoil_watch_last', gmdate('Y-m-d H:i') . ' UTC — ' . $msg, false);
 }
 
+/**
+ * Run the importer against one source spec and hand back what it printed.
+ *
+ * The importer is a script meant for wp eval-file, so it reads $args and
+ * writes to standard output. Both of those work perfectly well inside a
+ * function — $args is just a local it inherits, and the output is captured —
+ * which is what lets the same one importer serve the deploy, the folder
+ * watcher and a button in wp-admin without a second implementation of any of
+ * it drifting out of step.
+ */
+function af_goldfoil_run_import($spec) {
+    if (!function_exists('af_goldfoil_slug')) return 'the gold-foil module is not loaded';
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    require_once ABSPATH . 'wp-admin/includes/media.php';
+    require_once ABSPATH . 'wp-admin/includes/image.php';
+
+    $before = (int) af_goldfoil_count();
+    if (!defined('AF_GOLDFOIL_INTERNAL')) define('AF_GOLDFOIL_INTERNAL', true);
+    $args = array((string) $spec);
+    ob_start();
+    include get_stylesheet_directory() . '/tools/import-gold-foil.php';
+    $out = ob_get_clean();
+    $after = (int) af_goldfoil_count();
+
+    update_option('af_goldfoil_watch_log', substr((string) $out, -6000), false);
+    return sprintf('%d new product(s) — the section now holds %d', max(0, $after - $before), $after);
+}
+
 add_action('af_goldfoil_sync', 'af_goldfoil_sync_run');
 
 function af_goldfoil_sync_run($force = false) {
@@ -297,6 +325,13 @@ function af_goldfoil_admin_page() {
             }
         }
 
+        if (isset($_POST['af_gf_media'])) {
+            @set_time_limit(0);
+            @ini_set('memory_limit', '512M');
+            $notice = 'Media Library import: ' . af_goldfoil_run_import('media:fresh');
+            af_goldfoil_watch_note('imported from the Media Library');
+        }
+
         if (isset($_POST['af_gf_now'])) {
             // A folder of print masters is tens of megabytes and the importer
             // makes several image sizes of each; the default 30-second budget
@@ -327,6 +362,31 @@ function af_goldfoil_admin_page() {
         <div class="notice notice-info"><p><?php echo esc_html($notice); ?></p></div>
       <?php endif; ?>
 
+      <div class="card" style="max-width:46em;padding:4px 18px 14px;border-left:4px solid #d4af37">
+        <h2>Quickest: drag the folder in</h2>
+        <p>
+          Open <a href="<?php echo esc_url(admin_url('media-new.php')); ?>" target="_blank"><strong>Media &rarr; Add New</strong></a>,
+          drag the whole <code>Personalised</code> folder from your PC into the box, wait for the
+          uploads to finish, then come back here and press the button below. Every picture that
+          arrives becomes a Gold Foiled &amp; UV product.
+        </p>
+        <p>
+          Nothing has to be set up for this — no share link, no Synology settings, no deploy.
+          It is one drag and one click, and it can be repeated any time you add artwork.
+        </p>
+        <form method="post" style="margin:0 0 6px">
+          <?php wp_nonce_field('af_gf_sync', 'af_gf_nonce'); ?>
+          <button class="button button-primary" name="af_gf_media" value="1">
+            Import everything new in the Media Library
+          </button>
+        </form>
+        <p class="description">
+          Safe to press at any time: a picture that is already a product is skipped, never
+          duplicated, and pictures already used elsewhere on the site are left alone.
+        </p>
+      </div>
+
+      <h2>Or: point the site at the folder and let it watch</h2>
       <p style="max-width:46em">
         Paste the <strong>share link of your <code>Personalised</code> folder</strong> below. The site
         then downloads that folder by itself, on the schedule you choose, and turns every new
