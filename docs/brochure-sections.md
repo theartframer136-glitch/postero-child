@@ -701,3 +701,43 @@ The pass now undoes what it minted, and only what it minted:
 
 The stale `_af_sku_letter` is deleted at the same time, which also drains the
 22 stale letters the format check has been listing.
+
+## The clears written before the book was finished are not safe
+
+Four products cleared earlier in the audit turn out to have pages after all:
+
+| Product | Actually | What my clear said |
+|---|---|---|
+| #19269 Crimson Rider | **LS 10** | "on no page of it… not in AA, LI or anywhere else" |
+| #8424 Divine Varanasi Ganga Aarti | **TA 01** | "none of the fifteen Lord Shiva pages shows it" |
+| #7825 Panchmukhi Hanuman | **HD 11** | "none of the nine Lord Rama pages shows it" |
+| #220 Serene Buddha with Lotus | **LB 01** | "a room mockup of the LB 01 artwork, not a picture in the book" |
+
+Three of them share one shape: the reason **rules out a single section and then
+empties the code anyway**. "None of the nine Lord Rama pages shows it" is a true
+statement about nine pages out of 358. At the time it was written the rest of the
+book had not been read, so it could not say more — and it was never revisited
+once the book was finished.
+
+**32 of the 53 clears are of this kind.** They are not wrong by default — many
+are frames, canvas rolls and custom-photo prints that are not artworks at all —
+but none of them can be trusted until it has been held against the finished page
+inventory. That re-check is now the remaining audit work.
+
+### #220 also exposes an inconsistency in my own rule
+
+I cleared it as "a room mockup of the LB 01 artwork, not a picture in the book",
+while ruling that **#229 and #8474** — a room mockup and a crop of one painting —
+are two listings of that painting and share TP 05. Both cannot be right.
+
+The consistent rule, and the one that matches how the shop actually lists things:
+**a product's picture is the artwork it sells, so a room mockup showing artwork X
+is a listing of artwork X.** #220 becomes `SHARE:LB 01`.
+
+### The lesson worth keeping
+
+A negative result is only as wide as the pages actually read when it was written.
+"I did not find it" and "it is not there" are different claims, and the audit
+recorded the first as though it were the second. From here a clear is only
+written with the whole book behind it, and every clear written before that has to
+be re-earned.
