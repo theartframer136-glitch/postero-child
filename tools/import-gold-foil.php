@@ -656,8 +656,10 @@ function af_gf_webify($path, &$note) {
         // JPEG only, which is the format this actually matters for.
         if (is_array($info) && isset($info['channels']) && (int) $info['channels'] === 4) {
             $why = 'CMYK — a browser cannot show it correctly';
-        } elseif (is_array($info) && (int) $info[0] > 3200) {
-            $why = 'a print master at ' . (int) $info[0] . 'px wide';
+        } elseif (is_array($info) && max((int) $info[0], (int) $info[1]) > 3200) {
+            // the LONG edge, not the width: a portrait master is 2400 wide and
+            // 4000 tall, and testing width alone would send it up at 4000
+            $why = 'a print master at ' . max((int) $info[0], (int) $info[1]) . 'px on its long edge';
         }
     }
     if ($why === '') return $path;
