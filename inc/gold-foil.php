@@ -107,13 +107,26 @@ function af_goldfoil_factor($product_id) {
 }
 
 /**
- * Scale one card price, keeping the card's own habit of landing on multiples of
- * five so the section reads like a price list rather than a spreadsheet.
+ * Scale one card price by the section's ratio.
+ *
+ * This used to round the result to the nearest $5 so the section would read
+ * like a price list. Owner, 2026-08-25: "all gold foil product price will be
+ * 40% more than normal product price" -- and the rounding quietly broke that:
+ * a 3x4 came out at $110 against a $80 card price, which is 37.5% more, and a
+ * 3x2 at $85 against $60, which is 41.7%. Neither one is the rule.
+ *
+ * Nothing is lost by dropping it. Every price on the card is a multiple of 5,
+ * and 5 x 1.4 = 7, so the scaled figure is ALREADY a whole number for every
+ * size the studio sells ($60 -> $84, $80 -> $112, $100 -> $140, $150 -> $210).
+ * The rounding only ever moved the price off the rule it was meant to express.
+ *
+ * Rounding to cents stays, so a ratio the owner sets later (1.35, say) still
+ * produces money rather than a floating-point tail.
  */
 function af_goldfoil_scale($usd, $factor) {
     $usd = (float) $usd * (float) $factor;
     if ($factor == 1.0) return $usd;
-    $usd = round($usd / 5) * 5;
+    $usd = round($usd, 2);
     return $usd < 5 ? 5.0 : (float) $usd;
 }
 
