@@ -741,3 +741,42 @@ A negative result is only as wide as the pages actually read when it was written
 recorded the first as though it were the second. From here a clear is only
 written with the whole book behind it, and every clear written before that has to
 be re-earned.
+
+## Re-checking the 32: progress
+
+Each clear is re-checked against the finished book and then either **overturned**
+(the product gets its page) or **re-justified** (the reason is rewritten to say
+what was actually searched). A clear whose reason still names one section has not
+been re-checked yet.
+
+**Overturned so far — 4:** #19269 → LS 10, #8424 → TA 01, #7825 → HD 11,
+#220 → SHARE:LB 01.
+
+**Confirmed so far — 4:**
+
+- **#21832 Divine Mercy Radiance.** The Christian run LI 05–LI 11 is the only
+  place it could be. LI 09 is Jesus with a **golden** halo and golden rays on
+  charcoal; LI 10 is Jesus in charcoal against a red disc. This is the Divine
+  Mercy image — pale cream mosaic, **red and pale-blue** rays from the heart.
+  Not the same painting.
+- **#22077 Shiva in the Sea** — no LS page shows Shiva rising from the sea under
+  a full moon.
+- **#24352 Shiva Parvati on Kailash** — LS 13 is the watercolour faces, LS 14 and
+  LS 15 the cosmic dance; none is the pair seated on Kailash with Nandi.
+- **#25124 Cosmic Buddha Nebula** — no LB page puts the Buddha in a star field.
+
+**Not settled — the four cleared horse products.** #20087, #20169, #21893 and
+#30093 are all seven-horses pieces, and SH 06 (a mixed-colour herd charging
+through an orange-and-teal splash) is close to at least two of them. But
+**#19759 already holds SH 06**, so at most one of them could take it and only a
+side-by-side at full size can say which, if any. Recorded as unfinished rather
+than guessed — a wrong move here would displace a code that is already right.
+
+### Also seen, not yet asserted
+
+**#11541 and #11617** look like the same Radha-Krishna painting in golden
+autumn foliage — a possible sixth duplicate listing. To be confirmed at size
+before any row is written.
+
+**BATCH_02 is entirely frames, mouldings, canvas rolls, easels and banners** —
+24 products, none of them artworks. Correctly codeless, nothing to re-check.
