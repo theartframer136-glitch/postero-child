@@ -834,3 +834,59 @@ existing code was right and all four clears were too. Worth the extra pass: the
 subject matched five ways and the picture matched none.
 
 **Re-check status: 6 overturned, 8 confirmed, 18 to go.**
+
+## Four more overturned
+
+- **#3362 Divine Lord Ganesha → HD 04.** The grey stone Ganesha seated with four
+  arms against a gold filigree halo on a dark ground. My clear said "none of the
+  fifteen Lord Shiva pages shows it" — true, and beside the point, because the
+  Ganesha pages are in Hindu Deities.
+- **#141 Minimalist Blossom Still Life → LI 02.** A pale round vase holding one
+  blossoming branch on a dark ledge against a textured grey wall. Cleared against
+  Tirupati Balaji.
+- **#148 Abstract Floral Sunrise → LI 03.** The stained-glass tulip in jewel
+  greens, blues, purples and orange with a golden sun behind it. Cleared against
+  Lord Rama.
+- **#17543 Lord Balaji Idol → SHARE:LR 05.** This one needs no new evidence: my
+  own clear says *"the same photograph as #15913, which correctly holds LR 05 —
+  one artwork listed twice"*. Two listings of one picture share the code. I made
+  the right observation and drew the wrong conclusion from it.
+
+That is now **ten overturned against eight confirmed**, and every single overturn
+came from a clear written against one section — nine of them — or, in #17543's
+case, from a duplicate I identified and then cleared anyway.
+
+The ratio is the point. These were not near-misses: HD 04, LI 02, LI 03, LS 10,
+TA 01, TA 03, HD 01, HD 11, LB 01 are all exact matches sitting in the book while
+the product carried no code at all.
+
+**Re-check status: 10 overturned, 8 confirmed, 21 to go.**
+
+## A sixth duplicate listing: #11541 and #11617
+
+Held side by side, they are the same painting in every detail: Radha in a dark
+veil at the left, blue Krishna in profile facing her at the right, a white
+sunburst halo between their faces, an arbour of orange autumn flowers around
+them. #11617 is a slightly tighter crop of #11541.
+
+**Both are codeless**, so unlike the earlier duplicates this one needs no art-code
+row — there is no code to share and no clash to resolve. And the painting matches
+no RK page: RK 02 is all-gold with butterflies and Krishna above Radha, RK 03 is
+the orange-veil pair cheek to cheek. So both correctly stay without a code.
+
+Recorded because it is still a duplicate the shop is carrying — one artwork on two
+product listings — and that is the owner's to consolidate if they choose, the
+same as the TP 14, LR 05, SH 04 and TP 05 pairs.
+
+The duplicate tally is now six: #31890/#15730 (TP 14), #15913/#17543 (LR 05),
+#19025/#23191 (SH 04), #229/#8474 (TP 05), #220 (a mockup of LB 01), and
+#11541/#11617 (a codeless Radha-Krishna).
+
+## #19453 checked against RK 10, ruled out — clear still pending
+
+#19453 "Golden Krishna Flute Player" is a golden Krishna idol standing with the
+flute in a temple, worshippers and oil lamps behind, a sunbeam from above. RK 10
+is a painterly Krishna against a large gold moon on dark grey — a different
+picture. That rules RK 10 out but not the other ninety RK pages, so this clear
+stays on the to-do list rather than being marked confirmed. A page ruled out is
+not the book ruled out — the same distinction this whole re-check turns on.
