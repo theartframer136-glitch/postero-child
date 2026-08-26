@@ -262,7 +262,13 @@ function af_goldfoil_admin_page() {
     /* ── saving ───────────────────────────────────────────────────────── */
     if (isset($_POST['af_gf_nonce']) && wp_verify_nonce(sanitize_text_field(wp_unslash($_POST['af_gf_nonce'])), 'af_gf_sync')) {
 
-        if (isset($_POST['af_gf_save'])) {
+        // The fields are saved on EITHER button. Pressing "Sync now" straight
+        // after pasting a link is the obvious thing to do, and if that did not
+        // save first it would sync the PREVIOUS link — or, on the very first
+        // use, no link at all — and report that nothing happened. A form that
+        // punishes the obvious order of operations is a form that will be
+        // reported as broken.
+        if (isset($_POST['af_gf_save']) || isset($_POST['af_gf_now'])) {
             $url_in = isset($_POST['af_gf_url']) ? trim((string) wp_unslash($_POST['af_gf_url'])) : '';
             // esc_url_raw, not sanitize_text_field: a share link is mostly
             // query string, and the query string is where the token lives.
@@ -284,9 +290,11 @@ function af_goldfoil_admin_page() {
             if ($url !== $was) delete_option('af_goldfoil_watch_hash');
 
             af_goldfoil_reschedule();
-            $notice = $url === ''
-                ? 'Saved. No link is being watched, so nothing will import on its own.'
-                : 'Saved. The site will check that folder ' . esc_html($every) . '.';
+            if (isset($_POST['af_gf_save'])) {
+                $notice = $url === ''
+                    ? 'Saved. No link is being watched, so nothing will import on its own.'
+                    : 'Saved. The site will check that folder ' . esc_html($every) . '.';
+            }
         }
 
         if (isset($_POST['af_gf_now'])) {
@@ -295,7 +303,9 @@ function af_goldfoil_admin_page() {
             // is not the shape of this work.
             @set_time_limit(0);
             @ini_set('memory_limit', '512M');
-            $notice = 'Sync run: ' . af_goldfoil_sync_run(true);
+            $notice = trim((string) get_option('af_goldfoil_watch_url', '')) === ''
+                ? 'Nothing to sync — paste the folder\'s share link above first.'
+                : 'Sync run: ' . af_goldfoil_sync_run(true);
         }
     }
 
@@ -383,12 +393,11 @@ function af_goldfoil_admin_page() {
         </table>
         <p>
           <button class="button button-primary" name="af_gf_save" value="1">Save</button>
-          <button class="button" name="af_gf_now" value="1"
-                  <?php disabled($url === ''); ?>>Sync now</button>
+          <button class="button" name="af_gf_now" value="1">Save &amp; sync now</button>
         </p>
         <p class="description" style="max-width:46em">
-          <strong>Sync now</strong> fetches the folder straight away and imports anything it has not
-          seen before. It is safe to press twice — a picture that is already a product is skipped,
+          <strong>Save &amp; sync now</strong> stores whatever is typed above, then fetches the folder
+          straight away and imports anything it has not seen before. It is safe to press twice — a picture that is already a product is skipped,
           never duplicated.
         </p>
       </form>
