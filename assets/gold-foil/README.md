@@ -59,3 +59,18 @@ own Media Library instead (wp-admin → Media → Add New) — new uploads that
 nothing on the site uses yet are imported automatically on the next deploy,
 so that drag is the whole procedure. `wp option update af_goldfoil_source off`
 switches the automatic routes off.
+
+## Changing the price rule
+
+The ratio and the scaling live in `inc/gold-foil.php`, and the product page's
+selector and the cart read them live — so a change there is felt immediately on
+those. The figure stored ON each product (the one the shop grid and search
+show) is only rewritten by `tools/reprice-from-card.php`, which runs in the
+FULL deploy suite.
+
+A commit that touches only PHP is a LIGHT deploy. So a pricing change pushed on
+its own updates the selector and the cart while the grid goes on showing the
+old number — one price in the listing, another at checkout.
+
+Put `[full-deploy]` in the commit message whenever the ratio or the scaling
+changes, so the stored prices are rewritten in the same deploy.
