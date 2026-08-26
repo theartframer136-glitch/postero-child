@@ -780,3 +780,57 @@ before any row is written.
 
 **BATCH_02 is entirely frames, mouldings, canvas rolls, easels and banners** —
 24 products, none of them artworks. Correctly codeless, nothing to re-check.
+
+## Two more overturned, and TA 03 taken off the wrong products
+
+**#26875 Mahavatar Babaji is HD 01.** My clear said "no LB page in the book shows
+it" — true, and beside the point. HD 01 is the bare-chested figure with long dark
+hair seated cross-legged in meditation, hands in the lap, saffron cloth, dark
+brown ground. The same picture. Fifth overturn, and the fifth to come from a
+clear written against one section.
+
+**#31713 is TA 03**, and the two products holding TA 03 are both wrong.
+
+TA 03 is a wide stylised landscape: a crimson sky block at the left meeting teal
+water, white snow mountains behind, red temple spires above pale ghat steps at
+the right, dark boats on the river. #31713 is exactly that.
+
+The two holders — **#22947 "Temple Sanctum Vishnu"** and **#29829 "Forest Vishnu
+Murti"** — are Vishnu subjects. Neither can be a Varanasi landscape. They are
+cleared so the right product can take the code, under the one sanctioned
+exception: a known-wrong code blocking a known-right move is worse than an empty
+one. Where those two pictures do belong is still to be found.
+
+**Travel Art now stands at three of four owned**: TA 01 #8424, TA 03 #31713,
+TA 04 #29890. **TA 02** — the Kedarnath temple lit with lamps against the snowy
+Himalayas — still has no owner among the products seen.
+
+## BATCH_06 needs no work
+
+Nine of its twelve are photographs, not brochure artworks: a Sikh groom, mehndi
+hands, a Bharatanatyam dancer performing, and venue shots of artwork displayed on
+boards at an event. Correctly codeless.
+
+## The horses, settled: nothing changes
+
+All five held side by side at full size against SH 01–SH 12:
+
+- **#19759 is SH 06 and correctly so** — horses in magenta, orange, brown and
+  blue against a splashed grey-and-orange ground. It keeps the code.
+- **#20169** is red, black and white horses under a gold sky over teal. Its
+  nearest page is SH 06, and SH 06 is #19759's picture. Different painting.
+- **#21893** is white horses in palette-knife impasto on green, teal and orange.
+  No SH page uses that ground; SH 11, the other textured white-horse page, is a
+  warm sunlit landscape in dust.
+- **#20087** is a sculptural relief: white horses on green grass under a huge
+  pale sun in a teal sky. No SH page is relief-textured or has green grass.
+- **#30093** is a mixed white, black and tan herd charging head-on through pale
+  sepia dust. SH 08 is the other head-on charge and is all-white horses in
+  golden clouds.
+
+**All four clears confirmed; no rows change.** This was the open item where a
+guess would have displaced a code that was already right, and it turned out the
+existing code was right and all four clears were too. Worth the extra pass: the
+subject matched five ways and the picture matched none.
+
+**Re-check status: 6 overturned, 8 confirmed, 18 to go.**
