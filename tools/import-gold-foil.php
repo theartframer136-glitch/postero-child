@@ -495,22 +495,43 @@ if ($zips && $dirs) {
  * moment the image is attached, where a library picture is reused in place
  * rather than uploaded a second time.
  */
-$exts  = array('jpg', 'jpeg', 'png', 'webp', 'gif');
+// A studio folder is not a web folder. It holds what the printer was sent:
+// TIFFs, HEICs off a phone, the occasional BMP — none of which WordPress can
+// thumbnail on its own. Recognising only the four web formats meant such a
+// folder imported NOTHING and said nothing about why, which is exactly the
+// "the folder has ten pictures and the shop has three" confusion this section
+// has already caused once. They are collected here and converted below.
+$exts  = array('jpg', 'jpeg', 'png', 'webp', 'gif', 'tif', 'tiff', 'heic', 'heif', 'avif', 'bmp');
 $files = array();
+$passed = array();          // what was deliberately not collected, and why
 foreach ($dirs as $dir) {
     $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS));
     foreach ($it as $f) {
         if (!$f->isFile()) continue;
+        $nm  = $f->getFilename();
+        if (strpos($nm, '._') === 0) continue;                       // macOS resource forks
         $ext = strtolower($f->getExtension());
-        if (!in_array($ext, $exts, true)) continue;
-        // WordPress's own resized copies are not separate artworks
-        if (preg_match('/-\d{2,4}x\d{2,4}\.(jpe?g|png|webp|gif)$/i', $f->getFilename())) continue;
-        if (strpos($f->getFilename(), '._') === 0) continue;         // macOS resource forks
+        if (!in_array($ext, $exts, true)) {
+            if ($ext !== '') $passed[] = array($nm, 'not a picture (.' . $ext . ')');
+            continue;
+        }
+        // WordPress's own resized copies are not separate artworks. Said out
+        // loud, because a master legitimately NAMED for its pixel size —
+        // artwork-3000x2000.jpg — trips the same pattern, and a silent skip
+        // there is indistinguishable from the import being broken.
+        if (preg_match('/-\d{2,4}x\d{2,4}\.(jpe?g|png|webp|gif|tiff?|heic|heif|avif|bmp)$/i', $nm)) {
+            $passed[] = array($nm, 'looks like a resized copy — rename it if it is the artwork');
+            continue;
+        }
         $files[] = $f->getPathname();
     }
     printf("  folder: %s\n", $dir);
 }
 sort($files);
+if ($passed) {
+    printf("  passed over %d file(s) in the folder:\n", count($passed));
+    foreach (array_slice($passed, 0, 25) as $pv) printf("    - %-46s %s\n", substr($pv[0], 0, 46), $pv[1]);
+}
 
 $items = array();
 foreach ($files as $p) $items[] = array('key' => $p, 'name' => basename($p), 'file' => $p);
@@ -604,6 +625,100 @@ function af_gf_title_from_product($src_title) {
     $t = trim(preg_replace('/\s{2,}/', ' ', $t));
     if ($t === '') $t = 'Gold Foiled Artwork';
     return $t . ' — Gold Foiled & UV';
+}
+
+/**
+ * Make a print master into something a browser can actually show.
+ *
+ * Every one of the three pieces that reached this section by hand was a CMYK
+ * JPEG with an embedded ICC profile, and every one had to be converted before
+ * it was fit to publish — a browser renders CMYK JPEG grey, washed out, or
+ * refuses it outright. A folder synced straight off the studio's drive is full
+ * of exactly that, plus TIFFs and HEICs WordPress cannot thumbnail at all. So
+ * the conversion moves here, where it happens to every file on every route,
+ * instead of depending on somebody remembering to do it first.
+ *
+ * Returns a path to use, which is the original itself when the original is
+ * already fine — no re-encode, no quality lost for nothing. Returns '' when
+ * the file cannot be made usable, with the reason in $note, so the caller can
+ * say so instead of publishing a blank card.
+ */
+function af_gf_webify($path, &$note) {
+    $note = '';
+    $ext  = strtolower(pathinfo($path, PATHINFO_EXTENSION));
+    $web  = in_array($ext, array('jpg', 'jpeg', 'png', 'webp', 'gif'), true);
+
+    // Is it already fine as it stands?
+    $why = $web ? '' : strtoupper($ext) . ' is not a web format';
+    if ($web) {
+        $info = @getimagesize($path);
+        // A JPEG with four channels is CMYK. getimagesize reports channels for
+        // JPEG only, which is the format this actually matters for.
+        if (is_array($info) && isset($info['channels']) && (int) $info['channels'] === 4) {
+            $why = 'CMYK — a browser cannot show it correctly';
+        } elseif (is_array($info) && (int) $info[0] > 3200) {
+            $why = 'a print master at ' . (int) $info[0] . 'px wide';
+        }
+    }
+    if ($why === '') return $path;
+
+    if (!class_exists('Imagick')) {
+        if ($web) { $note = ''; return $path; }   // not ideal, but publishable
+        $note = 'cannot be converted here (' . $why . ', and Imagick is not installed) — save it as a JPEG in the folder';
+        return '';
+    }
+
+    try {
+        $im = new Imagick();
+        $im->setResolution(300, 300);
+        $im->readImage($path . '[0]');            // first page of a multi-page TIFF
+
+        if ($im->getImageColorspace() === Imagick::COLORSPACE_CMYK) {
+            // Go through the embedded profile when there is one: the numbers in
+            // a CMYK file mean nothing without the profile they were made for,
+            // and a straight channel conversion of a profiled file is why
+            // "converted" prints come out flat.
+            $icc = $im->getImageProfiles('icc', true);
+            if (!empty($icc['icc'])) $im->profileImage('icc', $icc['icc']);
+            $im->transformImageColorspace(Imagick::COLORSPACE_SRGB);
+        }
+        $im->setImageColorspace(Imagick::COLORSPACE_SRGB);
+
+        // Transparency has to land on white, not on black, which is what a
+        // bare JPEG encode of an alpha PNG gives. Guarded rather than assumed:
+        // ALPHACHANNEL_REMOVE only exists on newer Imagick builds, and losing
+        // an otherwise-good conversion to a missing constant would be a poor
+        // trade. Flattening alone gets it right on the old ones.
+        try {
+            if (defined('Imagick::ALPHACHANNEL_REMOVE')) {
+                $im->setImageAlphaChannel(Imagick::ALPHACHANNEL_REMOVE);
+            }
+            $im->setImageBackgroundColor('white');
+            $flat = $im->mergeImageLayers(Imagick::LAYERMETHOD_FLATTEN);
+            if ($flat instanceof Imagick) { $im->clear(); $im = $flat; }
+        } catch (Exception $ignored) { /* keep the image as it stands */ }
+
+        $im->stripImage();                        // profiles and camera data off
+
+        $g = $im->getImageGeometry();
+        if ($g['width'] > 2400 || $g['height'] > 2400) {
+            $im->resizeImage(2400, 2400, Imagick::FILTER_LANCZOS, 1, true);
+        }
+        $im->setImageFormat('jpeg');
+        $im->setImageCompressionQuality(88);
+        $im->setInterlaceScheme(Imagick::INTERLACE_PLANE);
+
+        $out = wp_tempnam('af-gf-web.jpg');
+        if (!$out) { $note = 'no writable temp directory for the converted copy'; $im->clear(); return ''; }
+        $im->writeImage($out);
+        $im->clear();
+        $im->destroy();
+        if (!@filesize($out)) { @unlink($out); $note = 'the conversion produced an empty file'; return ''; }
+        return $out;
+    } catch (Exception $e) {
+        $note = 'could not be converted (' . $why . '): ' . $e->getMessage();
+        return '';
+    }
 }
 
 $created = 0; $skipped = 0; $failed = 0;
@@ -783,12 +898,27 @@ foreach ($items as $item) {
         continue;
     }
 
+    // Convert first, so a CMYK master or a TIFF becomes a product instead of
+    // becoming a failure. af_gf_webify() hands back the original untouched
+    // when the original is already web-ready.
+    $conv_note = '';
+    $use = af_gf_webify($path, $conv_note);
+    if ($use === '') {
+        wp_delete_post($pid, true);
+        printf("  ! %-52s %s\n", substr($base, 0, 52), $conv_note);
+        $failed++;
+        continue;
+    }
+    // The uploaded file must be NAMED for what it now is, or WordPress refuses
+    // a .tif whose bytes are a JPEG.
+    $up_name = ($use === $path) ? $base : (pathinfo($base, PATHINFO_FILENAME) . '.jpg');
+
     // Copy, never move: media_handle_sideload() consumes the file it is given,
     // and the owner's folder must survive the import untouched.
-    $tmp    = wp_tempnam($base);
+    $tmp    = wp_tempnam($up_name);
     $why    = '';
-    if ($tmp && @copy($path, $tmp)) {
-        $att = media_handle_sideload(array('name' => sanitize_file_name($base), 'tmp_name' => $tmp), $pid, $title);
+    if ($tmp && @copy($use, $tmp)) {
+        $att = media_handle_sideload(array('name' => sanitize_file_name($up_name), 'tmp_name' => $tmp), $pid, $title);
         if (is_wp_error($att)) {
             @unlink($tmp);
             $why = $att->get_error_message();
@@ -799,6 +929,7 @@ foreach ($items as $item) {
         if ($tmp) @unlink($tmp);
         $why = 'the file could not be read';
     }
+    if ($use !== $path) @unlink($use);        // the converted copy has served its purpose
 
     // A product with no picture is not a listing, it is a blank card — and the
     // deploy's own draft-imageless.php pass would quietly unpublish it later in
