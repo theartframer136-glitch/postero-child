@@ -1,5 +1,28 @@
 # Gold Foiled & UV artwork
 
+## The route that needs nothing from anyone: watch the folder
+
+**wp-admin → Products → Gold Foiled & UV.** Paste the share link of the
+`Personalised` folder, press *Sync now*, and the site downloads that folder
+by itself and turns every picture in it into a product. It keeps checking on
+whatever schedule is chosen there, so a picture dropped into the folder on the
+studio PC becomes a listing on its own — nothing is uploaded, no deploy is
+run, and nobody has to be asked.
+
+To make the link, in Synology Drive: right-click the folder → *Share* → turn
+the link on → set it to **Anyone with the link**, no password → copy. Dropbox
+and Google Drive folder links work the same way. A link that asks for a
+sign-in cannot be read by the server, and the page will say so rather than
+failing quietly.
+
+Print masters are handled on the way in: CMYK is converted through its own
+embedded profile into sRGB (browsers render CMYK grey or refuse it outright),
+TIFF and HEIC become JPEG, and anything over 2400px is scaled to it. That
+conversion needs Imagick on the server; the same admin page reports whether it
+is there.
+
+## The other route: commit the files here
+
 Drop the artwork for the Gold Foiled & UV section in this folder, commit it,
 and the next deploy turns each picture into a product.
 
