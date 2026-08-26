@@ -84,8 +84,19 @@ if (!$term || is_wp_error($term)) {
         // The intro was printed twice: once as the term description, once from
         // a hard-coded block on the same hook. One of each is right; two is the
         // duplicate the owner photographed.
-        $n_term  = substr_count($html, 'term-description');
-        $n_intro = substr_count($html, 'af-gf-intro');
+        // Count ELEMENTS, not occurrences of the words. The inline stylesheet
+        // names both classes in its selectors, so a plain substring count
+        // reported three term-descriptions and two af-gf-intros on a page that
+        // has exactly one of the first and none of the second — and printed
+        // STILL DUPLICATED under it. A measurement that reads its own CSS back
+        // as evidence is worse than no measurement: it sends the next round of
+        // work at a bug that is not there.
+        $body = preg_replace('#<style\b[^>]*>.*?</style>#is', '', $html);
+        $body = preg_replace('#<script\b[^>]*>.*?</script>#is', '', (string) $body);
+        preg_match_all('#class\s*=\s*"[^"]*\bterm-description\b#i', (string) $body, $mt);
+        preg_match_all('#class\s*=\s*"[^"]*\baf-gf-intro\b#i',      (string) $body, $mi);
+        $n_term  = count($mt[0]);
+        $n_intro = count($mi[0]);
         printf("   intro blocks: term-description x%d, af-gf-intro x%d  %s\n",
             $n_term, $n_intro,
             ($n_term + $n_intro) > 1 ? '<-- STILL DUPLICATED' : '<-- single, correct');
