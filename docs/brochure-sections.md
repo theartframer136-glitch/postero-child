@@ -701,3 +701,82 @@ The pass now undoes what it minted, and only what it minted:
 
 The stale `_af_sku_letter` is deleted at the same time, which also drains the
 22 stale letters the format check has been listing.
+
+## The clears written before the book was finished are not safe
+
+Four products cleared earlier in the audit turn out to have pages after all:
+
+| Product | Actually | What my clear said |
+|---|---|---|
+| #19269 Crimson Rider | **LS 10** | "on no page of it… not in AA, LI or anywhere else" |
+| #8424 Divine Varanasi Ganga Aarti | **TA 01** | "none of the fifteen Lord Shiva pages shows it" |
+| #7825 Panchmukhi Hanuman | **HD 11** | "none of the nine Lord Rama pages shows it" |
+| #220 Serene Buddha with Lotus | **LB 01** | "a room mockup of the LB 01 artwork, not a picture in the book" |
+
+Three of them share one shape: the reason **rules out a single section and then
+empties the code anyway**. "None of the nine Lord Rama pages shows it" is a true
+statement about nine pages out of 358. At the time it was written the rest of the
+book had not been read, so it could not say more — and it was never revisited
+once the book was finished.
+
+**32 of the 53 clears are of this kind.** They are not wrong by default — many
+are frames, canvas rolls and custom-photo prints that are not artworks at all —
+but none of them can be trusted until it has been held against the finished page
+inventory. That re-check is now the remaining audit work.
+
+### #220 also exposes an inconsistency in my own rule
+
+I cleared it as "a room mockup of the LB 01 artwork, not a picture in the book",
+while ruling that **#229 and #8474** — a room mockup and a crop of one painting —
+are two listings of that painting and share TP 05. Both cannot be right.
+
+The consistent rule, and the one that matches how the shop actually lists things:
+**a product's picture is the artwork it sells, so a room mockup showing artwork X
+is a listing of artwork X.** #220 becomes `SHARE:LB 01`.
+
+### The lesson worth keeping
+
+A negative result is only as wide as the pages actually read when it was written.
+"I did not find it" and "it is not there" are different claims, and the audit
+recorded the first as though it were the second. From here a clear is only
+written with the whole book behind it, and every clear written before that has to
+be re-earned.
+
+## Re-checking the 32: progress
+
+Each clear is re-checked against the finished book and then either **overturned**
+(the product gets its page) or **re-justified** (the reason is rewritten to say
+what was actually searched). A clear whose reason still names one section has not
+been re-checked yet.
+
+**Overturned so far — 4:** #19269 → LS 10, #8424 → TA 01, #7825 → HD 11,
+#220 → SHARE:LB 01.
+
+**Confirmed so far — 4:**
+
+- **#21832 Divine Mercy Radiance.** The Christian run LI 05–LI 11 is the only
+  place it could be. LI 09 is Jesus with a **golden** halo and golden rays on
+  charcoal; LI 10 is Jesus in charcoal against a red disc. This is the Divine
+  Mercy image — pale cream mosaic, **red and pale-blue** rays from the heart.
+  Not the same painting.
+- **#22077 Shiva in the Sea** — no LS page shows Shiva rising from the sea under
+  a full moon.
+- **#24352 Shiva Parvati on Kailash** — LS 13 is the watercolour faces, LS 14 and
+  LS 15 the cosmic dance; none is the pair seated on Kailash with Nandi.
+- **#25124 Cosmic Buddha Nebula** — no LB page puts the Buddha in a star field.
+
+**Not settled — the four cleared horse products.** #20087, #20169, #21893 and
+#30093 are all seven-horses pieces, and SH 06 (a mixed-colour herd charging
+through an orange-and-teal splash) is close to at least two of them. But
+**#19759 already holds SH 06**, so at most one of them could take it and only a
+side-by-side at full size can say which, if any. Recorded as unfinished rather
+than guessed — a wrong move here would displace a code that is already right.
+
+### Also seen, not yet asserted
+
+**#11541 and #11617** look like the same Radha-Krishna painting in golden
+autumn foliage — a possible sixth duplicate listing. To be confirmed at size
+before any row is written.
+
+**BATCH_02 is entirely frames, mouldings, canvas rolls, easels and banners** —
+24 products, none of them artworks. Correctly codeless, nothing to re-check.
