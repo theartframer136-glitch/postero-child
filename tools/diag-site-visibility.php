@@ -95,8 +95,14 @@ if (!empty($fail_ids)) {
 if (function_exists('af_fatal_log_path') && file_exists(af_fatal_log_path())) {
     $ours = @file(af_fatal_log_path());
     if ($ours) {
-        echo "  af-fatals.log — last 8:\n";
-        foreach (array_slice($ours, -8) as $l) echo '    ' . rtrim(mb_strimwidth($l, 0, 320, '…')) . "\n";
+        echo "  af-fatals.log — last 4, in full:\n";
+        // Full lines, not 320 chars. A "Maximum call stack size ... Infinite
+        // recursion?" entry is USELESS truncated: the message is boilerplate and
+        // the only part naming the culprit is the stack trace, which starts right
+        // after the cut. That cost a whole diagnostic round trip on 2026-08-26.
+        foreach (array_slice($ours, -4) as $l) {
+            echo '    ' . str_replace('#', "\n        #", rtrim($l)) . "\n";
+        }
     }
 } else {
     echo "  af-fatals.log not written yet (it records from the next fatal onward)\n";
