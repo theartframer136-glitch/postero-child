@@ -810,3 +810,27 @@ Himalayas — still has no owner among the products seen.
 Nine of its twelve are photographs, not brochure artworks: a Sikh groom, mehndi
 hands, a Bharatanatyam dancer performing, and venue shots of artwork displayed on
 boards at an event. Correctly codeless.
+
+## The horses, settled: nothing changes
+
+All five held side by side at full size against SH 01–SH 12:
+
+- **#19759 is SH 06 and correctly so** — horses in magenta, orange, brown and
+  blue against a splashed grey-and-orange ground. It keeps the code.
+- **#20169** is red, black and white horses under a gold sky over teal. Its
+  nearest page is SH 06, and SH 06 is #19759's picture. Different painting.
+- **#21893** is white horses in palette-knife impasto on green, teal and orange.
+  No SH page uses that ground; SH 11, the other textured white-horse page, is a
+  warm sunlit landscape in dust.
+- **#20087** is a sculptural relief: white horses on green grass under a huge
+  pale sun in a teal sky. No SH page is relief-textured or has green grass.
+- **#30093** is a mixed white, black and tan herd charging head-on through pale
+  sepia dust. SH 08 is the other head-on charge and is all-white horses in
+  golden clouds.
+
+**All four clears confirmed; no rows change.** This was the open item where a
+guess would have displaced a code that was already right, and it turned out the
+existing code was right and all four clears were too. Worth the extra pass: the
+subject matched five ways and the picture matched none.
+
+**Re-check status: 6 overturned, 8 confirmed, 18 to go.**
