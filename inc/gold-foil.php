@@ -107,26 +107,54 @@ function af_goldfoil_factor($product_id) {
 }
 
 /**
- * Scale one card price by the section's ratio.
+ * The least a piece in this section may cost, whatever its size.
+ *
+ * Owner, 2026-08-26: "all price will be more than 120". The ratio alone cannot
+ * deliver that. 40% more than the card's smallest sizes is $84 to $112 — the
+ * arithmetic is right, but a premium line that opens under the owner's floor is
+ * not what was asked for. Raising the ratio instead would break the rule
+ * settled the day before ("if price is 100 then 100+40 = 140"), so the two live
+ * side by side: the ratio decides the price, and this decides how low it is
+ * allowed to land.
+ *
+ * The floor only ever RAISES a price, so it can be read as: 40% more than a
+ * normal print, and never less than this. Sizes above it are untouched and stay
+ * exactly 40% more — a 3x5 is $100 on the card and $140 here, floor or no floor.
+ *
+ * One command moves it, and every surface follows:
+ *
+ *     wp option update af_goldfoil_min_price 150
+ *     wp option update af_goldfoil_min_price 0     # no floor at all
+ */
+function af_goldfoil_min_price() {
+    $raw = get_option('af_goldfoil_min_price', '');
+    $v = ($raw === '' || $raw === false) ? 120.0 : (float) $raw;
+    if ($v < 0) $v = 0.0;
+    return (float) apply_filters('af_goldfoil_min_price', $v);
+}
+
+/**
+ * Scale one card price by the section's ratio, then hold it to the floor.
  *
  * This used to round the result to the nearest $5 so the section would read
- * like a price list. Owner, 2026-08-25: "all gold foil product price will be
- * 40% more than normal product price" -- and the rounding quietly broke that:
- * a 3x4 came out at $110 against a $80 card price, which is 37.5% more, and a
- * 3x2 at $85 against $60, which is 41.7%. Neither one is the rule.
- *
- * Nothing is lost by dropping it. Every price on the card is a multiple of 5,
- * and 5 x 1.4 = 7, so the scaled figure is ALREADY a whole number for every
+ * like a price list. That quietly broke the 40%: a 3x4 came out at $110 against
+ * a $80 card price, which is 37.5% more, and a 3x2 at $85 against $60, which is
+ * 41.7%. Nothing is lost by dropping it — every price on the card is a multiple
+ * of 5 and 5 x 1.4 = 7, so the scaled figure is already a whole number for every
  * size the studio sells ($60 -> $84, $80 -> $112, $100 -> $140, $150 -> $210).
- * The rounding only ever moved the price off the rule it was meant to express.
  *
- * Rounding to cents stays, so a ratio the owner sets later (1.35, say) still
- * produces money rather than a floating-point tail.
+ * The floor is applied HERE, on the per-size price, rather than to the finished
+ * product price. That is deliberate: this function is what feeds the size
+ * selector, so a shopper who switches a floored product to its smallest size
+ * cannot drop below the floor either. Frame and colour surcharges are added
+ * afterwards and only ever push the total further up.
  */
 function af_goldfoil_scale($usd, $factor) {
     $usd = (float) $usd * (float) $factor;
-    if ($factor == 1.0) return $usd;
+    if ($factor == 1.0) return $usd;          // not a gold-foil piece: untouched
     $usd = round($usd, 2);
+    $min = af_goldfoil_min_price();
+    if ($min > 0 && $usd < $min) $usd = $min;
     return $usd < 5 ? 5.0 : (float) $usd;
 }
 
