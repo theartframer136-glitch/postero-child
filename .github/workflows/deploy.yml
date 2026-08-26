@@ -68,6 +68,10 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # The contact sheets are delivered by pushing them to a branch, because the
+    # log cannot carry them. See the two sheet steps near the end of this file.
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -1105,6 +1109,27 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/regenerate-image-sizes.php --allow-root 2>&1" \
             || true
 
+      - name: Apply the checked art-code corrections
+        if: always()
+        timeout-minutes: 8
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Write the art codes that were checked against the book..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             AF_APPLY=1 \
+             wp eval-file wp-content/themes/postero-child/tools/apply-artcode-corrections.php --allow-root 2>&1" \
+            2>&1 | tee /tmp/af-apply.txt || true
+          # Also kept as a file, because this is the one output that says what
+          # actually reached the database and the log cannot be relied on to
+          # still be holding it by the time anyone reads it — twenty verbose
+          # read-only checks run after this one. The publish step carries it out
+          # on the art-sheets branch next to the pictures.
+
       - name: SKU → art code (batched, resumable)
         if: always()
         timeout-minutes: 8
@@ -1122,7 +1147,26 @@ jobs:
             "cd ~/websites/OPu0sKi4J/public_html && \
              AF_SKU_SECONDS=${AF_SKU_SECONDS} AF_SKU_MAX=${AF_SKU_MAX} \
              wp eval-file wp-content/themes/postero-child/tools/sku-to-artcode.php --allow-root 2>&1" \
-            || true
+            2>&1 | tee /tmp/af-sku.txt || true
+
+      - name: SKU format check (read-only)
+        if: always()
+        timeout-minutes: 5
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          # The product SKU and the order-line SKU are built in two different
+          # files. This proves they still agree, and that every size the rate
+          # card sells produces a distinct token — so portrait 2x3 and landscape
+          # 3x2 never collapse onto the same SKU.
+          echo "Checking the SKU format against the rate card (read-only)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/test-sku-format.php --allow-root 2>&1" \
+            2>&1 | tee /tmp/af-skucheck.txt || true
 
       - name: Gates & warm (always)
         timeout-minutes: 10
@@ -1415,11 +1459,141 @@ jobs:
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          # Teed to a file for the same reason the apply report is: this is the
+          # only current picture of which product holds which code, and working
+          # from a stale copy of it has already produced rows whose stated reason
+          # named a code the product no longer had.
           echo "Which products share an art code (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-artcode-duplicates.php --allow-root 2>&1" \
+            2>&1 | tee /tmp/af-codes.txt \
             || true
+
+      - name: Pictures of one book section's products (read-only)
+        if: always()
+        timeout-minutes: 10
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          # Tiles are large now. They used to be 220px because the log had to carry
+          # them; the branch does not care, and 220px is exactly why two Rama idol
+          # photographs could not be told apart.
+          # Every product carrying no art code at all, in one go. The branch has
+          # no size limit the way the log did, so there is no reason to take
+          # these ten at a time — 108 products is five sheets and one deploy.
+          echo "Draw every product that carries no art code..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             AF_SHEET_SCOPE=nocode AF_SHEET_TAKE=0 \
+             AF_SHEET_TILE=300 AF_SHEET_Q=60 \
+             wp eval-file wp-content/themes/postero-child/tools/diag-product-contact-sheets.php --allow-root 2>&1" \
+            > /tmp/af-sheets.txt || true
+          # Everything except the image data goes to the log — which products were
+          # drawn, and any error. The base64 itself is deliberately withheld. The
+          # log truncates from the FRONT, so a megabyte of it erases every check
+          # that ran before it; that has already cost this project 35 sheets and
+          # three deploys' worth of verifier output. The next step delivers the
+          # pictures by a route that works.
+          grep -v '^B64' /tmp/af-sheets.txt || true
+          echo "b64 lines withheld from the log: $(grep -c '^B64 ' /tmp/af-sheets.txt || true)"
+
+      - name: Publish the contact sheets to the art-sheets branch
+        if: always()
+        run: |
+          set -uo pipefail
+          # Why a branch, and not the log, an artifact, or the site itself: the log
+          # truncates from the front; the artifact and log blob hosts are not
+          # reachable from where these sheets have to be read; and neither is the
+          # site. A git ref is. So the sheets travel as a ref.
+          #
+          # This branch is a delivery channel, not history. It is force-pushed on
+          # every deploy and holds only the newest sheets, and it should be deleted
+          # once the art-code audit is finished so the images do not sit in the
+          # repository forever.
+          rm -rf /tmp/af-sheetout && mkdir -p /tmp/af-sheetout
+          # The apply step's own report travels with the pictures. It is the only
+          # record of what actually reached the database, and it is short.
+          if [ -s /tmp/af-apply.txt ]; then
+            cp /tmp/af-apply.txt /tmp/af-sheetout/APPLIED.txt
+            echo "carrying the apply report ($(wc -l < /tmp/af-apply.txt) lines)"
+          fi
+          # And the live code map, so decisions are never made from a stale copy.
+          if [ -s /tmp/af-codes.txt ]; then
+            cp /tmp/af-codes.txt /tmp/af-sheetout/CODES.txt
+            echo "carrying the code map ($(wc -l < /tmp/af-codes.txt) lines)"
+          fi
+          # And what the SKU pass did, plus its format check.
+          if [ -s /tmp/af-sku.txt ]; then
+            cp /tmp/af-sku.txt /tmp/af-sheetout/SKU.txt
+            echo "carrying the SKU report ($(wc -l < /tmp/af-sku.txt) lines)"
+          fi
+          if [ -s /tmp/af-skucheck.txt ]; then
+            cp /tmp/af-skucheck.txt /tmp/af-sheetout/SKUCHECK.txt
+            echo "carrying the SKU format check"
+          fi
+          if [ -s /tmp/af-sheets.txt ]; then
+            awk '/^B64 /{print $2" "$3}' /tmp/af-sheets.txt | while read -r slug chunk; do
+              printf '%s' "$chunk" >> "/tmp/af-sheetout/${slug}.b64"
+            done
+          else
+            echo "no sheet output this run"
+          fi
+          shopt -s nullglob
+          n=0
+          for f in /tmp/af-sheetout/*.b64; do
+            if base64 -d "$f" > "${f%.b64}.jpg" 2>/dev/null; then
+              rm -f "$f"; n=$((n+1))
+              echo "  rebuilt $(basename "${f%.b64}").jpg  $(stat -c%s "${f%.b64}.jpg") bytes"
+            else
+              echo "  FAILED to decode $(basename "$f")"; rm -f "$f"
+            fi
+          done
+          # Publish if there is anything at all to carry — the apply report alone
+          # is worth a push even on a run that drew no pictures.
+          carried=$(ls -1 /tmp/af-sheetout 2>/dev/null | wc -l)
+          if [ "$carried" -eq 0 ]; then echo "nothing to publish"; exit 0; fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          # In a worktree, so the checked-out workspace the rest of the deploy may
+          # still be reading is never touched.
+          rm -rf /tmp/af-sheetwt
+          git worktree add --detach /tmp/af-sheetwt >/dev/null
+          rc=0
+          (
+            cd /tmp/af-sheetwt || exit 1
+            git checkout --orphan art-sheets >/dev/null 2>&1 || exit 1
+            git rm -rf --cached . >/dev/null 2>&1 || true
+            find . -maxdepth 1 -mindepth 1 ! -name '.git' -exec rm -rf {} + 2>/dev/null || true
+            cp /tmp/af-sheetout/* . || exit 1
+            {
+              echo "# Contact sheets"
+              echo
+              echo "Product pictures drawn out of the live catalogue so they can be held"
+              echo "against the pages of TheARTFramer Master Brochure."
+              echo
+              echo "APPLIED.txt is the art-code apply step's own report: what it"
+              echo "changed, cleared, refused as a clash, or found already correct."
+              echo
+              echo "This branch is a delivery channel, not history. It is force-pushed on"
+              echo "every deploy and holds only the newest sheets. Delete it when the"
+              echo "art-code audit is done."
+              echo
+              echo "From deploy run ${GITHUB_RUN_NUMBER}, commit ${GITHUB_SHA}."
+            } > README.md
+            git add -A
+            git commit -q -m "Contact sheets from deploy run ${GITHUB_RUN_NUMBER}" || exit 1
+            git push --force origin art-sheets
+          ) || rc=$?
+          git worktree remove --force /tmp/af-sheetwt >/dev/null 2>&1 || true
+          if [ "$rc" -eq 0 ]; then
+            echo "published ${n} sheet(s) and ${carried} file(s) to the art-sheets branch"
+          else
+            echo "could not publish the art-sheets branch (exit ${rc})"
+          fi
 
       - name: Product card structure (one-off, read-only)
         if: always()

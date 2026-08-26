@@ -27,6 +27,11 @@
  *      AF_SHEET_GROUPS (default 0)   — stop after N groups, 0 = all
  *      AF_SHEET_ONLY   (default '')  — only this code, e.g. "TA 04"
  *      AF_SHEET_CODES  (default '')  — only these codes, comma separated
+ *      AF_SHEET_SCOPE  (default shared) — shared | unique | nocode | all
+ *      AF_SHEET_SKIP   (default 0)   — skip this many groups (batching)
+ *      AF_SHEET_TAKE   (default 0)   — draw at most this many groups, 0 = no cap
+ *      AF_SHEET_PREFIX (default '')  — only codes starting with this, e.g. "SH"
+ *      AF_SHEET_IDS    (default '')  — draw exactly these product ids, one sheet
  *
  * AF_SHEET_CODES exists because the whole set does not survive the trip. The
  * log is fetched through an API that truncates a very long one, and 167 tiles
@@ -35,7 +40,15 @@
  * the payload small enough to arrive intact, and avoids redrawing the ones
  * already read.
  *
- * NOT WIRED INTO THE DEPLOY, deliberately. All 47 sheets have been read, and a
+ * SCOPE exists because a code being unique is not the same as it being right.
+ * 215 products carry a code no other product has, so nothing ever flagged them —
+ * but an unflagged code can still sit on the wrong picture, and until those
+ * pictures have been looked at nobody can say the catalogue is correct. scope
+ * unique draws them; scope nocode draws the products carrying no code at all.
+ * SKIP and TAKE exist for the same reason AF_SHEET_CODES does: the whole set
+ * does not survive one log, so it comes out a batch at a time.
+ *
+ * NOT WIRED INTO THE DEPLOY BY DEFAULT. All 47 sheets have been read, and a
  * step that prints a megabyte of base64 on every deploy buries every check that
  * runs before it — the log is truncated from the front, so the verifiers simply
  * vanish. It is kept here to be run on demand instead:
@@ -53,6 +66,16 @@ $COLS   = max( 1, (int) ( getenv( 'AF_SHEET_COLS' ) ?: 6 ) );
 $QUAL   = min( 95, max( 30, (int) ( getenv( 'AF_SHEET_Q' ) ?: 55 ) ) );
 $MAXG   = (int) ( getenv( 'AF_SHEET_GROUPS' ) ?: 0 );
 $ONLY   = strtoupper( trim( (string) getenv( 'AF_SHEET_ONLY' ) ) );
+$PREFIX = strtoupper( trim( (string) getenv( 'AF_SHEET_PREFIX' ) ) );
+
+// A named list of product ids, drawn as one sheet and nothing else. This is the
+// short way to see three particular pictures without waiting for the batch that
+// happens to contain them.
+$IDS = array();
+foreach ( explode( ',', (string) getenv( 'AF_SHEET_IDS' ) ) as $i ) {
+	$i = (int) trim( $i );
+	if ( $i > 0 ) { $IDS[] = $i; }
+}
 
 $CODES = array();
 foreach ( explode( ',', (string) getenv( 'AF_SHEET_CODES' ) ) as $c ) {
@@ -111,19 +134,75 @@ $ids = get_posts( array(
 	'order'          => 'ASC',
 ) );
 
-$groups = array(); $spell = array();
+$groups = array(); $spell = array(); $nocode_ids = array();
 foreach ( $ids as $pid ) {
 	$code = get_post_meta( $pid, '_taf_art_code', true );
 	$code = is_string( $code ) ? preg_replace( '/\s+/', ' ', trim( $code ) ) : '';
-	if ( $code === '' ) { continue; }
+	if ( $code === '' ) { $nocode_ids[] = $pid; continue; }
 	$key = strtoupper( $code );
 	if ( ! isset( $spell[ $key ] ) ) { $spell[ $key ] = $code; }
 	$groups[ $key ][] = $pid;
 }
-$shared = array_filter( $groups, function ( $p ) { return count( $p ) > 1; } );
+$SCOPE = strtolower( trim( (string) getenv( 'AF_SHEET_SCOPE' ) ) );
+if ( $SCOPE === '' ) { $SCOPE = 'shared'; }
+$SKIP  = max( 0, (int) getenv( 'AF_SHEET_SKIP' ) );
+$TAKE  = max( 0, (int) getenv( 'AF_SHEET_TAKE' ) );
+
+if ( $SCOPE === 'unique' ) {
+	$shared = array_filter( $groups, function ( $p ) { return count( $p ) === 1; } );
+} elseif ( $SCOPE === 'nocode' ) {
+	// Products carrying no code at all, gathered under one heading so they can
+	// be looked at the same way as everything else.
+	$shared = array();
+	if ( $nocode_ids ) { $shared['(NO CODE)'] = $nocode_ids; $spell['(NO CODE)'] = '(no code)'; }
+} elseif ( $SCOPE === 'all' ) {
+	if ( $nocode_ids ) { $groups['(NO CODE)'] = $nocode_ids; $spell['(NO CODE)'] = '(no code)'; }
+	$shared = $groups;
+} else {
+	$shared = array_filter( $groups, function ( $p ) { return count( $p ) > 1; } );
+}
+// Working the book one section at a time means wanting one section's products
+// at a time. PREFIX keeps the codes that start with it — "SH" gives every
+// product carrying a Seven Horses code, which is exactly the set to hold up
+// against the Seven Horses pages.
+if ( $PREFIX !== '' ) {
+	$shared = array_filter(
+		$shared,
+		function ( $k ) use ( $PREFIX ) { return strpos( $k, $PREFIX ) === 0; },
+		ARRAY_FILTER_USE_KEY
+	);
+}
 uksort( $shared, 'strcmp' );
 
-echo "shared codes: " . count( $shared ) . "\n";
+// A group of one still has to be split into sheets of a readable size, and a
+// hundred single-product sheets would be a hundred base64 blobs. So in the
+// unique and nocode scopes the products are packed into sheets of COLS*4.
+if ( $SCOPE === 'unique' || $SCOPE === 'nocode' ) {
+	$flat = array();
+	foreach ( $shared as $k => $pids ) { foreach ( $pids as $pid ) { $flat[] = $pid; } }
+	sort( $flat );
+	$per = max( 1, $COLS * 4 );
+	$shared = array(); $spell = array();
+	foreach ( array_chunk( $flat, $per ) as $i => $chunk ) {
+		$name = sprintf( 'BATCH %02d', $i + 1 );
+		$shared[ $name ] = $chunk; $spell[ $name ] = $name;
+	}
+}
+
+// An explicit list wins over everything above it: whatever the scope would have
+// chosen, these are the pictures that were asked for.
+if ( $IDS ) {
+	$shared = array( 'PICKED' => $IDS );
+	$spell  = array( 'PICKED' => 'picked by id' );
+	$SCOPE  = 'ids';
+	$SKIP   = 0; $TAKE = 0; $ONLY = ''; $CODES = array();
+}
+
+if ( $SKIP || $TAKE ) {
+	$shared = array_slice( $shared, $SKIP, $TAKE > 0 ? $TAKE : null, true );
+}
+
+echo "scope: {$SCOPE}  |  groups to draw: " . count( $shared ) . "\n";
 if ( $CODES ) { echo "drawing only: " . implode( ', ', array_keys( $CODES ) ) . "\n"; }
 echo "tile: {$TILE}px  |  columns: {$COLS}  |  quality: {$QUAL}\n";
 echo "Each sheet below is one JPEG, split into B64 lines. To rebuild them:\n";

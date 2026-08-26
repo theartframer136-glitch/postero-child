@@ -127,11 +127,15 @@ function af_goldfoil_badge_html() {
     return '<span class="af-gf-badge">Gold Foiled &amp; UV</span>';
 }
 
-add_action('woocommerce_before_shop_loop_item_title', function () {
+// after_shop_loop_item_title, not before_: measured on the live grid, this
+// theme's card template never fires the before_ hook — the badge rendered
+// nowhere. after_ is the hook the Art Code line (PHASE 25) already proves out;
+// priority 8 puts the badge above that line.
+add_action('woocommerce_after_shop_loop_item_title', function () {
     $product = function_exists('af_wc_product') ? af_wc_product() : ($GLOBALS['product'] ?? null);
     if (!($product instanceof WC_Product) || !af_is_goldfoil($product)) return;
     echo '<span class="af-gf-flag">' . af_goldfoil_badge_html() . '</span>'; // phpcs:ignore WordPress.Security.EscapeOutput
-}, 14);
+}, 8);
 
 add_action('woocommerce_single_product_summary', function () {
     $product = function_exists('af_wc_product') ? af_wc_product() : ($GLOBALS['product'] ?? null);
@@ -189,3 +193,48 @@ add_action('wp_head', function () {
  * The .af-gf-intro styling above still applies — WooCommerce prints the term
  * description inside .term-description, which the rule now covers.
  */
+
+/* ── The badge on the theme's own grid cards ──────────────────────────────
+ * Measured on a fresh (cache-miss) category render: the Postero main-grid
+ * card template fires NEITHER woocommerce_before_ NOR after_shop_loop_item_title
+ * — the PHP hook above only reaches the standard Woo templates (related rows,
+ * up-sells). This is the same gap the Art Code line closes with PHASE 25b's
+ * client-side pass, and the same fix applies. No per-product lookup is needed:
+ * WordPress already stamps every card <li> with product_cat-gold-foiled-uv,
+ * so the class IS the data.
+ */
+add_action('wp_footer', function () {
+    if (is_admin()) return; ?>
+<script>
+(function(){
+  var BADGE = <?php echo wp_json_encode('<span class="af-gf-flag">' . af_goldfoil_badge_html() . '</span>'); ?>;
+  function run(){
+    var cards = document.querySelectorAll(
+      'li[class*="product_cat-gold-foiled-uv"], .product-card[class*="product_cat-gold-foiled-uv"]');
+    Array.prototype.forEach.call(cards, function(card){
+      if (card.getAttribute('data-af-gf')) return;
+      card.setAttribute('data-af-gf', '1');
+      if (card.querySelector('.af-gf-flag')) return;      // a hook already placed one
+      var title = card.querySelector(
+        '.woocommerce-loop-product__title, .product-title, h2 a, h3 a, h2, h3');
+      if (!title) return;
+      var host = (title.tagName === 'A' && title.parentNode) ? title.parentNode : title;
+      var span = document.createElement('span');
+      span.innerHTML = BADGE;
+      host.parentNode.insertBefore(span.firstChild, host);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', run);
+  window.addEventListener('load', run);
+  [400, 1200, 2500].forEach(function(d){ setTimeout(run, d); });
+  try {
+    var obs = new MutationObserver(function(m){
+      for (var i = 0; i < m.length; i++){
+        if (m[i].addedNodes && m[i].addedNodes.length){ run(); break; }
+      }
+    });
+    obs.observe(document.body, {childList: true, subtree: true});
+  } catch (e) {}
+})();
+</script>
+<?php }, 61);
