@@ -780,3 +780,33 @@ before any row is written.
 
 **BATCH_02 is entirely frames, mouldings, canvas rolls, easels and banners** —
 24 products, none of them artworks. Correctly codeless, nothing to re-check.
+
+## Two more overturned, and TA 03 taken off the wrong products
+
+**#26875 Mahavatar Babaji is HD 01.** My clear said "no LB page in the book shows
+it" — true, and beside the point. HD 01 is the bare-chested figure with long dark
+hair seated cross-legged in meditation, hands in the lap, saffron cloth, dark
+brown ground. The same picture. Fifth overturn, and the fifth to come from a
+clear written against one section.
+
+**#31713 is TA 03**, and the two products holding TA 03 are both wrong.
+
+TA 03 is a wide stylised landscape: a crimson sky block at the left meeting teal
+water, white snow mountains behind, red temple spires above pale ghat steps at
+the right, dark boats on the river. #31713 is exactly that.
+
+The two holders — **#22947 "Temple Sanctum Vishnu"** and **#29829 "Forest Vishnu
+Murti"** — are Vishnu subjects. Neither can be a Varanasi landscape. They are
+cleared so the right product can take the code, under the one sanctioned
+exception: a known-wrong code blocking a known-right move is worse than an empty
+one. Where those two pictures do belong is still to be found.
+
+**Travel Art now stands at three of four owned**: TA 01 #8424, TA 03 #31713,
+TA 04 #29890. **TA 02** — the Kedarnath temple lit with lamps against the snowy
+Himalayas — still has no owner among the products seen.
+
+## BATCH_06 needs no work
+
+Nine of its twelve are photographs, not brochure artworks: a Sikh groom, mehndi
+hands, a Bharatanatyam dancer performing, and venue shots of artwork displayed on
+boards at an event. Correctly codeless.
