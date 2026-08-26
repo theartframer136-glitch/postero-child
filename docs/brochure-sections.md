@@ -834,3 +834,30 @@ existing code was right and all four clears were too. Worth the extra pass: the
 subject matched five ways and the picture matched none.
 
 **Re-check status: 6 overturned, 8 confirmed, 18 to go.**
+
+## Four more overturned
+
+- **#3362 Divine Lord Ganesha → HD 04.** The grey stone Ganesha seated with four
+  arms against a gold filigree halo on a dark ground. My clear said "none of the
+  fifteen Lord Shiva pages shows it" — true, and beside the point, because the
+  Ganesha pages are in Hindu Deities.
+- **#141 Minimalist Blossom Still Life → LI 02.** A pale round vase holding one
+  blossoming branch on a dark ledge against a textured grey wall. Cleared against
+  Tirupati Balaji.
+- **#148 Abstract Floral Sunrise → LI 03.** The stained-glass tulip in jewel
+  greens, blues, purples and orange with a golden sun behind it. Cleared against
+  Lord Rama.
+- **#17543 Lord Balaji Idol → SHARE:LR 05.** This one needs no new evidence: my
+  own clear says *"the same photograph as #15913, which correctly holds LR 05 —
+  one artwork listed twice"*. Two listings of one picture share the code. I made
+  the right observation and drew the wrong conclusion from it.
+
+That is now **ten overturned against eight confirmed**, and every single overturn
+came from a clear written against one section — nine of them — or, in #17543's
+case, from a duplicate I identified and then cleared anyway.
+
+The ratio is the point. These were not near-misses: HD 04, LI 02, LI 03, LS 10,
+TA 01, TA 03, HD 01, HD 11, LB 01 are all exact matches sitting in the book while
+the product carried no code at all.
+
+**Re-check status: 10 overturned, 8 confirmed, 21 to go.**
