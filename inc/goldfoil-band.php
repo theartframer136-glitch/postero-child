@@ -45,7 +45,7 @@ function af_gfs_limit() {
  * page, and the home page is the most-hit page on a CPU-capped host.
  */
 function af_gfs_products() {
-    $ids = get_transient('af_gfs_ids');
+    $ids = get_transient('af_gfs_ids_v2');
     if (!is_array($ids)) {
         $ids = array();
         if (function_exists('af_goldfoil_slug') && function_exists('wc_get_products')) {
@@ -59,7 +59,7 @@ function af_gfs_products() {
             ));
             if (is_array($found)) $ids = array_map('intval', $found);
         }
-        set_transient('af_gfs_ids', $ids, 15 * MINUTE_IN_SECONDS);
+        set_transient('af_gfs_ids_v2', $ids, 5 * MINUTE_IN_SECONDS);
     }
     return $ids;
 }
@@ -178,4 +178,4 @@ add_action('wp_head', function () {
 <?php }, 20);
 
 /* Keep the band in step when the importer adds a piece. */
-add_action('save_post_product', function () { delete_transient('af_gfs_ids'); }, 10, 0);
+add_action('save_post_product', function () { delete_transient('af_gfs_ids_v2'); }, 10, 0);
