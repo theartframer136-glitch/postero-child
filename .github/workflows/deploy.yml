@@ -1090,6 +1090,37 @@ jobs:
 
           # ── always run: boot gate, 200 gate, cache warm ──
 
+      # The section is only right while something keeps putting the invariant
+      # back, and the pass that does it sits in the suite above. Most deploys
+      # are light, so on those nothing files a premium piece into its own
+      # section: deploy 887 found 37 pieces carrying the flag and none in the
+      # section, so the page answered "No products were found" while the same
+      # artwork sat in All Art Prints and Personalised Prints instead.
+      #
+      # So run the enforcer on light deploys too, for the reason the image pass
+      # below stopped being gated. It is idempotent and says what it changed,
+      # so on a catalogue that is already correct it costs one WP-CLI call and
+      # prints "nothing to correct". Full deploys keep using the copy inside
+      # the suite, which runs at the one point that matters there: straight
+      # after the sweeps that append a category to every product. The
+      # sub-collection grouping stays full-deploy only — it creates terms,
+      # where this only moves a piece back inside a boundary that already
+      # exists.
+      - name: Keep Gold Foiled & UV in its own section (light deploys)
+        if: env.RUN_SUITE != '1'
+        timeout-minutes: 8
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Keeping Gold Foiled & UV in its own section..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/enforce-goldfoil-category.php --allow-root 2>&1" \
+            || true
+
       # Rebuild the resized copies of product images so the quality and width
       # this theme asks for actually reach the catalogue that already exists.
       # Neither setting is retroactive — WordPress encodes the copies once, at
