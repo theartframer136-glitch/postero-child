@@ -1042,6 +1042,19 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/enforce-goldfoil-category.php --allow-root 2>&1" \
             || true
 
+          # Straight after it, because it works INSIDE the boundary that pass
+          # just restored: the section's own sub-collections, so the homepage's
+          # Shop by Collection row has circles under the Gold Foiled & UV tab
+          # the way every other tab does. Runs after the enforcer, never
+          # before — the enforcer allows these children, and the pieces need
+          # to be back in their own section before they can be grouped inside
+          # it.
+          echo "Grouping Gold Foiled & UV into sub-collections..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/goldfoil-subcategories.php --allow-root 2>&1" \
+            || true
+
           # Gold Foiled & UV setup + import moved to the TOP of suite 1: products
           # created by the importer must exist before apply-template,
           # assign-filter-attributes, assign-tags, apply-mrp-markup and the SEO
@@ -1653,6 +1666,25 @@ jobs:
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-sidebar-categories.php --allow-root 2>&1" \
+            || true
+
+      - name: Shop by Collection — where the tabs come from (read-only)
+        if: always()
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          # The homepage strip is the parent theme's, and this session cannot
+          # read the live site, so which of the two fixes in
+          # inc/goldfoil-collection.php actually puts the tab there is only
+          # knowable from inside a deploy. This says which — and lists the
+          # section's sub-collections, which are what the circle row shows.
+          echo "Where the Shop by Collection tabs come from (read-only)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-topcat-strip.php --allow-root 2>&1" \
             || true
 
       - name: Where the gold-foil artwork could already be (read-only)
