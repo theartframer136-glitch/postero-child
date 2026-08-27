@@ -8,6 +8,19 @@
  *
  * The map is built up in confirmed batches. Re-running is safe.
  *
+ * A product named in artcode-corrections.csv must NOT also appear here. That
+ * file is the later, image-verified audit, and it wins. Seventeen products were
+ * listed in both; on fourteen the two files disagreed, so every full deploy
+ * wrote the superseded code here and the corrections pass undid it minutes
+ * later — "to change: 8 | codes cleared: 6" on run after run, never converging,
+ * which is also why that line could never be read as a report of real work.
+ * Two costs, beyond the churn. The order of the two steps became load-bearing
+ * without anyone choosing it; and the corrections step ends in `|| true`, so one
+ * SSH refusal — routine on this host — would have left those fourteen carrying
+ * codes the audit had already ruled wrong, with the SKU pass running straight
+ * afterwards to stamp them onto SKUs and invoices. All seventeen are gone from
+ * the map (the other three agreed with the CSV); it owns them alone now.
+ *
  * Run: wp eval-file tools/apply-artcode-batch.php --allow-root
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
@@ -61,10 +74,7 @@ $MAP = array(
 
     // --- best-guess matches (closest brochure artwork) ---
     25962 => 'RK 15', // Radha Krishna Grove Mural (vivid forest couple scene)
-    11560 => 'RK 25', // Divine Radha Krishna (pastel pink/white, dancing)
-    19453 => 'RK 41', // Golden Krishna Flute Player (golden statue, diyas)
     18600 => 'RK 45', // Lord Krishna Playing Flute (golden idol, dark temple)
-    14678 => 'RK 52', // Golden Krishna Temple Idol (garlanded shrine idol)
     31212 => 'RK 77', // Radha Krishna Jeweled Duet (ornate golden pair, flowers)
     17212 => 'RK 78', // Beautiful Lord Krishna Statue (black idol, garlands)
      7824 => 'RK 79', // Bal Krishna Flute (baby Krishna, soft glow)
@@ -78,7 +88,6 @@ $MAP = array(
 
     // --- cross-category fixes: Seven Horses (SH) ---
     19025 => 'SH 04', // Seven Horses Ocean Run (white horses, dark ocean)
-    30093 => 'SH 05', // Horses of the Dust Plains (dark golden herd)
     19636 => 'SH 08', // Seven Horses in the Clouds (golden clouds)
     27572 => 'SH 10', // Two Horses Cubist (abstract geometric herd)
 
@@ -88,12 +97,7 @@ $MAP = array(
 
     // --- Lord Buddha (LB) ---
      7676 => 'LB 02', // Abstract Buddha Lotus Meditation (radiant lotus aura)
-     7839 => 'LB 03', // Buddha Lotus Serenity (golden Buddha, lotus)
-    16932 => 'LB 06', // Buddha Enlightenment Scene (radiating peace)
     27811 => 'LB 08', // Buddha Among Pink Lotuses (stone Buddha, blooms)
-    27510 => 'LB 09', // Cubist Buddha Visage
-      220 => 'LB 10', // Serene Buddha with Lotus (4x3)
-    17472 => 'LB 13', // Lord Mahavira Art (enlightenment, golden hues)
 
     // --- Tirupati / Vishnu (TP) ---
     30966 => 'TP 07', // Vishnu on Shesha (resting form)
@@ -121,7 +125,6 @@ $MAP = array(
      8398 => 'HD 25', // Meditating Yogi (deep meditation)
 
     // --- Lakshmi Ganesha / Sikh / Swaminarayan / Pichwai / Indian Culture ---
-     8412 => 'LG 02', // Lakshmi Ganesh (classic seated pair)
     26814 => 'SA 01', // Golden Temple at Dusk
      7815 => 'SA 02', // Sacred Golden Temple Amritsar (reflection)
      8504 => 'SA 03', // Sacred Guru Nanak Dev Ji (radiant, blessing)
@@ -139,10 +142,6 @@ $MAP = array(
      7816 => 'LS 22', // Divine Lord Shiva (classic majestic)
 
     // --- Landscapes (brochure also numbers these LS 01-10) ---
-    27133 => 'LS 01', // Geometric Falls Sunrise (flowing waterfall; was cleared)
-    13722 => 'LS 02', // Stairway to the Moon (pathway to celestial; was cleared)
-    18897 => 'LS 03', // Surreal Landscape (misty cliffs, radiant sun)
-    29517 => 'LS 04', // Lone Tree Between Worlds (twilight forests)
     30276 => 'LS 07', // Red Sun Winter Tree (minimal sunrise)
     22625 => 'LS 08', // Whimsical Tower Scene (nature meets imagination)
 
@@ -172,18 +171,38 @@ $MAP = array(
     // --- clear wrong codes (artwork not in the brochure) ---
     19086 => '',      // Surya in Chariot (was RK 15)
     27017 => '',      // Graphite Muse Sketch (was RK 37)
-     8585 => '',      // Elegant Large Framed White mockup (was RK 32)
-     8440 => '',      // Large Landscape Canvas Print (was RK 42)
     28595 => '',      // Krishna's Promise (was RK 46; RK 46 is #15217)
     26450 => '',      // Starry City Nights (was RK 58)
     28422 => '',      // Raas Leela Miniature (was TA 04)
     22505 => '',      // Sleeping Krishna Art (was TA 04)
-    23558 => '',      // Bal Krishna Classic Portrait (was LG 03)
     23789 => '',      // Radha Krishna Color Duet (was WL 07)
     18229 => '',      // Lord Krishna Statue (was LR 06)
 );
 
 echo "=== APPLY ART CODE BATCH ===\n";
+
+// The corrections file wins over this map, always — see the note at the top.
+// Enforced here rather than trusted to whoever edits the map next, and enforced
+// by dropping the entry rather than by running later than the corrections pass:
+// the two steps must not depend on their order for the catalogue to end up
+// right. Anything caught is printed, because a silent precedence rule is how
+// the last fourteen sat here unnoticed for days.
+$csv = __DIR__ . '/artcode-corrections.csv';
+if ( is_readable( $csv ) && ( $fh = fopen( $csv, 'r' ) ) ) {
+    $owned = array();
+    fgetcsv( $fh ); // header
+    while ( ( $r = fgetcsv( $fh ) ) !== false ) {
+        if ( isset( $r[0] ) && ctype_digit( trim( $r[0] ) ) ) { $owned[ (int) trim( $r[0] ) ] = true; }
+    }
+    fclose( $fh );
+    foreach ( array_keys( $MAP ) as $pid ) {
+        if ( isset( $owned[ (int) $pid ] ) ) {
+            echo "YIELD #{$pid} to artcode-corrections.csv — remove it from \$MAP\n";
+            unset( $MAP[ $pid ] );
+        }
+    }
+}
+
 echo "products in map: " . count( $MAP ) . "\n\n";
 
 global $wpdb;
