@@ -58,20 +58,11 @@ on:
 # fire a dozen WP-CLI processes at the same shared host, which is enough to hit
 # Hostinger's resource limit and take the site to HTTP 508 while they run.
 # Queue instead of cancelling: every pushed commit still gets deployed.
-# (Run #518 was rejected at startup with the run name falling back to the file
-# path — the invalid-workflow signature — yet actionlint and every YAML parser
-# accept this file. This commit is the empirical retest of the same content.)
-concurrency:
-  group: deploy-production
-  cancel-in-progress: false
-
-# One deploy at a time. Two overlapping runs each rsync --delete the theme and
-# fire a dozen WP-CLI processes at the same shared host, which is enough to hit
-# Hostinger's resource limit and take the site to HTTP 508 while they run.
-# Queue instead of cancelling: every pushed commit still gets deployed.
-# (Run #518 was rejected at startup with the run name falling back to the file
-# path — the invalid-workflow signature — yet actionlint and every YAML parser
-# accept this file. This commit is the empirical retest of the same content.)
+# Keep exactly one of these blocks. GitHub rejects a workflow that repeats a
+# top-level key: the run fails instantly with no jobs and its name falls back
+# to the file path, which is what happened to run #518 and again to run #886.
+# Most YAML parsers accept a duplicate key silently and keep the last one, so
+# a clean local parse is not evidence that this file is valid.
 concurrency:
   group: deploy-production
   cancel-in-progress: false
