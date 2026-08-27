@@ -8,6 +8,14 @@ Thumbs.db
 node_modules/
 vendor/
 
+# Left behind by running the QA scripts in a clone rather than a scratch folder
+# (npm i playwright). The theme has no Node build of its own, so a package.json
+# appearing at the root is always this and never something to keep.
+package.json
+package-lock.json
+kid-mode-final.png
+veteran-final.png
+
 # Local env & secrets — never commit
 .env
 .env.*
