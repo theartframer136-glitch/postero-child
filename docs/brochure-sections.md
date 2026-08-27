@@ -890,3 +890,20 @@ is a painterly Krishna against a large gold moon on dark grey — a different
 picture. That rules RK 10 out but not the other ninety RK pages, so this clear
 stays on the to-do list rather than being marked confirmed. A page ruled out is
 not the book ruled out — the same distinction this whole re-check turns on.
+
+## Three Shiva-family clears confirmed against the pages
+
+Re-checked against the actual Lord Shiva pages rather than a single one:
+
+- **#24352 Shiva Parvati on Kailash** — glowing blue Shiva and golden Parvati on
+  the snowy Kailash at night with Nandi. No LS page is that scene; LS 06 is the
+  blue Shiva-Parvati-with-Ganesha page, no mountains.
+- **#21954 Shiva Family Cubist** — the two cubist LS pages are LS 02 (a couple,
+  no animals) and LS 08 (a landscape family with one bull). This is a portrait
+  cubist family with a red bull at the **left** and a lion at the **right** on
+  gold. Neither page.
+- **#30531 Shiva Parivar with Lion** — traditional calendar-art family portrait
+  with Nandi and a lion. LS 08, the nearest, is cubist; HD has no Shiva-family
+  page. Not a duplicate of #21954 — different style entirely.
+
+All three confirmed. **Re-check status: 10 overturned, 11 confirmed, 17 to go.**
