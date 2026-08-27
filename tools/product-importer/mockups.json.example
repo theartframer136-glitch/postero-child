@@ -1,0 +1,12 @@
+[
+  {
+    "_comment": "Copy this file to mockups.json and fill in your real UUIDs.",
+    "_how": "Run `python mockups_api.py list` to see your mockups and their uuids.",
+    "mockup_uuid": "6308f2f7-80eb-42ab-a109-08a33e6dcc2d",
+    "smart_object_uuid": "22ec3dec-4df8-4643-8c68-01b72fa506f5"
+  },
+  {
+    "mockup_uuid": "PUT-ANOTHER-MOCKUP-UUID-HERE",
+    "smart_object_uuid": "PUT-ITS-SMART-OBJECT-UUID-HERE"
+  }
+]

@@ -1,0 +1,108 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+=== ART CODE CORRECTIONS ===
+mode: APPLYING
+rows in the file: 95
+
+--- what happens to each row ---
+  #16566   already LC 09    Whimsical Train Journey Canvas Wall Art 3×4 
+  #23374   already LI 32    Moonlit White Horse Canvas Wall Art 3×4 Feet
+  #27133   already LC 01    Geometric Falls Sunrise Canvas Wall Art 3×4 
+  #13722   already LC 02    Stairway to the Moon Canvas Wall Art 3×4 Fee
+  #18897   already LC 03    Surreal Landscape Canvas Wall Art 3×4 Feet –
+  #23496   already AL 05    Mahayogi Tanjore Panel Canvas Wall Art 3×4 F
+  #23435   already AL 06    Andal with Parrot Tanjore Canvas Wall Art 3×
+  #26145   already AL 01    Tanjore Murugan Panel Canvas Wall Art 3×4 Fe
+  #7839    already LB 01    Buddha Lotus Serenity Canvas Wall Art 36×60 
+  #17472   already HD 09    Lord Mahavira Art Canvas Wall Art 3×4 Feet –
+  #16932   already LB 13    Buddha Enlightenment Scene Canvas Wall Art 3
+  #220     already LB 01    Serene Buddha with Lotus Canvas Wall Art 4×3
+  #25124   already has no code   Cosmic Buddha Nebula Canvas Wall Art 3×4 Fee
+  #26875   already HD 01    Mahavatar Babaji Canvas Wall Art 3×4 Feet – 
+  #27449   already has no code   Buddha Offering Lotus Canvas Wall Art 3×4 Fe
+  #27510   already has no code   Cubist Buddha Visage Canvas Wall Art 3×4 Fee
+  #20087   already has no code   Running White Horses Canvas Wall Art 3×4 Fee
+  #30093   already has no code   Horses of the Dust Plains Canvas Wall Art 3×
+  #24352   already has no code   Shiva Parvati on Kailash Canvas Wall Art 3×4
+  #8597    already has no code   Professional Cotton Canvas Roll for Artists 
+  #8591    already has no code   Premium Canvas Roll For Printing– High-Quali
+  #8582    already has no code   Framed White Canvas Wall Art – Premium Blank
+  #8447    already has no code   Large Square Canvas Wall Art 4×4 ft | Custom
+  #8853    already has no code   Luxury Premium Matte Black Floating Frame fo
+  #8869    already has no code   Modern Living Room Wall Decor Canvas Set – 3
+  #8711    already has no code   Stunning Personalized Family Photo Collage C
+  #28164   already has no code   Temple Bells and Cows Canvas Wall Art 3×4 Fe
+  #20288   already LI 05    Holy Family Stained Glass Canvas Wall Art 3×
+  #16762   already LI 08    Crucifixion Scene Canvas Wall Art 3×4 Feet –
+  #21832   already has no code   Divine Mercy Radiance Canvas Wall Art 3×4 Fe
+  #16035   already LI 09    Sacred Heart of Jesus Canvas Wall Art 3×4 Fe
+  #30531   already has no code   Shiva Parivar with Lion Canvas Wall Art 3×4 
+  #19944   already has no code   Green Leafy Plants Art Canvas Wall Art 3×4 F
+  #7825    already HD 11    Panchmukhi Hanuman Canvas Wall Art 60×36 Inc
+  #27750   already has no code   Krishna and the Monkeys Folk Canvas Wall Art
+  #23252   already has no code   Divine Hand with Mala Canvas Wall Art 3×4 Fe
+  #8424    already TA 01    Divine Varanasi Ganga Aarti Canvas Wall Art 
+  #3362    already HD 04    Divine Lord Ganesha Canvas Wall Art 60×36 In
+  #29517   already has no code   Lone Tree Between Worlds Canvas Wall Art 3×4
+  #18290   already LS 04    Shiva Meditation Art Canvas Wall Art 3×4 Fee
+  #8412    already LG 01    Lakshmi Ganesh Canvas Wall Art – 48×48 Inche
+  #29456   already has no code   Maratha Pride with Lion Canvas Wall Art 3×4 
+  #27981   already has no code   Crimson Veil Portrait Canvas Wall Art 3×4 Fe
+  #23558   already has no code   Bal Krishna Classic Portrait Canvas Wall Art
+  #148     already LI 03    Abstract Floral Sunrise Canvas Wall Art 5×3 
+  #7810    already LR 01    Premium Ram Darbar Divine Wall Art – 36 x 60
+  #11560   already has no code   Divine Radha Krishna Canvas Wall Art 60×36 I
+  #25240   already has no code   Vaishnava Symbols Trio Canvas Wall Art 3×4 F
+  #22077   already has no code   Shiva in the Sea Canvas Wall Art 3×4 Feet – 
+  #21893   already has no code   Wild Horses Stampede Canvas Wall Art 3×4 Fee
+  #8588    already has no code   Best Premium Pre-Stretched Framed Canvas Boa
+  #8440    already has no code   Large Landscape Canvas Print 3×4 ft | Custom
+  #7662    already has no code   Luxurious Majestic White Running Horses Canv
+  #232     already SH 01    Powerful Running White Horses Canvas Wall Ar
+  #17543   already LR 05    Lord Balaji Idol Canvas Wall Art 3×4 Feet – 
+  #19453   already has no code   Golden Krishna Flute Player Canvas Wall Art 
+  #21954   already has no code   Shiva Family Cubist Art Canvas Wall Art 3×4 
+  #20169   already has no code   Rainbow Horse Gallop Canvas Wall Art 3×4 Fee
+  #141     already LI 02    Minimalist Blossom Still Life Canvas Wall Ar
+  #14678   already has no code   Golden Krishna Temple Idol Canvas Wall Art 3
+  #14739   already LC 06    Moonlit Mountain Forest Canvas Wall Art 3×4 
+  #8585    already has no code   Elegant Large Framed White Canvas Wall Art w
+  #17672   already LI 10    Jesus Portrait Canvas Wall Art 3×4 Feet – Fl
+  #7688    already LI 12    Luxury Floral Birds Canvas Wall Art 36×60 In
+  #22444   already LI 07    Cross of Faith Canvas Wall Art 3×4 Feet – Fl
+  #13592   already LI 11    Jesus in Heavenly Glory Canvas Wall Art 3×4 
+  #16444   already LI 23    Running Brown Horse Canvas Wall Art 3×4 Feet
+  #13473   already LI 31    Joyful Man with Bouquet Canvas Wall Art 3×4 
+  #27920   already LI 34    Rainbow Wings and Butterflies Canvas Wall Ar
+  #24897   already LI 36    Crimson Horse Reverie Canvas Wall Art 3×4 Fe
+  #19697   already LI 28    Moonlit Sailing Adventure Canvas Wall Art 3×
+  #24169   already MG 01    Murugan Sanctum Darshan Canvas Wall Art 3×4 
+  #8474    already TP 05    Divine Lord Balaji Temple Canvas Wall Art – 
+  #23008   already LI 04    Teal City Mirage Canvas Wall Art 3×4 Feet – 
+  #23191   already SH 04    Seven Horses Cliff Dawn Canvas Wall Art 3×4 
+  #7765    already KR 01    Cute Cartoon Cat Wall Art 36×24 – Adorable K
+  #25185   already SL 22    Lotus Basket Still Life Canvas Wall Art 3×4 
+  #13414   already LS 06    Shiva and Parvati Canvas Wall Art 3×4 Feet –
+  #7781    already has no code   Luxurious Modern Floral Abstract Vase Wall A
+  #7800    already has no code   Stunning Forest Waterfall Landscape Wall Art
+  #14034   already has no code   Lord Murugan Art Canvas Wall Art 3×4 Feet – 
+  #19269   already LS 10    Shiva with Nandi Canvas Wall Art 3×4 Feet – 
+  #22199   already has no code   Peacock Art Canvas Wall Art 3×4 Feet – Float
+  #23850   already has no code   Melody Makers Illustration Canvas Wall Art 3
+  #24470   already has no code   Tanjore Devotion Panel Canvas Wall Art 3×4 F
+  #24836   already has no code   Divine Blessings Gathering Canvas Wall Art 3
+  #25358   already has no code   Dancers in Ocean Light Canvas Wall Art 3×4 F
+  #25657   already has no code   Tanjore Acharya Panel Canvas Wall Art 3×4 Fe
+  #28103   already has no code   Krishna Serene Face Canvas Wall Art 3×4 Feet
+  #28839   already has no code   Savanna Sunset Silhouettes Canvas Wall Art 3
+  #30775   already has no code   Marigold Dreams Portrait Canvas Wall Art 3×4
+  #30905   already has no code   Balaji Heritage Collage Canvas Wall Art 3×4 
+  #22947   already has no code   Temple Sanctum Vishnu Canvas Wall Art 3×4 Fe
+  #29829   already has no code   Forest Vishnu Murti Canvas Wall Art 3×4 Feet
+  #31713   already TA 03    Varanasi Teal Poster Canvas Wall Art 3×4 Fee
+
+to change: 0  |  codes cleared: 0  |  already correct: 95  |  refused as a clash: 0  |  missing: 0
+
+Written. The SKU pass picks these up on its next run, and the previous
+code of every product touched is kept in _af_code_before_fix.
+=== DONE ===

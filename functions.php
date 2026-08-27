@@ -18,6 +18,13 @@ add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), $af_css_ver);
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), $af_js_ver, true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
+
+    // Checkout-only form styling — kept out of custom.css so the other
+    // pages don't carry it.
+    if (function_exists('is_checkout') && is_checkout()) {
+        $af_co_ver = @filemtime(get_stylesheet_directory() . '/assets/css/checkout.css') ?: '1.0.0';
+        wp_enqueue_style('postero-child-checkout', get_stylesheet_directory_uri() . '/assets/css/checkout.css', array('postero-child-custom'), $af_co_ver);
+    }
 }, 20);
 
 // 1b. Tag Sign Up / Login / user-icon nav items with CSS classes (server-side, reliable)
@@ -13556,7 +13563,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'kit-options', 'deals-page', 'gold-foil', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo') as $af_mod) {
+foreach (array('abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'kit-options', 'deals-page', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }
