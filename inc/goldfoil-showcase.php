@@ -41,24 +41,41 @@ function af_gfs_limit() {
 }
 
 /**
- * The products in the section, newest first. Cached: this runs on the home
- * page, and the home page is the most-hit page on a CPU-capped host.
+ * The pieces in the band, newest first.
+ *
+ * WP_Query on the taxonomy, NOT wc_get_products(). WooCommerce resolves a
+ * category query through its own wc_product_meta_lookup table, which is filled
+ * by a background job after a product is created — so freshly imported pieces
+ * are invisible to it for a while. That was visible on the live page: the band
+ * showed three of the seven, then four, gaining one at a time as the job caught
+ * up. The term relationship is written the moment the product is saved, so
+ * asking the taxonomy gives the true list immediately.
  */
 function af_gfs_products() {
     $ids = get_transient('af_gfs_ids_v2');
     if (!is_array($ids)) {
         $ids = array();
-        if (function_exists('af_goldfoil_slug') && function_exists('wc_get_products')) {
-            $found = wc_get_products(array(
-                'status'   => 'publish',
-                'limit'    => af_gfs_limit(),
-                'orderby'  => 'date',
-                'order'    => 'DESC',
-                'return'   => 'ids',
-                'category' => array(af_goldfoil_slug()),
+        if (function_exists('af_goldfoil_slug')) {
+            $q = new WP_Query(array(
+                'post_type'              => 'product',
+                'post_status'            => 'publish',
+                'posts_per_page'         => af_gfs_limit(),
+                'orderby'                => 'date',
+                'order'                  => 'DESC',
+                'fields'                 => 'ids',
+                'ignore_sticky_posts'    => true,
+                'no_found_rows'          => true,
+                'update_post_term_cache' => false,
+                'tax_query'              => array(array(
+                    'taxonomy' => 'product_cat',
+                    'field'    => 'slug',
+                    'terms'    => af_goldfoil_slug(),
+                )),
             ));
-            if (is_array($found)) $ids = array_map('intval', $found);
+            $ids = array_map('intval', $q->posts);
         }
+        // Short TTL: the band is new and its contents change as artwork is
+        // added. Fifteen minutes of a wrong list is fifteen minutes too many.
         set_transient('af_gfs_ids_v2', $ids, 5 * MINUTE_IN_SECONDS);
     }
     return $ids;
@@ -71,12 +88,15 @@ function af_gfs_tile($pid) {
     $img_id = $product->get_image_id();
     if (!$img_id) return '';
     $full = wp_get_attachment_image_url($img_id, 'full');
-    $thumb = wp_get_attachment_image($img_id, 'large', false, array(
-        'loading'  => 'lazy',
-        'decoding' => 'async',
-        'alt'      => $product->get_name(),
-    ));
-    if (!$thumb) return '';
+    // Built by hand rather than with wp_get_attachment_image(): these are phone
+    // photographs, several smaller than the 'large' threshold, so the sizes
+    // WordPress would normally hand back do not all exist. Falling back through
+    // large -> full means an unusual attachment cannot silently drop a tile.
+    $src = wp_get_attachment_image_url($img_id, 'large');
+    if (!$src) $src = $full;
+    if (!$src) return '';
+    $thumb = '<img src="' . esc_url($src) . '" alt="' . esc_attr($product->get_name())
+           . '" loading="lazy" decoding="async">';
     return '<div class="random-product-item"><div class="image-wrapper">'
          . '<a href="' . esc_url($full) . '" data-fancybox="product-' . (int) $pid . '"'
          . ' aria-label="' . esc_attr($product->get_name()) . '">'
