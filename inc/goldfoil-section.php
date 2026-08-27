@@ -99,50 +99,62 @@ function af_gfs_render() {
         }
     }
 
-    return '<div class="af-gfs e-con e-con-boxed"><div class="e-con-inner">'
+    // NO e-con / e-con-inner here. Two reasons, both real on this site:
+    // .e-con{max-width:100%!important} means "boxed" does not box anything, and
+    // a global .e-con-inner{display:flex!important;flex-wrap:nowrap!important}
+    // would lay the heading and the grid out as one nowrap row. The band is
+    // printed INSIDE the neighbouring shortcode's wrapper instead, so it
+    // inherits that container's width and gutters exactly.
+    return '<div class="af-gfs">'
          . '<div class="af-gfs-head">'
          . '<h2 class="elementor-heading-title af-gfs-title">'
          . '<span style="color:#926921">Gold Foiled</span> &amp; UV</h2>'
          . $link . '</div>'
          . '<p class="af-gfs-sub">Real gold foil detailing, sealed under a UV-cured coat.</p>'
          . '<div class="random-product-grid af-gfs-grid">' . $tiles . '</div>'
-         . '</div></div>';
+         . '</div>';
 }
 
-/* ── Place it directly after the Customised Creations container ───────────
- * Hooked on BOTH the container-specific and the generic after_render: which of
- * the two fires depends on the Elementor version and on whether the anchor is a
- * container or a legacy section. The static guard means hooking both cannot
- * print the band twice.
+/* ── Placement ─────────────────────────────────────────────────────────────
+ * The band is appended to the OUTPUT of [random_product_grid] — the shortcode
+ * that draws the Customised Creations grid — rather than printed after the
+ * Elementor container that holds it.
  *
- * The whole render is inside a catch. A home page that has been taken down
- * twice in one afternoon does not get a third feature that can do it again:
- * if anything in here throws, the band is silently skipped and the rest of the
- * page is served exactly as it would have been. The failure is recorded for
- * inc/fatal-recorder.php to surface rather than swallowed unseen.
+ * The first attempt used elementor/frontend/container/after_render, which puts
+ * the band OUTSIDE that container, as a sibling of the page's top-level
+ * elements. Those get their width from Elementor per-element CSS the band does
+ * not carry, so it ran the full width of the window: the heading was cut off at
+ * the left edge and the button at the right. Copying the container's classes
+ * does not fix it either, because this site overrides them
+ * (.e-con{max-width:100%!important}, and an .e-con-inner rule that forces a
+ * nowrap flex row).
+ *
+ * Appending to the shortcode's output puts the band INSIDE the same wrapper as
+ * the grid above it, so it inherits that container's width, gutters and
+ * centring exactly — and keeps doing so if the page's layout is ever changed in
+ * Elementor. Nothing about the width is hardcoded here.
+ *
+ * Wrapped in catch (\Throwable): if the band ever throws, the page serves
+ * without it rather than serving a critical error.
  */
-function af_gfs_maybe_render($element) {
-    if (!is_front_page() && !is_home()) return;
-    if (!is_object($element) || !method_exists($element, 'get_id')) return;
-    if ($element->get_id() !== af_gfs_anchor_id()) return;
+add_filter('do_shortcode_tag', function ($output, $tag) {
+    if ($tag !== 'random_product_grid') return $output;
+    if (!is_front_page() && !is_home()) return $output;
     static $done = false;
-    if ($done) return;                          // one band, whatever the page does
+    if ($done) return $output;                  // one band per page
     $done = true;
     try {
-        echo af_gfs_render(); // phpcs:ignore WordPress.Security.EscapeOutput -- built escaped above
+        return $output . af_gfs_render();
     } catch (\Throwable $e) {
-        if (defined('WP_DEBUG') && WP_DEBUG) {
-            error_log('af-goldfoil-section: ' . $e->getMessage());
-        }
+        if (defined('WP_DEBUG') && WP_DEBUG) error_log('af-goldfoil-section: ' . $e->getMessage());
+        return $output;
     }
-}
-add_action('elementor/frontend/container/after_render', 'af_gfs_maybe_render', 10, 1);
-add_action('elementor/frontend/after_render', 'af_gfs_maybe_render', 10, 1);
+}, 10, 2);
 
 add_action('wp_head', function () {
     if (!is_front_page() && !is_home()) return; ?>
 <style>
-.af-gfs{width:100%;margin:44px 0 0;}
+.af-gfs{width:100%;margin:52px 0 8px;}
 .af-gfs-head{display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;}
 .af-gfs-title{font-family:Georgia,"Times New Roman",serif;font-weight:bold;font-size:30px;
   line-height:1.3;letter-spacing:.6px;color:#4E423D;margin:0;}
