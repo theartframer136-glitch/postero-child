@@ -2960,8 +2960,21 @@ add_action('wp_footer', function() {
 .af-pim-card {
     flex:0 0 auto;
     margin-right:22px;
-    width:clamp(150px, 21vw, 290px);
-    aspect-ratio:9 / 16;
+    /* MEASURED (headless check, deploy 889): the card was sized by
+       aspect-ratio alone, and a height that comes from aspect-ratio is not a
+       DEFINITE height — so every `height:100%` child resolved to auto and
+       collapsed to its own natural shape. The poster came out 290x163 inside a
+       290x516 card, which is exactly the black band above and below that the
+       owner reported, and the player was doing the same thing.
+       Width was never affected, because a percentage width had a definite
+       width to resolve against: 290px measured, 290px expected.
+       So the card states its height outright. One custom property feeds both
+       dimensions, so they cannot drift apart. */
+    --af-pim-w: clamp(150px, 21vw, 290px);
+    --af-pim-h: calc(var(--af-pim-w) * 16 / 9);
+    width:var(--af-pim-w);
+    height:var(--af-pim-h);
+    aspect-ratio:9 / 16;          /* same shape, kept as the stated intent */
     border-radius:14px;
     overflow:hidden;
     position:relative;
@@ -2995,11 +3008,24 @@ add_action('wp_footer', function() {
 .af-pim-card iframe {
     position:absolute;
     top:50%; left:50%;
-    /* A 16:9 player inside a 9:16 card: scale until the short side covers,
-       which crops the sides rather than letterboxing the top and bottom. */
-    width:177.78%;
-    height:100%;
-    transform:translate(-50%,-50%) scale(1.8);
+    /* A 16:9 player inside a 9:16 card. YouTube letterboxes the video inside
+       whatever frame it is given, and page CSS cannot reach in to stop it — so
+       the frame has to be wide enough that the letterboxed video is already as
+       tall as the card, and the card's own overflow:hidden crops the sides.
+       For a 16:9 video, height = width x 9/16. To make that height equal the
+       card's height, the frame must be (card height x 16/9) wide. The 1.02 is
+       overscan against sub-pixel rounding — without it the fit is exact, and an
+       exact fit shows a hairline of background on some zoom levels.
+       This replaces a 177.78% width with scale(1.8), which was arithmetic
+       aimed at the same goal but landed only 6px clear of the card's height —
+       close enough that rounding put the bands back.
+       Both dimensions are driven by the SAME overscanned height, because the
+       video's rendered height is capped by the frame's height: widening the
+       frame alone buys no vertical margin at all. */
+    --af-pim-over: calc(var(--af-pim-h) * 1.02);
+    width:calc(var(--af-pim-over) * 16 / 9);
+    height:var(--af-pim-over);
+    transform:translate(-50%,-50%);
     transform-origin:center center;
     border:0;
     pointer-events:none;

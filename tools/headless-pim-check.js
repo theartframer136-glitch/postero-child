@@ -77,8 +77,22 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
                  t: Math.round(r.top), l: Math.round(r.left) };
       };
 
-      // Prefer the theme's own cards; fall back to whatever sits under the heading
-      let cards = Array.from(document.querySelectorAll('.af-pim-card'));
+      // Cards that are actually ON SCREEN. The row is a marquee 32 cards long,
+      // so the first four in DOM order sit thousands of pixels off to the left
+      // — and the player is only created for a card the IntersectionObserver
+      // sees, so sampling those reports "no iframe" for a section whose visible
+      // cards are playing perfectly well. Sort by how central each card is.
+      let cards = Array.from(document.querySelectorAll('.af-pim-card'))
+        .filter((c) => {
+          const r = c.getBoundingClientRect();
+          return r.right > 0 && r.left < innerWidth && r.width > 0;
+        })
+        .sort((a, b) => {
+          const ca = Math.abs(a.getBoundingClientRect().left + a.getBoundingClientRect().width / 2 - innerWidth / 2);
+          const cb = Math.abs(b.getBoundingClientRect().left + b.getBoundingClientRect().width / 2 - innerWidth / 2);
+          return ca - cb;
+        });
+      out.onScreenCards = cards.length;
       if (!cards.length && h) {
         let sec = h.closest('section, .e-con, .elementor-section') || h.parentElement;
         for (let hop = 0; sec && hop < 4 && !cards.length; hop++) {
@@ -127,21 +141,30 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     console.log('=== HEADLESS PRODUCTS-IN-MOTION CHECK ===');
     console.log(JSON.stringify(report, null, 2));
 
-    // The verdict names WHICH kind of letterboxing, because the fixes differ
-    const c = report.cards[0];
-    if (!c) {
-      console.log('VERDICT: no cards found — the section did not render');
+    // Every media element on every sampled card has to cover its card. Report
+    // each one, so a pass is a list of measurements rather than one word.
+    let bad = 0, checked = 0;
+    report.cards.forEach((c) => {
+      c.media.forEach((m) => {
+        if (m.display === 'none' || m.box.w === 0 && m.box.h === 0 && m.tag === 'IMG') return;
+        checked++;
+        const coversW = m.box.w >= c.cardBox.w - 1;
+        const coversH = m.box.h >= c.cardBox.h - 1;
+        if (!coversW || !coversH) bad++;
+        console.log(`  card ${c.i} ${m.tag}.${m.cls || '-'}  ${m.box.w}x${m.box.h}`
+          + ` in card ${c.cardBox.w}x${c.cardBox.h}`
+          + `  -> ${coversW && coversH ? 'COVERS' : 'LETTERBOXED'}`
+          + (coversH ? '' : ` (short by ${c.cardBox.h - m.box.h}px)`));
+      });
+    });
+    if (!report.cards.length) {
+      console.log('VERDICT: no cards on screen — the section did not render');
+    } else if (!checked) {
+      console.log('VERDICT: cards found but no media in them yet');
     } else {
-      const m = c.media.find((x) => x.tag === 'VIDEO' || x.tag === 'IFRAME') || c.media[0];
-      if (!m) {
-        console.log('VERDICT: card has no media element');
-      } else if (m.box.h < c.cardBox.h - 4 || m.box.w < c.cardBox.w - 4) {
-        console.log('VERDICT: PAGE letterboxing — the media element is smaller than its card '
-          + `(${m.box.w}x${m.box.h} inside ${c.cardBox.w}x${c.cardBox.h}); CSS on the page fixes it`);
-      } else {
-        console.log('VERDICT: media FILLS the card — any bands are inside the player itself '
-          + '(a 16:9 source in a 9:16 frame), so the fix is scale/crop, not sizing');
-      }
+      console.log(bad
+        ? `VERDICT: ${bad} of ${checked} media element(s) LETTERBOXED — see the short-by figures`
+        : `VERDICT: all ${checked} media element(s) COVER their card`);
     }
     console.log('=== DONE ===');
   } catch (e) {
