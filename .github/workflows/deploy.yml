@@ -1381,6 +1381,18 @@ jobs:
           npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
           NODE_PATH=/tmp/afhead/node_modules node tools/headless-sticky-check.js || true
 
+      # Same technique, different question: the Products In Motion cards show
+      # black above and below the video. Page CSS and the player's own
+      # letterboxing look identical in a screenshot and need opposite fixes, so
+      # this measures the media element against its card and says which.
+      - name: Headless Products-In-Motion check (read-only)
+        if: always()
+        timeout-minutes: 6
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afhead/node_modules node tools/headless-pim-check.js || true
+
       - name: Thin-category cross-sell check (read-only)
         if: always()
         run: |
