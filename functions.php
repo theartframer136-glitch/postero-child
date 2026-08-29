@@ -3039,10 +3039,20 @@ add_action('wp_footer', function() {
        scale(1.8) this replaced: a transform is immune to max-width, so scaling
        was the previous author's way around the same clamp. Lifting the clamp
        is the direct fix, and it keeps the geometry readable. */
-    --af-pim-over: calc(var(--af-pim-h) * 1.02);
+       AND THE TITLE TEXT. YouTube paints its own title bar across the top of
+       the player for the first seconds of playback, and no embed parameter
+       removes it — modestbranding and controls=0 do not touch it. But it is
+       drawn at the top of the FRAME, while the video is centred inside the
+       frame. So make the frame TALLER than the video by a band at each end:
+       the video still covers the card exactly, and the title is drawn in the
+       part of the frame the card crops away. 90px is comfortably more than
+       that bar's height at this player width, and costs nothing — the extra
+       is empty player background that is never visible. */
+    --af-pim-over: calc(var(--af-pim-h) * 1.02);   /* the video's own height */
+    --af-pim-chrome: 90px;                          /* cropped off, top and bottom */
     max-width:none !important;
     width:calc(var(--af-pim-over) * 16 / 9) !important;
-    height:var(--af-pim-over) !important;
+    height:calc(var(--af-pim-over) + var(--af-pim-chrome) * 2) !important;
     transform:translate(-50%,-50%);
     transform-origin:center center;
     border:0;
