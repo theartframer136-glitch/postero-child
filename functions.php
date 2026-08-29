@@ -3052,6 +3052,27 @@ add_action('wp_footer', function() {
     transition:opacity .5s ease;
 }
 .af-pim-card.af-pim-live iframe { opacity:1; }
+/* The site's own copy of the video. None of the iframe geometry is needed: a
+   real <video> honours object-fit, so it covers the 9:16 card directly and
+   crops its own sides. The max-width lift is the same lesson the player and
+   the poster both taught — the theme's image/media reset would otherwise clamp
+   this too. */
+.af-pim-card video.af-pim-video {
+    position:absolute;
+    inset:0;
+    width:100% !important;
+    height:100% !important;
+    max-width:none !important;
+    max-height:none !important;
+    object-fit:cover;
+    object-position:center;
+    border:0;
+    pointer-events:none;
+    z-index:2;
+    opacity:0;
+    transition:opacity .5s ease;
+}
+.af-pim-card.af-pim-live video.af-pim-video { opacity:1; }
 .af-pim-cap {
     position:absolute;
     left:0; right:0; bottom:0;
@@ -3139,18 +3160,32 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
     // the marquee can slide exactly one copy's width and start over without a
     // visible seam.
     $cards_html = '';
+    // The row plays the site's OWN copy of each video when one exists —
+    // uploads/pim/<videoid>.mp4, mirrored there by the deploy. A same-origin
+    // <video> starts in the time of one range request, with no YouTube
+    // negotiation, no spinner and no title text; the owner timed the embeds at
+    // several seconds of black per card, which is exactly that negotiation.
+    // YouTube still owns the lightbox, where the full player belongs. A card
+    // whose mp4 has not been mirrored yet keeps the embed path, so a missing
+    // file costs a slower card, never a dead one.
+    $pim_up   = wp_get_upload_dir();
+    $pim_dirf = trailingslashit($pim_up['basedir']) . 'pim/';
+    $pim_urlf = trailingslashit($pim_up['baseurl']) . 'pim/';
     foreach ($ids as $vid) {
         $vid = esc_attr($vid);
         $thumb_hq  = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
         $thumb_max = "https://img.youtube.com/vi/{$vid}/maxresdefault.jpg";
         $embed     = "https://www.youtube-nocookie.com/embed/{$vid}?autoplay=1&mute=1&loop=1&playlist={$vid}&controls=0&rel=0&playsinline=1&modestbranding=1";
         $cap       = isset($titles[$vid]) ? $titles[$vid] : '';
-        // NOTE: still no <iframe> in the markup. Roughly twenty autoplaying
-        // YouTube players at once made the browser throttle them and left the
-        // row full of black tiles with spinners. The JS below creates a player
-        // only for the cards actually on screen, and caps how many run at once.
+        $mp4       = file_exists($pim_dirf . $vid . '.mp4') ? $pim_urlf . $vid . '.mp4' : '';
+        // NOTE: still no player element in the markup. Roughly twenty
+        // autoplaying players at once made the browser throttle them and left
+        // the row full of black tiles with spinners. The JS below creates a
+        // player only for the cards actually on screen, and caps how many run
+        // at once — the same discipline whichever source the card uses.
         $cards_html .= '
-<div class="af-pim-card" data-vid="' . $vid . '" data-embed="' . esc_attr($embed) . '">
+<div class="af-pim-card" data-vid="' . $vid . '" data-embed="' . esc_attr($embed) . '"'
+  . ($mp4 !== '' ? ' data-mp4="' . esc_attr($mp4) . '"' : '') . '>
   <img class="af-pim-thumb" src="' . $thumb_max . '" onerror="this.src=\'' . $thumb_hq . '\';this.onerror=null" alt="" loading="lazy" decoding="async">'
   . ($cap !== '' ? '<div class="af-pim-cap">' . esc_html($cap) . '</div>' : '') . '
   <div class="af-pim-overlay"></div>
@@ -3267,17 +3302,61 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         var i = live.indexOf(card);
         if (i !== -1) live.splice(i, 1);
         card.classList.remove('af-pim-live');
-        var fr = card.querySelector('iframe');
+        var fr = card.querySelector('iframe, video.af-pim-video');
         // Let the fade finish before the node goes, so a card leaving the row
         // dissolves back to its poster instead of blinking.
-        if (fr) setTimeout(function(){ if (fr.parentNode) fr.parentNode.removeChild(fr); }, 500);
+        if (fr) setTimeout(function(){
+            try { if (fr.pause) { fr.pause(); fr.removeAttribute('src'); fr.load(); } } catch(e){}
+            if (fr.parentNode) fr.parentNode.removeChild(fr);
+        }, 500);
     }
     function start(card){
         if (reduceMotion) return;
-        if (card.querySelector('iframe')) return;
+        if (card.querySelector('iframe, video.af-pim-video')) return;
         if (lb.classList.contains('open')) return;      // the lightbox has the stage
         while (live.length >= MAX_LIVE) stop(live[0]);
         live.push(card);
+
+        // The site's own copy first. Same origin, one range request, no player
+        // chrome — it reveals on the 'playing' event, which lands in a fraction
+        // of the several seconds a YouTube embed spends negotiating (and it
+        // never shows the embed's title text). The embed remains the fallback
+        // for a card whose mp4 has not been mirrored, and for the odd browser
+        // that refuses even a muted autoplay.
+        var mp4 = card.getAttribute('data-mp4');
+        if (mp4) {
+            var v = document.createElement('video');
+            v.className = 'af-pim-video';
+            v.muted = true; v.loop = true; v.playsInline = true;
+            v.setAttribute('muted', '');                 // the property alone does
+            v.setAttribute('playsinline', '');           // not survive some parsers
+            v.preload = 'auto';
+            v.src = mp4;
+            v.addEventListener('playing', function(){ card.classList.add('af-pim-live'); });
+            // Bad file or refused autoplay: back to the embed. The teardown is
+            // synchronous ON PURPOSE — stop()'s fade-out removes the node half
+            // a second later, and start() declines to run while a player node
+            // is still in the card, so the polite path would leave the card a
+            // poster forever instead of falling back.
+            var fellBack = false;
+            function fallback(){
+                if (fellBack) return;
+                fellBack = true;
+                var i = live.indexOf(card);
+                if (i !== -1) live.splice(i, 1);
+                card.classList.remove('af-pim-live');
+                try { v.pause(); } catch(e){}
+                if (v.parentNode) v.parentNode.removeChild(v);
+                card.removeAttribute('data-mp4');
+                start(card);
+            }
+            v.addEventListener('error', fallback);
+            card.insertBefore(v, card.firstChild);
+            var p = v.play();
+            if (p && p.catch) p.catch(fallback);
+            return;
+        }
+
         var fr = document.createElement('iframe');
         fr.src = card.getAttribute('data-embed');
         fr.setAttribute('allow', 'autoplay; encrypted-media');

@@ -227,6 +227,75 @@ jobs:
           fi
           echo "RUN_SUITE=$RUN_SUITE" >> "$GITHUB_ENV"
 
+      # Mirror the Products-In-Motion videos onto the site itself.
+      # The row's cards each paid YouTube's negotiation — seconds of black,
+      # then the embed's title text — before a single frame moved. A card
+      # playing the site's OWN mp4 starts in one range request, so the deploy
+      # keeps uploads/pim/<videoid>.mp4 stocked: it asks the site which videos
+      # the row uses, downloads only the ones not mirrored yet (the channel's
+      # own shorts, a few MB each), and copies them up. The lightbox stays
+      # YouTube. Every failure is per-video and non-fatal — a video that will
+      # not download simply keeps its embed path, so this step can never break
+      # a deploy or the row.
+      - name: Mirror the row's videos onto the site (uploads/pim)
+        if: always()
+        timeout-minutes: 12
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          WEB="~/websites/OPu0sKi4J/public_html"
+
+          echo "Asking the site which videos the row uses..."
+          IDS=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ${WEB} && wp eval 'foreach ((array) get_option(\"af_yt_ids3_lastgood_UC_GX4vXRQrN4GsvSfgmZxYw\") as \$i) echo \$i, PHP_EOL;' --allow-root 2>/dev/null" \
+            | grep -E '^[A-Za-z0-9_-]{11}$' || true)
+          COUNT=$(printf '%s\n' "$IDS" | grep -c . || true)
+          echo "Row uses ${COUNT} video(s)."
+          [ "$COUNT" -gt 0 ] || { echo "Nothing to mirror."; exit 0; }
+
+          echo "What is already mirrored..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "mkdir -p ${WEB}/wp-content/uploads/pim && ls ${WEB}/wp-content/uploads/pim" \
+            > /tmp/pim-have.txt 2>/dev/null || true
+          MISSING=$(printf '%s\n' "$IDS" | while read -r id; do
+            grep -qx "${id}.mp4" /tmp/pim-have.txt || echo "$id"
+          done)
+          NMISS=$(printf '%s\n' "$MISSING" | grep -c . || true)
+          echo "${NMISS} video(s) not mirrored yet."
+          [ "$NMISS" -gt 0 ] || { echo "Mirror is complete."; exit 0; }
+
+          pip install --quiet --disable-pip-version-check yt-dlp || { echo "yt-dlp install failed — skipping."; exit 0; }
+          mkdir -p /tmp/pim
+          GOT=0; TRIED=0
+          # Cap the batch: a first run against a long backlog must not eat the
+          # deploy. Whatever is left is picked up by the next deploys.
+          for id in $MISSING; do
+            [ $TRIED -ge 15 ] && break
+            TRIED=$((TRIED+1))
+            echo "Fetching ${id}..."
+            if yt-dlp --quiet --no-warnings \
+                 -f 'bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/b[height<=720]' \
+                 --merge-output-format mp4 --max-filesize 30M \
+                 -o "/tmp/pim/${id}.mp4" "https://www.youtube.com/watch?v=${id}"; then
+              GOT=$((GOT+1))
+            else
+              echo "  could not fetch ${id} (kept on the embed path)"
+              rm -f "/tmp/pim/${id}.mp4" "/tmp/pim/${id}.mp4.part"
+            fi
+          done
+          echo "Downloaded ${GOT} of ${TRIED} attempted."
+          if [ $GOT -gt 0 ]; then
+            echo "Copying to the site..."
+            scp -P ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+              -i ~/.ssh/id_ed25519 /tmp/pim/*.mp4 \
+              "${USER}@${HOST}:${WEB}/wp-content/uploads/pim/" \
+              && echo "Mirrored." || echo "Copy failed — the row keeps its embeds."
+            ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" "ls -la ${WEB}/wp-content/uploads/pim | tail -20" || true
+          fi
+
       - name: Point the Gold Foiled & UV importer at a source
         if: inputs.goldfoil_source != ''
         env:
