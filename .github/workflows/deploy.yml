@@ -279,7 +279,15 @@ jobs:
           echo "${NMISS} video(s) not mirrored yet."
           [ "$NMISS" -gt 0 ] || { echo "Mirror is complete."; exit 0; }
 
-          pip install --quiet --disable-pip-version-check yt-dlp || { echo "yt-dlp install failed — skipping."; exit 0; }
+          # The standalone binary, not pip. Current Ubuntu runners refuse a
+          # plain `pip install` with "externally-managed-environment" and fail
+          # in about a second — which is exactly why this step kept finishing
+          # in 24 seconds looking like a success while downloading nothing.
+          YTDLP=/tmp/yt-dlp
+          curl -sSL --retry 3 -o "$YTDLP" \
+            https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
+            && chmod +x "$YTDLP" || { echo "yt-dlp download failed — skipping."; exit 0; }
+          "$YTDLP" --version || { echo "yt-dlp will not run — skipping."; exit 0; }
           mkdir -p /tmp/pim
           GOT=0; TRIED=0
           # Cap the batch: a first run against a long backlog must not eat the
@@ -288,7 +296,7 @@ jobs:
             [ $TRIED -ge 15 ] && break
             TRIED=$((TRIED+1))
             echo "Fetching ${id}..."
-            if yt-dlp --quiet --no-warnings \
+            if "$YTDLP" --quiet --no-warnings \
                  -f 'bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/b[height<=720]' \
                  --merge-output-format mp4 --max-filesize 30M \
                  -o "/tmp/pim/${id}.mp4" "https://www.youtube.com/watch?v=${id}"; then
@@ -1862,4 +1870,22 @@ jobs:
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-ticker-live.php --allow-root 2>&1" \
+            || true
+
+      # Printed LAST on purpose. The mapping step runs early, and this
+      # pipeline's log is long enough that the Actions API returns only the
+      # tail — so its output has been unreadable three deploys running. This
+      # says, in one place at the end, how many cards actually play from the
+      # site.
+      - name: Products In Motion — how many cards are local (read-only)
+        if: always()
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/pim-status.php --allow-root 2>&1" \
             || true

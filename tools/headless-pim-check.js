@@ -48,6 +48,19 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       throw new Error('page kept navigating during measurement');
     };
 
+    // A blank document reads exactly like a broken section — deploy 895
+    // reported "the section did not render" with ZERO iframes anywhere on a
+    // page the server was serving at 928KB, which is impossible for a page
+    // that loaded. So: if nothing at all is there, load once more before
+    // believing it.
+    const bodyLen = async () => evalRetry(() => document.body ? document.body.innerHTML.length : 0);
+    if ((await bodyLen()) < 5000) {
+      console.log('(page came back essentially empty — reloading once)');
+      await page.goto(URL + (URL.includes('?') ? '&' : '?') + 'afpim=' + Date.now(),
+        { waitUntil: 'networkidle2', timeout: 120000 }).catch(() => {});
+      await sleep(4000);
+    }
+
     // scroll the section into view so lazy players actually start
     await evalRetry(() => {
       const heads = Array.from(document.querySelectorAll('h1,h2,h3,h4,.elementor-heading-title'));
