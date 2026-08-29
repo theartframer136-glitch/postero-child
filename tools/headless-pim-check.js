@@ -121,6 +121,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
             box: box(m),
             width: ms.width, height: ms.height,
             objectFit: ms.objectFit,
+            maxWidth: ms.maxWidth,
+            maxHeight: ms.maxHeight,
             position: ms.position,
             transform: ms.transform === 'none' ? '-' : ms.transform.slice(0, 46),
             opacity: ms.opacity,
@@ -148,13 +150,26 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       c.media.forEach((m) => {
         if (m.display === 'none' || m.box.w === 0 && m.box.h === 0 && m.tag === 'IMG') return;
         checked++;
-        const coversW = m.box.w >= c.cardBox.w - 1;
-        const coversH = m.box.h >= c.cardBox.h - 1;
+
+        // For an IFRAME the element's own box is the wrong thing to judge.
+        // YouTube fits a 16:9 video inside it, so a 290x526 frame — which
+        // "covers" a 290x516 card by any box test — still paints its video
+        // only 163px tall, and that is the band the owner sees. Measure the
+        // fitted video instead. (Deploy 890 passed the box test and was still
+        // visibly wrong; this is that lesson.)
+        let vw = m.box.w, vh = m.box.h, note = '';
+        if (m.tag === 'IFRAME') {
+          vh = Math.min(m.box.h, Math.round(m.box.w * 9 / 16));
+          vw = Math.min(m.box.w, Math.round(m.box.h * 16 / 9));
+          note = `  [frame ${m.box.w}x${m.box.h}, max-width ${m.maxWidth}]`;
+        }
+        const coversW = vw >= c.cardBox.w - 1;
+        const coversH = vh >= c.cardBox.h - 1;
         if (!coversW || !coversH) bad++;
-        console.log(`  card ${c.i} ${m.tag}.${m.cls || '-'}  ${m.box.w}x${m.box.h}`
+        console.log(`  card ${c.i} ${m.tag}.${m.cls || '-'}  ${vw}x${vh}`
           + ` in card ${c.cardBox.w}x${c.cardBox.h}`
           + `  -> ${coversW && coversH ? 'COVERS' : 'LETTERBOXED'}`
-          + (coversH ? '' : ` (short by ${c.cardBox.h - m.box.h}px)`));
+          + (coversH ? '' : ` (short by ${c.cardBox.h - vh}px)`) + note);
       });
     });
     if (!report.cards.length) {

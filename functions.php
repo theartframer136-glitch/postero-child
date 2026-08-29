@@ -3000,7 +3000,16 @@ add_action('wp_footer', function() {
 .af-pim-thumb {
     position:absolute;
     inset:0;
-    width:100%; height:100%;
+    /* !important, and it is earned. Measured (deploy 890): with the card's
+       height now definite at 516px, this image STILL came out 290x163 — which
+       is its own 1280x720 shape, not 100% of anything. Something outside this
+       stylesheet is forcing the height, and the near-universal culprit is a
+       theme's `img { max-width:100%; height:auto }` reset. That is a sensible
+       rule for content images and a wrong one for a deliberately-cropped
+       cover, so it is overridden here and nowhere else. */
+    width:100% !important;
+    height:100% !important;
+    max-width:none !important;
     object-fit:cover;
     object-position:center;
     z-index:1;
@@ -3021,10 +3030,19 @@ add_action('wp_footer', function() {
        close enough that rounding put the bands back.
        Both dimensions are driven by the SAME overscanned height, because the
        video's rendered height is capped by the frame's height: widening the
-       frame alone buys no vertical margin at all. */
+       frame alone buys no vertical margin at all.
+       max-width MATTERS HERE. Measured (deploy 890): the height took (525.9px,
+       an absolute length) but the width was asked for at 935px and came out at
+       290px — exactly 100% of the card. That is a `max-width:100%` reset
+       clamping it, and a 290-wide frame renders its 16:9 video 163px tall
+       however tall the frame is, which is the band. It also explains the
+       scale(1.8) this replaced: a transform is immune to max-width, so scaling
+       was the previous author's way around the same clamp. Lifting the clamp
+       is the direct fix, and it keeps the geometry readable. */
     --af-pim-over: calc(var(--af-pim-h) * 1.02);
-    width:calc(var(--af-pim-over) * 16 / 9);
-    height:var(--af-pim-over);
+    max-width:none !important;
+    width:calc(var(--af-pim-over) * 16 / 9) !important;
+    height:var(--af-pim-over) !important;
     transform:translate(-50%,-50%);
     transform-origin:center center;
     border:0;
