@@ -248,9 +248,21 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           WEB="~/websites/OPu0sKi4J/public_html"
 
+          # Map every card that can be local, and report it. This also matches
+          # reels ALREADY in the Media Library, so cards can go local with
+          # nothing downloaded at all.
+          echo "Mapping local video sources..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ${WEB} && wp eval-file wp-content/themes/postero-child/tools/pim-local-video.php --allow-root 2>&1" \
+            || true
+
+          # Which videos the row uses. Through a FILE, not an inline wp eval:
+          # the previous version quoted PHP through YAML, bash, ssh and a remote
+          # shell, and the nesting mangled it — the step found zero ids and
+          # exited in 23 seconds looking like a success.
           echo "Asking the site which videos the row uses..."
           IDS=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ${WEB} && wp eval 'foreach ((array) get_option(\"af_yt_ids3_lastgood_UC_GX4vXRQrN4GsvSfgmZxYw\") as \$i) echo \$i, PHP_EOL;' --allow-root 2>/dev/null" \
+            "cd ${WEB} && wp eval-file wp-content/themes/postero-child/tools/pim-print-ids.php --allow-root 2>/dev/null" \
             | grep -E '^[A-Za-z0-9_-]{11}$' || true)
           COUNT=$(printf '%s\n' "$IDS" | grep -c . || true)
           echo "Row uses ${COUNT} video(s)."
@@ -294,6 +306,11 @@ jobs:
               "${USER}@${HOST}:${WEB}/wp-content/uploads/pim/" \
               && echo "Mirrored." || echo "Copy failed — the row keeps its embeds."
             ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" "ls -la ${WEB}/wp-content/uploads/pim | tail -20" || true
+            # Re-map now that new files exist, so this deploy's row uses them
+            # rather than waiting for the next one.
+            ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+              "cd ${WEB} && wp eval-file wp-content/themes/postero-child/tools/pim-local-video.php --allow-root 2>&1 | tail -12" \
+              || true
           fi
 
       - name: Point the Gold Foiled & UV importer at a source

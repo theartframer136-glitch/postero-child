@@ -3171,13 +3171,19 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
     $pim_up   = wp_get_upload_dir();
     $pim_dirf = trailingslashit($pim_up['basedir']) . 'pim/';
     $pim_urlf = trailingslashit($pim_up['baseurl']) . 'pim/';
+    // tools/pim-local-video.php also matches videos ALREADY in the Media
+    // Library to the row's videos by title, so a reel the studio has uploaded
+    // itself serves its card without anything being downloaded at all.
+    $pim_local = get_option('af_pim_local');
+    if (!is_array($pim_local)) $pim_local = array();
     foreach ($ids as $vid) {
         $vid = esc_attr($vid);
         $thumb_hq  = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
         $thumb_max = "https://img.youtube.com/vi/{$vid}/maxresdefault.jpg";
         $embed     = "https://www.youtube-nocookie.com/embed/{$vid}?autoplay=1&mute=1&loop=1&playlist={$vid}&controls=0&rel=0&playsinline=1&modestbranding=1";
         $cap       = isset($titles[$vid]) ? $titles[$vid] : '';
-        $mp4       = file_exists($pim_dirf . $vid . '.mp4') ? $pim_urlf . $vid . '.mp4' : '';
+        $mp4       = file_exists($pim_dirf . $vid . '.mp4') ? $pim_urlf . $vid . '.mp4'
+                   : (isset($pim_local[$vid]) ? $pim_local[$vid] : '');
         // NOTE: still no player element in the markup. Roughly twenty
         // autoplaying players at once made the browser throttle them and left
         // the row full of black tiles with spinners. The JS below creates a
