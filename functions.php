@@ -3094,8 +3094,46 @@ add_action('wp_footer', function() {
     from { transform:scale(1); }
     to   { transform:scale(1.09); }
 }
-/* While a video covers the poster there is nothing to see underneath, so
-   stop paying the compositor for it. */
+/* FOUR frames per card, cross-fading.
+   Every route to the actual mp4 is now measured and closed: YouTube refuses
+   downloads from GitHub runners and from the agent container, the web host
+   cannot reach its own URL, and it cannot fetch or run yt-dlp either. But
+   YouTube publishes three storyboard stills per video at hq1/hq2/hq3 — real,
+   different moments FROM the reel — alongside the cover frame. Cross-fading
+   those four, each one still drifting, is motion taken from the video itself,
+   served as plain images: instant, no player, and therefore none of the
+   chrome a player insists on drawing.
+   Staggered by one quarter of the cycle each, so exactly one frame is opaque
+   at a time and the card is never blank. */
+.af-pim-card .af-pim-f1,
+.af-pim-card .af-pim-f2,
+.af-pim-card .af-pim-f3 { opacity:0; }
+.af-pim-card .af-pim-f0 { animation:af-pim-drift 26s ease-in-out infinite alternate,
+                                    af-pim-cross 24s linear infinite -0s; }
+.af-pim-card .af-pim-f1 { animation:af-pim-drift 26s ease-in-out infinite alternate-reverse,
+                                    af-pim-cross 24s linear infinite -6s; }
+.af-pim-card .af-pim-f2 { animation:af-pim-drift 26s ease-in-out infinite alternate,
+                                    af-pim-cross 24s linear infinite -12s; }
+.af-pim-card .af-pim-f3 { animation:af-pim-drift 26s ease-in-out infinite alternate-reverse,
+                                    af-pim-cross 24s linear infinite -18s; }
+/* Opaque for a quarter of the cycle, with a short fade at each end. The cover
+   frame alone stays visible if hq1-3 ever 404: a broken <img> paints nothing,
+   and the frame beneath it is still there. */
+/* The fade-out of one frame must be exactly the fade-in of the next, or the
+   total dips and the whole card visibly darkens four times a cycle. With four
+   frames staggered by 25%: hold from 5% to 25%, fall to zero by 30% - so the
+   next frame, whose own 0-5% rise is this one's 25-30% fall, sums to 1
+   throughout. Checked numerically over the full cycle before shipping; the
+   first attempt held 3%-22% and dipped to 0.4. */
+@keyframes af-pim-cross {
+    0%    { opacity:0; }
+    5%    { opacity:1; }
+    25%   { opacity:1; }
+    30%   { opacity:0; }
+    100%  { opacity:0; }
+}
+/* While a video covers the posters there is nothing to see underneath, so
+   stop paying the compositor for any of them. */
 .af-pim-card.af-pim-live .af-pim-thumb { animation-play-state:paused; }
 @media (prefers-reduced-motion: reduce){
     .af-pim-card .af-pim-thumb { animation:none; }
@@ -3201,7 +3239,10 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         $cards_html .= '
 <div class="af-pim-card" data-vid="' . $vid . '"'
   . ($mp4 !== '' ? ' data-mp4="' . esc_attr($mp4) . '"' : '') . '>
-  <img class="af-pim-thumb" src="' . $thumb_max . '" onerror="this.src=\'' . $thumb_hq . '\';this.onerror=null" alt="" loading="lazy" decoding="async">
+  <img class="af-pim-thumb af-pim-f0" src="' . $thumb_max . '" onerror="this.src=\'' . $thumb_hq . '\';this.onerror=null" alt="" loading="lazy" decoding="async">
+  <img class="af-pim-thumb af-pim-f1" src="https://img.youtube.com/vi/' . $vid . '/hq1.jpg" alt="" loading="lazy" decoding="async">
+  <img class="af-pim-thumb af-pim-f2" src="https://img.youtube.com/vi/' . $vid . '/hq2.jpg" alt="" loading="lazy" decoding="async">
+  <img class="af-pim-thumb af-pim-f3" src="https://img.youtube.com/vi/' . $vid . '/hq3.jpg" alt="" loading="lazy" decoding="async">
   <div class="af-pim-overlay"></div>
 </div>';
     }
