@@ -3076,7 +3076,11 @@ add_action('wp_footer', function() {
     object-position:center;
     border:0;
     pointer-events:none;
-    z-index:2;
+    /* Above the moving preview (2), not level with it. Both are absolutely
+       positioned, and the player is inserted as the card's FIRST child - so at
+       equal z-index the preview, being later in the document, would paint over
+       the real video. The mp4 is the better thing whenever it exists. */
+    z-index:3;
     opacity:0;
     transition:opacity .5s ease;
 }
@@ -3131,6 +3135,22 @@ add_action('wp_footer', function() {
     25%   { opacity:1; }
     30%   { opacity:0; }
     100%  { opacity:0; }
+}
+/* The moving preview sits above the stills and hides them. onerror removes
+   the element outright rather than leaving a broken-image glyph, so a card
+   whose animation disappears later falls back to the cross-fade instead of
+   showing a torn icon - which is what one card in the owner's recording was
+   doing. */
+.af-pim-card .af-pim-anim {
+    position:absolute;
+    inset:0;
+    width:100% !important;
+    height:100% !important;
+    max-width:none !important;
+    object-fit:cover;
+    object-position:center;
+    z-index:2;
+    pointer-events:none;
 }
 /* While a video covers the posters there is nothing to see underneath, so
    stop paying the compositor for any of them. */
@@ -3222,6 +3242,13 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
     // itself serves its card without anything being downloaded at all.
     $pim_local = get_option('af_pim_local');
     if (!is_array($pim_local)) $pim_local = array();
+    // A MOVING preview per card, discovered by tools/pim-anim-probe.php: an
+    // animated WebP from YouTube's image CDN. It is an image to the browser,
+    // so it autoplays and loops with no player and therefore none of a
+    // player's chrome. Empty until the probe has run, or for a video that has
+    // no animation - those cards keep the cross-fading stills.
+    $pim_anim = get_option('af_pim_anim');
+    if (!is_array($pim_anim)) $pim_anim = array();
     foreach ($ids as $vid) {
         $vid = esc_attr($vid);
         $thumb_hq  = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
@@ -3242,7 +3269,9 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
   <img class="af-pim-thumb af-pim-f0" src="' . $thumb_max . '" onerror="this.src=\'' . $thumb_hq . '\';this.onerror=null" alt="" loading="lazy" decoding="async">
   <img class="af-pim-thumb af-pim-f1" src="https://img.youtube.com/vi/' . $vid . '/hq1.jpg" alt="" loading="lazy" decoding="async">
   <img class="af-pim-thumb af-pim-f2" src="https://img.youtube.com/vi/' . $vid . '/hq2.jpg" alt="" loading="lazy" decoding="async">
-  <img class="af-pim-thumb af-pim-f3" src="https://img.youtube.com/vi/' . $vid . '/hq3.jpg" alt="" loading="lazy" decoding="async">
+  <img class="af-pim-thumb af-pim-f3" src="https://img.youtube.com/vi/' . $vid . '/hq3.jpg" alt="" loading="lazy" decoding="async">'
+  . (isset($pim_anim[$vid]) ? '
+  <img class="af-pim-anim" src="' . esc_url($pim_anim[$vid]) . '" alt="" loading="lazy" decoding="async" onerror="this.remove()">' : '') . '
   <div class="af-pim-overlay"></div>
 </div>';
     }

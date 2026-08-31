@@ -54,6 +54,19 @@ $nvid = (int) $wpdb->get_var(
       WHERE post_type='attachment' AND post_mime_type LIKE 'video/%'");
 printf("\n  video files in the Media Library: %d\n", $nvid);
 
+// The moving previews are what the row actually shows when no mp4 exists, so
+// their count belongs in the same summary as the mp4 count - otherwise
+// "0 of 16 local" reads as "nothing works" when the row is in fact moving.
+$anim = get_option('af_pim_anim');
+if (!is_array($anim)) $anim = array();
+$anim_hit = 0;
+foreach ($ids as $vid) if (!empty($anim[$vid])) $anim_hit++;
+printf("  cards with a MOVING preview     : %d of %d\n", $anim_hit, count($ids));
+if ($anim_hit) {
+    $k = array_keys($anim);
+    printf("      e.g. %s\n", $anim[$k[0]]);
+}
+
 // The fetch step runs early and its own log sits outside the window the
 // Actions API returns, so it is replayed here where it can actually be read.
 // Three deploys were spent guessing at that step's behaviour; none needed to
