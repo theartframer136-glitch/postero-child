@@ -53,4 +53,19 @@ $nvid = (int) $wpdb->get_var(
     "SELECT COUNT(*) FROM {$wpdb->posts}
       WHERE post_type='attachment' AND post_mime_type LIKE 'video/%'");
 printf("\n  video files in the Media Library: %d\n", $nvid);
+
+// The fetch step runs early and its own log sits outside the window the
+// Actions API returns, so it is replayed here where it can actually be read.
+// Three deploys were spent guessing at that step's behaviour; none needed to
+// be.
+$flog = $dir . 'last-fetch.log';
+echo "\n  --- what the fetch step did (replayed) ---\n";
+if (is_readable($flog)) {
+    $txt = (string) file_get_contents($flog);
+    foreach (array_slice(explode("\n", trim($txt)), -40) as $line) {
+        echo '  ' . $line . "\n";
+    }
+} else {
+    echo "  (no fetch log at {$flog} - the step did not reach its first write)\n";
+}
 echo "=== DONE ===\n";

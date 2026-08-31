@@ -9,40 +9,69 @@
 # whole thing is automatic: the site fetches its own reels on deploy and the
 # owner does nothing at all.
 #
-# If YouTube refuses here too, this exits cleanly saying so, and the row falls
-# back to a chrome-free embed instead - no titles, no buttons, still no work
-# for the owner. Nothing here can break a deploy: every failure is per-video
-# and the script always exits 0.
+# If YouTube refuses here too, this exits cleanly saying so and the row keeps
+# what it shows now: drifting poster stills, with no title, no buttons and no
+# spinner. Not an embed - an embed cannot meet that spec, because a paused or
+# throttled YouTube player draws its own centre buttons whatever page CSS
+# says. Nothing here can break a deploy: every failure is per-video and the
+# script always exits 0.
 #
 # Run on the server:  bash wp-content/themes/postero-child/tools/pim-fetch-on-server.sh
 
 set -u
 WEB="$(cd "$(dirname "$0")/../../../.." && pwd)"     # .../public_html
-THEME="$WEB/wp-content/themes/postero-child"
 DEST="$WEB/wp-content/uploads/pim"
 BIN="$HOME/.af-bin"
 YTDLP="$BIN/yt-dlp"
 MAX_PER_RUN="${MAX_PER_RUN:-16}"
 
-echo "=== FETCH THE ROW'S REELS, ON THE SERVER ==="
-echo "  site : $WEB"
+# Everything this prints also goes to a file the LAST deploy step prints back.
+# This step runs early, and a full deploy's log is long enough that the Actions
+# API only ever returns the tail - so three separate times now a step has
+# failed in a way I could not see, and I reasoned about it instead of reading
+# it. The log lands where it can be read.
 mkdir -p "$DEST" "$BIN" 2>/dev/null
+LOG="$DEST/last-fetch.log"
+# Not `tee` through process substitution: that races the script's own exit and
+# can truncate the very last lines - which are the ones that say what happened.
+# Redirect everything to the file, and copy the finished file to the real
+# stdout on exit, however the script leaves.
+exec 3>&1
+exec > "$LOG" 2>&1
+trap 'cat "$LOG" >&3 2>/dev/null' EXIT
 
-# -- which ids does the row use, and which are still missing ---------------
-IDS="$(cd "$WEB" && wp eval-file "$THEME/tools/pim-print-ids.php" --allow-root 2>/dev/null \
-        | grep -E '^[A-Za-z0-9_-]{11}$')"
+SITE="${SITE:-https://theartframer.us}"
+
+echo "=== FETCH THE ROW'S REELS, ON THE SERVER ==="
+echo "  web   : $WEB"
+echo "  dest  : $DEST"
+echo "  curl  : $(command -v curl 2>/dev/null || echo 'NOT ON PATH')"
+
+# -- which ids still need a local copy -------------------------------------
+# Asked over HTTP, not through wp-cli. The first version ran `wp eval-file`
+# and got "wp: command not found": ssh running a command string picks wp up
+# from the login shell, but `bash script.sh` is a child shell that does not,
+# so the step exited at "no ids" in two seconds looking like a success. The
+# site already answers this question on a public URL - no PATH, no wp-cli, no
+# shell environment to depend on - and the endpoint returns only what is
+# actually missing, so the skip logic comes free.
+RAW="$(curl -sS --max-time 60 "$SITE/?af_pim_ids=missing" 2>&1)"
+echo "  endpoint returned $(printf '%s\n' "$RAW" | wc -l) line(s)"
+printf '%s\n' "$RAW" | head -3 | sed 's/^/    | /'
+IDS="$(printf '%s\n' "$RAW" | tr -d '\r' | grep -E '^[A-Za-z0-9_-]{11}$' || true)"
 TOTAL=$(printf '%s\n' "$IDS" | grep -c . || true)
-echo "  videos in the row: $TOTAL"
-[ "$TOTAL" -gt 0 ] || { echo "  no ids - nothing to do."; echo "=== DONE ==="; exit 0; }
+echo "  reels still needed: $TOTAL"
+[ "$TOTAL" -gt 0 ] || { echo "  nothing missing - every reel is already local."; echo "=== DONE ==="; exit 0; }
 
+# The endpoint already excluded anything local, but a file can appear between
+# its answer and this line, so check the disk too rather than re-downloading.
 MISSING=""
 for id in $IDS; do
     [ -s "$DEST/$id.mp4" ] || MISSING="$MISSING $id"
 done
-NMISS=$(printf '%s\n' $MISSING | grep -c . || true)
-echo "  already local    : $((TOTAL - NMISS))"
-echo "  still to fetch   : $NMISS"
-[ "$NMISS" -gt 0 ] || { echo "  every reel is already on the site."; echo "=== DONE ==="; exit 0; }
+NMISS=$(printf '%s\n' $MISSING | tr ' ' '\n' | grep -c . || true)
+echo "  to fetch this run : $NMISS"
+[ "$NMISS" -gt 0 ] || { echo "  all present on disk already."; echo "=== DONE ==="; exit 0; }
 
 # -- the downloader -------------------------------------------------------
 # yt-dlp_linux is a self-contained build: no python, no pip, no packages to
@@ -61,7 +90,7 @@ if [ "$NEED_DL" = "1" ]; then
 fi
 if ! "$YTDLP" --version >/dev/null 2>&1; then
     echo "  yt-dlp will not run here (shared hosting may forbid it)."
-    echo "  The row keeps its chrome-free embeds. Nothing is broken."
+    echo "  The row keeps its drifting posters. Nothing is broken."
     echo "=== DONE ==="
     exit 0
 fi
@@ -92,8 +121,8 @@ done
 
 echo "  fetched $GOT, failed $FAIL, of $TRIED attempted"
 if [ "$GOT" = "0" ] && [ "$FAIL" -gt 0 ]; then
-    echo "  YouTube refused this address too. The row keeps its chrome-free"
-    echo "  embeds, which need nothing from anyone."
+    echo "  YouTube refused this address too - all three routes now measured."
+    echo "  The row keeps its drifting posters, which need nothing from anyone."
 fi
 chmod 644 "$DEST"/*.mp4 2>/dev/null
 echo "=== DONE ==="
