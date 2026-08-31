@@ -40,24 +40,36 @@ exec 3>&1
 exec > "$LOG" 2>&1
 trap 'cat "$LOG" >&3 2>/dev/null' EXIT
 
-SITE="${SITE:-https://theartframer.us}"
+# Find a PHP binary. Not `wp` (not on PATH in a child shell) and not the
+# site's own URL over curl (the host will not connect back to itself - a
+# 60-second timeout with zero bytes, measured). PHP loading WordPress
+# in-process needs neither.
+PHP=""
+for c in php php8.3 php8.2 php8.1 /usr/bin/php /usr/local/bin/php /opt/alt/php83/usr/bin/php; do
+    if command -v "$c" >/dev/null 2>&1 && "$c" -r 'exit(0);' >/dev/null 2>&1; then PHP="$c"; break; fi
+done
+echo "  php   : ${PHP:-NOT FOUND}"
+if [ -z "$PHP" ]; then
+    echo "  no PHP binary - cannot read the row's ids. Nothing fetched."
+    echo "=== DONE ==="
+    exit 0
+fi
 
-echo "=== FETCH THE ROW'S REELS, ON THE SERVER ==="
-echo "  web   : $WEB"
-echo "  dest  : $DEST"
-echo "  curl  : $(command -v curl 2>/dev/null || echo 'NOT ON PATH')"
-
-# -- which ids still need a local copy -------------------------------------
-# Asked over HTTP, not through wp-cli. The first version ran `wp eval-file`
-# and got "wp: command not found": ssh running a command string picks wp up
-# from the login shell, but `bash script.sh` is a child shell that does not,
-# so the step exited at "no ids" in two seconds looking like a success. The
-# site already answers this question on a public URL - no PATH, no wp-cli, no
-# shell environment to depend on - and the endpoint returns only what is
-# actually missing, so the skip logic comes free.
-RAW="$(curl -sS --max-time 60 "$SITE/?af_pim_ids=missing" 2>&1)"
-echo "  endpoint returned $(printf '%s\n' "$RAW" | wc -l) line(s)"
+# -- which reels still need a local copy -----------------------------------
+IDS_SCRIPT="$WEB/wp-content/themes/postero-child/tools/pim-ids-cli.php"
+RAW="$("$PHP" "$IDS_SCRIPT" missing 2>&1)"
+RC=$?
+echo "  ids script exit: $RC"
 printf '%s\n' "$RAW" | head -3 | sed 's/^/    | /'
+# An empty list means "nothing missing"; a NON-ZERO exit means the question
+# was never answered. The first version could not tell those apart and
+# reported "every reel is already local" after a curl timeout - a failure
+# dressed as success, which is the whole reason this took another deploy.
+if [ "$RC" -ne 0 ]; then
+    echo "  could not read the row's ids - fetching nothing this run."
+    echo "=== DONE ==="
+    exit 0
+fi
 IDS="$(printf '%s\n' "$RAW" | tr -d '\r' | grep -E '^[A-Za-z0-9_-]{11}$' || true)"
 TOTAL=$(printf '%s\n' "$IDS" | grep -c . || true)
 echo "  reels still needed: $TOTAL"
