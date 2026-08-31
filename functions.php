@@ -3080,6 +3080,9 @@ add_action('wp_footer', function() {
     from { transform:scale(1); }
     to   { transform:scale(1.09); }
 }
+/* While a video covers the poster there is nothing to see underneath, so
+   stop paying the compositor for it. */
+.af-pim-card.af-pim-live .af-pim-thumb { animation-play-state:paused; }
 @media (prefers-reduced-motion: reduce){
     .af-pim-card .af-pim-thumb { animation:none; }
 }
