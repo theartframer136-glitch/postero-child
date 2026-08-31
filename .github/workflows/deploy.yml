@@ -235,6 +235,28 @@ jobs:
       # datacenter addresses YouTube or policy refuses — three strikes,
       # measured, not assumed. Files reach the site from the owner's own
       # machine, which is the one address that works.
+      # Fetch the row's reels onto the site, FROM the site.
+      # YouTube refuses downloads from datacenter addresses - measured twice
+      # from GitHub runners and once from the agent container. The one address
+      # never tried is the web host itself, which does not look like CI. If it
+      # is served, the whole thing is automatic and the owner does nothing.
+      # If it is refused there too the script says so and exits 0; the row
+      # keeps its chrome-free posters either way, so this can never break a
+      # deploy.
+      - name: Fetch the row's reels on the server
+        if: always()
+        timeout-minutes: 14
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             bash wp-content/themes/postero-child/tools/pim-fetch-on-server.sh 2>&1" \
+            || true
+
       - name: Map the row's videos to local files
         if: always()
         timeout-minutes: 5
