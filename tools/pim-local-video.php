@@ -77,8 +77,27 @@ function af_pim_lead_match($a, $b) {
     return $n;
 }
 
-/* ── match what is left ───────────────────────────────────────────────── */
+/* ── the exact rule first: the video id IN the filename ───────────────── */
+// This is what the owner's reel-fetch tool uploads — files named
+// <videoid>.mp4 — and an 11-character id inside a filename is that video,
+// full stop. It runs before the title matching because it cannot be wrong,
+// where a title match is merely very unlikely to be.
 $map = $mirrored;
+$byid = 0;
+foreach ($ids as $vid) {
+    if (isset($map[$vid])) continue;
+    foreach ($atts as $a) {
+        $fname = basename(parse_url($a->guid, PHP_URL_PATH));
+        if (strpos($fname, $vid) !== false) {
+            $map[$vid] = wp_get_attachment_url($a->ID);
+            $byid++;
+            printf("  ID    %s -> #%d %s\n", $vid, $a->ID, $fname);
+            break;
+        }
+    }
+}
+
+/* ── match what is left, by title ─────────────────────────────────────── */
 $matched = 0; $unmatched = array();
 foreach ($ids as $vid) {
     if (isset($map[$vid])) continue;
@@ -108,8 +127,9 @@ foreach ($ids as $vid) {
 update_option('af_pim_local', $map, false);
 
 printf("\n  local sources now available: %d of %d\n", count($map), count($ids));
-printf("    from uploads/pim : %d\n", count($mirrored));
-printf("    from the library : %d\n", $matched);
+printf("    from uploads/pim         : %d\n", count($mirrored));
+printf("    by id in the filename    : %d\n", $byid);
+printf("    by title from the library: %d\n", $matched);
 if ($unmatched) {
     printf("  still on the YouTube embed: %d\n", count($unmatched));
     foreach (array_slice($unmatched, 0, 12) as $u) echo "    " . $u . "\n";

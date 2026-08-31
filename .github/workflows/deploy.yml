@@ -237,9 +237,17 @@ jobs:
       # YouTube. Every failure is per-video and non-fatal — a video that will
       # not download simply keeps its embed path, so this step can never break
       # a deploy or the row.
-      - name: Mirror the row's videos onto the site (uploads/pim)
+      # Keep every Products-In-Motion card that CAN be local, local.
+      # This maps reels in the Media Library to the row's videos — by video id
+      # in the filename (what the owner's reel-fetch tool uploads), then by
+      # title. It no longer tries to download from YouTube: that was attempted
+      # from GitHub's runners and from the work container, and both are
+      # datacenter addresses YouTube or policy refuses — three strikes,
+      # measured, not assumed. Files reach the site from the owner's own
+      # machine, which is the one address that works.
+      - name: Map the row's videos to local files
         if: always()
-        timeout-minutes: 12
+        timeout-minutes: 5
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -247,79 +255,9 @@ jobs:
           PORT="${{ secrets.HOSTINGER_PORT }}"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           WEB="~/websites/OPu0sKi4J/public_html"
-
-          # Map every card that can be local, and report it. This also matches
-          # reels ALREADY in the Media Library, so cards can go local with
-          # nothing downloaded at all.
-          echo "Mapping local video sources..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ${WEB} && wp eval-file wp-content/themes/postero-child/tools/pim-local-video.php --allow-root 2>&1" \
             || true
-
-          # Which videos the row uses. Through a FILE, not an inline wp eval:
-          # the previous version quoted PHP through YAML, bash, ssh and a remote
-          # shell, and the nesting mangled it — the step found zero ids and
-          # exited in 23 seconds looking like a success.
-          echo "Asking the site which videos the row uses..."
-          IDS=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ${WEB} && wp eval-file wp-content/themes/postero-child/tools/pim-print-ids.php --allow-root 2>/dev/null" \
-            | grep -E '^[A-Za-z0-9_-]{11}$' || true)
-          COUNT=$(printf '%s\n' "$IDS" | grep -c . || true)
-          echo "Row uses ${COUNT} video(s)."
-          [ "$COUNT" -gt 0 ] || { echo "Nothing to mirror."; exit 0; }
-
-          echo "What is already mirrored..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "mkdir -p ${WEB}/wp-content/uploads/pim && ls ${WEB}/wp-content/uploads/pim" \
-            > /tmp/pim-have.txt 2>/dev/null || true
-          MISSING=$(printf '%s\n' "$IDS" | while read -r id; do
-            grep -qx "${id}.mp4" /tmp/pim-have.txt || echo "$id"
-          done)
-          NMISS=$(printf '%s\n' "$MISSING" | grep -c . || true)
-          echo "${NMISS} video(s) not mirrored yet."
-          [ "$NMISS" -gt 0 ] || { echo "Mirror is complete."; exit 0; }
-
-          # The standalone binary, not pip. Current Ubuntu runners refuse a
-          # plain `pip install` with "externally-managed-environment" and fail
-          # in about a second — which is exactly why this step kept finishing
-          # in 24 seconds looking like a success while downloading nothing.
-          YTDLP=/tmp/yt-dlp
-          curl -sSL --retry 3 -o "$YTDLP" \
-            https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp \
-            && chmod +x "$YTDLP" || { echo "yt-dlp download failed — skipping."; exit 0; }
-          "$YTDLP" --version || { echo "yt-dlp will not run — skipping."; exit 0; }
-          mkdir -p /tmp/pim
-          GOT=0; TRIED=0
-          # Cap the batch: a first run against a long backlog must not eat the
-          # deploy. Whatever is left is picked up by the next deploys.
-          for id in $MISSING; do
-            [ $TRIED -ge 15 ] && break
-            TRIED=$((TRIED+1))
-            echo "Fetching ${id}..."
-            if "$YTDLP" --quiet --no-warnings \
-                 -f 'bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/b[height<=720]' \
-                 --merge-output-format mp4 --max-filesize 30M \
-                 -o "/tmp/pim/${id}.mp4" "https://www.youtube.com/watch?v=${id}"; then
-              GOT=$((GOT+1))
-            else
-              echo "  could not fetch ${id} (kept on the embed path)"
-              rm -f "/tmp/pim/${id}.mp4" "/tmp/pim/${id}.mp4.part"
-            fi
-          done
-          echo "Downloaded ${GOT} of ${TRIED} attempted."
-          if [ $GOT -gt 0 ]; then
-            echo "Copying to the site..."
-            scp -P ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-              -i ~/.ssh/id_ed25519 /tmp/pim/*.mp4 \
-              "${USER}@${HOST}:${WEB}/wp-content/uploads/pim/" \
-              && echo "Mirrored." || echo "Copy failed — the row keeps its embeds."
-            ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" "ls -la ${WEB}/wp-content/uploads/pim | tail -20" || true
-            # Re-map now that new files exist, so this deploy's row uses them
-            # rather than waiting for the next one.
-            ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-              "cd ${WEB} && wp eval-file wp-content/themes/postero-child/tools/pim-local-video.php --allow-root 2>&1 | tail -12" \
-              || true
-          fi
 
       - name: Point the Gold Foiled & UV importer at a source
         if: inputs.goldfoil_source != ''
