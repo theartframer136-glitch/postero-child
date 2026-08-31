@@ -82,13 +82,29 @@ function af_pim_lead_match($a, $b) {
 // <videoid>.mp4 — and an 11-character id inside a filename is that video,
 // full stop. It runs before the title matching because it cannot be wrong,
 // where a title match is merely very unlikely to be.
+// The comparison runs on the SANITIZED form of the id, not the raw one.
+// WordPress puts every upload through sanitize_file_name(), which does
+// trim($name, '.-_') and collapses runs of hyphens — so a video id that
+// begins with '-' or '_', or contains '--', is NOT present verbatim in the
+// stored filename and a literal strpos() would never match it. Comparing
+// both sides after the same normalisation makes the rule hold for every id
+// YouTube can mint, not merely the ones that happen to be alphanumeric.
 $map = $mirrored;
 $byid = 0;
+if (!function_exists('af_pim_fname_key')) {
+    function af_pim_fname_key($s) {
+        $s = strtolower((string) $s);
+        $s = preg_replace('/[^a-z0-9]+/', '', $s);   // ignore every separator
+        return $s;
+    }
+}
 foreach ($ids as $vid) {
     if (isset($map[$vid])) continue;
+    $needle = af_pim_fname_key($vid);
+    if ($needle === '') continue;
     foreach ($atts as $a) {
         $fname = basename(parse_url($a->guid, PHP_URL_PATH));
-        if (strpos($fname, $vid) !== false) {
+        if (strpos(af_pim_fname_key($fname), $needle) !== false) {
             $map[$vid] = wp_get_attachment_url($a->ID);
             $byid++;
             printf("  ID    %s -> #%d %s\n", $vid, $a->ID, $fname);

@@ -2836,9 +2836,23 @@ add_action('init', function () {
     $ids = is_array($ids) ? array_values(array_filter($ids)) : array();
     // NOT sanitize_key: it lowercases, and video ids are case-sensitive.
     // The output rule is the id's own alphabet, nothing else escapes.
-    $ids = array_filter($ids, function ($v) {
+    $ids = array_values(array_filter($ids, function ($v) {
         return is_string($v) && preg_match('/^[A-Za-z0-9_-]{11}$/', $v);
-    });
+    }));
+
+    // ?af_pim_ids=missing lists only the videos with no local copy yet, so the
+    // owner's tool can re-run without downloading and re-uploading the whole
+    // set every time — which would pile up a duplicate attachment per reel.
+    if (isset($_GET['af_pim_ids']) && $_GET['af_pim_ids'] === 'missing') {
+        $have = get_option('af_pim_local');
+        if (!is_array($have)) $have = array();
+        $up  = wp_get_upload_dir();
+        $dir = trailingslashit($up['basedir']) . 'pim/';
+        $ids = array_values(array_filter($ids, function ($v) use ($have, $dir) {
+            return !isset($have[$v]) && !file_exists($dir . $v . '.mp4');
+        }));
+    }
+
     nocache_headers();
     header('Content-Type: text/plain; charset=utf-8');
     echo implode("\n", $ids);
@@ -3303,9 +3317,22 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         if (i !== -1) live.splice(i, 1);
         card.classList.remove('af-pim-live');
         var fr = card.querySelector('video.af-pim-video');
+        if (!fr) return;
+        // Marked BEFORE the timer, because the pause/load below rejects the
+        // element's pending play() promise with AbortError, and the rejection
+        // handler must be able to tell that apart from a genuinely broken
+        // file. Without it an ordinary eviction — the marquee moving a card
+        // out, MAX_LIVE dropping the oldest, the lightbox opening — looked
+        // identical to a media error and struck data-mp4 off the card for the
+        // rest of the page, so a card that HAS its reel went permanently
+        // quiet. That is the exact failure this whole row was meant to end.
+        fr.dataset.afTearingDown = '1';
         // Let the fade finish before the node goes, so a card leaving the row
-        // dissolves back to its poster instead of blinking.
-        if (fr) setTimeout(function(){
+        // dissolves back to its poster instead of blinking. The handle is kept
+        // so a card that comes straight back can cancel its own teardown
+        // instead of being blocked by the node it is about to inherit.
+        card._afPimTeardown = setTimeout(function(){
+            card._afPimTeardown = null;
             try { fr.pause(); fr.removeAttribute('src'); fr.load(); } catch(e){}
             if (fr.parentNode) fr.parentNode.removeChild(fr);
         }, 500);
@@ -3323,8 +3350,29 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         // the YouTube lightbox on click.
         var mp4 = card.getAttribute('data-mp4');
         if (!mp4) return;
-        if (card.querySelector('video.af-pim-video')) return;
         if (lb.classList.contains('open')) return;      // the lightbox has the stage
+
+        // A card can come back inside its own 500ms fade — a scroll bounce, or
+        // the marquee nudging it over the boundary twice. Its old node is
+        // still here; adopt it rather than declining, which used to leave the
+        // card visible, poster-only and outside live[], with no further
+        // observer callback to rescue it until it crossed the margin again.
+        var old = card.querySelector('video.af-pim-video');
+        if (old) {
+            if (card._afPimTeardown) {
+                clearTimeout(card._afPimTeardown);
+                card._afPimTeardown = null;
+                delete old.dataset.afTearingDown;
+                if (live.indexOf(card) === -1) {
+                    while (live.length >= MAX_LIVE) stop(live[0]);
+                    live.push(card);
+                }
+                if (!old.paused) card.classList.add('af-pim-live');
+                else { var rp = old.play(); if (rp && rp.catch) rp.catch(function(){}); }
+            }
+            return;                                     // never two players in one card
+        }
+
         while (live.length >= MAX_LIVE) stop(live[0]);
         live.push(card);
 
@@ -3335,12 +3383,23 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         v.setAttribute('playsinline', '');           // not survive some parsers
         v.preload = 'auto';
         v.src = mp4;
-        v.addEventListener('playing', function(){ card.classList.add('af-pim-live'); });
-        // A bad file or a refused autoplay ends at the poster — never at an
-        // embed. The teardown is synchronous so the dead node cannot block a
-        // later start() after the file is fixed.
+        // Only reveal if this node is still the card's player. A 'playing'
+        // event can land inside a teardown window, and re-adding the class to
+        // a card whose node is about to vanish left it flagged live with no
+        // video — so the NEXT player was born under opacity:1 and popped in
+        // instead of cross-fading.
+        v.addEventListener('playing', function(){
+            if (v.dataset.afTearingDown) return;
+            if (v.parentNode !== card) return;
+            card.classList.add('af-pim-live');
+        });
+
+        // A bad FILE ends at the poster — never at an embed, and never on a
+        // mere interruption. An eviction pauses the element, which rejects the
+        // pending play() with AbortError; treating that as a broken file is
+        // what used to demote a perfectly good card permanently.
         var fell = false;
-        function fallback(){
+        function giveUp(){
             if (fell) return;
             fell = true;
             var i = live.indexOf(card);
@@ -3348,12 +3407,18 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
             card.classList.remove('af-pim-live');
             try { v.pause(); } catch(e){}
             if (v.parentNode) v.parentNode.removeChild(v);
-            card.removeAttribute('data-mp4');
+            card.removeAttribute('data-mp4');       // this file is no good
         }
-        v.addEventListener('error', fallback);
+        v.addEventListener('error', giveUp);
         card.insertBefore(v, card.firstChild);
         var p = v.play();
-        if (p && p.catch) p.catch(fallback);
+        if (p && p.catch) p.catch(function(err){
+            // Interrupted, not broken: leave data-mp4 alone so the card plays
+            // again the next time it comes round.
+            if (v.dataset.afTearingDown) return;
+            if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) return;
+            giveUp();
+        });
     }
 
     // Play what is on screen. The row moves continuously, so this fires as
@@ -3424,6 +3489,18 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         // page's own URL, silently re-downloading the whole page.
         lbFr.src = 'about:blank';
         speed(1);                                // the row eases back into motion
+        // Opening the lightbox stopped every card. The per-card observer only
+        // fires on boundary crossings, so a card already on screen would get
+        // no callback and sit as a still poster until the marquee carried it
+        // out and back — the row looked frozen after every preview. Restart
+        // what is on screen, next frame, once the overlay is really gone.
+        requestAnimationFrame(function(){
+            cards.forEach(function(c){
+                var r = c.getBoundingClientRect();
+                if (r.right > 0 && r.left < window.innerWidth && r.bottom > 0
+                    && r.top < window.innerHeight) start(c);
+            });
+        });
     }
     lbX.onclick = closeLb;
     lb.addEventListener('click', function(e){ if (e.target === lb) closeLb(); });

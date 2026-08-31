@@ -1,26 +1,33 @@
 <#
     Put the "Products In Motion" reels onto The Art Framer itself.
 
+    ASCII ONLY, DELIBERATELY. Windows PowerShell 5.1 decodes a file with no
+    byte-order mark as CP1252, and in CP1252 the three bytes of an em dash end
+    with 0x94 - which IS a double-quote. An em dash inside a double-quoted
+    string therefore TERMINATES that string and the script fails to parse
+    before it runs. So: no dashes but hyphens, no smart quotes, nothing above
+    7-bit anywhere in this file.
+
     Why this exists
     ---------------
     The homepage row used to play YouTube embeds, and YouTube draws its own
     buttons and title text inside the player where the site cannot remove
-    them. The row now plays only videos hosted on the site — clean, instant,
+    them. The row now plays only videos hosted on the site - clean, instant,
     nothing on them but the moving picture. This script supplies those videos.
 
     It has to run on THIS computer for one specific reason: every machine in
     the deploy chain lives in a datacenter, and YouTube refuses video
-    downloads from datacenter addresses (tried from GitHub's servers and from
-    the work container — both blocked). A home connection is the one address
-    that works.
+    downloads from datacenter addresses (tried from GitHub servers twice and
+    from the work container - all blocked). A home connection is the one
+    address that works.
 
     What it does
     ------------
-    1. Asks theartframer.us which videos the homepage row uses.
-    2. Downloads each one from your own YouTube channel (yt-dlp, fetched
-       automatically; ~2-5 MB per reel at 720p).
-    3. Uploads each to the site's Media Library, named by its video id — the
-       site matches them to the row by that id, so nothing depends on titles.
+    1. Asks theartframer.us which row videos still have NO local copy.
+    2. Downloads each from your own YouTube channel (yt-dlp, fetched
+       automatically; a few MB per reel).
+    3. Uploads each to the Media Library named by its video id, which is how
+       the site matches them - nothing depends on titles.
 
     Your password never leaves this machine and is never written to disk. Use
     a WordPress APPLICATION PASSWORD, not your login password (the script
@@ -29,8 +36,8 @@
     How to run it
     -------------
     Double-click  "Put reels on the site.bat"  in this same folder.
-    Safe to re-run: already-downloaded files are reused, and re-uploading a
-    reel only adds a copy the site ignores.
+    Safe to re-run: it asks the site what is still missing, so a second run
+    uploads nothing and creates no duplicates.
 
     Afterwards
     ----------
@@ -40,7 +47,8 @@
 [CmdletBinding()]
 param(
     [string] $Site = 'https://theartframer.us',
-    [string] $User = ''
+    [string] $User = '',
+    [switch] $All          # ignore what the site already has; re-send everything
 )
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
@@ -49,26 +57,29 @@ New-Item -ItemType Directory -Force -Path $work | Out-Null
 
 Write-Host ''
 Write-Host '  Reels -> The Art Framer homepage row' -ForegroundColor Cyan
-Write-Host '  ------------------------------------'
+Write-Host '  -----------------------------------'
 
-# ── 1. which videos does the row use ─────────────────────────────────────
-Write-Host '  Asking the site which videos the row uses...'
+# -- 1. which videos still need a local copy ------------------------------
+$what = if ($All) { '1' } else { 'missing' }
+Write-Host '  Asking the site which reels it still needs...'
 try {
-    $raw = Invoke-RestMethod -Uri "$Site/?af_pim_ids=1" -TimeoutSec 60
+    $raw = Invoke-RestMethod -Uri "$Site/?af_pim_ids=$what" -TimeoutSec 60
 } catch {
-    Write-Host "  Could not reach $Site — $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "  Could not reach $Site - $($_.Exception.Message)" -ForegroundColor Red
     Read-Host '  Press Enter to close'
     exit 1
 }
 $ids = @($raw -split "`n" | ForEach-Object { $_.Trim() } | Where-Object { $_ -match '^[A-Za-z0-9_-]{11}$' })
 if ($ids.Count -eq 0) {
-    Write-Host '  The site returned no video ids. Tell Claude — nothing to do here.' -ForegroundColor Yellow
+    Write-Host ''
+    Write-Host '  Nothing to do - the site already has a local copy of every reel.' -ForegroundColor Green
+    Write-Host '  (Run with -All to send them again anyway.)'
     Read-Host '  Press Enter to close'
-    exit 1
+    exit 0
 }
-Write-Host "  The row uses $($ids.Count) video(s)."
+Write-Host "  The site needs $($ids.Count) reel(s)."
 
-# ── 2. yt-dlp ────────────────────────────────────────────────────────────
+# -- 2. yt-dlp ------------------------------------------------------------
 $ytdlp = Join-Path $work 'yt-dlp.exe'
 if (-not (Test-Path $ytdlp)) {
     Write-Host '  Fetching the downloader (yt-dlp, one time)...'
@@ -76,37 +87,51 @@ if (-not (Test-Path $ytdlp)) {
         Invoke-WebRequest -Uri 'https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp.exe' `
             -OutFile $ytdlp -TimeoutSec 300
     } catch {
-        Write-Host "  Could not fetch yt-dlp — $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "  Could not fetch yt-dlp - $($_.Exception.Message)" -ForegroundColor Red
         Read-Host '  Press Enter to close'
         exit 1
     }
 }
 
-# ── 3. download each reel, named by its id ───────────────────────────────
+# -- 3. download each reel, named by its id -------------------------------
+# Format order matters. YouTube offers a pre-merged progressive stream for
+# almost every video, but only at about 360p; asking for it FIRST means the
+# 720p branch never runs even on a machine that could merge. So: 720p video
+# plus audio first, and the progressive file only as the fallback for a
+# machine with no ffmpeg. yt-dlp bundles ffmpeg detection itself and simply
+# moves to the next branch when it cannot merge.
+$fmt = 'bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/b[height<=720]/b'
 Write-Host ''
-Write-Host '  Downloading your reels (already-downloaded ones are reused)...' -ForegroundColor Cyan
+Write-Host '  Downloading...' -ForegroundColor Cyan
 $have = @(); $miss = @()
 $i = 0
 foreach ($id in $ids) {
     $i++
     $out = Join-Path $work "$id.mp4"
-    if (Test-Path $out) { $have += $out; Write-Host "    kept  $id.mp4" -ForegroundColor DarkGray; continue }
-    Write-Progress -Activity 'Downloading reels' -Status "$i of $($ids.Count) — $id" -PercentComplete ([int](($i/$ids.Count)*100))
-    & $ytdlp --quiet --no-warnings `
-        -f 'b[ext=mp4][height<=720]/bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[height<=720]' `
-        --merge-output-format mp4 --max-filesize 40M `
+    if (Test-Path $out) {
+        $have += $out
+        Write-Host "    have  $id.mp4" -ForegroundColor DarkGray
+        continue
+    }
+    Write-Progress -Activity 'Downloading reels' -Status "$i of $($ids.Count) - $id" -PercentComplete ([int](($i / $ids.Count) * 100))
+    & $ytdlp --quiet --no-warnings -f $fmt --merge-output-format mp4 --max-filesize 40M `
         -o $out "https://www.youtube.com/watch?v=$id" 2>$null
-    if (Test-Path $out) { $have += $out; Write-Host "    ok    $id.mp4" -ForegroundColor DarkGray }
-    else                { $miss += $id;  Write-Host "    FAIL  $id" -ForegroundColor Red }
+    if (Test-Path $out) {
+        $have += $out
+        Write-Host "    ok    $id.mp4" -ForegroundColor DarkGray
+    } else {
+        $miss += $id
+        Write-Host "    FAIL  $id" -ForegroundColor Red
+    }
 }
 Write-Progress -Activity 'Downloading reels' -Completed
-Write-Host "  Downloaded/kept: $($have.Count)    Failed: $($miss.Count)"
+Write-Host "  Ready to upload: $($have.Count)    Could not download: $($miss.Count)"
 if ($have.Count -eq 0) {
     Read-Host '  Nothing to upload. Press Enter to close'
     exit 1
 }
 
-# ── 4. upload to the site ────────────────────────────────────────────────
+# -- 4. upload to the site ------------------------------------------------
 Write-Host ''
 Write-Host '  You need a WordPress APPLICATION PASSWORD (not your login password).' -ForegroundColor Yellow
 Write-Host '  Opening the page where you create one...'
@@ -118,11 +143,11 @@ $secure = Read-Host '  Application password (hidden)' -AsSecureString
 $plain  = [Runtime.InteropServices.Marshal]::PtrToStringAuto(
               [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure))
 $b64    = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes(
-              ("{0}:{1}" -f $User, ($plain -replace '\s',''))))
+              ("{0}:{1}" -f $User, ($plain -replace '\s', ''))))
 $plain  = $null
 
 Write-Host ''
-Write-Host '  Uploading to the site...' -ForegroundColor Cyan
+Write-Host '  Uploading...' -ForegroundColor Cyan
 $ok = 0; $bad = 0
 foreach ($f in $have) {
     $name = Split-Path $f -Leaf
@@ -135,7 +160,7 @@ foreach ($f in $have) {
         Write-Host "    ok   $name" -ForegroundColor DarkGray
     } catch {
         $bad++
-        Write-Host "    FAIL $name — $($_.Exception.Message)" -ForegroundColor Red
+        Write-Host "    FAIL $name - $($_.Exception.Message)" -ForegroundColor Red
     }
 }
 

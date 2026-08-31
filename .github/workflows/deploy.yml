@@ -227,16 +227,6 @@ jobs:
           fi
           echo "RUN_SUITE=$RUN_SUITE" >> "$GITHUB_ENV"
 
-      # Mirror the Products-In-Motion videos onto the site itself.
-      # The row's cards each paid YouTube's negotiation — seconds of black,
-      # then the embed's title text — before a single frame moved. A card
-      # playing the site's OWN mp4 starts in one range request, so the deploy
-      # keeps uploads/pim/<videoid>.mp4 stocked: it asks the site which videos
-      # the row uses, downloads only the ones not mirrored yet (the channel's
-      # own shorts, a few MB each), and copies them up. The lightbox stays
-      # YouTube. Every failure is per-video and non-fatal — a video that will
-      # not download simply keeps its embed path, so this step can never break
-      # a deploy or the row.
       # Keep every Products-In-Motion card that CAN be local, local.
       # This maps reels in the Media Library to the row's videos — by video id
       # in the filename (what the owner's reel-fetch tool uploads), then by
