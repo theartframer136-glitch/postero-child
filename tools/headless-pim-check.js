@@ -156,6 +156,24 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     console.log('=== HEADLESS PRODUCTS-IN-MOTION CHECK ===');
     console.log(JSON.stringify(report, null, 2));
 
+    // Geometry is only half the question: a perfectly-sized frame that never
+    // starts is the black box the owner has been shown three times. The card
+    // only gets af-pim-ytlive when the player itself reports PLAYING, so
+    // counting that class counts cards that are genuinely moving. Sampled
+    // after a further wait, because a cold player needs a few seconds.
+    await sleep(6000);
+    const playing = await evalRetry(() => ({
+      onScreen: Array.from(document.querySelectorAll('.af-pim-card')).filter((c) => {
+        const r = c.getBoundingClientRect();
+        return r.right > 0 && r.left < innerWidth;
+      }).length,
+      frames: document.querySelectorAll('.af-pim-card iframe.af-pim-yt').length,
+      live: document.querySelectorAll('.af-pim-card.af-pim-ytlive').length
+          + document.querySelectorAll('.af-pim-card.af-pim-live').length,
+    }));
+    console.log(`  ACTUALLY PLAYING: ${playing.live} card(s) reported PLAYING,`
+      + ` from ${playing.frames} player(s) built, ${playing.onScreen} card(s) on screen`);
+
     // Every media element on every sampled card has to cover its card. Report
     // each one, so a pass is a list of measurements rather than one word.
     let bad = 0, checked = 0;
@@ -172,9 +190,17 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
         // visibly wrong; this is that lesson.)
         let vw = m.box.w, vh = m.box.h, note = '';
         if (m.tag === 'IFRAME') {
-          vh = Math.min(m.box.h, Math.round(m.box.w * 9 / 16));
-          vw = Math.min(m.box.w, Math.round(m.box.h * 16 / 9));
-          note = `  [frame ${m.box.w}x${m.box.h}, max-width ${m.maxWidth}]`;
+          // Two nestings, not one. YouTube fits its 16:9 PLAYER inside the
+          // frame, and then fits the VIDEO inside that player — and these are
+          // 9:16 reels, so the video is pillarboxed within a letterboxed
+          // player. Measuring only the first nesting is what passed deploy 890
+          // on a visibly broken card; measuring only a 16:9 video would now
+          // pass the deliberately over-wide frame for the same wrong reason.
+          const pw = Math.min(m.box.w, Math.round(m.box.h * 16 / 9));   // player
+          const ph = Math.min(m.box.h, Math.round(m.box.w * 9 / 16));
+          vh = ph;                                  // reel is as tall as player
+          vw = Math.round(ph * 9 / 16);             // and 9/16 as wide
+          note = `  [frame ${m.box.w}x${m.box.h}, player ${pw}x${ph}, max-width ${m.maxWidth}]`;
         }
         const coversW = vw >= c.cardBox.w - 1;
         const coversH = vh >= c.cardBox.h - 1;

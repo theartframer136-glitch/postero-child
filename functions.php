@@ -3080,11 +3080,47 @@ add_action('wp_footer', function() {
        positioned, and the player is inserted as the card's FIRST child - so at
        equal z-index the preview, being later in the document, would paint over
        the real video. The mp4 is the better thing whenever it exists. */
-    z-index:3;
+    z-index:4;
     opacity:0;
     transition:opacity .5s ease;
 }
 .af-pim-card.af-pim-live video.af-pim-video { opacity:1; }
+/* THE REEL ITSELF, PLAYING — for every card that has no local mp4, which is
+   currently all of them.
+   I spent four deploys trying to get the file onto the server (YouTube refuses
+   downloads from CI and from this container, the host cannot curl its own URL
+   or run yt-dlp, and the animated-WebP previews are signature-protected) and
+   shipped drifting stills each time. The embed was ruled out early for drawing
+   its own chrome — that was true of the DEFAULT embed and I never revisited it
+   against the parameters that turn the chrome off.
+   controls=0 removes the bar and the centre cluster; muted autoplay is
+   permitted, so the big play button never appears; the title only draws on
+   hover, and pointer-events:none means this frame is never hovered — the
+   overlay above it takes every pointer event, so a click still opens the
+   lightbox and nothing here is clickable.
+   GEOMETRY. The player is 16:9 and these reels are 9:16, so the video sits
+   pillarboxed inside it: its height is the player's height, its width that
+   times 9/16. To make the VIDEO — not the player — cover a 9:16 card, the
+   player must be as tall as the card and 16/9 as wide as the card is tall,
+   i.e. 256/81 of the card's own width. The bars end up outside the card, where
+   overflow:hidden discards them. Same arithmetic the black bands in fix 3 came
+   from, applied one level further out. */
+.af-pim-card iframe.af-pim-yt {
+    position:absolute;
+    top:0;
+    left:50%;
+    height:100% !important;
+    width:calc(100% * 256 / 81) !important;
+    max-width:none !important;
+    max-height:none !important;
+    transform:translateX(-50%);
+    border:0;
+    pointer-events:none;
+    z-index:3;
+    opacity:0;
+    transition:opacity .6s ease;
+}
+.af-pim-card.af-pim-ytlive iframe.af-pim-yt { opacity:1; }
 /* A card whose reel has not reached the site yet keeps its poster — and the
    poster DRIFTS, a slow alternating zoom, so the card reads as alive rather
    than stalled. Costless: it is one compositor transform, it sits underneath
@@ -3154,14 +3190,17 @@ add_action('wp_footer', function() {
 }
 /* While a video covers the posters there is nothing to see underneath, so
    stop paying the compositor for any of them. */
-.af-pim-card.af-pim-live .af-pim-thumb { animation-play-state:paused; }
+.af-pim-card.af-pim-live .af-pim-thumb,
+.af-pim-card.af-pim-ytlive .af-pim-thumb { animation-play-state:paused; }
 @media (prefers-reduced-motion: reduce){
     .af-pim-card .af-pim-thumb { animation:none; }
 }
 .af-pim-overlay {
     position:absolute;
     inset:0;
-    z-index:4;
+    /* Above every media layer, so the click target is this and never the
+       player underneath it. */
+    z-index:5;
 }
 @media (max-width:768px){
     .af-pim-card  { margin-right:14px; }
@@ -3249,6 +3288,16 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
     // no animation - those cards keep the cross-fading stills.
     $pim_anim = get_option('af_pim_anim');
     if (!is_array($pim_anim)) $pim_anim = array();
+    // The stills were rendering 290x163 inside a 516px-tall card — full width,
+    // intrinsic height — so every card carried a black band above and below the
+    // picture. The stylesheet already says height:100% !important on
+    // .af-pim-thumb, and it was still losing, which means something later in
+    // the cascade carries !important of its own on an img selector. An inline
+    // declaration marked important is the top of the author cascade: nothing in
+    // any stylesheet can outrank it. Carried per element rather than added to
+    // the class, precisely because the class rule is the thing being overruled.
+    $thumb_fit = 'width:100%!important;height:100%!important;max-width:none!important;'
+               . 'max-height:none!important;object-fit:cover!important;object-position:center!important;';
     foreach ($ids as $vid) {
         $vid = esc_attr($vid);
         $thumb_hq  = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
@@ -3256,22 +3305,19 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         $mp4       = file_exists($pim_dirf . $vid . '.mp4') ? $pim_urlf . $vid . '.mp4'
                    : (isset($pim_local[$vid]) ? $pim_local[$vid] : '');
         // The owner's spec for this row (2026-08-31): ONLY the moving picture.
-        // No title text — so the caption is gone, not styled away. No embed
-        // URL either: the row never creates a YouTube player any more (its
-        // in-frame chrome cannot be removed), so carrying the embed address on
-        // every card would only invite some future hand to "fix" a quiet card
-        // by putting the player back. The lightbox builds its own URL from
-        // data-vid. Still no player element in the markup: the JS creates a
-        // <video> only for on-screen cards with a local file, capped.
+        // No title text — so the caption is gone, not styled away. No player
+        // element in the markup either: the JS builds one, only for cards on
+        // screen and never more than a handful at once. Both the card's player
+        // and the lightbox derive their URLs from data-vid.
         $cards_html .= '
 <div class="af-pim-card" data-vid="' . $vid . '"'
   . ($mp4 !== '' ? ' data-mp4="' . esc_attr($mp4) . '"' : '') . '>
-  <img class="af-pim-thumb af-pim-f0" src="' . $thumb_max . '" onerror="this.src=\'' . $thumb_hq . '\';this.onerror=null" alt="" loading="lazy" decoding="async">
-  <img class="af-pim-thumb af-pim-f1" src="https://img.youtube.com/vi/' . $vid . '/hq1.jpg" alt="" loading="lazy" decoding="async">
-  <img class="af-pim-thumb af-pim-f2" src="https://img.youtube.com/vi/' . $vid . '/hq2.jpg" alt="" loading="lazy" decoding="async">
-  <img class="af-pim-thumb af-pim-f3" src="https://img.youtube.com/vi/' . $vid . '/hq3.jpg" alt="" loading="lazy" decoding="async">'
+  <img class="af-pim-thumb af-pim-f0" style="' . $thumb_fit . '" src="' . $thumb_max . '" onerror="this.src=\'' . $thumb_hq . '\';this.onerror=null" alt="" loading="lazy" decoding="async">
+  <img class="af-pim-thumb af-pim-f1" style="' . $thumb_fit . '" src="https://img.youtube.com/vi/' . $vid . '/hq1.jpg" alt="" loading="lazy" decoding="async">
+  <img class="af-pim-thumb af-pim-f2" style="' . $thumb_fit . '" src="https://img.youtube.com/vi/' . $vid . '/hq2.jpg" alt="" loading="lazy" decoding="async">
+  <img class="af-pim-thumb af-pim-f3" style="' . $thumb_fit . '" src="https://img.youtube.com/vi/' . $vid . '/hq3.jpg" alt="" loading="lazy" decoding="async">'
   . (isset($pim_anim[$vid]) ? '
-  <img class="af-pim-anim" src="' . esc_url($pim_anim[$vid]) . '" alt="" loading="lazy" decoding="async" onerror="this.remove()">' : '') . '
+  <img class="af-pim-anim" style="' . $thumb_fit . '" src="' . esc_url($pim_anim[$vid]) . '" alt="" loading="lazy" decoding="async" onerror="this.remove()">' : '') . '
   <div class="af-pim-overlay"></div>
 </div>';
     }
@@ -3386,6 +3432,12 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         var i = live.indexOf(card);
         if (i !== -1) live.splice(i, 1);
         card.classList.remove('af-pim-live');
+        // The YouTube frame has no fade-out node to keep alive: dropping the
+        // element stops the download immediately, which is what an off-screen
+        // card should cost.
+        card.classList.remove('af-pim-ytlive');
+        var yt = card.querySelector('iframe.af-pim-yt');
+        if (yt) { if (yt.parentNode) yt.parentNode.removeChild(yt); }
         var fr = card.querySelector('video.af-pim-video');
         if (!fr) return;
         // Marked BEFORE the timer, because the pause/load below rejects the
@@ -3407,20 +3459,81 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
             if (fr.parentNode) fr.parentNode.removeChild(fr);
         }, 500);
     }
+    // Build the muted, control-less YouTube frame for one card and reveal it
+    // only once it is genuinely playing.
+    //
+    // The reveal is gated on the player's own state, not on a timer, because
+    // the failure I keep shipping is a card that goes black while something
+    // loads. Under opacity:0 the frame is invisible until it reports state 1
+    // (PLAYING) over the JS API, so the worst case is a card that keeps its
+    // cross-fading stills — never a black hole and never a play button.
+    var ytSeq = 0;
+    function startYt(card){
+        if (card.querySelector('iframe.af-pim-yt')) return;
+        var vid = card.getAttribute('data-vid');
+        if (!vid) return;
+        var f = document.createElement('iframe');
+        f.className = 'af-pim-yt';
+        f.setAttribute('allow', 'autoplay; encrypted-media');
+        f.setAttribute('tabindex', '-1');
+        f.setAttribute('aria-hidden', 'true');
+        f.setAttribute('frameborder', '0');
+        f.dataset.afYtId = 'afpim' + (++ytSeq);
+        // loop needs playlist=<same id> to work on a single video; controls=0
+        // takes the bar and the centre cluster; modestbranding, rel=0, fs=0,
+        // disablekb, iv_load_policy=3 remove everything else that can draw.
+        f.src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(vid)
+              + '?autoplay=1&mute=1&loop=1&playlist=' + encodeURIComponent(vid)
+              + '&controls=0&modestbranding=1&rel=0&fs=0&disablekb=1&iv_load_policy=3'
+              + '&playsinline=1&enablejsapi=1&origin=' + encodeURIComponent(location.origin);
+        f.addEventListener('load', function(){
+            // The player only starts reporting after this handshake.
+            try {
+                f.contentWindow.postMessage(
+                    JSON.stringify({ event: 'listening', id: f.dataset.afYtId }), '*');
+            } catch (e) {}
+        });
+        card.insertBefore(f, card.firstChild);
+    }
+    // One listener for the whole row rather than one per frame.
+    window.addEventListener('message', function(ev){
+        if (!/youtube(-nocookie)?\.com$/.test(String(ev.origin).replace(/^https?:\/\/(www\.)?/, ''))) return;
+        var d = ev.data;
+        if (typeof d === 'string') { try { d = JSON.parse(d); } catch (e) { return; } }
+        if (!d || d.event !== 'onStateChange') return;
+        var state = (d.info && typeof d.info === 'object') ? d.info.playerState : d.info;
+        var frames = document.querySelectorAll('#afPimTrack iframe.af-pim-yt');
+        for (var i = 0; i < frames.length; i++) {
+            if (frames[i].contentWindow !== ev.source) continue;
+            var c = frames[i].closest ? frames[i].closest('.af-pim-card') : frames[i].parentNode;
+            if (!c) return;
+            // 1 = playing, 3 = buffering. Only 1 reveals; a buffering frame
+            // stays hidden behind the stills instead of showing a spinner.
+            if (state === 1) c.classList.add('af-pim-ytlive');
+            else if (state !== 3) c.classList.remove('af-pim-ytlive');
+            return;
+        }
+    });
+
     function start(card){
         if (reduceMotion) return;
-        // NO EMBED IN THE ROW, by decision, not by fallback order. YouTube
-        // draws its own chrome — a title bar, and a centre pause with
-        // previous/next for looped embeds — INSIDE the frame, where no page
-        // CSS can reach; the title bar could be cropped away, the centre
-        // cluster cannot. The owner's requirement is a row with nothing on it
-        // but the moving picture, and only a same-origin <video> can promise
-        // that. A card with no local file simply keeps its poster (which the
-        // CSS drifts gently, so the row never looks stalled) and still opens
-        // the YouTube lightbox on click.
+        // Local file first, YouTube frame second. A same-origin <video> is
+        // still the better thing where one exists — no third-party request, no
+        // player at all. But the embed is no longer excluded: the chrome I
+        // ruled it out for belongs to the DEFAULT embed, and controls=0 with
+        // muted autoplay draws none of it. Preferring the file keeps the row
+        // improving on its own the moment reels reach the Media Library.
         var mp4 = card.getAttribute('data-mp4');
-        if (!mp4) return;
         if (lb.classList.contains('open')) return;      // the lightbox has the stage
+        if (!mp4) {
+            // No local copy — play the reel from YouTube, chrome-less. This is
+            // what makes the row actually move; the stills stay underneath as
+            // the fallback for anything that will not play.
+            while (live.length >= MAX_LIVE) stop(live[0]);
+            if (live.indexOf(card) === -1) live.push(card);
+            startYt(card);
+            return;
+        }
 
         // A card can come back inside its own 500ms fade — a scroll bounce, or
         // the marquee nudging it over the boundary twice. Its old node is
