@@ -3538,18 +3538,27 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
                 }), '*');
             } catch (e) {}
         }, 300);
-        // Last resort. If the player never says anything at all — a blocked
-        // API, a browser that will not deliver the messages — an invisible
-        // working video is worse than a visible one, and muted autoplay is
-        // permitted everywhere that matters, so nothing should be hiding
-        // behind it. Only fires while no reply has arrived.
+        // A player that never answers is UNSTEERABLE — the loop rewind cannot
+        // reach it, so it plays to its end and paints YouTube's replay screen.
+        // The first version revealed it anyway after 7s, and the owner's
+        // 11:17 recording has the result: a black card wearing a replay
+        // arrow. A silent player now gets one rebuild (handshakes sometimes
+        // just miss); a second silence means the card keeps its stills, which
+        // show a picture and can never show a button.
         setTimeout(function(){
-            if (f.parentNode && f.dataset.afTalking !== '1') {
-                var c = f.parentNode;
-                if (c.classList) c.classList.add('af-pim-ytlive');
+            if (!f.parentNode || f.dataset.afTalking === '1') return;
+            var c = f.parentNode;
+            if (f.dataset.afRetried !== '1') {
+                if (c && c.removeChild) c.removeChild(f);
+                var again = startYt(c);
+                if (again) again.dataset.afRetried = '1';
+            } else {
+                if (c && c.removeChild) c.removeChild(f);
+                if (c.classList) c.classList.remove('af-pim-ytlive');
             }
         }, 7000);
         card.insertBefore(f, card.firstChild);
+        return f;
     }
     // One listener for the whole row rather than one per frame.
     window.addEventListener('message', function(ev){
