@@ -53,6 +53,11 @@ jobs:
           H_USER: ${{ secrets.HOSTINGER_USERNAME }}
           H_HOST: ${{ secrets.HOSTINGER_HOST }}
           H_PORT: ${{ secrets.HOSTINGER_PORT }}
+          # Optional. YouTube's wall literally asks to sign in, so signed-in
+          # cookies are the one key that opens it. Paste a cookies.txt export
+          # into this repo secret and every run uses it; absent, runs proceed
+          # exactly as before. Never printed, never uploaded anywhere.
+          YT_COOKIES: ${{ secrets.YT_COOKIES }}
         run: |
           set -uo pipefail
           SITE="https://theartframer.us"
@@ -94,6 +99,18 @@ jobs:
           ffmpeg -version >/dev/null 2>&1 && echo "  ffmpeg present (merge available)"
 
           mkdir -p /tmp/reels
+          # Cookies, if the owner has provided them (see env above). This is
+          # what turns "Sign in to confirm you're not a bot" from a wall into
+          # a door: the wall's own remedy is signing in.
+          COOKIE_ARGS=""
+          if [ -n "${YT_COOKIES:-}" ]; then
+            printf '%s\n' "$YT_COOKIES" > /tmp/yt-cookies.txt
+            chmod 600 /tmp/yt-cookies.txt
+            COOKIE_ARGS="--cookies /tmp/yt-cookies.txt"
+            echo "  cookies provided - using them"
+          else
+            echo "  no YT_COOKIES secret - anonymous attempt"
+          fi
           # 720p is plenty for a 290px card; the merge branch first, or the
           # progressive stream is only ~360p.
           FMT='bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/b[height<=720]/b'
@@ -107,7 +124,7 @@ jobs:
             for c in $CLIENTS; do
               EXTRA=""
               [ "$c" != "default" ] && EXTRA="--extractor-args youtube:player_client=$c"
-              if yt-dlp --no-warnings --no-playlist $EXTRA \
+              if yt-dlp --no-warnings --no-playlist $COOKIE_ARGS $EXTRA \
                    -f "$FMT" --merge-output-format mp4 --max-filesize 60M \
                    --socket-timeout 30 --retries 2 --sleep-requests 1 \
                    -o "/tmp/reels/${id}.mp4" \
