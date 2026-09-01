@@ -2855,6 +2855,11 @@ add_action('init', function () {
 
     nocache_headers();
     header('Content-Type: text/plain; charset=utf-8');
+    // The sentinel line lets a caller tell "the endpoint answered and the
+    // list is empty" apart from "something else answered" — a cached page, a
+    // maintenance screen, a challenge. An empty body cannot make that
+    // distinction, and one misread of it cost a deploy once already.
+    echo "#af-pim-ids\n";
     echo implode("\n", $ids);
     exit;
 });

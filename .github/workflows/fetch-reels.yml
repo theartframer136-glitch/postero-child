@@ -64,6 +64,16 @@ jobs:
           # The site's own answer, over public HTTP — the runner can reach it
           # even though the server cannot reach itself.
           IDS_RAW="$(curl -fsS --max-time 60 "${SITE}/?af_pim_ids=missing" || true)"
+          # The sentinel is what separates "the endpoint answered: nothing
+          # missing" from "a cached page or a challenge answered instead" —
+          # misreading that exact difference once reported a total failure as
+          # success and cost a deploy.
+          if ! printf '%s\n' "$IDS_RAW" | head -1 | grep -q '^#af-pim-ids'; then
+            echo "  The ids endpoint did not answer (first bytes follow):"
+            printf '%s\n' "$IDS_RAW" | head -3 | cut -c1-120 | sed 's/^/    | /'
+            echo "SUMMARY: INFRA-FAILED (ids endpoint unreachable — fetched nothing)"
+            exit 1
+          fi
           IDS="$(printf '%s\n' "$IDS_RAW" | tr -d '\r' | grep -E '^[A-Za-z0-9_-]{11}$' || true)"
           N=$(printf '%s\n' "$IDS" | grep -c . || true)
           echo "  reels without a local copy: $N"
