@@ -3583,27 +3583,39 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
             // player keeps reporting the old position for a beat or two.
             var t = d.info && typeof d.info.currentTime === 'number' ? d.info.currentTime : -1;
             var dur = d.info && typeof d.info.duration === 'number' ? d.info.duration : 0;
-            var rewind = function(){
+            // ONE command per loop, and only the commands the moment needs.
+            // The first version sent seekTo AND a redundant playVideo, and
+            // re-sent both every 1.2s while the clip sat inside its end
+            // margin — and the player flashes its centre pause glyph for each
+            // command it receives, so cards near their loop end strobed a
+            // pause symbol at the visitor (owner's recording, 09:55). Cards
+            // that start together end together, which is why several showed
+            // it at once. Now: a wider margin caught on the first report, a
+            // seek alone (playback continues through a seek; playVideo with
+            // it is what the glyph was flashing for), and a debounce long
+            // enough that the seek always lands before it re-arms.
+            var seek = function(withPlay){
                 if (f.dataset.afSeeking === '1') return;
                 f.dataset.afSeeking = '1';
-                setTimeout(function(){ f.dataset.afSeeking = '0'; }, 1200);
+                setTimeout(function(){ f.dataset.afSeeking = '0'; }, 3000);
                 try {
                     f.contentWindow.postMessage(JSON.stringify({
                         event: 'command', func: 'seekTo', args: [0, true],
                         id: f.dataset.afYtId, channel: 'widget'
                     }), '*');
-                    f.contentWindow.postMessage(JSON.stringify({
+                    if (withPlay) f.contentWindow.postMessage(JSON.stringify({
                         event: 'command', func: 'playVideo', args: [],
                         id: f.dataset.afYtId, channel: 'widget'
                     }), '*');
                 } catch (e) {}
             };
-            if (dur > 1 && t >= 0 && t >= dur - 0.35) rewind();
+            if (dur > 1 && t >= 0 && t >= dur - 0.8 && state === 1) seek(false);
             // Belt and braces: if it does reach the end anyway (a short clip, a
             // stalled report), hide the card's player the same instant the end
-            // screen could appear, and restart it. The stills are underneath,
-            // so the card shows a picture, never YouTube's furniture.
-            if (state === 0) { c.classList.remove('af-pim-ytlive'); rewind(); return; }
+            // screen could appear, and restart it — here playVideo is not
+            // redundant, it is the restart. The stills are underneath, so the
+            // card shows a picture, never YouTube's furniture.
+            if (state === 0) { c.classList.remove('af-pim-ytlive'); seek(true); return; }
 
             if (typeof state !== 'number') return;
             // 1 = playing, 3 = buffering. Only 1 reveals; a buffering frame
