@@ -129,8 +129,45 @@ jobs:
           done
           echo "  downloaded ${GOT}, refused ${REFUSED}, of ${N}"
 
+          if [ "$REFUSED" -gt 0 ]; then
+            echo "=== 2b. Alternate frontends, for what YouTube itself refused ==="
+            # First run's measurement: all five yt-dlp player clients now get
+            # "Sign in to confirm you're not a bot" for every video — the wall
+            # asks for account cookies, which nothing unattended has. Invidious
+            # instances are YouTube frontends that fetch with their own tokens
+            # and, with ?local=true, proxy the bytes through themselves — so
+            # the runner only ever talks to the instance. Public instances come
+            # and go; several are tried and each answer is verified to be an
+            # actual MP4 (ftyp box) before it counts, because an instance's
+            # error page saved as .mp4 would poison a card worse than no file.
+            INSTANCES="yewtu.be inv.nadeko.net invidious.nerdvpn.de invidious.f5.si iv.melmac.space"
+            for id in $IDS; do
+              [ -s "/tmp/reels/${id}.mp4" ] && continue
+              for inst in $INSTANCES; do
+                J="$(curl -fsSL --max-time 45 "https://${inst}/api/v1/videos/${id}?local=true" 2>/dev/null || true)"
+                [ -n "$J" ] || continue
+                # Highest progressive stream (video+audio in one file). These
+                # top out around 720p, which is more than the 290px card needs.
+                URL="$(printf '%s' "$J" | jq -r '(.formatStreams // []) | sort_by(.height // 0) | last | .url // empty' 2>/dev/null || true)"
+                [ -n "$URL" ] || continue
+                case "$URL" in /*) URL="https://${inst}${URL}";; esac
+                if curl -fsSL --max-time 420 --retry 1 -o "/tmp/reels/${id}.mp4" "$URL" \
+                   && [ -s "/tmp/reels/${id}.mp4" ] \
+                   && head -c 64 "/tmp/reels/${id}.mp4" | grep -q ftyp; then
+                  GOT=$((GOT+1)); REFUSED=$((REFUSED-1))
+                  echo "  ok   ${id}.mp4  ($(du -h /tmp/reels/${id}.mp4 | cut -f1))  via ${inst}"
+                  break
+                fi
+                rm -f "/tmp/reels/${id}.mp4"
+              done
+              [ -s "/tmp/reels/${id}.mp4" ] || echo "  no   ${id} — no frontend served it either"
+              sleep 1
+            done
+            echo "  after frontends: downloaded ${GOT}, still refused ${REFUSED}, of ${N}"
+          fi
+
           if [ "$GOT" = "0" ]; then
-            echo "SUMMARY: REFUSED (YouTube served nothing to this runner today; row unchanged, retrying on schedule)"
+            echo "SUMMARY: REFUSED (YouTube and every frontend served nothing to this runner today; row unchanged, retrying on schedule)"
             exit 0
           fi
 
