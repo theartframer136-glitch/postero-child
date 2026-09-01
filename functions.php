@@ -3301,8 +3301,17 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         $vid = esc_attr($vid);
         $thumb_hq  = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
         $thumb_max = "https://img.youtube.com/vi/{$vid}/maxresdefault.jpg";
+        // Three sources, best first. The true reel (fetched or matched in the
+        // Media Library) always wins. <id>.anim.mp4 is the site's OWN motion
+        // clip, built by the fetch workflow from the reel's published frames
+        // for every reel YouTube refuses to hand over — a real file, played by
+        // a real <video>, with nothing drawn on it. The ids endpoint's
+        // "missing" list deliberately ignores .anim.mp4, so the hunt for the
+        // original continues daily and replaces the built clip the moment it
+        // lands, under the same card without another deploy.
         $mp4       = file_exists($pim_dirf . $vid . '.mp4') ? $pim_urlf . $vid . '.mp4'
-                   : (isset($pim_local[$vid]) ? $pim_local[$vid] : '');
+                   : (isset($pim_local[$vid]) ? $pim_local[$vid]
+                   : (file_exists($pim_dirf . $vid . '.anim.mp4') ? $pim_urlf . $vid . '.anim.mp4' : ''));
         // The owner's spec for this row (2026-08-31): ONLY the moving picture.
         // No title text — so the caption is gone, not styled away. No player
         // element in the markup either: the JS builds one, only for cards on

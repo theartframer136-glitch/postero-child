@@ -183,8 +183,57 @@ jobs:
             echo "  after frontends: downloaded ${GOT}, still refused ${REFUSED}, of ${N}"
           fi
 
-          if [ "$GOT" = "0" ]; then
-            echo "SUMMARY: REFUSED (YouTube and every frontend served nothing to this runner today; row unchanged, retrying on schedule)"
+          BUILT=0
+          if [ "$REFUSED" -gt 0 ]; then
+            echo "=== 2c. Build the site's own motion clip for what nothing will serve ==="
+            # The reel itself is behind a sign-in wall, but its FRAMES are not:
+            # the cover and the three storyboard stills are public, unsigned,
+            # and served to this runner (measured - the headless check reads
+            # maxresdefault pixel-by-pixel from here). A slow zoom across those
+            # four frames, cross-faded, rendered to a real MP4: the card plays
+            # an actual video file from the site, with nothing drawn on it,
+            # because nothing is embedded. Named <id>.anim.mp4 - the ids
+            # endpoint ignores that suffix on purpose, so the daily hunt for
+            # the original continues and replaces the built clip whenever
+            # YouTube finally serves it.
+            HAVE_ANIM="$(${SSH} "${H_USER}@${H_HOST}" "ls ~/${DEST} 2>/dev/null" </dev/null || true)"
+            for id in $IDS; do
+              [ -s "/tmp/reels/${id}.mp4" ] && continue
+              printf '%s\n' "$HAVE_ANIM" | grep -qx "${id}.anim.mp4" && { echo "  have ${id}.anim.mp4 already"; continue; }
+              T=/tmp/frames-$id; mkdir -p "$T"
+              curl -fsSL --max-time 30 -o "$T/f0.jpg" "https://i.ytimg.com/vi/${id}/maxresdefault.jpg" \
+                || curl -fsSL --max-time 30 -o "$T/f0.jpg" "https://i.ytimg.com/vi/${id}/hqdefault.jpg" || true
+              for k in 1 2 3; do
+                curl -fsSL --max-time 30 -o "$T/f$k.jpg" "https://i.ytimg.com/vi/${id}/hq${k}.jpg" || true
+              done
+              NF=$(ls "$T"/f*.jpg 2>/dev/null | wc -l)
+              if [ "$NF" -lt 4 ]; then echo "  no   ${id} - only $NF frames reachable"; rm -rf "$T"; continue; fi
+              if ffmpeg -hide_banner -v error -y \
+                   -i "$T/f0.jpg" -i "$T/f1.jpg" -i "$T/f2.jpg" -i "$T/f3.jpg" \
+                   -filter_complex "\
+          [0:v]crop=ih*9/16:ih,scale=1440:2560,zoompan=z='min(1.12,1+0.0013*on)':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':d=96:s=720x1280:fps=24,setsar=1[v0];\
+          [1:v]crop=ih*9/16:ih,scale=1440:2560,zoompan=z='max(1.0,1.12-0.0013*on)':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':d=96:s=720x1280:fps=24,setsar=1[v1];\
+          [2:v]crop=ih*9/16:ih,scale=1440:2560,zoompan=z='min(1.12,1+0.0013*on)':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':d=96:s=720x1280:fps=24,setsar=1[v2];\
+          [3:v]crop=ih*9/16:ih,scale=1440:2560,zoompan=z='max(1.0,1.12-0.0013*on)':x='(iw-iw/zoom)/2':y='(ih-ih/zoom)/2':d=96:s=720x1280:fps=24,setsar=1[v3];\
+          [v0][v1]xfade=transition=fade:duration=0.6:offset=3.4[x1];\
+          [x1][v2]xfade=transition=fade:duration=0.6:offset=6.8[x2];\
+          [x2][v3]xfade=transition=fade:duration=0.6:offset=10.2[out]" \
+                   -map "[out]" -c:v libx264 -preset veryfast -crf 26 -pix_fmt yuv420p \
+                   -movflags +faststart -an "/tmp/reels/${id}.anim.mp4" \
+                 && [ -s "/tmp/reels/${id}.anim.mp4" ]; then
+                BUILT=$((BUILT+1))
+                echo "  built ${id}.anim.mp4  ($(du -h /tmp/reels/${id}.anim.mp4 | cut -f1))"
+              else
+                rm -f "/tmp/reels/${id}.anim.mp4"
+                echo "  no   ${id} - ffmpeg failed"
+              fi
+              rm -rf "$T"
+            done
+            echo "  clips built from public frames: ${BUILT}"
+          fi
+
+          if [ "$GOT" = "0" ] && [ "$BUILT" = "0" ]; then
+            echo "SUMMARY: REFUSED (nothing fetched and nothing to build; row unchanged, retrying on schedule)"
             exit 0
           fi
 
@@ -217,4 +266,4 @@ jobs:
           # disk, so counting them on the LIVE homepage is the end-to-end proof.
           CARDS=$(curl -fsS --max-time 90 "${SITE}/?afpim=$(date +%s)" | grep -o 'data-mp4' | wc -l || true)
           echo "  data-mp4 cards on the live homepage: ${CARDS} (each card appears twice: row + seamless copy)"
-          echo "SUMMARY: PLANTED ${GOT} reel(s); ${LEFT} still missing"
+          echo "SUMMARY: PLANTED ${GOT} original reel(s) + ${BUILT} built clip(s); ${LEFT} originals still missing"
