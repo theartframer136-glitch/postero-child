@@ -3093,45 +3093,16 @@ add_action('wp_footer', function() {
     transition:opacity .5s ease;
 }
 .af-pim-card.af-pim-live video.af-pim-video { opacity:1; }
-/* THE REEL ITSELF, PLAYING — for every card that has no local mp4, which is
-   currently all of them.
-   I spent four deploys trying to get the file onto the server (YouTube refuses
-   downloads from CI and from this container, the host cannot curl its own URL
-   or run yt-dlp, and the animated-WebP previews are signature-protected) and
-   shipped drifting stills each time. The embed was ruled out early for drawing
-   its own chrome — that was true of the DEFAULT embed and I never revisited it
-   against the parameters that turn the chrome off.
-   controls=0 removes the bar and the centre cluster; muted autoplay is
-   permitted, so the big play button never appears; the title only draws on
-   hover, and pointer-events:none means this frame is never hovered — the
-   overlay above it takes every pointer event, so a click still opens the
-   lightbox and nothing here is clickable.
-   GEOMETRY. The player is 16:9 and these reels are 9:16, so the video sits
-   pillarboxed inside it: its height is the player's height, its width that
-   times 9/16. To make the VIDEO — not the player — cover a 9:16 card, the
-   player must be as tall as the card and 16/9 as wide as the card is tall,
-   i.e. 256/81 of the card's own width. The bars end up outside the card, where
-   overflow:hidden discards them. Same arithmetic the black bands in fix 3 came
-   from, applied one level further out. */
-.af-pim-card iframe.af-pim-yt {
-    position:absolute;
-    top:0;
-    left:50%;
-    height:100% !important;
-    width:calc(100% * 256 / 81) !important;
-    max-width:none !important;
-    max-height:none !important;
-    /* Same zoom as the stills, and for the same reason: the letterboxing is in
-       the reel itself, so the player reproduces it faithfully. Centred first,
-       then scaled about that centre. */
-    transform:translateX(-50%) scale(var(--af-pim-zoom));
-    border:0;
-    pointer-events:none;
-    z-index:3;
-    opacity:0;
-    transition:opacity .6s ease;
-}
-.af-pim-card.af-pim-ytlive iframe.af-pim-yt { opacity:1; }
+/* NO YOUTUBE PLAYER IN THE CARDS — measured twice now, and final.
+   The embed experiment (deploys 906-913) ended where the original decision
+   said it would: with parameters, sizing, a working API handshake and a
+   page-driven loop all in place, the player STILL drew a persistent centre
+   pause chip on playing cards (owner's recordings, 09:55 and 11:34 — the
+   second one after every steering fix was live). That chip is the player's
+   own UI, inside its frame, where no page CSS reaches and nothing can cover
+   it without covering the video. Only a same-origin <video> can promise a
+   card with nothing on it but the moving picture; until its file exists, the
+   drifting stills below make that same promise. */
 /* A card whose reel has not reached the site yet keeps its poster — and the
    poster DRIFTS, a slow alternating zoom, so the card reads as alive rather
    than stalled. Costless: it is one compositor transform, it sits underneath
@@ -3214,8 +3185,7 @@ add_action('wp_footer', function() {
 }
 /* While a video covers the posters there is nothing to see underneath, so
    stop paying the compositor for any of them. */
-.af-pim-card.af-pim-live .af-pim-thumb,
-.af-pim-card.af-pim-ytlive .af-pim-thumb { animation-play-state:paused; }
+.af-pim-card.af-pim-live .af-pim-thumb { animation-play-state:paused; }
 @media (prefers-reduced-motion: reduce){
     /* No drift — but the zoom is not decoration, it is what hides the bands
        burnt into the source, so it stays. */
@@ -3461,12 +3431,6 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         var i = live.indexOf(card);
         if (i !== -1) live.splice(i, 1);
         card.classList.remove('af-pim-live');
-        // The YouTube frame has no fade-out node to keep alive: dropping the
-        // element stops the download immediately, which is what an off-screen
-        // card should cost.
-        card.classList.remove('af-pim-ytlive');
-        var yt = card.querySelector('iframe.af-pim-yt');
-        if (yt) { if (yt.parentNode) yt.parentNode.removeChild(yt); }
         var fr = card.querySelector('video.af-pim-video');
         if (!fr) return;
         // Marked BEFORE the timer, because the pause/load below rejects the
@@ -3488,172 +3452,23 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
             if (fr.parentNode) fr.parentNode.removeChild(fr);
         }, 500);
     }
-    // Build the muted, control-less YouTube frame for one card and reveal it
-    // only once it is genuinely playing.
-    //
-    // The reveal is gated on the player's own state, not on a timer, because
-    // the failure I keep shipping is a card that goes black while something
-    // loads. Under opacity:0 the frame is invisible until it reports state 1
-    // (PLAYING) over the JS API, so the worst case is a card that keeps its
-    // cross-fading stills — never a black hole and never a play button.
-    var ytSeq = 0;
-    function startYt(card){
-        if (card.querySelector('iframe.af-pim-yt')) return;
-        var vid = card.getAttribute('data-vid');
-        if (!vid) return;
-        var f = document.createElement('iframe');
-        f.className = 'af-pim-yt';
-        f.setAttribute('allow', 'autoplay; encrypted-media');
-        f.setAttribute('tabindex', '-1');
-        f.setAttribute('aria-hidden', 'true');
-        f.setAttribute('frameborder', '0');
-        f.dataset.afYtId = 'afpim' + (++ytSeq);
-        // NO loop=1 AND NO playlist=. That pair is the usual way to loop a
-        // single video, and it is what put previous/next on the card: a
-        // playlist parameter gives the player a playlist, and a player with a
-        // playlist draws playlist controls — plus, when the item ends, an end
-        // screen with a replay button and related-video tiles, which is the
-        // rest of what the owner is seeing. controls=0 never covered those;
-        // they are not the control bar.
-        // The loop is done from here instead: the player reports its position,
-        // and it is sent back to the start just before the end, so the end
-        // state — the only state that draws an end screen — is never reached.
-        f.src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(vid)
-              + '?autoplay=1&mute=1'
-              + '&controls=0&modestbranding=1&rel=0&fs=0&disablekb=1&iv_load_policy=3'
-              + '&playsinline=1&enablejsapi=1&origin=' + encodeURIComponent(location.origin);
-        // The handshake, repeated. Deploy 906 built five players, sized them
-        // perfectly and revealed NONE of them: the single post on 'load' goes
-        // out before the player inside the frame is listening, so the reply
-        // never comes and the card stays hidden behind its stills. Ask every
-        // 300ms until it answers, then stop.
-        var beats = 0;
-        var beat = setInterval(function(){
-            if (!f.parentNode || f.dataset.afTalking === '1' || ++beats > 30) {
-                clearInterval(beat); return;
-            }
-            try {
-                f.contentWindow.postMessage(JSON.stringify({
-                    event: 'listening', id: f.dataset.afYtId, channel: 'widget'
-                }), '*');
-            } catch (e) {}
-        }, 300);
-        // A player that never answers is UNSTEERABLE — the loop rewind cannot
-        // reach it, so it plays to its end and paints YouTube's replay screen.
-        // The first version revealed it anyway after 7s, and the owner's
-        // 11:17 recording has the result: a black card wearing a replay
-        // arrow. A silent player now gets one rebuild (handshakes sometimes
-        // just miss); a second silence means the card keeps its stills, which
-        // show a picture and can never show a button.
-        setTimeout(function(){
-            if (!f.parentNode || f.dataset.afTalking === '1') return;
-            var c = f.parentNode;
-            if (f.dataset.afRetried !== '1') {
-                if (c && c.removeChild) c.removeChild(f);
-                var again = startYt(c);
-                if (again) again.dataset.afRetried = '1';
-            } else {
-                if (c && c.removeChild) c.removeChild(f);
-                if (c.classList) c.classList.remove('af-pim-ytlive');
-            }
-        }, 7000);
-        card.insertBefore(f, card.firstChild);
-        return f;
-    }
-    // One listener for the whole row rather than one per frame.
-    window.addEventListener('message', function(ev){
-        if (!/youtube(-nocookie)?\.com$/.test(String(ev.origin).replace(/^https?:\/\/(www\.)?/, ''))) return;
-        var d = ev.data;
-        if (typeof d === 'string') { try { d = JSON.parse(d); } catch (e) { return; } }
-        // 'infoDelivery' is what the player actually sends; 'onStateChange'
-        // only arrives for callbacks registered through the loaded API. Naming
-        // one of them is the other half of why deploy 906 revealed nothing.
-        if (!d || (d.event !== 'infoDelivery' && d.event !== 'onStateChange')) return;
-        var state = (d.info && typeof d.info === 'object') ? d.info.playerState : d.info;
-        // An infoDelivery carrying only currentTime and no state still proves
-        // the player is talking, and a currentTime that has moved proves it is
-        // playing.
-        if (typeof state !== 'number' && d.info && typeof d.info.currentTime === 'number') {
-            state = d.info.currentTime > 0.15 ? 1 : undefined;
-        }
-        var frames = document.querySelectorAll('#afPimTrack iframe.af-pim-yt');
-        for (var i = 0; i < frames.length; i++) {
-            if (frames[i].contentWindow !== ev.source) continue;
-            var f = frames[i];
-            f.dataset.afTalking = '1';               // stop the handshake beat
-            var c = f.closest ? f.closest('.af-pim-card') : f.parentNode;
-            if (!c) return;
-
-            // THE LOOP, and the reason there is no end screen to hide.
-            // Rewind a third of a second before the end: the player is sent
-            // back to the start while it is still playing, so it never enters
-            // the ended state that draws replay and related tiles. The guard
-            // stops a burst of rewinds while the seek is in flight — the
-            // player keeps reporting the old position for a beat or two.
-            var t = d.info && typeof d.info.currentTime === 'number' ? d.info.currentTime : -1;
-            var dur = d.info && typeof d.info.duration === 'number' ? d.info.duration : 0;
-            // ONE command per loop, and only the commands the moment needs.
-            // The first version sent seekTo AND a redundant playVideo, and
-            // re-sent both every 1.2s while the clip sat inside its end
-            // margin — and the player flashes its centre pause glyph for each
-            // command it receives, so cards near their loop end strobed a
-            // pause symbol at the visitor (owner's recording, 09:55). Cards
-            // that start together end together, which is why several showed
-            // it at once. Now: a wider margin caught on the first report, a
-            // seek alone (playback continues through a seek; playVideo with
-            // it is what the glyph was flashing for), and a debounce long
-            // enough that the seek always lands before it re-arms.
-            var seek = function(withPlay){
-                if (f.dataset.afSeeking === '1') return;
-                f.dataset.afSeeking = '1';
-                setTimeout(function(){ f.dataset.afSeeking = '0'; }, 3000);
-                try {
-                    f.contentWindow.postMessage(JSON.stringify({
-                        event: 'command', func: 'seekTo', args: [0, true],
-                        id: f.dataset.afYtId, channel: 'widget'
-                    }), '*');
-                    if (withPlay) f.contentWindow.postMessage(JSON.stringify({
-                        event: 'command', func: 'playVideo', args: [],
-                        id: f.dataset.afYtId, channel: 'widget'
-                    }), '*');
-                } catch (e) {}
-            };
-            if (dur > 1 && t >= 0 && t >= dur - 0.8 && state === 1) seek(false);
-            // Belt and braces: if it does reach the end anyway (a short clip, a
-            // stalled report), hide the card's player the same instant the end
-            // screen could appear, and restart it — here playVideo is not
-            // redundant, it is the restart. The stills are underneath, so the
-            // card shows a picture, never YouTube's furniture.
-            if (state === 0) { c.classList.remove('af-pim-ytlive'); seek(true); return; }
-
-            if (typeof state !== 'number') return;
-            // 1 = playing, 3 = buffering. Only 1 reveals; a buffering frame
-            // stays hidden behind the stills instead of showing a spinner.
-            if (state === 1) c.classList.add('af-pim-ytlive');
-            else if (state !== 3) c.classList.remove('af-pim-ytlive');
-            return;
-        }
-    });
+    // The YouTube in-card player was removed here for the second and final
+    // time. The full attempt — controls=0, muted autoplay, a working API
+    // handshake, a page-driven loop that never let the ended state draw —
+    // still ended with the player painting a persistent centre pause chip on
+    // playing cards (owner's recordings, 09:55 and 11:34, the second with
+    // every steering fix live). The chip is the player's own UI, inside its
+    // frame, beyond page CSS. Cards therefore play ONLY same-origin files;
+    // without one, the drifting stills stand in. Do not put the embed back.
 
     function start(card){
         if (reduceMotion) return;
-        // Local file first, YouTube frame second. A same-origin <video> is
-        // still the better thing where one exists — no third-party request, no
-        // player at all. But the embed is no longer excluded: the chrome I
-        // ruled it out for belongs to the DEFAULT embed, and controls=0 with
-        // muted autoplay draws none of it. Preferring the file keeps the row
-        // improving on its own the moment reels reach the Media Library.
+        // Same-origin files ONLY — see the note above on the embed's removal.
+        // A card without its file keeps the drifting stills, which cannot
+        // show a button, and upgrades itself the moment the file appears.
         var mp4 = card.getAttribute('data-mp4');
+        if (!mp4) return;
         if (lb.classList.contains('open')) return;      // the lightbox has the stage
-        if (!mp4) {
-            // No local copy — play the reel from YouTube, chrome-less. This is
-            // what makes the row actually move; the stills stay underneath as
-            // the fallback for anything that will not play.
-            while (live.length >= MAX_LIVE) stop(live[0]);
-            if (live.indexOf(card) === -1) live.push(card);
-            startYt(card);
-            return;
-        }
 
         // A card can come back inside its own 500ms fade — a scroll bounce, or
         // the marquee nudging it over the boundary twice. Its old node is
