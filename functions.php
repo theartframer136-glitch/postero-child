@@ -3074,6 +3074,9 @@ add_action('wp_footer', function() {
     max-height:none !important;
     object-fit:cover;
     object-position:center;
+    /* The reels are letterboxed at source, so a local copy carries the same
+       bands as the embed and needs the same zoom past them. */
+    transform:scale(var(--af-pim-zoom));
     border:0;
     pointer-events:none;
     /* Above the moving preview (2), not level with it. Both are absolutely
@@ -3113,7 +3116,10 @@ add_action('wp_footer', function() {
     width:calc(100% * 256 / 81) !important;
     max-width:none !important;
     max-height:none !important;
-    transform:translateX(-50%);
+    /* Same zoom as the stills, and for the same reason: the letterboxing is in
+       the reel itself, so the player reproduces it faithfully. Centred first,
+       then scaled about that centre. */
+    transform:translateX(-50%) scale(var(--af-pim-zoom));
     border:0;
     pointer-events:none;
     z-index:3;
@@ -3130,9 +3136,21 @@ add_action('wp_footer', function() {
     animation:af-pim-drift 16s ease-in-out infinite alternate;
     will-change:transform;
 }
+/* The zoom that cuts the baked-in bands.
+   MEASURED, deploy 906: every image now covers its card exactly (312x556 in a
+   290x516 card, all 20 elements), and the owner's recording STILL shows black
+   above and below the picture. So the bands are not the page's fit — they are
+   painted into the source. The reels were exported letterboxed, and YouTube's
+   thumbnails inherit it, which is why no amount of object-fit removed them:
+   cover-cropping a bordered picture keeps the border.
+   The remedy is the only one available to a page that cannot re-export the
+   video: scale past them. ~12% of the height at each end, so 1.3 clears both
+   with a little to spare, and the drift rides on top of that baseline instead
+   of starting from 1. */
+:root, .af-pim-card { --af-pim-zoom: 1.30; }
 @keyframes af-pim-drift {
-    from { transform:scale(1); }
-    to   { transform:scale(1.09); }
+    from { transform:scale(var(--af-pim-zoom)); }
+    to   { transform:scale(calc(var(--af-pim-zoom) * 1.09)); }
 }
 /* FOUR frames per card, cross-fading.
    Every route to the actual mp4 is now measured and closed: YouTube refuses
@@ -3187,13 +3205,19 @@ add_action('wp_footer', function() {
     object-position:center;
     z-index:2;
     pointer-events:none;
+    transform:scale(var(--af-pim-zoom));
 }
 /* While a video covers the posters there is nothing to see underneath, so
    stop paying the compositor for any of them. */
 .af-pim-card.af-pim-live .af-pim-thumb,
 .af-pim-card.af-pim-ytlive .af-pim-thumb { animation-play-state:paused; }
 @media (prefers-reduced-motion: reduce){
-    .af-pim-card .af-pim-thumb { animation:none; }
+    /* No drift — but the zoom is not decoration, it is what hides the bands
+       burnt into the source, so it stays. */
+    .af-pim-card .af-pim-thumb { animation:none; transform:scale(var(--af-pim-zoom)); }
+    .af-pim-card .af-pim-f1,
+    .af-pim-card .af-pim-f2,
+    .af-pim-card .af-pim-f3 { display:none; }
 }
 .af-pim-overlay {
     position:absolute;
@@ -3486,13 +3510,33 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
               + '?autoplay=1&mute=1&loop=1&playlist=' + encodeURIComponent(vid)
               + '&controls=0&modestbranding=1&rel=0&fs=0&disablekb=1&iv_load_policy=3'
               + '&playsinline=1&enablejsapi=1&origin=' + encodeURIComponent(location.origin);
-        f.addEventListener('load', function(){
-            // The player only starts reporting after this handshake.
+        // The handshake, repeated. Deploy 906 built five players, sized them
+        // perfectly and revealed NONE of them: the single post on 'load' goes
+        // out before the player inside the frame is listening, so the reply
+        // never comes and the card stays hidden behind its stills. Ask every
+        // 300ms until it answers, then stop.
+        var beats = 0;
+        var beat = setInterval(function(){
+            if (!f.parentNode || f.dataset.afTalking === '1' || ++beats > 30) {
+                clearInterval(beat); return;
+            }
             try {
-                f.contentWindow.postMessage(
-                    JSON.stringify({ event: 'listening', id: f.dataset.afYtId }), '*');
+                f.contentWindow.postMessage(JSON.stringify({
+                    event: 'listening', id: f.dataset.afYtId, channel: 'widget'
+                }), '*');
             } catch (e) {}
-        });
+        }, 300);
+        // Last resort. If the player never says anything at all — a blocked
+        // API, a browser that will not deliver the messages — an invisible
+        // working video is worse than a visible one, and muted autoplay is
+        // permitted everywhere that matters, so nothing should be hiding
+        // behind it. Only fires while no reply has arrived.
+        setTimeout(function(){
+            if (f.parentNode && f.dataset.afTalking !== '1') {
+                var c = f.parentNode;
+                if (c.classList) c.classList.add('af-pim-ytlive');
+            }
+        }, 7000);
         card.insertBefore(f, card.firstChild);
     }
     // One listener for the whole row rather than one per frame.
@@ -3500,13 +3544,24 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         if (!/youtube(-nocookie)?\.com$/.test(String(ev.origin).replace(/^https?:\/\/(www\.)?/, ''))) return;
         var d = ev.data;
         if (typeof d === 'string') { try { d = JSON.parse(d); } catch (e) { return; } }
-        if (!d || d.event !== 'onStateChange') return;
+        // 'infoDelivery' is what the player actually sends; 'onStateChange'
+        // only arrives for callbacks registered through the loaded API. Naming
+        // one of them is the other half of why deploy 906 revealed nothing.
+        if (!d || (d.event !== 'infoDelivery' && d.event !== 'onStateChange')) return;
         var state = (d.info && typeof d.info === 'object') ? d.info.playerState : d.info;
+        // An infoDelivery carrying only currentTime and no state still proves
+        // the player is talking, and a currentTime that has moved proves it is
+        // playing.
+        if (typeof state !== 'number' && d.info && typeof d.info.currentTime === 'number') {
+            state = d.info.currentTime > 0.15 ? 1 : undefined;
+        }
         var frames = document.querySelectorAll('#afPimTrack iframe.af-pim-yt');
         for (var i = 0; i < frames.length; i++) {
             if (frames[i].contentWindow !== ev.source) continue;
+            frames[i].dataset.afTalking = '1';       // stop the handshake beat
             var c = frames[i].closest ? frames[i].closest('.af-pim-card') : frames[i].parentNode;
             if (!c) return;
+            if (typeof state !== 'number') return;
             // 1 = playing, 3 = buffering. Only 1 reveals; a buffering frame
             // stays hidden behind the stills instead of showing a spinner.
             if (state === 1) c.classList.add('af-pim-ytlive');

@@ -174,6 +174,48 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     console.log(`  ACTUALLY PLAYING: ${playing.live} card(s) reported PLAYING,`
       + ` from ${playing.frames} player(s) built, ${playing.onScreen} card(s) on screen`);
 
+    // How much black is burnt into the top and bottom of the source picture?
+    // Deploy 906 proved the page's fit is exact and the bands are still there,
+    // which can only mean the reels were exported letterboxed. The card zooms
+    // past them, and that zoom should come from a measurement rather than from
+    // my eye on a screen recording — so read the pixels. ytimg serves CORS
+    // headers, so the canvas is not tainted; if it ever is, this says so
+    // instead of throwing.
+    const bands = await evalRetry(async () => {
+      const img = document.querySelector('.af-pim-card img.af-pim-f0');
+      if (!img) return { error: 'no thumbnail on the page' };
+      const src = img.currentSrc || img.src;
+      const probe = new Image();
+      probe.crossOrigin = 'anonymous';
+      probe.src = src;
+      try { await probe.decode(); } catch (e) { return { error: 'decode: ' + e.message }; }
+      const c = document.createElement('canvas');
+      c.width = probe.naturalWidth; c.height = probe.naturalHeight;
+      c.getContext('2d').drawImage(probe, 0, 0);
+      let px;
+      try { px = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; }
+      catch (e) { return { error: 'canvas tainted: ' + e.message }; }
+      const rowIsBlack = (y) => {
+        let sum = 0, n = 0;
+        for (let x = 0; x < c.width; x += 8) {
+          const i = (y * c.width + x) * 4;
+          sum += px[i] + px[i + 1] + px[i + 2]; n += 3;
+        }
+        return sum / n < 20;
+      };
+      let top = 0, bot = 0;
+      while (top < c.height / 2 && rowIsBlack(top)) top++;
+      while (bot < c.height / 2 && rowIsBlack(c.height - 1 - bot)) bot++;
+      const worst = Math.max(top, bot) / c.height;
+      return {
+        src: src.slice(-40), w: c.width, h: c.height, top, bot,
+        fraction: +worst.toFixed(4),
+        // scale needed so the larger band is pushed outside the visible box
+        zoomNeeded: +(1 / (1 - 2 * worst)).toFixed(3),
+      };
+    });
+    console.log('  SOURCE LETTERBOX: ' + JSON.stringify(bands));
+
     // Every media element on every sampled card has to cover its card. Report
     // each one, so a pass is a list of measurements rather than one word.
     let bad = 0, checked = 0;
