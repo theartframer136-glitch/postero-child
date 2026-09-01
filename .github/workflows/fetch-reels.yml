@@ -116,7 +116,11 @@ jobs:
           FMT='bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/b[height<=720]/b'
           # Differently-gated player clients, tried in turn. What one refuses
           # another often serves.
-          CLIENTS="default android ios tv mweb"
+          # The embedded clients last: they are gated separately, because they
+          # serve videos EMBEDDED on other sites — and these reels are
+          # embeddable (the site's own lightbox plays them). What the watch
+          # page refuses, the embedded player sometimes serves.
+          CLIENTS="default android ios tv mweb web_embedded tv_embedded"
 
           GOT=0; REFUSED=0
           for id in $IDS; do
@@ -157,7 +161,7 @@ jobs:
             # and go; several are tried and each answer is verified to be an
             # actual MP4 (ftyp box) before it counts, because an instance's
             # error page saved as .mp4 would poison a card worse than no file.
-            INSTANCES="yewtu.be inv.nadeko.net invidious.nerdvpn.de invidious.f5.si iv.melmac.space"
+            INSTANCES="yewtu.be inv.nadeko.net invidious.nerdvpn.de invidious.f5.si iv.melmac.space invidious.privacyredirect.com invidious.jing.rocks inv.tux.pizza vid.puffyan.us invidious.projectsegfau.lt"
             for id in $IDS; do
               [ -s "/tmp/reels/${id}.mp4" ] && continue
               for inst in $INSTANCES; do
