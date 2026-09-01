@@ -1,0 +1,156 @@
+name: Fetch Reels
+
+# Put the Products In Motion reels ON the site, so the row plays local files
+# and never a YouTube player — because a YouTube player draws YouTube's own
+# furniture (loading spinner, previous/next, replay) inside its frame where no
+# page CSS reaches, and the owner's requirement is a card with nothing on it
+# but the moving picture. The lightbox keeps using YouTube on click; that part
+# is wanted.
+#
+# WHY THIS RUNS HERE. The routes already measured and closed:
+#   - the web host cannot run yt-dlp, cannot curl its own URL, and its PHP
+#     HTTP layer is refused by YouTube's video CDN;
+#   - the agent's own container has no route to YouTube at all.
+# A GitHub runner CAN reach both YouTube and the host. One earlier attempt
+# from a runner was refused ("confirm you're not a bot") — but that was one
+# attempt with yt-dlp's default web client. yt-dlp ships several player
+# clients precisely because they are gated differently; this tries them in
+# turn per video and says plainly which worked. If every client is refused
+# for every video, the summary says REFUSED and the row simply stays on its
+# current YouTube frames — nothing breaks, and the schedule tries again
+# tomorrow, since these gates come and go.
+#
+# Separate from Deploy Theme so one try costs ~3 minutes, not 17.
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Daily, off-peak. New reels published on the channel get picked up and
+    # planted on the site with nobody doing anything.
+    - cron: '17 3 * * *'
+
+# Shares the deploy's group: both talk SSH to the same throttle-happy host,
+# and overlapping connection sprees are what starved runs 526/527/534.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Fetch the reels and plant them on the site
+        timeout-minutes: 25
+        env:
+          H_USER: ${{ secrets.HOSTINGER_USERNAME }}
+          H_HOST: ${{ secrets.HOSTINGER_HOST }}
+          H_PORT: ${{ secrets.HOSTINGER_PORT }}
+        run: |
+          set -uo pipefail
+          SITE="https://theartframer.us"
+          SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600 -i $HOME/.ssh/id_ed25519"
+          WEB="websites/OPu0sKi4J/public_html"
+          DEST="${WEB}/wp-content/uploads/pim"
+
+          echo "=== 1. Which reels does the row still need? ==="
+          # The site's own answer, over public HTTP — the runner can reach it
+          # even though the server cannot reach itself.
+          IDS_RAW="$(curl -fsS --max-time 60 "${SITE}/?af_pim_ids=missing" || true)"
+          IDS="$(printf '%s\n' "$IDS_RAW" | tr -d '\r' | grep -E '^[A-Za-z0-9_-]{11}$' || true)"
+          N=$(printf '%s\n' "$IDS" | grep -c . || true)
+          echo "  reels without a local copy: $N"
+          if [ "$N" = "0" ]; then
+            echo "  Nothing to fetch — every card already plays from the site."
+            echo "SUMMARY: NOTHING-MISSING"
+            exit 0
+          fi
+
+          echo "=== 2. Downloader ==="
+          # The standalone binary: pip on current runners refuses to install
+          # into the system environment (externally-managed), and that failure
+          # once hid inside a green step.
+          curl -fsSL --retry 3 -o /usr/local/bin/yt-dlp \
+            https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux
+          chmod +x /usr/local/bin/yt-dlp
+          yt-dlp --version || { echo "SUMMARY: INFRA-FAILED (yt-dlp will not run)"; exit 1; }
+          ffmpeg -version >/dev/null 2>&1 && echo "  ffmpeg present (merge available)"
+
+          mkdir -p /tmp/reels
+          # 720p is plenty for a 290px card; the merge branch first, or the
+          # progressive stream is only ~360p.
+          FMT='bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/b[height<=720]/b'
+          # Differently-gated player clients, tried in turn. What one refuses
+          # another often serves.
+          CLIENTS="default android ios tv mweb"
+
+          GOT=0; REFUSED=0
+          for id in $IDS; do
+            OK=""
+            for c in $CLIENTS; do
+              EXTRA=""
+              [ "$c" != "default" ] && EXTRA="--extractor-args youtube:player_client=$c"
+              if yt-dlp --no-warnings --no-playlist $EXTRA \
+                   -f "$FMT" --merge-output-format mp4 --max-filesize 60M \
+                   --socket-timeout 30 --retries 2 --sleep-requests 1 \
+                   -o "/tmp/reels/${id}.mp4" \
+                   "https://www.youtube.com/watch?v=${id}" >/tmp/reels/last.log 2>&1 \
+                 && [ -s "/tmp/reels/${id}.mp4" ]; then
+                OK="$c"; break
+              fi
+              rm -f "/tmp/reels/${id}.mp4" "/tmp/reels/${id}.mp4.part"
+            done
+            if [ -n "$OK" ]; then
+              GOT=$((GOT+1))
+              echo "  ok   ${id}.mp4  ($(du -h /tmp/reels/${id}.mp4 | cut -f1))  via client: ${OK}"
+            else
+              REFUSED=$((REFUSED+1))
+              echo "  no   ${id} — every client refused. Last words:"
+              tail -2 /tmp/reels/last.log | sed 's/^/       | /'
+            fi
+            sleep 2
+          done
+          echo "  downloaded ${GOT}, refused ${REFUSED}, of ${N}"
+
+          if [ "$GOT" = "0" ]; then
+            echo "SUMMARY: REFUSED (YouTube served nothing to this runner today; row unchanged, retrying on schedule)"
+            exit 0
+          fi
+
+          echo "=== 3. Plant them on the site ==="
+          ${SSH} "${H_USER}@${H_HOST}" "mkdir -p ~/${DEST}"
+          scp -p -P "${H_PORT}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+            -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p \
+            -i ~/.ssh/id_ed25519 \
+            /tmp/reels/*.mp4 "${H_USER}@${H_HOST}:~/${DEST}/" \
+            || { echo "SUMMARY: INFRA-FAILED (upload)"; exit 1; }
+          ${SSH} "${H_USER}@${H_HOST}" "chmod 644 ~/${DEST}/*.mp4 2>/dev/null; ls -la ~/${DEST} | tail -20"
+
+          echo "=== 4. Fresh pages, so the cards learn about their files ==="
+          ${SSH} "${H_USER}@${H_HOST}" \
+            "cd ~/${WEB} && \
+             wp litespeed-purge all --allow-root 2>/dev/null || true; \
+             wp cache flush --allow-root 2>/dev/null || true; \
+             echo '  caches cleared'" || echo "  (cache clear skipped)"
+
+          echo "=== 5. Prove it, from outside ==="
+          FIRST=$(ls /tmp/reels/*.mp4 | head -1 | xargs -n1 basename)
+          echo "  HEAD ${SITE}/wp-content/uploads/pim/${FIRST}:"
+          curl -fsSI --max-time 60 "${SITE}/wp-content/uploads/pim/${FIRST}" \
+            | grep -iE '^(HTTP|content-type|content-length)' | sed 's/^/    /' \
+            || { echo "SUMMARY: INFRA-FAILED (uploaded file not reachable over HTTP)"; exit 1; }
+          LEFT_RAW="$(curl -fsS --max-time 60 "${SITE}/?af_pim_ids=missing" || true)"
+          LEFT=$(printf '%s\n' "$LEFT_RAW" | tr -d '\r' | grep -cE '^[A-Za-z0-9_-]{11}$' || true)
+          echo "  reels still missing after this run: ${LEFT} (was ${N})"
+          # And the page itself: cards carry data-mp4 only when the file is on
+          # disk, so counting them on the LIVE homepage is the end-to-end proof.
+          CARDS=$(curl -fsS --max-time 90 "${SITE}/?afpim=$(date +%s)" | grep -o 'data-mp4' | wc -l || true)
+          echo "  data-mp4 cards on the live homepage: ${CARDS} (each card appears twice: row + seamless copy)"
+          echo "SUMMARY: PLANTED ${GOT} reel(s); ${LEFT} still missing"
