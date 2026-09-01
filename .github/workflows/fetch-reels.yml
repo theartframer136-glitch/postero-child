@@ -196,6 +196,17 @@ jobs:
             # endpoint ignores that suffix on purpose, so the daily hunt for
             # the original continues and replaces the built clip whenever
             # YouTube finally serves it.
+            # ubuntu-latest runners do not ship ffmpeg on PATH — measured, run
+            # #3: sixteen "ffmpeg: command not found", zero clips. Installed
+            # here, lazily, only when there is something to build.
+            if ! command -v ffmpeg >/dev/null 2>&1; then
+              echo "  installing ffmpeg..."
+              sudo apt-get update -qq >/dev/null 2>&1 || true
+              sudo apt-get install -y -qq ffmpeg >/dev/null 2>&1 || true
+            fi
+            if ! ffmpeg -version >/dev/null 2>&1; then
+              echo "  ffmpeg unavailable - cannot build clips this run"
+            fi
             HAVE_ANIM="$(${SSH} "${H_USER}@${H_HOST}" "ls ~/${DEST} 2>/dev/null" </dev/null || true)"
             for id in $IDS; do
               [ -s "/tmp/reels/${id}.mp4" ] && continue
