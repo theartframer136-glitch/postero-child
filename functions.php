@@ -3503,11 +3503,18 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         f.setAttribute('aria-hidden', 'true');
         f.setAttribute('frameborder', '0');
         f.dataset.afYtId = 'afpim' + (++ytSeq);
-        // loop needs playlist=<same id> to work on a single video; controls=0
-        // takes the bar and the centre cluster; modestbranding, rel=0, fs=0,
-        // disablekb, iv_load_policy=3 remove everything else that can draw.
+        // NO loop=1 AND NO playlist=. That pair is the usual way to loop a
+        // single video, and it is what put previous/next on the card: a
+        // playlist parameter gives the player a playlist, and a player with a
+        // playlist draws playlist controls — plus, when the item ends, an end
+        // screen with a replay button and related-video tiles, which is the
+        // rest of what the owner is seeing. controls=0 never covered those;
+        // they are not the control bar.
+        // The loop is done from here instead: the player reports its position,
+        // and it is sent back to the start just before the end, so the end
+        // state — the only state that draws an end screen — is never reached.
         f.src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(vid)
-              + '?autoplay=1&mute=1&loop=1&playlist=' + encodeURIComponent(vid)
+              + '?autoplay=1&mute=1'
               + '&controls=0&modestbranding=1&rel=0&fs=0&disablekb=1&iv_load_policy=3'
               + '&playsinline=1&enablejsapi=1&origin=' + encodeURIComponent(location.origin);
         // The handshake, repeated. Deploy 906 built five players, sized them
@@ -3558,9 +3565,41 @@ body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
         var frames = document.querySelectorAll('#afPimTrack iframe.af-pim-yt');
         for (var i = 0; i < frames.length; i++) {
             if (frames[i].contentWindow !== ev.source) continue;
-            frames[i].dataset.afTalking = '1';       // stop the handshake beat
-            var c = frames[i].closest ? frames[i].closest('.af-pim-card') : frames[i].parentNode;
+            var f = frames[i];
+            f.dataset.afTalking = '1';               // stop the handshake beat
+            var c = f.closest ? f.closest('.af-pim-card') : f.parentNode;
             if (!c) return;
+
+            // THE LOOP, and the reason there is no end screen to hide.
+            // Rewind a third of a second before the end: the player is sent
+            // back to the start while it is still playing, so it never enters
+            // the ended state that draws replay and related tiles. The guard
+            // stops a burst of rewinds while the seek is in flight — the
+            // player keeps reporting the old position for a beat or two.
+            var t = d.info && typeof d.info.currentTime === 'number' ? d.info.currentTime : -1;
+            var dur = d.info && typeof d.info.duration === 'number' ? d.info.duration : 0;
+            var rewind = function(){
+                if (f.dataset.afSeeking === '1') return;
+                f.dataset.afSeeking = '1';
+                setTimeout(function(){ f.dataset.afSeeking = '0'; }, 1200);
+                try {
+                    f.contentWindow.postMessage(JSON.stringify({
+                        event: 'command', func: 'seekTo', args: [0, true],
+                        id: f.dataset.afYtId, channel: 'widget'
+                    }), '*');
+                    f.contentWindow.postMessage(JSON.stringify({
+                        event: 'command', func: 'playVideo', args: [],
+                        id: f.dataset.afYtId, channel: 'widget'
+                    }), '*');
+                } catch (e) {}
+            };
+            if (dur > 1 && t >= 0 && t >= dur - 0.35) rewind();
+            // Belt and braces: if it does reach the end anyway (a short clip, a
+            // stalled report), hide the card's player the same instant the end
+            // screen could appear, and restart it. The stills are underneath,
+            // so the card shows a picture, never YouTube's furniture.
+            if (state === 0) { c.classList.remove('af-pim-ytlive'); rewind(); return; }
+
             if (typeof state !== 'number') return;
             // 1 = playing, 3 = buffering. Only 1 reveals; a buffering frame
             // stays hidden behind the stills instead of showing a spinner.
