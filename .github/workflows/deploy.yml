@@ -1238,6 +1238,42 @@ jobs:
           # read-only checks run after this one. The publish step carries it out
           # on the art-sheets branch next to the pictures.
 
+      # The brochure now prints each section's number alongside the page's --
+      # RK 01 is RK - 0101 -- and it closed the two gaps its old numbering had,
+      # so TP 05 and everything after it, and HD 15 and everything after it,
+      # move down one. Every product carries the code the book prints, so every
+      # product's code is restated here.
+      #
+      # Placed between the two steps it sits between for a reason. It runs after
+      # the corrections pass, so a code that pass has just fixed is renumbered in
+      # the same deploy rather than the next one; and before the SKU pass, which
+      # builds each SKU from the code and must see the new one. Both of those
+      # passes read the book's numbering themselves, so the order is a
+      # convenience and not something correctness hangs on.
+      #
+      # A code naming no page of the book is left exactly as it is and listed in
+      # the report -- deciding what such a product should carry means putting its
+      # picture next to the book, which is the audit's work and not this pass's.
+      - name: Put the art codes into the book's numbering
+        if: always()
+        timeout-minutes: 8
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Restating every art code in the numbering the book prints now..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             AF_APPLY=1 \
+             wp eval-file wp-content/themes/postero-child/tools/renumber-artcodes.php --allow-root 2>&1" \
+            2>&1 | tee /tmp/af-renumber.txt || true
+          # Kept as a file as well, for the reason APPLIED.txt is: this is the
+          # other output that says what actually reached the database, and the
+          # log cannot be relied on to still hold it by the time anyone reads
+          # it. The publish step carries it out on the art-sheets branch.
+
       - name: SKU → art code (batched, resumable)
         if: always()
         timeout-minutes: 8
@@ -1642,6 +1678,13 @@ jobs:
             echo "carrying the apply report ($(wc -l < /tmp/af-apply.txt) lines)"
           fi
           # And the live code map, so decisions are never made from a stale copy.
+          # What the renumbering into the book's current codes did, and which
+          # products it left alone because they name no page of the book.
+          if [ -s /tmp/af-renumber.txt ]; then
+            cp /tmp/af-renumber.txt /tmp/af-sheetout/RENUMBERED.txt
+            echo "carrying the renumbering report ($(wc -l < /tmp/af-renumber.txt) lines)"
+          fi
+
           if [ -s /tmp/af-codes.txt ]; then
             cp /tmp/af-codes.txt /tmp/af-sheetout/CODES.txt
             echo "carrying the code map ($(wc -l < /tmp/af-codes.txt) lines)"
@@ -1697,6 +1740,11 @@ jobs:
               echo
               echo "APPLIED.txt is the art-code apply step's own report: what it"
               echo "changed, cleared, refused as a clash, or found already correct."
+              echo
+              echo "RENUMBERED.txt is the pass that restates every art code in the"
+              echo "numbering the book prints now — RK 01 is RK - 0101 — and lists"
+              echo "the products it left alone because their code names no page of"
+              echo "the book."
               echo
               echo "This branch is a delivery channel, not history. It is force-pushed on"
               echo "every deploy and holds only the newest sheets. Delete it when the"

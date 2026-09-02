@@ -907,3 +907,90 @@ Re-checked against the actual Lord Shiva pages rather than a single one:
   page. Not a duplicate of #21954 — different style entirely.
 
 All three confirmed. **Re-check status: 10 overturned, 11 confirmed, 17 to go.**
+
+## The book renumbered itself, and the catalogue followed
+
+The brochure now prints its section's number alongside the page's. Every page
+label changed:
+
+| The book used to print | It prints now |
+|---|---|
+| RK 01 | RK - 0101 |
+| LI 32 | LI - 1932 |
+| HD 15 | **HD - 0814** |
+| TP 05 | **TP - 0504** |
+
+The last two are the reason this is not a matter of pasting the section number
+onto the front of the old one. The old numbering had two labels with no page —
+`TP 04` and `HD 14`, both confirmed absent by reading the pages either side of
+them and both recorded above. **The new numbering has no gaps**, so from each of
+those onwards a page's number is one lower than the label it used to carry.
+Fifteen Tirupati pages and fourteen Hindu Deities pages move. A product on TP 05
+that were given `TP - 0505` would be pointing at somebody else's painting.
+
+### How this was established, rather than assumed
+
+The pages themselves did not move: all 358 are where the reading above left
+them, and only their labels were rewritten. That is what the whole mapping rests
+on, so it was checked and not inferred. The first and last page of **every one of
+the twenty-one sections** was read out of the design and matched against the page
+numbers recorded in the table above — page 5 is `RK - 0101` and page 95 is
+`RK - 0191`, page 99 is `LS - 0301` and page 113 is `LS - 0315`, and so on
+through `TA - 2104` on page 344. Both gaps were confirmed the same way: page 128
+is `TP - 0503` and page 129 is `TP - 0504`, which is the page that used to be
+labelled TP 05.
+
+The section totals agree independently. The design carries 340 page labels; the
+section-by-section reading above accounts for 340 pages; and every section's
+count matches what was read then — Lord Shiva 15, Seven Horses 12, Buddha 13,
+Landscapes 10, Living Room 44.
+
+Two sections the earlier table left approximate are now exact: Sikh Art is
+pages 194–196, Swaminarayan is page 197 alone, and Pichwai is page 198 alone.
+
+### Where it lives
+
+- **`inc/artcode-book.php`** — the twenty-one sections, their numbers, their
+  page ranges, their counts and the two absent labels. It reads a code in either
+  numbering and answers with the one the book prints today, which is what makes
+  the pass safe to run on every deploy: a code already in the new shape maps to
+  itself.
+- **`tools/renumber-artcodes.php`** — walks the catalogue and writes the result.
+  Dry run unless `AF_APPLY=1`. The code a product had first is kept in
+  `_af_code_before_renumber`.
+- The deploy runs it between the corrections pass and the SKU pass, and carries
+  its report out to the art-sheets branch as **`RENUMBERED.txt`**.
+
+### What it will not touch
+
+A code that names no page of the book is left exactly as it is and listed at the
+end of the report. Renumbering translates; it does not adjudicate. Two groups
+are already known to be in that list:
+
+- **`LR 24`, `LR 25`** and the rest of the stranded Living-Room-era codes. Lord
+  Rama has nine pages, so these name nothing, and the section above records that
+  the LR-to-LI number carry *fails* for exactly these two. They need a picture
+  put next to a page, which is the audit's work.
+- **`AL 01`, `AL 05`, `AL 06`** — from the Alwars book, not this one. They are
+  correct codes in a different publication and the Master Brochure has no AL
+  section, so this pass has nothing to say about them.
+
+`TP 04` and `HD 14` are refused for the same reason: they never named a page, so
+there is nothing to renumber them to.
+
+### The SKU follows, because it always has
+
+The SKU is built from the art code, so renumbering restates every SKU too:
+`RK-01` becomes `RK-0101`, and the order line `RK-01-2/3` becomes
+`RK-0101-2/3`. That is the designed behaviour rather than a side effect — the
+SKU exists to say which page of the book a piece is — but it is a visible change
+in the shop and on future invoices, and worth stating plainly. The SKU each
+product had before this pipeline ever touched it is still in
+`_af_sku_before_artcode`; `tools/restore-sku-from-backup.php` puts them back.
+
+One consequence worth knowing: the letter that makes a shared code's SKU unique
+(`RK-0101A`, `RK-0101B`) is issued against a particular code, so every letter is
+reissued when the code changes. They are handed out in product-id order, the
+same order as before, so a pair keeps its A and B — but a letter is no longer
+guaranteed to be the one printed on an old invoice, because the code it was
+attached to is not either.

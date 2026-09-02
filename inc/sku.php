@@ -1,10 +1,15 @@
 <?php
 /**
- * The SKU, in the shape the shop asked for: RK-01-2/3.
+ * The SKU, in the shape the shop asked for: RK-0101-2/3.
  *
  *   RK    the section prefix from the collection book (Radha Krishna)
- *   01    the art code number inside that section
+ *   01    that section's own number, which the book now prints too
+ *   01    the page's number inside the section
  *   2/3   the size the customer chose, in feet
+ *
+ * It was RK-01-2/3 until the book started printing the section number as well.
+ * See inc/artcode-book.php: the change is not only longer codes — the book also
+ * closed the two gaps its numbering had, so pages after them moved down one.
  *
  * ── Why this is two SKUs and not one ────────────────────────────────────────
  *
@@ -17,14 +22,14 @@
  *
  * So the size joins the SKU at the point where a size actually exists:
  *
- *   product SKU   RK-01        what identifies the artwork; unique, one per
+ *   product SKU   RK-0101      what identifies the artwork; unique, one per
  *                              product, shown on the shop and in the admin
- *   line SKU      RK-01-2/3    what identifies the thing being bought; written
+ *   line SKU      RK-0101-2/3  what identifies the thing being bought; written
  *                              on the order line, so invoices, packing slips
  *                              and exports carry the full code
  *
- * Where several products share one art code the SKU gains a letter — RK-01A,
- * RK-01B — because a SKU must be unique and an art code here often is not. The
+ * Where several products share one art code the SKU gains a letter — RK-0101A,
+ * RK-0101B — because a SKU must be unique and an art code here often is not. The
  * letter is stored and never moves; see af_sku_for_product() below.
  *
  * ── The size token ──────────────────────────────────────────────────────────
@@ -48,14 +53,29 @@
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
 /**
- * "RK 01" -> "RK-01". Whitespace collapses, spaces become hyphens, and the
- * number is padded to two digits so RK-1 and RK-01 cannot both exist for the
- * same piece. A code that is not the usual PREFIX NUMBER shape is passed
+ * "RK - 0101" -> "RK-0101", and "RK 01" -> "RK-01". Whitespace collapses and
+ * spaces become hyphens; a code that is not a shape named here is passed
  * through with its spaces hyphenated and nothing else assumed about it.
+ *
+ * Two shapes, because the book has two. It now prints its section's number
+ * alongside the page's — RK - 0101 is section 01, page 01 of it — and
+ * tools/renumber-artcodes.php puts every product on that numbering. Those four
+ * digits are kept whole: they are one identifier, and splitting or padding them
+ * would lose the section. The older PREFIX NUMBER shape still parses, because a
+ * code naming no page of the book is deliberately left in it and a product may
+ * hold one for as long as the audit takes to settle what it should be.
+ *
+ * Whatever trails the number survives both: the Gold Foiled & UV importer gives
+ * its copies the source's code with '-GF' on the end, so HD - 0814-GF is a real
+ * code and its SKU is HD-0814-GF.
  */
 function af_sku_code_part( $code ) {
 	$s = preg_replace( '/\s+/', ' ', trim( (string) $code ) );
 	if ( $s === '' ) { return ''; }
+	if ( preg_match( '/^([A-Za-z]+)\s*-\s*(\d{4})(.*)$/', $s, $m ) ) {
+		return strtoupper( $m[1] ) . '-' . $m[2]
+		     . strtoupper( str_replace( ' ', '-', trim( $m[3] ) ) );
+	}
 	if ( preg_match( '/^([A-Za-z]+)\s*0*(\d+)$/', $s, $m ) ) {
 		return strtoupper( $m[1] ) . '-' . str_pad( $m[2], 2, '0', STR_PAD_LEFT );
 	}
@@ -92,8 +112,8 @@ function af_sku_letter_seq( $i ) {
 }
 
 /**
- * The product's own SKU: RK-01, or RK-01A when several products share the art
- * code RK 01. '' when the product carries no code — nothing is invented.
+ * The product's own SKU: RK-0101, or RK-0101A when several products share the
+ * art code RK - 0101. '' when the product carries no code — nothing is invented.
  *
  * ── Why a letter, and why it never moves ────────────────────────────────────
  *
@@ -103,7 +123,7 @@ function af_sku_letter_seq( $i ) {
  * left exactly as it is; the letter is the SKU's own business, added only to
  * tell apart products the code cannot.
  *
- * The letter is STORED, not recomputed. Once #23191 is RK-01B it stays RK-01B
+ * The letter is STORED, not recomputed. Once #23191 is RK-0101B it stays it
  * even if the product listed before it is deleted, its code corrected, or the
  * catalogue reordered — because that SKU is already on somebody's invoice. It
  * is only reassigned if the product's own art code changes, which makes it a
@@ -123,7 +143,7 @@ function af_sku_for_product( $product_id ) {
 }
 
 /**
- * The full thing: RK-01-2/3. Falls back to the product part alone when no size
+ * The full thing: RK-0101-2/3. Falls back to the product part alone when no size
  * is known, so a line without a size still carries a usable code rather than a
  * trailing hyphen.
  */

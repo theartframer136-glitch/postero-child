@@ -36,6 +36,32 @@ if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit
 
 $APPLY = getenv( 'AF_APPLY' ) === '1';
 
+/**
+ * Every code in this file — and in the catalogue when these rows were written —
+ * is in the numbering the book used to print: "LC 09". The book now prints
+ * "LC - 1409", and closed two gaps in the process, so both sides are read
+ * through inc/artcode-book.php before anything is compared or written.
+ *
+ * The rows themselves are deliberately left in the old numbering. Each one
+ * records a judgement made by putting a product's picture beside a page, and
+ * rewriting ninety-five of those by hand into a numbering that may change again
+ * would put that reasoning at risk for no gain. Translating on the way out
+ * costs nothing and keeps the audit's own record intact.
+ *
+ * It also stops this pass and tools/renumber-artcodes.php undoing each other
+ * once per deploy, which is the failure documented at the top of
+ * tools/apply-artcode-batch.php.
+ *
+ * A code the book does not contain — NONE, or a row still pointing at a page
+ * that was renamed away — passes through untouched.
+ */
+function af_corr_book_code( $code ) {
+	$code = preg_replace( '/\s+/', ' ', trim( (string) $code ) );
+	if ( $code === '' || ! function_exists( 'af_artcode_book_code' ) ) { return $code; }
+	$book = af_artcode_book_code( $code );
+	return $book !== '' ? $book : $code;
+}
+
 echo "=== ART CODE CORRECTIONS ===\n";
 echo $APPLY ? "mode: APPLYING\n" : "mode: dry run — nothing will be written (set AF_APPLY=1 to apply)\n";
 
@@ -76,7 +102,7 @@ foreach ( get_posts( array(
 ) ) as $pid ) {
 	$c = get_post_meta( $pid, '_taf_art_code', true );
 	if ( is_string( $c ) && trim( $c ) !== '' ) {
-		$owner[ strtoupper( preg_replace( '/\s+/', ' ', trim( $c ) ) ) ][] = (int) $pid;
+		$owner[ strtoupper( af_corr_book_code( $c ) ) ][] = (int) $pid;
 	}
 }
 
@@ -96,6 +122,7 @@ foreach ( $rows as $row ) {
 		$share = true;
 		$new   = trim( substr( $new, 6 ) );
 	}
+	$new = af_corr_book_code( $new );
 	$key = strtoupper( $new );
 
 	$post = get_post( $pid );
@@ -108,7 +135,7 @@ foreach ( $rows as $row ) {
 	$title = mb_substr( html_entity_decode( wp_strip_all_tags( get_the_title( $pid ) ) ), 0, 44 );
 	$now   = (string) get_post_meta( $pid, '_taf_art_code', true );
 
-	if ( $key !== 'NONE' && strcasecmp( trim( $now ), $new ) === 0 ) {
+	if ( $key !== 'NONE' && strcasecmp( af_corr_book_code( $now ), $new ) === 0 ) {
 		printf( "  #%-7d already %-8s %s\n", $pid, $new, $title );
 		$same++;
 		continue;
@@ -128,7 +155,7 @@ foreach ( $rows as $row ) {
 				update_post_meta( $pid, '_af_code_before_fix', $now );
 			}
 			delete_post_meta( $pid, '_taf_art_code' );
-			$oldkey = strtoupper( preg_replace( '/\s+/', ' ', trim( $now ) ) );
+			$oldkey = strtoupper( af_corr_book_code( $now ) );
 			if ( isset( $owner[ $oldkey ] ) ) {
 				$owner[ $oldkey ] = array_values( array_diff( $owner[ $oldkey ], array( $pid ) ) );
 			}
@@ -159,7 +186,7 @@ foreach ( $rows as $row ) {
 		update_post_meta( $pid, '_taf_art_code', $new );
 		// keep the in-memory map honest for the rows still to come
 		$owner[ $key ][] = $pid;
-		$oldkey = strtoupper( preg_replace( '/\s+/', ' ', trim( $now ) ) );
+		$oldkey = strtoupper( af_corr_book_code( $now ) );
 		if ( isset( $owner[ $oldkey ] ) ) {
 			$owner[ $oldkey ] = array_values( array_diff( $owner[ $oldkey ], array( $pid ) ) );
 		}

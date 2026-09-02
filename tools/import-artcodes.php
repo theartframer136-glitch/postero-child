@@ -61,6 +61,14 @@ while (($row = fgetcsv($fh)) !== false) {
     $code = col($row,$map,array('new_art_code','art_code','code'));
     if ($code === '') { $nocode++; continue; }
     $code = preg_replace('/\s+/', ' ', trim($code));
+    // A CSV may still be written in the numbering the book used to print
+    // ("HD 15"). The book prints "HD - 0814" now, so put the row into the
+    // book's own numbering before it is written; a code naming no page of the
+    // book is left exactly as the row spells it.
+    if (function_exists('af_artcode_book_code')) {
+        $book = af_artcode_book_code($code);
+        if ($book !== '') { $code = $book; }
+    }
 
     $pid = 0;
     $v = col($row,$map,array('product_id','id'));            if ($v !== '' && ctype_digit($v)) $pid = (int) $v;
@@ -74,7 +82,9 @@ while (($row = fgetcsv($fh)) !== false) {
     if (!$pid || get_post_type($pid) !== 'product') { $nomatch++; if ($nomatch<=10) echo "  no match (line {$line}): ".implode(' | ', array_slice($row,0,3))."\n"; continue; }
 
     $cur = trim((string) get_post_meta($pid,'_taf_art_code',true));
-    if ($cur === $code) { $same++; }
+    $cur_as_book = function_exists('af_artcode_book_code') && af_artcode_book_code($cur) !== ''
+        ? af_artcode_book_code($cur) : $cur;
+    if ($cur_as_book === $code) { $same++; }
     else { update_post_meta($pid,'_taf_art_code',$code); $set++; if ($set<=15) echo "  SET #{$pid} '{$cur}' -> '{$code}'\n"; }
     $applied[$pid] = $code;
 }
