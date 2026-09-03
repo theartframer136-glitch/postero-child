@@ -6758,9 +6758,9 @@ add_action('template_redirect', function(){
 
             <label>Wall Layout</label>
             <div class="af-tow-layouts" id="tow-layouts">
-              <button type="button" class="af-tow-lay on" data-n="1"><i></i><span>Single</span></button>
-              <button type="button" class="af-tow-lay" data-n="2"><i></i><i></i><span>2 Panels</span></button>
-              <button type="button" class="af-tow-lay" data-n="4"><i></i><i></i><i></i><i></i><span>4 Panels</span></button>
+              <button type="button" class="af-tow-lay on" data-n="1"><span>Single</span></button>
+              <button type="button" class="af-tow-lay" data-n="2"><span>2 Panels</span></button>
+              <button type="button" class="af-tow-lay" data-n="4"><span>4 Panels</span></button>
             </div>
 
             <div class="af-tow-price"><span>Your price</span><strong id="tow-price">—</strong></div>
@@ -7970,13 +7970,17 @@ add_action('template_redirect', function(){
     .af-tow-part{width:100%;background-repeat:no-repeat;}
     /* layout chips */
     .af-tow-layouts{display:flex;gap:8px;margin-top:6px;}
-    .af-tow-lay{position:relative;flex:1;display:flex;gap:3px;align-items:stretch;justify-content:center;height:44px;padding:7px 6px 16px;
+    /* The chip is its label and nothing else. It used to draw the layout as
+       little bars behind the word, which read as clutter sitting under the
+       text rather than as a picture of the layout, so the bars are gone and
+       the label is centred in the chip instead of pinned below them. The
+       selected chip says so with its border and now its label colour too —
+       that was the gold bars' job. */
+    .af-tow-lay{flex:1;display:flex;align-items:center;justify-content:center;height:44px;padding:7px 8px;
       border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;cursor:pointer;transition:border-color .15s;}
-    .af-tow-lay i{display:block;width:9px;background:#c9b98f;border-radius:2px;}
-    .af-tow-lay[data-n="1"] i{width:22px;}
-    .af-tow-lay span{position:absolute;left:0;right:0;bottom:2px;font-size:9.5px;font-weight:700;color:#8a8170;text-align:center;letter-spacing:.02em;}
+    .af-tow-lay span{font-size:11px;font-weight:700;color:#8a8170;text-align:center;letter-spacing:.02em;}
     .af-tow-lay.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
-    .af-tow-lay.on i{background:#c9a84c;}
+    .af-tow-lay.on span{color:#8a6d3b;}
     /* live camera */
     .af-tow-cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1;}
     .af-tow-cambtn{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;margin-top:8px;padding:11px 12px;
@@ -12951,9 +12955,9 @@ add_action('template_redirect', function () {
 
             <label>Wall Layout</label>
             <div class="af-ftm-layouts" id="ftm-layouts">
-              <button type="button" class="af-ftm-lay on" data-n="1"><i></i><span>Single</span></button>
-              <button type="button" class="af-ftm-lay" data-n="2"><i></i><i></i><span>2 Panels</span></button>
-              <button type="button" class="af-ftm-lay" data-n="4"><i></i><i></i><i></i><i></i><span>4 Panels</span></button>
+              <button type="button" class="af-ftm-lay on" data-n="1"><span>Single</span></button>
+              <button type="button" class="af-ftm-lay" data-n="2"><span>2 Panels</span></button>
+              <button type="button" class="af-ftm-lay" data-n="4"><span>4 Panels</span></button>
             </div>
 
             <p class="af-sharelabel">Keep it &amp; share it</p>
@@ -13799,13 +13803,14 @@ add_action('template_redirect', function () {
     .af-ftm-part{width:100%;background-repeat:no-repeat;}
     /* layout chips */
     .af-ftm-layouts{display:flex;gap:8px;margin-top:6px;}
-    .af-ftm-lay{position:relative;flex:1;display:flex;gap:3px;align-items:stretch;justify-content:center;height:44px;padding:7px 6px 16px;
+    /* Same as the Try On Wall chips: the label alone, centred, with the
+       selected state carried by the border and the label colour. See the note
+       on .af-tow-lay. */
+    .af-ftm-lay{flex:1;display:flex;align-items:center;justify-content:center;height:44px;padding:7px 8px;
       border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;cursor:pointer;transition:border-color .15s;}
-    .af-ftm-lay i{display:block;width:9px;background:#c9b98f;border-radius:2px;}
-    .af-ftm-lay[data-n="1"] i{width:22px;}
-    .af-ftm-lay span{position:absolute;left:0;right:0;bottom:2px;font-size:9.5px;font-weight:700;color:#8a8170;text-align:center;letter-spacing:.02em;}
+    .af-ftm-lay span{font-size:11px;font-weight:700;color:#8a8170;text-align:center;letter-spacing:.02em;}
     .af-ftm-lay.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
-    .af-ftm-lay.on i{background:#c9a84c;}
+    .af-ftm-lay.on span{color:#8a6d3b;}
     /* live camera backdrop */
     .af-ftm-camv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1;}
     /* calibration overlay — same measured-scale tool as Try On Wall */
