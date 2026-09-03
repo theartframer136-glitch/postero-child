@@ -203,6 +203,27 @@ if ( is_readable( $csv ) && ( $fh = fopen( $csv, 'r' ) ) ) {
     }
 }
 
+/**
+ * The map below is written in the numbering the book used to print — "RK 01".
+ * The book now prints "RK - 0101", and closed two gaps while it was at it, so
+ * the map is translated on the way out rather than being restated line by line
+ * in a numbering that may change again. inc/artcode-book.php does the reading.
+ *
+ * Without this the two passes would undo each other on every deploy: this one
+ * would write RK 01, tools/renumber-artcodes.php would write RK - 0101 back,
+ * and the reports would show work being done for ever without converging —
+ * which is exactly the failure the note at the top of this file describes.
+ *
+ * A code the book does not contain is passed through untouched, so a map entry
+ * that has gone stale still shows up as itself in the report.
+ */
+function af_batch_book_code( $code ) {
+    $code = preg_replace( '/\s+/', ' ', trim( (string) $code ) );
+    if ( $code === '' || ! function_exists( 'af_artcode_book_code' ) ) { return $code; }
+    $book = af_artcode_book_code( $code );
+    return $book !== '' ? $book : $code;
+}
+
 echo "products in map: " . count( $MAP ) . "\n\n";
 
 global $wpdb;
@@ -212,7 +233,7 @@ $set = 0; $same = 0; $skip = 0;
 // context: codes were previously duplicated/mis-assigned; report, don't touch.)
 foreach ( $MAP as $pid => $code ) {
     $pid  = (int) $pid;
-    $code = trim( $code );
+    $code = af_batch_book_code( trim( $code ) );
     $post = get_post( $pid );
     if ( ! $post || $post->post_type !== 'product' || $post->post_status !== 'publish' ) {
         echo "SKIP  #{$pid}: not a published product\n";
@@ -221,6 +242,9 @@ foreach ( $MAP as $pid => $code ) {
     }
     $title = html_entity_decode( wp_strip_all_tags( get_the_title( $pid ) ) );
     $old   = trim( (string) get_post_meta( $pid, '_taf_art_code', true ) );
+    // Compared in the book's numbering, so an already-renumbered product is
+    // recognised as correct instead of being written back to the old shape.
+    $old_as_book = af_batch_book_code( $old );
 
     // empty code = remove a wrong code (artwork not in the brochure)
     if ( $code === '' ) {
@@ -241,7 +265,7 @@ foreach ( $MAP as $pid => $code ) {
         $code, $pid
     ) );
 
-    if ( $old === $code ) {
+    if ( $old_as_book === $code ) {
         echo "OK    #{$pid} [{$code}] unchanged — {$title}\n";
         $same++;
     } else {
