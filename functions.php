@@ -8055,9 +8055,24 @@ add_action('template_redirect', function(){
        at the lock; the huge shadow dims everything outside the rectangle */
     .af-tow-cal{position:absolute;inset:0;z-index:7;pointer-events:none;}
     .af-tow-calbox{position:absolute;left:9%;right:9%;top:16%;bottom:16%;border:3px solid #e04338;border-radius:6px;
-      box-shadow:0 0 0 2000px rgba(0,0,0,.16);transition:border-color .25s,box-shadow .3s;}
-    .af-tow-calbox.near{border-color:#e8b400;}
-    .af-tow-calbox.locked{border-color:#2fae52;box-shadow:0 0 0 2000px rgba(0,0,0,0),0 0 26px rgba(47,174,82,.85);}
+      color:#e04338;box-shadow:0 0 0 2000px rgba(0,0,0,.16);transition:border-color .25s,color .25s,box-shadow .3s;}
+    .af-tow-calbox.near{border-color:#e8b400;color:#e8b400;}
+    .af-tow-calbox.locked{border-color:#2fae52;color:#2fae52;box-shadow:0 0 0 2000px rgba(0,0,0,0),0 0 26px rgba(47,174,82,.85);}
+    /* Thirds grid inside the rectangle. The step being asked for is a judgement
+       about straightness — is the ceiling line level with the top edge, the
+       floor line with the bottom — and an empty rectangle gives the eye nothing
+       to measure against but its own edges. Two lines each way are enough to
+       see a tilt or an off-centre wall without hiding what the camera sees.
+       Drawn as four positioned gradients rather than a repeating one so there
+       are exactly four lines and none doubles up on the border. currentColor,
+       and a colour on each state, so the grid turns amber and then green with
+       the rectangle instead of staying red under a locked frame. */
+    .af-tow-calbox::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.4;
+      background-image:linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor),
+        linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor);
+      background-size:1px 100%,1px 100%,100% 1px,100% 1px;
+      background-position:33.333% 0,66.666% 0,0 33.333%,0 66.666%;
+      background-repeat:no-repeat;}
     .af-tow-calcorner{position:absolute;width:20px;height:20px;border-color:inherit;border-style:solid;border-width:0;}
     .af-tow-calcorner.tl{top:-3px;left:-3px;border-top-width:6px;border-left-width:6px;border-top-left-radius:6px;}
     .af-tow-calcorner.tr{top:-3px;right:-3px;border-top-width:6px;border-right-width:6px;border-top-right-radius:6px;}
@@ -13916,9 +13931,16 @@ add_action('template_redirect', function () {
     /* calibration overlay — same measured-scale tool as Try On Wall */
     .af-ftm-cal{position:absolute;inset:0;z-index:7;pointer-events:none;}
     .af-ftm-calbox{position:absolute;left:9%;right:9%;top:16%;bottom:16%;border:3px solid #e04338;border-radius:6px;
-      box-shadow:0 0 0 2000px rgba(0,0,0,.16);transition:border-color .25s,box-shadow .3s;}
-    .af-ftm-calbox.near{border-color:#e8b400;}
-    .af-ftm-calbox.locked{border-color:#2fae52;box-shadow:0 0 0 2000px rgba(0,0,0,0),0 0 26px rgba(47,174,82,.85);}
+      color:#e04338;box-shadow:0 0 0 2000px rgba(0,0,0,.16);transition:border-color .25s,color .25s,box-shadow .3s;}
+    .af-ftm-calbox.near{border-color:#e8b400;color:#e8b400;}
+    .af-ftm-calbox.locked{border-color:#2fae52;color:#2fae52;box-shadow:0 0 0 2000px rgba(0,0,0,0),0 0 26px rgba(47,174,82,.85);}
+    /* Thirds grid — see the note on .af-tow-calbox::before. */
+    .af-ftm-calbox::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.4;
+      background-image:linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor),
+        linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor);
+      background-size:1px 100%,1px 100%,100% 1px,100% 1px;
+      background-position:33.333% 0,66.666% 0,0 33.333%,0 66.666%;
+      background-repeat:no-repeat;}
     .af-ftm-calcorner{position:absolute;width:20px;height:20px;border-color:inherit;border-style:solid;border-width:0;}
     .af-ftm-calcorner.tl{top:-3px;left:-3px;border-top-width:6px;border-left-width:6px;border-top-left-radius:6px;}
     .af-ftm-calcorner.tr{top:-3px;right:-3px;border-top-width:6px;border-right-width:6px;border-top-right-radius:6px;}
