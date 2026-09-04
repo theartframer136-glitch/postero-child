@@ -6763,6 +6763,21 @@ add_action('template_redirect', function(){
               <button type="button" class="af-tow-lay" data-n="4"><span>4 Panels</span></button>
             </div>
 
+            <!-- Wall height belongs here, in the panel, because it changes what
+                 the visitor is looking at: a 3 ft print covers more of an 8 ft
+                 wall than of a 10 ft one. There is a second copy of this row
+                 inside the camera calibration overlay, which is where it used
+                 to live ALONE — and that overlay only exists while the camera
+                 is running, and hides itself a second after the wall locks. So
+                 for anyone using a room photo the control was not on screen at
+                 all. Both rows drive af_tow_set_wall_ft() and stay in step. -->
+            <label>Wall height</label>
+            <div class="af-tow-wallh" id="tow-wallh">
+              <button type="button" data-ft="8">8 ft</button>
+              <button type="button" data-ft="9">9 ft</button>
+              <button type="button" data-ft="10" class="on">10 ft</button>
+            </div>
+
             <div class="af-tow-price"><span>Your price</span><strong id="tow-price">—</strong></div>
             <div class="af-tow-actions">
               <button type="button" id="tow-save" class="af-tow-btn ghost">⤓ Save Preview</button>
@@ -7407,23 +7422,39 @@ add_action('template_redirect', function(){
         applyScale();                       // back to the room-photo scale
       }
       $('tow-recal').addEventListener('click', calStart);
-      $('tow-calh').addEventListener('click', function(e){
-        var b=e.target.closest('button[data-ft]'); if(!b) return;
-        this.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
-        b.classList.add('on');
-        CAL.wallFt=parseInt(b.getAttribute('data-ft'),10)||10;
+
+      /**
+       * The one place the wall height changes. Two rows offer it — the panel's
+       * (always on screen) and the calibration overlay's (only while the camera
+       * is aligning) — and both land here, so they can never disagree about
+       * which button is lit or what the preview is drawn against.
+       *
+       * The redraw is unconditional. It used to happen only when CAL.locked,
+       * which is the one moment the visitor is NOT being asked for a height:
+       * they are asked while the rectangle is still red and nothing is locked,
+       * and that press lit a button and changed nothing.
+       */
+      function af_tow_set_wall_ft( n ) {
+        CAL.wallFt = parseInt( n, 10 ) || 10;
+        [ 'tow-wallh', 'tow-calh' ].forEach(function(id){
+          var row = $(id); if ( ! row ) { return; }
+          row.querySelectorAll('button[data-ft]').forEach(function(x){
+            x.classList.toggle('on', parseInt(x.getAttribute('data-ft'),10) === CAL.wallFt);
+          });
+        });
         if(CAL.locked){                     // re-derive the measurement, keep tracking
           var st=$('tow-stage').getBoundingClientRect();
           CAL.base=((CAL_BOT-CAL_TOP)*st.height)/CAL.wallFt;
           CAL.pxPerFt=CAL.base*CAL.factor;
         }
-        // Redraw whichever scale is in force. This used to sit inside the
-        // branch above, so before the camera had locked onto the wall — which
-        // is exactly when a visitor is being asked for the height — pressing a
-        // button lit it up and changed nothing on screen. applyScale() reads
-        // CAL.wallFt for the uncalibrated case too, so the artwork resizes on
-        // every press whether or not a measurement exists yet.
         applyScale();
+      }
+      [ 'tow-wallh', 'tow-calh' ].forEach(function(id){
+        var row = $(id); if ( ! row ) { return; }
+        row.addEventListener('click', function(e){
+          var b = e.target.closest('button[data-ft]'); if ( ! b ) { return; }
+          af_tow_set_wall_ft( b.getAttribute('data-ft') );
+        });
       });
 
       // ── 1 / 2 / 4 PANEL WALL LAYOUTS (spec §8) ─────────────────────────
@@ -7996,6 +8027,12 @@ add_action('template_redirect', function(){
     .af-tow-lay span{font-size:11px;font-weight:700;color:#8a8170;text-align:center;letter-spacing:.02em;}
     .af-tow-lay.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
     .af-tow-lay.on span{color:#8a6d3b;}
+    /* Wall height, in the panel. Same chip as the layout row above it, so the
+       two read as one pair of choices rather than two unrelated controls. */
+    .af-tow-wallh{display:flex;gap:8px;margin-top:6px;}
+    .af-tow-wallh button{flex:1;height:38px;border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;
+      font-size:11px;font-weight:700;color:#8a8170;letter-spacing:.02em;cursor:pointer;transition:border-color .15s;}
+    .af-tow-wallh button.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;color:#8a6d3b;}
     /* live camera */
     .af-tow-cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1;}
     .af-tow-cambtn{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;margin-top:8px;padding:11px 12px;
@@ -12975,6 +13012,16 @@ add_action('template_redirect', function () {
               <button type="button" class="af-ftm-lay" data-n="4"><span>4 Panels</span></button>
             </div>
 
+            <!-- In the panel for the same reason as Try On Wall's: the copy in
+                 the calibration overlay is only on screen while the camera is
+                 aligning. See the note there. -->
+            <label>Wall height</label>
+            <div class="af-ftm-wallh" id="ftm-wallh">
+              <button type="button" data-ft="8">8 ft</button>
+              <button type="button" data-ft="9">9 ft</button>
+              <button type="button" data-ft="10" class="on">10 ft</button>
+            </div>
+
             <p class="af-sharelabel">Keep it &amp; share it</p>
             <div class="af-share">
               <button type="button" id="ftm-saveacct">💾 Save to my account</button>
@@ -13495,20 +13542,31 @@ add_action('template_redirect', function () {
         render();                                  // back to the room-photo scale
       }
       $('ftm-recal').addEventListener('click', calStart);
-      $('ftm-calh').addEventListener('click', function(e){
-        var b = e.target.closest('button[data-ft]'); if (!b) return;
-        this.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
-        b.classList.add('on');
-        CAL.wallFt = parseInt(b.getAttribute('data-ft'), 10) || 10;
+
+      /** The one place the wall height changes — see the matching note in Try
+       *  On Wall. Both rows land here, so the panel's and the overlay's can
+       *  never disagree, and the redraw is unconditional. */
+      function af_ftm_set_wall_ft( n ) {
+        CAL.wallFt = parseInt( n, 10 ) || 10;
+        [ 'ftm-wallh', 'ftm-calh' ].forEach(function(id){
+          var row = $(id); if ( ! row ) { return; }
+          row.querySelectorAll('button[data-ft]').forEach(function(x){
+            x.classList.toggle('on', parseInt(x.getAttribute('data-ft'),10) === CAL.wallFt);
+          });
+        });
         if (CAL.locked){                           // re-derive, keep tracking
           var st = $('ftm-stage').getBoundingClientRect();
           CAL.base = ((CAL_BOT - CAL_TOP) * st.height) / CAL.wallFt;
           CAL.pxPerFt = CAL.base * CAL.factor;
         }
-        // Redraw either way — see the matching note in Try On Wall. Before the
-        // camera locks, this branch used not to run at all, so the button lit up
-        // and the preview stayed exactly as it was.
         render();
+      }
+      [ 'ftm-wallh', 'ftm-calh' ].forEach(function(id){
+        var row = $(id); if ( ! row ) { return; }
+        row.addEventListener('click', function(e){
+          var b = e.target.closest('button[data-ft]'); if ( ! b ) { return; }
+          af_ftm_set_wall_ft( b.getAttribute('data-ft') );
+        });
       });
 
       function buildSendLink(p){
@@ -13835,6 +13893,11 @@ add_action('template_redirect', function () {
     .af-ftm-lay span{font-size:11px;font-weight:700;color:#8a8170;text-align:center;letter-spacing:.02em;}
     .af-ftm-lay.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
     .af-ftm-lay.on span{color:#8a6d3b;}
+    /* Wall height, in the panel — same chip as the layout row above it. */
+    .af-ftm-wallh{display:flex;gap:8px;margin-top:6px;}
+    .af-ftm-wallh button{flex:1;height:38px;border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;
+      font-size:11px;font-weight:700;color:#8a8170;letter-spacing:.02em;cursor:pointer;transition:border-color .15s;}
+    .af-ftm-wallh button.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;color:#8a6d3b;}
     /* live camera backdrop */
     .af-ftm-camv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1;}
     /* calibration overlay — same measured-scale tool as Try On Wall */
