@@ -6804,9 +6804,9 @@ add_action('template_redirect', function(){
                 <div id="tow-calmsg" class="af-tow-calmsg">Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge</div>
                 <div id="tow-calh" class="af-tow-calh">
                   <span>Wall height</span>
-                  <button type="button" data-ft="8" class="on">8 ft</button>
+                  <button type="button" data-ft="8">8 ft</button>
                   <button type="button" data-ft="9">9 ft</button>
-                  <button type="button" data-ft="10">10 ft</button>
+                  <button type="button" data-ft="10" class="on">10 ft</button>
                 </div>
               </div>
               <button type="button" id="tow-recal" class="af-tow-recal" style="display:none">📐 True scale locked · tap to recalibrate</button>
@@ -7303,7 +7303,12 @@ add_action('template_redirect', function(){
       // closer or farther rescales the artwork exactly as a real painting
       // grows and shrinks in a person's view. If the lines are lost the
       // scale simply holds — it never jumps.
-      var CAL = { locked:false, wallFt:8, base:0, pxPerFt:0, factor:1,
+      // wallFt is the height of the wall being looked at, in feet, and it is
+      // the visitor's to choose — the Wall height buttons set it. It starts at
+      // the height the room photos are drawn against (WALL_FT below), so the
+      // button marked "on" and the picture on screen agree before anything is
+      // touched. Both must move together if this default ever changes.
+      var CAL = { locked:false, wallFt:10, base:0, pxPerFt:0, factor:1,
                   streak:0, spanLock:0, timer:null };
       window.AFCal = CAL;   // read-only view for the harness and live verifier
       var CAL_TOP=0.16, CAL_BOT=0.84;   // rectangle edges as fractions of stage height
@@ -7406,13 +7411,19 @@ add_action('template_redirect', function(){
         var b=e.target.closest('button[data-ft]'); if(!b) return;
         this.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
         b.classList.add('on');
-        CAL.wallFt=parseInt(b.getAttribute('data-ft'),10)||8;
+        CAL.wallFt=parseInt(b.getAttribute('data-ft'),10)||10;
         if(CAL.locked){                     // re-derive the measurement, keep tracking
           var st=$('tow-stage').getBoundingClientRect();
           CAL.base=((CAL_BOT-CAL_TOP)*st.height)/CAL.wallFt;
           CAL.pxPerFt=CAL.base*CAL.factor;
-          applyScale();
         }
+        // Redraw whichever scale is in force. This used to sit inside the
+        // branch above, so before the camera had locked onto the wall — which
+        // is exactly when a visitor is being asked for the height — pressing a
+        // button lit it up and changed nothing on screen. applyScale() reads
+        // CAL.wallFt for the uncalibrated case too, so the artwork resizes on
+        // every press whether or not a measurement exists yet.
+        applyScale();
       });
 
       // ── 1 / 2 / 4 PANEL WALL LAYOUTS (spec §8) ─────────────────────────
@@ -7614,13 +7625,17 @@ add_action('template_redirect', function(){
       ['tow-prod','tow-frame','tow-size','tow-color'].forEach(function(id){ $(id).addEventListener('change', refresh); });
 
       // ── TRUE-TO-SCALE preview ──────────────────────────────────────────
-      // The room photos are shot against a wall we treat as WALL_FT high, and
-      // the wall occupies WALL_FRAC of the stage's height (the rest is floor).
+      // The room photos are shot against a wall whose height the visitor tells
+      // us (CAL.wallFt, from the Wall height buttons; WALL_FT is only the
+      // fallback if that is somehow unset), and the wall occupies WALL_FRAC of
+      // the stage's height (the rest is floor).
       // A size label like "3×5 ft (36×60 in)" is HEIGHT × WIDTH in feet, so the
-      // artwork is drawn at (height_ft / WALL_FT) of the wall — e.g. 3 ft on a
-      // 10 ft wall = 30% of the wall height — and its width follows from the
+      // artwork is drawn at (height_ft / wall height) of the wall — e.g. 3 ft on
+      // a 10 ft wall = 30% of the wall height — and its width follows from the
       // real aspect ratio, not from the price multiplier.
-      var WALL_FT = 10;      // assumed real wall height in the room scenes
+      // Saying the wall is shorter makes the same print cover more of it, which
+      // is the whole point of asking: an 8 ft ceiling is not a 10 ft one.
+      var WALL_FT = 10;      // fallback wall height; CAL.wallFt starts here too
       var WALL_FRAC = 0.78;  // portion of the stage height that is wall
       var scaleSeq = 0;      // guards the deferred size correction below
       function sizeFeet(label){
@@ -7639,11 +7654,11 @@ add_action('template_redirect', function(){
         if(ft && ft.h>0 && ft.w>0){
           // pixels-per-foot from the wall height in this scene
           // Calibrated live camera: the scale is measured against the visitor's
-          // actual wall and tracks them as they move. Otherwise: the room-photo
-          // assumption (the scene shows a WALL_FT wall).
+          // actual wall and tracks them as they move. Otherwise: the room photo,
+          // read as a wall of the height the visitor picked.
           var pxPerFt = (camOn && CAL.locked && CAL.pxPerFt > 0)
             ? CAL.pxPerFt
-            : (sh * WALL_FRAC) / WALL_FT;
+            : (sh * WALL_FRAC) / (CAL.wallFt || WALL_FT);
           var targetH = ft.h * pxPerFt * slider;         // true height on the wall
           var targetW = ft.w * pxPerFt * slider;         // true width  on the wall
           // Set width first, then correct so the RENDERED box (frame + mat +
@@ -12998,9 +13013,9 @@ add_action('template_redirect', function () {
                 <div id="ftm-calmsg" class="af-ftm-calmsg">Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge</div>
                 <div id="ftm-calh" class="af-ftm-calh">
                   <span>Wall height</span>
-                  <button type="button" data-ft="8" class="on">8 ft</button>
+                  <button type="button" data-ft="8">8 ft</button>
                   <button type="button" data-ft="9">9 ft</button>
-                  <button type="button" data-ft="10">10 ft</button>
+                  <button type="button" data-ft="10" class="on">10 ft</button>
                 </div>
               </div>
               <button type="button" id="ftm-recal" class="af-ftm-recal" style="display:none">📐 True scale locked · tap to recalibrate</button>
@@ -13249,8 +13264,11 @@ add_action('template_redirect', function () {
         // crop is already cached ensureCrop() calls back synchronously, and
         // fitToWall() would otherwise still be aiming at the previous size.
         var stage = $('ftm-stage').getBoundingClientRect();
-        var WALL_FT = 10;      // assumed real wall height in the room photos
+        // The visitor's chosen wall height (CAL.wallFt); WALL_FT is only the
+        // fallback, including on the first render before CAL is assigned.
+        var WALL_FT = 10;      // fallback wall height for the room photos
         var WALL_FRAC = 0.78;  // …of which this much of the stage is wall, not floor
+        var wallFt = (typeof CAL !== 'undefined' && CAL && CAL.wallFt) || WALL_FT;
         var h, w;
         if (typeof CAL !== 'undefined' && camOn && CAL.locked && CAL.pxPerFt > 0) {
           // the wall has been measured through the camera: use the real
@@ -13260,7 +13278,7 @@ add_action('template_redirect', function () {
           h = ft.h * CAL.pxPerFt;
           w = ft.w * CAL.pxPerFt;
         } else {
-          h = stage.height * WALL_FRAC * (ft.h / WALL_FT);
+          h = stage.height * WALL_FRAC * (ft.h / wallFt);
           w = h * (ft.w / ft.h);
         }
         // Cap generously, so a larger print never renders smaller than a smaller
@@ -13369,7 +13387,10 @@ add_action('template_redirect', function () {
       // After the lock the detector keeps tracking the two lines, so walking
       // closer or farther rescales the print exactly as a real one would grow
       // or shrink in view. If the lines are lost the scale simply holds.
-      var CAL = { locked:false, wallFt:8, base:0, pxPerFt:0, factor:1,
+      // The visitor's wall height, set by the Wall height buttons. Starts at the
+      // height render() draws the room photos against, so the lit button and the
+      // picture agree before anything is touched. See the note on AFCal.
+      var CAL = { locked:false, wallFt:10, base:0, pxPerFt:0, factor:1,
                   streak:0, spanLock:0, timer:null };
       window.AFCalFTM = CAL;   // read-only view for the live verifier
       var CAL_TOP = 0.16, CAL_BOT = 0.84;   // rectangle edges, fractions of stage height
@@ -13478,13 +13499,16 @@ add_action('template_redirect', function () {
         var b = e.target.closest('button[data-ft]'); if (!b) return;
         this.querySelectorAll('button').forEach(function(x){ x.classList.remove('on'); });
         b.classList.add('on');
-        CAL.wallFt = parseInt(b.getAttribute('data-ft'), 10) || 8;
+        CAL.wallFt = parseInt(b.getAttribute('data-ft'), 10) || 10;
         if (CAL.locked){                           // re-derive, keep tracking
           var st = $('ftm-stage').getBoundingClientRect();
           CAL.base = ((CAL_BOT - CAL_TOP) * st.height) / CAL.wallFt;
           CAL.pxPerFt = CAL.base * CAL.factor;
-          render();
         }
+        // Redraw either way — see the matching note in Try On Wall. Before the
+        // camera locks, this branch used not to run at all, so the button lit up
+        // and the preview stayed exactly as it was.
+        render();
       });
 
       function buildSendLink(p){
