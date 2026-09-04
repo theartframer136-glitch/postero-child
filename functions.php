@@ -8028,9 +8028,18 @@ add_action('template_redirect', function(){
     .af-tow-lay.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
     .af-tow-lay.on span{color:#8a6d3b;}
     /* Wall height, in the panel. Same chip as the layout row above it, so the
-       two read as one pair of choices rather than two unrelated controls. */
+       two read as one pair of choices rather than two unrelated controls.
+       "8 ft" is one line, and is held to one line here rather than trusted to
+       stay that way: the parent theme styles buttons too, and its line-height
+       and padding were enough to break the label at its space and stack the
+       number above the unit. nowrap settles it whatever the inherited value;
+       the explicit flex row, line-height and padding stop the same styles
+       spreading the two halves to the top and bottom of the chip. */
     .af-tow-wallh{display:flex;gap:8px;margin-top:6px;}
-    .af-tow-wallh button{flex:1;height:38px;border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;
+    .af-tow-wallh button{flex:1 1 0;min-width:0;box-sizing:border-box;
+      display:flex;flex-direction:row;align-items:center;justify-content:center;
+      white-space:nowrap;line-height:1;height:38px;padding:0 4px;
+      border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;
       font-size:11px;font-weight:700;color:#8a8170;letter-spacing:.02em;cursor:pointer;transition:border-color .15s;}
     .af-tow-wallh button.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;color:#8a6d3b;}
     /* live camera */
@@ -13893,9 +13902,13 @@ add_action('template_redirect', function () {
     .af-ftm-lay span{font-size:11px;font-weight:700;color:#8a8170;text-align:center;letter-spacing:.02em;}
     .af-ftm-lay.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
     .af-ftm-lay.on span{color:#8a6d3b;}
-    /* Wall height, in the panel — same chip as the layout row above it. */
+    /* Wall height, in the panel — same chip as the layout row above it, and
+       held to one line for the reason set out on .af-tow-wallh. */
     .af-ftm-wallh{display:flex;gap:8px;margin-top:6px;}
-    .af-ftm-wallh button{flex:1;height:38px;border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;
+    .af-ftm-wallh button{flex:1 1 0;min-width:0;box-sizing:border-box;
+      display:flex;flex-direction:row;align-items:center;justify-content:center;
+      white-space:nowrap;line-height:1;height:38px;padding:0 4px;
+      border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;
       font-size:11px;font-weight:700;color:#8a8170;letter-spacing:.02em;cursor:pointer;transition:border-color .15s;}
     .af-ftm-wallh button.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;color:#8a6d3b;}
     /* live camera backdrop */
