@@ -1323,6 +1323,37 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
+          # What a real browser sends, and what every probe below must send.
+          #
+          # This site deliberately treats header-poor requests as scrapers —
+          # that is the whole point of the crawl guard, and the search gate
+          # earlier in this file already probes with these exact Sec-Fetch
+          # headers for the same reason. The three probes here did not, so they
+          # looked like scrapers and were answered 403 at the edge.
+          #
+          # Run #924 is what that costs. A curl with a bare User-Agent got 403
+          # five times, the deploy failed, and the log said "Homepage still
+          # returned 403" — while a headless Chrome two steps later rendered
+          # that same homepage in full: heading, 32 cards, 23 videos. The shop
+          # was fine; only the probe was refused. Worse, the step exits on that
+          # failure, so the cache re-warm below never ran at all and the cache
+          # was left cold straight after the purge — the exact CPU spike the
+          # warm exists to prevent.
+          #
+          # Adding headers weakens nothing: every assertion below is unchanged,
+          # and a real outage still fails the deploy. It only stops the gate
+          # asking the question as a scraper and reporting the answer as an
+          # outage.
+          BROWSER_HDRS=(
+            -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+            -H 'Accept-Language: en-US,en;q=0.9'
+            -H 'Upgrade-Insecure-Requests: 1'
+            -H 'Sec-Fetch-Mode: navigate'
+            -H 'Sec-Fetch-Site: none'
+            -H 'Sec-Fetch-Dest: document'
+            -H 'Sec-Fetch-User: ?1'
+          )
+
           echo "The shop must not be hidden behind a placeholder..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -1371,13 +1402,14 @@ jobs:
           # briefly before failing the deploy.
           CODE=000
           for i in 1 2 3 4 5; do
-            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 45 -A 'Mozilla/5.0 (X11; Linux x86_64) AF-DeployGate' https://theartframer.us/ || echo 000)
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 45 "${BROWSER_HDRS[@]}" -A 'Mozilla/5.0 (X11; Linux x86_64) AF-DeployGate' https://theartframer.us/ || echo 000)
             echo "homepage HTTP $CODE (attempt $i)"
             case "$CODE" in 200|301|302) break ;; esac
             sleep 15
           done
           case "$CODE" in
             200|301|302) : ;;
+            403) echo "::error::Homepage returned 403 to a browser-headed probe after 5 attempts. This is a refusal, not an outage: check whether the crawl guard or the host's WAF is rejecting this runner, and confirm in a browser before assuming the shop is down."; exit 1 ;;
             *) echo "::error::Homepage still returned $CODE after 5 attempts over ~1 minute."; exit 1 ;;
           esac
 
@@ -1390,7 +1422,7 @@ jobs:
           # exits on first match and kills printf with SIGPIPE, so the pipeline
           # reports 141 and the test inverts. That bug failed run #31098282890
           # against a perfectly healthy homepage.
-          curl -s --max-time 45 -A 'Mozilla/5.0 (X11; Linux x86_64) AF-DeployGate' \
+          curl -s --max-time 45 "${BROWSER_HDRS[@]}" -A 'Mozilla/5.0 (X11; Linux x86_64) AF-DeployGate' \
             https://theartframer.us/ -o /tmp/af-home.html || true
           HOME_TITLE=$(grep -oiE '<title>[^<]*</title>' /tmp/af-home.html | head -1)
           echo "homepage title: ${HOME_TITLE:-(none)}"
@@ -1448,7 +1480,7 @@ jobs:
           MISSED=0
           while read -r URL; do
             [ $WARMED -ge $WARM_CAP ] && break
-            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 45 -A 'Mozilla/5.0 (X11; Linux x86_64) AF-CacheWarmer' "$URL" || echo 000)
+            CODE=$(curl -s -o /dev/null -w '%{http_code}' --max-time 45 "${BROWSER_HDRS[@]}" -A 'Mozilla/5.0 (X11; Linux x86_64) AF-CacheWarmer' "$URL" || echo 000)
             case "$CODE" in 200|301|302) : ;; *) MISSED=$((MISSED + 1)); echo "  warmed $URL -> $CODE" ;; esac
             WARMED=$((WARMED + 1))
             sleep 1
