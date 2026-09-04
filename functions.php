@@ -6845,7 +6845,7 @@ add_action('template_redirect', function(){
                 </div>
                 <div class="af-tow-roomcol">
                   <button type="button" id="tow-cambtn" class="af-tow-cambtn">🎥 Use live camera <em>point it at your wall</em></button>
-                  <p class="af-tow-scalenote">📏 Shown true to scale on a 10&nbsp;ft wall</p>
+                  <p class="af-tow-scalenote" id="tow-scalenote">📏 Shown true to scale on a 10&nbsp;ft wall</p>
                   <label>Adjust Size <span id="tow-scaleval">100%</span></label>
                   <input type="range" id="tow-scale" min="40" max="160" value="100">
                 </div>
@@ -7434,6 +7434,11 @@ add_action('template_redirect', function(){
        * they are asked while the rectangle is still red and nothing is locked,
        * and that press lit a button and changed nothing.
        */
+      /** "an 8 ft wall" / "a 9 ft wall" — 8 is the only one that takes "an". */
+      function af_tow_wall_phrase() {
+        var n = CAL.wallFt || WALL_FT;
+        return ( n === 8 ? 'an ' : 'a ' ) + n + ' ft wall';
+      }
       function af_tow_set_wall_ft( n ) {
         CAL.wallFt = parseInt( n, 10 ) || 10;
         [ 'tow-wallh', 'tow-calh' ].forEach(function(id){
@@ -7687,11 +7692,35 @@ add_action('template_redirect', function(){
           // Calibrated live camera: the scale is measured against the visitor's
           // actual wall and tracks them as they move. Otherwise: the room photo,
           // read as a wall of the height the visitor picked.
-          var pxPerFt = (camOn && CAL.locked && CAL.pxPerFt > 0)
+          var measured = ( camOn && CAL.locked && CAL.pxPerFt > 0 );
+          var pxPerFt = measured
             ? CAL.pxPerFt
             : (sh * WALL_FRAC) / (CAL.wallFt || WALL_FT);
           var targetH = ft.h * pxPerFt * slider;         // true height on the wall
           var targetW = ft.w * pxPerFt * slider;         // true width  on the wall
+
+          // Say which of those two it was.
+          //
+          // The note used to read "Shown true to scale on a 10 ft wall" in every
+          // state, and both halves of that could be false. It ignored the wall
+          // height the visitor picked, so choosing 8 ft rescaled the artwork
+          // while the note still said 10. And it claimed true scale with the
+          // camera running and NOT yet locked — which is the state a visitor is
+          // in for the whole time they are being asked to fit the rectangle to
+          // their wall. There the artwork is drawn against the room-photo
+          // assumption (a wall of the chosen height filling WALL_FRAC of the
+          // frame) applied to whatever the camera happens to be pointed at, so
+          // it is not to scale and cannot be until the measurement exists.
+          // Nothing about the sizing changes here; only the claim made about it.
+          var note = $('tow-scalenote');
+          if ( note ) {
+            note.textContent = measured
+              ? '📏 True to scale — measured against your own wall.'
+              : ( camOn
+                  ? '📐 Not to scale yet — drawn against ' + af_tow_wall_phrase()
+                    + '. Fit the rectangle to your wall to measure it.'
+                  : '📏 Shown true to scale on ' + af_tow_wall_phrase() );
+          }
           // Set width first, then correct so the RENDERED box (frame + mat +
           // art, whose own ratio may differ) matches the real footprint.
           box.style.width = Math.max(40, targetW) + 'px';
@@ -13385,7 +13414,18 @@ add_action('template_redirect', function () {
           fitToWall();     // panels exist now, so the box can be measured
         });
 
-        $('ftm-tip').textContent = 'Shown true to scale on a 10 ft wall — ' +
+        // Which scale is actually in force — see the note in Try On Wall's
+        // applyScale(). The old text said "on a 10 ft wall" in every state,
+        // ignoring the height the visitor picked and claiming true scale with
+        // the camera running but not yet measured.
+        var tipMeasured = ( typeof CAL !== 'undefined' && CAL && camOn && CAL.locked && CAL.pxPerFt > 0 );
+        var ftmWallPhrase = ( wallFt === 8 ? 'an ' : 'a ' ) + wallFt + ' ft wall';
+        var tipLead = tipMeasured
+          ? 'True to scale, measured against your own wall — '
+          : ( camOn
+              ? 'Not to scale yet — drawn against ' + ftmWallPhrase + ' until you fit the rectangle to yours. '
+              : 'Shown true to scale on ' + ftmWallPhrase + ' — ' );
+        $('ftm-tip').textContent = tipLead +
           ft.h.toFixed(1).replace(/\.0$/,'') + '×' + ft.w.toFixed(1).replace(/\.0$/,'') + ' ft print' +
           (LAYOUT > 1
             ? ' as a ' + LAYOUT + '-panel set. Split sets are quoted on WhatsApp — the price above is for the single print.'
