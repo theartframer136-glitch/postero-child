@@ -1,0 +1,140 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+=== SKU → ART CODE ===
+target: artcode-sku-v4-unique  |  budget: 200s or 800 products per run
+products: 391
+  with an art code:    268
+  WITHOUT an art code: 123  (a SKU this tool minted is undone below)
+  art codes shared by more than one product: 37
+  products given a letter so their SKU is unique: 81
+  uniqueness: OK — 268 products, 268 distinct SKUs
+
+changed 0  |  already correct 268  |  clashes left alone 0  |  failed 0  |  0s
+every product with an art code now carries it as its SKU.
+
+--- ART CODES ON MORE THAN ONE PRODUCT ---
+These 37 codes are each on several products, so each product
+gets a letter to make its SKU unique. The art code itself is untouched —
+the letter belongs to the SKU alone. A letter, once issued, never moves.
+These are still codes that want correcting; the letters keep the shop
+working in the meantime.
+  LB-0901 (2 products)
+     LB-0901A     #220     Serene Buddha with Lotus Canvas Wall Art 4×3 Feet – Fl
+     LB-0901B     #7839    Buddha Lotus Serenity Canvas Wall Art 36×60 Inches – S
+  TP-0504 (2 products)
+     TP-0504A     #229     Lord Venkateswara Temple Canvas Wall Art 2×3 Feet – Fl
+     TP-0504B     #8474    Divine Lord Balaji Temple Canvas Wall Art – 60 × 36 In
+  VA-1604 (2 products)
+     VA-1604A     #7703    Divine Garuda Sacred Symbol Canvas Wall Art– 36 × 60 I
+     VA-1604B     #21381   Sun Phoenix Vintage Art Canvas Wall Art 3×4 Feet – Flo
+  LR-25 (2 products)
+     LR-25A       #7803    Vaishnav Tilak Shankh Chakra Wall Art 84×24 Inch – Lar
+     LR-25B       #20026   Indian Classical Dancer Canvas Wall Art 3×4 Feet – Flo
+  SA-1002 (2 products)
+     SA-1002A     #7815    Sacred Golden Temple Amritsar Canvas Wall Art – 48 × 3
+     SA-1002B     #26936   Golden Temple Daylight Canvas Wall Art 3×4 Feet – Floa
+  HD-0805 (2 products)
+     HD-0805A     #7830    Modern Abstract Ganesha Canvas Wall Art 36×48 Inches –
+     HD-0805B     #19330   Ganesha Art Canvas Wall Art 3×4 Feet – Floating Frame 
+  SL-1502 (2 products)
+     SL-1502A     #7833    Minimalist Blossom Vase Canvas Wall Art 36 × 60 Inches
+     SL-1502B     #22564   Decorated Lord Murugan Canvas Wall Art 3×4 Feet – Floa
+  AA-2014 (2 products)
+     AA-2014A     #7837    Stunning Statement Geometric Floral Wall Art 60×36 – A
+     AA-2014B     #31273   Palace in the Grove Canvas Wall Art 3×4 Feet – Floatin
+  LR-24 (3 products)
+     LR-24A       #7838    Indian Classical Dance Canvas Wall Art – 36 x 60 Inche
+     LR-24B       #16191   Serene Buddha Statue Canvas Wall Art 3×4 Feet – Floati
+     LR-24C       #27264   Nataraja Bronze Glory Canvas Wall Art 3×4 Feet – Float
+  HD-0824 (2 products)
+     HD-0824A     #8398    Meditating Yogi Spiritual Wall Art – 60 × 24 Inches Pe
+     HD-0824B     #14861   Sadhu in Contemplation Canvas Wall Art 3×4 Feet – Floa
+  TP-0506 (2 products)
+     TP-0506A     #13840   Lord Venkateswara Cosmic Canvas Wall Art 3×4 Feet – Fl
+     TP-0506B     #30966   Vishnu on Shesha Canvas Wall Art 3×4 Feet – Floating F
+  RK-0134 (2 products)
+     RK-0134A     #14617   Krishna Playing Flute Canvas Wall Art 3×4 Feet – Float
+     RK-0134B     #31829   Krishna Flute Panorama Canvas Wall Art 3×4 Feet – Floa
+  HD-0820 (2 products)
+     HD-0820A     #15278   Golden Idol Statue Canvas Wall Art 3×4 Feet – Floating
+     HD-0820B     #26328   Sri Ramanuja Golden Murti Canvas Wall Art 3×4 Feet – F
+  VA-1603 (2 products)
+     VA-1603A     #15340   Nandi The Bull Canvas Wall Art 3×4 Feet – Floating Fra
+     VA-1603B     #29751   Sacred Cow Relief Art Canvas Wall Art 3×4 Feet – Float
+  HD-0821 (2 products)
+     HD-0821A     #15607   Hindu Saint Portrait Canvas Wall Art 3×4 Feet – Floati
+     HD-0821B     #22321   Golden Guru Aura Canvas Wall Art 3×4 Feet – Floating F
+  TP-0513 (3 products)
+     TP-0513A     #15730   Vishnu Blue Form Canvas Wall Art 3×4 Feet – Floating F
+     TP-0513B     #23911   Kalki Avatar Tanjore Canvas Wall Art 3×4 Feet – Floati
+     TP-0513C     #31890   Lord Vishnu Golden Halo Canvas Wall Art 3×4 Feet – Flo
+  LR-0705 (2 products)
+     LR-0705A     #15913   Lord Vishnu Statue Canvas Wall Art 3×4 Feet – Floating
+     LR-0705B     #17543   Lord Balaji Idol Canvas Wall Art 3×4 Feet – Floating F
+  LB-0905 (2 products)
+     LB-0905A     #16096   Buddha Art Canvas Wall Art 3×4 Feet – Floating Frame –
+     LB-0905B     #27078   Seven Horses Sunset Beach Canvas Wall Art 3×4 Feet – F
+  LS-0309 (2 products)
+     LS-0309A     #16257   Buddha Art Canvas Wall Art 3×4 Feet – Floating Frame –
+     LS-0309B     #29578   Twin Faces of Serenity Canvas Wall Art 3×4 Feet – Floa
+  LB-0908 (2 products)
+     LB-0908A     #16382   Golden Buddha Canvas Wall Art 3×4 Feet – Floating Fram
+     LB-0908B     #27811   Buddha Among Pink Lotuses Canvas Wall Art 3×4 Feet – F
+  TP-0512 (2 products)
+     TP-0512A     #16701   Vishnu On Snake Canvas Wall Art 3×4 Feet – Floating Fr
+     TP-0512B     #22686   Vishnu Bhootapuri Art Canvas Wall Art 3×4 Feet – Float
+  LS-0308 (2 products)
+     LS-0308A     #16993   Shiva Family Art Canvas Wall Art 3×4 Feet – Floating F
+     LS-0308B     #22625   Whimsical Tower Scene Canvas Wall Art 3×4 Feet – Float
+  KR-1807 (3 products)
+     KR-1807A     #17402   Vibrant Horse Art Canvas Wall Art 3×4 Feet – Floating 
+     KR-1807B     #21771   Guru Watercolor Splash Canvas Wall Art 3×4 Feet – Floa
+     KR-1807C     #27388   Krishna Minimal Splash Canvas Wall Art 3×4 Feet – Floa
+  HD-0818 (2 products)
+     HD-0818A     #17917   Goddess Lakshmi on Elephant Canvas Wall Art 3×4 Feet –
+     HD-0818B     #21564   Ganesha with Elephants Canvas Wall Art 3×4 Feet – Floa
+  AA-2010 (2 products)
+     AA-2010A     #17978   Tree Under Moonlight Canvas Wall Art 3×4 Feet – Floati
+     AA-2010B     #21503   Vaishnava Saints Kirtan Canvas Wall Art 3×4 Feet – Flo
+  KR-1816 (2 products)
+     KR-1816A     #18168   Whimsical Bird Creatures Canvas Wall Art 3×4 Feet – Fl
+     KR-1816B     #27633   Flight Path Reverie Canvas Wall Art 3×4 Feet – Floatin
+  LS-0305 (2 products)
+     LS-0305A     #18416   Shiva Meditation Scene Canvas Wall Art 3×4 Feet – Floa
+     LS-0305B     #18727   Whimsy Friends Canvas Wall Art 3×4 Feet – Floating Fra
+  SH-0404 (2 products)
+     SH-0404A     #19025   Seven Horses Ocean Run Canvas Wall Art 3×4 Feet – Floa
+     SH-0404B     #23191   Seven Horses Cliff Dawn Canvas Wall Art 3×4 Feet – Flo
+  AA-2006 (2 products)
+     AA-2006A     #19575   Man in Contemplation Canvas Wall Art 3×4 Feet – Floati
+     AA-2006B     #22016   Horses in Color Field Canvas Wall Art 3×4 Feet – Float
+  LB-0906 (2 products)
+     LB-0906A     #20709   Buddha Lotus Twilight Canvas Wall Art 3×4 Feet – Float
+     LB-0906B     #28534   Kirtan Celebration Canvas Wall Art 3×4 Feet – Floating
+  LS-0311 (4 products)
+     LS-0311A     #21625   Krishna and Cow Folk Art Canvas Wall Art 3×4 Feet – Fl
+     LS-0311B     #25474   Lantern Lake Starry Night Canvas Wall Art 3×4 Feet – F
+     LS-0311C     #26628   Floral Arch Wall Art Canvas Wall Art 3×4 Feet – Floati
+     LS-0311D     #30154   Ganesha Dawn Silhouette Canvas Wall Art 3×4 Feet – Flo
+  HD-0806 (2 products)
+     HD-0806A     #22747   Ganesh Pop Art Canvas Wall Art 3×4 Feet – Floating Fra
+     HD-0806B     #24775   Bharat Mata with Lion Canvas Wall Art 3×4 Feet – Float
+  TP-0511 (2 products)
+     TP-0511A     #23069   Narayana on Lotus Canvas Wall Art 3×4 Feet – Floating 
+     TP-0511B     #31088   Vaikuntha Celestial Court Canvas Wall Art 3×4 Feet – F
+  SL-1516 (2 products)
+     SL-1516A     #24958   Ganesha Fire Abstract Canvas Wall Art 3×4 Feet – Float
+     SL-1516B     #28473   Quiet Harbor Minimal Canvas Wall Art 3×4 Feet – Floati
+  HD-0814 (2 products)
+     HD-0814A     #25021   Tanjore Seated Goddess Canvas Wall Art 3×4 Feet – Floa
+     HD-0814B     #30215   Devi in White on Lotus Canvas Wall Art 3×4 Feet – Floa
+  SA-1001 (4 products)
+     SA-1001A     #25297   Tanjore Deity with Devotees Canvas Wall Art 3×4 Feet –
+     SA-1001B     #26814   Golden Temple at Dusk Canvas Wall Art 3×4 Feet – Float
+     SA-1001C     #28717   Vishnu in Golden Garlands Canvas Wall Art 3×4 Feet – F
+     SA-1001D     #29220   Vishnu Cosmic Lotus Canvas Wall Art 3×4 Feet – Floatin
+  PA-1201 (2 products)
+     PA-1201A     #28962   Savanna Golden Hour Canvas Wall Art 3×4 Feet – Floatin
+     PA-1201B     #31527   Krishna Cowherd Modern Art Canvas Wall Art 3×4 Feet – 
+
+no art code: 123 product(s); 0 had the SKU it displaced put back, 0 had a generated SKU cleared, 73 left alone

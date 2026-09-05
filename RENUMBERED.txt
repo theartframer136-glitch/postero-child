@@ -1,0 +1,51 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+=== ART CODES → THE BOOK'S NUMBERING ===
+mode: APPLYING
+products: 391
+  with an art code:     268
+  without one:          123
+  to renumber:          0
+  already in the book's numbering: 247
+  naming no page of the book:      21  (left alone)
+  codes landing on more than one product: 35, over 76 products (unchanged by this pass)
+
+--- left alone: these name no page of the book ---
+Each needs its picture put next to the book, which is the audit's work,
+not this pass's. Rows for them belong in tools/artcode-corrections.csv.
+  AL is not a section of the book — 3 product(s)
+     #23435   AL 06        Andal with Parrot Tanjore Canvas Wall Art 3×
+     #23496   AL 05        Mahayogi Tanjore Panel Canvas Wall Art 3×4 F
+     #26145   AL 01        Tanjore Murugan Panel Canvas Wall Art 3×4 Fe
+  Lord Rama has 9 pages, numbered up to 9 in the old book — 10 product(s)
+     #7803    LR 25        Vaishnav Tilak Shankh Chakra Wall Art 84×24 
+     #7805    LR 13        Stunning Butterfly Tree Canvas Wall Art 36×4
+     #7838    LR 24        Indian Classical Dance Canvas Wall Art – 36 
+     #16191   LR 24        Serene Buddha Statue Canvas Wall Art 3×4 Fee
+     #20026   LR 25        Indian Classical Dancer Canvas Wall Art 3×4 
+     #24714   LR 32        Namaste Henna Hands Canvas Wall Art 3×4 Feet
+     #25535   LR 33        Jazz Man Blue Gold Canvas Wall Art 3×4 Feet 
+     #27264   LR 24        Nataraja Bronze Glory Canvas Wall Art 3×4 Fe
+     #28778   LR 39        Dancer on Stage Canvas Wall Art 3×4 Feet – F
+     #29639   LR 21        Mahavira Golden Shrine Canvas Wall Art 3×4 F
+  Lord Shiva has 15 pages, numbered up to 15 in the old book — 7 product(s)
+     #7816    LS 22        Divine Lord Shiva Canvas Wall Art (36×48 Inc
+     #17856   LS 16        Shiva The Destroyer Canvas Wall Art 3×4 Feet
+     #19883   LS 21        Shiva Neon Line Art Canvas Wall Art 3×4 Feet
+     #20770   LS 17        Shiva Crescent Dream Canvas Wall Art 3×4 Fee
+     #29023   LS 19        Shiva Parivar Blessing Canvas Wall Art 3×4 F
+     #30338   LS 18        Shiva Parivar in Clouds Canvas Wall Art 3×4 
+     #31150   LS 20        Shiva Family Harmony Canvas Wall Art 3×4 Fee
+  Pichwai Art has 1 pages, numbered up to 1 in the old book — 1 product(s)
+     #29395   PA 02        Pichwai Ganesha Fountains Canvas Wall Art 3×
+
+--- on a page the book has withdrawn ---
+RK - 0176 (was RK 76) is struck through with a red X in the brochure.
+     #7769    Divine Shrinathji Canvas Wall Art – Stunning
+
+renumbered: 0  |  already correct: 247  |  left alone: 21  |  no code: 123
+
+Written. The SKU pass runs next and rebuilds each changed product's SKU
+from its new code; the code each product had before is kept in
+_af_code_before_renumber.
+=== DONE ===

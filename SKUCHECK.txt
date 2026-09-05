@@ -1,0 +1,84 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+=== SKU FORMAT CHECK ===
+
+-- art code -> SKU --
+  OK    'RK 01'                                        RK-01
+  OK    'RK 1'                                         RK-01
+  OK    'rk 01'                                        RK-01
+  OK    'RK  01'                                       RK-01
+  OK    'LI 32'                                        LI-32
+  OK    'HD 28'                                        HD-28
+  OK    'RK 101'                                       RK-101
+  OK    ''                                             
+  OK    'RK - 0101'                                    RK-0101
+  OK    'HD - 0814'                                    HD-0814
+  OK    'LI - 1944'                                    LI-1944
+  OK    'HD - 0814-GF'                                 HD-0814-GF
+  OK    'HD 15-GF'                                     HD-15-GF
+
+-- the book's numbering --
+  OK    'RK 01'                                        RK - 0101
+  OK    'RK 91'                                        RK - 0191
+  OK    'LC 09'                                        LC - 1409
+  OK    'LI 32'                                        LI - 1932
+  OK    'TP 03'                                        TP - 0503
+  OK    'TP 05'                                        TP - 0504
+  OK    'TP 16'                                        TP - 0515
+  OK    'HD 13'                                        HD - 0813
+  OK    'HD 15'                                        HD - 0814
+  OK    'HD 28'                                        HD - 0827
+  OK    'HD 15-GF'                                     HD - 0814-GF
+  OK    'rk 1'                                         RK - 0101
+  OK    'RK-01'                                        RK - 0101
+  OK    'RK - 0101'                                    RK - 0101
+  OK    'TP - 0504'                                    TP - 0504
+  OK    'TP 04'                                        (no page)
+  OK    'HD 14'                                        (no page)
+  OK    'LR 32'                                        (no page)
+  OK    'ZZ 01'                                        (no page)
+  OK    ''                                             (no page)
+  OK    every page maps, once, and maps to itself      340 pages, 0 problems
+
+-- every size the card sells -> token --
+  OK    the rate card has sizes                        15 sizes
+  OK    2×3 ft (24×36 in)                            2/3
+  OK    3×2 ft (36×24 in)                            3/2
+  OK    2×3.5 ft (24×42 in)                          2/3.5
+  OK    2×4 ft (24×48 in)                            2/4
+  OK    2×5 ft (24×60 in)                            2/5
+  OK    2.5×3 ft (30×36 in)                          2.5/3
+  OK    2.5×4 ft (30×48 in)                          2.5/4
+  OK    2.5×5 ft (30×60 in)                          2.5/5
+  OK    3×4 ft (36×48 in)                            3/4
+  OK    3×5 ft (36×60 in)                            3/5
+  OK    3×6 ft (36×72 in)                            3/6
+  OK    4×3 ft (48×36 in)                            4/3
+  OK    4×4 ft (48×48 in)                            4/4
+  OK    4×5 ft (48×60 in)                            4/5
+  OK    4×6 ft (48×72 in)                            4/6
+
+-- orientation is preserved --
+  OK    no two card sizes share a token                0 collisions
+  OK    portrait 2x3                                   2/3
+  OK    landscape 3x2                                  3/2
+  OK    a half-foot size keeps its decimal             2.5/4
+  OK    an unparseable size yields nothing             ''
+
+-- the product SKU and the line SKU agree --
+  OK    #31890 'TP - 0513'                             TP-0513C-2/3
+  OK    #31829 'RK - 0134'                             RK-0134B-2/3
+  OK    #31772 'RK - 0118'                             RK-0118-2/3
+  OK    #31713 'TA - 2103'                             TA-2103-2/3
+  OK    #31588 'LR - 0709'                             LR-0709-2/3
+  OK    no size chosen: no trailing hyphen             TP-0513C
+
+-- every product SKU is unique --
+  OK    no two products share a SKU                    341 distinct SKUs across 391 products
+  note  50 product(s) carry no SKU at all
+
+-- stored letters still match the code they were issued for --
+  note  81 product(s) carry a letter; 0 stale and ignored (harmless -- see the comment above)
+
+=== ALL CHECKS PASSED ===
+=== DONE ===
