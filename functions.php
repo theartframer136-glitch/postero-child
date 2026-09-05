@@ -6816,7 +6816,7 @@ add_action('template_redirect', function(){
                   <span class="af-tow-calcorner tl"></span><span class="af-tow-calcorner tr"></span>
                   <span class="af-tow-calcorner bl"></span><span class="af-tow-calcorner br"></span>
                 </div>
-                <div id="tow-calmsg" class="af-tow-calmsg">Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge<em>Each band inside is one foot of wall.</em></div>
+                <div id="tow-calmsg" class="af-tow-calmsg">Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge</div>
                 <div id="tow-calh" class="af-tow-calh">
                   <span>Wall height</span>
                   <button type="button" data-ft="8">8 ft</button>
@@ -7411,7 +7411,7 @@ add_action('template_redirect', function(){
         $('tow-cal').style.display='block';
         $('tow-recal').style.display='none';
         $('tow-calbox').classList.remove('locked','near');
-        $('tow-calmsg').innerHTML='Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge<em>Each band inside is one foot of wall.</em>';
+        $('tow-calmsg').innerHTML='Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge';
         if(!CAL.timer) CAL.timer=setInterval(calTick,160);
       }
       function calStop(){
@@ -7441,10 +7441,6 @@ add_action('template_redirect', function(){
       }
       function af_tow_set_wall_ft( n ) {
         CAL.wallFt = parseInt( n, 10 ) || 10;
-        // The calibration rectangle's ruler is one band per foot, so the height
-        // decides how many bands it is cut into.
-        var calbox = $('tow-calbox');
-        if ( calbox ) { calbox.style.setProperty( '--af-cal-ft', String( CAL.wallFt ) ); }
         [ 'tow-wallh', 'tow-calh' ].forEach(function(id){
           var row = $(id); if ( ! row ) { return; }
           row.querySelectorAll('button[data-ft]').forEach(function(x){
@@ -8091,33 +8087,20 @@ add_action('template_redirect', function(){
       color:#e04338;box-shadow:0 0 0 2000px rgba(0,0,0,.16);transition:border-color .25s,color .25s,box-shadow .3s;}
     .af-tow-calbox.near{border-color:#e8b400;color:#e8b400;}
     .af-tow-calbox.locked{border-color:#2fae52;color:#2fae52;box-shadow:0 0 0 2000px rgba(0,0,0,0),0 0 26px rgba(47,174,82,.85);}
-    /* A ruler inside the rectangle: one band per foot of the chosen wall.
-       This began as an equal 3x3 grid, and equal thirds measure nothing — on a
-       10 ft wall those lines fall at 3 ft 4 in and 6 ft 8 in. The rectangle IS
-       the wall, though: calLock() reads its height as CAL.wallFt feet
-       (CAL.base = (CAL_BOT-CAL_TOP)*stageHeight / wallFt), so dividing it into
-       wallFt equal bands makes each band exactly one foot of the very wall the
-       scale is taken from. Count five bands and that is how tall a 5 ft print
-       will stand. Pick 8 ft and the rectangle re-divides into eight.
-       --af-cal-ft carries the height. af_tow_set_wall_ft() writes it; the
-       fallback below is the same default CAL.wallFt holds, so the ruler is
-       right before any button is pressed.
-       inset:-3px lays the gradient over the BORDER box — the box that top:16%/
-       bottom:16% positions and that the lock measures. On the padding box every
-       foot would be short by the 3px borders. The band edge at 0 sits under the
-       top border and is not seen.
-       The single vertical line is a plumb line down the middle of the wall, for
-       centring a piece. There is deliberately no vertical ruler: how many feet
-       of wall the rectangle spans sideways depends on the lens and the room, not
-       on the wall height, so any vertical foot marks would be invented.
-       currentColor, and a colour on each state, so the ruler turns amber and
-       then green with the rectangle instead of staying red under a locked
-       frame. */
-    .af-tow-calbox::before{content:'';position:absolute;inset:-3px;pointer-events:none;opacity:.4;border-radius:6px;
-      background-image:repeating-linear-gradient(to bottom,currentColor 0 1px,transparent 1px calc(100% / var(--af-cal-ft,10))),
-        linear-gradient(currentColor,currentColor);
-      background-size:100% 100%,1px 100%;
-      background-position:0 0,50% 0;
+    /* Thirds grid inside the rectangle. The step being asked for is a judgement
+       about straightness — is the ceiling line level with the top edge, the
+       floor line with the bottom — and an empty rectangle gives the eye nothing
+       to measure against but its own edges. Two lines each way are enough to
+       see a tilt or an off-centre wall without hiding what the camera sees.
+       Drawn as four positioned gradients rather than a repeating one so there
+       are exactly four lines and none doubles up on the border. currentColor,
+       and a colour on each state, so the grid turns amber and then green with
+       the rectangle instead of staying red under a locked frame. */
+    .af-tow-calbox::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.4;
+      background-image:linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor),
+        linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor);
+      background-size:1px 100%,1px 100%,100% 1px,100% 1px;
+      background-position:33.333% 0,66.666% 0,0 33.333%,0 66.666%;
       background-repeat:no-repeat;}
     .af-tow-calcorner{position:absolute;width:20px;height:20px;border-color:inherit;border-style:solid;border-width:0;}
     .af-tow-calcorner.tl{top:-3px;left:-3px;border-top-width:6px;border-left-width:6px;border-top-left-radius:6px;}
@@ -8127,7 +8110,6 @@ add_action('template_redirect', function(){
     .af-tow-calmsg{position:absolute;left:50%;top:4%;transform:translateX(-50%);background:rgba(16,16,16,.82);color:#fff;
       font-size:12.5px;line-height:1.45;padding:8px 14px;border-radius:9px;max-width:78%;text-align:center;}
     .af-tow-calmsg strong{color:#efd48d;}
-    .af-tow-calmsg em{display:block;margin-top:5px;font-style:normal;font-size:11px;color:#cfc6ae;}
     .af-tow-calh{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);display:flex;gap:7px;align-items:center;
       background:rgba(16,16,16,.82);border-radius:999px;padding:6px 10px;pointer-events:auto;}
     .af-tow-calh span{color:#cbc2ac;font-size:11px;font-weight:700;text-transform:none;letter-spacing:0;margin:0;}
@@ -13128,7 +13110,7 @@ add_action('template_redirect', function () {
                   <span class="af-ftm-calcorner tl"></span><span class="af-ftm-calcorner tr"></span>
                   <span class="af-ftm-calcorner bl"></span><span class="af-ftm-calcorner br"></span>
                 </div>
-                <div id="ftm-calmsg" class="af-ftm-calmsg">Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge<em>Each band inside is one foot of wall.</em></div>
+                <div id="ftm-calmsg" class="af-ftm-calmsg">Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge</div>
                 <div id="ftm-calh" class="af-ftm-calh">
                   <span>Wall height</span>
                   <button type="button" data-ft="8">8 ft</button>
@@ -13613,7 +13595,7 @@ add_action('template_redirect', function () {
         $('ftm-cal').style.display = 'block';
         $('ftm-recal').style.display = 'none';
         $('ftm-calbox').classList.remove('locked','near');
-        $('ftm-calmsg').innerHTML = 'Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge<em>Each band inside is one foot of wall.</em>';
+        $('ftm-calmsg').innerHTML = 'Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge';
         if (!CAL.timer) CAL.timer = setInterval(calTick, 160);
       }
       function calStop(){
@@ -13630,9 +13612,6 @@ add_action('template_redirect', function () {
        *  never disagree, and the redraw is unconditional. */
       function af_ftm_set_wall_ft( n ) {
         CAL.wallFt = parseInt( n, 10 ) || 10;
-        // one band per foot in the calibration rectangle
-        var calbox = $('ftm-calbox');
-        if ( calbox ) { calbox.style.setProperty( '--af-cal-ft', String( CAL.wallFt ) ); }
         [ 'ftm-wallh', 'ftm-calh' ].forEach(function(id){
           var row = $(id); if ( ! row ) { return; }
           row.querySelectorAll('button[data-ft]').forEach(function(x){
@@ -13995,14 +13974,12 @@ add_action('template_redirect', function () {
       color:#e04338;box-shadow:0 0 0 2000px rgba(0,0,0,.16);transition:border-color .25s,color .25s,box-shadow .3s;}
     .af-ftm-calbox.near{border-color:#e8b400;color:#e8b400;}
     .af-ftm-calbox.locked{border-color:#2fae52;color:#2fae52;box-shadow:0 0 0 2000px rgba(0,0,0,0),0 0 26px rgba(47,174,82,.85);}
-    /* One band per foot, plus a plumb line — see the note on
-       .af-tow-calbox::before for why the bands are feet and the plumb line is
-       the only vertical. */
-    .af-ftm-calbox::before{content:'';position:absolute;inset:-3px;pointer-events:none;opacity:.4;border-radius:6px;
-      background-image:repeating-linear-gradient(to bottom,currentColor 0 1px,transparent 1px calc(100% / var(--af-cal-ft,10))),
-        linear-gradient(currentColor,currentColor);
-      background-size:100% 100%,1px 100%;
-      background-position:0 0,50% 0;
+    /* Thirds grid — see the note on .af-tow-calbox::before. */
+    .af-ftm-calbox::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.4;
+      background-image:linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor),
+        linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor);
+      background-size:1px 100%,1px 100%,100% 1px,100% 1px;
+      background-position:33.333% 0,66.666% 0,0 33.333%,0 66.666%;
       background-repeat:no-repeat;}
     .af-ftm-calcorner{position:absolute;width:20px;height:20px;border-color:inherit;border-style:solid;border-width:0;}
     .af-ftm-calcorner.tl{top:-3px;left:-3px;border-top-width:6px;border-left-width:6px;border-top-left-radius:6px;}
@@ -14012,7 +13989,6 @@ add_action('template_redirect', function () {
     .af-ftm-calmsg{position:absolute;left:50%;top:4%;transform:translateX(-50%);background:rgba(16,16,16,.82);color:#fff;
       font-size:12.5px;line-height:1.45;padding:8px 14px;border-radius:9px;max-width:78%;text-align:center;}
     .af-ftm-calmsg strong{color:#efd48d;}
-    .af-ftm-calmsg em{display:block;margin-top:5px;font-style:normal;font-size:11px;color:#cfc6ae;}
     .af-ftm-calh{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);display:flex;gap:7px;align-items:center;
       background:rgba(16,16,16,.82);border-radius:999px;padding:6px 10px;pointer-events:auto;}
     .af-ftm-calh span{color:#cbc2ac;font-size:11px;font-weight:700;text-transform:none;letter-spacing:0;margin:0;}
