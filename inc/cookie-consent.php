@@ -9,8 +9,10 @@
  *     window.afConsent + an "af-consent" event, so any analytics or pixel
  *     added later loads only after the visitor allowed its category
  *   • CCPA: "Do Not Sell or Share My Personal Information" maps to the
- *     marketing category being off, reachable from the banner and the footer
- *   • a "Cookie preferences" footer link reopens the panel at any time
+ *     marketing category being off, offered in the banner's own panel
+ *   • nothing is added to the footer. The two pills that used to sit there
+ *     were removed at the owner's request; window.afConsentReopen() still
+ *     opens the panel, for a footer link to call when one is wanted.
  */
 if (!defined('ABSPATH')) exit;
 
@@ -61,14 +63,6 @@ add_action('wp_footer', function() {
     .af-ck-btn.solid{background:#1a1a1a;border-color:#1a1a1a;color:#fff;}
     .af-ck-btn.solid:hover{background:#000;}
     .af-ck-btn.ghost{background:transparent;}
-    /* footer reopen links — pills, not bare underlined text */
-    .af-ck-footwrap{display:flex;gap:10px;justify-content:center;align-items:center;flex-wrap:wrap;
-      margin:18px auto 6px;padding:14px 16px 0;border-top:1px solid rgba(150,135,100,.18);max-width:720px;}
-    .af-ck-foot{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.02em;
-      color:#6b6250;background:#fffdf8;border:1.5px solid #e2d9c4;border-radius:999px;padding:9px 16px;cursor:pointer;
-      text-transform:none;text-decoration:none;line-height:1;transition:border-color .15s,color .15s,box-shadow .15s;}
-    .af-ck-foot:hover{border-color:#c9a84c;color:#a8872e;box-shadow:0 4px 14px rgba(70,54,26,.10);}
-    .af-ck-foot .af-ck-ico{font-size:14px;line-height:1;}
     @media(max-width:600px){.af-ck-card{padding:14px;}.af-ck-actions{width:100%;}}
     </style>
     <script>
@@ -99,11 +93,13 @@ add_action('wp_footer', function() {
       if (!box) return;
       var have = read();
       window.afConsent = have || { necessary:true, analytics:false, marketing:false };
-      if (have) { hookFooter(); return; }        // already answered — stay hidden
-      box.hidden = false;
 
+      // Wired for everyone, before the early return below, because a visitor
+      // who has already answered is exactly the one who needs the panel to
+      // work when something reopens it. This used to sit after that return,
+      // so on a repeat visit opts was undefined and Save had no handler.
       var opts = box.querySelector('.af-ck-opts');
-      function finish(c){ write(c); box.hidden = true; hookFooter(); }
+      function finish(c){ write(c); box.hidden = true; }
       document.getElementById('af-ck-accept').addEventListener('click', function(){
         finish({ analytics:true, marketing:true });
       });
@@ -121,34 +117,36 @@ add_action('wp_footer', function() {
         });
       });
 
-      // footer links to reopen the panel (added once, wherever the footer menu is)
-      function hookFooter(){
-        if (document.getElementById('af-ck-reopen')) return;
-        var host = document.querySelector('.site-footer .footer-bottom, footer .copyright, footer');
-        if (!host) return;
-        function reopen(){
-          var c = read() || {};
-          document.getElementById('af-ck-analytics').checked = !!c.analytics;
-          document.getElementById('af-ck-marketing').checked = !!c.marketing;
-          opts.hidden = false;
-          document.getElementById('af-ck-prefs').hidden = true;
-          document.getElementById('af-ck-save').hidden = false;
-          box.hidden = false;
-        }
-        function pill(id, icon, label){
-          var b = document.createElement('button');
-          b.type = 'button'; b.id = id; b.className = 'af-ck-foot';
-          b.innerHTML = '<span class="af-ck-ico" aria-hidden="true">' + icon + '</span>' + label;
-          b.addEventListener('click', reopen);
-          return b;
-        }
-        var wrap = document.createElement('div');
-        wrap.className = 'af-ck-footwrap';
-        wrap.appendChild(pill('af-ck-reopen', '🍪', 'Cookie Preferences'));
-        wrap.appendChild(pill('af-ck-ccpa', '🔒', 'Do Not Sell or Share My Personal Information'));
-        host.appendChild(wrap);
-      }
-      hookFooter();
+      /**
+       * Reopening the panel after the first visit.
+       *
+       * Two pills used to be appended to the footer here — "Cookie Preferences"
+       * and "Do Not Sell or Share My Personal Information" — and the owner
+       * asked for them to go. Nothing is drawn now.
+       *
+       * The way back is kept, just not shown: window.afConsentReopen() opens
+       * the panel with the visitor's saved choices filled in. Wire it to a link
+       * in the footer menu whenever one is wanted —
+       *
+       *     <a href="#" onclick="afConsentReopen();return false">Cookie preferences</a>
+       *
+       * — rather than reinstating the pills. It matters because a visitor who
+       * has already chosen has no other route back into the panel: the banner
+       * shows once and then never again, so with nothing calling this, consent
+       * can be given but not withdrawn or changed.
+       */
+      window.afConsentReopen = function(){
+        var c = read() || {};
+        document.getElementById('af-ck-analytics').checked = !!c.analytics;
+        document.getElementById('af-ck-marketing').checked = !!c.marketing;
+        opts.hidden = false;
+        document.getElementById('af-ck-prefs').hidden = true;
+        document.getElementById('af-ck-save').hidden = false;
+        box.hidden = false;
+      };
+
+      if (have) return;                          // already answered — stay hidden
+      box.hidden = false;
     })();
     </script>
     <?php
