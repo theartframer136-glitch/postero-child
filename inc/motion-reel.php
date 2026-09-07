@@ -59,7 +59,11 @@ function af_motion_video_ids() {
 
 /** url + title for each clip, resolved once and cached. */
 function af_motion_videos() {
-    $out = get_transient('af_motion_videos');
+    // Key derived from the id list, so adding or reordering a clip picks a new
+    // cache entry by itself. A fixed key held a stale nine-clip list for twelve
+    // hours after the tenth was added, and the row went on showing nine.
+    $key = 'af_motion_videos_' . substr(md5(implode(',', af_motion_video_ids())), 0, 10);
+    $out = get_transient($key);
     if (is_array($out)) return $out;
     $out = array();
     foreach (af_motion_video_ids() as $id) {
@@ -70,7 +74,7 @@ function af_motion_videos() {
             'title' => get_the_title($id) ?: 'The Art Framer',
         );
     }
-    set_transient('af_motion_videos', $out, 12 * HOUR_IN_SECONDS);
+    set_transient($key, $out, 12 * HOUR_IN_SECONDS);
     return $out;
 }
 
