@@ -48,7 +48,11 @@ if (!defined('ABSPATH')) exit;
 function af_motion_video_ids() {
     $ids = get_option('af_motion_video_ids', array());
     if (!is_array($ids) || !$ids) {
-        $ids = array(33349, 33350, 33353, 33351, 33352, 33354, 33356, 33355, 33348);
+        // All ten clips from the studio's folder. The two long marketing
+        // films are last: their middles carry text overlays, which a 9:16
+        // centre crop lands badly on.
+        $ids = array(33349, 33350, 33353, 33351, 33352, 33357,
+                     33354, 33356, 33355, 33348);
     }
     return array_values(array_filter(array_map('intval', (array) apply_filters('af_motion_video_ids', $ids))));
 }
@@ -95,6 +99,8 @@ function af_motion_rewrite($html) {
     }
     if ($tiles === '') return $html;
 
+    $tiles .= '';   // arrows are siblings of the track, added below
+
     // Keep the slider's own wrapper so its arrows and drag-scroll keep working.
     $new = preg_replace(
         '#(<div class="circle-gallery-slider"[^>]*>).*?(</div>)\s*$#s',
@@ -105,6 +111,14 @@ function af_motion_rewrite($html) {
         // wrapper not shaped as expected — wrap our own rather than lose the band
         $new = '<div class="circle-gallery-slider af-motion-slider">' . $tiles . '</div>';
     }
+    // Our own arrows. The section's original ones were removed with the
+    // shortcode's markup, and a row that scrolls with no visible control reads
+    // as a row that is simply cut off.
+    $new = '<div class="af-motion-shell">'
+         . '<button type="button" class="af-motion-nav af-motion-prev" aria-label="Previous">&#8249;</button>'
+         . $new
+         . '<button type="button" class="af-motion-nav af-motion-next" aria-label="Next">&#8250;</button>'
+         . '</div>';
     return $new;
 }
 
@@ -158,6 +172,17 @@ add_action('wp_head', function () {
 .circle-gallery-slider > .circle-item{flex:0 0 auto !important;}
 .circle-gallery-slider::-webkit-scrollbar{display:none;}
 .circle-gallery-slider.dragging{scroll-behavior:auto;cursor:grabbing;}
+.af-motion-shell{position:relative;}
+.af-motion-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:5;
+  width:42px;height:42px;border-radius:50%;border:1px solid rgba(201,168,76,.6);
+  background:rgba(255,255,255,.94);color:#8a6d1f;font-size:22px;line-height:1;
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 10px rgba(0,0,0,.14);transition:background .18s,color .18s,opacity .18s;}
+.af-motion-nav:hover{background:#c9a84c;color:#fff;}
+.af-motion-prev{left:-6px;}
+.af-motion-next{right:-6px;}
+.af-motion-nav[disabled]{opacity:.3;cursor:default;}
+@media(max-width:600px){.af-motion-nav{width:34px;height:34px;font-size:18px;}}
 .af-motion-item{position:relative;flex:0 0 auto;width:clamp(180px,19vw,364px);
   aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#0f0d0b;
   box-shadow:0 2px 10px rgba(40,30,10,.10);cursor:pointer;}
@@ -211,6 +236,44 @@ add_action('wp_footer', function () {
       }
     });
   }, {threshold: 0.25}) : null;
+
+  // ── sliding ──────────────────────────────────────────────────────────
+  // The row scrolls on its own and can be driven by the arrows. It pauses
+  // while the pointer is over it, while a clip is open with sound, and when
+  // the tab is hidden — an auto-scroller that fights the visitor is worse than
+  // none. prefers-reduced-motion turns the automatic part off entirely.
+  var track = document.querySelector('.circle-gallery-slider');
+  if (track) {
+    var prev = document.querySelector('.af-motion-prev');
+    var next = document.querySelector('.af-motion-next');
+    var step = function(){
+      var t = track.querySelector('.af-motion-item');
+      return t ? t.getBoundingClientRect().width + 14 : 288;
+    };
+    var atEnd = function(){ return track.scrollLeft + track.clientWidth >= track.scrollWidth - 4; };
+    var sync = function(){
+      if (prev) prev.disabled = track.scrollLeft <= 2;
+      if (next) next.disabled = atEnd();
+    };
+    if (prev) prev.addEventListener('click', function(){ track.scrollBy({left:-step(), behavior:'smooth'}); });
+    if (next) next.addEventListener('click', function(){ track.scrollBy({left: step(), behavior:'smooth'}); });
+    track.addEventListener('scroll', sync, {passive:true});
+    sync();
+
+    var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var hold = false;
+    track.addEventListener('mouseenter', function(){ hold = true; });
+    track.addEventListener('mouseleave', function(){ hold = false; });
+    track.addEventListener('touchstart', function(){ hold = true; }, {passive:true});
+    if (!reduce) {
+      setInterval(function(){
+        if (hold || document.hidden) return;
+        if (document.querySelector('.af-motion-item.af-open')) return;   // someone is watching one
+        if (atEnd()) track.scrollTo({left:0, behavior:'smooth'});
+        else track.scrollBy({left: step(), behavior:'smooth'});
+      }, 4000);
+    }
+  }
 
   items.forEach(function(item){
     var v = item.querySelector('video');
