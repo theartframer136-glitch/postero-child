@@ -7079,7 +7079,7 @@ add_action('template_redirect', function(){
                 <div id="tow-panels" class="af-tow-panels"></div>
                 <span class="af-tow-hint">✥ drag</span>
               </div>
-              <button type="button" id="tow-camstop" class="af-tow-camstop" style="display:none">✕ Stop camera</button>
+              <button type="button" id="tow-camstop" class="af-tow-camstop" style="display:none" aria-label="Stop camera">✕<span class="af-tow-camstop-t"> Stop camera</span></button>
               <!-- live-camera calibration: fit the wall into the rectangle and it
                    turns green — from that moment scale is MEASURED, not assumed -->
               <div id="tow-cal" class="af-tow-cal" style="display:none">
@@ -8367,6 +8367,25 @@ add_action('template_redirect', function(){
     .af-tow-cambtn em{font-style:normal;font-weight:500;font-size:10.5px;color:#cbc2ac;}
     .af-tow-camstop{position:absolute;top:12px;right:12px;z-index:8;background:rgba(20,20,20,.85);color:#fff;border:none;
       border-radius:999px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+    /* This button and the calibration message have always shared the top of
+       the stage, and on a phone they collided — the button lay across the
+       message by 68-86px at 430 down to 360px, hiding the end of the very
+       sentence telling the visitor what to do. (Measured against the older
+       message geometry too: the same 68-86px, so this is not something the
+       shorter wording introduced.)
+       Two changes, both only on phones. The button keeps the ✕ and drops the
+       words: there is a full "Stop live camera" button in the panel just
+       below, so the corner control is a shortcut rather than the only way
+       out, and aria-label carries the name for a screen reader. The message
+       then stops centring itself across the full width and reserves the
+       corner instead — 56px is the compact button's 40px plus its 12px
+       offset, so the two can no longer meet whatever the label says. */
+    @media (max-width:600px){
+      /* 40px square: a corner control still wants a thumb-sized target. */
+      .af-tow-camstop{padding:0;width:40px;height:40px;line-height:40px;text-align:center;font-size:16px;}
+      .af-tow-camstop-t{display:none;}
+      .af-tow-calmsg{left:8px;right:56px;transform:none;max-width:none;}
+    }
     /* wall calibration: red rectangle → amber when the lines are close → green
        at the lock; the huge shadow dims everything outside the rectangle */
     .af-tow-cal{position:absolute;inset:0;z-index:7;pointer-events:none;}
@@ -13408,7 +13427,7 @@ add_action('template_redirect', function () {
                 <small>Upload a photo to see it framed on a wall, true to size.</small>
               </div>
               <video id="ftm-camv" class="af-ftm-camv" autoplay playsinline muted></video>
-              <button type="button" id="ftm-camstop" class="af-ftm-camstop" style="display:none">✕ Stop camera</button>
+              <button type="button" id="ftm-camstop" class="af-ftm-camstop" style="display:none" aria-label="Stop camera">✕<span class="af-ftm-camstop-t"> Stop camera</span></button>
               <!-- live-camera calibration, the same measured-scale tool the
                    Try On Wall page uses: fit the wall between ceiling and floor
                    into the rectangle and it turns green, at which point
@@ -14343,6 +14362,25 @@ add_action('template_redirect', function () {
     .af-ftm-cambtn em{font-style:normal;font-weight:500;font-size:10.5px;color:#cbc2ac;}
     .af-ftm-camstop{position:absolute;top:12px;right:12px;z-index:8;background:rgba(20,20,20,.85);color:#fff;border:none;
       border-radius:999px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+    /* This button and the calibration message have always shared the top of
+       the stage, and on a phone they collided — the button lay across the
+       message by 68-86px at 430 down to 360px, hiding the end of the very
+       sentence telling the visitor what to do. (Measured against the older
+       message geometry too: the same 68-86px, so this is not something the
+       shorter wording introduced.)
+       Two changes, both only on phones. The button keeps the ✕ and drops the
+       words: there is a full "Stop live camera" button in the panel just
+       below, so the corner control is a shortcut rather than the only way
+       out, and aria-label carries the name for a screen reader. The message
+       then stops centring itself across the full width and reserves the
+       corner instead — 56px is the compact button's 40px plus its 12px
+       offset, so the two can no longer meet whatever the label says. */
+    @media (max-width:600px){
+      /* 40px square: a corner control still wants a thumb-sized target. */
+      .af-ftm-camstop{padding:0;width:40px;height:40px;line-height:40px;text-align:center;font-size:16px;}
+      .af-ftm-camstop-t{display:none;}
+      .af-ftm-calmsg{left:8px;right:56px;transform:none;max-width:none;}
+    }
     .af-ftm-glass{position:absolute;inset:0;pointer-events:none;
       background:linear-gradient(125deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,.05) 22%,rgba(255,255,255,0) 42%);}
     .af-ftm-tip{text-align:center;color:#8a8170;font-size:13px;margin:14px 0 0;}
