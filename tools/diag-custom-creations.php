@@ -59,6 +59,53 @@ foreach ($rows as $r) {
 }
 if (!$rows) echo "  (heading text not found in any post_content - it may be a heading widget elsewhere)\n";
 
+// The fix excludes the category from every products query that does not ask
+// for it. That is a claim about a query, so it is settled by running one:
+// exactly the arguments a "newest products" row uses, through the same filter,
+// and printing what comes back. If a Personalised Prints piece appears in this
+// list, the fix is not working - no screenshot needed to find out.
+echo "\n-- 3b. What a generic 'newest products' row now returns --\n";
+$args = apply_filters('woocommerce_shortcode_products_query', array(
+    'post_type'      => 'product',
+    'post_status'    => 'publish',
+    'posts_per_page' => 12,
+    'orderby'        => 'date',
+    'order'          => 'DESC',
+), array('limit' => 12), 'products');
+$has_not_in = false;
+if (!empty($args['tax_query'])) {
+    foreach ($args['tax_query'] as $tq) {
+        if (is_array($tq) && !empty($tq['operator']) && $tq['operator'] === 'NOT IN') $has_not_in = true;
+    }
+}
+printf("  exclusion clause present: %s\n", $has_not_in ? 'YES' : 'NO - the filter did not fire');
+$q = new WP_Query($args);
+$leak = 0;
+foreach ($q->posts as $p) {
+    $cats = wp_get_post_terms($p->ID, 'product_cat', array('fields' => 'names'));
+    $bad  = in_array('Personalised Prints', $cats, true);
+    if ($bad) $leak++;
+    printf("  %s #%-6d %-42.42s %s\n", $bad ? 'LEAK' : '    ', $p->ID,
+        get_the_title($p->ID), implode(', ', $cats));
+}
+printf("  VERDICT: %s\n", $leak
+    ? "$leak Personalised Prints piece(s) still reach a generic row"
+    : 'no Personalised Prints pieces in a generic row');
+
+// And the other half: the gallery asks FOR the category and must still get it.
+echo "\n-- 3c. A row that asks for Personalised Prints still gets it --\n";
+$args2 = apply_filters('woocommerce_shortcode_products_query', array(
+    'post_type'      => 'product',
+    'post_status'    => 'publish',
+    'posts_per_page' => 4,
+    'tax_query'      => array(array(
+        'taxonomy' => 'product_cat', 'field' => 'slug', 'terms' => array('personalised-prints'),
+    )),
+), array('limit' => 4, 'category' => 'personalised-prints'), 'product_category');
+$q2 = new WP_Query($args2);
+printf("  returns %d product(s)%s\n", count($q2->posts), count($q2->posts) ? ':' : ' - THE GALLERY WOULD BE EMPTY');
+foreach ($q2->posts as $p) printf("    #%-6d %.48s\n", $p->ID, get_the_title($p->ID));
+
 echo "\n-- 4. Attachments named like the event photos (newest 10 images) --\n";
 $atts = get_posts(array('post_type' => 'attachment', 'post_mime_type' => 'image', 'numberposts' => 10,
     'orderby' => 'date', 'order' => 'DESC'));
