@@ -2820,6 +2820,60 @@ add_action('wp_footer', function() { ?>
 </script>
 <?php }, 5);
 
+// 10z. Personalised Prints stay out of the general product rows.
+// Measured (deploy 931 diagnostic): the customer-event photos from the
+// "Exclusively Customised Creations" gallery exist as ordinary products in
+// the "Personalised Prints" category, all catalog-visible — and New Arrivals
+// and Trending Today simply show the newest products, so a batch of freshly
+// uploaded event photos takes those rows over. Hidden here at the QUERY, not
+// by catalog visibility: visibility would also empty the gallery, which
+// selects the very same category.
+// The rule: any products query that does not itself ask for this category
+// excludes it; a query that asks for it (the gallery) is untouched. The
+// shortcode filter covers the homepage rows — Elementor's Products widget
+// and the AJAX-rendered rows both build on WooCommerce's shortcode query.
+function af_personalised_cat_id() {
+    static $id = null;
+    if ($id !== null) return $id;
+    $t = get_term_by('name', 'Personalised Prints', 'product_cat');
+    if (!$t) $t = get_term_by('slug', 'personalised-prints', 'product_cat');
+    $id = $t ? (int) $t->term_id : 0;
+    return $id;
+}
+add_filter('woocommerce_shortcode_products_query', function ($args, $atts = array(), $type = '') {
+    $cat_id = af_personalised_cat_id();
+    if (!$cat_id) return $args;
+    // A row that asks for this category by any handle keeps it.
+    $asked = '';
+    foreach (array('category', 'terms', 'term') as $k) {
+        if (!empty($atts[$k])) $asked .= ' ' . (is_array($atts[$k]) ? implode(' ', $atts[$k]) : $atts[$k]);
+    }
+    if ($asked !== '') {
+        $t = get_term($cat_id, 'product_cat');
+        if ($t && !is_wp_error($t) && stripos($asked, $t->slug) !== false) return $args;
+        if (preg_match('/\b' . $cat_id . '\b/', $asked)) return $args;
+    }
+    if (!empty($args['tax_query']) && is_array($args['tax_query'])) {
+        foreach ($args['tax_query'] as $tq) {
+            if (is_array($tq) && isset($tq['taxonomy']) && $tq['taxonomy'] === 'product_cat'
+                && (empty($tq['operator']) || $tq['operator'] === 'IN')) {
+                $terms = isset($tq['terms']) ? (array) $tq['terms'] : array();
+                $t = get_term($cat_id, 'product_cat');
+                if (in_array($cat_id, array_map('intval', $terms), true)) return $args;
+                if ($t && !is_wp_error($t) && in_array($t->slug, $terms, true)) return $args;
+            }
+        }
+    }
+    if (empty($args['tax_query'])) $args['tax_query'] = array();
+    $args['tax_query'][] = array(
+        'taxonomy' => 'product_cat',
+        'field'    => 'term_id',
+        'terms'    => array($cat_id),
+        'operator' => 'NOT IN',
+    );
+    return $args;
+}, 10, 3);
+
 // 11a. The row's video ids, as plain text at /?af_pim_ids=1.
 // This exists for the reel-fetch tool on the OWNER'S machine — the one
 // address YouTube actually serves, after downloads from GitHub's runners and
