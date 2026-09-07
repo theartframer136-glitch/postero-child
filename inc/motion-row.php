@@ -28,6 +28,14 @@ if (!defined('ABSPATH')) exit;
  * crop lands on it cleanly. The two long marketing clips, whose middles carry
  * text overlays, are ordered last where they matter least.
  *
+ * IT OWNS THE ROW LAYOUT TOO. The shortcode used to ship its own inline
+ * stylesheet for .circle-gallery-slider / .circle-item, and rewriting the
+ * shortcode's output took that with it — leaving nine unstyled divs stacked
+ * down the left of the page instead of a row (reported 2026-09-07). Nothing on
+ * the page defines those classes any more, so the flex row, the horizontal
+ * scroll and the tile size are all declared here. The section can no longer be
+ * broken by CSS that lives somewhere else.
+ *
  * KIND TO THE SERVER, which matters on a CPU-capped host with a bandwidth bill:
  *   - preload="none": nothing is fetched until a tile is actually on screen
  *   - an IntersectionObserver plays only visible tiles and pauses the rest, so
@@ -113,6 +121,15 @@ add_filter('do_shortcode_tag', function ($output, $tag) {
 add_action('wp_head', function () {
     if (!is_front_page() && !is_home()) return; ?>
 <style>
+/* The row itself. The shortcode's own stylesheet no longer reaches the page,
+   so these are declared here rather than inherited from it. The existing
+   arrows and drag-scroll both call scrollBy() on this element, so it has to
+   stay a horizontal scroller for them to keep working. */
+.circle-gallery-slider{display:flex;flex-wrap:nowrap;gap:14px;overflow-x:auto;
+  overflow-y:hidden;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;
+  padding:2px 0 14px;scrollbar-width:none;-ms-overflow-style:none;}
+.circle-gallery-slider::-webkit-scrollbar{display:none;}
+.circle-gallery-slider.dragging{scroll-behavior:auto;cursor:grabbing;}
 .af-motion-item{position:relative;flex:0 0 auto;width:clamp(180px,19vw,364px);
   aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#0f0d0b;
   box-shadow:0 2px 10px rgba(40,30,10,.10);cursor:pointer;}
