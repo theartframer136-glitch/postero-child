@@ -930,11 +930,16 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/verify-orientation-blog.php --allow-root 2>&1" \
             || true
 
+          # Teed, for the reason the publishing step below sets out: this suite
+          # runs early and the log is read from its end, so a later step that
+          # dumps a large trace buries everything before it. The report travels
+          # as a file on the art-sheets branch instead, where it can be read
+          # whatever the log does.
           echo "Verifying the seven-day product rotation..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-daily-shuffle.php --allow-root 2>&1" \
-            || true
+            2>&1 | tee /tmp/af-shuffle.txt || true
 
           echo "Verifying cookie consent + masonry layout..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
@@ -1736,6 +1741,12 @@ jobs:
             cp /tmp/af-skucheck.txt /tmp/af-sheetout/SKUCHECK.txt
             echo "carrying the SKU format check"
           fi
+          # Which of the seven daily orders is in force, and whether the loop
+          # is still whole — every product present once, on every day.
+          if [ -s /tmp/af-shuffle.txt ]; then
+            cp /tmp/af-shuffle.txt /tmp/af-sheetout/SHUFFLE.txt
+            echo "carrying the rotation check ($(wc -l < /tmp/af-shuffle.txt) lines)"
+          fi
           if [ -s /tmp/af-sheets.txt ]; then
             awk '/^B64 /{print $2" "$3}' /tmp/af-sheets.txt | while read -r slug chunk; do
               printf '%s' "$chunk" >> "/tmp/af-sheetout/${slug}.b64"
@@ -1783,6 +1794,10 @@ jobs:
               echo "numbering the book prints now — RK 01 is RK - 0101 — and lists"
               echo "the products it left alone because their code names no page of"
               echo "the book."
+              echo
+              echo "SHUFFLE.txt is the seven-day rotation check: which of the seven"
+              echo "daily orders is in force today, and whether the loop is still"
+              echo "whole — every product present exactly once, on every day of it."
               echo
               echo "This branch is a delivery channel, not history. It is force-pushed on"
               echo "every deploy and holds only the newest sheets. Delete it when the"
