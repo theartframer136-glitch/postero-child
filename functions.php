@@ -7087,7 +7087,7 @@ add_action('template_redirect', function(){
                   <span class="af-tow-calcorner tl"></span><span class="af-tow-calcorner tr"></span>
                   <span class="af-tow-calcorner bl"></span><span class="af-tow-calcorner br"></span>
                 </div>
-                <div id="tow-calmsg" class="af-tow-calmsg">Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge</div>
+                <div id="tow-calmsg" class="af-tow-calmsg"><span class="af-tow-calmsg-long">Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge</span><span class="af-tow-calmsg-short"><strong>Ceiling</strong> to the top edge, <strong>floor</strong> to the bottom</span></div>
                 <div id="tow-calh" class="af-tow-calh">
                   <span>Wall height</span>
                   <button type="button" data-ft="8">8 ft</button>
@@ -7542,6 +7542,13 @@ add_action('template_redirect', function(){
             $('tow-placeholder').style.display = current() ? 'none' : 'flex';
             camLabel();
             calStart();
+            // Redraw, or the note keeps the room photo's claim. camOn has just
+            // become true and applyScale() is what reads it, so without this
+            // the line still reads "Shown true to scale on a 10 ft wall" for
+            // the whole time the visitor is being asked to fit the rectangle —
+            // the one state where it is certainly not true. calLock() and
+            // stopCam() already redraw; only this transition did not.
+            applyScale();
             toast('🎥 Live camera on — point it at your wall');
           })
           .catch(function(err){
@@ -7682,7 +7689,7 @@ add_action('template_redirect', function(){
         $('tow-cal').style.display='block';
         $('tow-recal').style.display='none';
         $('tow-calbox').classList.remove('locked','near');
-        $('tow-calmsg').innerHTML='Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge';
+        $('tow-calmsg').innerHTML='<span class="af-tow-calmsg-long">Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge</span><span class="af-tow-calmsg-short"><strong>Ceiling</strong> to the top edge, <strong>floor</strong> to the bottom</span>';
         if(!CAL.timer) CAL.timer=setInterval(calTick,160);
       }
       function calStop(){
@@ -8389,12 +8396,33 @@ add_action('template_redirect', function(){
     .af-tow-calcorner.br{bottom:-3px;right:-3px;border-bottom-width:6px;border-right-width:6px;border-bottom-right-radius:6px;}
     .af-tow-calmsg{position:absolute;left:50%;top:4%;transform:translateX(-50%);background:rgba(16,16,16,.82);color:#fff;
       font-size:12.5px;line-height:1.45;padding:8px 14px;border-radius:9px;max-width:78%;text-align:center;}
+    /* The rectangle's top edge sits at 16% of the stage. On a phone the stage
+       is 420px and this ran to six lines — 125px from a top of 4% — so it lay
+       across the top of the rectangle and its grid, hiding the very edge the
+       visitor is being told to line up with the ceiling. Smaller, tighter and
+       wider here, and the wording shortens too (.af-tow-calmsg em). */
+    .af-tow-calmsg-short{display:none;}
+    @media (max-width:600px){
+      .af-tow-calmsg{font-size:11px;line-height:1.35;padding:5px 9px;border-radius:7px;
+        max-width:94%;top:5px;}
+      /* Smaller type alone still left four lines over the rectangle. The
+         instruction is the same either way; the phone gets it in half the
+         words so it fits above the edge it is talking about. */
+      .af-tow-calmsg-long{display:none;}
+      .af-tow-calmsg-short{display:inline;}
+    }
     .af-tow-calmsg strong{color:#efd48d;}
     .af-tow-calh{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);display:flex;gap:7px;align-items:center;
       background:rgba(16,16,16,.82);border-radius:999px;padding:6px 10px;pointer-events:auto;}
     .af-tow-calh span{color:#cbc2ac;font-size:11px;font-weight:700;text-transform:none;letter-spacing:0;margin:0;}
-    .af-tow-calh button{background:transparent;border:1px solid #6f6a5e;color:#fff;font-size:11.5px;font-weight:700;
-      border-radius:999px;padding:4px 10px;cursor:pointer;transition:background .15s;}
+    /* One line, for the reason set out on .af-tow-wallh: the parent theme styles
+       buttons, and inside a 286px-wide stage on a phone that was enough to
+       stack "FT" under the "8". The panel's row was given nowrap; this one,
+       inside the camera overlay, was missed because on a desktop stage it
+       never ran out of room. */
+    .af-tow-calh button{background:transparent;border:1px solid #6f6a5e;color:#fff;
+      font-size:clamp(10px,2.8vw,11.5px);font-weight:700;white-space:nowrap;line-height:1;
+      border-radius:999px;padding:5px 10px;cursor:pointer;transition:background .15s;}
     .af-tow-calh button.on{background:#c9a84c;border-color:#c9a84c;color:#1a1a1a;}
     .af-tow-recal{position:absolute;top:12px;left:12px;z-index:8;background:rgba(24,110,52,.92);color:#fff;border:none;
       border-radius:999px;padding:8px 13px;font-size:12px;font-weight:700;cursor:pointer;}
@@ -13390,7 +13418,7 @@ add_action('template_redirect', function () {
                   <span class="af-ftm-calcorner tl"></span><span class="af-ftm-calcorner tr"></span>
                   <span class="af-ftm-calcorner bl"></span><span class="af-ftm-calcorner br"></span>
                 </div>
-                <div id="ftm-calmsg" class="af-ftm-calmsg">Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge</div>
+                <div id="ftm-calmsg" class="af-ftm-calmsg"><span class="af-ftm-calmsg-long">Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge</span><span class="af-ftm-calmsg-short"><strong>Ceiling</strong> to the top edge, <strong>floor</strong> to the bottom</span></div>
                 <div id="ftm-calh" class="af-ftm-calh">
                   <span>Wall height</span>
                   <button type="button" data-ft="8">8 ft</button>
@@ -13754,6 +13782,7 @@ add_action('template_redirect', function () {
             document.querySelectorAll('#ftm-scenes .af-ftm-scene').forEach(function(x){ x.classList.remove('on'); });
             camLabel();
             calStart();
+            render();   // same reason as Try On Wall: camOn has just changed
           })
           .catch(function(err){
             camStarting = false; camLabel();
@@ -13875,7 +13904,7 @@ add_action('template_redirect', function () {
         $('ftm-cal').style.display = 'block';
         $('ftm-recal').style.display = 'none';
         $('ftm-calbox').classList.remove('locked','near');
-        $('ftm-calmsg').innerHTML = 'Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge';
+        $('ftm-calmsg').innerHTML = '<span class="af-ftm-calmsg-long">Step back or forward until the <strong>ceiling line</strong> touches the top edge and the <strong>floor line</strong> touches the bottom edge</span><span class="af-ftm-calmsg-short"><strong>Ceiling</strong> to the top edge, <strong>floor</strong> to the bottom</span>';
         if (!CAL.timer) CAL.timer = setInterval(calTick, 160);
       }
       function calStop(){
@@ -14277,12 +14306,33 @@ add_action('template_redirect', function () {
     .af-ftm-calcorner.br{bottom:-3px;right:-3px;border-bottom-width:6px;border-right-width:6px;border-bottom-right-radius:6px;}
     .af-ftm-calmsg{position:absolute;left:50%;top:4%;transform:translateX(-50%);background:rgba(16,16,16,.82);color:#fff;
       font-size:12.5px;line-height:1.45;padding:8px 14px;border-radius:9px;max-width:78%;text-align:center;}
+    /* The rectangle's top edge sits at 16% of the stage. On a phone the stage
+       is 420px and this ran to six lines — 125px from a top of 4% — so it lay
+       across the top of the rectangle and its grid, hiding the very edge the
+       visitor is being told to line up with the ceiling. Smaller, tighter and
+       wider here, and the wording shortens too (.af-ftm-calmsg em). */
+    .af-ftm-calmsg-short{display:none;}
+    @media (max-width:600px){
+      .af-ftm-calmsg{font-size:11px;line-height:1.35;padding:5px 9px;border-radius:7px;
+        max-width:94%;top:5px;}
+      /* Smaller type alone still left four lines over the rectangle. The
+         instruction is the same either way; the phone gets it in half the
+         words so it fits above the edge it is talking about. */
+      .af-ftm-calmsg-long{display:none;}
+      .af-ftm-calmsg-short{display:inline;}
+    }
     .af-ftm-calmsg strong{color:#efd48d;}
     .af-ftm-calh{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);display:flex;gap:7px;align-items:center;
       background:rgba(16,16,16,.82);border-radius:999px;padding:6px 10px;pointer-events:auto;}
     .af-ftm-calh span{color:#cbc2ac;font-size:11px;font-weight:700;text-transform:none;letter-spacing:0;margin:0;}
-    .af-ftm-calh button{background:transparent;border:1px solid #6f6a5e;color:#fff;font-size:11.5px;font-weight:700;
-      border-radius:999px;padding:4px 10px;cursor:pointer;transition:background .15s;}
+    /* One line, for the reason set out on .af-ftm-wallh: the parent theme styles
+       buttons, and inside a 286px-wide stage on a phone that was enough to
+       stack "FT" under the "8". The panel's row was given nowrap; this one,
+       inside the camera overlay, was missed because on a desktop stage it
+       never ran out of room. */
+    .af-ftm-calh button{background:transparent;border:1px solid #6f6a5e;color:#fff;
+      font-size:clamp(10px,2.8vw,11.5px);font-weight:700;white-space:nowrap;line-height:1;
+      border-radius:999px;padding:5px 10px;cursor:pointer;transition:background .15s;}
     .af-ftm-calh button.on{background:#c9a84c;border-color:#c9a84c;color:#1a1a1a;}
     .af-ftm-recal{position:absolute;top:12px;left:12px;z-index:8;background:rgba(24,110,52,.92);color:#fff;border:none;
       border-radius:999px;padding:8px 13px;font-size:12px;font-weight:700;cursor:pointer;}
