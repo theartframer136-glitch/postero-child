@@ -8278,9 +8278,18 @@ add_action('template_redirect', function(){
        the label is centred in the chip instead of pinned below them. The
        selected chip says so with its border and now its label colour too —
        that was the gold bars' job. */
-    .af-tow-lay{flex:1;display:flex;align-items:center;justify-content:center;height:44px;padding:7px 8px;
+    .af-tow-lay{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;height:44px;padding:7px 6px;
       border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;cursor:pointer;transition:border-color .15s;}
-    .af-tow-lay span{font-size:11px;font-weight:700;color:#8a8170;text-align:center;letter-spacing:.02em;}
+    /* "2 Panels" is one phrase and has to stay one line. The parent theme
+       uppercases and letter-spaces buttons, which the label was never sized
+       for, and on a phone that was enough to break it at its space and stack
+       "PANELS" under the "2" while "SINGLE" stayed whole — three chips, two
+       different heights. nowrap settles the break; the fluid size gives the
+       label room to shrink instead of needing it, so the row still holds
+       three chips at 360px; the ellipsis is the last resort, so a label can
+       never spill past its own border whatever it inherits. */
+    .af-tow-lay span{font-size:clamp(9.5px,2.7vw,11px);font-weight:700;color:#8a8170;text-align:center;
+      letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
     .af-tow-lay.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
     .af-tow-lay.on span{color:#8a6d3b;}
     /* Wall height, in the panel. Same chip as the layout row above it, so the
@@ -8294,9 +8303,9 @@ add_action('template_redirect', function(){
     .af-tow-wallh{display:flex;gap:8px;margin-top:6px;}
     .af-tow-wallh button{flex:1 1 0;min-width:0;box-sizing:border-box;
       display:flex;flex-direction:row;align-items:center;justify-content:center;
-      white-space:nowrap;line-height:1;height:38px;padding:0 4px;
+      white-space:nowrap;line-height:1;height:38px;padding:0 4px;overflow:hidden;text-overflow:ellipsis;
       border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;
-      font-size:11px;font-weight:700;color:#8a8170;letter-spacing:.02em;cursor:pointer;transition:border-color .15s;}
+      font-size:clamp(9.5px,2.7vw,11px);font-weight:700;color:#8a8170;letter-spacing:.02em;cursor:pointer;transition:border-color .15s;}
     .af-tow-wallh button.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;color:#8a6d3b;}
     /* live camera */
     .af-tow-cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1;}
@@ -14179,9 +14188,18 @@ add_action('template_redirect', function () {
     /* Same as the Try On Wall chips: the label alone, centred, with the
        selected state carried by the border and the label colour. See the note
        on .af-tow-lay. */
-    .af-ftm-lay{flex:1;display:flex;align-items:center;justify-content:center;height:44px;padding:7px 8px;
+    .af-ftm-lay{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;height:44px;padding:7px 6px;
       border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;cursor:pointer;transition:border-color .15s;}
-    .af-ftm-lay span{font-size:11px;font-weight:700;color:#8a8170;text-align:center;letter-spacing:.02em;}
+    /* "2 Panels" is one phrase and has to stay one line. The parent theme
+       uppercases and letter-spaces buttons, which the label was never sized
+       for, and on a phone that was enough to break it at its space and stack
+       "PANELS" under the "2" while "SINGLE" stayed whole — three chips, two
+       different heights. nowrap settles the break; the fluid size gives the
+       label room to shrink instead of needing it, so the row still holds
+       three chips at 360px; the ellipsis is the last resort, so a label can
+       never spill past its own border whatever it inherits. */
+    .af-ftm-lay span{font-size:clamp(9.5px,2.7vw,11px);font-weight:700;color:#8a8170;text-align:center;
+      letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
     .af-ftm-lay.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
     .af-ftm-lay.on span{color:#8a6d3b;}
     /* Wall height, in the panel — same chip as the layout row above it, and
@@ -14189,9 +14207,9 @@ add_action('template_redirect', function () {
     .af-ftm-wallh{display:flex;gap:8px;margin-top:6px;}
     .af-ftm-wallh button{flex:1 1 0;min-width:0;box-sizing:border-box;
       display:flex;flex-direction:row;align-items:center;justify-content:center;
-      white-space:nowrap;line-height:1;height:38px;padding:0 4px;
+      white-space:nowrap;line-height:1;height:38px;padding:0 4px;overflow:hidden;text-overflow:ellipsis;
       border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;
-      font-size:11px;font-weight:700;color:#8a8170;letter-spacing:.02em;cursor:pointer;transition:border-color .15s;}
+      font-size:clamp(9.5px,2.7vw,11px);font-weight:700;color:#8a8170;letter-spacing:.02em;cursor:pointer;transition:border-color .15s;}
     .af-ftm-wallh button.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;color:#8a6d3b;}
     /* live camera backdrop */
     .af-ftm-camv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1;}
@@ -14761,9 +14779,19 @@ function af_preview_share_assets() {
     </script>
     <style>
     .af-share{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;}
-    .af-share button,.af-share a{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;
+    /* flex:1 1 0 with min-width:0 made these three exactly equal and let them
+       shrink below their own words, and with nowrap and no overflow rule the
+       text simply ran out through the border — "WHATSAPP" and "COPY LINK"
+       hanging past their own boxes on a phone. Basis auto starts each button
+       at the width of its label, so when three no longer fit the ROW wraps to
+       a second line and every label stays inside its box; they still grow to
+       fill the line they land on. The fluid size buys a little room first, so
+       the wrap only happens when it is really needed, and the ellipsis means
+       even an inherited transform cannot push text past the border. */
+    .af-share button,.af-share a{flex:1 1 auto;display:flex;align-items:center;justify-content:center;gap:6px;
       height:40px;padding:0 10px;border-radius:10px;border:1.5px solid #e2d9c4;background:#fffdf8;color:#5a5140;
-      font-size:12px;font-weight:700;cursor:pointer;text-decoration:none;white-space:nowrap;transition:border-color .15s,background .2s;}
+      font-size:clamp(11px,3vw,12px);font-weight:700;cursor:pointer;text-decoration:none;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:border-color .15s,background .2s;}
     .af-share button:hover,.af-share a:hover{border-color:#c9a84c;background:#fdf9ef;color:#5a5140;}
     .af-share .af-share-wa{border-color:#25a366;color:#1e8b56;}
     .af-share .af-share-wa:hover{background:#eefaf3;border-color:#25a366;color:#1e8b56;}
