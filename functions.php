@@ -2922,11 +2922,23 @@ function af_pim_pair_score($a, $b) {
     $inter = 0;
     foreach ($ca as $t => $n) if (isset($cb[$t])) $inter += min($n, $cb[$t]);
     $cov  = $inter / max(1, min(count($a), count($b)));
+    // Coverage of the shorter side alone cannot tell a title apart from a
+    // SHORTER title nested inside it — both cover fully — so a subset reel
+    // ties with, or beats, the true owner of a truncated filename, and the
+    // greedy pass can hand two cards each other's video. Ask also how much of
+    // the LONGER side is accounted for. Additive and non-negative, so nothing
+    // that used to clear the gate stops clearing it, and a littered downloader
+    // filename still matches its reel.
+    $tight = $inter / max(1, max(count($a), count($b)));
     $lead = 0;
     while ($lead < count($a) && $lead < count($b) && $a[$lead] === $b[$lead]) $lead++;
-    return array($cov + min($lead, 6) * 0.05, $inter, $lead);
+    return array($cov + $tight * 0.5 + min($lead, 6) * 0.05, $inter, $lead);
 }
-function af_pim_media_videos() {
+// $skip_id exists for one caller: delete_attachment fires BEFORE WordPress
+// removes the row, so a rebuild there would re-match the file that is about to
+// vanish and store its dead URL — which then outranks the card's working
+// generated clip and leaves it on a 404 for good.
+function af_pim_media_videos($skip_id = 0) {
     global $wpdb;
     $rows = $wpdb->get_results(
         "SELECT ID, post_title FROM {$wpdb->posts}
@@ -2934,14 +2946,23 @@ function af_pim_media_videos() {
           ORDER BY post_date DESC");
     $out = array();
     foreach ($rows as $r) {
+        if ($skip_id && (int) $r->ID === (int) $skip_id) continue;
         // _wp_attached_file, not guid: guid keeps the ORIGINAL address after a
         // move or a domain change, and the filename is what carries the title.
         $rel = (string) get_post_meta($r->ID, '_wp_attached_file', true);
+        $ext = strtolower((string) pathinfo($rel, PATHINFO_EXTENSION));
         $out[] = array(
             'id'    => (int) $r->ID,
             'title' => (string) $r->post_title,
             'file'  => $rel !== '' ? basename($rel) : '',
             'url'   => (string) wp_get_attachment_url($r->ID),
+            // Whether a plain <video> can actually decode it. Listed either
+            // way, so the report can name a file the owner needs to re-export;
+            // only playable ones are allowed into the map, because a container
+            // no browser opens would outrank the card's working clip and leave
+            // it blank. Judged on the stored extension rather than the declared
+            // mime, which an uploader can set to video/mp4 for anything.
+            'play'  => in_array($ext, array('mp4', 'm4v', 'webm', 'ogv'), true),
         );
     }
     return $out;
@@ -2950,7 +2971,7 @@ function af_pim_media_videos() {
  * Rebuild videoid => local URL. Returns the map; fills $report with lines.
  * Sources in order of certainty: mirrored file, id in filename, title match.
  */
-function af_pim_build_local_map(&$report = null) {
+function af_pim_build_local_map(&$report = null, $skip_id = 0) {
     $channel = 'UC_GX4vXRQrN4GsvSfgmZxYw';
     $ids = get_transient('af_yt_ids3_' . $channel);
     if (!is_array($ids) || !$ids) $ids = get_option('af_yt_ids3_lastgood_' . $channel);
@@ -2968,7 +2989,16 @@ function af_pim_build_local_map(&$report = null) {
     foreach ($ids as $vid) {
         if (file_exists($dir . $vid . '.mp4')) $map[$vid] = $url . $vid . '.mp4';
     }
-    $atts = af_pim_media_videos();
+    // Only files a browser can actually decode may claim a card; the rest are
+    // still reported, so an unplayable upload reads as "re-export this one"
+    // rather than as a card that mysteriously went blank.
+    $all  = af_pim_media_videos($skip_id);
+    $atts = array_values(array_filter($all, function ($a) { return !empty($a['play']); }));
+    if (is_array($report)) {
+        foreach ($all as $a) {
+            if (empty($a['play'])) $report[] = sprintf('SKIP  #%d %s — not a format a browser plays', $a['id'], $a['file']);
+        }
+    }
     $used = array();
 
     // 1. The id inside a filename — compared after the same normalisation
@@ -3013,7 +3043,14 @@ function af_pim_build_local_map(&$report = null) {
             }
         }
     }
-    usort($pairs, function ($x, $y) { return $y['score'] <=> $x['score']; });
+    // Tie-break on shared word count. Two pairs can score identically when one
+    // title's words are a prefix of the other's — coverage is 1.0 both ways —
+    // and then insertion order, which is the channel feed's order, decided
+    // which card got the file. The pair sharing more real words is the pair
+    // that means it.
+    usort($pairs, function ($x, $y) {
+        return ($y['score'] <=> $x['score']) ?: ($y['inter'] <=> $x['inter']);
+    });
     foreach ($pairs as $p) {
         if (isset($map[$p['vid']]) || isset($used[$p['att']['id']])) continue;
         $map[$p['vid']] = $p['att']['url'];
@@ -3029,9 +3066,10 @@ function af_pim_build_local_map(&$report = null) {
 }
 // The whole point of doing this on upload: dragging the files into Media is
 // the owner's only step, and it must be the last one. No deploy, no command.
-function af_pim_media_changed($post_id) {
+function af_pim_media_changed($post_id, $skip_id = 0) {
     if (strpos((string) get_post_mime_type($post_id), 'video/') !== 0) return;
-    af_pim_build_local_map();
+    $r = null;
+    af_pim_build_local_map($r, $skip_id);
     // The homepage is cached; a new file that nothing serves is not a fix.
     if (function_exists('wp_cache_flush')) wp_cache_flush();
     do_action('litespeed_purge_all');
@@ -3045,7 +3083,13 @@ add_action('wp_update_attachment_metadata', function ($data, $post_id) {
     af_pim_media_changed($post_id);
     return $data;
 }, 20, 2);
-add_action('delete_attachment', 'af_pim_media_changed', 20);
+// Deleting one: the row is still in the database at this moment, so the file
+// being removed has to be excluded by hand or the rebuild simply re-matches it
+// and stores a URL that is about to 404 — which would then outrank the card's
+// working generated clip and leave that card broken until the next upload.
+add_action('delete_attachment', function ($post_id) {
+    af_pim_media_changed($post_id, $post_id);
+}, 20);
 
 // 11a. The row's video ids, as plain text at /?af_pim_ids=1.
 // This exists for the reel-fetch tool on the OWNER'S machine — the one

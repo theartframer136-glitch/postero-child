@@ -34,8 +34,10 @@ printf("  videos in the row: %d   (titles known: %d)\n", count($ids), count($tit
 $atts = af_pim_media_videos();
 printf("  video files in the Media Library: %d\n", count($atts));
 foreach (array_slice($atts, 0, 25) as $a) {
-    printf("    #%-8d %-52.52s %s\n", $a['id'], $a['file'], substr($a['title'], 0, 40));
+    printf("    %s #%-8d %-52.52s %s\n",
+        empty($a['play']) ? '!' : ' ', $a['id'], $a['file'], substr($a['title'], 0, 40));
 }
+echo "    (a '!' marks a container no browser plays — re-export it as mp4)\n";
 
 $report = array();
 $map = af_pim_build_local_map($report);
