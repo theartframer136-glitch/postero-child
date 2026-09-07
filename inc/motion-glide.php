@@ -111,15 +111,10 @@ function af_motion_rewrite($html) {
         // wrapper not shaped as expected — wrap our own rather than lose the band
         $new = '<div class="circle-gallery-slider af-motion-slider">' . $tiles . '</div>';
     }
-    // Our own arrows. The section's original ones were removed with the
-    // shortcode's markup, and a row that scrolls with no visible control reads
-    // as a row that is simply cut off.
-    $new = '<div class="af-motion-shell">'
-         . '<button type="button" class="af-motion-nav af-motion-prev" aria-label="Previous">&#8249;</button>'
-         . $new
-         . '<button type="button" class="af-motion-nav af-motion-next" aria-label="Next">&#8250;</button>'
-         . '</div>';
-    return $new;
+    // No arrows: the owner asked for the row to slide, not to be clicked
+    // through (2026-09-07). It moves on its own and can still be dragged or
+    // flicked, so nothing is unreachable without a control.
+    return '<div class="af-motion-shell">' . $new . '</div>';
 }
 
 add_filter('do_shortcode_tag', function ($output, $tag) {
@@ -173,16 +168,6 @@ add_action('wp_head', function () {
 .circle-gallery-slider::-webkit-scrollbar{display:none;}
 .circle-gallery-slider.dragging{scroll-behavior:auto;cursor:grabbing;}
 .af-motion-shell{position:relative;}
-.af-motion-nav{position:absolute;top:50%;transform:translateY(-50%);z-index:5;
-  width:42px;height:42px;border-radius:50%;border:1px solid rgba(201,168,76,.6);
-  background:rgba(255,255,255,.94);color:#8a6d1f;font-size:22px;line-height:1;
-  cursor:pointer;display:flex;align-items:center;justify-content:center;
-  box-shadow:0 2px 10px rgba(0,0,0,.14);transition:background .18s,color .18s,opacity .18s;}
-.af-motion-nav:hover{background:#c9a84c;color:#fff;}
-.af-motion-prev{left:-6px;}
-.af-motion-next{right:-6px;}
-.af-motion-nav[disabled]{opacity:.3;cursor:default;}
-@media(max-width:600px){.af-motion-nav{width:34px;height:34px;font-size:18px;}}
 .af-motion-item{position:relative;flex:0 0 auto;width:clamp(180px,19vw,364px);
   aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#0f0d0b;
   box-shadow:0 2px 10px rgba(40,30,10,.10);cursor:pointer;}
@@ -217,6 +202,7 @@ add_action('wp_footer', function () {
 <script>
 (function(){
   var items = document.querySelectorAll('.af-motion-item');
+  // (clones are added below and picked up by the same setup pass)
   if (!items.length) return;
 
   // Only what is on screen plays. Nine clips autoplaying at once would cost the
@@ -238,41 +224,55 @@ add_action('wp_footer', function () {
   }, {threshold: 0.25}) : null;
 
   // ── sliding ──────────────────────────────────────────────────────────
-  // The row scrolls on its own and can be driven by the arrows. It pauses
-  // while the pointer is over it, while a clip is open with sound, and when
-  // the tab is hidden — an auto-scroller that fights the visitor is worse than
-  // none. prefers-reduced-motion turns the automatic part off entirely.
+  // A continuous glide rather than a stepped carousel: the owner asked for the
+  // row to slide, and stepping every few seconds reads as jumping.
+  //
+  // The tiles are duplicated once so the wrap is invisible — at the halfway
+  // point the scroll position is rewound by exactly one set, which lands on an
+  // identical frame, so there is no visible snap back to the start.
+  //
+  // It yields to the visitor: paused on hover or touch, while a clip is open
+  // with sound, and while the tab is hidden. prefers-reduced-motion stops it
+  // entirely, leaving a row that can still be dragged.
   var track = document.querySelector('.circle-gallery-slider');
   if (track) {
-    var prev = document.querySelector('.af-motion-prev');
-    var next = document.querySelector('.af-motion-next');
-    var step = function(){
-      var t = track.querySelector('.af-motion-item');
-      return t ? t.getBoundingClientRect().width + 14 : 288;
-    };
-    var atEnd = function(){ return track.scrollLeft + track.clientWidth >= track.scrollWidth - 4; };
-    var sync = function(){
-      if (prev) prev.disabled = track.scrollLeft <= 2;
-      if (next) next.disabled = atEnd();
-    };
-    if (prev) prev.addEventListener('click', function(){ track.scrollBy({left:-step(), behavior:'smooth'}); });
-    if (next) next.addEventListener('click', function(){ track.scrollBy({left: step(), behavior:'smooth'}); });
-    track.addEventListener('scroll', sync, {passive:true});
-    sync();
+    var originals = [].slice.call(track.children);
+    if (originals.length) {
+      originals.forEach(function(n){
+        var c = n.cloneNode(true);
+        c.setAttribute('aria-hidden','true');
+        c.setAttribute('data-af-clone','1');
+        track.appendChild(c);
+      });
+      // Re-read the tiles: the list above was taken before these clones
+      // existed, and a clone that never gets the play/click wiring is a dead
+      // black rectangle sitting in the middle of the row.
+      items = document.querySelectorAll('.af-motion-item');
+    }
+    var half = function(){ return track.scrollWidth / 2; };
+
+    var hold = false;
+    ['mouseenter','touchstart','pointerdown'].forEach(function(e){
+      track.addEventListener(e, function(){ hold = true; }, {passive:true});
+    });
+    ['mouseleave','touchend','pointerup'].forEach(function(e){
+      track.addEventListener(e, function(){ hold = false; }, {passive:true});
+    });
 
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var hold = false;
-    track.addEventListener('mouseenter', function(){ hold = true; });
-    track.addEventListener('mouseleave', function(){ hold = false; });
-    track.addEventListener('touchstart', function(){ hold = true; }, {passive:true});
-    if (!reduce) {
-      setInterval(function(){
-        if (hold || document.hidden) return;
-        if (document.querySelector('.af-motion-item.af-open')) return;   // someone is watching one
-        if (atEnd()) track.scrollTo({left:0, behavior:'smooth'});
-        else track.scrollBy({left: step(), behavior:'smooth'});
-      }, 4000);
+    var SPEED = 0.45;                       // px per frame — a slow drift
+    var last = 0;
+    function glide(ts){
+      requestAnimationFrame(glide);
+      if (reduce || hold || document.hidden) { last = ts; return; }
+      if (document.querySelector('.af-motion-item.af-open')) { last = ts; return; }
+      if (!last) { last = ts; return; }
+      var dt = Math.min(ts - last, 50);     // ignore long gaps after a tab switch
+      last = ts;
+      track.scrollLeft += SPEED * (dt / 16.67);
+      if (track.scrollLeft >= half()) track.scrollLeft -= half();
     }
+    requestAnimationFrame(glide);
   }
 
   items.forEach(function(item){
