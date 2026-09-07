@@ -20,11 +20,13 @@ if (!defined('ABSPATH')) exit;
  * library. Clicking a tile still opens the full video, as before: the poster
  * preview is swapped for the same clip with sound and controls.
  *
- * ASPECT: the clips are 1280x720 room scenes, and the tiles were portrait. A
- * portrait tile would have cropped away most of the frame — the artwork on the
- * wall is what the clip is about, and it sits across the middle. So the tiles
- * are widened to 16:9 to fit the footage rather than cutting the footage to fit
- * the tiles.
+ * ASPECT: the clips are 1280x720 landscape; the tiles are 9:16 portrait. The
+ * first version widened the tiles to 16:9 to fit the footage, and the owner
+ * asked for the tall tiles back (2026-09-07) — the row of tall cards is the
+ * design. So the footage is centre-cropped instead, which was checked frame by
+ * frame first: on eight of the nine clips the artwork sits dead centre and the
+ * crop lands on it cleanly. The two long marketing clips, whose middles carry
+ * text overlays, are ordered last where they matter least.
  *
  * KIND TO THE SERVER, which matters on a CPU-capped host with a bandwidth bill:
  *   - preload="none": nothing is fetched until a tile is actually on screen
@@ -111,27 +113,31 @@ add_filter('do_shortcode_tag', function ($output, $tag) {
 add_action('wp_head', function () {
     if (!is_front_page() && !is_home()) return; ?>
 <style>
-.af-motion-item{position:relative;flex:0 0 auto;width:clamp(260px,26vw,420px);
-  aspect-ratio:16/9;border-radius:14px;overflow:hidden;background:#0f0d0b;
-  box-shadow:0 2px 10px rgba(40,30,10,.10);}
+.af-motion-item{position:relative;flex:0 0 auto;width:clamp(180px,19vw,364px);
+  aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#0f0d0b;
+  box-shadow:0 2px 10px rgba(40,30,10,.10);cursor:pointer;}
 .af-motion-item video{width:100%;height:100%;object-fit:cover;display:block;}
-/* the play affordance: present until the clip is running */
+/* No play button by default: the tile is already moving, so a badge over it
+   would only be clutter. It appears on hover to say "click for sound". */
 .af-motion-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
-  border:0;background:rgba(0,0,0,.16);cursor:pointer;padding:0;transition:background .2s;}
-.af-motion-play span{width:54px;height:54px;border-radius:50%;background:rgba(255,255,255,.9);
-  position:relative;box-shadow:0 2px 12px rgba(0,0,0,.28);transition:transform .2s;}
+  border:0;background:rgba(0,0,0,.18);cursor:pointer;padding:0;
+  opacity:0;transition:opacity .2s;}
+.af-motion-item:hover .af-motion-play,
+.af-motion-item:focus-within .af-motion-play{opacity:1;}
+.af-motion-play span{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.92);
+  position:relative;box-shadow:0 2px 12px rgba(0,0,0,.3);}
 .af-motion-play span:after{content:"";position:absolute;top:50%;left:56%;transform:translate(-50%,-50%);
-  border-style:solid;border-width:11px 0 11px 18px;border-color:transparent transparent transparent #1a1a1a;}
-.af-motion-item:hover .af-motion-play span{transform:scale(1.08);}
-.af-motion-item.af-playing .af-motion-play{background:transparent;}
-.af-motion-item.af-playing .af-motion-play span{opacity:0;}
+  border-style:solid;border-width:10px 0 10px 17px;border-color:transparent transparent transparent #1a1a1a;}
 .af-motion-item.af-open .af-motion-play{display:none;}
-.af-motion-cap{position:absolute;left:0;right:0;bottom:0;padding:22px 14px 10px;
-  font-size:13px;font-weight:600;color:#fff;pointer-events:none;
-  background:linear-gradient(to top,rgba(0,0,0,.62),rgba(0,0,0,0));}
+/* caption on hover only, so the row reads as clean video at rest */
+.af-motion-cap{position:absolute;left:0;right:0;bottom:0;padding:26px 12px 11px;
+  font-size:12.5px;font-weight:600;color:#fff;pointer-events:none;
+  opacity:0;transition:opacity .2s;
+  background:linear-gradient(to top,rgba(0,0,0,.68),rgba(0,0,0,0));}
+.af-motion-item:hover .af-motion-cap{opacity:1;}
 @media(max-width:600px){
-  .af-motion-item{width:78vw;}
-  .af-motion-cap{font-size:12px;}
+  .af-motion-item{width:60vw;}
+  .af-motion-cap{opacity:1;font-size:12px;}
 }
 </style>
 <?php }, 20);
