@@ -121,6 +121,22 @@ add_filter('do_shortcode_tag', function ($output, $tag) {
 add_action('wp_head', function () {
     if (!is_front_page() && !is_home()) return; ?>
 <style>
+/* ── The other "Products In Motion" ────────────────────────────────────────
+ * A second row sits above this one: .af-pim-*, a marquee of 128 STILL images
+ * (four frames per card, cycled) built in functions.php by a parallel session
+ * while this video version was being built. Both ended up on the page, which
+ * is the "still has 2 section" the owner reported.
+ *
+ * It is hidden rather than deleted: it is someone else's code, in a file this
+ * host will not recompile anyway, and hiding is reversible in one line. The
+ * video row below it is the one the owner asked for — frame-cycled stills are
+ * exactly the "just zoom in and zoom out" that started this work.
+ *
+ * To bring it back and drop this one instead, delete this rule and this file.
+ */
+.af-pim-wrap,
+.af-pim-section-heading + .af-pim-wrap{display:none !important;}
+
 /* The row itself. The shortcode's own stylesheet no longer reaches the page,
    so these are declared here rather than inherited from it. The existing
    arrows and drag-scroll both call scrollBy() on this element, so it has to
