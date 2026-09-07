@@ -1,153 +1,76 @@
 <?php
 /* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
- * Give the Products In Motion row a local video for every card it can.
+ * Point every Products In Motion card at a real local video where one exists,
+ * and say plainly why a card has none.
  *
- * The row's cards each paid YouTube's negotiation before their first frame —
- * seconds of black, then the embed's own title text over the artwork. A card
- * playing a file from this site starts in one request and shows no chrome at
- * all. This decides, per video, which local file that is.
- *
- * Two sources, in order:
- *
- *   1. uploads/pim/<videoid>.mp4 — what the deploy's mirror step downloads.
- *   2. an mp4 ALREADY in the Media Library whose title or filename matches the
- *      video's title. The studio uploads its own reels; when a match exists
- *      there is nothing to download and the card can be local today.
- *
- * The result is written to the af_pim_local option as videoid => URL, which is
- * what the row reads. Read-mostly: it writes that one option and nothing else.
+ * The matching itself lives in the theme (af_pim_build_local_map), because it
+ * also has to run the instant an upload finishes — the owner drags their
+ * downloaded reels into WordPress → Media and the cards must switch to those
+ * files without a deploy. This file is the deploy's readable report of what
+ * that matcher decided, plus the two facts that explain a failure to match:
+ * what the row expects to be called, and what the library actually holds.
  *
  * Run: wp eval-file tools/pim-local-video.php --allow-root
  */
 if (!defined('ABSPATH')) { fwrite(STDERR, "Run via wp eval-file\n"); exit(1); }
-global $wpdb;
 
 $channel = 'UC_GX4vXRQrN4GsvSfgmZxYw';
 echo "=== PRODUCTS IN MOTION — LOCAL VIDEO SOURCES ===\n";
 
-/* ── the videos the row shows ─────────────────────────────────────────── */
+if (!function_exists('af_pim_build_local_map')) {
+    echo "  the theme's matcher is not loaded (deploy not landed yet)\n=== DONE ===\n";
+    return;
+}
+
 $ids = get_transient('af_yt_ids3_' . $channel);
 if (!is_array($ids) || !$ids) $ids = get_option('af_yt_ids3_lastgood_' . $channel);
 $ids = is_array($ids) ? array_values(array_filter($ids)) : array();
-printf("  videos in the row: %d\n", count($ids));
-if (!$ids) { echo "  nothing to map.\n=== DONE ===\n"; return; }
-
 $titles = get_option('af_yt_titles_' . $channel);
 if (!is_array($titles)) $titles = array();
 
-/* ── what is already mirrored ─────────────────────────────────────────── */
-$up   = wp_get_upload_dir();
-$dir  = trailingslashit($up['basedir']) . 'pim/';
-$url  = trailingslashit($up['baseurl']) . 'pim/';
-if (!is_dir($dir)) @wp_mkdir_p($dir);
-$mirrored = array();
-foreach ($ids as $vid) {
-    if (file_exists($dir . $vid . '.mp4')) $mirrored[$vid] = $url . $vid . '.mp4';
-}
-printf("  already mirrored in uploads/pim: %d\n", count($mirrored));
+printf("  videos in the row: %d   (titles known: %d)\n", count($ids), count($titles));
 
-/* ── videos already in the Media Library ──────────────────────────────── */
-$atts = $wpdb->get_results(
-    "SELECT ID, post_title, guid FROM {$wpdb->posts}
-      WHERE post_type = 'attachment' AND post_mime_type LIKE 'video/%'
-      ORDER BY post_date DESC");
+$atts = af_pim_media_videos();
 printf("  video files in the Media Library: %d\n", count($atts));
-foreach (array_slice($atts, 0, 20) as $a) {
-    printf("    #%-8d %-44s %s\n", $a->ID,
-        substr((string) $a->post_title, 0, 44),
-        basename(parse_url($a->guid, PHP_URL_PATH)));
+foreach (array_slice($atts, 0, 25) as $a) {
+    printf("    #%-8d %-52.52s %s\n", $a['id'], $a['file'], substr($a['title'], 0, 40));
 }
 
-/** Words only, lowercased — so "Radha Krishna Flute Melody 💙 | Divine Love"
- *  and "radha-krishna-flute-melody.mp4" compare as the same thing. */
-function af_pim_norm($s) {
-    $s = strtolower(html_entity_decode((string) $s, ENT_QUOTES, 'UTF-8'));
-    $s = preg_replace('/\.[a-z0-9]{2,4}$/', '', $s);      // drop a file extension
-    $s = preg_replace('/[^a-z0-9]+/', ' ', $s);
-    return trim(preg_replace('/\s+/', ' ', $s));
-}
+$report = array();
+$map = af_pim_build_local_map($report);
+echo "\n  -- what matched --\n";
+foreach ($report as $line) echo '    ' . $line . "\n";
+if (!$report) echo "    (nothing)\n";
 
-/** How many leading words two strings share — a cheap, order-respecting
- *  similarity that will not marry two unrelated reels on one common word. */
-function af_pim_lead_match($a, $b) {
-    $wa = explode(' ', $a); $wb = explode(' ', $b);
-    $n = 0;
-    while ($n < count($wa) && $n < count($wb) && $wa[$n] === $wb[$n]) $n++;
-    return $n;
-}
+$unmatched = array();
+foreach ($ids as $vid) if (!isset($map[$vid])) $unmatched[] = $vid;
 
-/* ── the exact rule first: the video id IN the filename ───────────────── */
-// This is what the owner's reel-fetch tool uploads — files named
-// <videoid>.mp4 — and an 11-character id inside a filename is that video,
-// full stop. It runs before the title matching because it cannot be wrong,
-// where a title match is merely very unlikely to be.
-// The comparison runs on the SANITIZED form of the id, not the raw one.
-// WordPress puts every upload through sanitize_file_name(), which does
-// trim($name, '.-_') and collapses runs of hyphens — so a video id that
-// begins with '-' or '_', or contains '--', is NOT present verbatim in the
-// stored filename and a literal strpos() would never match it. Comparing
-// both sides after the same normalisation makes the rule hold for every id
-// YouTube can mint, not merely the ones that happen to be alphanumeric.
-$map = $mirrored;
-$byid = 0;
-if (!function_exists('af_pim_fname_key')) {
-    function af_pim_fname_key($s) {
-        $s = strtolower((string) $s);
-        $s = preg_replace('/[^a-z0-9]+/', '', $s);   // ignore every separator
-        return $s;
-    }
-}
-foreach ($ids as $vid) {
-    if (isset($map[$vid])) continue;
-    $needle = af_pim_fname_key($vid);
-    if ($needle === '') continue;
-    foreach ($atts as $a) {
-        $fname = basename(parse_url($a->guid, PHP_URL_PATH));
-        if (strpos(af_pim_fname_key($fname), $needle) !== false) {
-            $map[$vid] = wp_get_attachment_url($a->ID);
-            $byid++;
-            printf("  ID    %s -> #%d %s\n", $vid, $a->ID, $fname);
-            break;
-        }
-    }
-}
-
-/* ── match what is left, by title ─────────────────────────────────────── */
-$matched = 0; $unmatched = array();
-foreach ($ids as $vid) {
-    if (isset($map[$vid])) continue;
-    $t = isset($titles[$vid]) ? af_pim_norm($titles[$vid]) : '';
-    if ($t === '') { $unmatched[] = $vid . ' (no title known)'; continue; }
-
-    $best = null; $bestScore = 0;
-    foreach ($atts as $a) {
-        $cand = max(
-            af_pim_lead_match($t, af_pim_norm($a->post_title)),
-            af_pim_lead_match($t, af_pim_norm(basename(parse_url($a->guid, PHP_URL_PATH))))
-        );
-        if ($cand > $bestScore) { $bestScore = $cand; $best = $a; }
-    }
-    // Four leading words in common is a deliberate title, not a coincidence.
-    // Two would marry every "Radha Krishna ..." reel to the first one found.
-    if ($best && $bestScore >= 4) {
-        $map[$vid] = wp_get_attachment_url($best->ID);
-        $matched++;
-        printf("  MATCH %s -> #%d %s (%d words)\n", $vid, $best->ID,
-            basename(parse_url($best->guid, PHP_URL_PATH)), $bestScore);
-    } else {
-        $unmatched[] = $vid . (isset($titles[$vid]) ? ' — ' . substr($titles[$vid], 0, 46) : '');
-    }
-}
-
-update_option('af_pim_local', $map, false);
-
-printf("\n  local sources now available: %d of %d\n", count($map), count($ids));
-printf("    from uploads/pim         : %d\n", count($mirrored));
-printf("    by id in the filename    : %d\n", $byid);
-printf("    by title from the library: %d\n", $matched);
+printf("\n  CARDS WITH A REAL LOCAL VIDEO: %d of %d\n", count($map), count($ids));
 if ($unmatched) {
-    printf("  still on the YouTube embed: %d\n", count($unmatched));
-    foreach (array_slice($unmatched, 0, 12) as $u) echo "    " . $u . "\n";
+    echo "  still without one — the row's own titles, which a downloaded file\n";
+    echo "  should resemble:\n";
+    foreach ($unmatched as $vid) {
+        printf("    %s  %s\n", $vid, isset($titles[$vid]) ? substr($titles[$vid], 0, 64) : '(title unknown)');
+    }
 }
+
+// The other half of a failed match: files that ARE uploaded and were claimed by
+// nothing. Printed beside the unclaimed titles above, the two lists together
+// say whether the fix is a rename or something else entirely — without which
+// "0 matched" is just as unreadable as it was for the reels.
+$claimed = array_flip(array_map('strval', array_values($map)));
+$spare = array();
+foreach ($atts as $a) if (!isset($claimed[$a['url']])) $spare[] = $a;
+if ($spare) {
+    printf("\n  uploaded videos claimed by no card: %d\n", count($spare));
+    foreach (array_slice($spare, 0, 20) as $a) {
+        printf("    #%-8d %s\n", $a['id'], $a['file']);
+    }
+}
+
+// A file too large for the server is the one failure that looks like the owner
+// doing nothing, so it is stated before it can be misread as that.
+printf("\n  server upload limits: upload_max_filesize=%s post_max_size=%s\n",
+    ini_get('upload_max_filesize'), ini_get('post_max_size'));
 echo "=== DONE ===\n";

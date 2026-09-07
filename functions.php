@@ -2874,6 +2874,179 @@ add_filter('woocommerce_shortcode_products_query', function ($args, $atts = arra
     return $args;
 }, 10, 3);
 
+// 11z. Match the owner's OWN uploaded reels to the row's cards — on upload.
+//
+// The owner downloaded the sixteen reels to their machine and wants those exact
+// files in the cards. Nothing here can read their disk, so the files arrive the
+// one way a browser can send them: dragged into WordPress → Media. Everything
+// after that is this code's job, and it must not need a deploy — the moment an
+// upload finishes, the map is rebuilt and the cards play the real file.
+//
+// MATCHING. A downloader names its output after the video's TITLE, usually with
+// its own litter around it ("y2mate.com - Radha Krishna Flute … .mp4"), and the
+// channel feed already gives this site every reel's title. So: strip the litter
+// and the channel's own branding, compare the remaining words both ways, and
+// assign globally best-first so two reels can never claim one file. An id found
+// inside a filename still wins outright — an 11-character YouTube id cannot be
+// a coincidence.
+function af_pim_tokens($s) {
+    $s = strtolower(html_entity_decode((string) $s, ENT_QUOTES, 'UTF-8'));
+    $s = preg_replace('/\.[a-z0-9]{2,4}$/', '', $s);        // file extension
+    $s = preg_replace('/[^a-z0-9]+/', ' ', $s);
+    // Words a downloader or the channel adds to every single file: they carry
+    // no signal, and left in they make unrelated reels look similar.
+    static $junk = array(
+        'y2mate','ssyoutube','savefrom','yt1s','yt5s','snapsave','tubemate','x2mate',
+        'ytmp4','youtube','yout','yt','shorts','short','video','videos','download',
+        'downloader','free','online','com','net','org','mp4','hd','sd','full','final',
+        'copy','1080p','720p','480p','360p','x264','h264','media','clip','reel',
+        'theartframer','artframer','framer','art','the','and','for','with','your','you',
+        'this','that','from','into','out','new',
+    );
+    $out = array();
+    foreach (explode(' ', trim($s)) as $t) {
+        if ($t === '' || strlen($t) < 2) continue;
+        if (in_array($t, $junk, true)) continue;
+        $out[] = $t;
+    }
+    return $out;
+}
+// Coverage of the shorter side, plus a small bonus for words that also appear
+// in the same order. Coverage rather than Jaccard because a downloader's name
+// is usually the title PLUS extra words, and a title that is fully contained
+// in a filename is a match however much litter surrounds it.
+function af_pim_pair_score($a, $b) {
+    if (!$a || !$b) return array(0.0, 0, 0);
+    $ca = array_count_values($a);
+    $cb = array_count_values($b);
+    $inter = 0;
+    foreach ($ca as $t => $n) if (isset($cb[$t])) $inter += min($n, $cb[$t]);
+    $cov  = $inter / max(1, min(count($a), count($b)));
+    $lead = 0;
+    while ($lead < count($a) && $lead < count($b) && $a[$lead] === $b[$lead]) $lead++;
+    return array($cov + min($lead, 6) * 0.05, $inter, $lead);
+}
+function af_pim_media_videos() {
+    global $wpdb;
+    $rows = $wpdb->get_results(
+        "SELECT ID, post_title FROM {$wpdb->posts}
+          WHERE post_type = 'attachment' AND post_mime_type LIKE 'video/%'
+          ORDER BY post_date DESC");
+    $out = array();
+    foreach ($rows as $r) {
+        // _wp_attached_file, not guid: guid keeps the ORIGINAL address after a
+        // move or a domain change, and the filename is what carries the title.
+        $rel = (string) get_post_meta($r->ID, '_wp_attached_file', true);
+        $out[] = array(
+            'id'    => (int) $r->ID,
+            'title' => (string) $r->post_title,
+            'file'  => $rel !== '' ? basename($rel) : '',
+            'url'   => (string) wp_get_attachment_url($r->ID),
+        );
+    }
+    return $out;
+}
+/**
+ * Rebuild videoid => local URL. Returns the map; fills $report with lines.
+ * Sources in order of certainty: mirrored file, id in filename, title match.
+ */
+function af_pim_build_local_map(&$report = null) {
+    $channel = 'UC_GX4vXRQrN4GsvSfgmZxYw';
+    $ids = get_transient('af_yt_ids3_' . $channel);
+    if (!is_array($ids) || !$ids) $ids = get_option('af_yt_ids3_lastgood_' . $channel);
+    $ids = is_array($ids) ? array_values(array_filter($ids)) : array();
+    if (!$ids) { if (is_array($report)) $report[] = 'no video ids stored'; return array(); }
+
+    $titles = get_option('af_yt_titles_' . $channel);
+    if (!is_array($titles)) $titles = array();
+
+    $up  = wp_get_upload_dir();
+    $dir = trailingslashit($up['basedir']) . 'pim/';
+    $url = trailingslashit($up['baseurl']) . 'pim/';
+
+    $map = array();
+    foreach ($ids as $vid) {
+        if (file_exists($dir . $vid . '.mp4')) $map[$vid] = $url . $vid . '.mp4';
+    }
+    $atts = af_pim_media_videos();
+    $used = array();
+
+    // 1. The id inside a filename — compared after the same normalisation
+    //    WordPress applies on upload, since sanitize_file_name() trims '.-_'
+    //    and collapses hyphen runs, so ids starting with '-' or containing
+    //    '--' are not present verbatim in the stored name.
+    $key = function ($s) { return preg_replace('/[^a-z0-9]+/', '', strtolower((string) $s)); };
+    foreach ($ids as $vid) {
+        if (isset($map[$vid])) continue;
+        $needle = $key($vid);
+        if ($needle === '') continue;
+        foreach ($atts as $a) {
+            if (isset($used[$a['id']])) continue;
+            if (strpos($key($a['file']), $needle) !== false || strpos($key($a['title']), $needle) !== false) {
+                $map[$vid] = $a['url'];
+                $used[$a['id']] = true;
+                if (is_array($report)) $report[] = sprintf('ID    %s -> #%d %s', $vid, $a['id'], $a['file']);
+                break;
+            }
+        }
+    }
+
+    // 2. Titles, assigned globally best-first so the strongest pair wins the
+    //    file rather than whichever reel happened to be examined first.
+    $pairs = array();
+    foreach ($ids as $vid) {
+        if (isset($map[$vid])) continue;
+        $tt = isset($titles[$vid]) ? af_pim_tokens($titles[$vid]) : array();
+        if (!$tt) continue;
+        foreach ($atts as $a) {
+            if (isset($used[$a['id']])) continue;
+            list($s1, $i1, $l1) = af_pim_pair_score($tt, af_pim_tokens($a['file']));
+            list($s2, $i2, $l2) = af_pim_pair_score($tt, af_pim_tokens($a['title']));
+            $score = max($s1, $s2);
+            $inter = $s1 >= $s2 ? $i1 : $i2;
+            $lead  = $s1 >= $s2 ? $l1 : $l2;
+            // Three shared meaningful words covering most of the shorter side,
+            // or four words in the same order: either is a deliberate title,
+            // not two reels that both say "Krishna".
+            if (($inter >= 3 && $score >= 0.60) || $lead >= 4) {
+                $pairs[] = array('vid' => $vid, 'att' => $a, 'score' => $score, 'inter' => $inter);
+            }
+        }
+    }
+    usort($pairs, function ($x, $y) { return $y['score'] <=> $x['score']; });
+    foreach ($pairs as $p) {
+        if (isset($map[$p['vid']]) || isset($used[$p['att']['id']])) continue;
+        $map[$p['vid']] = $p['att']['url'];
+        $used[$p['att']['id']] = true;
+        if (is_array($report)) {
+            $report[] = sprintf('TITLE %s -> #%d %s (score %.2f, %d words)',
+                $p['vid'], $p['att']['id'], $p['att']['file'], $p['score'], $p['inter']);
+        }
+    }
+
+    update_option('af_pim_local', $map, false);
+    return $map;
+}
+// The whole point of doing this on upload: dragging the files into Media is
+// the owner's only step, and it must be the last one. No deploy, no command.
+function af_pim_media_changed($post_id) {
+    if (strpos((string) get_post_mime_type($post_id), 'video/') !== 0) return;
+    af_pim_build_local_map();
+    // The homepage is cached; a new file that nothing serves is not a fix.
+    if (function_exists('wp_cache_flush')) wp_cache_flush();
+    do_action('litespeed_purge_all');
+}
+add_action('add_attachment', 'af_pim_media_changed', 20);
+// Two hooks, because one of them can be too early: add_attachment fires as the
+// row is inserted, and some uploaders fill in the file path a moment later
+// while generating metadata. Re-running then is cheap and idempotent — it
+// rebuilds one option — and it means no upload path can quietly miss.
+add_action('wp_update_attachment_metadata', function ($data, $post_id) {
+    af_pim_media_changed($post_id);
+    return $data;
+}, 20, 2);
+add_action('delete_attachment', 'af_pim_media_changed', 20);
+
 // 11a. The row's video ids, as plain text at /?af_pim_ids=1.
 // This exists for the reel-fetch tool on the OWNER'S machine — the one
 // address YouTube actually serves, after downloads from GitHub's runners and
