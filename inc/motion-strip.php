@@ -125,9 +125,21 @@ add_action('wp_head', function () {
    so these are declared here rather than inherited from it. The existing
    arrows and drag-scroll both call scrollBy() on this element, so it has to
    stay a horizontal scroller for them to keep working. */
-.circle-gallery-slider{display:flex;flex-wrap:nowrap;gap:14px;overflow-x:auto;
-  overflow-y:hidden;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;
-  padding:2px 0 14px;scrollbar-width:none;-ms-overflow-style:none;}
+/* !important and the doubled selector are deliberate. The plain rule was on the
+   page, nothing in the HTML or in any of the 83 bundles contradicted it, and the
+   nine tiles still wrapped into two rows — which is what the owner reported as
+   "still has 2 sections". Something outside the stylesheet reaches this element,
+   so the row is nailed down rather than argued with. */
+.elementor-shortcode .circle-gallery-slider,
+.circle-gallery-slider.circle-gallery-slider{
+  display:flex !important;
+  flex-wrap:nowrap !important;
+  flex-direction:row !important;
+  align-items:flex-start !important;
+  gap:14px;overflow-x:auto !important;overflow-y:hidden !important;
+  scroll-behavior:smooth;-webkit-overflow-scrolling:touch;
+  padding:2px 0 14px;scrollbar-width:none;-ms-overflow-style:none;width:100%;}
+.circle-gallery-slider > .circle-item{flex:0 0 auto !important;}
 .circle-gallery-slider::-webkit-scrollbar{display:none;}
 .circle-gallery-slider.dragging{scroll-behavior:auto;cursor:grabbing;}
 .af-motion-item{position:relative;flex:0 0 auto;width:clamp(180px,19vw,364px);
