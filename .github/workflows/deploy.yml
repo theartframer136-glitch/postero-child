@@ -1972,6 +1972,28 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/diag-custom-creations.php --allow-root 2>&1" \
             || true
 
+      # The decisive A/B: fetch the homepage twice, once normally and once
+      # with both row filters switched off, and count the product cards in the
+      # RAW HTML the server sends. If both are zero the rows were never mine to
+      # break; if only the normal one is zero, they are. Either answer ends a
+      # week of theorising, and neither needs a browser.
+      - name: New Arrivals — with and without the row filters (read-only)
+        if: always()
+        timeout-minutes: 5
+        run: |
+          set -uo pipefail
+          for Q in "cb=$(date +%s)" "cb=$(date +%s)&af_nofilter=1"; do
+            HTML=$(curl -fsS --max-time 90 "https://theartframer.us/?${Q}" || echo "")
+            printf '  %-46s bytes=%-8s ul.products=%-3s li.product=%-3s\n' \
+              "?${Q}" \
+              "${#HTML}" \
+              "$(printf '%s' "$HTML" | grep -o 'class="products' | wc -l)" \
+              "$(printf '%s' "$HTML" | grep -o 'class="product ' | wc -l)"
+          done
+          HTML=$(curl -fsS --max-time 90 "https://theartframer.us/?cb=$(date +%s)" || echo "")
+          echo "  --- what follows the New Arrivals heading in the raw HTML ---"
+          printf '%s' "$HTML" | tr '>' '>\n' | grep -A 12 -i 'New' | grep -i -m 14 'arrival\|product\|woocommerce\|elementor-element' | head -14 | cut -c1-150 | sed 's/^/    /'
+
       # The row is empty on the page while every query returns products. Those
       # cannot both be true, so this looks at the rendered DOM and says which
       # of the three possible failures it is: no cards, cards with no height,

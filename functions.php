@@ -2832,6 +2832,14 @@ add_action('wp_footer', function() { ?>
 // excludes it; a query that asks for it (the gallery) is untouched. The
 // shortcode filter covers the homepage rows — Elementor's Products widget
 // and the AJAX-rendered rows both build on WooCommerce's shortcode query.
+// A switch for the two row filters below, so their effect can be MEASURED
+// rather than argued about: ?af_nofilter=1 turns both off for that one
+// request. Nothing is cached under that URL and nothing else changes, so the
+// same page can be fetched twice and the two card counts compared. The live
+// site is unaffected — no visitor ever sends it.
+function af_rows_filters_off() {
+    return isset($_GET['af_nofilter']);
+}
 function af_personalised_cat_id() {
     static $id = null;
     if ($id !== null) return $id;
@@ -2841,6 +2849,7 @@ function af_personalised_cat_id() {
     return $id;
 }
 add_filter('woocommerce_shortcode_products_query', function ($args, $atts = array(), $type = '') {
+    if (af_rows_filters_off()) return $args;
     $cat_id = af_personalised_cat_id();
     if (!$cat_id) return $args;
     // A row that asks for this category by any handle keeps it.
@@ -3160,6 +3169,7 @@ add_action('delete_attachment', function ($post_id) {
 // the other rows either scope themselves or arrive over AJAX.
 add_filter('woocommerce_shortcode_products_query', function ($args, $atts = array(), $type = '') {
     static $claimed = false;
+    if (af_rows_filters_off()) return $args;
     if ($claimed || is_admin() || wp_doing_ajax()) return $args;
     if (!is_front_page() && !is_home()) return $args;
     if (!empty($atts['category']) || !empty($atts['ids']) || !empty($atts['skus'])) return $args;
