@@ -44,8 +44,14 @@ function af_na_today_ids() {
         'update_post_meta_cache' => false,
         'update_post_term_cache' => false,
         'date_query'             => array(array('after' => $start, 'inclusive' => true)),
+        // no 'fields' shortcut past this point: the slugs are needed too
     ));
-    $ids = array_map('intval', $q->posts);
+    $ids = array();
+    foreach ($q->posts as $pid) {
+        $ids[] = (int) $pid;
+        $post = get_post($pid);
+        if ($post && $post->post_name) $ids[] = 'slug:' . $post->post_name;
+    }
     // Short life: "today" changes, and a band that is a day stale is the
     // complaint this rule exists to answer.
     set_transient('af_na_today_ids', $ids, 15 * MINUTE_IN_SECONDS);
@@ -61,27 +67,40 @@ function af_na_cards($html) {
                            LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD);
     if (!$ok) { libxml_clear_errors(); libxml_use_internal_errors($prev); return array(); }
     $xp = new DOMXPath($doc);
-    $nodes = $xp->query("//*[@data-product-id] | //a[contains(@href,'add-to-cart=')]");
+    // Three ways a card names its product, because this theme uses the third.
+    // Measured 2026-09-08: its cards carry no data-product-id and no
+    // add-to-cart link — they show "Wishlist / View" and link to
+    // /product/<slug>/ — so a finder that knew only the first two found no
+    // cards at all and left the row exactly as it was.
+    $nodes = $xp->query("//*[@data-product-id] | //a[contains(@href,'add-to-cart=')]"
+                      . " | //a[contains(@href,'/product/')]");
     $out = array();
+    $done = array();
     if ($nodes) {
         foreach ($nodes as $node) {
-            $id = (int) $node->getAttribute('data-product-id');
-            if (!$id && preg_match('/add-to-cart=(\d+)/', (string) $node->getAttribute('href'), $m)) {
-                $id = (int) $m[1];
+            $key = (string) (int) $node->getAttribute('data-product-id');
+            if ($key === '0' && preg_match('/add-to-cart=(\d+)/', (string) $node->getAttribute('href'), $m)) {
+                $key = $m[1];
             }
-            if (!$id || isset($out[$id])) continue;
+            if ($key === '0' && preg_match('~/product/([^/?#]+)~', (string) $node->getAttribute('href'), $m2)) {
+                $key = 'slug:' . $m2[1];            // the slug is identity enough
+            }
+            if ($key === '0' || $key === '' || isset($out[$key])) continue;
+            $id = $key;
             // Climb to the element wrapping this product and no other — the
             // same rule the promo filter needed, and for the same reason: one
             // step too far and you are holding the whole row.
             $card = null;
             for ($n = $node; $n && $n->nodeType === XML_ELEMENT_NODE; $n = $n->parentNode) {
                 if ($n->getAttribute('id') === 'af-na-root') break;
-                $inside = $xp->query(".//*[@data-product-id] | .//a[contains(@href,'add-to-cart=')]", $n);
+                $inside = $xp->query(".//*[@data-product-id] | .//a[contains(@href,'add-to-cart=')]"
+                                   . " | .//a[contains(@href,'/product/')]", $n);
                 $seen = array();
                 if ($inside) foreach ($inside as $i2) {
-                    $iid = (int) $i2->getAttribute('data-product-id');
-                    if (!$iid && preg_match('/add-to-cart=(\d+)/', (string) $i2->getAttribute('href'), $m2)) $iid = (int) $m2[1];
-                    if ($iid) $seen[$iid] = true;
+                    $k2 = (string) (int) $i2->getAttribute('data-product-id');
+                    if ($k2 === '0' && preg_match('/add-to-cart=(\d+)/', (string) $i2->getAttribute('href'), $mm)) $k2 = $mm[1];
+                    if ($k2 === '0' && preg_match('~/product/([^/?#]+)~', (string) $i2->getAttribute('href'), $mm2)) $k2 = 'slug:' . $mm2[1];
+                    if ($k2 !== '0' && $k2 !== '') $seen[$k2] = true;
                 }
                 if (count($seen) > 1) break;
                 $cls = ' ' . strtolower($n->getAttribute('class')) . ' ';
@@ -90,7 +109,20 @@ function af_na_cards($html) {
                     $card = $n;
                 }
             }
-            if ($card) $out[$id] = $doc->saveHTML($card);
+            // One entry per CARD, not per identifier. A card that carries both
+            // a data-product-id and a /product/ link matched twice and was
+            // counted as two products, which would have shown the same piece
+            // twice in a random pick.
+            if ($card) {
+                // getNodePath(), not spl_object_hash(): PHP recycles object
+                // hashes as DOM wrappers are collected, so two different cards
+                // can share one — measured, it silently dropped a card from a
+                // row of four. A node path is the node's own address.
+                $h = $card->getNodePath();
+                if (isset($done[$h])) continue;
+                $done[$h] = true;
+                $out[$id] = $doc->saveHTML($card);
+            }
         }
     }
     libxml_clear_errors();
