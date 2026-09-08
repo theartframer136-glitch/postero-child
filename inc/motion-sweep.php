@@ -269,7 +269,13 @@ add_action('wp_footer', function () {
     });
 
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    var SPEED = 0.45;                       // px per frame — a slow drift
+    // px per frame at 60fps, so 1.1 is about 66px/s. Owner, twice: still too
+    // slow. 0.45 (27px/s) put a tile past in thirteen seconds, which reads as
+    // a page that has not quite finished loading rather than a row that moves.
+    // At 66px/s a tile passes in about five and a half seconds — plainly in
+    // motion at a glance, and still slow enough to look at a clip without
+    // chasing it. The dt correction below keeps this speed on any frame rate.
+    var SPEED = 1.1;
 
     // The position is kept HERE, as a float, and written to the element each
     // frame. It used to be kept in scrollLeft itself — `scrollLeft += 0.45` —
