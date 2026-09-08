@@ -57,6 +57,32 @@ function af_promo_hidden_ids() {
 }
 
 /**
+ * How many DIFFERENT products are inside this element.
+ *
+ * The card-finder below climbs upward looking for the element that wraps one
+ * product. Without this count it kept climbing to whatever ancestor happened
+ * to have "card" in its class — and on this theme that is the ROW, so removing
+ * one flagged picture removed the whole of New Arrivals. Measured 2026-09-08:
+ * div.new-arrival-grid, 1410x0, zero children, on a page whose heading and
+ * button rendered perfectly.
+ */
+function af_promo_product_count($xp, $ctx) {
+    $nodes = $xp->query(".//*[@data-product-id] | .//a[contains(@href,'add-to-cart=')]"
+                      . " | .//a[contains(@href,'add-to-wishlist=')]", $ctx);
+    if (!$nodes) return 0;
+    $ids = array();
+    foreach ($nodes as $nd) {
+        $id = $nd->getAttribute('data-product-id');
+        if ($id === '' && preg_match('/(?:add-to-cart|add-to-wishlist)=(\d+)/',
+                                     (string) $nd->getAttribute('href'), $m)) {
+            $id = $m[1];
+        }
+        if ($id !== '') $ids[$id] = true;
+    }
+    return count($ids);
+}
+
+/**
  * Strip the cards for $ids out of a block of shortcode HTML.
  * Returns the original string untouched if anything at all goes wrong.
  */
@@ -88,14 +114,19 @@ function af_promo_strip_cards($html, $ids) {
         $nodes = $xp->query($q);
         if (!$nodes) continue;
         foreach ($nodes as $node) {
-            // climb to the smallest enclosing card
+            // Climb to the element that wraps THIS product and no other.
+            // The previous version took the outermost ancestor with "card" in
+            // its class, which on this theme is the row itself — so one
+            // flagged picture emptied New Arrivals completely. The count is
+            // the difference between a card and a row.
             $card = null;
             for ($n = $node; $n && $n->nodeType === XML_ELEMENT_NODE; $n = $n->parentNode) {
                 if ($n->getAttribute('id') === 'af-promo-root') break;
+                if (af_promo_product_count($xp, $n) > 1) break;   // this is the row
                 $cls = ' ' . strtolower($n->getAttribute('class')) . ' ';
                 if (strpos($cls, 'card') !== false || strpos($cls, 'product-item') !== false
                     || strtolower($n->nodeName) === 'li') {
-                    $card = $n;                    // keep climbing: take the OUTERMOST card
+                    $card = $n;
                 }
             }
             if ($card && $card->parentNode) { $card->parentNode->removeChild($card); $removed++; }
@@ -107,6 +138,14 @@ function af_promo_strip_cards($html, $ids) {
 
     $root = $doc->getElementById('af-promo-root');
     if (!$root) return $html;
+
+    // NEVER empty a band. Hiding advertising pictures is worth doing; leaving
+    // New Arrivals as a heading with nothing under it is not, and that is
+    // exactly what this file did for five days. If nothing is left, the
+    // original HTML goes back untouched — a picture in the wrong row is a
+    // cosmetic complaint, an empty row is a hole in the shop.
+    if (af_promo_product_count($xp, $root) < 1) return $html;
+
     $out = '';
     foreach ($root->childNodes as $child) $out .= $doc->saveHTML($child);
     return $out !== '' ? $out : $html;
