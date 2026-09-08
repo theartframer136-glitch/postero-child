@@ -70,13 +70,16 @@ if (!$rows) echo "  (heading text not found in any post_content - it may be a he
 // shortcode, a theme grid filled over AJAX, a Loop Grid — each empties for a
 // different reason, and every measurement so far assumed the first.
 echo "\n-- 3a. The New Arrivals widget, from Elementor's own data --\n";
+// "Arrivals" alone: the heading is <span>New</span> Arrivals, so the two words
+// are never adjacent in the stored data — which is why the previous search
+// found nothing on a page that plainly has the heading.
 $metas = $wpdb->get_results($wpdb->prepare(
     "SELECT post_id, meta_value FROM {$wpdb->postmeta}
       WHERE meta_key = '_elementor_data' AND meta_value LIKE %s LIMIT 3",
-    '%New Arrivals%'));
+    '%Arrivals%'));
 foreach ($metas as $m) {
     $data = (string) $m->meta_value;
-    $pos = stripos($data, 'New Arrivals');
+    $pos = stripos($data, 'Arrivals');
     printf("  post #%d (%s) holds the heading at offset %d of %d bytes\n",
         $m->post_id, get_post_type($m->post_id), $pos, strlen($data));
     // Everything from the heading to the next 2500 bytes, with the noise

@@ -3225,6 +3225,66 @@ add_filter('woocommerce_shortcode_products_query', function ($args, $atts = arra
     return $args;
 }, 11, 3);
 
+// 10z-3. A product carousel the theme never initialised is healed here.
+//
+// Measured (deploy 960): the theme renders New Arrivals as a Swiper carousel —
+// <div class="products swiper-wrapper" data-items="3" data-autoplay="2000"
+// data-loop="1"> with a .product.swiper-slide per card — and all 36 slides are
+// in the DOM of a row that shows nothing. An uninitialised Swiper is invisible:
+// its slides have no width and its container no height, until the library
+// marks it swiper-initialized. Whatever stopped the theme's own setup, the
+// visitor should not be looking at a blank band, so a few seconds after load
+// any product carousel still waiting is started here with the theme's own
+// data-* settings (Elementor ships the Swiper library on this page), and if
+// the library is somehow absent the wrapper is shown as a plain scrolling strip.
+// Nothing here runs when the theme has done its job.
+add_action('wp_footer', function () {
+    if (!is_front_page() && !is_home()) return; ?>
+<style>
+.af-swiper-fallback > .products.swiper-wrapper{display:flex !important;flex-wrap:nowrap !important;gap:16px;
+  overflow-x:auto !important;padding:4px 0 12px;height:auto !important;transform:none !important;}
+.af-swiper-fallback > .products.swiper-wrapper > .product.swiper-slide{flex:0 0 auto !important;
+  width:clamp(200px,23vw,320px) !important;height:auto !important;}
+</style>
+<script>
+(function(){
+  function heal(){
+    document.querySelectorAll('.products.swiper-wrapper').forEach(function(wrap){
+      var c = wrap.parentElement;
+      if (!c || wrap.getAttribute('data-af-healed')) return;
+      if (c.classList.contains('swiper-initialized') || c.classList.contains('swiper-container-initialized')) return;
+      if (!wrap.children.length) return;
+      var d = c.dataset || {};
+      var items = parseInt(d.items, 10) || 4;
+      if (window.Swiper) {
+        try {
+          // Swiper's own stylesheet keys on these classes; the theme's
+          // container may carry neither.
+          c.classList.add('swiper'); c.classList.add('swiper-container');
+          new Swiper(c, {
+            slidesPerView: items,
+            spaceBetween: parseInt(d.margin, 10) || 16,
+            slidesPerGroup: parseInt(d.slideItems, 10) || 1,
+            speed: parseInt(d.speed, 10) || 400,
+            loop: d.loop === '1',
+            autoplay: d.autoplay ? { delay: parseInt(d.autoplay, 10) || 3000, disableOnInteraction: false } : false,
+            breakpoints: { 0: { slidesPerView: 1.3 }, 600: { slidesPerView: 2 },
+                           900: { slidesPerView: Math.min(items, 3) }, 1200: { slidesPerView: items } }
+          });
+          wrap.setAttribute('data-af-healed', 'swiper');
+          return;
+        } catch (e) {}
+      }
+      c.classList.add('af-swiper-fallback');
+      wrap.setAttribute('data-af-healed', 'fallback');
+    });
+  }
+  window.addEventListener('load', function(){ setTimeout(heal, 4000); });
+  setTimeout(heal, 9000);
+})();
+</script>
+<?php }, 95);
+
 // 11a. The row's video ids, as plain text at /?af_pim_ids=1.
 // This exists for the reel-fetch tool on the OWNER'S machine — the one
 // address YouTube actually serves, after downloads from GitHub's runners and

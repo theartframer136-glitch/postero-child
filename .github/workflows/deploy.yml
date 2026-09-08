@@ -1997,7 +1997,10 @@ jobs:
           python3 - <<'PY'
           import re
           h = open('/tmp/home.html', encoding='utf-8', errors='replace').read()
-          i = h.find('New Arrivals')
+          # The heading is <span>New</span> Arrivals, so "New Arrivals" never
+          # occurs literally — search for the second word alone.
+          m = re.search(r'New\s*(?:<[^>]*>\s*)*Arrivals', h)
+          i = m.start() if m else h.find('Arrivals')
           print('  --- 3500 bytes after the New Arrivals heading, tags only ---')
           seg = h[i:i+3500] if i >= 0 else ''
           for t in re.findall(r'<[^>]{1,160}>', seg)[:60]:
