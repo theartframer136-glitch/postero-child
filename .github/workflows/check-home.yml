@@ -57,6 +57,36 @@ jobs:
           }
           fetch browser "${UA}"
           fetch bare 'curl/8'
+          # The New Arrivals rule promises "today's uploads, else random". Two
+          # fetches, two lists of product ids: if they are identical the row is
+          # not random, whatever the code says. Verified rather than assumed.
+          curl -fsS --max-time 60 -o /tmp/na1.html -H "User-Agent: ${UA}" "https://theartframer.us/?nacheck=1$(date +%s)" || true
+          sleep 3
+          curl -fsS --max-time 60 -o /tmp/na2.html -H "User-Agent: ${UA}" "https://theartframer.us/?nacheck=2$(date +%s)" || true
+          python3 - <<'NA'
+          import re, os
+          def grid(p):
+              if not os.path.exists(p): return []
+              h = open(p, encoding='utf-8', errors='replace').read()
+              i = h.find('new-arrival-grid')
+              if i < 0: return []
+              seg = h[i:i+40000]
+              # stop at the end of the shortcode block
+              end = seg.find('elementor-element-1078153')
+              if end > 0: seg = seg[:end]
+              return re.findall(r'add-to-cart=(\d+)', seg)[:14]
+          a, b = grid('/tmp/na1.html'), grid('/tmp/na2.html')
+          print('\n=== New Arrivals: what is actually in the row ===')
+          print('  fetch 1 product ids: %s' % (a or '(none found)'))
+          print('  fetch 2 product ids: %s' % (b or '(none found)'))
+          if not a:
+              print('  VERDICT: no products in the grid')
+          elif a == b:
+              print('  VERDICT: the SAME products both times — not random')
+          else:
+              print('  VERDICT: different products each fetch — the random pick is working')
+          NA
+
           python3 - <<'PY'
           import re, os
 
