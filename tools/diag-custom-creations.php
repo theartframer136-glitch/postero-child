@@ -106,6 +106,31 @@ $q2 = new WP_Query($args2);
 printf("  returns %d product(s)%s\n", count($q2->posts), count($q2->posts) ? ':' : ' - THE GALLERY WOULD BE EMPTY');
 foreach ($q2->posts as $p) printf("    #%-6d %.48s\n", $p->ID, get_the_title($p->ID));
 
+// What the homepage rows actually ask for, recorded by the filter itself as
+// each one runs. Guessing at which query drives which section is what emptied
+// New Arrivals; this ends the guessing.
+echo "\n-- 3d. Product-row queries seen on the live site --\n";
+$seen = get_transient('af_sc_seen');
+if (is_array($seen) && $seen) {
+    foreach (array_keys($seen) as $sig) echo '    ' . $sig . "\n";
+} else {
+    echo "    (none recorded yet — the homepage has not been rendered since the deploy)\n";
+}
+
+echo "\n-- 3e. New Arrivals: today's uploads, else random --\n";
+$start = function_exists('current_datetime')
+    ? current_datetime()->setTime(0, 0, 0)->format('Y-m-d H:i:s')
+    : date('Y-m-d 00:00:00', current_time('timestamp'));
+printf("  site midnight: %s (site time now %s)\n", $start, current_time('mysql'));
+$tq = new WP_Query(array(
+    'post_type' => 'product', 'post_status' => 'publish', 'posts_per_page' => 12,
+    'date_query' => array(array('after' => $start, 'inclusive' => true)),
+    'fields' => 'ids', 'no_found_rows' => true,
+));
+printf("  products published today: %d -> the row shows %s\n",
+    count($tq->posts), count($tq->posts) ? "today's uploads" : 'a random selection');
+foreach (array_slice($tq->posts, 0, 8) as $pid) printf("    #%-6d %.48s\n", $pid, get_the_title($pid));
+
 echo "\n-- 4. Attachments named like the event photos (newest 10 images) --\n";
 $atts = get_posts(array('post_type' => 'attachment', 'post_mime_type' => 'image', 'numberposts' => 10,
     'orderby' => 'date', 'order' => 'DESC'));

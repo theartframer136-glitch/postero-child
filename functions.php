@@ -2864,14 +2864,48 @@ add_filter('woocommerce_shortcode_products_query', function ($args, $atts = arra
             }
         }
     }
-    if (empty($args['tax_query'])) $args['tax_query'] = array();
-    $args['tax_query'][] = array(
+    // Record what each row actually asks for, so the next report can name the
+    // query behind a section instead of guessing at it. One write per NEW
+    // signature only — an ordinary page load reads and writes nothing.
+    $sig = $type . '|' . implode(',', array_keys((array) $atts))
+         . '|' . (isset($atts['category']) ? (is_array($atts['category']) ? implode('+', $atts['category']) : $atts['category']) : '-')
+         . '|tq' . (empty($args['tax_query']) ? 0 : count($args['tax_query']));
+    $seen = get_transient('af_sc_seen');
+    if (!is_array($seen)) $seen = array();
+    if (!isset($seen[$sig]) && count($seen) < 24) {
+        $seen[$sig] = 1;
+        set_transient('af_sc_seen', $seen, DAY_IN_SECONDS);
+    }
+
+    $probe = $args;
+    if (empty($probe['tax_query'])) $probe['tax_query'] = array();
+    $probe['tax_query'][] = array(
         'taxonomy' => 'product_cat',
         'field'    => 'term_id',
         'terms'    => array($cat_id),
         'operator' => 'NOT IN',
     );
-    return $args;
+
+    // NEVER empty a row. Hiding a category from the generic rows is worth
+    // doing; leaving a section on the homepage with a heading and nothing
+    // under it is not, and that is exactly what happened to New Arrivals when
+    // this filter first shipped. So the exclusion is tried before it is
+    // applied: one ids-only query for a single post, and if the row would come
+    // back empty the original arguments are returned untouched. The failure
+    // mode of this feature is now "the photos are still there", which is a
+    // cosmetic complaint, rather than "the section is gone", which is a hole
+    // in the page.
+    $test = $probe;
+    $test['posts_per_page']        = 1;
+    $test['fields']                = 'ids';
+    $test['no_found_rows']         = true;
+    $test['update_post_meta_cache']= false;
+    $test['update_post_term_cache']= false;
+    unset($test['paged'], $test['offset']);
+    $probe_q = new WP_Query($test);
+    if (empty($probe_q->posts)) return $args;
+
+    return $probe;
 }, 10, 3);
 
 // 11z. Match the owner's OWN uploaded reels to the row's cards — on upload.
@@ -3090,6 +3124,54 @@ add_action('wp_update_attachment_metadata', function ($data, $post_id) {
 add_action('delete_attachment', function ($post_id) {
     af_pim_media_changed($post_id, $post_id);
 }, 20);
+
+// 10z-2. New Arrivals: today's uploads, or a random selection.
+//
+// The owner's rule (2026-09-08): the row shows what was added TODAY, and when
+// nothing was added today it shows a random pick rather than the same newest
+// items every day. Which is also why the row must never be empty — a heading
+// with nothing under it was the state this replaces.
+//
+// Identifying the row from PHP: the section is found in the browser by its
+// heading text, so nothing in the markup names it here. What does name it is
+// the shape of its query — the first generic newest-first products row on the
+// front page, with no category or id list of its own. That is New Arrivals;
+// the other rows either scope themselves or arrive over AJAX.
+add_filter('woocommerce_shortcode_products_query', function ($args, $atts = array(), $type = '') {
+    static $claimed = false;
+    if ($claimed || is_admin() || wp_doing_ajax()) return $args;
+    if (!is_front_page() && !is_home()) return $args;
+    if (!empty($atts['category']) || !empty($atts['ids']) || !empty($atts['skus'])) return $args;
+    $orderby = isset($args['orderby']) ? strtolower((string) $args['orderby']) : '';
+    if ($orderby !== '' && $orderby !== 'date') return $args;
+    $claimed = true;
+
+    // Midnight in the site's own timezone, not the server's: "today" has to
+    // mean the owner's today or a piece uploaded this morning can be missing
+    // from the row that exists to show it.
+    $start = function_exists('current_datetime')
+        ? current_datetime()->setTime(0, 0, 0)->format('Y-m-d H:i:s')
+        : date('Y-m-d 00:00:00', current_time('timestamp'));
+
+    $today = $args;
+    $today['date_query'] = array(array('after' => $start, 'inclusive' => true));
+
+    $probe = $today;
+    $probe['posts_per_page']         = 1;
+    $probe['fields']                 = 'ids';
+    $probe['no_found_rows']          = true;
+    $probe['update_post_meta_cache'] = false;
+    $probe['update_post_term_cache'] = false;
+    unset($probe['paged'], $probe['offset']);
+    $q = new WP_Query($probe);
+    if (!empty($q->posts)) return $today;      // something arrived today
+
+    // Nothing today — a random pick, so the row is different each time rather
+    // than the same newest dozen it would otherwise be frozen on.
+    $args['orderby'] = 'rand';
+    unset($args['order']);
+    return $args;
+}, 11, 3);
 
 // 11a. The row's video ids, as plain text at /?af_pim_ids=1.
 // This exists for the reel-fetch tool on the OWNER'S machine — the one
