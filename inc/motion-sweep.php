@@ -218,7 +218,18 @@ add_action('wp_head', function () {
 .af-motion-lb{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);
   display:none;align-items:center;justify-content:center;padding:24px;}
 .af-motion-lb.open{display:flex;}
-.af-motion-lb-box{position:relative;width:min(94vw,1100px);aspect-ratio:16/9;}
+/* An explicit height, NOT aspect-ratio. Measured 2026-09-08 by clicking a
+   tile in a real browser: YouTube answered 200 and the player loaded into a
+   box of 0x0 — "the iframe has no size, a layout fault, not a video fault".
+   aspect-ratio needs a definite width to resolve against and something on this
+   page denies it one, so the height is stated outright and the width derived
+   from it. max-width keeps a narrow window honest; YouTube letterboxes inside
+   its own frame if that ever bites, which is a far smaller problem than a
+   popup with nothing in it. */
+.af-motion-lb-box{position:relative;
+  height:min(85vh,619px);
+  width:calc(min(85vh,619px) * 16 / 9);
+  max-width:94vw;}
 .af-motion-lb-box iframe{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:10px;}
 .af-motion-lb-x{position:absolute;top:16px;right:22px;z-index:2;background:none;border:0;
   color:#fff;font-size:40px;line-height:1;cursor:pointer;padding:4px 10px;}
@@ -354,6 +365,25 @@ add_action('wp_footer', function () {
                 + '?autoplay=1&rel=0&playsinline=1';
     lb.classList.add('open');
     document.documentElement.style.overflow = 'hidden';
+    // The CSS above is the fix; this is the guarantee. One stylesheet on this
+    // page already flattened this box to 0x0 once, and a popup that opens
+    // empty is worse than no popup at all — so the size is measured after it
+    // opens and forced in pixels if anything has collapsed it again.
+    setTimeout(function(){
+      var box = lb.querySelector('.af-motion-lb-box');
+      if (!box) return;
+      var r = box.getBoundingClientRect();
+      if (r.height >= 40 && r.width >= 40) return;
+      var h = Math.min(window.innerHeight * 0.85, 619);
+      var w = Math.min(h * 16 / 9, window.innerWidth * 0.94);
+      box.style.setProperty('height', Math.round(w * 9 / 16) + 'px', 'important');
+      box.style.setProperty('width', Math.round(w) + 'px', 'important');
+      box.setAttribute('data-af-forced', '1');
+      if (lbFrame) {
+        lbFrame.style.setProperty('width', '100%', 'important');
+        lbFrame.style.setProperty('height', '100%', 'important');
+      }
+    }, 150);
     if (tileVideo) { try { tileVideo.pause(); lbPaused = tileVideo; } catch(e){} }
   }
   function afMotionCloseLb(){
