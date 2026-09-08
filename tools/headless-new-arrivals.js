@@ -32,6 +32,14 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const errors = [];
   try {
     const page = await browser.newPage();
+    // A real browser's User-Agent. Measured 2026-09-08: this host answers a
+    // bare curl with ZERO bytes and served this check an empty page twice —
+    // it is filtering non-browser clients, and headless Chrome announces
+    // itself as HeadlessChrome. Without this line the check measures a page
+    // the owner never sees, which is exactly how a week went by.
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) ' +
+      'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36');
+    await page.setExtraHTTPHeaders({ 'Accept-Language': 'en-US,en;q=0.9' });
     await page.setViewport({ width: 1440, height: 900 });
     page.on('pageerror', (e) => errors.push('pageerror: ' + String(e.message || e).slice(0, 220)));
     page.on('console', (m) => {
