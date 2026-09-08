@@ -8612,6 +8612,26 @@ add_action('template_redirect', function(){
       .af-tow-stage{height:360px;}
       .af-tow-badge{display:none;}
     }
+    /* Touch targets, phones and tablets only.
+       Measured in a phone browser at 360, 390 and 412px: the frame-colour
+       swatches came out 34x34, the wall-height chips 38px tall and the Back to
+       Home link 35px. A thumb needs 44. Each of the three sits beside controls
+       that already clear it — the selects, the layout chips, Save Preview —
+       so these were the ones a finger would miss while everything around them
+       answered.
+       The swatch grows in both directions; the ring marking the chosen colour
+       is drawn with box-shadow, so a wider circle pushes nothing around it.
+       The chip and the link gain HEIGHT only: their widths come from the row
+       they sit in, and forcing those would reflow the panel.
+       min-height with inline-flex rather than more padding, because padding
+       has to be computed against the font's line box and the parent theme
+       restyles both — this lands on 44 whatever it inherits.
+       Nothing here applies above 781px: the desktop layout is untouched. */
+    @media (max-width:781px){
+      .af-tow-sw{width:44px;height:44px;}
+      .af-tow-wallh button{height:44px;}
+      .af-tow-home{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;}
+    }
     </style>
     <?php
     get_footer();
@@ -14539,6 +14559,16 @@ add_action('template_redirect', function () {
       .af-ftm-title{font-size:27px;}
       .af-ftm-stage{height:360px;}
       .af-ftm-badge{display:none;}
+    }
+    /* Touch targets on phones and tablets — the same three controls, and the
+       same reasoning, as the block at the end of the Try On Wall stylesheet.
+       Kept beside its own page's rules rather than shared, because the two
+       stylesheets are independent and a shared block would be a fourth place
+       to look when one of these pages changes. */
+    @media (max-width:781px){
+      .af-ftm-sw{width:44px;height:44px;}
+      .af-ftm-wallh button{height:44px;}
+      .af-ftm-home{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;}
     }
     </style>
     <?php
