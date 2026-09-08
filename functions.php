@@ -3189,8 +3189,29 @@ add_filter('woocommerce_shortcode_products_query', function ($args, $atts = arra
 
     // Nothing today — a random pick, so the row is different each time rather
     // than the same newest dozen it would otherwise be frozen on.
-    $args['orderby'] = 'rand';
-    unset($args['order']);
+    //
+    // Chosen as explicit ids rather than by handing WooCommerce orderby=rand:
+    // the shortcode's own result caching and ordering both key off the query
+    // it was given, and a row that renders on the server but not on the page
+    // is exactly the failure being chased here. post__in with a fixed list is
+    // an ordinary query that cannot behave differently in one context than
+    // another.
+    $pool = $args;
+    $pool['posts_per_page']         = 60;
+    $pool['fields']                 = 'ids';
+    $pool['no_found_rows']          = true;
+    $pool['update_post_meta_cache'] = false;
+    $pool['update_post_term_cache'] = false;
+    unset($pool['paged'], $pool['offset'], $pool['date_query']);
+    $pq = new WP_Query($pool);
+    $ids = $pq->posts;
+    if (count($ids) < 2) return $args;          // nothing to shuffle: leave it alone
+    shuffle($ids);
+    $want = isset($args['posts_per_page']) ? (int) $args['posts_per_page'] : 12;
+    if ($want < 1) $want = 12;
+    $args['post__in'] = array_slice($ids, 0, $want);
+    $args['orderby']  = 'post__in';
+    unset($args['date_query']);
     return $args;
 }, 11, 3);
 

@@ -1534,18 +1534,6 @@ jobs:
           npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
           NODE_PATH=/tmp/afhead/node_modules node tools/headless-pim-check.js || true
 
-      # The row is empty on the page while every query returns products. Those
-      # cannot both be true, so this looks at the rendered DOM and says which
-      # of the three possible failures it is: no cards, cards with no height,
-      # or cards hidden by an ancestor.
-      - name: Headless New Arrivals check (read-only)
-        if: always()
-        timeout-minutes: 6
-        run: |
-          set -uo pipefail
-          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
-          NODE_PATH=/tmp/afhead/node_modules node tools/headless-new-arrivals.js "https://theartframer.us/" || true
-
       - name: Thin-category cross-sell check (read-only)
         if: always()
         run: |
@@ -1983,3 +1971,15 @@ jobs:
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-custom-creations.php --allow-root 2>&1" \
             || true
+
+      # The row is empty on the page while every query returns products. Those
+      # cannot both be true, so this looks at the rendered DOM and says which
+      # of the three possible failures it is: no cards, cards with no height,
+      # or cards hidden by an ancestor.
+      - name: Headless New Arrivals check (read-only)
+        if: always()
+        timeout-minutes: 6
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afhead/node_modules node tools/headless-new-arrivals.js "https://theartframer.us/" || true

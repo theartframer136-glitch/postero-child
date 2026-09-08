@@ -112,7 +112,7 @@ foreach ($q2->posts as $p) printf("    #%-6d %.48s\n", $p->ID, get_the_title($p-
 echo "\n-- 3d. Product-row queries seen on the live site --\n";
 $seen = get_transient('af_sc_seen');
 if (is_array($seen) && $seen) {
-    foreach (array_keys($seen) as $sig) echo '    ' . $sig . "\n";
+    foreach ($seen as $sig => $note) printf("    %-46s %s\n", $sig, is_scalar($note) ? $note : '');
 } else {
     echo "    (none recorded yet — the homepage has not been rendered since the deploy)\n";
 }
