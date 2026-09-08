@@ -166,11 +166,16 @@ add_action('wp_head', function () {
   flex-direction:row !important;
   align-items:flex-start !important;
   gap:14px;overflow-x:auto !important;overflow-y:hidden !important;
-  scroll-behavior:smooth;-webkit-overflow-scrolling:touch;
+  /* auto, not smooth. Smooth turns every scrollLeft assignment into an
+     animation towards that value, so a loop writing a new position 60 times a
+     second spends its life restarting an animation that never arrives. The row
+     crawled instead of drifting. There is nothing left that wants smooth here
+     either: the prev/next arrows this row used to have are gone. */
+  scroll-behavior:auto;-webkit-overflow-scrolling:touch;
   padding:2px 0 14px;scrollbar-width:none;-ms-overflow-style:none;width:100%;}
 .circle-gallery-slider > .circle-item{flex:0 0 auto !important;}
 .circle-gallery-slider::-webkit-scrollbar{display:none;}
-.circle-gallery-slider.dragging{scroll-behavior:auto;cursor:grabbing;}
+.circle-gallery-slider.dragging{cursor:grabbing;}
 .af-motion-shell{position:relative;}
 .af-motion-item{position:relative;flex:0 0 auto;width:clamp(180px,19vw,364px);
   aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#0f0d0b;
@@ -265,16 +270,30 @@ add_action('wp_footer', function () {
 
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
     var SPEED = 0.45;                       // px per frame — a slow drift
+
+    // The position is kept HERE, as a float, and written to the element each
+    // frame. It used to be kept in scrollLeft itself — `scrollLeft += 0.45` —
+    // and that moves nothing at all: reading scrollLeft back gives a rounded
+    // value, so the 0.45 was thrown away every frame and re-added to the same
+    // integer. Measured in a browser, 0.45px/frame written that way travelled
+    // 0.0px in five seconds; the same speed through this accumulator travelled
+    // 135px, which is the 27px/s the number was chosen to mean.
+    var pos = track.scrollLeft;
     var last = 0;
     function glide(ts){
       requestAnimationFrame(glide);
-      if (reduce || hold || document.hidden) { last = ts; return; }
-      if (document.querySelector('.af-motion-item.af-open')) { last = ts; return; }
-      if (!last) { last = ts; return; }
+      if (reduce || hold || document.hidden) { last = ts; pos = track.scrollLeft; return; }
+      if (document.querySelector('.af-motion-item.af-open')) { last = ts; pos = track.scrollLeft; return; }
+      if (!last) { last = ts; pos = track.scrollLeft; return; }
       var dt = Math.min(ts - last, 50);     // ignore long gaps after a tab switch
       last = ts;
-      track.scrollLeft += SPEED * (dt / 16.67);
-      if (track.scrollLeft >= half()) track.scrollLeft -= half();
+      // Someone dragged, flicked or wheeled the row: take where they left it
+      // rather than yanking it back to where our own count had reached.
+      if (Math.abs(track.scrollLeft - pos) > 2) pos = track.scrollLeft;
+      pos += SPEED * (dt / 16.67);
+      var h = half();
+      if (h > 0 && pos >= h) pos -= h;      // the clone set begins here: same frame, no snap
+      track.scrollLeft = pos;
     }
     requestAnimationFrame(glide);
   }
