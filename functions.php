@@ -15162,6 +15162,16 @@ function af_preview_share_assets() {
     .af-share .af-share-wa{border-color:#25a366;color:#1e8b56;}
     .af-share .af-share-wa:hover{background:#eefaf3;border-color:#25a366;color:#1e8b56;}
     .af-sharelabel{margin:16px 0 0;font-size:11.5px;font-weight:800;color:#6b6250;text-transform:uppercase;letter-spacing:.05em;}
+    /* Touch targets, phones and tablets only — the last four controls on these
+       pages still under 44px, and now the only ones. 40px is not far off, and
+       they are wide, so a miss is unlikely; the reason to close it is that
+       everything beside them is already 44 and a row that mixes the two reads
+       as unfinished. Height only: the widths come from the flex row, which is
+       what makes the three-across wrap to two lines at narrow widths, and that
+       behaviour is deliberate. Above 781px they stay at 40. */
+    @media (max-width:781px){
+      .af-share button,.af-share a{height:44px;}
+    }
     </style>
     <?php
 }
