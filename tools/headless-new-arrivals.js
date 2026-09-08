@@ -141,6 +141,40 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       }
       out.ancestors = chain;
       out.swiperLib = typeof window.Swiper;
+
+      // EVERYTHING that could be the row, in document order after the heading.
+      // The carousel found above turned out to be the MOBILE copy of the row
+      // (its container is elementor-hidden-desktop), which means the copy the
+      // owner should see on a desktop is a different element — or missing. So
+      // list every candidate with its size and why it is or is not visible,
+      // rather than measuring the first one and calling it the row.
+      out.candidates = [];
+      const sel = '.products, .product-card, [id*="productGrid"], .eael-woo-product-carousel, ul.products, .elementor-widget-woocommerce-products';
+      Array.from(document.querySelectorAll(sel)).forEach((el) => {
+        if (out.candidates.length >= 14) return;
+        const after = h ? !!(h.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) : true;
+        const cs = getComputedStyle(el), b = el.getBoundingClientRect();
+        // Which ancestor decides its fate, and whether that was a responsive
+        // choice (deliberate) or something else (suspect).
+        let hider = '', responsive = false, n2 = el;
+        for (let k = 0; k < 12 && n2 && n2 !== document.body; k++, n2 = n2.parentElement) {
+          const c2 = getComputedStyle(n2);
+          if (c2.display === 'none' || c2.visibility === 'hidden') {
+            hider = String(n2.className).slice(0, 110);
+            responsive = /elementor-hidden-/.test(hider);
+            break;
+          }
+        }
+        out.candidates.push({
+          cls: String(el.className).slice(0, 70),
+          afterHeading: after,
+          box: { w: Math.round(b.width), h: Math.round(b.height) },
+          display: cs.display,
+          children: el.children.length,
+          hiddenByResponsive: responsive,
+          hider: hider,
+        });
+      });
       return out;
     };
 
@@ -158,6 +192,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     console.log(JSON.stringify(early, null, 2));
     console.log('--- late (after scroll + 6s) ---');
     console.log(JSON.stringify(late, null, 2));
+    console.log('--- every possible product row on the page ---');
+    (late.candidates || []).forEach((c, i) => {
+      console.log(`  [${i}] ${c.cls}`);
+      console.log(`      after the heading: ${c.afterHeading}  box ${c.box.w}x${c.box.h}  display=${c.display}  children=${c.children}`);
+      if (c.hider) console.log(`      hidden by: ${c.hider}${c.hiddenByResponsive ? '  (a deliberate responsive choice)' : '  (NOT responsive — suspect)'}`);
+    });
     console.log('--- uncaught script errors on the page ---');
     if (errors.length) errors.slice(0, 20).forEach((e) => console.log('  ' + e));
     else console.log('  (none)');

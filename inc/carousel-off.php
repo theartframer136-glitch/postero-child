@@ -72,6 +72,13 @@ add_action('wp_footer', function () {
     document.querySelectorAll('.products, .product-card, ul.products, .eael-woo-product-carousel').forEach(function(row){
       var n = row;
       for (var i = 0; i < 14 && n && n !== document.body; i++, n = n.parentElement) {
+        // NEVER override a responsive choice. Elementor marks the mobile copy
+        // of a row elementor-hidden-desktop and the desktop copy
+        // elementor-hidden-mobile; both are deliberate, and the first version
+        // of this guard un-hid the mobile carousel on desktop — measured at
+        // 11:07, a phone-sized product carousel forced visible on a 1440px
+        // page. A row hidden on purpose is not a row in trouble.
+        if (/elementor-hidden-|elementor-lightbox|swiper-slide-duplicate/.test(n.className || '')) continue;
         var cs = getComputedStyle(n);
         if (cs.display === 'none' || cs.visibility === 'hidden') {
           n.style.setProperty('display', 'block', 'important');
