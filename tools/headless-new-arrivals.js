@@ -34,16 +34,33 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       { waitUntil: 'networkidle2', timeout: 120000 });
     await sleep(2500);
 
+    // The site navigates to itself once after load (a currency cookie reload),
+    // which destroys the evaluation context mid-measure — the first run of this
+    // check died on exactly that, eight seconds in, and reported nothing. Ride
+    // the navigation out and try again, as the Products In Motion check
+    // already does.
+    const evalRetry = async (fn) => {
+      for (let i = 0; i < 4; i++) {
+        try { return await page.evaluate(fn); }
+        catch (e) {
+          if (!/context was destroyed|navigation|detached/i.test(e.message)) throw e;
+          await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 60000 }).catch(() => {});
+          await sleep(2500);
+        }
+      }
+      throw new Error('the page kept navigating during measurement');
+    };
+
     // The row may be built after first paint, and it may be lazy — scroll it
     // into view before judging it empty, exactly as a visitor would.
-    await page.evaluate(() => {
+    await evalRetry(() => {
       const hs = Array.from(document.querySelectorAll('h1,h2,h3,h4,.elementor-heading-title'));
       const h = hs.find((x) => /new\s*arrivals/i.test(x.textContent || ''));
       if (h) h.scrollIntoView({ block: 'center' });
     });
     await sleep(3500);
 
-    const out = await page.evaluate(() => {
+    const out = await evalRetry(() => {
       const box = (el) => {
         const r = el.getBoundingClientRect();
         return { w: Math.round(r.width), h: Math.round(r.height) };
@@ -98,11 +115,23 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
           opacity: cs.opacity, height: cs.height,
           title: (card.querySelector('.woocommerce-loop-product__title, h2, h3') || {}).textContent || '',
         };
-      } else {
-        // No cards at all: show what IS inside, which says whether the widget
-        // rendered an empty shell or never ran.
-        r.htmlSample = sec.innerHTML.replace(/\s+/g, ' ').slice(0, 700);
       }
+      // Always sample the markup, not only when there are no cards: a row that
+      // rendered into a collapsed box needs the same evidence as one that
+      // rendered nothing, and a second deploy spent fetching it is a second
+      // deploy wasted.
+      r.htmlSample = sec.innerHTML.replace(/\s+/g, ' ').slice(0, 900);
+      // What sits between the heading and the next section, which is the gap
+      // the owner is looking at.
+      let sib = h.parentElement;
+      const around = [];
+      for (let k = 0; k < 6 && sib; k++, sib = sib.nextElementSibling) {
+        const cs = getComputedStyle(sib);
+        around.push(sib.tagName + '.' + String(sib.className).slice(0, 40) +
+          ' h=' + Math.round(sib.getBoundingClientRect().height) +
+          ' display=' + cs.display + ' products=' + sib.querySelectorAll('li.product').length);
+      }
+      r.afterHeading = around;
       return r;
     });
 
