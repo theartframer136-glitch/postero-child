@@ -148,10 +148,32 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       // owner should see on a desktop is a different element — or missing. So
       // list every candidate with its size and why it is or is not visible,
       // rather than measuring the first one and calling it the row.
+      // What is actually IN the gap: the next elements in document order after
+      // the heading. Every candidate list so far came back "before the
+      // heading", which says the row's markup is not where the row should be —
+      // so walk forward from the heading itself and print what is there.
+      out.afterTheHeading = [];
+      if (h) {
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
+        walker.currentNode = h;
+        let el, n = 0;
+        while ((el = walker.nextNode()) && n < 26) {
+          const cs = getComputedStyle(el), b = el.getBoundingClientRect();
+          if (b.width === 0 && b.height === 0 && cs.display !== 'none') continue;
+          out.afterTheHeading.push(
+            `${el.tagName}.${String(el.className).slice(0, 62)} ${Math.round(b.width)}x${Math.round(b.height)} d=${cs.display}` +
+            (el.querySelectorAll('.product-card, .product, .products').length
+               ? ` [holds ${el.querySelectorAll('.product-card, .product, .products').length} product nodes]` : ''));
+          n++;
+        }
+      }
+
       out.candidates = [];
-      const sel = '.products, .product-card, [id*="productGrid"], .eael-woo-product-carousel, ul.products, .elementor-widget-woocommerce-products';
+      // Containers only — thirteen identical .product-card entries filled the
+      // list last time and pushed the containers out of it.
+      const sel = '.products, [id*="productGrid"], .product-slider, .eael-woo-product-carousel, ul.products, .elementor-widget-woocommerce-products, .elementor-widget-shortcode';
       Array.from(document.querySelectorAll(sel)).forEach((el) => {
-        if (out.candidates.length >= 14) return;
+        if (out.candidates.length >= 16) return;
         const after = h ? !!(h.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) : true;
         const cs = getComputedStyle(el), b = el.getBoundingClientRect();
         // Which ancestor decides its fate, and whether that was a responsive
@@ -192,6 +214,8 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     console.log(JSON.stringify(early, null, 2));
     console.log('--- late (after scroll + 6s) ---');
     console.log(JSON.stringify(late, null, 2));
+    console.log('--- what sits in the gap, in document order after the heading ---');
+    (late.afterTheHeading || []).forEach((l, i) => console.log(`  ${String(i).padStart(2)} ${l}`));
     console.log('--- every possible product row on the page ---');
     (late.candidates || []).forEach((c, i) => {
       console.log(`  [${i}] ${c.cls}`);
