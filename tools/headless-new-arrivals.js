@@ -45,9 +45,28 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     page.on('console', (m) => {
       if (m.type() === 'error') errors.push('console.error: ' + m.text().slice(0, 220));
     });
-    await page.goto(URL + (URL.includes('?') ? '&' : '?') + 'na=' + Date.now(),
-      { waitUntil: 'networkidle2', timeout: 120000 });
-    await sleep(2500);
+    // Three attempts: this host answers one request and times out the next
+    // (943KB at 10:56, three timeouts at 11:01). A single failed load says
+    // nothing about the page, and reporting it as "no heading" is worse than
+    // saying nothing.
+    let loaded = false;
+    for (let attempt = 1; attempt <= 3 && !loaded; attempt++) {
+      try {
+        await page.goto(URL + (URL.includes('?') ? '&' : '?') + 'na=' + Date.now() + attempt,
+          { waitUntil: 'domcontentloaded', timeout: 90000 });
+        loaded = true;
+      } catch (e) {
+        console.log(`  load attempt ${attempt} failed: ${e.message}`);
+        await sleep(8000);
+      }
+    }
+    if (!loaded) {
+      console.log('=== HEADLESS NEW ARRIVALS CHECK ===');
+      console.log('THE HOST DID NOT ANSWER three times — nothing measured, nothing concluded');
+      await browser.close();
+      return;
+    }
+    await sleep(4000);
 
     // The site navigates to itself once after load (a currency cookie reload),
     // which destroys the evaluation context mid-measure. Ride it out.
