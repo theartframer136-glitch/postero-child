@@ -1,0 +1,59 @@
+name: Check Home
+
+# A one-minute look at the live homepage.
+#
+# Every question about this row has cost a full deploy — seventeen minutes of
+# rsync, script suites and audits — to answer something a single fetch can
+# settle: is the new code actually on the page, and is anything still hiding
+# the products. This does only that. No SSH, no upload, nothing written.
+#
+# Run it from the Actions tab, or it runs itself after every deploy finishes.
+
+on:
+  workflow_dispatch:
+  workflow_run:
+    workflows: ["Deploy Theme"]
+    types: [completed]
+
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: What the server sends
+        run: |
+          set -uo pipefail
+          curl -fsS --max-time 90 -o /tmp/home.html "https://theartframer.us/?cb=$(date +%s)" \
+            || { echo "the site did not answer"; exit 0; }
+          python3 - <<'PY'
+          import re
+          h = open('/tmp/home.html', encoding='utf-8', errors='replace').read()
+          print('  bytes: %d' % len(h))
+
+          print('\n  --- is the new code live? ---')
+          checks = {
+            'OLD rule (hides the whole container)': 'elementor-element-d49c1e8{display:none',
+            'NEW rule (hides only video widgets)':  'elementor-widget-n-carousel',
+            'NEW guard script (un-hides products)': 'unhideProductRows',
+            'carousel self-heal script':            'af-swiper-fallback',
+          }
+          for label, needle in checks.items():
+              print('    %-38s %s' % (label, 'PRESENT' if needle in h else 'absent'))
+
+          print('\n  --- every rule that hides something ---')
+          for m in re.finditer(r'[^{};]{0,90}\{[^{}]{0,120}display\s*:\s*none[^{}]{0,60}\}', h):
+              t = re.sub(r'\s+', ' ', m.group(0)).strip()
+              if 'elementor-element-' in t or 'products' in t or 'swiper' in t:
+                  print('    ' + t[:180])
+
+          print('\n  --- product markup ---')
+          for pat in ('class="products', 'class="product ', 'product-card', 'swiper-wrapper'):
+              print('    %-24s %d' % (pat, h.count(pat)))
+
+          i = h.find('Arrivals')
+          print('\n  --- the 40 tags after the New Arrivals heading ---')
+          for t in re.findall(r'<[^>]{1,140}>', h[i:i+4000])[:40] if i >= 0 else []:
+              print('    ' + t)
+          PY
