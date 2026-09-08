@@ -87,6 +87,28 @@ jobs:
               print('  VERDICT: different products each fetch — the random pick is working')
           NA
 
+          # The Products In Motion tiles carry data-yt, the YouTube id the popup
+          # opens. The popup opened empty in the owner's 14:20 recording, which
+          # means the click is wired and the id is not — so print them.
+          python3 - <<'YT'
+          import re, os
+          h = open('/tmp/browser.html', encoding='utf-8', errors='replace').read() if os.path.exists('/tmp/browser.html') else ''
+          ids = re.findall(r'data-yt="([^"]*)"', h)
+          print('\n=== Products In Motion: the ids the popup will open ===')
+          print('  tiles with data-yt: %d' % len(ids))
+          for i, v in enumerate(ids[:12]):
+              looks_right = bool(re.fullmatch(r'[A-Za-z0-9_-]{11}', v))
+              print('   %2d  %-16s %s' % (i, v or '(empty)', 'looks like a YouTube id' if looks_right else 'NOT a YouTube id'))
+          tiles = h.count('af-motion-item')
+          print('  motion tiles on the page: %d' % tiles)
+          if tiles and not ids:
+              print('  VERDICT: no tile carries a video id — the popup can only open blank')
+          elif ids and all(re.fullmatch(r'[A-Za-z0-9_-]{11}', v or '') for v in ids):
+              print('  VERDICT: every id is well formed')
+          else:
+              print('  VERDICT: at least one id is malformed — that tile opens a blank popup')
+          YT
+
           python3 - <<'PY'
           import re, os
 
