@@ -69,9 +69,24 @@ function af_motion_videos() {
     foreach (af_motion_video_ids() as $id) {
         $url = wp_get_attachment_url($id);
         if (!$url) continue;
+        // The YouTube id for this clip, so a click can open the video on
+        // YouTube as it did before these tiles became self-hosted. The
+        // matcher in functions.php already stores videoid => local URL; this
+        // is that map read backwards, and it costs nothing.
+        $yt = '';
+        $local = get_option('af_pim_local');
+        if (is_array($local)) {
+            foreach ($local as $vid => $vurl) {
+                if ($vurl === $url || basename((string) $vurl) === basename((string) $url)) {
+                    $yt = (string) $vid;
+                    break;
+                }
+            }
+        }
         $out[] = array(
             'url'   => $url,
             'title' => get_the_title($id) ?: 'The Art Framer',
+            'yt'    => $yt,
         );
     }
     set_transient($key, $out, 12 * HOUR_IN_SECONDS);
@@ -89,7 +104,8 @@ function af_motion_rewrite($html) {
 
     $tiles = '';
     foreach ($videos as $i => $v) {
-        $tiles .= '<div class="circle-item video-circle af-motion-item">'
+        $tiles .= '<div class="circle-item video-circle af-motion-item"'
+                . (!empty($v['yt']) ? ' data-yt="' . esc_attr($v['yt']) . '"' : '') . '>'
                 . '<video class="af-motion-video" muted loop playsinline preload="none"'
                 . ' disablepictureinpicture controlslist="nodownload noplaybackrate"'
                 . ' aria-label="' . esc_attr($v['title']) . '">'
@@ -199,7 +215,15 @@ add_action('wp_head', function () {
   opacity:0;transition:opacity .2s;
   background:linear-gradient(to top,rgba(0,0,0,.68),rgba(0,0,0,0));}
 .af-motion-item:hover .af-motion-cap{opacity:1;}
+.af-motion-lb{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);
+  display:none;align-items:center;justify-content:center;padding:24px;}
+.af-motion-lb.open{display:flex;}
+.af-motion-lb-box{position:relative;width:min(94vw,1100px);aspect-ratio:16/9;}
+.af-motion-lb-box iframe{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:10px;}
+.af-motion-lb-x{position:absolute;top:16px;right:22px;z-index:2;background:none;border:0;
+  color:#fff;font-size:40px;line-height:1;cursor:pointer;padding:4px 10px;}
 @media(max-width:600px){
+  .af-motion-lb-box{width:96vw;}
   .af-motion-item{width:60vw;}
   .af-motion-cap{opacity:1;font-size:12px;}
 }
@@ -304,6 +328,43 @@ add_action('wp_footer', function () {
     requestAnimationFrame(glide);
   }
 
+  // ── the popup ─────────────────────────────────────────────────────────
+  // Built here rather than borrowed from the still-image row's lightbox: that
+  // row is hidden on this page, and a control that depends on a hidden
+  // section is a control that breaks the next time the section moves.
+  var lb = null, lbFrame = null, lbPaused = null;
+  function afMotionBuildLb(){
+    if (lb) return;
+    lb = document.createElement('div');
+    lb.className = 'af-motion-lb';
+    lb.innerHTML = '<button type="button" class="af-motion-lb-x" aria-label="Close">&times;</button>'
+                 + '<div class="af-motion-lb-box"><iframe allow="autoplay; encrypted-media; fullscreen"'
+                 + ' allowfullscreen frameborder="0"></iframe></div>';
+    document.body.appendChild(lb);
+    lbFrame = lb.querySelector('iframe');
+    lb.querySelector('.af-motion-lb-x').addEventListener('click', afMotionCloseLb);
+    lb.addEventListener('click', function(e){ if (e.target === lb) afMotionCloseLb(); });
+    document.addEventListener('keydown', function(e){ if (e.key === 'Escape') afMotionCloseLb(); });
+  }
+  function afMotionOpenLb(vid, tileVideo){
+    afMotionBuildLb();
+    // rel=0 keeps YouTube's own end-screen to this channel, and the branding
+    // stays clickable so "click YouTube and go to YouTube" still works.
+    lbFrame.src = 'https://www.youtube-nocookie.com/embed/' + encodeURIComponent(vid)
+                + '?autoplay=1&rel=0&playsinline=1';
+    lb.classList.add('open');
+    document.documentElement.style.overflow = 'hidden';
+    if (tileVideo) { try { tileVideo.pause(); lbPaused = tileVideo; } catch(e){} }
+  }
+  function afMotionCloseLb(){
+    if (!lb || !lb.classList.contains('open')) return;
+    lb.classList.remove('open');
+    // about:blank, not '': an empty src reloads this page inside the frame.
+    lbFrame.src = 'about:blank';
+    document.documentElement.style.overflow = '';
+    if (lbPaused) { try { lbPaused.play().catch(function(){}); } catch(e){} lbPaused = null; }
+  }
+
   items.forEach(function(item){
     var v = item.querySelector('video');
     if (!v) return;
@@ -313,6 +374,16 @@ add_action('wp_footer', function () {
     // Click opens the full clip, as it did before: sound on, controls, from
     // the start, and no longer muted-loop wallpaper.
     item.addEventListener('click', function(){
+      // Owner, 2026-09-08: "when user click on the video then video popup and
+      // show on youtube as like it was like previous one". The tiles became
+      // self-hosted clips and took their click with them — it started playing
+      // the local file inline, with a native control bar and a caption over
+      // the artwork. The popup is what was asked for and what was there
+      // before, so the click goes back to it whenever the tile knows its
+      // YouTube id; a tile that does not falls through to the old behaviour
+      // rather than doing nothing.
+      var yt = item.getAttribute('data-yt');
+      if (yt) { afMotionOpenLb(yt, v); return; }
       if (item.classList.contains('af-open')) return;
       item.classList.add('af-open');
       v.muted = false; v.loop = false; v.controls = true;
