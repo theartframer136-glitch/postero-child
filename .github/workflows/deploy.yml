@@ -17,6 +17,23 @@ on:
         description: 'Diagnostics only — deploy the code, skip every catalogue script'
         type: boolean
         default: false
+      # The read-only steps at the end of this file answer questions — where a
+      # product lives, which art codes collide, what populates a section. They
+      # were each added to settle one investigation and then stayed, and every
+      # deploy since has paid for all of them: twenty-two steps, about two
+      # minutes, on a run whose job is to ship a CSS change.
+      #
+      # None of them can fail a deploy and none of them change anything, so a
+      # deploy that skips them is no less safe. What still runs on every deploy
+      # is the part that can catch a broken shop: the boot gate, the homepage
+      # gates, the cache warm, and the three headless browser checks.
+      #
+      # Turn them back on for one run with this box, with the Diagnostics-only
+      # mode, or by putting [diag] in the commit message.
+      diagnostics:
+        description: 'Also run the read-only diagnostics (adds ~2 min; they answer questions, they do not check for breakage)'
+        type: boolean
+        default: false
       # Which artwork the Gold Foiled & UV importer should build from. Set here
       # rather than committed, because it is an instruction for one run and not
       # a fact about the theme — and because the answer depends on what the
@@ -99,8 +116,10 @@ jobs:
           H_PORT: ${{ secrets.HOSTINGER_PORT }}
           GH_EVENT_NAME: ${{ github.event_name }}
           GH_DIAG_ONLY: ${{ inputs.diag_only }}
+          GH_DIAGNOSTICS: ${{ inputs.diagnostics }}
           GH_BEFORE: ${{ github.event.before }}
           GH_SHA: ${{ github.sha }}
+          GH_HEAD_MSG: ${{ github.event.head_commit.message }}
         run: |
           set -uo pipefail
           USER="$H_USER"
@@ -226,6 +245,30 @@ jobs:
             echo "LIGHT deploy (theme code only): skipping the script suite. Put [full-deploy] in the commit message to force it."
           fi
           echo "RUN_SUITE=$RUN_SUITE" >> "$GITHUB_ENV"
+
+          # ── Read-only diagnostics ──────────────────────────────────────────
+          # Off unless asked for. They report; they never change anything and
+          # never fail the deploy, so skipping them costs no safety — what
+          # guards the shop is the boot gate, the homepage gates, the cache
+          # warm and the headless browser checks, and those always run.
+          #
+          # Three ways to ask: the Diagnostics box on a manual run, the
+          # diagnostics-only mode (which exists to ask questions and would be
+          # empty without them), or [diag] anywhere in the commit message —
+          # that last one is for whoever is mid-investigation and wants the
+          # answers to arrive with their push.
+          RUN_DIAG=0
+          if [ "$GH_DIAGNOSTICS" = "true" ] || [ "$GH_DIAG_ONLY" = "true" ]; then
+            RUN_DIAG=1
+          elif printf '%s' "${GH_HEAD_MSG:-}" | grep -qi '\[diag\]'; then
+            RUN_DIAG=1
+          fi
+          if [ "$RUN_DIAG" = "1" ]; then
+            echo "Diagnostics: ON — the read-only steps at the end will run."
+          else
+            echo "Diagnostics: off. Tick Diagnostics on a manual run, or put [diag] in the commit message."
+          fi
+          echo "RUN_DIAG=$RUN_DIAG" >> "$GITHUB_ENV"
 
       # Keep every Products-In-Motion card that CAN be local, local.
       # This maps reels in the Media Library to the row's videos — by video id
@@ -1305,7 +1348,7 @@ jobs:
             2>&1 | tee /tmp/af-sku.txt || true
 
       - name: SKU format check (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         timeout-minutes: 5
         run: |
           set -uo pipefail
@@ -1535,7 +1578,7 @@ jobs:
           NODE_PATH=/tmp/afhead/node_modules node tools/headless-pim-check.js || true
 
       - name: Thin-category cross-sell check (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -1553,7 +1596,7 @@ jobs:
       # browser. The sidebar filter is not this theme's markup, so this is the
       # only way to know what is actually being shipped.
       - name: Frame + size filter out-of-stock check (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -1573,7 +1616,7 @@ jobs:
       # art but not the background" is viable at all, and it is worth knowing
       # before anyone edits hundreds of irreversible files.
       - name: Product image orientation scan (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -1590,7 +1633,7 @@ jobs:
       # blank band between artwork and title is diagnosed from the markup
       # instead of guessed at. Remove once the card layout is settled.
       - name: Product wording, for matching to the book (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         timeout-minutes: 6
         run: |
           set -uo pipefail
@@ -1605,7 +1648,7 @@ jobs:
             || true
 
       - name: Read the audit file's corrections (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         timeout-minutes: 6
         run: |
           set -uo pipefail
@@ -1620,7 +1663,7 @@ jobs:
             || true
 
       - name: Hunt for the art code source (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         timeout-minutes: 8
         run: |
           set -uo pipefail
@@ -1635,7 +1678,7 @@ jobs:
             || true
 
       - name: Art codes from image filenames (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         timeout-minutes: 6
         run: |
           set -uo pipefail
@@ -1650,7 +1693,7 @@ jobs:
             || true
 
       - name: Shared art codes (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         timeout-minutes: 6
         run: |
           set -uo pipefail
@@ -1670,7 +1713,7 @@ jobs:
             || true
 
       - name: Pictures of one book section's products (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         timeout-minutes: 10
         run: |
           set -uo pipefail
@@ -1701,7 +1744,7 @@ jobs:
           echo "b64 lines withheld from the log: $(grep -c '^B64 ' /tmp/af-sheets.txt || true)"
 
       - name: Publish the contact sheets to the art-sheets branch
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         run: |
           set -uo pipefail
           # Why a branch, and not the log, an artifact, or the site itself: the log
@@ -1817,7 +1860,7 @@ jobs:
           fi
 
       - name: Product card structure (one-off, read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -1831,7 +1874,7 @@ jobs:
             || true
 
       - name: Category menu icons (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -1849,7 +1892,7 @@ jobs:
       # anything logged before it. Verifying the section here means its result
       # is the last thing in the log, and readable without digging.
       - name: Gold Foiled & UV status (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -1863,7 +1906,7 @@ jobs:
             || true
 
       - name: Sidebar Categories list (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -1877,7 +1920,7 @@ jobs:
             || true
 
       - name: Shop by Collection — where the tabs come from (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -1896,7 +1939,7 @@ jobs:
             || true
 
       - name: Where the gold-foil artwork could already be (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -1914,7 +1957,7 @@ jobs:
       # to decide where the section's products come from — and being the final
       # step, its answer is the last thing the log says instead of being buried.
       - name: What could populate Gold Foiled & UV (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -1928,7 +1971,7 @@ jobs:
             || true
 
       - name: Is the offers ticker gone (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -1947,7 +1990,7 @@ jobs:
       # says, in one place at the end, how many cards actually play from the
       # site.
       - name: Products In Motion — how many cards are local (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -1960,7 +2003,7 @@ jobs:
             || true
 
       - name: Customised Creations — why they reach New Arrivals (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"
@@ -1978,7 +2021,7 @@ jobs:
       # break; if only the normal one is zero, they are. Either answer ends a
       # week of theorising, and neither needs a browser.
       - name: New Arrivals — with and without the row filters (read-only)
-        if: always()
+        if: always() && env.RUN_DIAG == '1'
         timeout-minutes: 5
         run: |
           set -uo pipefail
