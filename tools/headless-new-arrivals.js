@@ -102,9 +102,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
       // Which ancestor, if any, collapses or hides the row.
       let n = wrap, chain = [];
-      for (let i = 0; i < 12 && n && n !== document.body; i++, n = n.parentElement) {
+      out.hiddenBy = '';
+      for (let i = 0; i < 14 && n && n !== document.body; i++, n = n.parentElement) {
         const cs = getComputedStyle(n), b = n.getBoundingClientRect();
-        chain.push(`${n.tagName}.${String(n.className).slice(0, 34)} h=${Math.round(b.height)} d=${cs.display} o=${cs.opacity} v=${cs.visibility} ov=${cs.overflow}`);
+        chain.push(`${n.tagName}.${String(n.className).slice(0, 90)} h=${Math.round(b.height)} d=${cs.display} o=${cs.opacity} v=${cs.visibility}`);
+        // Name the exact element that hides the row, in full — a truncated
+        // class list cost a day of looking at the wrong things.
+        if (!out.hiddenBy && (cs.display === 'none' || cs.visibility === 'hidden')) {
+          out.hiddenBy = `${n.tagName} id=${n.id || '-'} class="${n.className}" display=${cs.display} unhidden=${n.getAttribute('data-af-unhidden') || 'no'}`;
+        }
       }
       out.ancestors = chain;
       out.swiperLib = typeof window.Swiper;
@@ -134,6 +140,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     else if (!w) console.log('VERDICT: no products wrapper on the page at all');
     else if (w.slides > 0 && w.box.h > 40 && c && c.box.h > 40) console.log(`VERDICT: ${w.slides} slides rendered and visible (${w.box.w}x${w.box.h}) — the row is working${w.healed ? ' (after the self-heal)' : ''}`);
     else if (w.slides > 0 && c && !c.initialised) console.log(`VERDICT: ${w.slides} slides in the DOM but the carousel was NEVER INITIALISED — container ${c.box.w}x${c.box.h}, Swiper lib: ${late.swiperLib}`);
+    else if (w.slides > 0 && late.hiddenBy) console.log(`VERDICT: ${w.slides} slides, carousel fine, but an ancestor is HIDDEN: ${late.hiddenBy}`);
     else if (w.slides > 0) console.log(`VERDICT: ${w.slides} slides in the DOM, carousel initialised, but collapsed — see ancestors`);
     else console.log('VERDICT: the products wrapper is empty — the query returned nothing on this request');
     console.log('=== DONE ===');

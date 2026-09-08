@@ -1,74 +1,90 @@
 <?php
 if (!defined('ABSPATH')) exit;
 /**
- * Drop the second video carousel under "Products In Motion".
+ * Hide the second video carousel under "Products In Motion".
  *
  * Owner, 2026-09-07: "here we have 2 video section keep the top video slider
  * section and remove the buttom video section".
  *
- * The page carries two:
- *   48b4f36  the [youtube_circle_slider] row, now the studio's nine clips  KEEP
- *   d49c1e8  an Elementor nested-carousel of five older videos             REMOVE
- *            (Ganesh-Video, Buddha-14, Black-Krishna-Enhanced, Dance-Real,
- *             Luxury_Modern_Home_Interior)
+ * ── WHY THIS FILE WAS REWRITTEN (2026-09-08) ──────────────────────────────
+ * The first version hid the whole Elementor container d49c1e8, and that
+ * container holds more than the video carousel: the New Arrivals product
+ * carousel is inside it too. So New Arrivals went blank the day this module
+ * started loading, and stayed blank through a week of looking everywhere else.
+ * The browser finally said it plainly — the products carousel is initialised,
+ * has 42 slides, and every one of its ancestors is 0px tall because one of
+ * them is display:none:
  *
- * NOT DONE BY EDITING THE PAGE. Removing the container in Elementor means
- * rewriting the home page's single 193 KB _elementor_data blob, and a malformed
- * edit there takes the home page down — which has happened before. This drops
- * the container as it renders, so the page's own data is untouched and deleting
- * this file brings the carousel straight back.
+ *   DIV.products swiper-wrapper            h=0
+ *   DIV.woocommerce eael-woo-product-...   h=0
+ *   DIV.swiper-container-wrap              h=0
+ *   DIV.elementor-element ...              h=0
+ *   DIV.e-con-inner                        h=0
+ *   DIV.elementor-element ...              h=0  d=none   <-- this rule
+ *   DIV.elementor elementor-75             h=11148
  *
- * Output buffering rather than CSS, so the five videos are never in the HTML at
- * all: a display:none carousel still costs the visitor five requests for video
- * metadata, on a host that is already CPU-capped and paying for bandwidth.
+ * Two lessons kept: hide the WIDGET, never the container — a container is
+ * someone else's furniture as well as yours; and never hide anything that has
+ * products inside it, which the guard below enforces at runtime rather than
+ * trusting a hand-copied element id.
  *
- * A display:none rule is kept as well. It is redundant when the buffering works
- * and is the safety net if a future Elementor changes those hook names — the
- * section stays hidden either way, rather than silently reappearing.
+ * ── AND NO OUTPUT BUFFERING ───────────────────────────────────────────────
+ * The old version also opened an output buffer on that container and threw the
+ * contents away. It never fired on this Elementor version (the markup is all
+ * present in the HTML), so it was doing nothing but carrying the risk that an
+ * unbalanced buffer swallows the rest of the page. Gone.
  */
 
-/** The container to drop. Filterable, so it can be changed without a deploy. */
+/** The container the video carousel lives in. Filterable, no deploy needed. */
 function af_hidden_carousel_id() {
     return (string) apply_filters('af_hidden_carousel_id', 'd49c1e8');
 }
-
-function af_hvc_is_target($element) {
-    return is_object($element)
-        && method_exists($element, 'get_id')
-        && $element->get_id() === af_hidden_carousel_id();
-}
-
-add_action('elementor/frontend/container/before_render', function ($element) {
-    if (!af_hvc_is_target($element)) return;
-    $GLOBALS['af_hvc_buffering'] = true;
-    ob_start();
-}, 5);
-
-add_action('elementor/frontend/container/after_render', function ($element) {
-    if (!af_hvc_is_target($element)) return;
-    if (!empty($GLOBALS['af_hvc_buffering'])) {
-        ob_end_clean();                       // throw the container away
-        $GLOBALS['af_hvc_buffering'] = false;
-    }
-}, 999);
-
-/**
- * Safety net. If after_render never fires for any reason, an open buffer would
- * swallow the rest of the page — the one way this could do real damage. So on
- * shutdown, flush anything still held rather than lose it.
- */
-add_action('shutdown', function () {
-    if (!empty($GLOBALS['af_hvc_buffering'])) {
-        $GLOBALS['af_hvc_buffering'] = false;
-        while (ob_get_level() > 0) { @ob_end_flush(); }
-    }
-}, 0);
 
 add_action('wp_head', function () {
     if (!is_front_page() && !is_home()) return;
     $id = esc_attr(af_hidden_carousel_id()); ?>
 <style>
-/* redundant while the buffering above works; the fallback if it ever stops */
-.elementor-element-<?php echo $id; ?>{display:none !important;}
+/* Only the video widgets inside that container — every Elementor spelling of
+   "a widget that plays video". The container itself, and anything else sharing
+   it, is left alone. */
+.elementor-element-<?php echo $id; ?> > .e-con-inner > .elementor-widget-video,
+.elementor-element-<?php echo $id; ?> .elementor-widget-video,
+.elementor-element-<?php echo $id; ?> .elementor-widget-video-playlist,
+.elementor-element-<?php echo $id; ?> .elementor-widget-n-carousel,
+.elementor-element-<?php echo $id; ?> .elementor-widget-media-carousel{
+    display:none !important;
+}
 </style>
 <?php }, 20);
+
+/**
+ * The guard. If anything on the page is hiding a block that contains product
+ * cards — this file's rule, a leftover from an older deploy still in a cached
+ * stylesheet, or a hand edit in Elementor — un-hide it. A hidden video is a
+ * cosmetic preference; a hidden row of products is a hole in the shop, and the
+ * shop wins every time.
+ */
+add_action('wp_footer', function () {
+    if (!is_front_page() && !is_home()) return; ?>
+<script>
+(function(){
+  function unhideProductRows(){
+    document.querySelectorAll('.products, .product-card, ul.products, .eael-woo-product-carousel').forEach(function(row){
+      var n = row;
+      for (var i = 0; i < 14 && n && n !== document.body; i++, n = n.parentElement) {
+        var cs = getComputedStyle(n);
+        if (cs.display === 'none' || cs.visibility === 'hidden') {
+          n.style.setProperty('display', 'block', 'important');
+          n.style.setProperty('visibility', 'visible', 'important');
+          n.setAttribute('data-af-unhidden', '1');
+        }
+      }
+    });
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', unhideProductRows);
+  else unhideProductRows();
+  window.addEventListener('load', unhideProductRows);
+  setTimeout(unhideProductRows, 1500);
+})();
+</script>
+<?php }, 96);
