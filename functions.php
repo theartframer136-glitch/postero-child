@@ -2868,12 +2868,26 @@ add_filter('woocommerce_shortcode_products_query', function ($args, $atts = arra
     // query behind a section instead of guessing at it. One write per NEW
     // signature only — an ordinary page load reads and writes nothing.
     $sig = $type . '|' . implode(',', array_keys((array) $atts))
+         . '|orderby=' . (isset($args['orderby']) ? (is_array($args['orderby']) ? 'array' : $args['orderby']) : '-')
          . '|' . (isset($atts['category']) ? (is_array($atts['category']) ? implode('+', $atts['category']) : $atts['category']) : '-')
          . '|tq' . (empty($args['tax_query']) ? 0 : count($args['tax_query']));
+
+    // Count what this row returns WITHOUT any interference from here. The row
+    // is empty on the page while the report says the query returns twelve, and
+    // those cannot both be true — so measure the row itself rather than a
+    // reconstruction of it. Recorded once per signature; an ordinary page load
+    // after the first reads a transient and writes nothing.
     $seen = get_transient('af_sc_seen');
     if (!is_array($seen)) $seen = array();
     if (!isset($seen[$sig]) && count($seen) < 24) {
-        $seen[$sig] = 1;
+        $bare = $args;
+        $bare['posts_per_page']         = 20;
+        $bare['fields']                 = 'ids';
+        $bare['no_found_rows']          = true;
+        $bare['update_post_meta_cache'] = false;
+        $bare['update_post_term_cache'] = false;
+        $bq = new WP_Query($bare);
+        $seen[$sig] = 'before-exclusion=' . count($bq->posts);
         set_transient('af_sc_seen', $seen, DAY_IN_SECONDS);
     }
 
@@ -2903,7 +2917,14 @@ add_filter('woocommerce_shortcode_products_query', function ($args, $atts = arra
     $test['update_post_term_cache']= false;
     unset($test['paged'], $test['offset']);
     $probe_q = new WP_Query($test);
-    if (empty($probe_q->posts)) return $args;
+    if (empty($probe_q->posts)) {
+        $seen = get_transient('af_sc_seen');
+        if (is_array($seen) && isset($seen[$sig]) && strpos((string) $seen[$sig], 'stood-down') === false) {
+            $seen[$sig] .= ' stood-down(would-empty)';
+            set_transient('af_sc_seen', $seen, DAY_IN_SECONDS);
+        }
+        return $args;
+    }
 
     return $probe;
 }, 10, 3);

@@ -131,6 +131,33 @@ printf("  products published today: %d -> the row shows %s\n",
     count($tq->posts), count($tq->posts) ? "today's uploads" : 'a random selection');
 foreach (array_slice($tq->posts, 0, 8) as $pid) printf("    #%-6d %.48s\n", $pid, get_the_title($pid));
 
+// Render the real row, server side. The page shows nothing between the New
+// Arrivals heading and the next section while every query I can reconstruct
+// returns products - so run the row itself and count the cards in its own
+// HTML, which settles whether the emptiness is the query or the rendering.
+echo "\n-- 3f. The row rendered on the server --\n";
+if (shortcode_exists('products')) {
+    $html = do_shortcode('[products limit="12"]');
+    printf("  [products limit=12] -> %d bytes, %d card(s)\n",
+        strlen($html), substr_count($html, 'class="product'));
+    if (strlen($html) < 600) {
+        printf("    text: %s\n", trim(preg_replace('/\s+/', ' ', strip_tags($html))));
+    }
+}
+// A cached empty loop outlives the code that caused it: WooCommerce stores
+// shortcode results in transients that a cache flush does not touch, and the
+// row was empty for a while, so an empty result may well be saved. Bumping the
+// version invalidates every one of them.
+if (class_exists('WC_Cache_Helper')) {
+    WC_Cache_Helper::get_transient_version('product', true);
+    echo "  bumped WooCommerce's product transient version (drops cached empty loops)\n";
+    if (shortcode_exists('products')) {
+        $html2 = do_shortcode('[products limit="12"]');
+        printf("  after the bump -> %d bytes, %d card(s)\n",
+            strlen($html2), substr_count($html2, 'class="product'));
+    }
+}
+
 echo "\n-- 4. Attachments named like the event photos (newest 10 images) --\n";
 $atts = get_posts(array('post_type' => 'attachment', 'post_mime_type' => 'image', 'numberposts' => 10,
     'orderby' => 'date', 'order' => 'DESC'));
