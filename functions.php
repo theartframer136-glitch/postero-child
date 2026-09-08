@@ -8691,6 +8691,16 @@ add_action('template_redirect', function(){
       .af-tow-sw{width:44px;height:44px;}
       .af-tow-wallh button{height:44px;}
       .af-tow-home{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;}
+      /* Adjust Size. The native control is 16px tall, so a thumb aiming for the
+         track and landing 14px high hits the page instead and the size does not
+         move — measured, and it misses. Height alone fixes it: the whole box is
+         the slider's hit region, so 44px gives the full target.
+         Deliberately NOT appearance:none. That would hand the track and thumb
+         over to us in two vendor pseudo-elements per browser, to redraw what
+         accent-color already draws — a repaint of something that is not broken.
+         Rendered side by side at 390px, 16px and 44px are indistinguishable:
+         same track thickness, same thumb, same gold. Only the target grows. */
+      .af-tow-panel input[type=range]{height:44px;}
     }
     </style>
     <?php
