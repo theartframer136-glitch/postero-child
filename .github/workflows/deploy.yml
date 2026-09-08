@@ -1990,9 +1990,25 @@ jobs:
               "$(printf '%s' "$HTML" | grep -o 'class="products' | wc -l)" \
               "$(printf '%s' "$HTML" | grep -o 'class="product ' | wc -l)"
           done
-          HTML=$(curl -fsS --max-time 90 "https://theartframer.us/?cb=$(date +%s)" || echo "")
-          echo "  --- what follows the New Arrivals heading in the raw HTML ---"
-          printf '%s' "$HTML" | tr '>' '>\n' | grep -A 12 -i 'New' | grep -i -m 14 'arrival\|product\|woocommerce\|elementor-element' | head -14 | cut -c1-150 | sed 's/^/    /'
+          # The raw markup after the heading, read with python rather than a
+          # pipe that closes early (the first version died on "Broken pipe"
+          # and failed the step). Tags only, so the structure is legible.
+          curl -fsS --max-time 90 -o /tmp/home.html "https://theartframer.us/?cb=$(date +%s)" || true
+          python3 - <<'PY'
+          import re
+          h = open('/tmp/home.html', encoding='utf-8', errors='replace').read()
+          i = h.find('New Arrivals')
+          print('  --- 3500 bytes after the New Arrivals heading, tags only ---')
+          seg = h[i:i+3500] if i >= 0 else ''
+          for t in re.findall(r'<[^>]{1,160}>', seg)[:60]:
+              print('    ' + t)
+          j = h.find('class="products')
+          print('  --- first products list in the page, 600 bytes ---')
+          print('    ' + re.sub(r'\s+', ' ', h[max(0, j-200):j+400]) if j >= 0 else '    (none)')
+          print('  --- counts across the page ---')
+          for pat in ('class="products', 'class="product ', 'product-card', 'productGrid', 'load_products', 'elementor-widget-woocommerce-products', 'elementor-widget-shortcode', 'elementor-widget-loop-grid'):
+              print('    %-42s %d' % (pat, h.count(pat)))
+          PY
 
       # The row is empty on the page while every query returns products. Those
       # cannot both be true, so this looks at the rendered DOM and says which

@@ -64,6 +64,36 @@ if (!$rows) echo "  (heading text not found in any post_content - it may be a he
 // exactly the arguments a "newest products" row uses, through the same filter,
 // and printing what comes back. If a Personalised Prints piece appears in this
 // list, the fix is not working - no screenshot needed to find out.
+// WHAT the New Arrivals row actually is. Elementor keeps the page in postmeta
+// _elementor_data, not post_content — which is why section 3 above never
+// found the heading. Print the widget that follows the heading: a [products]
+// shortcode, a theme grid filled over AJAX, a Loop Grid — each empties for a
+// different reason, and every measurement so far assumed the first.
+echo "\n-- 3a. The New Arrivals widget, from Elementor's own data --\n";
+$metas = $wpdb->get_results($wpdb->prepare(
+    "SELECT post_id, meta_value FROM {$wpdb->postmeta}
+      WHERE meta_key = '_elementor_data' AND meta_value LIKE %s LIMIT 3",
+    '%New Arrivals%'));
+foreach ($metas as $m) {
+    $data = (string) $m->meta_value;
+    $pos = stripos($data, 'New Arrivals');
+    printf("  post #%d (%s) holds the heading at offset %d of %d bytes\n",
+        $m->post_id, get_post_type($m->post_id), $pos, strlen($data));
+    // Everything from the heading to the next 2500 bytes, with the noise
+    // stripped, so the widget types and their settings are readable.
+    $win = substr($data, $pos, 2500);
+    $win = str_replace('\\/', '/', $win);
+    preg_match_all('/"widgetType":"([^"]+)"/', $win, $wt);
+    printf("  widgets after the heading: %s\n", $wt[1] ? implode(' > ', $wt[1]) : '(none in window)');
+    foreach (array('shortcode', 'query_post_type', 'query_include', 'template_id', 'posts_per_page',
+                   'orderby', 'category', 'product_cat_ids', 'columns', 'rows') as $k) {
+        if (preg_match('/"' . $k . '":("[^"]*"|\[[^\]]*\]|\d+)/', $win, $mm)) {
+            printf("    %-16s %s\n", $k, substr($mm[1], 0, 160));
+        }
+    }
+}
+if (!$metas) echo "  (no _elementor_data contains 'New Arrivals')\n";
+
 echo "\n-- 3b. What a generic 'newest products' row now returns --\n";
 $args = apply_filters('woocommerce_shortcode_products_query', array(
     'post_type'      => 'product',
