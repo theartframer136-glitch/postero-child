@@ -196,9 +196,23 @@ add_action('wp_footer', function () {
         . ' found=' . (int) $q->found_posts
         . ' posts=' . count((array) $q->posts));
     af_search_debug('SQL ' . preg_replace('/\s+/', ' ', (string) $q->request));
+    $trace = isset($GLOBALS['af_search_trace']) ? (array) $GLOBALS['af_search_trace'] : array();
+    af_search_debug('posts_search callback ran ' . count($trace) . ' time(s)'
+        . ($trace ? ' | ' . implode(' | ', array_slice($trace, 0, 3)) : ' - NEVER INVOKED'));
 }, 99);
 
 add_filter('posts_search', function ($search, $q) {
+    // Was this callback even reached, and if so which guard turned it back?
+    // pre_get_posts in this same file demonstrably runs on the live site — the
+    // post types it sets come through — while the clause this filter adds
+    // never appears in the SQL. Both cannot be true of a working guard, so the
+    // guard is measured rather than reasoned about.
+    $GLOBALS['af_search_trace'][] = 'called'
+        . ' disabled=' . (af_search_disabled() ? 1 : 0)
+        . ' main=' . ($q->is_main_query() ? 1 : 0)
+        . ' search=' . ($q->is_search() ? 1 : 0)
+        . ' admin=' . (is_admin() ? 1 : 0)
+        . ' s="' . (string) $q->get('s') . '"';
     if (af_search_disabled()) return $search;
     if (!af_search_is_main_search($q)) return $search;
     $terms = af_search_terms($q->get('s'));
