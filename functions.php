@@ -1399,9 +1399,14 @@ html body .product-card .price ins { text-decoration:none !important; font-weigh
 html body .product-card .price del,
 html body .product-card .price del * { color:#999 !important; font-weight:400 !important; font-size:12px !important; }
 html body .product-card .price del { text-decoration:line-through !important; }
+/* Green, not gold. Every other saving on this site is already #4caf2f — the
+   .af-pct-off badge, the .af-disc-badge one, and the .discount rule in
+   custom.css all say so — but this rule is more specific than any of them and
+   was quietly repainting the card grids gold. One colour, stated once here,
+   rather than a fourth override piled on top. */
 html body .product-card .discount-percentage,
 html body .product-card .price-section .discount,
-html body .price-section .discount { font-size:12px !important; color:#c9a84c !important; font-weight:600 !important; }
+html body .price-section .discount { font-size:12px !important; color:#4caf2f !important; font-weight:600 !important; }
 
 /* description */
 html body .product-card p.desc,

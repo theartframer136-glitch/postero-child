@@ -215,7 +215,13 @@ add_action('wp_head', function () {
   opacity:0;transition:opacity .2s;
   background:linear-gradient(to top,rgba(0,0,0,.68),rgba(0,0,0,0));}
 .af-motion-item:hover .af-motion-cap{opacity:1;}
-.af-motion-lb{position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.88);
+/* z-index at the top of the range, because 99999 was not enough: measured
+   2026-09-09, with the player finally sized and visible at 1354x761, the
+   element actually painted at its centre was DIV.af-popup-left — a plugin's
+   own overlay stacking above this one. Nothing else is touched to achieve
+   it; that popup keeps its own behaviour, it simply no longer sits in
+   front of a video the visitor just asked to watch. */
+.af-motion-lb{position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.88);
   display:none;align-items:center;justify-content:center;padding:24px;}
 .af-motion-lb.open{display:flex;}
 /* An explicit height, NOT aspect-ratio. Measured 2026-09-08 by clicking a
