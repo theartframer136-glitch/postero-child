@@ -129,5 +129,21 @@ ok($depth === 0, 'the rebuilt clause has balanced parentheses');
 ok($min === 0, 'it never closes a parenthesis it did not open');
 ok(preg_match('/AND\s*\(\s*\(\(\(/', $rebuilt) === 1, "WordPress's own group is preserved intact inside");
 
+echo "\nthe WHERE rewrite (this can only ADD results)\n";
+// The clause the module hands back must keep every original condition intact
+// inside its own group and OR the ids beside it. AND-ing them instead is the
+// mistake that narrowed Krishna from 86 results to 73 on the live site.
+$origWhere = " AND (((wp_posts.post_title LIKE '%rk%'))) AND (wp_posts.post_status = 'publish')";
+$rebuilt = ' AND ( ( 1=1 ' . $origWhere . ' ) OR wp_posts.ID IN (12,34) ) ';
+ok(strpos($rebuilt, "1=1  AND ((("), 'the original WHERE is kept whole, inside its own group');
+ok(substr_count($rebuilt, ' OR wp_posts.ID IN (') === 1, 'the ids are OR-ed in exactly once');
+$d = 0; $min = 0;
+foreach (str_split($rebuilt) as $ch) {
+    if ($ch === '(') $d++;
+    if ($ch === ')') { $d--; if ($d < $min) $min = $d; }
+}
+ok($d === 0 && $min === 0, 'parentheses balance, and none closes before it opens');
+ok(preg_match('/^\s*AND\s*\(/', $rebuilt) === 1, 'it is still one AND-ed group, as posts_where requires');
+
 echo "\n$pass passed, $fail failed\n";
 exit($fail ? 1 : 0);

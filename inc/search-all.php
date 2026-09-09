@@ -328,3 +328,83 @@ add_action('pre_get_posts', function ($q) {
 add_filter('redirect_canonical', function ($redirect) {
     return is_search() ? false : $redirect;
 }, 10, 1);
+
+/**
+ * The ids of every product this search should ALSO find.
+ *
+ * ── WHY IDS AND NOT A CLAUSE IN posts_search ──────────────────────────────
+ * Because on this site posts_search is a dead end. Measured twice, at
+ * priority 10 and again at 999: WordPress hands this filter an EMPTY search
+ * clause ("wp_search=0 chars") while the finished query plainly contains a
+ * title match. Something on this stack builds that match outside posts_search
+ * — the same something that empties the s query var — so there is never
+ * anything there to widen, and OR-ing onto the empty string produced
+ * "AND (1=0 OR mine)", which narrowed Krishna from 86 results to 73.
+ *
+ * So the match is computed directly and OR-ed into the WHERE by id. Slower in
+ * principle, irrelevant in practice: one indexed meta query and one taxonomy
+ * query against a 400-product catalogue, on a page that is not cached anyway.
+ */
+function af_search_matching_ids($terms, $limit = 300) {
+    global $wpdb;
+    if (!$terms) return array();
+    $ids = array();
+    foreach ($terms as $t) {
+        $flat = af_search_flatten($t);
+        if ($flat === '') continue;
+
+        // Art code, SKU: compared with spacing, case and punctuation removed,
+        // so "RK - 0118", "rk-0118" and "RK0118" all reach the same piece.
+        $rows = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT post_id FROM {$wpdb->postmeta}"
+            . " WHERE meta_key IN ('_taf_art_code','_sku','_af_sku_artcode')"
+            . " AND REPLACE(REPLACE(REPLACE(LOWER(meta_value),' ',''),'-',''),'_','') LIKE %s"
+            . " LIMIT %d",
+            '%' . $wpdb->esc_like($flat) . '%', $limit
+        ));
+        if ($rows) $ids = array_merge($ids, $rows);
+
+        // Colour, size, frame, category: attribute values are taxonomy terms,
+        // which WordPress search has never consulted.
+        $rows = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT tr.object_id FROM {$wpdb->term_relationships} tr"
+            . " INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id"
+            . " INNER JOIN {$wpdb->terms} t ON t.term_id = tt.term_id"
+            . " WHERE t.name LIKE %s LIMIT %d",
+            '%' . $wpdb->esc_like($t) . '%', $limit
+        ));
+        if ($rows) $ids = array_merge($ids, $rows);
+    }
+    $ids = array_values(array_unique(array_map('intval', $ids)));
+    if (!$ids) return array();
+
+    // Only published products and posts — never a draft, never a revision,
+    // never an attachment.
+    $in = implode(',', $ids);
+    $ok = $wpdb->get_col(
+        "SELECT ID FROM {$wpdb->posts} WHERE ID IN ({$in})"
+        . " AND post_status = 'publish' AND post_type IN ('product','post','page')"
+    );
+    return array_map('intval', (array) $ok);
+}
+
+/**
+ * Widen the WHERE: everything it already matched, OR one of our ids.
+ *
+ * The original conditions are kept intact inside their own group — this can
+ * only ever ADD results, which is the one promise this module makes.
+ */
+add_filter('posts_where', function ($where, $q) {
+    if (af_search_disabled()) return $where;
+    if (!af_search_is_main_search($q)) return $where;
+    $terms = af_search_terms(af_search_query_string($q));
+    if (!$terms) return $where;
+    $ids = af_search_matching_ids($terms);
+    af_search_debug('posts_where: ' . count($ids) . ' id(s) matched by code, sku or attribute');
+    if (!$ids) return $where;
+    global $wpdb;
+    // $where arrives beginning with " AND ...", so "( 1=1 $where )" is a valid
+    // group and the whole thing stays one AND-ed condition.
+    return ' AND ( ( 1=1 ' . $where . ' ) OR ' . $wpdb->posts . '.ID IN ('
+         . implode(',', $ids) . ') ) ';
+}, 9999, 2);
