@@ -27,6 +27,21 @@ jobs:
           printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
+      # The probe carries itself up. Deploys on this repository are frequently
+      # cancelled by the next push before they finish, so waiting for one to
+      # ship a read-only diagnostic makes the diagnostic hostage to unrelated
+      # traffic. One scp of one file costs a second and removes the dependency.
+      - name: Send the probe up
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          scp -P "${PORT}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+              -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 tools/search-probe.php \
+              "${USER}@${HOST}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/search-probe.php" \
+            || echo "  scp failed — falling back to whatever the last deploy left there"
+
       - name: Ask WordPress what the search finds
         timeout-minutes: 12
         run: |
