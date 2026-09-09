@@ -230,7 +230,13 @@ add_action('wp_head', function () {
   height:min(85vh,619px);
   width:calc(min(85vh,619px) * 16 / 9);
   max-width:94vw;}
-.af-motion-lb-box iframe{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:10px;}
+/* display and visibility are stated here for the same reason they are stated
+   in the script: a lazy loader on this site sets iframes to display:none until
+   they scroll into view, and this one is inside a popup that never scrolls. A
+   box of 1354x761 holding a player of 0x0 was measured before this line. */
+.af-motion-lb-box iframe{position:absolute;inset:0;width:100%!important;height:100%!important;
+  display:block!important;visibility:visible!important;opacity:1!important;
+  border:0;border-radius:10px;background:#000;}
 .af-motion-lb-x{position:absolute;top:16px;right:22px;z-index:2;background:none;border:0;
   color:#fff;font-size:40px;line-height:1;cursor:pointer;padding:4px 10px;}
 @media(max-width:600px){
@@ -349,7 +355,16 @@ add_action('wp_footer', function () {
     lb = document.createElement('div');
     lb.className = 'af-motion-lb';
     lb.innerHTML = '<button type="button" class="af-motion-lb-x" aria-label="Close">&times;</button>'
-                 + '<div class="af-motion-lb-box"><iframe allow="autoplay; encrypted-media; fullscreen"'
+      // The classes and data attributes are not decoration: they are the
+      // opt-out flags every lazy-loading plugin on this stack reads. Measured
+      // 2026-09-09 — the box came out a correct 1354x761 and the iframe INSIDE
+      // it measured 0x0, which an element with explicit pixel width and height
+      // can only do when something has set it to display:none. That is a lazy
+      // loader waiting for the frame to be scrolled into view, and it never
+      // will be: it lives in a popup that is only built at the moment it opens.
+                 + '<div class="af-motion-lb-box"><iframe class="skip-lazy no-lazy"'
+                 + ' data-no-lazy="1" data-skip-lazy="1" data-lazy-loaded="1" loading="eager"'
+                 + ' allow="autoplay; encrypted-media; fullscreen"'
                  + ' allowfullscreen frameborder="0"></iframe></div>';
     document.body.appendChild(lb);
     lbFrame = lb.querySelector('iframe');
@@ -381,6 +396,12 @@ add_action('wp_footer', function () {
     if (lbFrame) {
       lbFrame.style.setProperty('width',  w + 'px', 'important');
       lbFrame.style.setProperty('height', h + 'px', 'important');
+      // display, visibility and opacity as well as the size. A pixel width
+      // means nothing to an element a lazy loader has set to display:none,
+      // which is exactly how a correctly sized box came to hold a 0x0 player.
+      lbFrame.style.setProperty('display', 'block', 'important');
+      lbFrame.style.setProperty('visibility', 'visible', 'important');
+      lbFrame.style.setProperty('opacity', '1', 'important');
       lbFrame.setAttribute('width', w);
       lbFrame.setAttribute('height', h);
     }

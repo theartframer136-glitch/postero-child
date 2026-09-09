@@ -140,7 +140,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     console.log('--- the four facts ---');
     console.log('  pixel-sizing fix in this page:  ' + (before.pixelSizingLive ? 'YES' : 'NO — an old cached page'));
     console.log('  popup box measured:             ' + (after.box ? after.box.w + 'x' + after.box.h : '(no box)'));
-    console.log('  iframe measured:                ' + (after.iframe ? after.iframe.w + 'x' + after.iframe.h : '(no iframe)'));
+    console.log('  iframe measured:                ' + (after.iframe
+      ? after.iframe.w + 'x' + after.iframe.h + '  display:' + after.iframe.display
+        + ' visibility:' + after.iframe.visibility + ' opacity:' + after.iframe.opacity
+      : '(no iframe)'));
+    console.log('  lazy-loader attributes on it:   ' + (after.lazyAttrs || '(none)'));
     console.log('  iframe src:                     ' + String(after.iframeSrc).slice(0, 90));
     console.log('=== DONE ===');
   } catch (e) {
