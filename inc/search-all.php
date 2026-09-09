@@ -381,35 +381,36 @@ function af_search_matching_ids($terms, $limit = 300) {
  * that filter may rewrite, so the modified clause was simply discarded, again
  * measured with one id matched and nothing returned.
  *
- * That leaves posts_search, which failed at 10 and at 999 because the clause
- * was still EMPTY at both — some other plugin on this stack builds the title
- * match late, from the request rather than from the query var it has already
- * emptied. So this runs after everything: at 100000 the clause exists, and
- * there is something real to widen.
+ * posts_search failed at 10, at 999 and again at 100000: the clause is EMPTY
+ * at every one of them, because core built no search clause (the s query var
+ * was already emptied) and the title match this site does perform is injected
+ * into the WHERE by some other plugin, later still.
+ *
+ * So the hook is posts_clauses at PHP_INT_MAX, rewriting 'where' — which IS
+ * one of the pieces that filter may change, unlike 'search'. By then every
+ * other plugin has contributed and the finished condition is there to widen.
+ * The debug line reports whether the title match is present in it, so this
+ * assumption is checked on every probe rather than trusted.
  *
  * The original is kept intact inside its own group — this can only ever ADD
  * results, which is the one promise this module makes.
  */
-add_filter('posts_search', function ($search, $q) {
-    if (af_search_disabled()) return $search;
-    if (!af_search_is_main_search($q)) return $search;
+add_filter('posts_clauses', function ($clauses, $q) {
+    if (af_search_disabled()) return $clauses;
+    if (!af_search_is_main_search($q)) return $clauses;
     $terms = af_search_terms(af_search_query_string($q));
-    if (!$terms) return $search;
-
-    // Nothing to widen yet. Core built no search clause because the s query
-    // var was empty by the time it looked, and whatever fills it in later has
-    // not run at this priority either. Widening "nothing" would match the
-    // whole catalogue, so this leaves the query exactly as it found it.
-    if (trim((string) $search) === '') {
-        af_search_debug('posts_search: clause still empty at this priority - left alone');
-        return $search;
-    }
+    if (!$terms) return $clauses;
+    $where = isset($clauses['where']) ? (string) $clauses['where'] : '';
+    if (trim($where) === '') return $clauses;
 
     $ids = af_search_matching_ids($terms);
-    af_search_debug('posts_search: ' . count($ids) . ' id(s) matched by code, sku or attribute');
-    if (!$ids) return $search;
+    af_search_debug('posts_clauses(where) @max: ' . count($ids) . ' id(s) matched; where='
+        . strlen($where) . ' chars; text_match_present='
+        . (strpos($where, 'post_title LIKE') !== false ? 'yes' : 'no'));
+    if (!$ids) return $clauses;
 
     global $wpdb;
-    return ' AND ( ( 1=1 ' . $search . ' ) OR ' . $wpdb->posts
-         . '.ID IN (' . implode(',', $ids) . ') ) ';
-}, 100000, 2);
+    $clauses['where'] = ' AND ( ( 1=1 ' . $where . ' ) OR ' . $wpdb->posts
+                      . '.ID IN (' . implode(',', $ids) . ') ) ';
+    return $clauses;
+}, PHP_INT_MAX, 2);
