@@ -395,22 +395,51 @@ function af_search_matching_ids($terms, $limit = 300) {
  * The original is kept intact inside its own group — this can only ever ADD
  * results, which is the one promise this module makes.
  */
-add_filter('posts_clauses', function ($clauses, $q) {
-    if (af_search_disabled()) return $clauses;
-    if (!af_search_is_main_search($q)) return $clauses;
+/**
+ * Widen the finished SQL statement.
+ *
+ * Every earlier hook was tried and each was measured to be blind to the
+ * condition that matters:
+ *
+ *   posts_search   empty at priority 10, 999 and 100000 alike
+ *   posts_where    the text match is not in it (ORing there left rk0118 at 0)
+ *   posts_clauses  'search' is not a rewritable piece, and the 'where' piece
+ *                  it does expose came back 222 chars with
+ *                  text_match_present=no even at PHP_INT_MAX
+ *
+ * The text match is concatenated into the statement after all of them, so
+ * posts_request — the complete SQL, the last thing before the database sees
+ * it — is the only place the whole condition exists.
+ *
+ * The rewrite is deliberately narrow: it finds the WHERE section, wraps it in
+ * its own group and ORs the ids beside it. Everything the query already
+ * matched still matches.
+ */
+function af_search_widen_sql($sql, $ids, $posts_table) {
+    if (!$ids || strpos($sql, 'WHERE 1=1') === false) return $sql;
+    $start = strpos($sql, 'WHERE 1=1') + strlen('WHERE 1=1');
+    // The WHERE section ends at the first of these, whichever comes first.
+    $end = strlen($sql);
+    foreach (array(' GROUP BY ', ' ORDER BY ', ' LIMIT ') as $kw) {
+        $at = stripos($sql, $kw, $start);
+        if ($at !== false && $at < $end) $end = $at;
+    }
+    $conditions = substr($sql, $start, $end - $start);
+    if (trim($conditions) === '') return $sql;      // nothing to widen
+    $widened = ' AND ( ( 1=1 ' . $conditions . ' ) OR ' . $posts_table
+             . '.ID IN (' . implode(',', array_map('intval', $ids)) . ') ) ';
+    return substr($sql, 0, $start) . $widened . substr($sql, $end);
+}
+
+add_filter('posts_request', function ($sql, $q) {
+    if (af_search_disabled()) return $sql;
+    if (!af_search_is_main_search($q)) return $sql;
     $terms = af_search_terms(af_search_query_string($q));
-    if (!$terms) return $clauses;
-    $where = isset($clauses['where']) ? (string) $clauses['where'] : '';
-    if (trim($where) === '') return $clauses;
-
+    if (!$terms) return $sql;
     $ids = af_search_matching_ids($terms);
-    af_search_debug('posts_clauses(where) @max: ' . count($ids) . ' id(s) matched; where='
-        . strlen($where) . ' chars; text_match_present='
-        . (strpos($where, 'post_title LIKE') !== false ? 'yes' : 'no'));
-    if (!$ids) return $clauses;
-
+    af_search_debug('posts_request: ' . count($ids) . ' id(s) matched'
+        . '; text_match_present=' . (strpos($sql, 'post_title LIKE') !== false ? 'yes' : 'no'));
+    if (!$ids) return $sql;
     global $wpdb;
-    $clauses['where'] = ' AND ( ( 1=1 ' . $where . ' ) OR ' . $wpdb->posts
-                      . '.ID IN (' . implode(',', $ids) . ') ) ';
-    return $clauses;
+    return af_search_widen_sql($sql, $ids, $wpdb->posts);
 }, PHP_INT_MAX, 2);

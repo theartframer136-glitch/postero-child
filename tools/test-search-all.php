@@ -145,5 +145,34 @@ foreach (str_split($rebuilt) as $ch) {
 ok($d === 0 && $min === 0, 'parentheses balance, and none closes before it opens');
 ok(preg_match('/^\s*AND\s*\(/', $rebuilt) === 1, 'it is still one AND-ed group, as posts_where requires');
 
+echo "\nwidening the finished SQL (the only hook that sees the whole condition)\n";
+$sql = "SELECT SQL_CALC_FOUND_ROWS wp_posts.ID FROM wp_posts WHERE 1=1"
+     . " AND (((wp_posts.post_title LIKE '%rk0118%')))"
+     . " AND (wp_posts.post_status = 'publish')"
+     . " ORDER BY wp_posts.post_date DESC LIMIT 0, 10";
+$out = af_search_widen_sql($sql, array(12, 34), 'wp_posts');
+ok(strpos($out, "post_title LIKE '%rk0118%'") !== false, 'the original text match survives');
+ok(strpos($out, 'OR wp_posts.ID IN (12,34)') !== false, 'the matching ids are OR-ed beside it');
+ok(strpos($out, 'ORDER BY wp_posts.post_date DESC LIMIT 0, 10') !== false,
+   'ORDER BY and LIMIT are left outside the rewrite, where they belong');
+ok(preg_match('/IN \(12,34\)\s*\)\s*ORDER BY/', $out) === 1, 'the group closes before ORDER BY, not after');
+$d = 0; $min = 0;
+foreach (str_split($out) as $ch) {
+    if ($ch === '(') $d++;
+    if ($ch === ')') { $d--; if ($d < $min) $min = $d; }
+}
+ok($d === 0 && $min === 0, 'parentheses balance');
+ok(af_search_widen_sql($sql, array(), 'wp_posts') === $sql, 'no ids leaves the SQL untouched');
+ok(af_search_widen_sql('SELECT 1', array(5), 'wp_posts') === 'SELECT 1',
+   'a statement with no WHERE is left alone rather than mangled');
+// A GROUP BY must bound the rewrite too, or it would be swallowed into the group.
+$g = "SELECT a FROM wp_posts WHERE 1=1 AND (x=1) GROUP BY wp_posts.ID ORDER BY b LIMIT 5";
+$og = af_search_widen_sql($g, array(7), 'wp_posts');
+ok(preg_match('/IN \(7\)\s*\)\s*GROUP BY/', $og) === 1, 'GROUP BY also ends the WHERE section');
+// Ids are forced to integers: a search term can never reach the SQL this way.
+$inj = af_search_widen_sql($sql, array("1); DROP TABLE wp_posts;--"), 'wp_posts');
+ok(strpos($inj, 'DROP TABLE') === false && strpos($inj, 'IN (1)') !== false,
+   'ids are cast to integers, so nothing but a number reaches the statement');
+
 echo "\n$pass passed, $fail failed\n";
 exit($fail ? 1 : 0);
