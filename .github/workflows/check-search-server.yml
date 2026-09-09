@@ -1,0 +1,41 @@
+name: Check Search (server side)
+
+# Ask WordPress itself what a search returns.
+#
+# Hostinger's CDN answers every https://theartframer.us/?s=... request with a
+# 302 to "/" before WordPress sees it (measured 2026-09-09, nine queries,
+# "server: hcdn"), so an HTTP check from outside can only ever report the
+# homepage. This runs the query inside the server over SSH, where the answer
+# is actually visible.
+#
+# Read-only: it runs WP_Query and prints results. Nothing is written.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Ask WordPress what the search finds
+        timeout-minutes: 12
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/search-probe.php --allow-root 2>&1" \
+            || true
