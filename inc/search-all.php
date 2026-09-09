@@ -119,6 +119,32 @@ function af_search_meta_sql($terms, $prefix, $db) {
     return ' OR (' . implode(' OR ', $bits) . ') ';
 }
 
+/**
+ * The words the visitor typed.
+ *
+ * $q->get('s') is the obvious source and on this site it comes back EMPTY on a
+ * real page load, while the same query reports is_search() true and its SQL
+ * plainly contains the term. Measured 2026-09-09 by recording every call:
+ *
+ *   posts_search callback ran 9 time(s) | called main=1 search=1 s=""
+ *
+ * So this module found nothing to search for and returned early every single
+ * time — on the live site only. Under WP-CLI the query var is present, which
+ * is why every probe reported the clause working and every page did not.
+ *
+ * Something on this stack empties that variable between parsing the request
+ * and running the query. Rather than hunt it through forty plugins, the term
+ * is taken from the query when it is there and from the request itself when it
+ * is not; the two agree whenever both exist.
+ */
+function af_search_query_string($q) {
+    $s = (string) $q->get('s');
+    if ($s !== '') return $s;
+    if (isset($_GET['s'])) return (string) wp_unslash($_GET['s']);
+    if (function_exists('get_search_query')) return (string) get_search_query(false);
+    return '';
+}
+
 /** True when this is the one query whose results the visitor is looking at. */
 function af_search_is_main_search($q) {
     return $q->is_main_query() && $q->is_search() && !is_admin();
@@ -212,10 +238,10 @@ add_filter('posts_search', function ($search, $q) {
         . ' main=' . ($q->is_main_query() ? 1 : 0)
         . ' search=' . ($q->is_search() ? 1 : 0)
         . ' admin=' . (is_admin() ? 1 : 0)
-        . ' s="' . (string) $q->get('s') . '"';
+        . ' s="' . (string) $q->get('s') . '" resolved="' . af_search_query_string($q) . '"';
     if (af_search_disabled()) return $search;
     if (!af_search_is_main_search($q)) return $search;
-    $terms = af_search_terms($q->get('s'));
+    $terms = af_search_terms(af_search_query_string($q));
     if (!$terms) return $search;
 
     global $wpdb;
