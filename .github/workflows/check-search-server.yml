@@ -98,3 +98,29 @@ jobs:
                fi; \
              done' \
             || true
+
+      # WHO issues the 302. WordPress stamps X-Redirect-By on its own
+      # redirects and there is no such header here, so this is a rewrite rule
+      # in front of PHP. That lives in .htaccess, which is readable.
+      #
+      # Read-only: it prints matching lines. It edits nothing — a rewrite rule
+      # is site configuration, and changing it is the owner's call, not a side
+      # effect of a diagnostic.
+      - name: Find the rule that redirects searches
+        timeout-minutes: 8
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            'cd ~/websites/OPu0sKi4J/public_html && \
+             echo "=== .htaccess: rules mentioning a search or a redirect ==="; \
+             grep -n -i "QUERY_STRING\|RewriteRule\|Redirect\|[?&]s=\|search" .htaccess 2>/dev/null | head -40; \
+             echo; echo "=== .htaccess line count ==="; wc -l .htaccess 2>/dev/null; \
+             echo; echo "=== any other .htaccess above the docroot ==="; \
+             ls -la ~/websites/OPu0sKi4J/.htaccess ~/.htaccess 2>/dev/null || echo "  none"; \
+             echo; echo "=== plugins that could be responsible ==="; \
+             wp plugin list --status=active --field=name --allow-root 2>/dev/null | head -40' \
+            || true
