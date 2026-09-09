@@ -66,6 +66,12 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
       withId: document.querySelectorAll('.af-motion-item[data-yt]').length,
       lbExists: !!document.querySelector('.af-motion-lb'),
       handlerFile: !!document.querySelector('script') && document.documentElement.innerHTML.includes('afMotionOpenLb'),
+      // Which version of the popup code this page is actually running. The
+      // owner saw an empty popup eight minutes AFTER the pixel-sizing fix
+      // deployed, so "is the fix even on the page the browser got" has to be
+      // a measurement too — a page cache can serve yesterday's HTML long
+      // after the file on disk has changed.
+      pixelSizingLive: document.documentElement.innerHTML.includes('afMotionSizeLb'),
     }));
     console.log('  before the click: ' + JSON.stringify(before));
     if (!before.withId) {
@@ -120,6 +126,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     if (errors.length) errors.slice(0, 10).forEach((e) => console.log('    ' + e));
     else console.log('    (none)');
 
+    if (!before.pixelSizingLive) console.log('NOTE: this page is running the OLD popup code — the pixel-sizing fix is not in the HTML the browser received (page cache).');
     if (!after.popupOpen) console.log('VERDICT: the click did not open the popup');
     else if (!after.iframe) console.log('VERDICT: the popup opened with no iframe in it');
     else if (after.iframe.h < 40 || after.iframe.w < 40) console.log(`VERDICT: the iframe has no size (${after.iframe.w}x${after.iframe.h}) — a layout fault, not a video fault`);

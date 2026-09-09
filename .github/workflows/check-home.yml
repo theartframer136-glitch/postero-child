@@ -24,7 +24,10 @@ on:
 jobs:
   look:
     runs-on: ubuntu-latest
-    timeout-minutes: 6
+    # 6 minutes was not enough: this host can spend four and a half minutes
+    # failing to answer the FIRST step, and the run was then cancelled before
+    # the step that matters had started. Measured 2026-09-09.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -34,11 +37,11 @@ jobs:
           npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
           NODE_PATH=/tmp/afhead/node_modules node tools/headless-new-arrivals.js "https://theartframer.us/" || true
 
-      - name: Click a motion tile and measure the popup
-        run: |
-          set -uo pipefail
-          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
-          NODE_PATH=/tmp/afhead/node_modules node tools/headless-motion-popup.js "https://theartframer.us/" || true
+      # The popup check moved OUT of this workflow, to check-popup.yml. Twice
+      # its answer was unreadable from here: once cancelled by the six-minute
+      # ceiling before it ran, once buried because the log API returns only
+      # the tail and everything below it is New Arrivals output. A question
+      # this expensive to ask deserves a run of its own.
 
       - name: What the server sends
         run: |
