@@ -369,22 +369,33 @@ function af_search_matching_ids($terms, $limit = 300) {
 }
 
 /**
- * Widen the WHERE: everything it already matched, OR one of our ids.
+ * Widen the SEARCH clause: everything it already matched, OR one of our ids.
  *
- * The original conditions are kept intact inside their own group — this can
- * only ever ADD results, which is the one promise this module makes.
+ * The original is kept intact inside its own group — this can only ever ADD
+ * results, which is the one promise this module makes.
  */
-add_filter('posts_where', function ($where, $q) {
-    if (af_search_disabled()) return $where;
-    if (!af_search_is_main_search($q)) return $where;
+add_filter('posts_clauses', function ($clauses, $q) {
+    if (af_search_disabled()) return $clauses;
+    if (!af_search_is_main_search($q)) return $clauses;
     $terms = af_search_terms(af_search_query_string($q));
-    if (!$terms) return $where;
+    if (!$terms) return $clauses;
     $ids = af_search_matching_ids($terms);
-    af_search_debug('posts_where: ' . count($ids) . ' id(s) matched by code, sku or attribute');
-    if (!$ids) return $where;
+    af_search_debug('posts_clauses: ' . count($ids) . ' id(s) matched by code, sku or attribute');
+    if (!$ids) return $clauses;
+
     global $wpdb;
-    // $where arrives beginning with " AND ...", so "( 1=1 $where )" is a valid
-    // group and the whole thing stays one AND-ed condition.
-    return ' AND ( ( 1=1 ' . $where . ' ) OR ' . $wpdb->posts . '.ID IN ('
-         . implode(',', $ids) . ') ) ';
+    // posts_clauses, not posts_where. WordPress keeps the title/content match
+    // in its OWN clause and concatenates it into the query separately, so a
+    // filter on the WHERE cannot reach it: measured, "rk0118" matched one id
+    // here and still returned 0 results, because the OR widened the post-type
+    // group while the title match went on excluding everything beside it.
+    //
+    // This is the clause that holds the text match, so this is where the ids
+    // belong. The original is kept whole inside its own group: a piece that
+    // matched before still matches, and one whose art code, SKU, colour or
+    // size matches now matches too.
+    $search = (string) $clauses['search'];
+    $clauses['search'] = ' AND ( ( 1=1 ' . $search . ' ) OR ' . $wpdb->posts
+                       . '.ID IN (' . implode(',', $ids) . ') ) ';
+    return $clauses;
 }, 9999, 2);
