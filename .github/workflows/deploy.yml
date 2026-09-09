@@ -95,8 +95,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
         with:
+          # The tip of the branch this run targets, resolved WHEN THE JOB RUNS
+          # — not the commit the run was created for.
+          #
+          # Deploys here queue: the concurrency group above lets one finish
+          # before the next starts, and a busy morning can leave a run waiting
+          # a quarter of an hour. Without this line every run rsyncs the
+          # snapshot it was created with, so a run that waited behind newer
+          # ones ships OLD files over them and the site goes backwards.
+          #
+          # Measured on 2026-09-09: run 1016 deployed 1b728d0 at 11:20, then
+          # run 1014 — created earlier, started later — deployed its older
+          # 6ff0cf8 at 11:26 and undid it. Both runs were green. That is the
+          # "the file on the server went backwards, 8577 bytes then 7869" this
+          # repo spent the morning chasing; it was never a bug in the theme.
+          #
+          # Taking the tip at run time makes a late run harmless: it re-ships
+          # what is current instead of what was current when it was queued, so
+          # the server only ever moves forwards. github.ref rather than a
+          # literal 'main' so a manual run against some other branch still
+          # deploys that branch.
+          ref: ${{ github.ref }}
           # Full history so the light-deploy guard can diff the pushed range
           fetch-depth: 0
+
+      # What was actually checked out, which is NOT github.sha when this run
+      # waited in the queue. Everything below that asks "what are we shipping"
+      # reads this rather than the run's recorded commit.
+      - name: Record the commit being deployed
+        run: |
+          DEPLOY_SHA=$(git rev-parse HEAD)
+          echo "DEPLOY_SHA=$DEPLOY_SHA" >> "$GITHUB_ENV"
+          if [ "$DEPLOY_SHA" != "$GITHUB_SHA" ]; then
+            echo "This run waited in the queue. Created for $GITHUB_SHA,"
+            echo "shipping $DEPLOY_SHA — the branch tip now. Newer, never older."
+          else
+            echo "Deploying $DEPLOY_SHA."
+          fi
 
       - name: Setup SSH
         run: |
@@ -204,8 +239,9 @@ jobs:
              && [ -n "$BEFORE" ] \
              && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
              && git cat-file -e "$BEFORE" 2>/dev/null; then
-            CHANGED=$(git diff --name-only "$BEFORE" "$GH_SHA" 2>/dev/null)
-            MSGS=$(git log --format=%B "$BEFORE..$GH_SHA" 2>/dev/null)
+            SHIPPING="${DEPLOY_SHA:-$GH_SHA}"
+            CHANGED=$(git diff --name-only "$BEFORE" "$SHIPPING" 2>/dev/null)
+            MSGS=$(git log --format=%B "$BEFORE..$SHIPPING" 2>/dev/null)
             SUITE_TOOL_CHANGED=0
             for F in $(printf '%s\n' "$CHANGED" | grep '^tools/' || true); do
               if grep -q "$(basename "$F")" .github/workflows/deploy.yml 2>/dev/null; then
@@ -1846,7 +1882,7 @@ jobs:
               echo "every deploy and holds only the newest sheets. Delete it when the"
               echo "art-code audit is done."
               echo
-              echo "From deploy run ${GITHUB_RUN_NUMBER}, commit ${GITHUB_SHA}."
+              echo "From deploy run ${GITHUB_RUN_NUMBER}, commit ${DEPLOY_SHA:-$GITHUB_SHA}."
             } > README.md
             git add -A
             git commit -q -m "Contact sheets from deploy run ${GITHUB_RUN_NUMBER}" || exit 1
