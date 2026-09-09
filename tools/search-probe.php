@@ -46,6 +46,15 @@ function af_probe_which_copy() {
     } else {
         echo "  the module file is not on the server at all\n";
     }
+    // Is the module in the theme's list of modules to load? If a deploy ships
+    // a functions.php older than the line that registers it, the file can sit
+    // on the server complete and correct and never be included at all.
+    $fn = get_stylesheet_directory() . '/functions.php';
+    if (file_exists($fn)) {
+        echo '  registered in functions.php: '
+           . (strpos((string) file_get_contents($fn), "'search-all'") !== false
+              ? "yes\n" : "NO — the file is on the server but nothing loads it\n");
+    }
     if (function_exists('af_search_terms')) {
         foreach (array('PA - 1201', 'RK - 0118', 'radha krishna art') as $probe) {
             echo '  af_search_terms("' . $probe . '") = ['
@@ -85,14 +94,21 @@ echo "products carrying an art code: {$total}\n\n";
 // path that gets measured.
 function af_probe_main_query($term) {
     $q = new WP_Query();
-    $prev = isset($GLOBALS['wp_query']) ? $GLOBALS['wp_query'] : null;
+    // BOTH globals. WP_Query::is_main_query() compares against $wp_the_query,
+    // not $wp_query — setting only the latter left the module's guard false
+    // and produced "the filter never ran", which was a fact about this probe
+    // and not about the site.
+    $prev  = isset($GLOBALS['wp_query']) ? $GLOBALS['wp_query'] : null;
+    $prevT = isset($GLOBALS['wp_the_query']) ? $GLOBALS['wp_the_query'] : null;
     $GLOBALS['wp_query'] = $q;
+    $GLOBALS['wp_the_query'] = $q;
     $sql = '';
     $grab = function ($s) use (&$sql) { $sql = $s; return $s; };
     add_filter('posts_search', $grab, 999);
     $q->query(array('s' => $term, 'posts_per_page' => 5));
     remove_filter('posts_search', $grab, 999);
-    if ($prev !== null) $GLOBALS['wp_query'] = $prev;
+    if ($prev  !== null) $GLOBALS['wp_query'] = $prev;
+    if ($prevT !== null) $GLOBALS['wp_the_query'] = $prevT;
     return array($q, $sql);
 }
 
