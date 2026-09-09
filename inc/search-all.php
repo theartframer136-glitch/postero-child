@@ -124,13 +124,44 @@ function af_search_is_main_search($q) {
     return $q->is_main_query() && $q->is_search() && !is_admin();
 }
 
+/**
+ * A way to turn this module off for one request, and a way to see what it did.
+ *
+ * The rendered search page finds nothing while the same terms in WP_Query find
+ * plenty, which points at this module rather than away from it — and the only
+ * honest way to settle that is to run the same request with the module inert
+ * and compare. ?afsearch=off does that. It changes nothing for anyone who does
+ * not pass it.
+ */
+function af_search_disabled() {
+    return isset($_GET['afsearch']) && $_GET['afsearch'] === 'off';
+}
+
+/**
+ * A note in the HTML saying what happened, for requests from the server itself.
+ *
+ * Restricted to the loopback address deliberately: the finished SQL is useful
+ * to a diagnostic and to nobody else, so it is never rendered for a visitor.
+ */
+function af_search_debug($msg) {
+    static $on = null;
+    if ($on === null) {
+        $ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
+        $on = isset($_GET['afsearchdebug']) && ($ip === '127.0.0.1' || $ip === '::1');
+    }
+    if ($on) echo "\n<!-- af-search: " . str_replace('--', '- -', (string) $msg) . " -->\n";
+}
+
 add_filter('posts_search', function ($search, $q) {
+    if (af_search_disabled()) return $search;
     if (!af_search_is_main_search($q)) return $search;
     $terms = af_search_terms($q->get('s'));
     if (!$terms) return $search;
 
     global $wpdb;
     $extra = af_search_meta_sql($terms, $wpdb->prefix, $wpdb);
+    af_search_debug('terms=' . count($terms) . ' clause=' . ($extra === '' ? 'none' : strlen($extra) . ' chars')
+                  . ' wp_search=' . strlen((string) $search) . ' chars');
     if ($extra === '') return $search;
 
     // WordPress hands us " AND (((post_title LIKE ...)))" — an AND-ed group.
@@ -154,6 +185,7 @@ add_filter('posts_search', function ($search, $q) {
  * blog posts and pages remain findable exactly as before.
  */
 add_action('pre_get_posts', function ($q) {
+    if (af_search_disabled()) return;
     if (!af_search_is_main_search($q)) return;
     if (!post_type_exists('product')) return;
 

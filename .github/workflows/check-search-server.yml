@@ -84,7 +84,8 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             'cd ~/websites/OPu0sKi4J/public_html && \
-             for u in "?s=RK+-+0118" "?s=rk0118" "?s=Krishna"; do \
+             for u in "?s=rk0118&afsearchdebug=1" "?s=rk0118&afsearch=off" \
+                      "?s=Krishna&afsearchdebug=1" "?s=Krishna&afsearch=off"; do \
                echo "--- ${u} ---"; \
                curl -sS --max-time 45 -H "Host: theartframer.us" \
                     -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0.0.0" \
@@ -93,8 +94,7 @@ jobs:
                     -o /dev/null -D /tmp/afh.txt \
                     -w "  first: http=%{http_code}\n" \
                     "https://127.0.0.1/${u}" --insecure 2>&1 || echo "  loopback fetch failed"; \
-               echo -n "  redirects to: "; grep -i "^location:" /tmp/afh.txt | tr -d "\r" | head -1 || echo "(none)"; \
-               grep -i "^x-redirect-by:\|^x-litespeed\|^set-cookie: *wordpress" /tmp/afh.txt | tr -d "\r" | sed "s/^/  /" | head -3; \
+               echo -n "  redirects to: "; (grep -i "^location:" /tmp/afh.txt | tr -d "\r" | head -1) || true; echo; \
                curl -sSL --max-time 45 -H "Host: theartframer.us" \
                     -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0.0.0" \
                     -H "Sec-Fetch-Mode: navigate" -H "Sec-Fetch-Site: none" \
@@ -104,7 +104,8 @@ jobs:
                if [ -s /tmp/afs.html ]; then \
                  echo -n "  Nothing Found: "; grep -qi "nothing found\|nothing matched" /tmp/afs.html && echo YES || echo no; \
                  echo -n "  product links: "; grep -o "/product/[a-z0-9-]*/" /tmp/afs.html | sort -u | wc -l; \
-                 echo -n "  first product: "; grep -o "/product/[a-z0-9-]*/" /tmp/afs.html | head -1; \
+                 echo -n "  first product: "; (grep -o "/product/[a-z0-9-]*/" /tmp/afs.html | head -1) || true; echo; \
+                 grep -o "<!-- af-search:[^>]*-->" /tmp/afs.html | sed "s/^/  /" | head -2 || true; \
                fi; \
              done' \
             || true
