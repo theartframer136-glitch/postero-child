@@ -66,8 +66,14 @@ jobs:
       #
       # Asking the server to fetch its own URL over the loopback address, with
       # the site's Host header, goes through the whole WordPress stack exactly
-      # as a visitor's request does, and past the CDN because it never leaves
-      # the machine.
+      # as a visitor's request does.
+      #
+      # The Sec-Fetch-* headers are essential, not decoration. This site's own
+      # crawl guard (ops/harden-crawl-budget.php) redirects a search to the
+      # home page when Sec-Fetch-Mode is absent — real browsers always send it,
+      # scrapers do not. Without these headers the check was tripping that rule
+      # and reporting a 302 that no visitor ever sees, which I first, and
+      # wrongly, blamed on the CDN.
       - name: Fetch a real search page from inside the server
         timeout-minutes: 10
         run: |
@@ -82,6 +88,8 @@ jobs:
                echo "--- ${u} ---"; \
                curl -sS --max-time 45 -H "Host: theartframer.us" \
                     -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0.0.0" \
+                    -H "Sec-Fetch-Mode: navigate" -H "Sec-Fetch-Site: none" \
+                    -H "Sec-Fetch-Dest: document" \
                     -o /dev/null -D /tmp/afh.txt \
                     -w "  first: http=%{http_code}\n" \
                     "https://127.0.0.1/${u}" --insecure 2>&1 || echo "  loopback fetch failed"; \
@@ -89,6 +97,8 @@ jobs:
                grep -i "^x-redirect-by:\|^x-litespeed\|^set-cookie: *wordpress" /tmp/afh.txt | tr -d "\r" | sed "s/^/  /" | head -3; \
                curl -sSL --max-time 45 -H "Host: theartframer.us" \
                     -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0.0.0" \
+                    -H "Sec-Fetch-Mode: navigate" -H "Sec-Fetch-Site: none" \
+                    -H "Sec-Fetch-Dest: document" \
                     -o /tmp/afs.html -w "  followed: http=%{http_code} bytes=%{size_download} url=%{url_effective}\n" \
                     "https://127.0.0.1/${u}" --insecure 2>&1 || true; \
                if [ -s /tmp/afs.html ]; then \
