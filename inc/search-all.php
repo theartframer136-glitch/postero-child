@@ -163,6 +163,27 @@ function af_search_debug($msg) {
  * longer about this module, it is "what query did the page actually run".
  * This prints it: the post types asked for, how many were found, and the SQL.
  */
+/**
+ * The loop's state at the moment the template asks have_posts().
+ *
+ * The parent template is the ordinary one — if ( have_posts() ) render the
+ * loop, else render "Nothing Found" — and it takes the else branch while the
+ * query holds ten posts. Only two things do that: the loop was already walked
+ * to its end by something earlier in the request, or post_count disagrees with
+ * the posts array. current_post and post_count tell them apart.
+ */
+add_action('template_redirect', function () {
+    if (empty($_SERVER['HTTP_X_AF_PROBE'])) return;
+    $q = isset($GLOBALS['wp_query']) ? $GLOBALS['wp_query'] : null;
+    if (!$q) return;
+    add_action('wp_footer', function () use ($q) {
+        af_search_debug('AT TEMPLATE TIME: post_count=' . (int) $q->post_count
+            . ' current_post=' . (int) $q->current_post
+            . ' posts_in_array=' . count((array) $q->posts)
+            . ' have_posts_would_be=' . (($q->current_post + 1 < $q->post_count) ? 'TRUE' : 'FALSE'));
+    }, 98);
+}, 1);
+
 add_action('wp_footer', function () {
     if (empty($_SERVER['HTTP_X_AF_PROBE'])) return;
     $q = isset($GLOBALS['wp_query']) ? $GLOBALS['wp_query'] : null;
