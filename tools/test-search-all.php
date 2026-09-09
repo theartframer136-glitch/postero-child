@@ -45,19 +45,31 @@ foreach (array('RK-0118', 'rk 0118', 'RK0118', '  rk - 0118  ', 'Rk_0118') as $t
 ok(af_search_flatten('') === '', 'an empty string flattens to empty');
 
 echo "\nterm splitting\n";
-ok(af_search_terms('RK - 0118') === array('RK - 0118', 'RK', '0118'),
-   'the whole phrase comes first, then its words');
+// Measured on the live shop: splitting "PA - 1201" and searching the fragment
+// "PA" returned 50 results headed by Shiva Parivar and four Tanjore panels,
+// with the piece actually numbered PA - 1201 nowhere near the top. An art code
+// identifies one product; a near-miss buries the hit.
+foreach (array('RK - 0118', 'RK-0118', 'rk0118', 'PA - 1201', 'TP - 0508') as $code) {
+    ok(af_search_terms($code) === array($code), "\"$code\" is searched whole, never split into fragments");
+}
 ok(af_search_terms('') === array(), 'an empty query yields no terms');
 ok(af_search_terms('   ') === array(), 'whitespace only yields no terms');
 ok(af_search_terms('blue') === array('blue'), 'a single word is not duplicated');
 $t = af_search_terms('a blue canvas');
 ok(!in_array('a', $t, true), 'one-character words are dropped — they match everything');
 ok(in_array('blue', $t, true) && in_array('canvas', $t, true), 'the real words survive');
+$t2 = af_search_terms('radha krishna art');
+ok($t2[0] === 'radha krishna art', 'an ordinary phrase still comes first');
+ok(in_array('krishna', $t2, true), 'and is still split, so one word of it finds pieces');
 
 echo "\nthe SQL clause\n";
 $sql = af_search_meta_sql(af_search_terms('RK - 0118'), 'wp_', $db);
 ok(strpos($sql, ' OR (') === 0, 'it is an OR-able fragment, not a standalone WHERE');
-ok(substr_count($sql, 'EXISTS (SELECT 1') === 6, 'one meta and one taxonomy test per term (3 terms → 6)');
+ok(substr_count($sql, 'EXISTS (SELECT 1') === 2,
+   'an art code is one term: one meta test and one taxonomy test, no fragments');
+$sqlPhrase = af_search_meta_sql(af_search_terms('radha krishna art'), 'wp_', $db);
+ok(substr_count($sqlPhrase, 'EXISTS (SELECT 1') === 8,
+   'an ordinary phrase gives the phrase plus its three words (4 terms → 8)');
 ok(strpos($sql, 'JOIN wp_postmeta') === false, 'postmeta is queried with EXISTS, never JOINed — a JOIN duplicates rows');
 ok(strpos($sql, '_taf_art_code') !== false, 'the art code meta key is searched');
 ok(strpos($sql, '_sku') !== false, 'the SKU is searched');

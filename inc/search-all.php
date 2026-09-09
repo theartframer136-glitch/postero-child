@@ -53,9 +53,22 @@ function af_search_flatten($s) {
 function af_search_terms($q) {
     $q = trim(preg_replace('/\s+/u', ' ', (string) $q));
     if ($q === '') return array();
+
+    // An art code is searched WHOLE and never split. "PA - 1201" split into
+    // its parts searched for "PA", which appears in the name of half the
+    // catalogue's terms — measured on the live shop, it returned 50 results
+    // headed by Shiva Parivar and four Tanjore panels, none of them the piece
+    // asked for. A code is an identifier: the visitor wants that one product,
+    // and a near-miss is worse than nothing because it buries the hit.
+    if (preg_match('/^[a-z]{1,4}[0-9]{2,6}$/', af_search_flatten($q))) {
+        return array($q);
+    }
+
     $out = array($q);
     foreach (explode(' ', $q) as $w) {
-        if (mb_strlen($w) > 1 && !in_array($w, $out, true)) $out[] = $w;
+        // Three characters, not two. Short fragments match nearly every term
+        // in a catalogue this size and rank nothing usefully.
+        if (mb_strlen($w) > 2 && !in_array($w, $out, true)) $out[] = $w;
     }
     return $out;
 }
