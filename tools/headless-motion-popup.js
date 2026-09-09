@@ -133,6 +133,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
     else if (!requests.length) console.log('VERDICT: the iframe is sized but nothing was ever fetched from YouTube — the src is not reaching the browser');
     else if (after.elementAtCentre && !/IFRAME/.test(after.elementAtCentre)) console.log(`VERDICT: something covers the player: ${after.elementAtCentre}`);
     else console.log(`VERDICT: iframe ${after.iframe.w}x${after.iframe.h}, YouTube answered — the popup is working`);
+    // Printed LAST, and deliberately so. The log API returns only the tail of
+    // a run, so anything printed early is invisible from here — the measured
+    // sizes were reported three runs running and read none of those times.
+    // These four lines are the whole diagnosis.
+    console.log('--- the four facts ---');
+    console.log('  pixel-sizing fix in this page:  ' + (before.pixelSizingLive ? 'YES' : 'NO — an old cached page'));
+    console.log('  popup box measured:             ' + (after.box ? after.box.w + 'x' + after.box.h : '(no box)'));
+    console.log('  iframe measured:                ' + (after.iframe ? after.iframe.w + 'x' + after.iframe.h : '(no iframe)'));
+    console.log('  iframe src:                     ' + String(after.iframeSrc).slice(0, 90));
     console.log('=== DONE ===');
   } catch (e) {
     console.log('HEADLESS ERROR: ' + e.message);
