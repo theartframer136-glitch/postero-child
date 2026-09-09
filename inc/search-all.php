@@ -227,40 +227,20 @@ add_action('wp_footer', function () {
         . ($trace ? ' | ' . implode(' | ', array_slice($trace, 0, 3)) : ' - NEVER INVOKED'));
 }, 99);
 
-add_filter('posts_search', function ($search, $q) {
-    // Was this callback even reached, and if so which guard turned it back?
-    // pre_get_posts in this same file demonstrably runs on the live site — the
-    // post types it sets come through — while the clause this filter adds
-    // never appears in the SQL. Both cannot be true of a working guard, so the
-    // guard is measured rather than reasoned about.
-    $GLOBALS['af_search_trace'][] = 'called'
-        . ' disabled=' . (af_search_disabled() ? 1 : 0)
-        . ' main=' . ($q->is_main_query() ? 1 : 0)
-        . ' search=' . ($q->is_search() ? 1 : 0)
-        . ' admin=' . (is_admin() ? 1 : 0)
-        . ' s="' . (string) $q->get('s') . '" resolved="' . af_search_query_string($q) . '"';
-    if (af_search_disabled()) return $search;
-    if (!af_search_is_main_search($q)) return $search;
-    $terms = af_search_terms(af_search_query_string($q));
-    if (!$terms) return $search;
-
-    global $wpdb;
-    $extra = af_search_meta_sql($terms, $wpdb->prefix, $wpdb);
-    af_search_debug('terms=' . count($terms) . ' clause=' . ($extra === '' ? 'none' : strlen($extra) . ' chars')
-                  . ' wp_search=' . strlen((string) $search) . ' chars');
-    if ($extra === '') return $search;
-
-    // WordPress hands us " AND (((post_title LIKE ...)))" — an AND-ed group.
-    // The new clause has to go INSIDE that group, or it would be AND-ed to it
-    // and match nothing at all. Stripping the leading AND and wrapping the
-    // whole thing keeps the operator precedence right.
-    $inner = preg_replace('/^\s*AND\s*/i', '', $search);
-    if ($inner === '' || $inner === null) {
-        // No search clause to extend (an empty query): make one.
-        return ' AND (1=0 ' . $extra . ') ';
-    }
-    return ' AND ( ' . $inner . $extra . ' ) ';
-}, 999, 2);   // 999: LAST. Measured — see below.
+/*
+ * THE posts_search FILTER IS GONE, and its removal is the fix.
+ *
+ * It was the obvious hook and it is useless on this site. Measured at both
+ * priority 10 and 999: WordPress hands it an EMPTY clause ("wp_search=0
+ * chars") while the finished query plainly contains a title match, because
+ * something on this stack builds that match elsewhere. With nothing to widen,
+ * the clause it added became " AND (1=0 OR mine) " — a restriction. That is
+ * what held Krishna at 73 results when plain WordPress finds 86.
+ *
+ * af_search_matching_ids() and the posts_where filter below do the work now.
+ * af_search_meta_sql() is kept because the server-side probe and the tests
+ * still exercise it as the reference for how a match is defined.
+ */   // 999: LAST. Measured — see below.
 
 /*
  * WHY 999 AND NOT 10.
