@@ -28,7 +28,12 @@ jobs:
             enc=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote_plus(sys.argv[1]))" "$q")
             got=''
             for try in 1 2 3; do
-              if curl -fsS --max-time 60 -H "User-Agent: ${UA}" \
+              # -L matters more than it looks: this site redirects a search URL
+              # (trailing slash, currency cookie), and curl WITHOUT -L returns
+              # the empty body of the 301 and exits 0. Every page the previous
+              # run measured was zero bytes, which reads as "no products found"
+              # and is really "no page fetched".
+              if curl -fsSL --max-time 60 -H "User-Agent: ${UA}" \
                    -o /tmp/s.html "https://theartframer.us/?s=${enc}&cb=$(date +%s)$try"; then
                 got=1; break
               fi
