@@ -82,8 +82,15 @@ jobs:
                echo "--- ${u} ---"; \
                curl -sS --max-time 45 -H "Host: theartframer.us" \
                     -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0.0.0" \
-                    -o /tmp/afs.html -w "  http=%{http_code} bytes=%{size_download}\n" \
+                    -o /dev/null -D /tmp/afh.txt \
+                    -w "  first: http=%{http_code}\n" \
                     "https://127.0.0.1/${u}" --insecure 2>&1 || echo "  loopback fetch failed"; \
+               echo -n "  redirects to: "; grep -i "^location:" /tmp/afh.txt | tr -d "\r" | head -1 || echo "(none)"; \
+               grep -i "^x-redirect-by:\|^x-litespeed\|^set-cookie: *wordpress" /tmp/afh.txt | tr -d "\r" | sed "s/^/  /" | head -3; \
+               curl -sSL --max-time 45 -H "Host: theartframer.us" \
+                    -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0.0.0" \
+                    -o /tmp/afs.html -w "  followed: http=%{http_code} bytes=%{size_download} url=%{url_effective}\n" \
+                    "https://127.0.0.1/${u}" --insecure 2>&1 || true; \
                if [ -s /tmp/afs.html ]; then \
                  echo -n "  Nothing Found: "; grep -qi "nothing found\|nothing matched" /tmp/afs.html && echo YES || echo no; \
                  echo -n "  product links: "; grep -o "/product/[a-z0-9-]*/" /tmp/afs.html | sort -u | wc -l; \
