@@ -26,6 +26,25 @@ echo "=== SEARCH PROBE (inside WordPress, past the CDN) ===\n";
 echo 'theme search module loaded: '
    . (function_exists('af_search_meta_sql') ? "YES\n" : "NO — the module is not active\n");
 
+// WHICH COPY of the module is running. "PA - 1201" went on returning fifty
+// results after the fix that searches a code whole rather than in fragments,
+// and there are only two explanations: the server has an older file, or the
+// code is not recognised as a code. These two lines separate them, instead of
+// another deploy spent guessing.
+$mod = get_stylesheet_directory() . '/inc/search-all.php';
+if (file_exists($mod)) {
+    echo 'module file: ' . date('Y-m-d H:i:s', (int) filemtime($mod))
+       . '  (' . filesize($mod) . " bytes)\n";
+}
+if (function_exists('af_search_terms')) {
+    foreach (array('PA - 1201', 'RK - 0118', 'radha krishna art') as $probe) {
+        echo '  af_search_terms("' . $probe . '") = ['
+           . implode(' | ', af_search_terms($probe)) . "]\n";
+    }
+    echo "  (an art code must come back as ONE term; more than one means the\n"
+       . "   old copy is loaded, or the code was not recognised as a code)\n";
+}
+
 // What the art codes in the database actually look like, so a query that finds
 // nothing can be told apart from a code that is not stored the way it is shown.
 global $wpdb;
