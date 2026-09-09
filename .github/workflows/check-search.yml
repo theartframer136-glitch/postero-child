@@ -33,8 +33,14 @@ jobs:
               # the empty body of the 301 and exits 0. Every page the previous
               # run measured was zero bytes, which reads as "no products found"
               # and is really "no page fetched".
+              # No cache-busting parameter on the URL. With one, every query
+              # came back as the same 956KB homepage: an unknown query arg sends
+              # this site's cache or a plugin to "/" instead of the search page.
+              # A no-cache header asks the same thing without touching the URL.
               if curl -fsSL --max-time 60 -H "User-Agent: ${UA}" \
-                   -o /tmp/s.html "https://theartframer.us/?s=${enc}&cb=$(date +%s)$try"; then
+                   -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' \
+                   -w "               landed on: %{url_effective} (%{http_code}, %{num_redirects} redirects)\n" \
+                   -o /tmp/s.html "https://theartframer.us/?s=${enc}"; then
                 got=1; break
               fi
               sleep 8
