@@ -16025,7 +16025,10 @@ function af_activity_log_table() {
 // Create/upgrade the table once, guarded by an option so dbDelta never runs on
 // an ordinary request. Safe to call repeatedly.
 function af_activity_log_ensure_table() {
-    if (get_option('af_activity_log_db_ver') === '1') return;
+    // Version 2 adds the ua column. dbDelta ALTERs an existing table rather
+    // than replacing it, so the 1303 entries already recorded are kept — they
+    // simply have no user agent, and the viewer shows them as unknown.
+    if (get_option('af_activity_log_db_ver') === '2') return;
     global $wpdb;
     require_once ABSPATH . 'wp-admin/includes/upgrade.php';
     $table   = af_activity_log_table();
@@ -16038,12 +16041,89 @@ function af_activity_log_ensure_table() {
         ip VARCHAR(45) NOT NULL DEFAULT '',
         action VARCHAR(255) NOT NULL DEFAULT '',
         url VARCHAR(255) NOT NULL DEFAULT '',
+        ua VARCHAR(255) NOT NULL DEFAULT '',
         PRIMARY KEY (id),
         KEY created_at (created_at),
         KEY user_id (user_id)
     ) {$charset};";
     dbDelta($sql);
-    update_option('af_activity_log_db_ver', '1');
+    update_option('af_activity_log_db_ver', '2');
+}
+
+/**
+ * Which kind of device made a request, from its User-Agent string.
+ *
+ * The device cannot be read from the IP address — an IP identifies a network,
+ * not a machine, and the same phone and laptop on one home wifi share it. The
+ * User-Agent is what actually carries this, so that is what is stored and
+ * classified here.
+ *
+ * Order matters. Every Android tablet also says "Android", and an iPad in
+ * desktop mode says "Macintosh", so the broad tests have to come after the
+ * specific ones or everything lands in the wrong bucket.
+ *
+ * Returns one of: bot, tablet, mobile, desktop, or '' when nothing was stored
+ * (every entry written before this column existed).
+ */
+function af_activity_device($ua) {
+    $ua = trim((string) $ua);
+    if ($ua === '') return '';
+    $s = strtolower($ua);
+
+    // Crawlers first: many name a platform further along and would otherwise
+    // be counted as somebody's phone.
+    if (preg_match('/bot|crawl|spider|slurp|bingpreview|facebookexternalhit|headlesschrome|lighthouse|pingdom|gtmetrix|curl\/|wget|python-requests|axios|postman/i', $s)) {
+        return 'bot';
+    }
+    // Names that state the device outright are checked before any guessing.
+    // Tablet names first, because an iPad in desktop mode also says
+    // "Macintosh" and would otherwise be counted as a computer.
+    if (strpos($s, 'ipad') !== false
+        || strpos($s, 'tablet') !== false
+        || strpos($s, 'kindle') !== false
+        || strpos($s, 'silk') !== false
+        || strpos($s, 'playbook') !== false) {
+        return 'tablet';
+    }
+    if (strpos($s, 'iphone') !== false
+        || strpos($s, 'ipod') !== false
+        || strpos($s, 'windows phone') !== false
+        || strpos($s, 'blackberry') !== false
+        || strpos($s, 'bb10') !== false
+        || strpos($s, 'opera mini') !== false
+        || strpos($s, 'iemobile') !== false) {
+        return 'mobile';
+    }
+    // Only now the Android guess, and it IS a guess: Android says nothing about
+    // screen size, so the convention is that a phone adds "Mobile" and a tablet
+    // does not. It has to come after the names above — Opera Mini reports
+    // "Android" with no "Mobile" and was being filed as a tablet.
+    if (strpos($s, 'android') !== false) {
+        return strpos($s, 'mobile') !== false ? 'mobile' : 'tablet';
+    }
+    if (strpos($s, 'mobile') !== false) return 'mobile';
+    if (strpos($s, 'windows') !== false
+        || strpos($s, 'macintosh') !== false
+        || strpos($s, 'mac os x') !== false
+        || strpos($s, 'cros') !== false
+        || strpos($s, 'x11') !== false
+        || strpos($s, 'linux') !== false) {
+        return 'desktop';
+    }
+    // Something real but unrecognised — a new browser, an app webview. Saying
+    // "unknown" is honest; guessing desktop would quietly invent a fact.
+    return '';
+}
+
+/** The label shown beside the device icon, and searched on. */
+function af_activity_device_label($kind) {
+    $map = array(
+        'mobile'  => 'Phone',
+        'tablet'  => 'Tablet',
+        'desktop' => 'Computer',
+        'bot'     => 'Bot',
+    );
+    return isset($map[$kind]) ? $map[$kind] : 'Unknown';
 }
 
 // Best-effort client IP. Honours the proxy headers this host / Cloudflare set,
@@ -16087,8 +16167,10 @@ function af_activity_log_record($action, $user = null) {
             'ip'         => substr(af_activity_client_ip(), 0, 45),
             'action'     => substr($action, 0, 255),
             'url'        => substr($url, 0, 255),
+            'ua'         => substr(isset($_SERVER['HTTP_USER_AGENT'])
+                                   ? wp_strip_all_tags((string) $_SERVER['HTTP_USER_AGENT']) : '', 0, 255),
         ),
-        array('%s', '%d', '%s', '%s', '%s', '%s')
+        array('%s', '%d', '%s', '%s', '%s', '%s', '%s')
     );
 
     // Occasionally prune entries older than 90 days so the table stays bounded.
@@ -16199,7 +16281,7 @@ add_action('template_redirect', function(){
     $table = af_activity_log_table();
     $limit = 1000;
     $raw = $wpdb->get_results($wpdb->prepare(
-        "SELECT created_at, user_login, user_id, ip, action, url FROM {$table} ORDER BY id DESC LIMIT %d",
+        "SELECT created_at, user_login, user_id, ip, action, url, ua FROM {$table} ORDER BY id DESC LIMIT %d",
         $limit
     ), ARRAY_A);
     $total = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table}");
@@ -16216,6 +16298,7 @@ add_action('template_redirect', function(){
             $u = get_userdata($uid);
             $email_cache[$uid] = ($u && $u->user_email) ? $u->user_email : '';
         }
+        $kind = af_activity_device(isset($r['ua']) ? $r['ua'] : '');
         $rows[] = array(
             'time'  => $ts ? date_i18n('M j, Y g:i a', $ts) : $r['created_at'],
             'user'  => $r['user_login'] !== '' ? $r['user_login'] : ('#' . $uid),
@@ -16223,6 +16306,11 @@ add_action('template_redirect', function(){
             'ip'    => $r['ip'],
             'act'   => $r['action'],
             'url'   => $r['url'],
+            'dev'   => $kind,
+            'devl'  => af_activity_device_label($kind),
+            // The full string on hover: the icon is a summary, and when it
+            // looks wrong this is the evidence for why.
+            'ua'    => isset($r['ua']) ? $r['ua'] : '',
         );
     }
 
@@ -16239,7 +16327,7 @@ add_action('template_redirect', function(){
       </header>
 
       <div class="af-log-toolbar">
-        <input type="search" id="log-search" class="af-log-search" placeholder="Search user, email, IP or action&hellip;" autocomplete="off">
+        <input type="search" id="log-search" class="af-log-search" placeholder="Search user, email, IP, device or action&hellip;" autocomplete="off">
       </div>
 
       <div class="af-log-tablewrap">
@@ -16249,6 +16337,7 @@ add_action('template_redirect', function(){
             <th class="af-log-thuser">User</th>
             <th class="af-log-themail">Email</th>
             <th class="af-log-thip">IP address</th>
+            <th class="af-log-thdev">Device</th>
             <th>Action</th>
           </tr></thead>
           <tbody id="log-body"></tbody>
@@ -16264,10 +16353,33 @@ add_action('template_redirect', function(){
       var term = '';
       function esc(s){ var d=document.createElement('div'); d.textContent = s==null?'':String(s); return d.innerHTML; }
 
+      // One 16px glyph per kind, drawn rather than fetched: an icon font or a
+      // sprite would be four more requests on a page that is one table.
+      var ICON = {
+        mobile:  '<rect x="6" y="2" width="12" height="20" rx="2.5"/><line x1="10.5" y1="18.6" x2="13.5" y2="18.6"/>',
+        tablet:  '<rect x="3.5" y="3" width="17" height="18" rx="2.5"/><line x1="10.5" y1="17.8" x2="13.5" y2="17.8"/>',
+        desktop: '<rect x="2.5" y="4" width="19" height="12.5" rx="2"/><line x1="8" y1="20.5" x2="16" y2="20.5"/><line x1="12" y1="16.5" x2="12" y2="20.5"/>',
+        bot:     '<rect x="4" y="8" width="16" height="11" rx="3"/><line x1="12" y1="4" x2="12" y2="8"/><circle cx="9" cy="13" r="1.2"/><circle cx="15" cy="13" r="1.2"/>'
+      };
+      function deviceCell(r){
+        var g = ICON[r.dev];
+        if (!g) {
+          // Nothing was recorded — every entry from before this column existed.
+          // A dash, not a guessed icon.
+          return '<span class="af-log-dash" title="No user agent was recorded for this entry">&mdash;</span>';
+        }
+        var tip = r.devl + (r.ua ? ' — ' + r.ua : '');
+        return '<span class="af-log-dev af-log-dev-' + esc(r.dev) + '" title="' + esc(tip) + '">'
+             + '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"'
+             + ' stroke-width="1.7" stroke-linecap="round" aria-hidden="true">' + g + '</svg>'
+             + '<span class="af-log-devl">' + esc(r.devl) + '</span></span>';
+      }
+
       function render(){
         var list = ROWS.filter(function(r){
           if (!term) return true;
-          return (r.user + ' ' + (r.email||'') + ' ' + r.ip + ' ' + r.act).toLowerCase().indexOf(term) !== -1;
+          return (r.user + ' ' + (r.email||'') + ' ' + r.ip + ' ' + (r.devl||'') + ' ' + r.act)
+                 .toLowerCase().indexOf(term) !== -1;
         });
         $('log-empty').hidden = list.length > 0;
         $('log-body').innerHTML = list.map(function(r){
@@ -16279,6 +16391,7 @@ add_action('template_redirect', function(){
             + '<td class="af-log-tduser">' + esc(r.user) + '</td>'
             + '<td class="af-log-tdemail">' + (r.email ? esc(r.email) : '<span class="af-log-dash">&mdash;</span>') + '</td>'
             + '<td class="af-log-tdip">' + (r.ip ? esc(r.ip) : '<span class="af-log-dash">&mdash;</span>') + '</td>'
+            + '<td class="af-log-tddev">' + deviceCell(r) + '</td>'
             + '<td class="af-log-tdact">' + act + '</td>'
             + '</tr>';
         }).join('');
@@ -16319,6 +16432,14 @@ add_action('template_redirect', function(){
     .af-log-tdact a{color:#1a1a1a;text-decoration:none;}
     .af-log-tdact a:hover{color:#c9a84c;}
     .af-log-dash{color:#b8b0a0;}
+    /* Device: the icon carries the meaning, the word backs it up. Below 900px
+       the word is dropped rather than the icon — a glyph survives a narrow
+       column, a word only wraps. */
+    .af-log-thdev,.af-log-tddev{white-space:nowrap;}
+    .af-log-dev{display:inline-flex;align-items:center;gap:7px;color:#6b6250;font-size:12.5px;}
+    .af-log-dev svg{flex:0 0 auto;}
+    .af-log-dev-bot{color:#a8801f;}
+    @media (max-width:900px){ .af-log-devl{display:none;} }
     .af-log-empty{margin:0;padding:34px 16px;text-align:center;color:#8a8170;font-size:14px;}
     @media(max-width:640px){ .af-log-wrap{padding:24px 12px 54px;} .af-log-head h1{font-size:26px;} }
     </style>
