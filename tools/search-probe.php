@@ -70,43 +70,49 @@ $total = (int) $wpdb->get_var(
 );
 echo "products carrying an art code: {$total}\n\n";
 
-// The module only acts on the MAIN query — a deliberate restriction, so that
-// no widget's own WP_Query is quietly rewritten. A probe's WP_Query is
-// therefore not touched by it, and the first version of this file measured
-// stock WordPress while appearing to measure the fix: art codes returned
-// nothing, exactly as they would with no module installed at all.
+// ── THE REAL PATH ─────────────────────────────────────────────────────────
+// The module acts only on the MAIN query, deliberately, so that no widget's
+// own WP_Query is quietly rewritten. That makes an ordinary probe query
+// useless for checking it: an earlier version of this file applied the clause
+// by hand, reported that the SQL finds these products, and proved nothing
+// about what a visitor's request actually does — which is still "Nothing
+// Found" in the owner's browser.
 //
-// So the clause is applied here explicitly, by calling the module's own
-// builder. This tests the part that was actually in question — whether that
-// SQL finds these products in this database — against the real catalogue.
-add_filter('posts_search', function ($search, $q) {
-    if (!$q->get('af_probe')) return $search;
-    global $wpdb;
-    $extra = af_search_meta_sql(af_search_terms($q->get('s')), $wpdb->prefix, $wpdb);
-    if ($extra === '') return $search;
-    $inner = preg_replace('/^\s*AND\s*/i', '', $search);
-    if ($inner === '' || $inner === null) return ' AND (1=0 ' . $extra . ') ';
-    return ' AND ( ' . $inner . $extra . ' ) ';
-}, 10, 2);
+// So this makes the probe query BE the main query for the duration of the
+// call, by putting it in $wp_query where is_main_query() looks. Every filter
+// the module registers then applies exactly as it does for a real visitor,
+// pre_get_posts included. This is the path that is broken, so this is the
+// path that gets measured.
+function af_probe_main_query($term) {
+    $q = new WP_Query();
+    $prev = isset($GLOBALS['wp_query']) ? $GLOBALS['wp_query'] : null;
+    $GLOBALS['wp_query'] = $q;
+    $sql = '';
+    $grab = function ($s) use (&$sql) { $sql = $s; return $s; };
+    add_filter('posts_search', $grab, 999);
+    $q->query(array('s' => $term, 'posts_per_page' => 5));
+    remove_filter('posts_search', $grab, 999);
+    if ($prev !== null) $GLOBALS['wp_query'] = $prev;
+    return array($q, $sql);
+}
 
 foreach ($queries as $q) {
-    $wpq = new WP_Query(array(
-        's'              => $q,
-        'af_probe'       => 1,
-        'post_type'      => array('product', 'post', 'page'),
-        'post_status'    => 'publish',
-        'posts_per_page' => 5,
-        'no_found_rows'  => false,
-    ));
-    printf("  %-12s %d result(s)\n", '"' . $q . '"', (int) $wpq->found_posts);
+    list($wpq, $sql) = af_probe_main_query($q);
+    printf("  %-12s %d result(s)   post_type=%s\n", '"' . $q . '"',
+        (int) $wpq->found_posts,
+        is_array($wpq->get('post_type')) ? implode('+', $wpq->get('post_type'))
+                                         : (string) $wpq->get('post_type'));
+    // Whether the module's clause reached the query at all is the whole
+    // question, so it is stated rather than inferred from the result count.
+    echo '         module clause in the SQL: '
+       . (strpos($sql, '_taf_art_code') !== false ? "yes" : "NO — the filter never ran")
+       . "\n";
     foreach ($wpq->posts as $p) {
         $code = get_post_meta($p->ID, '_taf_art_code', true);
         printf("       - [%s] %s%s\n", $p->post_type,
-            mb_substr($p->post_title, 0, 58), $code ? "   ({$code})" : '');
+            mb_substr($p->post_title, 0, 52), $code ? "   ({$code})" : '');
     }
-    if (!$wpq->found_posts) {
-        echo "         nothing matched\n";
-    }
+    if (!$wpq->found_posts) echo "         nothing matched\n";
     wp_reset_postdata();
 }
 
