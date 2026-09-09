@@ -177,7 +177,8 @@ add_action('template_redirect', function () {
     $q = isset($GLOBALS['wp_query']) ? $GLOBALS['wp_query'] : null;
     if (!$q) return;
     add_action('wp_footer', function () use ($q) {
-        af_search_debug('AT TEMPLATE TIME: post_count=' . (int) $q->post_count
+        af_search_debug('AT TEMPLATE TIME: suppress_filters=' . var_export($q->get('suppress_filters'), true)
+            . ' post_count=' . (int) $q->post_count
             . ' current_post=' . (int) $q->current_post
             . ' posts_in_array=' . count((array) $q->posts)
             . ' have_posts_would_be=' . (($q->current_post + 1 < $q->post_count) ? 'TRUE' : 'FALSE'));
@@ -240,6 +241,15 @@ add_action('pre_get_posts', function ($q) {
     if (!empty($pt) && $pt !== 'any') return;
 
     $q->set('post_type', array('product', 'post', 'page'));
+
+    // posts_* filters are skipped entirely when a query carries
+    // suppress_filters, while pre_get_posts still runs — which is exactly the
+    // shape of what was measured on the live site: the post types this
+    // function sets came through, and the search clause added by the
+    // posts_search filter did not appear in the SQL at all. A search query has
+    // no business suppressing filters; whatever sets it, this unsets it for
+    // this one query.
+    $q->set('suppress_filters', false);
 }, 20);
 
 /**
