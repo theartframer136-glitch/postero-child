@@ -26,23 +26,35 @@ echo "=== SEARCH PROBE (inside WordPress, past the CDN) ===\n";
 echo 'theme search module loaded: '
    . (function_exists('af_search_meta_sql') ? "YES\n" : "NO — the module is not active\n");
 
-// WHICH COPY of the module is running. "PA - 1201" went on returning fifty
-// results after the fix that searches a code whole rather than in fragments,
-// and there are only two explanations: the server has an older file, or the
-// code is not recognised as a code. These two lines separate them, instead of
-// another deploy spent guessing.
-$mod = get_stylesheet_directory() . '/inc/search-all.php';
-if (file_exists($mod)) {
-    echo 'module file: ' . date('Y-m-d H:i:s', (int) filemtime($mod))
-       . '  (' . filesize($mod) . " bytes)\n";
-}
-if (function_exists('af_search_terms')) {
-    foreach (array('PA - 1201', 'RK - 0118', 'radha krishna art') as $probe) {
-        echo '  af_search_terms("' . $probe . '") = ['
-           . implode(' | ', af_search_terms($probe)) . "]\n";
+/**
+ * WHICH COPY of the module is running — printed at the END of this script.
+ *
+ * It was printed here, at the top, and could not be read: the log API returns
+ * only the tail of a run and the product listings below it are longer than
+ * that tail. The same lesson as the popup checker, learned twice.
+ */
+function af_probe_which_copy() {
+    $mod = get_stylesheet_directory() . '/inc/search-all.php';
+    echo "\n--- which copy of the module is running ---\n";
+    if (file_exists($mod)) {
+        echo '  file: ' . date('Y-m-d H:i:s', (int) filemtime($mod))
+           . '  (' . filesize($mod) . " bytes)\n";
+        echo '  searches a code whole: '
+           . (strpos((string) file_get_contents($mod), 'never split') !== false
+              ? "YES (the current file is on disk)\n"
+              : "NO (this is an older file)\n");
+    } else {
+        echo "  the module file is not on the server at all\n";
     }
-    echo "  (an art code must come back as ONE term; more than one means the\n"
-       . "   old copy is loaded, or the code was not recognised as a code)\n";
+    if (function_exists('af_search_terms')) {
+        foreach (array('PA - 1201', 'RK - 0118', 'radha krishna art') as $probe) {
+            echo '  af_search_terms("' . $probe . '") = ['
+               . implode(' | ', af_search_terms($probe)) . "]\n";
+        }
+        echo "  An art code must come back as ONE term. More than one means the\n"
+           . "  loaded code is older than the file — PHP's opcache holding the\n"
+           . "  previous version, which is invisible from outside.\n";
+    }
 }
 
 // What the art codes in the database actually look like, so a query that finds
@@ -97,6 +109,8 @@ foreach ($queries as $q) {
     }
     wp_reset_postdata();
 }
+
+af_probe_which_copy();
 
 echo "\nIf these find products, the search code works and the 302 from the CDN\n";
 echo "is the only thing standing between a customer and these results.\n";
