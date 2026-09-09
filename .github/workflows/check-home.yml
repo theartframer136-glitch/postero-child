@@ -13,13 +13,13 @@ name: Check Home
 # page the owner never sees. The headers below are what the owner's Chrome
 # sends.
 #
-# Run it from the Actions tab, or it runs itself after every deploy finishes.
 
+# Run it from the Actions tab. It no longer runs itself after every deploy:
+# during a long debugging session that fired it dozens of times, filling the
+# owner's Actions list and queueing behind their own deploys. A check should be
+# asked, not volunteered.
 on:
   workflow_dispatch:
-  workflow_run:
-    workflows: ["Deploy Theme"]
-    types: [completed]
 
 jobs:
   look:

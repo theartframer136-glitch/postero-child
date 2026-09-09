@@ -3,6 +3,12 @@ name: Deploy Theme
 on:
   push:
     branches: [ main ]
+    # A change to a workflow file does not change the theme, so it should not
+    # spend a deploy — and, more to the point, should not queue in front of the
+    # owner's own deploys. Measured the hard way: a debugging session that
+    # edited only check workflows still triggered a full deploy each time.
+    paths-ignore:
+      - '.github/workflows/**'
   workflow_dispatch:
     inputs:
       # Reading the live database is only possible from inside a deploy, and a
