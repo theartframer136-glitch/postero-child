@@ -38,6 +38,17 @@ jobs:
             case "$q" in *"&"*) rest="&${q#*&}";; esac
             enc=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote_plus(sys.argv[1]))" "$term")
             enc="${enc}${rest}"
+            # Who issues the redirect, before following it. The plain search
+            # and the explicit post_type=product search BOTH land on the home
+            # page, and the module does not touch the second — so the redirect
+            # is not the theme's search code. The status and Location say
+            # whether it comes from WordPress or from the server in front of it.
+            curl -sS --max-time 60 -o /dev/null -D /tmp/hdr.txt \
+                 -H "User-Agent: ${UA}" "https://theartframer.us/?s=${enc}" || true
+            code=$(head -1 /tmp/hdr.txt | tr -d '\r')
+            loc=$(grep -i '^location:' /tmp/hdr.txt | head -1 | tr -d '\r' || true)
+            srv=$(grep -i '^\(server\|x-litespeed-cache\|x-redirect-by\):' /tmp/hdr.txt | tr -d '\r' | tr '\n' ' ' || true)
+            echo "               first response: ${code}  ${loc:-(no Location)}  ${srv}"
             got=''
             for try in 1 2 3; do
               # -L matters more than it looks: this site redirects a search URL
