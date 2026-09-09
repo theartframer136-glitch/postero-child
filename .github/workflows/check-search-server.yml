@@ -54,3 +54,40 @@ jobs:
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/search-probe.php --allow-root 2>&1" \
             || true
+
+      # A REAL HTTP request, made from inside the server.
+      #
+      # WP_Query says the search finds the piece; the owner's browser says
+      # "Nothing Found". Both cannot be true of the same request, so the
+      # difference is in what an actual page load does — plugins that only act
+      # on a front-end request, a page cache, a second filter later in the
+      # chain. None of that is visible to wp eval-file, and from outside the
+      # CDN answers every search with a 302 before WordPress is reached.
+      #
+      # Asking the server to fetch its own URL over the loopback address, with
+      # the site's Host header, goes through the whole WordPress stack exactly
+      # as a visitor's request does, and past the CDN because it never leaves
+      # the machine.
+      - name: Fetch a real search page from inside the server
+        timeout-minutes: 10
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            'cd ~/websites/OPu0sKi4J/public_html && \
+             for u in "?s=RK+-+0118" "?s=rk0118" "?s=Krishna"; do \
+               echo "--- ${u} ---"; \
+               curl -sS --max-time 45 -H "Host: theartframer.us" \
+                    -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0.0.0" \
+                    -o /tmp/afs.html -w "  http=%{http_code} bytes=%{size_download}\n" \
+                    "https://127.0.0.1/${u}" --insecure 2>&1 || echo "  loopback fetch failed"; \
+               if [ -s /tmp/afs.html ]; then \
+                 echo -n "  Nothing Found: "; grep -qi "nothing found\|nothing matched" /tmp/afs.html && echo YES || echo no; \
+                 echo -n "  product links: "; grep -o "/product/[a-z0-9-]*/" /tmp/afs.html | sort -u | wc -l; \
+                 echo -n "  first product: "; grep -o "/product/[a-z0-9-]*/" /tmp/afs.html | head -1; \
+               fi; \
+             done' \
+            || true
