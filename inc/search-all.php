@@ -260,7 +260,25 @@ add_filter('posts_search', function ($search, $q) {
         return ' AND (1=0 ' . $extra . ') ';
     }
     return ' AND ( ' . $inner . $extra . ' ) ';
-}, 10, 2);
+}, 999, 2);   // 999: LAST. Measured — see below.
+
+/*
+ * WHY 999 AND NOT 10.
+ *
+ * At priority 10 this filter received an EMPTY search clause from WordPress
+ * (measured on the live page: "clause=745 chars wp_search=0 chars") while the
+ * finished SQL plainly contained a title match. Something else on this stack
+ * builds that match after core does, which is the same thing that empties the
+ * s query var.
+ *
+ * OR-ing onto an empty string produced " AND (1=0 OR mine) ", a restriction
+ * rather than an addition: "Krishna" fell from 86 results to 73, the ones that
+ * matched the title AND the meta. Exactly the opposite of the intent, which is
+ * that this module can only ever ADD matches.
+ *
+ * Running last means the other clause has already been built, so there is
+ * something real to widen.
+ */
 
 /**
  * Put products into the results at all.
