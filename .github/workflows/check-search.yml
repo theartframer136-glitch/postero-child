@@ -1,0 +1,55 @@
+name: Check Search
+
+# Does searching an art code find the piece?
+#
+# The owner recorded "RK - 0118" returning "Nothing Found" on 2026-09-09. This
+# asks the live site the same question in the same way, in about a minute, and
+# in several spellings — because a fix that only works when the code is typed
+# with the exact spacing shown on the card is not a fix.
+#
+# Read-only: it fetches search pages. Nothing is written and no SSH is used.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Search the live site for art codes
+        run: |
+          set -uo pipefail
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
+          # Codes seen on the owner's own screenshots, plus the spellings a
+          # customer would actually type for one of them.
+          for q in 'RK - 0118' 'RK-0118' 'rk0118' 'PA - 1201' 'WL - 1716' 'Krishna' 'Blue'; do
+            enc=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote_plus(sys.argv[1]))" "$q")
+            got=''
+            for try in 1 2 3; do
+              if curl -fsS --max-time 60 -H "User-Agent: ${UA}" \
+                   -o /tmp/s.html "https://theartframer.us/?s=${enc}&cb=$(date +%s)$try"; then
+                got=1; break
+              fi
+              sleep 8
+            done
+            if [ -z "$got" ]; then
+              echo "  '$q' -> host did not answer after 3 tries"
+              continue
+            fi
+            python3 - "$q" <<'PY'
+          import re, sys
+          h = open('/tmp/s.html', encoding='utf-8', errors='replace').read()
+          q = sys.argv[1]
+          nothing = 'Nothing Found' in h or 'nothing matched your search' in h.lower()
+          # Product permalinks in the results area are the evidence that a real
+          # product came back, not a blog post that happens to mention the word.
+          prods = set(re.findall(r'https://theartframer\.us/product/([a-z0-9\-]+)/', h))
+          print("  %-12s %s   products found: %d %s" % (
+              repr(q), 'NOTHING FOUND' if nothing else 'has results',
+              len(prods), ('e.g. ' + sorted(prods)[0]) if prods else ''))
+          PY
+          done
+          echo ""
+          echo "A line reading NOTHING FOUND with 0 products is the bug still present."
