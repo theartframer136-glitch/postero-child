@@ -123,14 +123,61 @@ jobs:
       # waited in the queue. Everything below that asks "what are we shipping"
       # reads this rather than the run's recorded commit.
       - name: Record the commit being deployed
+        env:
+          # The pushed commit's own timestamp stands in for when this run was
+          # created, which is in no context variable. The run is created within
+          # a second or two of the push, so the difference from the job's start
+          # is the time it spent waiting for the concurrency group. A manual
+          # dispatch has no such commit and simply reports no wait.
+          GH_PUSHED_AT: ${{ github.event.head_commit.timestamp }}
+          GH_RUN_STARTED: ${{ github.run_started_at }}
         run: |
           DEPLOY_SHA=$(git rev-parse HEAD)
           echo "DEPLOY_SHA=$DEPLOY_SHA" >> "$GITHUB_ENV"
-          if [ "$DEPLOY_SHA" != "$GITHUB_SHA" ]; then
-            echo "This run waited in the queue. Created for $GITHUB_SHA,"
+          SHORT=$(printf '%s' "$DEPLOY_SHA" | cut -c1-7)
+          WAS=$(printf '%s' "$GITHUB_SHA" | cut -c1-7)
+          SUBJ=$(git log -1 --format=%s "$DEPLOY_SHA" 2>/dev/null || echo '')
+
+          WAITED=''
+          if [ -n "${GH_PUSHED_AT:-}" ] && [ -n "${GH_RUN_STARTED:-}" ]; then
+            A=$(date -u -d "$GH_PUSHED_AT"   +%s 2>/dev/null || echo '')
+            B=$(date -u -d "$GH_RUN_STARTED" +%s 2>/dev/null || echo '')
+            if [ -n "$A" ] && [ -n "$B" ] && [ "$B" -gt "$A" ]; then
+              S=$((B - A))
+              WAITED="$((S / 60))m $((S % 60))s"
+            fi
+          fi
+
+          # The run summary, so a queued run is visible on the run's own page
+          # without opening the log — which is how the deploys that quietly
+          # shipped stale code went unnoticed for a morning.
+          {
+            echo "### Deploy"
+            echo
+            echo "**Shipping** \`$SHORT\` — $SUBJ"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$DEPLOY_SHA" = "$GITHUB_SHA" ]; then
+            echo "Deploying $DEPLOY_SHA${WAITED:+ (started $WAITED after the push)}."
+            echo "**Not queued** — shipping the commit this run was created for${WAITED:+, started $WAITED after the push}." >> "$GITHUB_STEP_SUMMARY"
+          elif git cat-file -e "$GITHUB_SHA" 2>/dev/null \
+               && git merge-base --is-ancestor "$GITHUB_SHA" "$DEPLOY_SHA" 2>/dev/null; then
+            # Genuinely ahead: this run waited, and the branch moved forward
+            # while it did. Shipping the tip is the whole point of the fix.
+            AHEAD=$(git rev-list --count "$GITHUB_SHA..$DEPLOY_SHA" 2>/dev/null || echo 1)
+            if [ "$AHEAD" = "1" ]; then N='1 newer commit'; else N="$AHEAD newer commits"; fi
+            echo "This run waited in the queue${WAITED:+ for $WAITED}. Created for $GITHUB_SHA,"
             echo "shipping $DEPLOY_SHA — the branch tip now. Newer, never older."
+            echo "$N landed while it waited."
+            echo "**Queued${WAITED:+ for $WAITED}** — created for \`$WAS\`, shipping \`$SHORT\`. $N landed while it waited, and this run ships them rather than writing the older tree back over them." >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "Deploying $DEPLOY_SHA."
+            # The tip is NOT a descendant of the commit this run was created
+            # for — history was rewritten, or the branch was rolled back. That
+            # is not a queue wait, and calling it "newer" would be a guess, so
+            # this says only what it can actually establish.
+            echo "The branch tip ($DEPLOY_SHA) is not a descendant of the commit this"
+            echo "run was created for ($GITHUB_SHA). History moved sideways; shipping the tip."
+            echo "**Tip moved sideways** — created for \`$WAS\`, shipping \`$SHORT\`, which is not a descendant of it. The branch was rewritten or rolled back${WAITED:+ during the $WAITED this run waited}." >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Setup SSH
