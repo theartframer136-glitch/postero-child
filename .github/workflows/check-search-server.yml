@@ -66,8 +66,14 @@ jobs:
       #
       # Asking the server to fetch its own URL over the loopback address, with
       # the site's Host header, goes through the whole WordPress stack exactly
-      # as a visitor's request does, and past the CDN because it never leaves
-      # the machine.
+      # as a visitor's request does.
+      #
+      # The Sec-Fetch-* headers are essential, not decoration. This site's own
+      # crawl guard (ops/harden-crawl-budget.php) redirects a search to the
+      # home page when Sec-Fetch-Mode is absent — real browsers always send it,
+      # scrapers do not. Without these headers the check was tripping that rule
+      # and reporting a 302 that no visitor ever sees, which I first, and
+      # wrongly, blamed on the CDN.
       - name: Fetch a real search page from inside the server
         timeout-minutes: 10
         run: |
@@ -82,6 +88,8 @@ jobs:
                echo "--- ${u} ---"; \
                curl -sS --max-time 45 -H "Host: theartframer.us" \
                     -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0.0.0" \
+                    -H "Sec-Fetch-Mode: navigate" -H "Sec-Fetch-Site: none" \
+                    -H "Sec-Fetch-Dest: document" \
                     -o /dev/null -D /tmp/afh.txt \
                     -w "  first: http=%{http_code}\n" \
                     "https://127.0.0.1/${u}" --insecure 2>&1 || echo "  loopback fetch failed"; \
@@ -89,6 +97,8 @@ jobs:
                grep -i "^x-redirect-by:\|^x-litespeed\|^set-cookie: *wordpress" /tmp/afh.txt | tr -d "\r" | sed "s/^/  /" | head -3; \
                curl -sSL --max-time 45 -H "Host: theartframer.us" \
                     -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0.0.0" \
+                    -H "Sec-Fetch-Mode: navigate" -H "Sec-Fetch-Site: none" \
+                    -H "Sec-Fetch-Dest: document" \
                     -o /tmp/afs.html -w "  followed: http=%{http_code} bytes=%{size_download} url=%{url_effective}\n" \
                     "https://127.0.0.1/${u}" --insecure 2>&1 || true; \
                if [ -s /tmp/afs.html ]; then \
@@ -97,30 +107,4 @@ jobs:
                  echo -n "  first product: "; grep -o "/product/[a-z0-9-]*/" /tmp/afs.html | head -1; \
                fi; \
              done' \
-            || true
-
-      # WHO issues the 302. WordPress stamps X-Redirect-By on its own
-      # redirects and there is no such header here, so this is a rewrite rule
-      # in front of PHP. That lives in .htaccess, which is readable.
-      #
-      # Read-only: it prints matching lines. It edits nothing — a rewrite rule
-      # is site configuration, and changing it is the owner's call, not a side
-      # effect of a diagnostic.
-      - name: Find the rule that redirects searches
-        timeout-minutes: 8
-        run: |
-          set -uo pipefail
-          USER="${{ secrets.HOSTINGER_USERNAME }}"
-          HOST="${{ secrets.HOSTINGER_HOST }}"
-          PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            'cd ~/websites/OPu0sKi4J/public_html && \
-             echo "=== .htaccess: rules mentioning a search or a redirect ==="; \
-             grep -n -i "QUERY_STRING\|RewriteRule\|Redirect\|[?&]s=\|search" .htaccess 2>/dev/null | head -40; \
-             echo; echo "=== .htaccess line count ==="; wc -l .htaccess 2>/dev/null; \
-             echo; echo "=== any other .htaccess above the docroot ==="; \
-             ls -la ~/websites/OPu0sKi4J/.htaccess ~/.htaccess 2>/dev/null || echo "  none"; \
-             echo; echo "=== plugins that could be responsible ==="; \
-             wp plugin list --status=active --field=name --allow-root 2>/dev/null | head -40' \
             || true
