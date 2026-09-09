@@ -371,31 +371,45 @@ function af_search_matching_ids($terms, $limit = 300) {
 /**
  * Widen the SEARCH clause: everything it already matched, OR one of our ids.
  *
+ * ── WHY posts_search AGAIN, AND WHY AT 100000 ─────────────────────────────
+ * Three hooks were tried before this one and each failed for a measurable
+ * reason. posts_where cannot see the text match: WordPress concatenates the
+ * search clause into the query after that filter, so ORing there widened the
+ * post-type group while the title match went on excluding everything —
+ * "rk0118" matched one id and still returned nothing. posts_clauses cannot
+ * reach it either: WordPress does not list the search clause among the pieces
+ * that filter may rewrite, so the modified clause was simply discarded, again
+ * measured with one id matched and nothing returned.
+ *
+ * That leaves posts_search, which failed at 10 and at 999 because the clause
+ * was still EMPTY at both — some other plugin on this stack builds the title
+ * match late, from the request rather than from the query var it has already
+ * emptied. So this runs after everything: at 100000 the clause exists, and
+ * there is something real to widen.
+ *
  * The original is kept intact inside its own group — this can only ever ADD
  * results, which is the one promise this module makes.
  */
-add_filter('posts_clauses', function ($clauses, $q) {
-    if (af_search_disabled()) return $clauses;
-    if (!af_search_is_main_search($q)) return $clauses;
+add_filter('posts_search', function ($search, $q) {
+    if (af_search_disabled()) return $search;
+    if (!af_search_is_main_search($q)) return $search;
     $terms = af_search_terms(af_search_query_string($q));
-    if (!$terms) return $clauses;
+    if (!$terms) return $search;
+
+    // Nothing to widen yet. Core built no search clause because the s query
+    // var was empty by the time it looked, and whatever fills it in later has
+    // not run at this priority either. Widening "nothing" would match the
+    // whole catalogue, so this leaves the query exactly as it found it.
+    if (trim((string) $search) === '') {
+        af_search_debug('posts_search: clause still empty at this priority - left alone');
+        return $search;
+    }
+
     $ids = af_search_matching_ids($terms);
-    af_search_debug('posts_clauses: ' . count($ids) . ' id(s) matched by code, sku or attribute');
-    if (!$ids) return $clauses;
+    af_search_debug('posts_search: ' . count($ids) . ' id(s) matched by code, sku or attribute');
+    if (!$ids) return $search;
 
     global $wpdb;
-    // posts_clauses, not posts_where. WordPress keeps the title/content match
-    // in its OWN clause and concatenates it into the query separately, so a
-    // filter on the WHERE cannot reach it: measured, "rk0118" matched one id
-    // here and still returned 0 results, because the OR widened the post-type
-    // group while the title match went on excluding everything beside it.
-    //
-    // This is the clause that holds the text match, so this is where the ids
-    // belong. The original is kept whole inside its own group: a piece that
-    // matched before still matches, and one whose art code, SKU, colour or
-    // size matches now matches too.
-    $search = (string) $clauses['search'];
-    $clauses['search'] = ' AND ( ( 1=1 ' . $search . ' ) OR ' . $wpdb->posts
-                       . '.ID IN (' . implode(',', $ids) . ') ) ';
-    return $clauses;
-}, 9999, 2);
+    return ' AND ( ( 1=1 ' . $search . ' ) OR ' . $wpdb->posts
+         . '.ID IN (' . implode(',', $ids) . ') ) ';
+}, 100000, 2);
