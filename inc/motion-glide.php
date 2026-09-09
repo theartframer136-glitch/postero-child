@@ -181,17 +181,32 @@ add_action('wp_head', function () {
   flex-wrap:nowrap !important;
   flex-direction:row !important;
   align-items:flex-start !important;
-  gap:14px;overflow-x:auto !important;overflow-y:hidden !important;
-  /* auto, not smooth. Smooth turns every scrollLeft assignment into an
-     animation towards that value, so a loop writing a new position 60 times a
-     second spends its life restarting an animation that never arrives. The row
-     crawled instead of drifting. There is nothing left that wants smooth here
-     either: the prev/next arrows this row used to have are gone. */
-  scroll-behavior:auto;-webkit-overflow-scrolling:touch;
-  padding:2px 0 14px;scrollbar-width:none;-ms-overflow-style:none;width:100%;}
-.circle-gallery-slider > .circle-item{flex:0 0 auto !important;}
+  gap:14px;
+  /* hidden, not auto. The row is moved by a transform on .af-motion-track now,
+     not by scrolling it — see the note above the slider in the script. A
+     transformed child also changes a scroller's scrollWidth as it travels,
+     which would drag the scrollbar range about under the visitor's finger. */
+  overflow:hidden !important;
+  /* the drag below is horizontal; this leaves the vertical swipe to the page,
+     so the row cannot trap a visitor scrolling past it on a phone. */
+  touch-action:pan-y;
+  cursor:grab;
+  padding:2px 0 14px;width:100%;}
+.circle-gallery-slider.af-grabbing{cursor:grabbing;}
+/* The tiles sit in this one element so a single transform moves the whole row.
+   It is a flex row itself, AND the slider above stays one too, so if the
+   script never runs the tiles are still a row rather than a stack down the
+   left — the failure the owner reported on 2026-09-07. */
+.af-motion-track{display:flex;flex-wrap:nowrap;flex-direction:row;
+  align-items:flex-start;gap:14px;width:max-content;flex:0 0 auto;
+  /* its own compositor layer, so the transform never repaints the row */
+  will-change:transform;transform:translate3d(0,0,0);backface-visibility:hidden;}
+.circle-gallery-slider > .circle-item,
+.af-motion-track > .circle-item{flex:0 0 auto !important;}
 .circle-gallery-slider::-webkit-scrollbar{display:none;}
-.circle-gallery-slider.dragging{cursor:grabbing;}
+/* A dragged row must not also open a clip; the script adds this for the
+   moment between the drag ending and the click it would otherwise become. */
+.circle-gallery-slider.af-dragged .af-motion-item{pointer-events:none;}
 .af-motion-shell{position:relative;}
 .af-motion-item{position:relative;flex:0 0 auto;width:clamp(180px,19vw,364px);
   aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#0f0d0b;
@@ -283,72 +298,173 @@ add_action('wp_footer', function () {
   // A continuous glide rather than a stepped carousel: the owner asked for the
   // row to slide, and stepping every few seconds reads as jumping.
   //
-  // The tiles are duplicated once so the wrap is invisible — at the halfway
-  // point the scroll position is rewound by exactly one set, which lands on an
-  // identical frame, so there is no visible snap back to the start.
+  // IT NO LONGER SCROLLS. The version before this wrote track.scrollLeft sixty
+  // times a second, and the owner reported the result as laggy and juddery
+  // (screen recording, 2026-09-09). Measured off that recording frame by frame:
+  // every step landed on a whole number of pixels — 2, 2, 2, 0, 4 — and 19% of
+  // frames did not move at all, so the row covered 53px/s where 66 was asked
+  // for. Two causes, both inherent to moving something by scrolling it:
   //
-  // It yields to the visitor: paused on hover or touch, while a clip is open
-  // with sound, and while the tab is hidden. prefers-reduced-motion stops it
-  // entirely, leaving a row that can still be dragged.
+  //   1. scrollLeft is quantised to whole pixels. However precisely the
+  //      position is computed, 2.2 renders at 2 and the remainder is dropped,
+  //      so the steps come out uneven — which is what judder is.
+  //   2. writing it every frame drives scrolling, layout and paint on the main
+  //      thread, on a row holding twenty <video> elements. Frames get dropped,
+  //      and a dropped frame is a visible stall.
+  //
+  // So the row is moved by a transform instead, handed to the browser once
+  // through the Web Animations API. Transforms take fractional pixels and are
+  // animated off the main thread, so neither cause survives: there is no
+  // per-frame work left to be late, and video decoding cannot stall it. The
+  // travel is exactly one set of tiles, which lands on an identical frame, so
+  // the loop is invisible.
+  //
+  // It still yields to the visitor: paused on hover, while dragging, while a
+  // clip is open with sound, and while the tab is hidden. prefers-reduced-
+  // motion leaves it still, and draggable.
   var track = document.querySelector('.circle-gallery-slider');
   if (track) {
-    var originals = [].slice.call(track.children);
+    var GAP = 14;                       // must match the gap in the CSS above
+    var SPEED = 66;                     // px per second
+
+    // One element holding every tile, so one transform moves the row. The CSS
+    // keeps both this and the slider a flex row, so a failure here leaves the
+    // tiles in a row rather than stacked down the left.
+    var lane = document.createElement('div');
+    lane.className = 'af-motion-track';
+    while (track.firstChild) lane.appendChild(track.firstChild);
+    track.appendChild(lane);
+
+    var originals = [].slice.call(lane.children);
     if (originals.length) {
       originals.forEach(function(n){
         var c = n.cloneNode(true);
         c.setAttribute('aria-hidden','true');
         c.setAttribute('data-af-clone','1');
-        track.appendChild(c);
+        lane.appendChild(c);
       });
       // Re-read the tiles: the list above was taken before these clones
       // existed, and a clone that never gets the play/click wiring is a dead
       // black rectangle sitting in the middle of the row.
       items = document.querySelectorAll('.af-motion-item');
     }
-    var half = function(){ return track.scrollWidth / 2; };
-
-    var hold = false;
-    ['mouseenter','touchstart','pointerdown'].forEach(function(e){
-      track.addEventListener(e, function(){ hold = true; }, {passive:true});
-    });
-    ['mouseleave','touchend','pointerup'].forEach(function(e){
-      track.addEventListener(e, function(){ hold = false; }, {passive:true});
-    });
 
     var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-    // px per frame at 60fps, so 1.1 is about 66px/s. Owner, twice: still too
-    // slow. 0.45 (27px/s) put a tile past in thirteen seconds, which reads as
-    // a page that has not quite finished loading rather than a row that moves.
-    // At 66px/s a tile passes in about five and a half seconds — plainly in
-    // motion at a glance, and still slow enough to look at a clip without
-    // chasing it. The dt correction below keeps this speed on any frame rate.
-    var SPEED = 1.1;
+    var anim = null, dur = 0;
 
-    // The position is kept HERE, as a float, and written to the element each
-    // frame. It used to be kept in scrollLeft itself — `scrollLeft += 0.45` —
-    // and that moves nothing at all: reading scrollLeft back gives a rounded
-    // value, so the 0.45 was thrown away every frame and re-added to the same
-    // integer. Measured in a browser, 0.45px/frame written that way travelled
-    // 0.0px in five seconds; the same speed through this accumulator travelled
-    // 135px, which is the 27px/s the number was chosen to mean.
-    var pos = track.scrollLeft;
-    var last = 0;
-    function glide(ts){
-      requestAnimationFrame(glide);
-      if (reduce || hold || document.hidden) { last = ts; pos = track.scrollLeft; return; }
-      if (document.querySelector('.af-motion-item.af-open')) { last = ts; pos = track.scrollLeft; return; }
-      if (!last) { last = ts; pos = track.scrollLeft; return; }
-      var dt = Math.min(ts - last, 50);     // ignore long gaps after a tab switch
-      last = ts;
-      // Someone dragged, flicked or wheeled the row: take where they left it
-      // rather than yanking it back to where our own count had reached.
-      if (Math.abs(track.scrollLeft - pos) > 2) pos = track.scrollLeft;
-      pos += SPEED * (dt / 16.67);
-      var h = half();
-      if (h > 0 && pos >= h) pos -= h;      // the clone set begins here: same frame, no snap
-      track.scrollLeft = pos;
+    // How far to travel for the second set to land exactly where the first
+    // began. The lane is 2N tiles with a gap between each, so its width counts
+    // 2N-1 gaps while one set plus its trailing gap is N — hence the +GAP
+    // before halving. Taken from the fractional box, not scrollWidth, which
+    // rounds and would leave the loop a fraction of a pixel out of true.
+    function advance(){ return (lane.getBoundingClientRect().width + GAP) / 2; }
+
+    function build(){
+      var at = anim ? (Number(anim.currentTime) || 0) / (dur || 1) : 0;   // keep the place
+      if (anim) { anim.cancel(); anim = null; }
+      var adv = advance();
+      if (!(adv > 0) || !lane.animate) return;
+      dur = adv / SPEED * 1000;
+      anim = lane.animate(
+        [ { transform: 'translate3d(0,0,0)' },
+          { transform: 'translate3d(' + (-adv) + 'px,0,0)' } ],
+        { duration: dur, iterations: Infinity, easing: 'linear' }
+      );
+      anim.currentTime = (at % 1) * dur;
+      if (held()) anim.pause();
     }
-    requestAnimationFrame(glide);
+
+    // Every reason the row should stand still, by name, so two overlapping
+    // ones (hovering while a clip is open) cannot cancel each other out.
+    var why = {};
+    function held(){ for (var k in why) if (why[k]) return true; return false; }
+    function yieldFor(k, on){
+      if (on) why[k] = 1; else delete why[k];
+      if (!anim) return;
+      if (held()) { if (anim.playState === 'running') anim.pause(); }
+      else if (anim.playState !== 'running') anim.play();
+    }
+    if (reduce) why.reduce = 1;
+
+    track.addEventListener('mouseenter', function(){ yieldFor('hover', 1); });
+    track.addEventListener('mouseleave', function(){ yieldFor('hover', 0); });
+    document.addEventListener('visibilitychange', function(){
+      yieldFor('hidden', document.hidden);
+    });
+
+    // A clip playing with sound stops the row. Polled four times a second
+    // rather than wired into each open and close: the tile click, the popup
+    // and the popup's several ways of closing would each have to remember to
+    // call this, and the one that forgot would leave the row moving under a
+    // video the visitor is watching. Four cheap reads a second cannot judder.
+    var wasOpen = false;
+    setInterval(function(){
+      var open = !!(document.querySelector('.af-motion-item.af-open') ||
+                    document.querySelector('.af-motion-lb.open'));
+      if (open !== wasOpen) { wasOpen = open; yieldFor('open', open); }
+    }, 250);
+
+    // ── drag ───────────────────────────────────────────────────────────
+    // The row used to be a native scroller, so it could be flicked. Overflow
+    // is hidden now, so the flick is given back here: dragging seeks the
+    // animation, one pixel of finger to one pixel of row.
+    var SLOP = 6;                       // a click may wander a few px; a drag means it
+    var down = false, lastX = 0, moved = 0, caught = false, pid = 0;
+    track.addEventListener('pointerdown', function(e){
+      if (e.button) return;
+      down = true; moved = 0; caught = false; lastX = e.clientX; pid = e.pointerId;
+      yieldFor('drag', 1);
+    });
+    track.addEventListener('pointermove', function(e){
+      if (!down) return;
+      var dx = e.clientX - lastX; lastX = e.clientX; moved += Math.abs(dx);
+      // The pointer is captured only once this is plainly a drag, never for a
+      // click. Capturing it on pointerdown moves the pointerup target from the
+      // tile to the row, and the browser then sends the click to the common
+      // ancestor of the two — the row — so the tile's own click never runs and
+      // NO CLIP OPENS. That is what capturing early did here, caught in a
+      // browser: pointerdown on VIDEO, pointerup on the row, click on the row.
+      if (!caught && moved > SLOP) {
+        caught = true;
+        track.classList.add('af-grabbing');
+        try { track.setPointerCapture(pid); } catch(err){}
+      }
+      if (!anim || !dur) return;
+      // dragging right pulls the row back, so it walks the animation backwards
+      var t = (Number(anim.currentTime) || 0) - dx / SPEED * 1000;
+      anim.currentTime = ((t % dur) + dur) % dur;
+    });
+    function release(){
+      if (!down) return;
+      down = false;
+      track.classList.remove('af-grabbing');
+      // A drag ends in a click on whatever was under the finger. Six pixels of
+      // travel means it was a drag, so the tile is deafened for one frame and
+      // the row does not open a video every time it is pushed along.
+      if (moved > SLOP) {
+        track.classList.add('af-dragged');
+        setTimeout(function(){ track.classList.remove('af-dragged'); }, 0);
+      }
+      yieldFor('drag', 0);
+    }
+    ['pointerup','pointercancel'].forEach(function(e){
+      track.addEventListener(e, release);
+    });
+
+    // The travel is measured in pixels, so a resize that changes the tile
+    // width has to be measured again. Debounced: a drag of the window edge
+    // fires this continuously.
+    var rt = 0;
+    window.addEventListener('resize', function(){
+      clearTimeout(rt); rt = setTimeout(build, 200);
+    });
+
+    // Tiles are clamp(180px,19vw,364px) wide, so the lane is only its final
+    // width once layout has settled; measuring before that sets the loop to
+    // the wrong distance and the wrap becomes visible.
+    build();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(build);
+    window.addEventListener('load', build);
   }
 
   // ── the popup ─────────────────────────────────────────────────────────
