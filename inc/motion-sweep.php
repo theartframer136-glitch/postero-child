@@ -356,6 +356,34 @@ add_action('wp_footer', function () {
     lb.querySelector('.af-motion-lb-x').addEventListener('click', afMotionCloseLb);
     lb.addEventListener('click', function(e){ if (e.target === lb) afMotionCloseLb(); });
     document.addEventListener('keydown', function(e){ if (e.key === 'Escape') afMotionCloseLb(); });
+    // A window resize while the popup is open would otherwise leave it at the
+    // old window's pixels.
+    window.addEventListener('resize', function(){
+      if (lb && lb.classList.contains('open')) afMotionSizeLb();
+    });
+  }
+  /* The player's real size, in pixels, from the window it has to fit in:
+     the largest 16:9 rectangle inside 94% of the width and 85% of the
+     height. Applied !important to the box and the iframe both, and to the
+     iframe's width/height attributes as well, so it holds even if the
+     stylesheet never arrives. */
+  function afMotionSizeLb(){
+    if (!lb) return;
+    var box = lb.querySelector('.af-motion-lb-box');
+    if (!box) return;
+    var maxW = Math.max(240, window.innerWidth * 0.94);
+    var maxH = Math.max(135, window.innerHeight * 0.85);
+    var w = Math.min(maxW, maxH * 16 / 9);
+    var h = Math.round(w * 9 / 16);
+    w = Math.round(w);
+    box.style.setProperty('width',  w + 'px', 'important');
+    box.style.setProperty('height', h + 'px', 'important');
+    if (lbFrame) {
+      lbFrame.style.setProperty('width',  w + 'px', 'important');
+      lbFrame.style.setProperty('height', h + 'px', 'important');
+      lbFrame.setAttribute('width', w);
+      lbFrame.setAttribute('height', h);
+    }
   }
   function afMotionOpenLb(vid, tileVideo){
     afMotionBuildLb();
@@ -365,25 +393,13 @@ add_action('wp_footer', function () {
                 + '?autoplay=1&rel=0&playsinline=1';
     lb.classList.add('open');
     document.documentElement.style.overflow = 'hidden';
-    // The CSS above is the fix; this is the guarantee. One stylesheet on this
-    // page already flattened this box to 0x0 once, and a popup that opens
-    // empty is worse than no popup at all — so the size is measured after it
-    // opens and forced in pixels if anything has collapsed it again.
-    setTimeout(function(){
-      var box = lb.querySelector('.af-motion-lb-box');
-      if (!box) return;
-      var r = box.getBoundingClientRect();
-      if (r.height >= 40 && r.width >= 40) return;
-      var h = Math.min(window.innerHeight * 0.85, 619);
-      var w = Math.min(h * 16 / 9, window.innerWidth * 0.94);
-      box.style.setProperty('height', Math.round(w * 9 / 16) + 'px', 'important');
-      box.style.setProperty('width', Math.round(w) + 'px', 'important');
-      box.setAttribute('data-af-forced', '1');
-      if (lbFrame) {
-        lbFrame.style.setProperty('width', '100%', 'important');
-        lbFrame.style.setProperty('height', '100%', 'important');
-      }
-    }, 150);
+    // The size is stated in pixels HERE, every time, not left to CSS and not
+    // deferred to a timer. Twice now a stylesheet on this page has flattened
+    // this box to 0x0 — YouTube answering 200 into a frame nobody can see —
+    // and a popup that opens empty is worse than no popup at all. Pixels
+    // computed from the window cannot be collapsed by a cascade, and doing it
+    // before the frame paints means there is no blank moment to observe.
+    afMotionSizeLb();
     if (tileVideo) { try { tileVideo.pause(); lbPaused = tileVideo; } catch(e){} }
   }
   function afMotionCloseLb(){
