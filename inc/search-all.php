@@ -151,3 +151,22 @@ add_action('pre_get_posts', function ($q) {
 
     $q->set('post_type', array('product', 'post', 'page'));
 }, 20);
+
+/**
+ * A search URL renders the search. It does not bounce to the front page.
+ *
+ * Measured 2026-09-09: every query — art codes, "Krishna", "Blue" — answered
+ * with one redirect to https://theartframer.us/ and the homepage's own 956KB
+ * of markup. The visitor types a search and arrives back where they started,
+ * which reads as "search is broken" no matter how well the query itself works.
+ *
+ * That is redirect_canonical(), WordPress's tidy-up pass. It rewrites URLs it
+ * believes are non-canonical, and it makes that judgement from query variables
+ * that a search legitimately alters — the post types above among them. On a
+ * search results page there is nothing for it to usefully do and one clear way
+ * for it to go wrong, so it is switched off there and left alone everywhere
+ * else.
+ */
+add_filter('redirect_canonical', function ($redirect) {
+    return is_search() ? false : $redirect;
+}, 10, 1);

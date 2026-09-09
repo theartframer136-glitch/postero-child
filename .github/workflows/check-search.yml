@@ -24,8 +24,20 @@ jobs:
           UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
           # Codes seen on the owner's own screenshots, plus the spellings a
           # customer would actually type for one of them.
-          for q in 'RK - 0118' 'RK-0118' 'rk0118' 'PA - 1201' 'WL - 1716' 'Krishna' 'Blue'; do
-            enc=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote_plus(sys.argv[1]))" "$q")
+          # The trailing two are probes, not art codes: an explicit post_type
+          # takes a different path through the module (it leaves such a query
+          # untouched), so if those render and the plain ones redirect, the
+          # fault is in what this theme does to a plain search.
+          for q in 'RK - 0118' 'RK-0118' 'rk0118' 'PA - 1201' 'WL - 1716' 'Krishna' 'Blue' \
+                   'Krishna&post_type=product' 'Krishna&post_type=post'; do
+            # Split "term&post_type=x" into the term (encoded) and the rest
+            # (passed through), in bash — an embedded multi-line python -c
+            # breaks the YAML block this whole script lives in.
+            term="${q%%&*}"
+            rest=""
+            case "$q" in *"&"*) rest="&${q#*&}";; esac
+            enc=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote_plus(sys.argv[1]))" "$term")
+            enc="${enc}${rest}"
             got=''
             for try in 1 2 3; do
               # -L matters more than it looks: this site redirects a search URL
