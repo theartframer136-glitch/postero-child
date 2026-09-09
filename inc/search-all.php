@@ -146,11 +146,35 @@ function af_search_disabled() {
 function af_search_debug($msg) {
     static $on = null;
     if ($on === null) {
-        $ip = isset($_SERVER['REMOTE_ADDR']) ? $_SERVER['REMOTE_ADDR'] : '';
-        $on = isset($_GET['afsearchdebug']) && ($ip === '127.0.0.1' || $ip === '::1');
+        // A request HEADER, not the client address. The loopback check goes
+        // through LiteSpeed, which rewrites REMOTE_ADDR, so the address test
+        // silently disabled this and left the run with nothing to read. A
+        // header no visitor's browser sends is both reliable and private.
+        $on = !empty($_SERVER['HTTP_X_AF_PROBE']);
     }
     if ($on) echo "\n<!-- af-search: " . str_replace('--', '- -', (string) $msg) . " -->\n";
 }
+
+/**
+ * What the MAIN query actually was, printed for a probe request.
+ *
+ * The rendered page finds nothing where the same terms in WP_Query find
+ * plenty, and turning this module off changes neither — so the question is no
+ * longer about this module, it is "what query did the page actually run".
+ * This prints it: the post types asked for, how many were found, and the SQL.
+ */
+add_action('wp_footer', function () {
+    if (empty($_SERVER['HTTP_X_AF_PROBE'])) return;
+    $q = isset($GLOBALS['wp_query']) ? $GLOBALS['wp_query'] : null;
+    if (!$q) { af_search_debug('main query: none'); return; }
+    $pt = $q->get('post_type');
+    af_search_debug('MAIN is_search=' . ($q->is_search() ? 1 : 0)
+        . ' s="' . (string) $q->get('s') . '"'
+        . ' post_type=' . (is_array($pt) ? implode('+', $pt) : (string) $pt)
+        . ' found=' . (int) $q->found_posts
+        . ' posts=' . count((array) $q->posts));
+    af_search_debug('SQL ' . preg_replace('/\s+/', ' ', (string) $q->request));
+}, 99);
 
 add_filter('posts_search', function ($search, $q) {
     if (af_search_disabled()) return $search;

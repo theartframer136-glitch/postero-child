@@ -90,7 +90,7 @@ jobs:
                curl -sS --max-time 45 -H "Host: theartframer.us" \
                     -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0.0.0" \
                     -H "Sec-Fetch-Mode: navigate" -H "Sec-Fetch-Site: none" \
-                    -H "Sec-Fetch-Dest: document" \
+                    -H "Sec-Fetch-Dest: document" -H "X-AF-Probe: 1" \
                     -o /dev/null -D /tmp/afh.txt \
                     -w "  first: http=%{http_code}\n" \
                     "https://127.0.0.1/${u}" --insecure 2>&1 || echo "  loopback fetch failed"; \
@@ -98,14 +98,14 @@ jobs:
                curl -sSL --max-time 45 -H "Host: theartframer.us" \
                     -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0.0.0" \
                     -H "Sec-Fetch-Mode: navigate" -H "Sec-Fetch-Site: none" \
-                    -H "Sec-Fetch-Dest: document" \
+                    -H "Sec-Fetch-Dest: document" -H "X-AF-Probe: 1" \
                     -o /tmp/afs.html -w "  followed: http=%{http_code} bytes=%{size_download} url=%{url_effective}\n" \
                     "https://127.0.0.1/${u}" --insecure 2>&1 || true; \
                if [ -s /tmp/afs.html ]; then \
                  echo -n "  Nothing Found: "; grep -qi "nothing found\|nothing matched" /tmp/afs.html && echo YES || echo no; \
                  echo -n "  product links: "; grep -o "/product/[a-z0-9-]*/" /tmp/afs.html | sort -u | wc -l; \
                  echo -n "  first product: "; (grep -o "/product/[a-z0-9-]*/" /tmp/afs.html | head -1) || true; echo; \
-                 grep -o "<!-- af-search:[^>]*-->" /tmp/afs.html | sed "s/^/  /" | head -2 || true; \
+                 grep -o "<!-- af-search:[^>]*-->" /tmp/afs.html | cut -c1-400 | sed "s/^/  /" | head -4 || true; \
                fi; \
              done' \
             || true
