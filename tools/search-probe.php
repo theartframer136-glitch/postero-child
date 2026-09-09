@@ -39,12 +39,29 @@ $total = (int) $wpdb->get_var(
 );
 echo "products carrying an art code: {$total}\n\n";
 
+// The module only acts on the MAIN query — a deliberate restriction, so that
+// no widget's own WP_Query is quietly rewritten. A probe's WP_Query is
+// therefore not touched by it, and the first version of this file measured
+// stock WordPress while appearing to measure the fix: art codes returned
+// nothing, exactly as they would with no module installed at all.
+//
+// So the clause is applied here explicitly, by calling the module's own
+// builder. This tests the part that was actually in question — whether that
+// SQL finds these products in this database — against the real catalogue.
+add_filter('posts_search', function ($search, $q) {
+    if (!$q->get('af_probe')) return $search;
+    global $wpdb;
+    $extra = af_search_meta_sql(af_search_terms($q->get('s')), $wpdb->prefix, $wpdb);
+    if ($extra === '') return $search;
+    $inner = preg_replace('/^\s*AND\s*/i', '', $search);
+    if ($inner === '' || $inner === null) return ' AND (1=0 ' . $extra . ') ';
+    return ' AND ( ' . $inner . $extra . ' ) ';
+}, 10, 2);
+
 foreach ($queries as $q) {
-    // is_search() must be true for the module's filters to apply, so this goes
-    // through WP_Query with 's' rather than calling the builder directly — the
-    // point is to exercise the path a visitor's request takes.
     $wpq = new WP_Query(array(
         's'              => $q,
+        'af_probe'       => 1,
         'post_type'      => array('product', 'post', 'page'),
         'post_status'    => 'publish',
         'posts_per_page' => 5,
