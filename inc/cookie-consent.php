@@ -63,7 +63,33 @@ add_action('wp_footer', function() {
     .af-ck-btn.solid{background:#1a1a1a;border-color:#1a1a1a;color:#fff;}
     .af-ck-btn.solid:hover{background:#000;}
     .af-ck-btn.ghost{background:transparent;}
-    @media(max-width:600px){.af-ck-card{padding:14px;}.af-ck-actions{width:100%;}}
+    /* ── PHONES ───────────────────────────────────────────────────────────
+       Measured 2026-09-10 at 420x900: this banner rendered 377px tall — over
+       forty per cent of the screen — pinned to bottom:0, which put it squarely
+       on top of the site's bottom navigation bar AND the chat launcher. A
+       first-time visitor on a phone could not reach Shop, Account, Search or
+       Wishlist until they had answered it.
+
+       So on a phone it sits ABOVE the bottom bar rather than over it, and it
+       is capped at 62% of the screen with its own scroll — a consent notice
+       may be long, but it must never be the whole page, and it must never
+       cover the navigation. env(safe-area-inset-bottom) keeps it clear of the
+       home indicator on an iPhone. */
+    @media(max-width:600px){
+      .af-ck{padding:10px;bottom:calc(65px + env(safe-area-inset-bottom,0px));}
+      .af-ck-card{padding:13px 14px;gap:10px;border-radius:14px;
+        max-height:min(62vh,430px);overflow-y:auto;-webkit-overflow-scrolling:touch;}
+      .af-ck-main{flex:1 1 100%;}
+      .af-ck-main strong{font-size:14px;}
+      .af-ck-main p{margin:3px 0 0;font-size:12px;line-height:1.5;}
+      .af-ck-opts{margin-top:8px;gap:5px;}
+      .af-ck-opts label{font-size:12px;line-height:1.45;}
+      .af-ck-opts small{margin-left:20px;line-height:1.4;}
+      /* Full-width buttons in a row that wraps, so no action is ever a
+         28px-tall sliver at the edge of the card. */
+      .af-ck-actions{width:100%;gap:7px;}
+      .af-ck-btn{flex:1 1 120px;padding:12px 14px;font-size:12.5px;}
+    }
     </style>
     <script>
     (function(){

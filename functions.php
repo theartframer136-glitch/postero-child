@@ -16702,6 +16702,19 @@ add_action('wp_head', function() { ?>
   color:#fff;box-shadow:0 2px 12px rgba(201,168,76,.32);}
 .taf-broch--card .taf-broch-ico{width:13px;height:13px;opacity:1;}
 /* single product page — sits with Show Dimensions, size as a caption below */
+/* ── PHONES ─────────────────────────────────────────────────────────────
+   Measured 2026-09-10 at 420px: the card's Add to Cart and Compare buttons
+   came out 36x36 and this brochure bar's label 11px. A finger wants about
+   40px, and 12px is the floor for a line of type someone is meant to read at
+   arm's length. Both are nudged up on phones only — the desktop card is
+   tuned to its own grid and is left exactly as it is. */
+@media(max-width:600px){
+  .taf-broch--card{font-size:12px;padding:12px;}
+  .taf-broch--card .taf-broch-ico{width:14px;height:14px;}
+  li.product .af-icon-corner > *,
+  li.product a.add_to_cart_button,
+  li.product .af-cmp-btn{min-width:40px!important;min-height:40px!important;}
+}
 .taf-broch-wrap{margin:16px 0 12px;display:flex;flex-direction:column;
   align-items:flex-start;gap:7px;}
 .taf-broch--single{font-size:12.5px;padding:14px 26px;}
