@@ -11711,6 +11711,34 @@ add_shortcode('af_country_selector', function() {
   function afRefitSoon(){
     if (afFitting) return;
     clearTimeout(afFitT);
+    // Longer than the 60ms afRefit holds afFitting for, so a burst of resize
+    // events settles into one measurement instead of a measurement per frame.
+    afFitT = setTimeout(afRefit, 120);
+  }
+
+  // The events the note above lists, finally attached to something. Until this
+  // commit afRefitSoon was never called — and its body was missing, which left
+  // a brace unclosed and took THIS ENTIRE SCRIPT with it: the whole block
+  // failed to parse, so the country selector rendered and did nothing when
+  // clicked. Measured in a browser: "Unexpected token ')'", the widget never
+  // marked bound, the dropdown never opening.
+  window.addEventListener('resize', afRefitSoon);
+  window.addEventListener('orientationchange', afRefitSoon);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(afRefitSoon);
+
+  // A container can change width without the window doing so — the sticky
+  // header shrinking on scroll — and a row measured while hidden reports
+  // clientWidth 0, so becoming visible is a size change too. One observer on
+  // the row catches both. Attached after the selector is placed, because that
+  // is when the row exists; guarded so it is only ever attached once.
+  var afRO = null;
+  function afWatchRow(){
+    if (afRO || typeof ResizeObserver === 'undefined') return;
+    var row = afRowOf(w);
+    if (!row) return;
+    afRO = new ResizeObserver(function(){ afRefitSoon(); });
+    afRO.observe(row);
+  }
 
   // Deepest element in the header area whose text contains the phone number.
   function phoneEl(){
@@ -11756,7 +11784,7 @@ add_shortcode('af_country_selector', function() {
     document.body.appendChild(w);
   }
   function tick(){
-    if (relocate()) return;
+    if (relocate()) { afWatchRow(); return; }
     if (++tries >= 12) ensureVisible();
   }
   document.addEventListener('DOMContentLoaded', tick);
