@@ -19622,3 +19622,20 @@ add_action( 'template_redirect', function () {
 	get_footer();
 	exit;
 }, 0 );
+
+// ─────────────────────────────────────────────────────────────
+// Search results: twelve per page.
+// The results grid is three across (loop_shop_columns is filtered to 3), and
+// Settings > Reading's default of ten ends every page on a ragged 3/3/3/1.
+// Twelve divides evenly by three, two and one — the grid's three breakpoints.
+//
+// This cannot live in search.php: pre_get_posts fires before the template is
+// chosen. Priority 21 puts it after inc/search-all.php's own pre_get_posts at
+// 20; that module's widening filter rewrites only the WHERE section of the
+// statement, so LIMIT and SQL_CALC_FOUND_ROWS are untouched and found_posts
+// and max_num_pages stay correct.
+// ─────────────────────────────────────────────────────────────
+add_action('pre_get_posts', function ($q) {
+    if (is_admin() || !$q->is_main_query() || !$q->is_search()) return;
+    $q->set('posts_per_page', 12);
+}, 21);
