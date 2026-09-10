@@ -102,7 +102,10 @@ jobs:
                     -o /tmp/afs.html -w "  followed: http=%{http_code} bytes=%{size_download} url=%{url_effective}\n" \
                     "https://127.0.0.1/${u}" --insecure 2>&1 || true; \
                if [ -s /tmp/afs.html ]; then \
-                 echo -n "  results heading: "; grep -qi "Search Results for" /tmp/afs.html && echo "SHOWN" || echo "absent (the Nothing Found branch)"; \
+                 echo -n "  template: "; grep -q "af-search-results" /tmp/afs.html && echo "NEW search.php (af-sr)" || echo "OLD parent blog template"; \
+               echo -n "  product cards: "; grep -o "li class=\"product" /tmp/afs.html | wc -l; \
+               echo -n "  blog sidebar: "; grep -qi "Recent Comments\|Blog Categories" /tmp/afs.html && echo "STILL PRESENT" || echo "gone"; \
+               echo -n "  prices on page: "; grep -o "woocommerce-Price-amount" /tmp/afs.html | wc -l; \
                  echo -n "  product links: "; grep -o "/product/[a-z0-9-]*/" /tmp/afs.html | sort -u | wc -l; \
                  echo -n "  first product: "; (grep -o "/product/[a-z0-9-]*/" /tmp/afs.html | head -1) || true; echo; \
                  grep -o "<!-- af-search:[^>]*-->" /tmp/afs.html | cut -c1-400 | sed "s/^/  /" | head -4 || true; \
