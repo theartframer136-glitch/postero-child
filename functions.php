@@ -15499,11 +15499,38 @@ add_action('template_redirect', function(){
       // Size each scrollable product table so it stops at the bottom of the
       // viewport — the table fits the page and its extra rows scroll inside,
       // instead of the whole page growing taller than the screen.
+      //
+      // EXCEPT when a single category is on screen. Owner, 2026-09-10, with a
+      // recording of Christian Art (6 products): the rail lists thirty-odd
+      // categories and runs well past the fold, while the table beside it
+      // stopped at the fold and left a tall empty gap down the right of the
+      // page. Sizing to the viewport is the right rule for a stack of
+      // categories and the wrong one for a single table with a long rail
+      // beside it, so in that one case the table is matched to the rail and
+      // the two columns end together. Both min and max are set: a short table
+      // has to GROW to meet the rail, and a long one still scrolls inside.
       function fitTables(){
         var wraps = document.querySelectorAll('.af-inv-tablewrap.is-scroll');
+        var rail  = document.getElementById('inv-catrail');
+        // Not on mobile: there the rail is a static row of chips above the
+        // table, not a column beside it, so there is no height to match.
+        var matchRail = (wraps.length === 1 && rail && window.innerWidth > 820);
+        var railBox   = matchRail ? rail.getBoundingClientRect() : null;
         for (var i = 0; i < wraps.length; i++) {
           var w = wraps[i];
-          var top = w.getBoundingClientRect().top; // distance from viewport top
+          var box = w.getBoundingClientRect();
+          var top = box.top;                       // distance from viewport top
+          if (matchRail) {
+            // The rail starts higher than the table, which sits below its
+            // category title — so take that offset off the rail's height to
+            // have the two finish on the same line.
+            var h = Math.round(railBox.height - Math.max(0, top - railBox.top));
+            if (h < 220) h = 220;                  // always show a few rows
+            w.style.minHeight = h + 'px';
+            w.style.maxHeight = h + 'px';
+            continue;
+          }
+          w.style.minHeight = '';                  // clear a previous match
           var avail = Math.floor(window.innerHeight - top - 20);
           if (avail < 220) avail = 220; // always show a few rows
           w.style.maxHeight = avail + 'px';
