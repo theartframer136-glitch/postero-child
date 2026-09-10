@@ -164,68 +164,24 @@ function af_search_disabled() {
 }
 
 /**
- * A note in the HTML saying what happened, for requests from the server itself.
+ * The debug notes are gone, and their removal is the point.
  *
- * Restricted to the loopback address deliberately: the finished SQL is useful
- * to a diagnostic and to nobody else, so it is never rendered for a visitor.
- */
-function af_search_debug($msg) {
-    static $on = null;
-    if ($on === null) {
-        // A request HEADER, not the client address. The loopback check goes
-        // through LiteSpeed, which rewrites REMOTE_ADDR, so the address test
-        // silently disabled this and left the run with nothing to read. A
-        // header no visitor's browser sends is both reliable and private.
-        $on = !empty($_SERVER['HTTP_X_AF_PROBE']);
-    }
-    if ($on) echo "\n<!-- af-search: " . str_replace('--', '- -', (string) $msg) . " -->\n";
-}
-
-/**
- * What the MAIN query actually was, printed for a probe request.
+ * They printed the finished SQL, the query's internals and the matched ids
+ * straight into the page, and the only thing between a visitor and that output
+ * was an X-AF-Probe request header — which is client-supplied, not a secret.
+ * Anyone who sent it got the lot back in the HTML. That was a fair trade for an
+ * afternoon spent measuring a search that did not work; it is not a fair trade
+ * now that it does.
  *
- * The rendered page finds nothing where the same terms in WP_Query find
- * plenty, and turning this module off changes neither — so the question is no
- * longer about this module, it is "what query did the page actually run".
- * This prints it: the post types asked for, how many were found, and the SQL.
- */
-/**
- * The loop's state at the moment the template asks have_posts().
+ * What they were for is covered from outside the page instead:
+ * check-search-server.yml fetches a real search over the loopback and reports
+ * which template rendered, how many product cards are on it, whether the blog
+ * sidebar is gone and how many prices are showing.
  *
- * The parent template is the ordinary one — if ( have_posts() ) render the
- * loop, else render "Nothing Found" — and it takes the else branch while the
- * query holds ten posts. Only two things do that: the loop was already walked
- * to its end by something earlier in the request, or post_count disagrees with
- * the posts array. current_post and post_count tell them apart.
+ * Kept as a no-op so the handful of call sites need no edit and any future one
+ * is harmless.
  */
-add_action('template_redirect', function () {
-    if (empty($_SERVER['HTTP_X_AF_PROBE'])) return;
-    $q = isset($GLOBALS['wp_query']) ? $GLOBALS['wp_query'] : null;
-    if (!$q) return;
-    add_action('wp_footer', function () use ($q) {
-        af_search_debug('AT TEMPLATE TIME: suppress_filters=' . var_export($q->get('suppress_filters'), true)
-            . ' post_count=' . (int) $q->post_count
-            . ' current_post=' . (int) $q->current_post
-            . ' posts_in_array=' . count((array) $q->posts)
-            . ' have_posts_would_be=' . (($q->current_post + 1 < $q->post_count) ? 'TRUE' : 'FALSE'));
-    }, 98);
-}, 1);
-
-add_action('wp_footer', function () {
-    if (empty($_SERVER['HTTP_X_AF_PROBE'])) return;
-    $q = isset($GLOBALS['wp_query']) ? $GLOBALS['wp_query'] : null;
-    if (!$q) { af_search_debug('main query: none'); return; }
-    $pt = $q->get('post_type');
-    af_search_debug('MAIN is_search=' . ($q->is_search() ? 1 : 0)
-        . ' s="' . (string) $q->get('s') . '"'
-        . ' post_type=' . (is_array($pt) ? implode('+', $pt) : (string) $pt)
-        . ' found=' . (int) $q->found_posts
-        . ' posts=' . count((array) $q->posts));
-    af_search_debug('SQL ' . preg_replace('/\s+/', ' ', (string) $q->request));
-    $trace = isset($GLOBALS['af_search_trace']) ? (array) $GLOBALS['af_search_trace'] : array();
-    af_search_debug('posts_search callback ran ' . count($trace) . ' time(s)'
-        . ($trace ? ' | ' . implode(' | ', array_slice($trace, 0, 3)) : ' - NEVER INVOKED'));
-}, 99);
+function af_search_debug($msg) {}
 
 /*
  * THE posts_search FILTER IS GONE, and its removal is the fix.

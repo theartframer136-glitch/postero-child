@@ -107,10 +107,17 @@ get_header();
         <?php if (!$af_empty) : ?>
             <p class="af-sr-count">
                 <?php
+                /* On a single page we can count what is actually rendered.
+                   found_posts is SQL_CALC_FOUND_ROWS over the widened
+                   statement, which counts rows the visibility filter above
+                   then drops — so across several pages it is a ceiling, not a
+                   count, and the page number is the honest thing to show. */
+                $af_shown = count($af_prods) + count($af_others);
+                $af_n = ($wpq->max_num_pages > 1) ? $af_found : $af_shown;
                 printf(
                     /* translators: %s: number of results */
-                    esc_html(_n('%s result', '%s results', $af_found, 'postero-child')),
-                    esc_html(number_format_i18n($af_found))
+                    esc_html(_n('%s result', '%s results', $af_n, 'postero-child')),
+                    esc_html(number_format_i18n($af_n))
                 );
                 if ($wpq->max_num_pages > 1) {
                     printf(
@@ -129,15 +136,17 @@ get_header();
 /* A late page can empty out even though the query counted results, because the
    visibility filter above drops rows the count still includes. Never tell a
    customer nothing matched a query that plainly has matches. */
-if ($af_empty && $af_paged > 1 && $af_found > 0) : ?>
+if ($af_empty && $af_found > 0) : ?>
 
     <div class="af-sr-empty">
         <p class="af-sr-eyebrow">End of results</p>
         <h2>Nothing further on this page.</h2>
         <p class="af-sr-sub">Some pieces further down the list are no longer on display.</p>
+        <?php if ($af_paged > 1) : ?>
         <div class="af-sr-actions">
             <a class="solid" href="<?php echo esc_url(remove_query_arg('paged')); ?>">Back to the first page</a>
         </div>
+        <?php endif; ?>
     </div>
 
 <?php elseif ($af_empty) :
@@ -242,8 +251,17 @@ if ($af_empty && $af_paged > 1 && $af_found > 0) : ?>
         ?></h2>
         <ul class="af-sr-posts">
             <?php foreach ($af_others as $af_p) :
-                $af_ex = get_the_excerpt($af_p);
-                if ($af_ex === '') $af_ex = wp_strip_all_tags($af_p->post_content);
+                /* Read the excerpt off the post object rather than calling
+                   get_the_excerpt(), which runs the whole the_content filter
+                   chain. Filters on this site read the GLOBAL post, and during
+                   an excerpt that global is still whatever was set last — so a
+                   blog post could print a canvas's ART CODE, the exact bug this
+                   page exists to remove. strip_shortcodes as well, or a body
+                   that is only a shortcode prints its raw brackets. */
+                $af_ex = trim((string) $af_p->post_excerpt);
+                if ($af_ex === '') {
+                    $af_ex = trim(wp_strip_all_tags(strip_shortcodes($af_p->post_content)));
+                }
                 $af_kind = (get_post_type($af_p) === 'page') ? 'Page' : 'Article';
                 ?>
                 <li class="af-sr-post">
@@ -255,7 +273,9 @@ if ($af_empty && $af_paged > 1 && $af_found > 0) : ?>
                     <div class="af-sr-post-body">
                         <span class="af-sr-post-kind"><?php echo esc_html($af_kind); ?></span>
                         <h3><a href="<?php echo esc_url(get_permalink($af_p)); ?>"><?php echo esc_html(get_the_title($af_p)); ?></a></h3>
-                        <p><?php echo esc_html(wp_trim_words($af_ex, 28)); ?></p>
+                        <?php if ($af_ex !== '') : ?>
+                            <p><?php echo esc_html(wp_trim_words($af_ex, 28)); ?></p>
+                        <?php endif; ?>
                     </div>
                 </li>
             <?php endforeach; ?>
@@ -491,11 +511,14 @@ html body div.af-sr ul.products li.product .af-shop-discount-badge{display:none!
 .af-sr-pager{margin:36px 0 0;display:flex;justify-content:center;}
 .af-sr-pager ul{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin:0;padding:0;}
 .af-sr-pager li{margin:0;}
-.af-sr-pager .page-numbers{display:inline-flex;align-items:center;justify-content:center;
+/* li .page-numbers, not .page-numbers: with type=list WordPress puts that same
+   class on the <ul> too, and .af-sr-pager .page-numbers (0,2,0) outranks
+   .af-sr-pager ul (0,1,1) — which drew the whole list as one 40px pill. */
+.af-sr-pager li .page-numbers{display:inline-flex;align-items:center;justify-content:center;
   min-width:40px;height:40px;padding:0 12px;border:1.5px solid #e2d9c4;border-radius:11px;
   background:#fffdf8;color:#5a5140;font-size:13.5px;font-weight:700;text-decoration:none;}
-.af-sr-pager .page-numbers:hover{border-color:#1a1a1a;background:#1a1a1a;color:#fff;}
-.af-sr-pager .page-numbers.current{background:#c9a84c;border-color:#c9a84c;color:#fff;}
+.af-sr-pager li .page-numbers:hover{border-color:#1a1a1a;background:#1a1a1a;color:#fff;}
+.af-sr-pager li .page-numbers.current{background:#c9a84c;border-color:#c9a84c;color:#fff;}
 
 /* ═══ K. EMPTY STATE — 404.php's tokens, the child theme's existing
    dead-end-that-still-sells page. */
