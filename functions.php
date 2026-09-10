@@ -5252,10 +5252,20 @@ add_action('wp_footer', function() {
       display:none !important;
     }
     @media(max-width:600px){
-      .af-quickpanel{right:12px;bottom:14px;gap:10px;}
-      .af-qp-btn{width:44px;height:44px;}
+      /* bottom:14px put this whole stack UNDERNEATH the fixed bottom
+         navigation bar — WhatsApp, wishlist, delivery and back-to-top were all
+         simply invisible on a phone. Measured 2026-09-10 at 420px. It now
+         clears the bar, level with the chat launcher on the other side, and
+         safe-area-inset keeps it off the home indicator on an iPhone. */
+      .af-quickpanel{right:10px;bottom:calc(72px + env(safe-area-inset-bottom,0px));gap:10px;}
+      .af-qp-btn{width:44px;height:44px;box-shadow:0 4px 14px rgba(0,0,0,.26);}
       .af-qp-btn svg{width:21px;height:21px;}
       .af-qp-btn[data-tip]:hover::after{display:none;}
+    }
+    @media(max-width:380px){
+      .af-quickpanel{right:8px;bottom:calc(68px + env(safe-area-inset-bottom,0px));gap:8px;}
+      .af-qp-btn{width:40px;height:40px;}
+      .af-qp-btn svg{width:19px;height:19px;}
     }
     </style>
     <?php

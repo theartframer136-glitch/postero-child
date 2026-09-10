@@ -371,7 +371,36 @@ add_action('wp_footer', function() {
     .af-chat-form button:hover{background:#000;}
     .af-chat-alt{margin:0;padding:0 14px 12px;font-size:11px;color:#8a8170;flex:0 0 auto;}
     .af-chat-alt a{color:#a8872e;}
-    @media(max-width:600px){.af-chat{left:12px;bottom:76px;}.af-chat-panel{max-height:70vh;}}
+    /* ── PHONES ───────────────────────────────────────────────────────────
+       Owner, 2026-09-10, with a screenshot at 420px: the launcher sat over the
+       category chips, a 56px black disc floating in the middle of the content
+       with the bottom navigation bar right beneath it. Two discs of furniture
+       stacked in the same corner is one too many on a 420px screen.
+
+       So on a phone it is smaller (44px, and the icon with it), tucked closer
+       to the corner, and sat just clear of the bottom bar rather than a finger's
+       width above it. 44px is not arbitrary — it is the minimum comfortable
+       touch target, so it shrinks as far as it can without becoming hard to
+       press. The shadow is lighter too: a heavy one reads as a much larger
+       object than the disc itself.
+
+       safe-area-inset-bottom keeps it clear of the home indicator on an
+       iPhone, where the bottom bar itself sits higher than it does on Android. */
+    @media(max-width:600px){
+      .af-chat{left:10px;bottom:calc(72px + env(safe-area-inset-bottom,0px));}
+      .af-chat-bub{width:44px;height:44px;box-shadow:0 4px 14px rgba(0,0,0,.26);}
+      .af-chat-bub svg{width:20px;height:20px;}
+      .af-chat-dot{width:9px;height:9px;top:2px;right:2px;border-width:1.5px;}
+      /* The panel is the whole screen's width here, so pin it to the viewport
+         rather than to a launcher that has moved in from the edge. */
+      .af-chat-panel{left:-4px;bottom:56px;max-height:70vh;width:calc(100vw - 20px);}
+    }
+    /* Small phones: smaller again, and hard into the corner. */
+    @media(max-width:380px){
+      .af-chat{left:8px;bottom:calc(68px + env(safe-area-inset-bottom,0px));}
+      .af-chat-bub{width:40px;height:40px;}
+      .af-chat-bub svg{width:18px;height:18px;}
+    }
     </style>
 
     <script>
