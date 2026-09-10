@@ -44,19 +44,26 @@ function has($label, $haystack, $needle) {
     check($label, stripos($haystack, $needle) !== false, true);
 }
 
-echo "=== the policy the owner stated: free on all US orders ===\n";
-$c = copy_with(null);                       // option not set on the live site yet
-check('free by default', $c['free'], true);
-has('label says free',  $c['label'], 'Free Shipping');
-has('short says free',  $c['short'], 'Free shipping on all orders');
-has('blurb says free',  $c['blurb'], 'free on every order');
-has('blurb says no minimum', $c['blurb'], 'no minimum');
-check('cost is "0" so the Google feed states a real zero', $c['cost'], '0');
+echo "=== THE POLICY: the shop does not ship free anywhere ===\n";
+// Owner, 2026-09-10, correcting an earlier instruction the same day: "we do
+// not ship free for any place". The live site has never had this option set,
+// so THIS is the case that runs in production, and it is the one that must
+// never claim free.
+$c = copy_with(null);                       // option not set, as on the live site
+check('not free by default', $c['free'], false);
+foreach (array('label', 'short', 'blurb') as $k) {
+    check("default: {$k} does not say 'free'", stripos($c[$k], 'free') !== false, false);
+}
+has('default: says the cost is shown at checkout', $c['short'], 'shown at checkout');
+check('default: the feed omits the rate rather than claiming zero', $c['cost'], '');
 
-echo "\n=== asked for by name, and the obvious spellings of it ===\n";
+echo "\n=== free is still possible, but ONLY when asked for by name ===\n";
 foreach (array('free', 'Free', 'FREE', '0', '$0') as $v) {
     check("af_shipping_cost = " . var_export($v, true) . " is free", copy_with($v)['free'], true);
 }
+$c = copy_with('free');
+has('when free: label says so', $c['label'], 'Free Shipping');
+check('when free: the feed states a real zero', $c['cost'], '0');
 
 echo "\n=== THE GUARANTEE: nothing claims free unless the policy is free ===\n";
 // Every surface reads label/short/blurb. If the policy is not free, none of
@@ -71,7 +78,7 @@ foreach (array('$15', 'from $12', '12.50', 'Flat $9.95') as $v) {
     check("cost $v: the feed gets that figure, not zero", $c['cost'], $v);
 }
 
-echo "\n=== blank is NOT free — it is the safe fallback ===\n";
+echo "\n=== blank is the same as unset: the safe fallback ===\n";
 $c = copy_with('');
 check('blank: free flag is false', $c['free'], false);
 foreach (array('label', 'short', 'blurb') as $k) {
@@ -85,7 +92,7 @@ check('"  free  " is still free', copy_with('  free  ')['free'], true);
 check('"   " is blank, not free',  copy_with('   ')['free'], false);
 
 echo "\n=== every state returns the full shape callers rely on ===\n";
-foreach (array(null, 'free', '$15', '') as $v) {
+foreach (array(null, '', '$15', 'free') as $v) {
     $c = copy_with($v);
     $shape = array_keys($c);
     sort($shape);

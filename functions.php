@@ -6187,24 +6187,28 @@ function af_studio_contact() {
  * own popup listed free delivery in four states only, so the claim was taken
  * out and the cost stated instead.
  *
- * Owner, 2026-09-10: "free shipping on all orders across usa". The claim is
- * TRUE now, so it comes back — and it comes back HERE, once, rather than being
- * retyped onto each surface, which is how the two drifted apart last time.
+ * THE SHOP DOES NOT SHIP FREE. Owner, 2026-09-10, correcting an earlier
+ * instruction of the same day: "we do not ship free for any place". So the
+ * default states no price at all — the cost is shown at checkout, which is
+ * true whatever the rate turns out to be — and NOTHING anywhere may say
+ * otherwise unless the policy genuinely changes.
  *
  * Three states, all of them explicit:
  *
- *   af_shipping_cost = 'free'   (the default)   free on every US order
+ *   af_shipping_cost = ''       (the default)   "shown at checkout" — the safe
+ *                                               wording, and the current policy
  *   af_shipping_cost = '$15'    or 'from $12'   that cost, stated everywhere
- *   af_shipping_cost = ''       (deliberately   "shown at checkout" — the safe
- *                                blank)         fallback, true whatever the
- *                                               rate turns out to be
+ *   af_shipping_cost = 'free'                   free — ONLY if that ever
+ *                                               becomes true
  *
- * Blank does NOT mean free. A false free-shipping claim is the exact failure
- * this function was written to prevent, so the free branch has to be asked for
- * by name. Filter af_shipping_copy to override any of it.
+ * Blank does not mean free, and the free branch has to be asked for by name.
+ * A false free-shipping claim is the exact failure this function was written
+ * to prevent: it exists because the site once promised "Free Shipping across
+ * the USA" while its own popup listed free delivery in four states only.
+ * Filter af_shipping_copy to override any of it.
  */
 function af_shipping_copy() {
-    $cost = trim((string) get_option('af_shipping_cost', 'free'));
+    $cost = trim((string) get_option('af_shipping_cost', ''));
     $free = (strcasecmp($cost, 'free') === 0 || $cost === '0' || $cost === '$0');
 
     if ($free) {
