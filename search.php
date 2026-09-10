@@ -148,7 +148,7 @@ if ($af_empty && $af_paged > 1 && $af_found > 0) : ?>
 
     <div class="af-sr-empty">
         <p class="af-sr-eyebrow">No matches</p>
-        <h1>Nothing hanging under &ldquo;<?php echo esc_html($af_term); ?>&rdquo;.</h1>
+        <h2>Nothing hanging under &ldquo;<?php echo esc_html($af_term); ?>&rdquo;.</h2>
         <p class="af-sr-sub">
             <?php if ($af_is_code) : ?>
                 Art codes look like RK 0118 or HD 15-GF. Spacing and hyphens don&rsquo;t matter —
@@ -229,9 +229,8 @@ if ($af_empty && $af_paged > 1 && $af_found > 0) : ?>
         unset($GLOBALS['product']);
         wp_reset_postdata();          // this overwrites $GLOBALS['post'] …
         $GLOBALS['post'] = $af_keep;  // … so restore ours after, not before
-        if (function_exists('wc_reset_loop')) wc_reset_loop();
-
         woocommerce_product_loop_end();
+        if (function_exists('wc_reset_loop')) wc_reset_loop();
         ?>
     </section>
     <?php endif; ?>
@@ -364,9 +363,14 @@ html body div.af-sr ul.products li.product a.woocommerce-loop-product__link{
    static siblings whatever the source order, so without this the click layer
    swallows every press of Add to cart, wishlist and Quick view. */
 html body div.af-sr ul.products li.product .product-transition .group-action,
-html body div.af-sr ul.products li.product .product-transition .onsale,
-html body div.af-sr ul.products li.product .af-icon-corner{
+html body div.af-sr ul.products li.product .product-transition .onsale{
   position:relative!important;z-index:3!important;}
+/* .af-icon-corner is NOT in that list, deliberately. The JS that builds the
+   cart/wishlist/compare row (custom.js initCardIconCorner) is ungated and runs
+   here too, and its own unscoped rule at custom.css:2036 pins it
+   position:absolute, right:10px, bottom:10px, z-index:20 — already above the
+   click overlay. Forcing it relative drops it out of the corner and into the
+   flow. */
 html body div.af-sr ul.products li.product .product-img-wrap{
   height:300px!important;max-height:300px!important;min-height:300px!important;
   overflow:hidden!important;position:relative!important;display:block!important;width:100%!important;}
