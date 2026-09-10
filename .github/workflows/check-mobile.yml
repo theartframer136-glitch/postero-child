@@ -1,0 +1,32 @@
+name: Check Mobile
+
+# What the site actually looks like on a phone.
+#
+# Every mobile fix so far has been made from a screenshot and verified by asking
+# the owner to look again — a slow loop that only ever covers the page they
+# happened to be on. This loads the real site in a real phone-sized Chrome and
+# reports sideways scroll, text crushed into a sliver, fixed buttons buried
+# under the bottom bar, tap targets under 40px and type under 12px.
+#
+# Read-only: it loads pages and measures them. Nothing is written, no SSH.
+
+on:
+  workflow_dispatch:
+    inputs:
+      width:
+        description: 'Viewport width in px'
+        type: string
+        default: '420'
+
+jobs:
+  mobile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Measure the site at phone width
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          W="${{ github.event.inputs.width }}"
+          NODE_PATH=/tmp/afhead/node_modules node tools/headless-mobile.js "${W:-420}" || true
