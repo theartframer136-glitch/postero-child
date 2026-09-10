@@ -63,6 +63,11 @@ function audit(vw) {
     const cs = getComputedStyle(el);
     if (cs.display === 'none' || cs.visibility === 'hidden') continue;
     if (cs.position === 'fixed') continue;               // counted separately
+    // An off-canvas drawer — the slide-in cart, the mobile menu — is PARKED
+    // entirely off the right edge on purpose and slides in when opened. It is
+    // not overflow, and reporting it every run trains you to ignore the
+    // section that also holds the real faults.
+    if (r.left >= vw - 1) continue;
     if (r.right > vw + 1) wide.push({ el, r });
   }
   for (const w of wide) {
