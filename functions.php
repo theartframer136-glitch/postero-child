@@ -15763,6 +15763,91 @@ add_action('template_redirect', function(){
       .af-inv-wrap{padding:24px 12px 54px;}
       .af-inv-head h1{font-size:27px;}
     }
+
+    /* ── PHONES AND SMALL TABLETS ─────────────────────────────────────────
+       Owner, 2026-09-10, with a recording at 420px: the product names came
+       out one letter per line — "P R O D U C T" stacked vertically — and the
+       table was unreadable.
+
+       The cause is a global rule this theme prints for every page at 781px and
+       under (the af-mobile-responsive block): `table{display:block;width:100%;
+       max-width:100%}`. It exists so a wide content table scrolls inside its
+       own box instead of stretching the page, and for prose tables it is
+       right. On this one it is fatal: display:block takes the table out of
+       table layout, the seven columns collapse toward zero, and
+       overflow-wrap:break-word — set on td/th by the same block — then breaks
+       every word mid-character to fit.
+
+       Fighting that rule to restore a seven-column table would only win a
+       horizontal scrollbar on a 420px screen. A row of this table is really
+       one product, so on a phone it becomes one card: picture, name, code,
+       then price, stock, status and Edit laid out underneath.
+
+       781px is not a round number by choice: it is exactly the width at which
+       that global block switches on, so the card layout takes over on the same
+       pixel the table stops working. A gap between the two would leave tablet
+       portrait showing the crushed table this fixes.
+
+       The desktop table above is untouched — this whole block is inside a
+       media query and nothing in it applies above 781px. ─────────────────── */
+    @media(max-width:781px){
+      /* fitTables() sets max-height (and, for a lone category, min-height)
+         inline to match the rail or the fold. Both are desktop ideas: here the
+         cards simply flow and the page scrolls. !important is what beats an
+         inline style. */
+      .af-inv-tablewrap{max-height:none!important;min-height:0!important;
+        overflow:visible!important;border-radius:12px;}
+      .af-inv-table{display:block!important;width:100%!important;min-width:0!important;
+        max-width:100%!important;overflow:visible!important;font-size:13px;}
+      .af-inv-table thead{display:none!important;}   /* labels live on the cards */
+      .af-inv-table tbody{display:block!important;}
+
+      .af-inv-table tbody tr{
+        display:grid!important;
+        grid-template-columns:52px minmax(0,1fr) auto;
+        grid-template-rows:auto auto auto auto;
+        gap:6px 12px;align-items:center;
+        padding:13px 14px;border-bottom:1px solid #f2ebda;background:transparent;}
+      .af-inv-table tbody tr:last-child{border-bottom:0;}
+      .af-inv-table td{display:block!important;border:0!important;padding:0!important;
+        white-space:normal!important;}
+
+      .af-inv-tdimg{grid-column:1;grid-row:1/span 2;align-self:start;width:auto!important;}
+      .af-inv-tdimg img{width:52px!important;height:52px!important;}
+
+      .af-inv-tdname{grid-column:2/-1;grid-row:1;font-weight:700;line-height:1.4;}
+      .af-inv-tdname a{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+        overflow:hidden;font-size:13px;}
+
+      /* A SKU can be forty characters of hyphenated slug, so this is the one
+         cell that may break anywhere. */
+      .af-inv-tdsku{grid-column:2/-1;grid-row:2;font-size:11px;color:#8a8172;
+        word-break:break-all;}
+      .af-inv-tdsku::before{content:"SKU ";font-weight:800;color:#a8801f;}
+
+      .af-inv-tdprice{grid-column:1/3;grid-row:3;font-weight:800;font-size:14px;}
+      .af-inv-tdstock{grid-column:3;grid-row:3;justify-self:end;}
+      .af-inv-tdstock::before{content:"Stock";display:inline-block;margin-right:7px;
+        font-size:11px;font-weight:800;color:#8a8172;vertical-align:middle;}
+      .af-inv-qty{width:70px!important;height:34px!important;}
+
+      .af-inv-tdstatus{grid-column:1/3;grid-row:4;}
+      .af-inv-tdact{grid-column:3;grid-row:4;justify-self:end;}
+      .af-inv-edit{display:inline-block;padding:7px 14px;}
+
+      /* The toolbar: search on its own line, the filter chips scrolling
+         sideways under it rather than stacking five rows deep. */
+      .af-inv-toolbar{gap:10px;}
+      .af-inv-search{flex:1 1 100%;}
+      .af-inv-filters{flex:1 1 100%;flex-wrap:nowrap;overflow-x:auto;
+        -webkit-overflow-scrolling:touch;padding-bottom:2px;}
+      .af-inv-filters::-webkit-scrollbar{display:none;}
+      .af-inv-chip{flex:0 0 auto;}
+      .af-inv-groupToggle{flex:1 1 100%;}
+
+      .af-inv-cattitle{font-size:17px;}
+      .af-inv-cat{margin:0 0 18px;}
+    }
     </style>
     <?php
     get_footer();
