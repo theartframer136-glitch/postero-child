@@ -12419,6 +12419,36 @@ add_shortcode('af_video_testimonials', function() {
 
 
 /* ─────────────────────────────────────────────────────────────
+   Never serve the owner a cached page.
+
+   This theme puts most of its CSS inline in the HTML, which means a cached
+   PAGE carries a cached STYLESHEET with it. A deploy clears the server cache,
+   but the copy already sitting in the owner's browser does not change, and a
+   normal refresh will happily re-serve it. That is not a theory: it cost most
+   of a morning on the header, with the live page measuring and photographing
+   as one tidy line while the owner's screen kept showing three.
+
+   So for anyone who can edit the shop — and only for them — the page is sent
+   with no-store, and LiteSpeed is told not to cache it either. Shoppers are
+   untouched, so none of this costs the site any speed where speed matters.
+   ───────────────────────────────────────────────────────────── */
+add_action('template_redirect', function () {
+    if (is_admin() || wp_doing_ajax()) return;
+    if (!is_user_logged_in()) return;
+    if (!current_user_can('manage_woocommerce') && !current_user_can('edit_theme_options')) return;
+
+    if (!defined('DONOTCACHEPAGE')) define('DONOTCACHEPAGE', true);
+    do_action('litespeed_control_set_nocache', 'signed-in shop manager: always show the current page');
+
+    add_filter('nocache_headers', function ($headers) {
+        $headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0';
+        $headers['Pragma']        = 'no-cache';
+        return $headers;
+    });
+    nocache_headers();
+}, 1);
+
+/* ─────────────────────────────────────────────────────────────
    The header, on a phone.
 
    Measured on the live site at 390px (Check Header, run 1). header#masthead is
