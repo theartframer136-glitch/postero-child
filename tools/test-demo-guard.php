@@ -4,10 +4,10 @@
  * Tests the demo-link guard — TAF-01, the mobile bottom bar pointing at the
  * theme vendor's demo store.
  *
- * Runs the REAL functions from inc/demo-links.php with WordPress stubbed, so
+ * Runs the REAL functions from inc/demo-guard.php with WordPress stubbed, so
  * this cannot drift from what ships. Plain `php` runs it:
  *
- *     php tools/test-demo-links.php
+ *     php tools/test-demo-guard.php
  */
 define('ABSPATH', '/nowhere/');
 function add_action() {}
@@ -15,7 +15,7 @@ function add_filter() {}
 function apply_filters($tag, $value) { return $value; }
 function home_url() { return 'https://theartframer.us'; }
 
-require __DIR__ . '/../inc/demo-links.php';
+require __DIR__ . '/../inc/demo-guard.php';
 
 const HOME = 'https://theartframer.us';
 
