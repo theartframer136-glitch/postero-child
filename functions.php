@@ -5590,11 +5590,16 @@ add_filter('woocommerce_add_to_cart_redirect', function($url){
 add_action('woocommerce_after_add_to_cart_button', function() {
     $product = af_wc_product();
     if (!$product) return;
+    // This badge used to read "Free across USA" as a hardcoded string, which is
+    // how it survived the correction that took the same claim off every other
+    // surface — it was never wired to af_shipping_copy(). It is now, so it
+    // states the policy and cannot drift from it again.
+    $ship = af_shipping_copy();
     ?>
     <div class="af-pp-trust">
       <div class="af-ppt"><span>🔒</span><div><strong>Secure Payments</strong><small>Encrypted checkout</small></div></div>
       <div class="af-ppt"><span>↩️</span><div><strong>Easy Returns</strong><small>7-day policy</small></div></div>
-      <div class="af-ppt"><span>🚚</span><div><strong>Fast Shipping</strong><small>Free across USA</small></div></div>
+      <div class="af-ppt"><span>🚚</span><div><strong><?php echo esc_html($ship['free'] ? 'Free Shipping' : 'Fast Shipping'); ?></strong><small><?php echo esc_html($ship['free'] ? 'On all US orders' : $ship['short']); ?></small></div></div>
     </div>
     <?php
 }, 25);
@@ -6179,27 +6184,61 @@ function af_studio_contact() {
  * popup, the announcement bar and the chatbot can never contradict each other.
  *
  * The site used to promise "Free Shipping across the USA" while the badge's
- * own popup listed free delivery in four states only. It now says the studio
- * ships throughout the USA and states the cost.
+ * own popup listed free delivery in four states only, so the claim was taken
+ * out and the cost stated instead.
  *
- * The cost line is deliberately not invented here: set the af_shipping_cost
- * option (e.g. "$15" or "from $12") and every surface picks it up; leave it
- * empty and they all say the cost is shown at checkout, which is true whatever
- * the rate turns out to be. Filter af_shipping_copy to override any of it.
+ * THE SHOP DOES NOT SHIP FREE. Owner, 2026-09-10, correcting an earlier
+ * instruction of the same day: "we do not ship free for any place". So the
+ * default states no price at all — the cost is shown at checkout, which is
+ * true whatever the rate turns out to be — and NOTHING anywhere may say
+ * otherwise unless the policy genuinely changes.
+ *
+ * Three states, all of them explicit:
+ *
+ *   af_shipping_cost = ''       (the default)   "shown at checkout" — the safe
+ *                                               wording, and the current policy
+ *   af_shipping_cost = '$15'    or 'from $12'   that cost, stated everywhere
+ *   af_shipping_cost = 'free'                   free — ONLY if that ever
+ *                                               becomes true
+ *
+ * Blank does not mean free, and the free branch has to be asked for by name.
+ * A false free-shipping claim is the exact failure this function was written
+ * to prevent: it exists because the site once promised "Free Shipping across
+ * the USA" while its own popup listed free delivery in four states only.
+ * Filter af_shipping_copy to override any of it.
  */
 function af_shipping_copy() {
     $cost = trim((string) get_option('af_shipping_cost', ''));
-    $line = $cost !== ''
-        ? 'Shipping ' . $cost . ' throughout the USA'
-        : 'Shipping cost shown at checkout';
-    return apply_filters('af_shipping_copy', array(
-        'label' => 'Shipping Throughout the USA',
-        'short' => $line,
-        'blurb' => $cost !== ''
-            ? 'Delivered anywhere in the USA — shipping ' . $cost . ', shown before you pay.'
-            : 'Delivered anywhere in the USA — shipping cost is shown at checkout before you pay.',
-        'cost'  => $cost,
-    ));
+    $free = (strcasecmp($cost, 'free') === 0 || $cost === '0' || $cost === '$0');
+
+    if ($free) {
+        $out = array(
+            'label' => 'Free Shipping Across the USA',
+            'short' => 'Free shipping on all orders across the USA',
+            'blurb' => 'Delivered anywhere in the USA, free on every order — no minimum, and nothing added at checkout.',
+            // '0' rather than '' so the Google feed states a rate of zero,
+            // which is now true, instead of omitting the rate entirely.
+            'cost'  => '0',
+            'free'  => true,
+        );
+    } elseif ($cost !== '') {
+        $out = array(
+            'label' => 'Shipping Throughout the USA',
+            'short' => 'Shipping ' . $cost . ' throughout the USA',
+            'blurb' => 'Delivered anywhere in the USA — shipping ' . $cost . ', shown before you pay.',
+            'cost'  => $cost,
+            'free'  => false,
+        );
+    } else {
+        $out = array(
+            'label' => 'Shipping Throughout the USA',
+            'short' => 'Shipping cost shown at checkout',
+            'blurb' => 'Delivered anywhere in the USA — shipping cost is shown at checkout before you pay.',
+            'cost'  => '',
+            'free'  => false,
+        );
+    }
+    return apply_filters('af_shipping_copy', $out);
 }
 
 /**
@@ -9966,6 +10005,9 @@ add_shortcode('af_delivery_checker', function() {
 </div>
 <script>
 (function(){
+  // The one shipping claim, from af_shipping_copy(), so this checker says the
+  // same thing as the trust badge, the ticker, the FAQ and the chatbot.
+  var AF_SHIP = <?php echo wp_json_encode(af_shipping_copy()); ?>;
   var input = document.getElementById('afZip'),
       btn   = document.getElementById('afZipBtn'),
       out   = document.getElementById('afZipResult');
@@ -10000,10 +10042,24 @@ add_shortcode('af_delivery_checker', function() {
         today = new Date(),
         early = addBiz(addBiz(today, 3), 5),   // fastest: 3d production + 5d transit
         late  = addBiz(addBiz(today, 5), 10);  // slowest: 5d production + 10d transit
+    var arrival = 'Order today and your artwork should arrive between <b>' +
+                  fmt(early) + '</b> and <b>' + fmt(late) + '</b>.';
+    // The policy, not a guess. This checker promised "Free delivery" only to
+    // ZIPs whose prefix it recognised and "calculated at checkout" to the rest
+    // — the same split claim that made the trust badge and its own popup
+    // contradict each other before. Both branches now read AF_SHIP, so if
+    // shipping is free it is free for every US ZIP, recognised or not, and if
+    // it ever stops being free neither branch can go on saying otherwise.
     if (st) {
       out.className = 'taf-shipcheck-result ok';
-      out.innerHTML = '<b>🎁 Free delivery to ' + m[1] + ' (' + st + ')!</b><br>' +
-        'Order today and your artwork should arrive between <b>' + fmt(early) + '</b> and <b>' + fmt(late) + '</b>.';
+      out.innerHTML = (AF_SHIP.free
+            ? '<b>🎁 Free delivery to ' + m[1] + ' (' + st + ')!</b><br>'
+            : '<b>🚚 We deliver to ' + m[1] + ' (' + st + ').</b> ' + AF_SHIP.short + '<br>')
+        + arrival;
+    } else if (AF_SHIP.free) {
+      // A valid US ZIP whose prefix this table does not carry. Free is free.
+      out.className = 'taf-shipcheck-result ok';
+      out.innerHTML = '<b>🎁 Free delivery to ' + m[1] + '.</b><br>' + arrival;
     } else {
       out.className = 'taf-shipcheck-result mid';
       out.innerHTML = '<b>🚚 We deliver to ' + m[1] + '.</b> Shipping is calculated at checkout based on artwork size.<br>' +
@@ -12587,6 +12643,12 @@ function af_offer_shipping_details() {
     // charges for shipping is a false free-shipping claim in Merchant results,
     // which is a policy problem as well as a factual one. With no rate
     // configured the amount is omitted rather than guessed at.
+    //
+    // Under the free policy the cost is the string "0", so Google is told a
+    // rate of zero — which is what the shop now actually does, and what makes
+    // the listings eligible for free-shipping treatment. The number still
+    // comes from the same one source as every visible badge, so the feed and
+    // the page cannot say different things.
     $cost = function_exists('af_shipping_copy') ? af_shipping_copy()['cost'] : '';
     $num  = ($cost !== '' && preg_match('/[\d.]+/', $cost, $m)) ? $m[0] : '';
     $rate = ($num !== '')
