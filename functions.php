@@ -12448,14 +12448,24 @@ add_shortcode('af_video_testimonials', function() {
 
    Written against the theme's and plugin's own class names rather than
    Elementor's hashed element ids, which change whenever someone edits the
-   header in Elementor. Scoped to 767px and under: this row is the mobile
-   header, and the desktop one is a different container entirely.
+   header in Elementor.
+
+   The breakpoint is 880px, and it is measured rather than chosen. This header
+   has two containers and the site swaps between them: the mobile row carries
+   elementor-hidden-desktop + elementor-hidden-laptop, and the wide one carries
+   elementor-hidden-mobile_extra — and Elementor's mobile_extra breakpoint is
+   880px. Measured at 900px, the mobile row is not rendered at all and the wide
+   container is the one on the page. So the mobile row is live from 880px down,
+   and capping these rules at 767px left the 768-880 band — a small tablet, a
+   split-screen window, a phone held sideways — showing the unstyled, wrapping
+   bar. Above 880px this row is display:none and nothing here can reach the
+   wide header.
    ───────────────────────────────────────────────────────────── */
 add_action('wp_head', function () {
     if (is_admin()) return;
     ?>
 <style id="af-header-phone">
-@media (max-width: 767px) {
+@media (max-width: 880px) {
   /* the bar never becomes two bars */
   header#masthead .elementor-element:has(> .mobile_navbar_inline_items) {
     flex-wrap: nowrap !important;
