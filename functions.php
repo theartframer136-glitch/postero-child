@@ -12529,6 +12529,47 @@ add_action('wp_head', function () {
   /* and the dropdown widget stretched to 398px with its container */
   header#masthead .mobile_navbar_menu_dropdown { width: auto !important; }
 
+  /* ── Everything above targets the MOBILE row by name. This block does not.
+     ─────────────────────────────────────────────────────────────────────
+     There are two headers in this document and only one is displayed. Every
+     measurement I can take says the mobile row is the one rendering and that
+     it is now a single line — and the owner is still looking at a stacked
+     bar. I cannot see their browser, so rather than keep asserting which
+     container they are getting, this makes the answer the same either way.
+
+     For ANY header container at this width: nothing wraps, nothing is wider
+     than the screen, and nothing carrying the logo, the currency or the cart
+     is allowed to be a column. The wide header needs this regardless — at
+     900px it lays out 1052px of content in a 900px viewport and its own logo
+     widget measures 0x0. */
+  header#masthead .e-con,
+  header#masthead .e-con-inner,
+  header#masthead .elementor-element {
+    max-width: 100% !important;
+  }
+  header#masthead .e-con,
+  header#masthead .e-con-inner {
+    flex-wrap: nowrap !important;
+  }
+  /* any flex box in this header that holds one of the three things the owner
+     named — logo, currency, cart — lays them out side by side */
+  header#masthead .elementor-element:has(> .elementor-widget-site-logo),
+  header#masthead .elementor-element:has(> .postero-woocs-action-hover),
+  header#masthead .elementor-element:has(> .elementor-widget-postero-header-group),
+  header#masthead .elementor-element:has(> .postero-woocs-action-hover) ,
+  header#masthead .e-con:has(.elementor-widget-postero-header-group) {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+  }
+  /* and none of them may be pinned to a width that forces a break */
+  header#masthead .elementor-widget-site-logo,
+  header#masthead .postero-woocs-action-hover,
+  header#masthead .elementor-widget-postero-header-group {
+    width: auto !important;
+    flex: 0 0 auto !important;
+  }
+
   /* a fingertip's worth of everything that is pressed */
   header#masthead .hfe-menu-item-space-between,
   header#masthead .mobile_navbar_menu_dropdown,

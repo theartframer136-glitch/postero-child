@@ -24,6 +24,10 @@ on:
         description: 'Page to measure'
         type: string
         default: 'https://theartframer.us/'
+      ua:
+        description: 'Which browser to pretend to be: android or desktop'
+        type: string
+        default: 'android'
 
 jobs:
   header:
@@ -40,7 +44,16 @@ jobs:
           const URL = process.env.U || 'https://theartframer.us/';
           // the same UA tools/headless-mobile.js uses: this site's crawl guard
           // redirects requests that do not look like a browser
-          const UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36';
+          /* The owner tests in desktop Chrome's responsive mode, which keeps a
+             DESKTOP user agent while narrowing the viewport. This site does
+             server-side device detection (the body carries wvs-mobile, and
+             there is a tools/test-device-detect.php), so a desktop agent at
+             390px can be served different markup from a real phone. Measuring
+             only with an Android agent cannot see that difference — which is
+             the most likely reason my numbers and the owner's screen disagree. */
+          const UA = (process.env.UA || 'android') === 'desktop'
+            ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
+            : 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36';
 
           /* One question per width: are the header's items on one line, and if
              not, which container is stacking them. Everything else is noise. */
@@ -86,7 +99,10 @@ jobs:
             const inline = head.querySelector('.mobile_navbar_inline_items');
             const inlineCs = inline && vis(inline) ? getComputedStyle(inline) : null;
 
+            const visRow = Array.from(head.querySelectorAll('.e-con, .elementor-element'))
+              .filter(vis).filter((el) => el.getBoundingClientRect().width > vw * 0.8)[0];
             return {
+              which: visRow ? (String(visRow.className).match(/elementor-element-\w+/) || ['?'])[0] : '?',
               headerH: Math.round(head.getBoundingClientRect().height),
               rowDir: row ? getComputedStyle(row).flexDirection + '/' + getComputedStyle(row).flexWrap : 'none',
               inlineDir: inlineCs ? inlineCs.flexDirection : 'not rendered',
@@ -99,7 +115,7 @@ jobs:
           (async () => {
             const b = await puppeteer.launch({ channel: 'chrome', headless: 'new',
               args: ['--no-sandbox', '--disable-dev-shm-usage'] });
-            console.log('URL ' + URL);
+            console.log('URL ' + URL + '   agent=' + (process.env.UA || 'android'));
             console.log('');
             for (const w of WIDTHS) {
               const p = await b.newPage();
@@ -114,7 +130,7 @@ jobs:
                          : o.oneLine ? 'ONE LINE (spread ' + o.spread + 'px)'
                          : '*** STACKED *** (spread ' + o.spread + 'px)';
                 console.log(String(w).padStart(4) + 'px  header ' + String(o.headerH).padStart(3) + 'px  ' + line
-                  + '   row=' + o.rowDir + '  inline-items=' + o.inlineDir
+                  + '   container=' + o.which + '  row=' + o.rowDir + '  inline-items=' + o.inlineDir
                   + (o.scroll ? '  ' + o.scroll : '')
                   + (o.tiny.length ? '  under40: ' + o.tiny.join(', ') : ''));
                 console.log('        ' + o.boxes.map((x) => x.n + ' x' + x.x + ' y' + x.y + ' ' + x.w + 'x' + x.h).join('  |  '));
@@ -126,5 +142,5 @@ jobs:
             await b.close();
           })();
           JS
-          W="${{ github.event.inputs.width }}" U="${{ github.event.inputs.url }}" \
+          W="${{ github.event.inputs.width }}" U="${{ github.event.inputs.url }}" UA="${{ github.event.inputs.ua }}" \
           NODE_PATH=/tmp/afh/node_modules node /tmp/header.js || true
