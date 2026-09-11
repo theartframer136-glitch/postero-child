@@ -103,3 +103,106 @@ add_action('template_redirect', function () {
     if (function_exists('wp_is_json_request') && wp_is_json_request()) return;
     ob_start('af_demo_filter_page');
 }, 1);
+
+/**
+ * The net the output buffer cannot cast.
+ *
+ * 2026-09-11. The owner tapped "Shop" on the live site and landed on
+ * demo2wpopal.b-cdn.net/postero/shop/ — which now serves Bunny CDN's "Domain
+ * suspended or not configured" page — a day AFTER the buffer guard above
+ * shipped and deployed cleanly. The module was loaded, the rewrite was
+ * correct, and the link still pointed at the demo store.
+ *
+ * That combination only has one explanation: the link is not in the HTML the
+ * server sends. The parent theme builds that bar in its own JavaScript, from
+ * its own options, after the page has arrived. An output buffer runs on the
+ * server, before any of that happens, so it cannot see the link and no amount
+ * of improving it ever will.
+ *
+ * So the guard has to run where the link actually appears: in the browser, on
+ * the finished DOM.
+ *
+ *   sweep        every href/action already in the document
+ *   observe      anything added or changed afterwards, which is the case that
+ *                matters here — the bar is built late
+ *   click        the last word. Even a link written a millisecond before the
+ *                tap is corrected in the capture phase, before the browser
+ *                begins navigating.
+ *
+ * The buffer above still runs and still does the bulk of the work on ordinary
+ * server-rendered markup. This covers what it structurally cannot.
+ */
+add_action('wp_footer', 'af_demo_dom_net', 99);
+function af_demo_dom_net() {
+    if (is_admin()) return;
+    $hosts = array_values(af_demo_hosts());
+    $home  = rtrim(home_url(), '/');
+    ?>
+<script id="af-demo-guard">
+(function () {
+  var HOSTS = <?php echo wp_json_encode($hosts); ?>;
+  var HOME  = <?php echo wp_json_encode($home); ?>;
+
+  // The same rule the PHP side enforces: the match must END at a host
+  // boundary. Without the lookahead "demo2wpopal.b-cdn.net.evil.test" — a
+  // lookalike that merely starts with ours — would be rewritten into
+  // "theartframer.us.evil.test", which is still someone else's domain wearing
+  // our name. In an attribute the URL is the whole string, so end-of-string
+  // counts as a boundary too.
+  var RE = [];
+  for (var h = 0; h < HOSTS.length; h++) {
+    RE.push(new RegExp('(?:https?:)?//' + HOSTS[h].replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=[/?#]|$)', 'i'));
+  }
+
+  function fix(url) {
+    if (!url) return url;
+    for (var i = 0; i < RE.length; i++) {
+      if (RE[i].test(url)) return url.replace(RE[i], HOME);
+    }
+    return url;
+  }
+
+  /** Correct one element in place. Returns true if it had to. */
+  function mend(el) {
+    if (!el || el.nodeType !== 1) return false;
+    var attr = el.tagName === 'FORM' ? 'action' : 'href';
+    if (!el.hasAttribute || !el.hasAttribute(attr)) return false;
+    var was = el.getAttribute(attr), now = fix(was);
+    if (now === was) return false;
+    el.setAttribute(attr, now);
+    return true;
+  }
+
+  function sweep(root) {
+    if (!root || root.nodeType !== 1) return;
+    mend(root);                                   // querySelectorAll skips the root itself
+    var found = root.querySelectorAll('a[href],area[href],form[action]');
+    for (var i = 0; i < found.length; i++) mend(found[i]);
+  }
+
+  sweep(document.documentElement);
+
+  // The bar is built after this script runs, so watching is the whole point.
+  if (window.MutationObserver) {
+    new MutationObserver(function (recs) {
+      for (var i = 0; i < recs.length; i++) {
+        var r = recs[i];
+        if (r.type === 'attributes') { mend(r.target); continue; }
+        for (var j = 0; j < r.addedNodes.length; j++) sweep(r.addedNodes[j]);
+      }
+    }).observe(document.documentElement, {
+      childList: true, subtree: true, attributes: true, attributeFilter: ['href', 'action']
+    });
+  }
+
+  // Capture phase: this runs before any handler the theme attached, and before
+  // the browser starts navigating. Whatever wrote the href, the tap lands here.
+  document.addEventListener('click', function (e) {
+    var el = e.target;
+    while (el && el.nodeType === 1 && el.tagName !== 'A') el = el.parentNode;
+    if (el && el.nodeType === 1) mend(el);
+  }, true);
+})();
+</script>
+    <?php
+}
