@@ -12499,7 +12499,11 @@ add_action('wp_footer', function () {
     }
     return null;
   }
-  function childOf(row, el){ while (el && el.parentElement !== row) el = el.parentElement; return el; }
+  function childOf(row, el){
+    var start = el;
+    while (el && el.parentElement !== row) el = el.parentElement;
+    return el || start;   // a collapsed chain leaves the item itself in the row
+  }
   function mid(el){ var r = el.getBoundingClientRect(); return r.top + r.height / 2; }
 
   function layout(){
@@ -12559,22 +12563,53 @@ add_action('wp_footer', function () {
        the currency above the cart no matter what the row says. Walk each
        item's chain up to the row and make the whole chain a row that sizes to
        its contents. */
+    /* Forcing each wrapper to be a row was still not enough, so stop trying to
+       make the wrappers behave and take them out of the layout altogether.
+       display:contents makes an element generate no box at all: its children
+       are laid out by ITS parent. Collapse the chain between the row and each
+       item and the four controls become flex children of the row directly,
+       with nothing left in between that could put them on separate lines.
+
+       A wrapper is only collapsed when the item's subtree is the ONLY visible
+       thing in it. The menu toggle's wrapper, for one, also holds the entire
+       flyout navigation; collapsing that would spill the menu into the bar.
+       Where there are other visible children the wrapper stays a box and is
+       merely forced into a row. */
+    function visChildren(el){
+      return Array.prototype.filter.call(el.children, vis);
+    }
     items.forEach(function(it){
-      var el = it;
+      var el = it.parentElement;
       while (el && el !== row) {
-        sp(el, 'display', getComputedStyle(el).display === 'inline' ? 'inline-flex' : 'flex');
-        sp(el, 'flex-direction', 'row');
-        sp(el, 'flex-wrap', 'nowrap');
-        sp(el, 'align-items', 'center');
-        sp(el, 'float', 'none');
-        sp(el, 'width', 'auto');
-        sp(el, 'max-width', 'none');
-        sp(el, 'min-width', '0');
-        sp(el, 'flex', '0 0 auto');
-        sp(el, 'clear', 'none');
+        var kidsHere = visChildren(el);
+        if (kidsHere.length === 1) {
+          sp(el, 'display', 'contents');
+        } else {
+          sp(el, 'display', 'flex');
+          sp(el, 'flex-direction', 'row');
+          sp(el, 'flex-wrap', 'nowrap');
+          sp(el, 'align-items', 'center');
+          sp(el, 'float', 'none');
+          sp(el, 'width', 'auto');
+          sp(el, 'max-width', 'none');
+          sp(el, 'min-width', '0');
+          sp(el, 'flex', '0 0 auto');
+          sp(el, 'clear', 'none');
+        }
         el = el.parentElement;
       }
+      /* the item itself never collapses — it is the thing being laid out */
+      sp(it, 'flex', '0 0 auto');
+      sp(it, 'float', 'none');
+      sp(it, 'max-width', 'none');
     });
+
+    /* Collapsing wrappers can make the row's child list change under us, so
+       state the row's own layout again afterwards. */
+    sp(row, 'display', 'flex');
+    sp(row, 'flex-direction', 'row');
+    sp(row, 'flex-wrap', 'nowrap');
+    sp(row, 'align-items', 'center');
 
     // the logo is the one thing that may give way
     var logoKid = logo ? childOf(row, logo) : null;
