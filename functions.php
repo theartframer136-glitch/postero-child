@@ -12617,13 +12617,43 @@ add_action('wp_footer', function () {
     var img = logo ? logo.querySelector('img') : null;
     if (img) { sp(img, 'max-width', '100%'); sp(img, 'height', 'auto'); sp(img, 'width', 'auto'); sp(img, 'max-height', '44px'); }
 
-    // everything to the right of the logo travels together against the right edge
-    var afterLogo = false, firstRight = null;
-    kids.forEach(function(k){
-      if (afterLogo && !firstRight) firstRight = k;
-      if (k === logoKid) afterLogo = true;
-    });
-    if (firstRight) sp(firstRight, 'margin-left', 'auto');
+    /* ── Spacing ────────────────────────────────────────────────────────
+       Stated on whichever element actually generates a box. Collapsing the
+       wrappers fixed the stacking but took their margins with them, which is
+       why the currency and the cart ended up touching. A margin on a
+       display:contents element does nothing, so walk up from each control and
+       spend the spacing on the outermost ancestor that is still a real box —
+       or on the control itself when the whole chain has been collapsed. */
+    function boxFor(item){
+      var el = item, last = item;
+      while (el && el !== row) {
+        if (getComputedStyle(el).display !== 'contents') last = el;
+        el = el.parentElement;
+      }
+      return last;
+    }
+
+    sp(row, 'gap', '0');                 // spacing is stated per item, below
+    sp(row, 'padding-top', '6px');
+    sp(row, 'padding-bottom', '6px');
+
+    var bBox = burger   ? boxFor(burger)   : null;
+    var lBox = logo     ? boxFor(logo)     : null;
+    var cBox = currency ? boxFor(currency) : null;
+    var kBox = cart     ? boxFor(cart)     : null;
+
+    if (bBox) sp(bBox, 'margin', '0 10px 0 0');
+    /* the logo takes the slack, which puts the two controls against the right
+       edge without needing an auto margin on something that may be boxless */
+    if (lBox) sp(lBox, 'margin', '0 auto 0 0');
+    if (cBox) sp(cBox, 'margin', '0 14px 0 0');
+    if (kBox) sp(kBox, 'margin', '0');
+
+    // the logo sits to the bar's height, not the other way round
+    if (img) sp(img, 'max-height', '40px');
+
+    // "$ USD" and its chevron, and the cart's icon and count, get a little air
+    [currency, cart].forEach(function(el){ if (el) sp(el, 'gap', '5px'); });
 
     /* Inside the CURRENCY and CART only. Deliberately not inside the menu
        toggle: the flyout navigation's whole markup lives in there, hidden,
@@ -12666,7 +12696,7 @@ add_action('wp_footer', function () {
        rows. Making the header worse is not an acceptable outcome of failing
        to fix it. */
     function spreadNow(){ var m = items.map(mid); return Math.max.apply(null, m) - Math.min.apply(null, m); }
-    var before = spreadNow(), maxH = 44;
+    var before = spreadNow(), maxH = 40;
     for (var pass = 0; pass < 3; pass++) {
       var over = row.scrollWidth > row.clientWidth + 1;
       if (before <= 10 && !over) break;
@@ -12925,6 +12955,31 @@ add_action('wp_head', function () {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
+  }
+
+  /* The bar's own proportions. 14px gutters so nothing sits against the glass,
+     a 60px bar, and type that reads at arm's length — the currency was 12px,
+     which is this site's floor and looks undersized next to a 40px logo. */
+  header#masthead .elementor-element:has(> .mobile_navbar_inline_items) {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    min-height: 60px !important;
+  }
+  header#masthead .postero-woocs-action-hover,
+  header#masthead .postero-woocs-action-hover span {
+    font-size: 13px !important;
+    letter-spacing: .01em !important;
+  }
+  header#masthead .site-header-cart .count,
+  header#masthead .elementor-header-group-wrapper .count {
+    font-size: 13px !important;
+    margin-left: 4px !important;
+  }
+  header#masthead .elementor-widget-site-logo img,
+  header#masthead .hfe-site-logo-img {
+    max-height: 40px !important;
+    width: auto !important;
+    height: auto !important;
   }
   /* the hamburger's widget box pushed it down with 14px of top padding; the
      row centres it now, so that offset only makes it sit low */
