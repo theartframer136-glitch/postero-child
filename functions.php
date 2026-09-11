@@ -12449,6 +12449,190 @@ add_action('template_redirect', function () {
 }, 1);
 
 /* ─────────────────────────────────────────────────────────────
+   The header bar, laid out by script, because the markup is not ours.
+
+   The CSS below this has been photographed working: signed out, empty cart,
+   and signed out with five items, at 390px, one line. The owner is SIGNED IN,
+   and their bar still stacks. A signed-in visitor gets a different header
+   group from the parent theme, and WooCommerce then replaces the cart's
+   markup again by AJAX after the page loads. I cannot sign in from a test
+   runner and I have not been given that markup, so this stops guessing at
+   selectors.
+
+   At phone width the script finds the four things a shopper sees — the menu
+   toggle, the logo, the currency and the cart — wherever they are, finds the
+   one container they all share, and lays that container out itself: one row,
+   never wrapping, logo the only thing that gives way, controls on the right.
+   Inline !important, which nothing in a stylesheet can override. Then it
+   measures its own result and, if the four are still not on one line, shrinks
+   the logo until they are. It runs again on resize and whenever the header's
+   markup changes, which is what the cart fragment refresh does.
+
+   It also prints what it found to the console, so a screenshot of that panel
+   answers the next question without another round of guessing.
+   ───────────────────────────────────────────────────────────── */
+add_action('wp_footer', function () {
+    if (is_admin()) return;
+    ?>
+<script id="af-header-row">
+(function(){
+  var MAXW = 880;
+  function sp(el, p, v){ el.style.setProperty(p, v, 'important'); }
+  function vis(el){
+    if (!el) return false;
+    var cs = getComputedStyle(el), r = el.getBoundingClientRect();
+    return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0;
+  }
+  function firstVisible(root, sel){
+    var all = root.querySelectorAll(sel);
+    for (var i = 0; i < all.length; i++) if (vis(all[i])) return all[i];
+    return null;
+  }
+  function ancestors(el){ var a = []; while (el && el !== document.body){ a.push(el); el = el.parentElement; } return a; }
+  function commonAncestor(els){
+    var chains = els.map(ancestors);
+    var first = chains[0];
+    for (var i = 0; i < first.length; i++){
+      var cand = first[i], ok = true;
+      for (var j = 1; j < chains.length; j++) if (chains[j].indexOf(cand) === -1) { ok = false; break; }
+      if (ok) return cand;
+    }
+    return null;
+  }
+  function childOf(row, el){ while (el && el.parentElement !== row) el = el.parentElement; return el; }
+  function mid(el){ var r = el.getBoundingClientRect(); return r.top + r.height / 2; }
+
+  function layout(){
+    var head = document.getElementById('masthead') || document.querySelector('header');
+    if (!head) return;
+    if (window.innerWidth > MAXW) return;
+
+    var burger   = firstVisible(head, '.hfe-nav-menu__toggle, .hfe-menu-item-space-between, [class*="menu-toggle"], [class*="hamburger"]');
+    var logo     = firstVisible(head, '.elementor-widget-site-logo, .hfe-site-logo, .site-logo, [class*="site-logo"]');
+    var currency = firstVisible(head, '.postero-woocs-action-hover, [class*="woocs"], [class*="currency"]');
+    var cart     = firstVisible(head, '.site-header-cart, .elementor-widget-postero-header-group, [class*="header-cart"], [class*="cart-contents"]');
+    var items = [burger, logo, currency, cart].filter(Boolean);
+    if (items.length < 2) return;
+
+    var row = commonAncestor(items);
+    if (!row || row === head) { row = items[0].parentElement; }
+
+    // the row: one line, edge to edge, nothing wraps
+    sp(row, 'display', 'flex');
+    sp(row, 'flex-direction', 'row');
+    sp(row, 'flex-wrap', 'nowrap');
+    sp(row, 'align-items', 'center');
+    sp(row, 'justify-content', 'flex-start');
+    sp(row, 'gap', '6px');
+    sp(row, 'width', '100%');
+    sp(row, 'max-width', '100%');
+    sp(row, 'box-sizing', 'border-box');
+    sp(row, 'padding-left', '12px');
+    sp(row, 'padding-right', '12px');
+    sp(row, 'min-height', '60px');
+
+    // its direct children: size to content, never a fixed width, never a column
+    var kids = Array.prototype.slice.call(row.children);
+    kids.forEach(function(k){
+      sp(k, 'display', 'flex');
+      sp(k, 'flex-direction', 'row');
+      sp(k, 'flex-wrap', 'nowrap');
+      sp(k, 'align-items', 'center');
+      sp(k, 'flex', '0 0 auto');
+      sp(k, 'width', 'auto');
+      sp(k, 'max-width', 'none');
+      sp(k, 'min-width', '0');
+      sp(k, 'float', 'none');
+      var kcs = getComputedStyle(k);
+      if (kcs.position === 'absolute' || kcs.position === 'fixed') {
+        sp(k, 'position', 'relative');
+        sp(k, 'left', 'auto'); sp(k, 'right', 'auto'); sp(k, 'top', 'auto');
+      }
+      sp(k, 'margin', '0');
+      sp(k, 'padding-left', '0'); sp(k, 'padding-right', '0');
+    });
+
+    // the logo is the one thing that may give way
+    var logoKid = logo ? childOf(row, logo) : null;
+    if (logoKid) { sp(logoKid, 'flex', '0 1 auto'); sp(logoKid, 'min-width', '0'); sp(logoKid, 'overflow', 'hidden'); }
+    var img = logo ? logo.querySelector('img') : null;
+    if (img) { sp(img, 'max-width', '100%'); sp(img, 'height', 'auto'); sp(img, 'width', 'auto'); sp(img, 'max-height', '44px'); }
+
+    // everything to the right of the logo travels together against the right edge
+    var afterLogo = false, firstRight = null;
+    kids.forEach(function(k){
+      if (afterLogo && !firstRight) firstRight = k;
+      if (k === logoKid) afterLogo = true;
+    });
+    if (firstRight) sp(firstRight, 'margin-left', 'auto');
+
+    /* Inside the CURRENCY and CART only. Deliberately not inside the menu
+       toggle: the flyout navigation's whole markup lives in there, hidden,
+       and forcing rows and nowrap onto a hidden menu would mangle it the
+       moment someone opened it. Nothing below touches an element that is not
+       currently visible, that sits inside a nav or a submenu, or that is
+       positioned out of flow — those are dropdown panels and they stay
+       dropdowns. */
+    var SKIP = /sub-menu|widget_shopping_cart|dropdown-menu|af-cty-menu|nav-menu|flyout|mini-cart|cart-side/i;
+    [currency, cart].forEach(function(box){
+      if (!box) return;
+      var scope = childOf(row, box) || box;
+      scope.querySelectorAll('*').forEach(function(el){
+        if (!vis(el)) return;
+        if (el.closest('nav, .sub-menu, [class*="nav-menu"], [class*="flyout"], [class*="widget_shopping_cart"]')) return;
+        var cls = (typeof el.className === 'string') ? el.className : '';
+        if (SKIP.test(cls)) return;
+        var cs = getComputedStyle(el);
+        if (cs.position === 'absolute' || cs.position === 'fixed') return;
+        if (cs.display.indexOf('flex') !== -1) { sp(el, 'flex-direction', 'row'); sp(el, 'flex-wrap', 'nowrap'); sp(el, 'align-items', 'center'); }
+        else if (cs.display === 'block' && el.children.length) { sp(el, 'display', 'flex'); sp(el, 'flex-direction', 'row'); sp(el, 'align-items', 'center'); }
+        else if (cs.display === 'list-item') { sp(el, 'display', 'inline-flex'); sp(el, 'align-items', 'center'); }
+        if (cs.float !== 'none') sp(el, 'float', 'none');
+        if (/px$/.test(cs.width) && el.tagName !== 'IMG' && el.tagName !== 'SVG') sp(el, 'width', 'auto');
+        sp(el, 'white-space', 'nowrap');
+        sp(el, 'margin-left', '0'); sp(el, 'margin-right', '0');
+      });
+    });
+    // the currency and the cart are each a real target, and a fingertip's worth
+    [currency, cart, burger].forEach(function(el){ if (el) { sp(el, 'min-height', '40px'); sp(el, 'min-width', '40px'); sp(el, 'display', 'inline-flex'); sp(el, 'align-items', 'center'); sp(el, 'justify-content', 'center'); } });
+
+    // measure the result; if a line broke anyway, shrink the logo until it does not
+    var pass = 0, maxH = 44;
+    while (pass++ < 4) {
+      var mids = items.map(mid), spread = Math.max.apply(null, mids) - Math.min.apply(null, mids);
+      var over = row.scrollWidth > row.clientWidth + 1;
+      if (spread <= 10 && !over) break;
+      maxH -= 8;
+      if (img) sp(img, 'max-height', maxH + 'px');
+      sp(row, 'gap', '4px');
+    }
+
+    // say what happened, so a screenshot of the console is enough
+    try {
+      var report = items.map(function(el){ var r = el.getBoundingClientRect(); return (el.className || el.tagName).toString().split(' ')[0] + ' y' + Math.round(r.top) + ' x' + Math.round(r.left) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height); });
+      console.log('[af-header-row] ' + window.innerWidth + 'px, row=' + (row.className || row.tagName).toString().split(' ').slice(0,3).join('.') + ' :: ' + report.join(' | '));
+    } catch (e) {}
+  }
+
+  function run(){ try { layout(); } catch (e) { try { console.log('[af-header-row] failed: ' + e.message); } catch (_) {} } }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run); else run();
+  window.addEventListener('load', run);
+  [400, 1200, 2500].forEach(function(d){ setTimeout(run, d); });
+  var t = null;
+  window.addEventListener('resize', function(){ clearTimeout(t); t = setTimeout(run, 150); });
+  // WooCommerce swaps the cart's markup in by AJAX after load; lay it out again
+  document.body.addEventListener('wc_fragments_refreshed', run);
+  document.body.addEventListener('wc_fragments_loaded', run);
+  try {
+    var head = document.getElementById('masthead');
+    if (head) new MutationObserver(function(){ clearTimeout(t); t = setTimeout(run, 120); }).observe(head, { childList: true, subtree: true });
+  } catch (e) {}
+})();
+</script>
+    <?php
+}, 210);
+
+/* ─────────────────────────────────────────────────────────────
    The header, on a phone.
 
    Measured on the live site at 390px (Check Header, run 1). header#masthead is
