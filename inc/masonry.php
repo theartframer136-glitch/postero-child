@@ -22,6 +22,23 @@ add_action('wp_footer', function() {
     /* masonry mode: rows become a fine grid and each card spans what it needs */
     ul.products.af-masonry{display:grid !important;grid-auto-rows:8px !important;align-items:start !important;}
     ul.products.af-masonry li.product{height:auto !important;margin-bottom:0 !important;}
+    /* Phones. These buttons measure 32px tall — 8px of padding either side of
+       a 12px line — against the ~40px a fingertip wants, and the toggle's 10px
+       left margin pushed the pair out of line with the toolbar it belongs to
+       once that toolbar stacked. Both are phone-only; the desktop pair is
+       beside a result count and is left as it is. */
+    @media(max-width:600px){
+      /* flex-shrink:0 because this pair sits in a flex toolbar and carries
+         overflow:hidden, which zeroes its automatic minimum size — left to
+         shrink it would amputate the labels rather than wrap. !important
+         because the parent theme sets a global button padding of 14px 40px
+         that this codebase already documents as needing it (see the note on
+         .af-qp-btn in functions.php). */
+      .af-layout-toggle{margin:0 0 12px !important;flex:0 0 auto !important;}
+      .af-layout-toggle button{padding:0 14px !important;min-height:40px !important;
+        font-size:12px !important;white-space:nowrap !important;}
+      .af-layout-toggle svg{width:13px;height:13px;}
+    }
     </style>
     <script>
     (function(){

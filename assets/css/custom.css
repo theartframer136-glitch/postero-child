@@ -1621,7 +1621,21 @@ body.woocommerce-page ul.products li.product .woocommerce-loop-product__title {
   line-height: 1.45 !important;
   padding: 13px 16px 3px !important;
   margin: 0 !important;
-  height: 56px !important;
+  /* Exactly two line boxes plus the padding, not a round 56px. Two lines of
+     13.5px at 1.45 measure 39.15px, and 13 + 3 of padding makes 55.15 — so a
+     flat 56px left 0.85px of slack inside the box.
+
+     That slack is not harmless. Rendered in Chrome and counted by pixel row:
+     a clamped -webkit-box 2.75px taller than its two lines paints THREE bands
+     of ink — two full lines and a 3px strip of the next one, sliced through
+     the middle — while the same box sized to its lines exactly paints two and
+     stops. The clamp ellipsises the second line either way, which is why the
+     cards showed "Portrait Canva…" with a sliver of "Wall Art 3x4" cut in half
+     underneath it.
+
+     em resolves against this element's own font-size, so the sum stays exact
+     at whatever size a breakpoint sets. */
+  height: calc(2 * 1.45em + 16px) !important;
   overflow: hidden !important;
   display: -webkit-box !important;
   -webkit-line-clamp: 2 !important;
@@ -1774,7 +1788,10 @@ html body .discount { color: #4caf2f !important; font-weight: 600 !important; }
   body.woocommerce-page ul.products li.product .woocommerce-loop-product__title {
     font-size: 12.5px !important;
     padding: 10px 10px 3px !important;
-    height: 52px !important;
+    /* the same sum at the phone's type size: 2 x 12.5 x 1.45 = 36.25, plus
+       10 + 3 = 49.25. The flat 52px here left 2.75px — the widest leak of the
+       two, and the one a shopper on a phone was actually looking at. */
+    height: calc(2 * 1.45em + 13px) !important;
   }
   body.tax-product_cat ul.products li.product .price,
   body.woocommerce-page ul.products li.product .price { padding: 2px 12px 12px !important; }
@@ -2049,6 +2066,20 @@ body:has(.taf-page) .site-main{max-width:none;}
 #afCmpBar .af-cmp-go{background:#c9a84c;color:#141414;font-weight:800;text-decoration:none;padding:9px 20px;border-radius:22px;}
 #afCmpBar .af-cmp-go:hover{background:#dcb85a;}
 #afCmpBar .af-cmp-clear{background:none;border:none;color:#999;cursor:pointer;font-size:13px;text-decoration:underline;}
+/* The compare bar is the one piece of fixed furniture on this site that never
+   got the bottom-bar treatment. bottom:18px puts it squarely inside the band
+   the fixed bottom navigation occupies on a phone, so the bar a shopper has
+   just filled sits behind the navigation and its Compare button cannot be
+   pressed. It now clears the bar at the same height as the chat launcher and
+   the quick panel, and is allowed to be as wide as the screen minus a gutter
+   rather than keeping a desktop pill's padding at 360px. */
+@media(max-width:600px){
+  #afCmpBar{bottom:calc(72px + env(safe-area-inset-bottom,0px));gap:10px;padding:11px 14px;
+    font-size:13px;max-width:calc(100vw - 20px);box-sizing:border-box;flex-wrap:wrap;
+    justify-content:center;text-align:center;}
+  #afCmpBar .af-cmp-go{padding:11px 16px;min-height:40px;display:inline-flex;align-items:center;}
+  #afCmpBar .af-cmp-clear{min-height:40px;}
+}
 .af-cmp-table td{min-width:150px;}
 .af-cmp-table .af-cmp-rm{padding:9px 16px;font-size:12.5px;cursor:pointer;margin-top:6px;}
 
@@ -2439,9 +2470,14 @@ body.post-type-archive-product ul.products li.product{
   body.tax-product_cat ul.products,
   body.post-type-archive-product ul.products{grid-template-columns:1fr 1fr !important;gap:16px !important;}
 }
+/* Two across on a phone as well, not one. This catalogue runs to hundreds of
+   pieces; one card per screen turns browsing into scrolling. (These three
+   breakpoints are all outscored by the archive grid emitted from functions.php
+   — which is where the live layout is decided — but a rule that contradicts
+   the one that wins is a trap for whoever reads this next.) */
 @media(max-width:520px){
   body.tax-product_cat ul.products,
-  body.post-type-archive-product ul.products{grid-template-columns:1fr !important;}
+  body.post-type-archive-product ul.products{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:12px !important;}
 }
 /* Uniform image height (nested product-block layout doesn't get the JS box) */
 body.tax-product_cat ul.products li.product .product-block .product-transition,
@@ -2478,8 +2514,16 @@ body.post-type-archive-product ul.products li.product .product-transition img,
 body.post-type-archive-product ul.products li.product a.woocommerce-loop-product__link img{
   width:100% !important;height:100% !important;object-fit:cover !important;display:block !important;
 }
+/* This one only ever named .tax-product_cat, so the Shop archive — whose body
+   carries post-type-archive-product, not a category class — never got it and
+   kept the 300px desktop box at every width. On a phone card that is a picture
+   far taller than it is wide. Superseded by the aspect-ratio box in the
+   af-archive-phone block in functions.php, which scores higher and covers both
+   archives; kept here so the two do not disagree. */
 @media(max-width:520px){
-  body.tax-product_cat ul.products li.product .product-transition{height:260px !important;max-height:260px !important;}
+  body.tax-product_cat ul.products li.product .product-transition,
+  body.post-type-archive-product ul.products li.product .product-transition{
+    height:auto !important;max-height:none !important;aspect-ratio:3/4 !important;}
 }
 /* Hover overlay button must not clip ("SELECT OPTI…") */
 body.tax-product_cat ul.products li.product .button,
