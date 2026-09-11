@@ -17,9 +17,9 @@ on:
   workflow_dispatch:
     inputs:
       width:
-        description: 'Viewport width in px'
+        description: 'Viewport widths in px, comma separated'
         type: string
-        default: '390'
+        default: '360,390,414,480,540,600,700,768,820,880'
       url:
         description: 'Page to measure'
         type: string
@@ -36,98 +36,83 @@ jobs:
           npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
           cat > /tmp/header.js <<'JS'
           const puppeteer = require('puppeteer-core');
-          const WIDTH = parseInt(process.env.W || '390', 10);
+          const WIDTHS = (process.env.W || '390').split(',').map((n) => parseInt(n.trim(), 10)).filter(Boolean);
           const URL = process.env.U || 'https://theartframer.us/';
           // the same UA tools/headless-mobile.js uses: this site's crawl guard
-          // redirects requests that do not look like a browser, and a desktop
-          // agent would not be served the mobile layout at all
+          // redirects requests that do not look like a browser
           const UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36';
 
-          function dump(vw) {
-            // the header is whatever visible banner-ish element sits at the very
-            // top of the document and is wider than half the screen
-            const cands = Array.from(document.querySelectorAll(
-              'header, [class*="ehf-header"], [data-elementor-type="header"], .elementor-location-header, #masthead, .site-header'
-            ));
-            let head = null;
-            for (const el of cands) {
-              const r = el.getBoundingClientRect();
+          /* One question per width: are the header's items on one line, and if
+             not, which container is stacking them. Everything else is noise. */
+          function probe(vw) {
+            const head = document.querySelector('header#masthead') || document.querySelector('header');
+            if (!head) return { error: 'no header' };
+            const vis = (el) => {
               const cs = getComputedStyle(el);
-              if (cs.display === 'none' || cs.visibility === 'hidden') continue;
-              if (r.width < vw * 0.5 || r.height < 20) continue;
-              if (r.top > 260) continue;
-              if (!head || r.top < head.getBoundingClientRect().top) head = el;
-            }
-            if (!head) return { error: 'no header found' };
-
-            const name = (el) => {
-              const id = el.id ? '#' + el.id : '';
-              const cls = (typeof el.className === 'string' && el.className)
-                ? '.' + el.className.trim().split(/\s+/).slice(0, 4).join('.') : '';
-              return el.tagName.toLowerCase() + id + cls;
-            };
-
-            const rows = [];
-            const walk = (el, depth) => {
-              if (depth > 7) return;
               const r = el.getBoundingClientRect();
-              const cs = getComputedStyle(el);
-              if (cs.display === 'none') return;
-              const txt = Array.from(el.childNodes)
-                .filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(' ').slice(0, 28);
-              rows.push({
-                d: depth,
-                el: name(el),
-                box: `${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)}`,
-                disp: cs.display + (cs.display.includes('flex') ? ` dir=${cs.flexDirection} wrap=${cs.flexWrap} just=${cs.justifyContent} align=${cs.alignItems} gap=${cs.gap}` : ''),
-                flex: cs.flex !== '0 1 auto' ? cs.flex : '',
-                w: cs.width, mw: cs.maxWidth === 'none' ? '' : cs.maxWidth,
-                pad: cs.padding, mar: cs.margin,
-                fs: cs.fontSize,
-                pos: cs.position !== 'static' ? cs.position : '',
-                over: Math.round(r.right) > vw + 1 ? 'OVERFLOWS' : '',
-                txt,
-              });
-              for (const c of el.children) walk(c, depth + 1);
+              return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0;
             };
-            walk(head, 0);
+            // the row that is actually rendering at this width
+            const rows = Array.from(head.querySelectorAll('.e-con, .elementor-element'))
+              .filter((el) => vis(el) && getComputedStyle(el).display.includes('flex')
+                           && getComputedStyle(el).flexDirection === 'row'
+                           && el.getBoundingClientRect().width > vw * 0.8);
+            const row = rows[0] || null;
 
-            const hr = head.getBoundingClientRect();
+            // the things a shopper sees: burger, logo, currency, cart
+            const pick = (sel) => { const e = head.querySelector(sel); return e && vis(e) ? e : null; };
+            const items = [
+              ['burger',   pick('.hfe-menu-item-space-between, .mobile_navbar_menu_dropdown')],
+              ['logo',     pick('.elementor-widget-site-logo')],
+              ['currency', pick('.postero-woocs-action-hover, [class*="woocs"]')],
+              ['cart',     pick('.elementor-widget-postero-header-group, [class*="header-group"]')],
+            ].filter(([, e]) => e);
+
+            const boxes = items.map(([n, e]) => {
+              const r = e.getBoundingClientRect();
+              return { n, x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) };
+            });
+            // same line = their vertical centres agree within 10px
+            const mids = boxes.map((b) => b.y + b.h / 2);
+            const oneLine = boxes.length > 1 && (Math.max(...mids) - Math.min(...mids) <= 10);
+
+            const inline = head.querySelector('.mobile_navbar_inline_items');
+            const inlineCs = inline && vis(inline) ? getComputedStyle(inline) : null;
+
             return {
-              header: name(head),
-              headerBox: `${Math.round(hr.width)}x${Math.round(hr.height)}`,
-              scrollW: Math.round(document.documentElement.scrollWidth),
-              clientW: Math.round(document.documentElement.clientWidth),
-              rows,
+              headerH: Math.round(head.getBoundingClientRect().height),
+              rowDir: row ? getComputedStyle(row).flexDirection + '/' + getComputedStyle(row).flexWrap : 'none',
+              inlineDir: inlineCs ? inlineCs.flexDirection : 'not rendered',
+              boxes, oneLine,
+              tiny: boxes.filter((b) => Math.min(b.w, b.h) < 40).map((b) => b.n + ' ' + b.w + 'x' + b.h),
+              scroll: Math.round(document.documentElement.scrollWidth) > vw ? 'SIDEWAYS' : '',
             };
           }
 
           (async () => {
-            const b = await puppeteer.launch({
-              channel: 'chrome',
-              headless: 'new',
-              args: ['--no-sandbox', '--disable-dev-shm-usage'],
-            });
-            const p = await b.newPage();
-            await p.setUserAgent(UA);
-            await p.setViewport({ width: WIDTH, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
-            await p.goto(URL, { waitUntil: 'networkidle2', timeout: 90000 });
-            await new Promise((r) => setTimeout(r, 2500));
-            const out = await p.evaluate(dump, WIDTH);
-            if (out.error) { console.log(out.error); await b.close(); return; }
-            console.log(`URL ${URL} at ${WIDTH}px`);
-            console.log(`header ${out.header}  ${out.headerBox}`);
-            console.log(`document scrollWidth ${out.scrollW} vs clientWidth ${out.clientW}`);
+            const b = await puppeteer.launch({ channel: 'chrome', headless: 'new',
+              args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+            console.log('URL ' + URL);
             console.log('');
-            for (const r of out.rows) {
-              console.log(
-                '  '.repeat(r.d) + r.el +
-                '\n' + '  '.repeat(r.d) + '   box ' + r.box + '  ' + r.disp +
-                (r.flex ? '  flex:' + r.flex : '') + (r.w ? '  w:' + r.w : '') + (r.mw ? '  maxw:' + r.mw : '') +
-                '\n' + '  '.repeat(r.d) + '   pad ' + r.pad + '  mar ' + r.mar + '  fs ' + r.fs +
-                (r.pos ? '  ' + r.pos : '') + (r.over ? '  <<< ' + r.over : '') +
-                (r.txt ? '  text "' + r.txt + '"' : '')
-              );
+            for (const w of WIDTHS) {
+              const p = await b.newPage();
+              await p.setUserAgent(UA);
+              await p.setViewport({ width: w, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+              try {
+                await p.goto(URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+                await new Promise((r) => setTimeout(r, 3500));
+                const o = await p.evaluate(probe, w);
+                if (o.error) { console.log(String(w).padStart(4) + 'px  ' + o.error); await p.close(); continue; }
+                const line = o.oneLine ? 'ONE LINE' : '*** STACKED ***';
+                console.log(String(w).padStart(4) + 'px  header ' + String(o.headerH).padStart(3) + 'px  ' + line
+                  + '   row=' + o.rowDir + '  inline-items=' + o.inlineDir
+                  + (o.scroll ? '  ' + o.scroll : '')
+                  + (o.tiny.length ? '  under40: ' + o.tiny.join(', ') : ''));
+                console.log('        ' + o.boxes.map((x) => x.n + ' x' + x.x + ' y' + x.y + ' ' + x.w + 'x' + x.h).join('  |  '));
+              } catch (e) {
+                console.log(String(w).padStart(4) + 'px  LOAD FAILED: ' + String(e.message).slice(0, 60));
+              }
+              await p.close();
             }
             await b.close();
           })();
