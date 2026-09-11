@@ -12552,6 +12552,30 @@ add_action('wp_footer', function () {
       sp(k, 'padding-left', '0'); sp(k, 'padding-right', '0');
     });
 
+    /* Every ancestor between the row and each item, not only the row's direct
+       children. That was the hole: the row was a nowrap flex row and its kids
+       were too, but in the signed-in markup there are further wrappers in
+       between, and any one of them being a column or a full-width block puts
+       the currency above the cart no matter what the row says. Walk each
+       item's chain up to the row and make the whole chain a row that sizes to
+       its contents. */
+    items.forEach(function(it){
+      var el = it;
+      while (el && el !== row) {
+        sp(el, 'display', getComputedStyle(el).display === 'inline' ? 'inline-flex' : 'flex');
+        sp(el, 'flex-direction', 'row');
+        sp(el, 'flex-wrap', 'nowrap');
+        sp(el, 'align-items', 'center');
+        sp(el, 'float', 'none');
+        sp(el, 'width', 'auto');
+        sp(el, 'max-width', 'none');
+        sp(el, 'min-width', '0');
+        sp(el, 'flex', '0 0 auto');
+        sp(el, 'clear', 'none');
+        el = el.parentElement;
+      }
+    });
+
     // the logo is the one thing that may give way
     var logoKid = logo ? childOf(row, logo) : null;
     if (logoKid) { sp(logoKid, 'flex', '0 1 auto'); sp(logoKid, 'min-width', '0'); sp(logoKid, 'overflow', 'hidden'); }
@@ -12599,21 +12623,38 @@ add_action('wp_footer', function () {
     // the currency and the cart are each a real target, and a fingertip's worth
     [currency, cart, burger].forEach(function(el){ if (el) { sp(el, 'min-height', '40px'); sp(el, 'min-width', '40px'); sp(el, 'display', 'inline-flex'); sp(el, 'align-items', 'center'); sp(el, 'justify-content', 'center'); } });
 
-    // measure the result; if a line broke anyway, shrink the logo until it does not
-    var pass = 0, maxH = 44;
-    while (pass++ < 4) {
-      var mids = items.map(mid), spread = Math.max.apply(null, mids) - Math.min.apply(null, mids);
+    /* Measure the result. If a line still broke, the logo may give up a little
+       height to make room — but only while that is actually helping, and never
+       below 34px. The previous version shrank on every pass regardless, so
+       when the stacking had nothing to do with width it ran all four passes
+       and left the logo a 60x20 thumbnail next to a bar that was still in two
+       rows. Making the header worse is not an acceptable outcome of failing
+       to fix it. */
+    function spreadNow(){ var m = items.map(mid); return Math.max.apply(null, m) - Math.min.apply(null, m); }
+    var before = spreadNow(), maxH = 44;
+    for (var pass = 0; pass < 3; pass++) {
       var over = row.scrollWidth > row.clientWidth + 1;
-      if (spread <= 10 && !over) break;
-      maxH -= 8;
-      if (img) sp(img, 'max-height', maxH + 'px');
+      if (before <= 10 && !over) break;
+      if (maxH <= 34 || !img) break;
+      maxH -= 5;
+      sp(img, 'max-height', maxH + 'px');
       sp(row, 'gap', '4px');
+      var after = spreadNow();
+      if (after >= before - 0.5) {            // shrinking is not helping — put it back
+        maxH += 5;
+        sp(img, 'max-height', maxH + 'px');
+        break;
+      }
+      before = after;
     }
 
     // say what happened, so a screenshot of the console is enough
     try {
       var report = items.map(function(el){ var r = el.getBoundingClientRect(); return (el.className || el.tagName).toString().split(' ')[0] + ' y' + Math.round(r.top) + ' x' + Math.round(r.left) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height); });
-      console.log('[af-header-row] ' + window.innerWidth + 'px, row=' + (row.className || row.tagName).toString().split(' ').slice(0,3).join('.') + ' :: ' + report.join(' | '));
+      var sp2 = Math.round(spreadNow());
+      console.log('[af-header-row] ' + window.innerWidth + 'px  ' + (sp2 <= 10 ? 'ONE LINE' : 'STILL STACKED, spread ' + sp2 + 'px')
+        + '  row=' + (row.className || row.tagName).toString().split(' ').slice(0,3).join('.')
+        + '  :: ' + report.join(' | '));
     } catch (e) {}
   }
 
