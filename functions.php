@@ -12487,13 +12487,47 @@ add_action('wp_head', function () {
     height: auto !important;
   }
 
-  /* the currency and the cart travel together, against the right edge */
+  /* The currency and the cart travel together, against the right edge — and
+     side by side. Measured on the live page at 820px: this container is
+     flex-direction:COLUMN there, 398px wide and 88px tall, with the cart
+     sitting 48px below the currency. That is the stack in the owner's
+     screenshot, and no amount of nowrap on the row above could have fixed it:
+     the row was never the thing wrapping. The items are stacked because their
+     own container is a column at this width. It is a row at 390px, so the
+     theme switches it somewhere in between; this pins it for the whole range
+     the bar is live in. */
   header#masthead .mobile_navbar_inline_items {
+    flex-direction: row !important;
+    align-items: center !important;
     margin-left: auto !important;
+    width: auto !important;
     flex: 0 0 auto !important;
     gap: 8px !important;
     padding: 0 !important;
   }
+
+  /* Between 768 and 880 the three left-hand containers collapse to width:0 and
+     their contents spill out and overlap — measured at 820px, the hamburger
+     group and the logo group are both 0px wide sitting at x=12 and x=16, and
+     the logo widget itself is 0x0, so the logo does not render at all. Let
+     them size to their contents. */
+  header#masthead .elementor-element:has(> .elementor-widget-site-logo),
+  header#masthead .elementor-element:has(> .elementor-widget-html),
+  header#masthead .elementor-element:has(> .hfe-menu-item-space-between) {
+    width: auto !important;
+    flex: 0 0 auto !important;
+  }
+  header#masthead .elementor-widget-site-logo,
+  header#masthead .elementor-widget-site-logo .elementor-widget-container {
+    width: auto !important;
+  }
+  header#masthead .elementor-widget-site-logo img {
+    width: auto !important;
+    height: auto !important;
+    max-height: 44px !important;
+  }
+  /* and the dropdown widget stretched to 398px with its container */
+  header#masthead .mobile_navbar_menu_dropdown { width: auto !important; }
 
   /* a fingertip's worth of everything that is pressed */
   header#masthead .hfe-menu-item-space-between,
