@@ -12391,6 +12391,33 @@ add_shortcode('af_video_testimonials', function() {
 // Toggle: option 'af_maintenance' = 'on'. Logged-in admins/shop
 // managers always bypass it, so you can work on the live site.
 // Optional end time: option 'af_maintenance_until' ("YYYY-MM-DD HH:MM").
+/* ─────────────────────────────────────────────────────────────
+   Clear the fixed bottom navigation bar on phones.
+   Every floating thing on this site has been taught to sit above that bar —
+   the chat launcher and the quick panel at 72px (functions.php, inc/chatbot.php),
+   the consent banner at 65px (inc/cookie-consent.php) — but the page itself
+   never was, so whatever the document ends with is painted behind the bar and
+   cannot be read or tapped.
+
+   The padding goes on <body>, not on a footer element. This theme's own
+   .af-footer is disabled — there is an unconditional return in its hook, and
+   the Elementor footer is used instead — so there is no footer class here to
+   hang it on. Body padding is also invisible: the bar is opaque and about the
+   same height, so it covers the added strip exactly. safe-area-inset keeps it
+   clear of the home indicator on an iPhone, where the bar sits higher than on
+   Android.
+   ───────────────────────────────────────────────────────────── */
+add_action('wp_head', function () {
+    if (is_admin()) return;
+    ?>
+<style id="af-bottombar-clearance">
+@media (max-width: 600px) {
+  body { padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important; }
+}
+</style>
+    <?php
+}, 100);
+
 add_action('template_redirect', function() {
     if (get_option('af_maintenance') !== 'on') return;
     if (is_admin() || wp_doing_ajax() || (defined('WP_CLI') && WP_CLI)) return;
@@ -13588,8 +13615,16 @@ add_action('wp_footer', function() {
     );
     cards.forEach(function(card){
       if (card.getAttribute('data-af-code')) return;
+      // [class*="post-"] is a SUBSTRING match, and a shop archive's own <body>
+      // carries both "post-type-archive-product" and "has-post-thumbnail". So
+      // <body> matched, no numeric id could be read off it, and the slug
+      // fallback below then searched every link on the page and returned the
+      // FIRST product's code — which is how a bare "ART CODE: TP - 0504" came
+      // to be printed under the heading "All Our Wall Art", as if the whole
+      // catalogue were one artwork.
+      if (card === document.body || card === document.documentElement) return;
       var id = null;
-      var m = (card.className||'').match(/(?:^|\s)post-(\d+)/);
+      var m = (typeof card.className === 'string' ? card.className : '').match(/(?:^|\s)post-(\d+)/);
       if (m) id = m[1];
       if (!id && card.hasAttribute('data-product_id')) id = card.getAttribute('data-product_id');
       if (!id) {
@@ -13600,6 +13635,16 @@ add_action('wp_footer', function() {
         var lk = card.querySelector('a[href*="add-to-cart="]');
         if (lk) { var mm = lk.href.match(/add-to-cart=(\d+)/); if (mm) id = mm[1]; }
       }
+      // The slug fallback reads whatever product link it finds first, so it is
+      // only safe on something that is ONE product. A numeric post id proves
+      // that; otherwise the element has to be a card by its own class, not by
+      // happening to contain the letters "post-".
+      var looksLikeCard = !!id;
+      if (!looksLikeCard) {
+        try { looksLikeCard = card.matches('li.product, .product-card, .trending-card, [class*="type-product"]'); }
+        catch (e) { looksLikeCard = false; }
+      }
+      if (!looksLikeCard) return;
       var code = (id && CODES[id]) ? CODES[id] : slugFrom(card);   // slug fallback
       if (!code && !id) return;   // couldn't confirm this is a real product card — skip
       // climb to the nearest sensible card container so the label sits with
@@ -18525,16 +18570,36 @@ add_action('wp_head', function () {
     if (!is_shop() && !is_product_category() && !is_product_tag() && !is_post_type_archive('product')) return;
     ?>
 <style id="af-archive-3col">
-/* the grid itself — written against every column class WooCommerce may emit */
+/* the grid itself — written against every column class WooCommerce may emit.
+   Every breakpoint below repeats this selector list VERBATIM. That is not
+   duplication for its own sake: the list carries two :not() arguments, and a
+   Level 4 :not() takes the specificity of its most specific argument, so this
+   list scores (0,6,4). The narrower rules used to be written short —
+   "body.woocommerce ul.products", (0,2,2) — and lost to this one on
+   specificity even though they came later and even though both sides are
+   !important. The phone and tablet layouts existed in the file and had never
+   once applied. Keep the lists identical and source order decides, which is
+   what was meant all along. */
 body.woocommerce ul.products:not(.af-wl-related ul.products):not(.af-xsell ul.products),
 body.woocommerce-page ul.products:not(.af-wl-related ul.products):not(.af-xsell ul.products),
 .woocommerce ul.products.columns-1,
 .woocommerce ul.products.columns-2,
+.woocommerce ul.products.columns-3,
 .woocommerce ul.products.columns-4,
 .woocommerce ul.products.columns-5,
 .woocommerce ul.products.columns-6 {
   display: grid !important;
-  grid-template-columns: repeat(3, 1fr) !important;
+  /* minmax(0,1fr), not a bare 1fr. A bare 1fr is minmax(auto,1fr), and that
+     auto floors each column at its content's min-content width — which for a
+     title styled display:-webkit-box is the whole title on ONE line. Measured
+     in a fixture built from these same declarations: with a card whose
+     overflow is visible, three such columns demand 623px and the page scrolls
+     sideways on any phone. The live card happens to clip its own overflow,
+     which per the Grid spec drops that automatic minimum to zero, so the page
+     did not scroll — it crushed the cards to 83px at 320px instead. A zero
+     floor states the intent outright rather than depending on a clip
+     elsewhere staying where it is. */
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   gap: 22px !important;
   margin: 0 !important;
   padding: 0 !important;
@@ -18548,6 +18613,9 @@ body.woocommerce-page ul.products:not(.af-wl-related ul.products):not(.af-xsell 
 .woocommerce-page ul.products li.product {
   width: 100% !important;
   max-width: 100% !important;
+  /* the same min-content floor, one level down — a grid item's automatic
+     minimum size is its content's, unless it is told otherwise */
+  min-width: 0 !important;
   margin: 0 !important;
   float: none !important;
   clear: none !important;
@@ -18556,20 +18624,169 @@ body.woocommerce-page ul.products:not(.af-wl-related ul.products):not(.af-xsell 
 /* the related/cross-sell rows keep their own four-across layout */
 .af-wl-related ul.products,
 .af-xsell ul.products {
-  grid-template-columns: repeat(4, 1fr) !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
   gap: 20px !important;
 }
 
+/* Tablet — two across. */
 @media (max-width: 1024px) {
-  body.woocommerce ul.products,
-  body.woocommerce-page ul.products,
-  .woocommerce ul.products.columns-4 { grid-template-columns: repeat(2, 1fr) !important; }
+  body.woocommerce ul.products:not(.af-wl-related ul.products):not(.af-xsell ul.products),
+  body.woocommerce-page ul.products:not(.af-wl-related ul.products):not(.af-xsell ul.products),
+  .woocommerce ul.products.columns-1,
+  .woocommerce ul.products.columns-2,
+  .woocommerce ul.products.columns-3,
+  .woocommerce ul.products.columns-4,
+  .woocommerce ul.products.columns-5,
+  .woocommerce ul.products.columns-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 18px !important;
+  }
+  .af-wl-related ul.products,
+  .af-xsell ul.products { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
 }
-@media (max-width: 560px) {
-  body.woocommerce ul.products,
-  body.woocommerce-page ul.products,
-  .woocommerce ul.products.columns-4 { grid-template-columns: 1fr !important; }
-  .af-wl-related ul.products, .af-xsell ul.products { grid-template-columns: 1fr !important; }
+
+/* Phone — still two across, with a tighter gutter.
+   Three across gave each card a 115px track on a 420px screen, measured: the
+   artwork was a sliver, the title lost its third line mid-letter and the art
+   code wrapped onto a second line in some cards and not others, which is what
+   knocked every row out of alignment. One across is the other extreme — this
+   catalogue runs to hundreds of pieces and a shopper would scroll a screen per
+   product. Two gives a 158px card at 360px and 188px at 420px: the art reads,
+   the title fits on two lines, and the page is still a shop you can scan. */
+@media (max-width: 600px) {
+  body.woocommerce ul.products:not(.af-wl-related ul.products):not(.af-xsell ul.products),
+  body.woocommerce-page ul.products:not(.af-wl-related ul.products):not(.af-xsell ul.products),
+  .woocommerce ul.products.columns-1,
+  .woocommerce ul.products.columns-2,
+  .woocommerce ul.products.columns-3,
+  .woocommerce ul.products.columns-4,
+  .woocommerce ul.products.columns-5,
+  .woocommerce ul.products.columns-6 {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 12px !important;
+  }
+  .af-wl-related ul.products,
+  .af-xsell ul.products { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 12px !important; }
+}
+</style>
+<style id="af-archive-phone">
+/* ── The card's own rows, at phone width ──────────────────────────────────
+   These carry html at the front only to clear assets/css/custom.css, whose
+   equivalents score (0,4,3); this block is printed later in the head, so an
+   equal score would have done, and the extra type keeps it true even if that
+   file is ever moved after this one. */
+@media (max-width: 600px) {
+
+  /* The art code must be ONE line on every card. On a 115px track it wrapped
+     to two ("ART CODE: TP" / "- 0504") while a product with no code kept the
+     one-line blank placeholder — so within a single row one card's price,
+     swatches and button sat a whole line lower than its neighbour's. That is
+     the ragged look in the recording, and it is a wrap, not a spacing bug. */
+  html body.woocommerce-page ul.products li.product .af-art-code--card,
+  html body.woocommerce ul.products li.product .af-art-code--card {
+    display: block !important;
+    padding: 0 10px !important;
+    margin: 2px 0 4px !important;
+    font-size: 12px !important;
+    line-height: 1.4 !important;
+    letter-spacing: .01em !important;
+    min-height: 1.4em !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  /* Stars: same 10px gutter as the title, and a fixed row height so a
+     reviewed product and an unreviewed one stay level. */
+  html body.woocommerce-page ul.products li.product .woocommerce-product-rating,
+  html body.woocommerce ul.products li.product .woocommerce-product-rating,
+  html body.woocommerce-page ul.products li.product .rating,
+  html body.woocommerce ul.products li.product .rating {
+    padding: 7px 10px 0 !important;
+    margin: 0 !important;
+    min-height: 20px !important;
+    box-sizing: border-box !important;
+  }
+  html body.woocommerce-page ul.products li.product .star-rating,
+  html body.woocommerce ul.products li.product .star-rating {
+    margin: 0 !important;
+    /* 12px is this site's floor for anything someone reads at arm's length,
+       and the audit in tools/headless-mobile.js reports anything under it. */
+    font-size: 12px !important;
+  }
+  html body.woocommerce-page ul.products li.product .rating-count,
+  html body.woocommerce ul.products li.product .rating-count {
+    font-size: 12px !important;
+  }
+
+  /* The picture. This theme's card nests the image in .product-block >
+     .product-transition, and that box is pinned to a flat 300px tall at every
+     width by custom.css — its phone override at 520px named only
+     .tax-product_cat, so the Shop archive never received it. On a 115px card
+     that made every artwork a 115 x 300 sliver, which is what the recording
+     shows. A ratio instead of a height keeps the box in proportion to whatever
+     the card turns out to be, and keeps every card in a row the same height,
+     which is what the original "one fixed box for all" note was after.
+     3:4 because that is the shape of the canvases this shop sells — the
+     titles say so. */
+  html body.post-type-archive-product ul.products li.product .product-block .product-transition,
+  html body.tax-product_cat ul.products li.product .product-block .product-transition,
+  html body.post-type-archive-product ul.products li.product .product-transition,
+  html body.tax-product_cat ul.products li.product .product-transition {
+    height: auto !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    aspect-ratio: 3 / 4 !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+  html body.post-type-archive-product ul.products li.product .product-transition img,
+  html body.tax-product_cat ul.products li.product .product-transition img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+  }
+
+  /* Colour swatches and "5 sizes · 2 frames". */
+  html body.woocommerce-page ul.products li.product .af-card-vars,
+  html body.woocommerce ul.products li.product .af-card-vars {
+    padding: 2px 10px 8px !important;
+    margin: 0 !important;
+    font-size: 12px !important;
+    gap: 6px !important;
+    line-height: 1.4 !important;
+  }
+  /* the swatches and "5 sizes · 2 frames" are one link through to the
+     product's options, and measured 17-37px tall — under the ~40px a
+     fingertip wants */
+  html body.woocommerce-page ul.products li.product .af-card-vars > a,
+  html body.woocommerce ul.products li.product .af-card-vars > a {
+    min-height: 40px !important;
+    align-items: center !important;
+  }
+  html body.woocommerce-page ul.products li.product .af-card-dots i,
+  html body.woocommerce ul.products li.product .af-card-dots i {
+    width: 12px !important;
+    height: 12px !important;
+  }
+
+  /* View Brochure: the card's last row, pushed to the bottom so the button
+     lines up across a row however tall the text above it came out, and given
+     the 40px a fingertip needs. */
+  html body.woocommerce-page ul.products li.product .taf-broch--card,
+  html body.woocommerce ul.products li.product .taf-broch--card {
+    width: calc(100% - 20px) !important;
+    margin: auto 10px 10px !important;
+    padding: 11px 6px !important;
+    font-size: 12px !important;
+    min-height: 40px !important;
+    gap: 5px !important;
+    box-sizing: border-box !important;
+  }
+  html body.woocommerce-page ul.products li.product .taf-broch--card .taf-broch-ico,
+  html body.woocommerce ul.products li.product .taf-broch--card .taf-broch-ico {
+    width: 13px !important; height: 13px !important;
+  }
 }
 </style>
     <?php
