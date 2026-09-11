@@ -12403,27 +12403,111 @@ add_shortcode('af_video_testimonials', function() {
 // managers always bypass it, so you can work on the live site.
 // Optional end time: option 'af_maintenance_until' ("YYYY-MM-DD HH:MM").
 /* ─────────────────────────────────────────────────────────────
-   Clear the fixed bottom navigation bar on phones.
-   Every floating thing on this site has been taught to sit above that bar —
-   the chat launcher and the quick panel at 72px (functions.php, inc/chatbot.php),
-   the consent banner at 65px (inc/cookie-consent.php) — but the page itself
-   never was, so whatever the document ends with is painted behind the bar and
-   cannot be read or tapped.
+   The bottom navigation bar already has its clearance, and it is not ours.
+   An earlier commit in this branch added body{padding-bottom:66px} on phones
+   on the reasoning that nothing reserved space for that bar. Measured on the
+   live site afterwards, at 390px: footer#colophon already carries
+   margin-bottom:65px from the parent theme, so the page had 131px of empty
+   space under it and the extra 66px was pure dead scroll on every phone page.
 
-   The padding goes on <body>, not on a footer element. This theme's own
-   .af-footer is disabled — there is an unconditional return in its hook, and
-   the Elementor footer is used instead — so there is no footer class here to
-   hang it on. Body padding is also invisible: the bar is opaque and about the
-   same height, so it covers the added strip exactly. safe-area-inset keeps it
-   clear of the home indicator on an iPhone, where the bar sits higher than on
-   Android.
+   The rule is gone rather than reduced. The theme owns this clearance, it is
+   already the right size, and a second one in this file would only drift from
+   it. Kept as a note so the same reasoning does not produce the same rule
+   again: if the bar is ever buried, check footer#colophon's margin first.
+   ───────────────────────────────────────────────────────────── */
+
+
+
+/* ─────────────────────────────────────────────────────────────
+   The header, on a phone.
+
+   Measured on the live site at 390px (Check Header, run 1). header#masthead is
+   63px tall and its mobile row is an Elementor flex container:
+
+     hamburger            0 → 39     flush to the very edge, no gutter
+     logo                39 → 183
+     menu dropdown      193 → 228    35 x 24
+     currency "$ USD"   253 → 303    50 x 19
+     cart "(5)"         323 → 374    51 x 24
+
+   Two things are wrong with that.
+
+   The row is flex-wrap:wrap and every child is flex:0 0 auto, so the widths
+   are fixed and they add up to exactly 390 at 390px. There is no slack. The
+   moment anything grows — and the cart group is the thing that grows, because
+   "(5)" is wider than an empty cart — the last group has nowhere to go but a
+   second line, which is the "$ USD" sitting above the cart in the owner's
+   screenshot. Wrapping is the wrong behaviour for a header bar: it should get
+   tighter, not taller. So the row does not wrap, and the logo is made the one
+   element allowed to give up width, since it is the only one that can shrink
+   without becoming unusable.
+
+   And every control is far under the ~40px a fingertip wants: the currency
+   switcher is 19px tall, the cart 24px, the dropdown 24px. They are given a
+   real target and centred in the bar.
+
+   Written against the theme's and plugin's own class names rather than
+   Elementor's hashed element ids, which change whenever someone edits the
+   header in Elementor. Scoped to 767px and under: this row is the mobile
+   header, and the desktop one is a different container entirely.
    ───────────────────────────────────────────────────────────── */
 add_action('wp_head', function () {
     if (is_admin()) return;
     ?>
-<style id="af-bottombar-clearance">
-@media (max-width: 600px) {
-  body { padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important; }
+<style id="af-header-phone">
+@media (max-width: 767px) {
+  /* the bar never becomes two bars */
+  header#masthead .elementor-element:has(> .mobile_navbar_inline_items) {
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  /* the logo is the only thing that gives way when the row is tight */
+  header#masthead .elementor-element:has(> .elementor-widget-site-logo) {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+  }
+  header#masthead .elementor-widget-site-logo,
+  header#masthead .elementor-widget-site-logo .elementor-widget-container { min-width: 0 !important; }
+  header#masthead .elementor-widget-site-logo img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* the currency and the cart travel together, against the right edge */
+  header#masthead .mobile_navbar_inline_items {
+    margin-left: auto !important;
+    flex: 0 0 auto !important;
+    gap: 8px !important;
+    padding: 0 !important;
+  }
+
+  /* a fingertip's worth of everything that is pressed */
+  header#masthead .hfe-menu-item-space-between,
+  header#masthead .mobile_navbar_menu_dropdown,
+  header#masthead .postero-woocs-action-hover,
+  header#masthead .elementor-widget-postero-header-group {
+    min-height: 40px !important;
+    min-width: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  /* the hamburger's widget box pushed it down with 14px of top padding; the
+     row centres it now, so that offset only makes it sit low */
+  header#masthead .hfe-menu-item-space-between .elementor-widget-container {
+    padding-top: 0 !important;
+  }
+  /* the two outer groups carried 10px of their own padding, which is what the
+     row's gutter is for */
+  header#masthead .elementor-element:has(> .mobile_navbar_menu_dropdown),
+  header#masthead .elementor-element:has(> .mobile_navbar_inline_items) > .elementor-element {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
 }
 </style>
     <?php
