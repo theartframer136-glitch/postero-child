@@ -12582,6 +12582,9 @@ add_action('wp_footer', function () {
         if (el.closest('nav, .sub-menu, [class*="nav-menu"], [class*="flyout"], [class*="widget_shopping_cart"]')) return;
         var cls = (typeof el.className === 'string') ? el.className : '';
         if (SKIP.test(cls)) return;
+        /* the running total is not part of the bar — see the CSS note above */
+        if (/amount|Price-amount/i.test(cls) || el.tagName === 'BDI') return;
+        if (el.closest('.amount, .woocommerce-Price-amount')) return;
         var cs = getComputedStyle(el);
         if (cs.position === 'absolute' || cs.position === 'fixed') return;
         if (cs.display.indexOf('flex') !== -1) { sp(el, 'flex-direction', 'row'); sp(el, 'flex-wrap', 'nowrap'); sp(el, 'align-items', 'center'); }
@@ -12820,6 +12823,19 @@ add_action('wp_head', function () {
      bar's row; it stays a dropdown */
   header#masthead .site-header-cart .sub-menu,
   header#masthead .site-header-cart .widget_shopping_cart {
+    display: none !important;
+  }
+
+  /* The cart's running total stays off the bar. Laying the cart's insides out
+     as one row made the amount visible where the theme had it wrapped out of
+     sight, so the cart went from 51px wide to 96px and read "(5)$300.00".
+     That pushed the logo down to 89x28 at 360px to make room. The badge says
+     how many; the total belongs in the cart, not the header. */
+  header#masthead .site-header-cart .amount,
+  header#masthead .site-header-cart .woocommerce-Price-amount,
+  header#masthead .site-header-cart bdi,
+  header#masthead .elementor-header-group-wrapper .amount,
+  header#masthead .elementor-header-group-wrapper .woocommerce-Price-amount {
     display: none !important;
   }
 
