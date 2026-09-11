@@ -28,6 +28,10 @@ on:
         description: 'Which browser to pretend to be: android or desktop'
         type: string
         default: 'android'
+      shot:
+        description: 'Print a base64 PNG of the header (1 = yes)'
+        type: string
+        default: '0'
 
 jobs:
   header:
@@ -134,6 +138,36 @@ jobs:
                   + (o.scroll ? '  ' + o.scroll : '')
                   + (o.tiny.length ? '  under40: ' + o.tiny.join(', ') : ''));
                 console.log('        ' + o.boxes.map((x) => x.n + ' x' + x.x + ' y' + x.y + ' ' + x.w + 'x' + x.h).join('  |  '));
+                /* Every visible leaf in the header, not just the four this
+                   probe goes looking for. The probe has twice reported "one
+                   line" about elements the owner cannot even see, because the
+                   thing on screen was a different node than the one matched. */
+                const all = await p.evaluate(() => {
+                  const head = document.querySelector('header#masthead');
+                  const out = [];
+                  head.querySelectorAll('*').forEach((el) => {
+                    const cs = getComputedStyle(el);
+                    const r = el.getBoundingClientRect();
+                    if (cs.display === 'none' || cs.visibility === 'hidden') return;
+                    if (r.width < 8 || r.height < 8) return;
+                    if (el.children.length > 1) return;            // leaves and near-leaves only
+                    const cls = (typeof el.className === 'string' ? el.className : '').trim().split(/\s+/).slice(0,3).join('.');
+                    out.push('y' + Math.round(r.top) + ' x' + Math.round(r.left)
+                      + ' ' + Math.round(r.width) + 'x' + Math.round(r.height)
+                      + ' ' + el.tagName.toLowerCase() + (cls ? '.' + cls : '')
+                      + ' "' + (el.textContent || '').trim().slice(0, 18) + '"');
+                  });
+                  return out;
+                });
+                all.forEach((l) => console.log('          ' + l));
+
+                /* And a picture of it. Numbers have disagreed with the owner's
+                   screen three times now; this is the only way to see what
+                   they see. */
+                if (process.env.SHOT === '1') {
+                  const png = await p.screenshot({ clip: { x: 0, y: 0, width: w, height: 170 }, encoding: 'base64' });
+                  console.log('SHOT' + w + ':' + png);
+                }
               } catch (e) {
                 console.log(String(w).padStart(4) + 'px  LOAD FAILED: ' + String(e.message).slice(0, 60));
               }
@@ -142,5 +176,5 @@ jobs:
             await b.close();
           })();
           JS
-          W="${{ github.event.inputs.width }}" U="${{ github.event.inputs.url }}" UA="${{ github.event.inputs.ua }}" \
+          W="${{ github.event.inputs.width }}" U="${{ github.event.inputs.url }}" UA="${{ github.event.inputs.ua }}" SHOT="${{ github.event.inputs.shot }}" \
           NODE_PATH=/tmp/afh/node_modules node /tmp/header.js || true
