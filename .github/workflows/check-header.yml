@@ -60,7 +60,13 @@ jobs:
             const row = rows[0] || null;
 
             // the things a shopper sees: burger, logo, currency, cart
-            const pick = (sel) => { const e = head.querySelector(sel); return e && vis(e) ? e : null; };
+            /* Both headers live in the DOM at once — the mobile row and the wide
+               one — and only one is displayed. querySelector returns the FIRST
+               in document order, which is often the hidden copy, so the probe
+               was throwing away the logo, the currency and the cart and then
+               reporting "stacked" because it had one box left to compare.
+               Take the first VISIBLE match, not the first match. */
+            const pick = (sel) => Array.from(head.querySelectorAll(sel)).find(vis) || null;
             const items = [
               ['burger',   pick('.hfe-menu-item-space-between, .mobile_navbar_menu_dropdown')],
               ['logo',     pick('.elementor-widget-site-logo')],
@@ -74,7 +80,8 @@ jobs:
             });
             // same line = their vertical centres agree within 10px
             const mids = boxes.map((b) => b.y + b.h / 2);
-            const oneLine = boxes.length > 1 && (Math.max(...mids) - Math.min(...mids) <= 10);
+            const spread = boxes.length > 1 ? Math.round(Math.max(...mids) - Math.min(...mids)) : -1;
+            const oneLine = boxes.length > 1 && spread <= 10;
 
             const inline = head.querySelector('.mobile_navbar_inline_items');
             const inlineCs = inline && vis(inline) ? getComputedStyle(inline) : null;
@@ -83,7 +90,7 @@ jobs:
               headerH: Math.round(head.getBoundingClientRect().height),
               rowDir: row ? getComputedStyle(row).flexDirection + '/' + getComputedStyle(row).flexWrap : 'none',
               inlineDir: inlineCs ? inlineCs.flexDirection : 'not rendered',
-              boxes, oneLine,
+              boxes, oneLine, spread, found: boxes.length,
               tiny: boxes.filter((b) => Math.min(b.w, b.h) < 40).map((b) => b.n + ' ' + b.w + 'x' + b.h),
               scroll: Math.round(document.documentElement.scrollWidth) > vw ? 'SIDEWAYS' : '',
             };
@@ -103,7 +110,9 @@ jobs:
                 await new Promise((r) => setTimeout(r, 3500));
                 const o = await p.evaluate(probe, w);
                 if (o.error) { console.log(String(w).padStart(4) + 'px  ' + o.error); await p.close(); continue; }
-                const line = o.oneLine ? 'ONE LINE' : '*** STACKED ***';
+                const line = o.found < 2 ? 'ONLY ' + o.found + ' ITEM FOUND — probe failed, not a verdict'
+                         : o.oneLine ? 'ONE LINE (spread ' + o.spread + 'px)'
+                         : '*** STACKED *** (spread ' + o.spread + 'px)';
                 console.log(String(w).padStart(4) + 'px  header ' + String(o.headerH).padStart(3) + 'px  ' + line
                   + '   row=' + o.rowDir + '  inline-items=' + o.inlineDir
                   + (o.scroll ? '  ' + o.scroll : '')
