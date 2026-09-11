@@ -32,6 +32,10 @@ on:
         description: 'Print a base64 PNG of the header (1 = yes)'
         type: string
         default: '0'
+      cart:
+        description: 'Put this many of product id (e.g. 8582x5) in the cart first, so the header renders with a full cart'
+        type: string
+        default: ''
 
 jobs:
   header:
@@ -126,6 +130,18 @@ jobs:
               await p.setUserAgent(UA);
               await p.setViewport({ width: w, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
               try {
+                /* The owner's header has a cart with five things in it and no
+                   Sign Up/Login control, because they are signed in. Every
+                   measurement so far was of an EMPTY, signed-out header — a
+                   different set of widgets. A cart can be filled without
+                   signing in, so do that first and measure the header the
+                   owner is actually looking at. */
+                const cartSpec = (process.env.CART || '').match(/^(\d+)x(\d+)$/);
+                if (cartSpec) {
+                  const base = URL.replace(/\/$/, '');
+                  await p.goto(base + '/?add-to-cart=' + cartSpec[1] + '&quantity=' + cartSpec[2], { waitUntil: 'domcontentloaded', timeout: 60000 });
+                  await new Promise((r) => setTimeout(r, 2500));
+                }
                 await p.goto(URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
                 await new Promise((r) => setTimeout(r, 3500));
                 const o = await p.evaluate(probe, w);
@@ -176,5 +192,5 @@ jobs:
             await b.close();
           })();
           JS
-          W="${{ github.event.inputs.width }}" U="${{ github.event.inputs.url }}" UA="${{ github.event.inputs.ua }}" SHOT="${{ github.event.inputs.shot }}" \
+          W="${{ github.event.inputs.width }}" U="${{ github.event.inputs.url }}" UA="${{ github.event.inputs.ua }}" SHOT="${{ github.event.inputs.shot }}" CART="${{ github.event.inputs.cart }}" \
           NODE_PATH=/tmp/afh/node_modules node /tmp/header.js || true
