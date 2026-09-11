@@ -76,6 +76,16 @@ on:
         description: 'Fetch from the watched link immediately, without waiting for the schedule'
         type: boolean
         default: false
+      # The theme stopped writing "free shipping" on 11 Sep. Most of those
+      # words are not in the theme, though: they are in the database —
+      # Elementor widget titles, page copy, product descriptions — where no
+      # code change can reach them. Correcting those needs a WP-CLI script run
+      # against the live site, which until now meant the owner opening an SSH
+      # session by hand. This does the same work from the Actions tab.
+      clear_free_shipping:
+        description: 'Clear free-shipping wording stored in the database (Elementor widgets, page and product text)'
+        type: boolean
+        default: false
 
 # One deploy at a time. Two overlapping runs each rsync --delete the theme and
 # fire a dozen WP-CLI processes at the same shared host, which is enough to hit
@@ -524,6 +534,48 @@ jobs:
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/remove-goldfoil-copies.php --allow-root 2>&1" \
             || echo "  (removal step failed — nothing was changed)"
+
+      # Runs whether or not the catalogue suites are enabled: this is a single
+      # pass over wording, not a catalogue rebuild, and someone who ticked this
+      # box asked for exactly this and nothing else.
+      #
+      # The script's own output goes into the run SUMMARY, not only the log.
+      # The person ticking this box is the shop's owner, and the answer they
+      # want — how many pages changed — should not require opening a job log.
+      - name: Clear free-shipping wording held in the database
+        if: inputs.clear_free_shipping
+        env:
+          H_USER: ${{ secrets.HOSTINGER_USERNAME }}
+          H_HOST: ${{ secrets.HOSTINGER_HOST }}
+          H_PORT: ${{ secrets.HOSTINGER_PORT }}
+        run: |
+          set -uo pipefail
+          SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Rewriting free-shipping claims held in post content and Elementor designs..."
+          OUT=$(${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/rewrite-free-shipping.php --allow-root 2>&1") || true
+          echo "$OUT"
+
+          {
+            echo "### Free-shipping wording held in the database"
+            echo
+            if [ -z "$OUT" ]; then
+              echo "The script produced no output, so it did not run. **Nothing was changed.**"
+            else
+              echo '```'
+              echo "$OUT"
+              echo '```'
+              echo
+              echo "Every page touched keeps a backup of its original wording, so this reverses."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # A script that silently did nothing looks identical to one that
+          # worked, and this summary is the owner's only view of the result.
+          if [ -z "$OUT" ]; then
+            echo "::warning::The rewrite produced no output — nothing was changed. The SSH call itself failed."
+          fi
 
       - name: Script suite 1 — catalogue & content
         if: env.RUN_SUITE == '1'
