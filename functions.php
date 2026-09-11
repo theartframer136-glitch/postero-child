@@ -12600,6 +12600,45 @@ add_action('wp_head', function () {
     flex: 0 0 auto !important;
   }
 
+  /* ── The insides of the currency and cart widgets ─────────────────────
+     Everything above lays out the widgets. This lays out what is INSIDE
+     them, which is the parent theme's markup and changes with state: a
+     signed-in visitor gets a different header group, and a cart with things
+     in it shows more than an empty one. The owner is signed in with five
+     items; every measurement here was signed out with none. Whatever those
+     widgets contain, it is laid out left to right on one line. */
+  header#masthead .elementor-header-group-wrapper,
+  header#masthead .site-header-cart,
+  header#masthead .site-header-cart > li,
+  header#masthead .site-header-cart .cart-contents,
+  header#masthead .postero-woocs-action-hover .elementor-widget-container,
+  header#masthead .elementor-widget-postero-header-group .elementor-widget-container,
+  header#masthead .mobile_navbar_inline_items .elementor-widget-container,
+  header#masthead .mobile_navbar_inline_items > .elementor-element {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+    max-width: none !important;
+    float: none !important;
+    white-space: nowrap !important;
+  }
+  header#masthead .site-header-cart > li,
+  header#masthead .site-header-cart .count,
+  header#masthead .site-header-cart .amount {
+    display: inline-flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+  }
+  /* a sub-menu that the parent theme opens on hover has no business in the
+     bar's row; it stays a dropdown */
+  header#masthead .site-header-cart .sub-menu,
+  header#masthead .site-header-cart .widget_shopping_cart {
+    display: none !important;
+  }
+
   /* a fingertip's worth of everything that is pressed */
   header#masthead .hfe-menu-item-space-between,
   header#masthead .mobile_navbar_menu_dropdown,
