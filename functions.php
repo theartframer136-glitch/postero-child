@@ -5515,7 +5515,18 @@ add_action('wp_head', function() {
     .woocommerce ul.products li.product:hover .af-card-ar{opacity:1;transform:translateY(0);}
     .af-card-ar:hover{background:#c9a84c;}
     .af-card-ar svg{width:14px;height:14px;}
-    @media(max-width:768px){ .af-card-ar{opacity:1;transform:none;left:8px;bottom:auto;top:8px;padding:5px 8px;font-size:11px;} .af-card-ar span{display:none;} }
+    /* There is no hover on a phone, so this shows permanently — which made it
+       a 26x24 chip parked in the TOP-LEFT corner of the artwork, the same
+       corner the discount ribbon occupies, at 11px and well under the ~40px a
+       fingertip wants. It moves to the opposite corner, clear of the ribbon,
+       and gets a real tap target. The label still goes: at a 158px card there
+       is no room for words on top of the picture. */
+    @media(max-width:768px){
+      .af-card-ar{opacity:1;transform:none;left:auto;right:8px;bottom:8px;top:auto;
+        padding:0;font-size:12px;width:40px;height:40px;justify-content:center;border-radius:50%;}
+      .af-card-ar span{display:none;}
+      .af-card-ar svg{width:18px;height:18px;}
+    }
     </style>
     <?php
 }, 20);
@@ -18682,6 +18693,19 @@ body.woocommerce-page ul.products:not(.af-wl-related ul.products):not(.af-xsell 
      one-line blank placeholder — so within a single row one card's price,
      swatches and button sat a whole line lower than its neighbour's. That is
      the ragged look in the recording, and it is a wrap, not a spacing bug. */
+  /* The title box in custom.css is sized to hold exactly these two lines.
+     Pin the clamp beside it so the two can only ever be changed together —
+     a clamp of 3 against a two-line box is precisely the fault this is
+     fixing. */
+  html body.woocommerce-page ul.products li.product .woocommerce-loop-product__title,
+  html body.woocommerce ul.products li.product .woocommerce-loop-product__title {
+    -webkit-line-clamp: 2 !important;
+    -webkit-box-orient: vertical !important;
+    display: -webkit-box !important;
+    overflow: hidden !important;
+    overflow-wrap: anywhere !important;
+  }
+
   html body.woocommerce-page ul.products li.product .af-art-code--card,
   html body.woocommerce ul.products li.product .af-art-code--card {
     display: block !important;

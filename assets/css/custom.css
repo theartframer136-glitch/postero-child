@@ -2066,6 +2066,20 @@ body:has(.taf-page) .site-main{max-width:none;}
 #afCmpBar .af-cmp-go{background:#c9a84c;color:#141414;font-weight:800;text-decoration:none;padding:9px 20px;border-radius:22px;}
 #afCmpBar .af-cmp-go:hover{background:#dcb85a;}
 #afCmpBar .af-cmp-clear{background:none;border:none;color:#999;cursor:pointer;font-size:13px;text-decoration:underline;}
+/* The compare bar is the one piece of fixed furniture on this site that never
+   got the bottom-bar treatment. bottom:18px puts it squarely inside the band
+   the fixed bottom navigation occupies on a phone, so the bar a shopper has
+   just filled sits behind the navigation and its Compare button cannot be
+   pressed. It now clears the bar at the same height as the chat launcher and
+   the quick panel, and is allowed to be as wide as the screen minus a gutter
+   rather than keeping a desktop pill's padding at 360px. */
+@media(max-width:600px){
+  #afCmpBar{bottom:calc(72px + env(safe-area-inset-bottom,0px));gap:10px;padding:11px 14px;
+    font-size:13px;max-width:calc(100vw - 20px);box-sizing:border-box;flex-wrap:wrap;
+    justify-content:center;text-align:center;}
+  #afCmpBar .af-cmp-go{padding:11px 16px;min-height:40px;display:inline-flex;align-items:center;}
+  #afCmpBar .af-cmp-clear{min-height:40px;}
+}
 .af-cmp-table td{min-width:150px;}
 .af-cmp-table .af-cmp-rm{padding:9px 16px;font-size:12.5px;cursor:pointer;margin-top:6px;}
 

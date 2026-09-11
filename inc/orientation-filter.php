@@ -83,6 +83,27 @@ add_action('wp_footer', function() {
     .af-orient-drop .af-lt-menu{display:none;}
     .af-orient-drop .af-lt-menu.open{display:block;}
     .af-orient-drop .af-lt-menu a{display:block;}
+    /* Phones. This file carried no media query at all, so the control kept its
+       desktop margin beside a Grid/Masonry pair that is now 40px tall, and its
+       button and options stayed under that height.
+
+       The max-width is a guard rather than a fix for something observed: the
+       menu's own position and width come from .af-lt-menu, which lives in the
+       filter toolbar's stylesheet, and that toolbar is on a hook this theme's
+       shop template does not appear to fire. Capping the width costs nothing
+       if the menu never renders, and if it does it cannot reach past the edge
+       of the screen — which matters here because body carries
+       overflow-x:hidden, so anything that overshoots is cut with nothing to
+       scroll to. The anchoring is left alone: this file does not set it, and
+       moving it blind could just as easily push the menu off the other side. */
+    @media(max-width:600px){
+      .af-orient-drop{margin:0 0 12px !important;}
+      .af-orient-drop .af-lt-dbtn{min-height:40px !important;font-size:12px !important;}
+      .af-orient-drop .af-lt-menu{max-width:calc(100vw - 24px) !important;
+        box-sizing:border-box !important;}
+      .af-orient-drop .af-lt-menu a{min-height:40px !important;display:flex !important;
+        align-items:center !important;font-size:12px !important;}
+    }
     </style>
     <script>
     (function(){

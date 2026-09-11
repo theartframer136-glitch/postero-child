@@ -28,8 +28,15 @@ add_action('wp_footer', function() {
        once that toolbar stacked. Both are phone-only; the desktop pair is
        beside a result count and is left as it is. */
     @media(max-width:600px){
-      .af-layout-toggle{margin:0 0 12px;}
-      .af-layout-toggle button{padding:0 14px;min-height:40px;font-size:12px;}
+      /* flex-shrink:0 because this pair sits in a flex toolbar and carries
+         overflow:hidden, which zeroes its automatic minimum size — left to
+         shrink it would amputate the labels rather than wrap. !important
+         because the parent theme sets a global button padding of 14px 40px
+         that this codebase already documents as needing it (see the note on
+         .af-qp-btn in functions.php). */
+      .af-layout-toggle{margin:0 0 12px !important;flex:0 0 auto !important;}
+      .af-layout-toggle button{padding:0 14px !important;min-height:40px !important;
+        font-size:12px !important;white-space:nowrap !important;}
       .af-layout-toggle svg{width:13px;height:13px;}
     }
     </style>
