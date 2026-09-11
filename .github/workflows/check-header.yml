@@ -1,0 +1,136 @@
+name: Check Header
+
+# What the site's header actually is, on a phone.
+#
+# The header is built in Elementor by the parent theme, so its markup is not in
+# this repository — and a fix written against guessed class names is a fix
+# shipped to a live shop on a hope. This loads the real site in a phone-sized
+# Chrome and prints the header's tree: every element, its classes, where it
+# sits, how big it is, and the flex properties that decide whether the row
+# stacks. Then the CSS can be written against what is there.
+#
+# Read-only and dispatch-only. It loads pages and measures them; nothing is
+# written, no SSH. The script lives inline so that adding it does not touch
+# anything under the theme and therefore does not spend a deploy.
+
+on:
+  workflow_dispatch:
+    inputs:
+      width:
+        description: 'Viewport width in px'
+        type: string
+        default: '390'
+      url:
+        description: 'Page to measure'
+        type: string
+        default: 'https://theartframer.us/'
+
+jobs:
+  header:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Measure the header at phone width
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
+          cat > /tmp/header.js <<'JS'
+          const puppeteer = require('puppeteer-core');
+          const WIDTH = parseInt(process.env.W || '390', 10);
+          const URL = process.env.U || 'https://theartframer.us/';
+          // the same UA tools/headless-mobile.js uses: this site's crawl guard
+          // redirects requests that do not look like a browser, and a desktop
+          // agent would not be served the mobile layout at all
+          const UA = 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36';
+
+          function dump(vw) {
+            // the header is whatever visible banner-ish element sits at the very
+            // top of the document and is wider than half the screen
+            const cands = Array.from(document.querySelectorAll(
+              'header, [class*="ehf-header"], [data-elementor-type="header"], .elementor-location-header, #masthead, .site-header'
+            ));
+            let head = null;
+            for (const el of cands) {
+              const r = el.getBoundingClientRect();
+              const cs = getComputedStyle(el);
+              if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+              if (r.width < vw * 0.5 || r.height < 20) continue;
+              if (r.top > 260) continue;
+              if (!head || r.top < head.getBoundingClientRect().top) head = el;
+            }
+            if (!head) return { error: 'no header found' };
+
+            const name = (el) => {
+              const id = el.id ? '#' + el.id : '';
+              const cls = (typeof el.className === 'string' && el.className)
+                ? '.' + el.className.trim().split(/\s+/).slice(0, 4).join('.') : '';
+              return el.tagName.toLowerCase() + id + cls;
+            };
+
+            const rows = [];
+            const walk = (el, depth) => {
+              if (depth > 7) return;
+              const r = el.getBoundingClientRect();
+              const cs = getComputedStyle(el);
+              if (cs.display === 'none') return;
+              const txt = Array.from(el.childNodes)
+                .filter((n) => n.nodeType === 3).map((n) => n.textContent.trim()).join(' ').slice(0, 28);
+              rows.push({
+                d: depth,
+                el: name(el),
+                box: `${Math.round(r.left)},${Math.round(r.top)} ${Math.round(r.width)}x${Math.round(r.height)}`,
+                disp: cs.display + (cs.display.includes('flex') ? ` dir=${cs.flexDirection} wrap=${cs.flexWrap} just=${cs.justifyContent} align=${cs.alignItems} gap=${cs.gap}` : ''),
+                flex: cs.flex !== '0 1 auto' ? cs.flex : '',
+                w: cs.width, mw: cs.maxWidth === 'none' ? '' : cs.maxWidth,
+                pad: cs.padding, mar: cs.margin,
+                fs: cs.fontSize,
+                pos: cs.position !== 'static' ? cs.position : '',
+                over: Math.round(r.right) > vw + 1 ? 'OVERFLOWS' : '',
+                txt,
+              });
+              for (const c of el.children) walk(c, depth + 1);
+            };
+            walk(head, 0);
+
+            const hr = head.getBoundingClientRect();
+            return {
+              header: name(head),
+              headerBox: `${Math.round(hr.width)}x${Math.round(hr.height)}`,
+              scrollW: Math.round(document.documentElement.scrollWidth),
+              clientW: Math.round(document.documentElement.clientWidth),
+              rows,
+            };
+          }
+
+          (async () => {
+            const b = await puppeteer.launch({
+              channel: 'chrome',
+              headless: 'new',
+              args: ['--no-sandbox', '--disable-dev-shm-usage'],
+            });
+            const p = await b.newPage();
+            await p.setUserAgent(UA);
+            await p.setViewport({ width: WIDTH, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+            await p.goto(URL, { waitUntil: 'networkidle2', timeout: 90000 });
+            await new Promise((r) => setTimeout(r, 2500));
+            const out = await p.evaluate(dump, WIDTH);
+            if (out.error) { console.log(out.error); await b.close(); return; }
+            console.log(`URL ${URL} at ${WIDTH}px`);
+            console.log(`header ${out.header}  ${out.headerBox}`);
+            console.log(`document scrollWidth ${out.scrollW} vs clientWidth ${out.clientW}`);
+            console.log('');
+            for (const r of out.rows) {
+              console.log(
+                '  '.repeat(r.d) + r.el +
+                '\n' + '  '.repeat(r.d) + '   box ' + r.box + '  ' + r.disp +
+                (r.flex ? '  flex:' + r.flex : '') + (r.w ? '  w:' + r.w : '') + (r.mw ? '  maxw:' + r.mw : '') +
+                '\n' + '  '.repeat(r.d) + '   pad ' + r.pad + '  mar ' + r.mar + '  fs ' + r.fs +
+                (r.pos ? '  ' + r.pos : '') + (r.over ? '  <<< ' + r.over : '') +
+                (r.txt ? '  text "' + r.txt + '"' : '')
+              );
+            }
+            await b.close();
+          })();
+          JS
+          W="${{ github.event.inputs.width }}" U="${{ github.event.inputs.url }}" \
+          NODE_PATH=/tmp/afh/node_modules node /tmp/header.js || true
