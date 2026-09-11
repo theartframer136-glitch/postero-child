@@ -12403,31 +12403,20 @@ add_shortcode('af_video_testimonials', function() {
 // managers always bypass it, so you can work on the live site.
 // Optional end time: option 'af_maintenance_until' ("YYYY-MM-DD HH:MM").
 /* ─────────────────────────────────────────────────────────────
-   Clear the fixed bottom navigation bar on phones.
-   Every floating thing on this site has been taught to sit above that bar —
-   the chat launcher and the quick panel at 72px (functions.php, inc/chatbot.php),
-   the consent banner at 65px (inc/cookie-consent.php) — but the page itself
-   never was, so whatever the document ends with is painted behind the bar and
-   cannot be read or tapped.
+   The bottom navigation bar already has its clearance, and it is not ours.
+   An earlier commit in this branch added body{padding-bottom:66px} on phones
+   on the reasoning that nothing reserved space for that bar. Measured on the
+   live site afterwards, at 390px: footer#colophon already carries
+   margin-bottom:65px from the parent theme, so the page had 131px of empty
+   space under it and the extra 66px was pure dead scroll on every phone page.
 
-   The padding goes on <body>, not on a footer element. This theme's own
-   .af-footer is disabled — there is an unconditional return in its hook, and
-   the Elementor footer is used instead — so there is no footer class here to
-   hang it on. Body padding is also invisible: the bar is opaque and about the
-   same height, so it covers the added strip exactly. safe-area-inset keeps it
-   clear of the home indicator on an iPhone, where the bar sits higher than on
-   Android.
+   The rule is gone rather than reduced. The theme owns this clearance, it is
+   already the right size, and a second one in this file would only drift from
+   it. Kept as a note so the same reasoning does not produce the same rule
+   again: if the bar is ever buried, check footer#colophon's margin first.
    ───────────────────────────────────────────────────────────── */
-add_action('wp_head', function () {
-    if (is_admin()) return;
-    ?>
-<style id="af-bottombar-clearance">
-@media (max-width: 600px) {
-  body { padding-bottom: calc(66px + env(safe-area-inset-bottom, 0px)) !important; }
-}
-</style>
-    <?php
-}, 100);
+
+
 
 add_action('template_redirect', function() {
     if (get_option('af_maintenance') !== 'on') return;
