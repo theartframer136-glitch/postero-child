@@ -1,0 +1,296 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+=== ART CODES → THE BOOK'S NUMBERING ===
+mode: APPLYING
+products: 391
+  with an art code:     268
+  without one:          123
+  to renumber:          247
+  already in the book's numbering: 0
+  naming no page of the book:      21  (left alone)
+  codes landing on more than one product: 35, over 76 products (unchanged by this pass)
+
+--- renumbered ---
+  #141     LI - 1902    -> LI - 190002    Minimalist Blossom Still Life Canvas Wall Ar
+  #148     LI - 1903    -> LI - 190003    Abstract Floral Sunrise Canvas Wall Art 5×3 
+  #220     LB - 0901    -> LB - 090001    Serene Buddha with Lotus Canvas Wall Art 4×3
+  #223     RK - 0110    -> RK - 010010    Krishna Moonlight Canvas Wall Art – 36 x 60 
+  #229     TP - 0504    -> TP - 050004    Lord Venkateswara Temple Canvas Wall Art 2×3
+  #232     SH - 0401    -> SH - 040001    Powerful Running White Horses Canvas Wall Ar
+  #3362    HD - 0804    -> HD - 080004    Divine Lord Ganesha Canvas Wall Art 60×36 In
+  #7676    LB - 0902    -> LB - 090002    Abstract Buddha Lotus Meditation Canvas Wall
+  #7688    LI - 1912    -> LI - 190012    Luxury Floral Birds Canvas Wall Art 36×60 In
+  #7700    IC - 1303    -> IC - 130003    Stunning Indian Classical Bharatanatyam Wall
+  #7703    VA - 1604    -> VA - 160004    Divine Garuda Sacred Symbol Canvas Wall Art–
+  #7718    HD - 0802    -> HD - 080002    Maa Durga Divine Canvas Wall Art 48×48 Inche
+  #7765    KR - 1801    -> KR - 180001    Cute Cartoon Cat Wall Art 36×24 – Adorable K
+  #7767    WL - 1701    -> WL - 170001    Sacred Elephant Harmony Canvas Wall Art – 48
+  #7769    RK - 0176    -> RK - 010076    Divine Shrinathji Canvas Wall Art – Stunning
+  #7802    RK - 0107    -> RK - 010007    Radha Krishna Abstract Canvas Wall Art – 36 
+  #7810    LR - 0701    -> LR - 070001    Premium Ram Darbar Divine Wall Art – 36 x 60
+  #7811    RK - 0103    -> RK - 010003    Radha Krishna Love Canvas Wall Art – 36×48 I
+  #7815    SA - 1002    -> SA - 100002    Sacred Golden Temple Amritsar Canvas Wall Ar
+  #7819    RK - 0108    -> RK - 010008    Sleeping Baby Krishna Canvas Wall Art – 36 ×
+  #7822    RK - 0109    -> RK - 010009    Lord Krishna Blessing Canvas Wall Art – 36 x
+  #7824    RK - 0179    -> RK - 010079    Bal Krishna Flute Canvas Wall Art – 60 x 36 
+  #7825    HD - 0811    -> HD - 080011    Panchmukhi Hanuman Canvas Wall Art 60×36 Inc
+  #7830    HD - 0805    -> HD - 080005    Modern Abstract Ganesha Canvas Wall Art 36×4
+  #7833    SL - 1502    -> SL - 150002    Minimalist Blossom Vase Canvas Wall Art 36 ×
+  #7834    SL - 1512    -> SL - 150012    Rustic Blossom Vase Canvas Wall Art 36×60 In
+  #7837    AA - 2014    -> AA - 200014    Stunning Statement Geometric Floral Wall Art
+  #7839    LB - 0901    -> LB - 090001    Buddha Lotus Serenity Canvas Wall Art 36×60 
+  #8301    RK - 0106    -> RK - 010006    Radha Krishna Peacock Canvas Art 36 × 60 Inc
+  #8398    HD - 0824    -> HD - 080024    Meditating Yogi Spiritual Wall Art – 60 × 24
+  #8412    LG - 0201    -> LG - 020001    Lakshmi Ganesh Canvas Wall Art – 48×48 Inche
+  #8424    TA - 2101    -> TA - 210001    Divine Varanasi Ganga Aarti Canvas Wall Art 
+  #8454    SN - 1101    -> SN - 110001    Divine Swaminarayan Temple Golden Murti Wall
+  #8474    TP - 0504    -> TP - 050004    Divine Lord Balaji Temple Canvas Wall Art – 
+  #8494    SL - 1518    -> SL - 150018    Sacred Kedarnath Temple with Lord Shiva Wall
+  #8504    SA - 1003    -> SA - 100003    Sacred Guru Nanak Dev Ji Canvas Wall Art – 4
+  #8805    SL - 1501    -> SL - 150001    Modern Cafe Decor Wall Art Set – 72×24 Inch 
+  #8866    KR - 1803    -> KR - 180003    Kids Cartoon Animal Canvas Wall Art Set – 72
+  #11551   RK - 0126    -> RK - 010026    Stunning Radha Krishna Abstract Wall Art 60×
+  #11577   RK - 0102    -> RK - 010002    Radha Krishna Divine Love Canvas Art
+  #13239   SL - 1509    -> SL - 150009    Vibrant Floral Still Life Canvas Wall Art 3×
+  #13355   RK - 0180    -> RK - 010080    Krishna Standing Tall Canvas Wall Art 3×4 Fe
+  #13414   LS - 0306    -> LS - 030006    Shiva and Parvati Canvas Wall Art 3×4 Feet –
+  #13473   LI - 1931    -> LI - 190031    Joyful Man with Bouquet Canvas Wall Art 3×4 
+  #13592   LI - 1911    -> LI - 190011    Jesus in Heavenly Glory Canvas Wall Art 3×4 
+  #13662   RK - 0143    -> RK - 010043    Krishna Flute Serenade Canvas Wall Art 3×4 F
+  #13722   LC - 1402    -> LC - 140002    Stairway to the Moon Canvas Wall Art 3×4 Fee
+  #13781   IC - 1302    -> IC - 130002    Bharatanatyam Dancer Art Canvas Wall Art 3×4
+  #13840   TP - 0506    -> TP - 050006    Lord Venkateswara Cosmic Canvas Wall Art 3×4
+  #13916   RK - 0132    -> RK - 010032    Jagannath Art Canvas Wall Art 3×4 Feet – Flo
+  #14093   SL - 1508    -> SL - 150008    Dogwood Blossom Still Life Canvas Wall Art 3
+  #14617   RK - 0134    -> RK - 010034    Krishna Playing Flute Canvas Wall Art 3×4 Fe
+  #14739   LC - 1406    -> LC - 140006    Moonlit Mountain Forest Canvas Wall Art 3×4 
+  #14861   HD - 0824    -> HD - 080024    Sadhu in Contemplation Canvas Wall Art 3×4 F
+  #14923   KR - 1811    -> KR - 180011    Iron Man Portrait Canvas Wall Art 3×4 Feet –
+  #14985   HD - 0826    -> HD - 080026    Indian Spiritual Leader Canvas Wall Art 3×4 
+  #15046   KR - 1812    -> KR - 180012    Batman Comic Art Canvas Wall Art 3×4 Feet – 
+  #15135   RK - 0128    -> RK - 010028    Radha Krishna Love Canvas Wall Art 3×4 Feet 
+  #15217   RK - 0146    -> RK - 010046    Lord Krishna Cosmic Canvas Wall Art 3×4 Feet
+  #15278   HD - 0820    -> HD - 080020    Golden Idol Statue Canvas Wall Art 3×4 Feet 
+  #15340   VA - 1603    -> VA - 160003    Nandi The Bull Canvas Wall Art 3×4 Feet – Fl
+  #15402   LB - 0910    -> LB - 090010    Buddha with Lotus Canvas Wall Art 3×4 Feet –
+  #15463   AA - 2002    -> AA - 200002    Pomegranate Goddess Canvas Wall Art 3×4 Feet
+  #15546   RK - 0142    -> RK - 010042    Krishna Playing Flute Canvas Wall Art 3×4 Fe
+  #15607   HD - 0821    -> HD - 080021    Hindu Saint Portrait Canvas Wall Art 3×4 Fee
+  #15730   TP - 0513    -> TP - 050013    Vishnu Blue Form Canvas Wall Art 3×4 Feet – 
+  #15791   AA - 2011    -> AA - 200011    Geometric Animal Composition Canvas Wall Art
+  #15852   SL - 1506    -> SL - 150006    Modern Plant Art Canvas Wall Art 3×4 Feet – 
+  #15913   LR - 0705    -> LR - 070005    Lord Vishnu Statue Canvas Wall Art 3×4 Feet 
+  #15974   RK - 0130    -> RK - 010030    Dancing Lady Portrait Canvas Wall Art 3×4 Fe
+  #16035   LI - 1909    -> LI - 190009    Sacred Heart of Jesus Canvas Wall Art 3×4 Fe
+  #16096   LB - 0905    -> LB - 090005    Buddha Art Canvas Wall Art 3×4 Feet – Floati
+  #16257   LS - 0309    -> LS - 030009    Buddha Art Canvas Wall Art 3×4 Feet – Floati
+  #16318   RK - 0140    -> RK - 010040    Krishna Art Canvas Wall Art 3×4 Feet – Float
+  #16382   LB - 0908    -> LB - 090008    Golden Buddha Canvas Wall Art 3×4 Feet – Flo
+  #16444   LI - 1923    -> LI - 190023    Running Brown Horse Canvas Wall Art 3×4 Feet
+  #16505   LB - 0911    -> LB - 090011    Zen Buddha with Lotuses Canvas Wall Art 3×4 
+  #16566   LC - 1409    -> LC - 140009    Whimsical Train Journey Canvas Wall Art 3×4 
+  #16640   KR - 1804    -> KR - 180004    Vishnu Ji Statue Art Canvas Wall Art 3×4 Fee
+  #16701   TP - 0512    -> TP - 050012    Vishnu On Snake Canvas Wall Art 3×4 Feet – F
+  #16762   LI - 1908    -> LI - 190008    Crucifixion Scene Canvas Wall Art 3×4 Feet –
+  #16823   RK - 0144    -> RK - 010044    Golden Cosmic Krishna Canvas Wall Art 3×4 Fe
+  #16932   LB - 0913    -> LB - 090013    Buddha Enlightenment Scene Canvas Wall Art 3
+  #16993   LS - 0308    -> LS - 030008    Shiva Family Art Canvas Wall Art 3×4 Feet – 
+  #17090   HD - 0825    -> HD - 080025    Garlanded Guru Portrait Canvas Wall Art 3×4 
+  #17151   WL - 1703    -> WL - 170003    Geometric Elephant Canvas Wall Art 3×4 Feet 
+  #17212   RK - 0178    -> RK - 010078    Beautiful Lord Krishna Statue Canvas Wall Ar
+  #17280   RK - 0121    -> RK - 010021    Radha Krishna Temple Scene Canvas Wall Art 3
+  #17341   LS - 0303    -> LS - 030003    Shiva in Moonlit Cave Canvas Wall Art 3×4 Fe
+  #17402   KR - 1807    -> KR - 180007    Vibrant Horse Art Canvas Wall Art 3×4 Feet –
+  #17472   HD - 0809    -> HD - 080009    Lord Mahavira Art Canvas Wall Art 3×4 Feet –
+  #17543   LR - 0705    -> LR - 070005    Lord Balaji Idol Canvas Wall Art 3×4 Feet – 
+  #17605   HD - 0822    -> HD - 080022    Sai Baba Portrait Canvas Wall Art 3×4 Feet –
+  #17672   LI - 1910    -> LI - 190010    Jesus Portrait Canvas Wall Art 3×4 Feet – Fl
+  #17733   HD - 0807    -> HD - 080007    Ganesh Art Canvas Wall Art 3×4 Feet – Floati
+  #17795   HD - 0810    -> HD - 080010    Lord Hanuman Statue Art Canvas Wall Art 3×4 
+  #17917   HD - 0818    -> HD - 080018    Goddess Lakshmi on Elephant Canvas Wall Art 
+  #17978   AA - 2010    -> AA - 200010    Tree Under Moonlight Canvas Wall Art 3×4 Fee
+  #18039   RK - 0119    -> RK - 010019    Radha Krishna Dance Canvas Wall Art 3×4 Feet
+  #18107   RK - 0133    -> RK - 010033    Krishna Flute Collage Art Canvas Wall Art 3×
+  #18168   KR - 1816    -> KR - 180016    Whimsical Bird Creatures Canvas Wall Art 3×4
+  #18290   LS - 0304    -> LS - 030004    Shiva Meditation Art Canvas Wall Art 3×4 Fee
+  #18355   RK - 0150    -> RK - 010050    Mystical Govinda Poster Canvas Wall Art 3×4 
+  #18416   LS - 0305    -> LS - 030005    Shiva Meditation Scene Canvas Wall Art 3×4 F
+  #18477   HD - 0823    -> HD - 080023    ISKCON Leader Portrait Canvas Wall Art 3×4 F
+  #18538   HD - 0815    -> HD - 080015    Lakshmi with Elephants Canvas Wall Art 3×4 F
+  #18600   RK - 0145    -> RK - 010045    Lord Krishna Playing Flute Canvas Wall Art 3
+  #18666   TP - 0503    -> TP - 050003    Ram Sita Wedding Canvas Wall Art 3×4 Feet – 
+  #18727   LS - 0305    -> LS - 030005    Whimsy Friends Canvas Wall Art 3×4 Feet – Fl
+  #18788   RK - 0147    -> RK - 010047    Vishnu Divine Avatar Canvas Wall Art 3×4 Fee
+  #18897   LC - 1403    -> LC - 140003    Surreal Landscape Canvas Wall Art 3×4 Feet –
+  #18964   RK - 0104    -> RK - 010004    Krishna with Radha Canvas Wall Art 3×4 Feet 
+  #19025   SH - 0404    -> SH - 040004    Seven Horses Ocean Run Canvas Wall Art 3×4 F
+  #19147   RK - 0131    -> RK - 010031    Krishna Flute Player Canvas Wall Art 3×4 Fee
+  #19208   RK - 0120    -> RK - 010020    Radha Krishna Floral Arch Canvas Wall Art 3×
+  #19269   LS - 0310    -> LS - 030010    Shiva with Nandi Canvas Wall Art 3×4 Feet – 
+  #19330   HD - 0805    -> HD - 080005    Ganesha Art Canvas Wall Art 3×4 Feet – Float
+  #19392   RK - 0123    -> RK - 010023    Radha Krishna with Peacocks Canvas Wall Art 
+  #19514   VA - 1601    -> VA - 160001    Peacock Floral Art Canvas Wall Art 3×4 Feet 
+  #19575   AA - 2006    -> AA - 200006    Man in Contemplation Canvas Wall Art 3×4 Fee
+  #19636   SH - 0408    -> SH - 040008    Seven Horses in the Clouds Canvas Wall Art 3
+  #19697   LI - 1928    -> LI - 190028    Moonlit Sailing Adventure Canvas Wall Art 3×
+  #19759   SH - 0406    -> SH - 040006    Colorful Horses Art Canvas Wall Art 3×4 Feet
+  #19822   RK - 0148    -> RK - 010048    Baby Krishna Hides Canvas Wall Art 3×4 Feet 
+  #20288   LI - 1905    -> LI - 190005    Holy Family Stained Glass Canvas Wall Art 3×
+  #20349   RK - 0129    -> RK - 010029    Radha Krishna Angel Embrace Canvas Wall Art 
+  #20410   TP - 0510    -> TP - 050010    Narasimha on Serpent Throne Canvas Wall Art 
+  #20471   LB - 0909    -> LB - 090009    Buddha Waterfall Cave Canvas Wall Art 3×4 Fe
+  #20526   LB - 0903    -> LB - 090003    Teal Buddha Lotus Mural Canvas Wall Art 3×4 
+  #20587   TP - 0505    -> TP - 050005    Tirupati Balaji Shrine Canvas Wall Art 3×4 F
+  #20648   LB - 0904    -> LB - 090004    Buddha on Lotus at Dawn Canvas Wall Art 3×4 
+  #20709   LB - 0906    -> LB - 090006    Buddha Lotus Twilight Canvas Wall Art 3×4 Fe
+  #20831   RK - 0112    -> RK - 010012    Radha Krishna Peacock Elegance Canvas Wall A
+  #20892   LB - 0907    -> LB - 090007    Neon Jungle Buddha Canvas Wall Art 3×4 Feet 
+  #20953   SH - 0407    -> SH - 040007    Seven Horses Sky Run Canvas Wall Art 3×4 Fee
+  #21014   SH - 0409    -> SH - 040009    Seven Horses Sunrise Gallop Canvas Wall Art 
+  #21075   HD - 0813    -> HD - 080013    Saraswati with Swan Canvas Wall Art 3×4 Feet
+  #21136   LR - 0703    -> LR - 070003    Ram Sita Portrait Canvas Wall Art 3×4 Feet –
+  #21197   RK - 0114    -> RK - 010014    Baby Krishna Butter Delight Canvas Wall Art 
+  #21259   LR - 0702    -> LR - 070002    Ram Darbar Blessing Canvas Wall Art 3×4 Feet
+  #21320   RK - 0135    -> RK - 010035    Krishna with White Cows Canvas Wall Art 3×4 
+  #21381   VA - 1604    -> VA - 160004    Sun Phoenix Vintage Art Canvas Wall Art 3×4 
+  #21442   LS - 0312    -> LS - 030012    Kali Ink Dance Canvas Wall Art 3×4 Feet – Fl
+  #21503   AA - 2010    -> AA - 200010    Vaishnava Saints Kirtan Canvas Wall Art 3×4 
+  #21564   HD - 0818    -> HD - 080018    Ganesha with Elephants Canvas Wall Art 3×4 F
+  #21625   LS - 0311    -> LS - 030011    Krishna and Cow Folk Art Canvas Wall Art 3×4
+  #21686   RK - 0113    -> RK - 010013    Golden Radha Krishna Duet Canvas Wall Art 3×
+  #21771   KR - 1807    -> KR - 180007    Guru Watercolor Splash Canvas Wall Art 3×4 F
+  #22016   AA - 2006    -> AA - 200006    Horses in Color Field Canvas Wall Art 3×4 Fe
+  #22138   RK - 0188    -> RK - 010088    Krishna’s Gopis Gathering Canvas Wall Art 3×
+  #22260   HD - 0812    -> HD - 080012    Hanuman Ji Sitting Pretty Canvas Wall Art 3×
+  #22321   HD - 0821    -> HD - 080021    Golden Guru Aura Canvas Wall Art 3×4 Feet – 
+  #22444   LI - 1907    -> LI - 190007    Cross of Faith Canvas Wall Art 3×4 Feet – Fl
+  #22564   SL - 1502    -> SL - 150002    Decorated Lord Murugan Canvas Wall Art 3×4 F
+  #22625   LS - 0308    -> LS - 030008    Whimsical Tower Scene Canvas Wall Art 3×4 Fe
+  #22686   TP - 0512    -> TP - 050012    Vishnu Bhootapuri Art Canvas Wall Art 3×4 Fe
+  #22747   HD - 0806    -> HD - 080006    Ganesh Pop Art Canvas Wall Art 3×4 Feet – Fl
+  #22825   HD - 0827    -> HD - 080027    Srila Prabhupada Portrait Canvas Wall Art 3×
+  #22886   WL - 1707    -> WL - 170007    Autumn Deer Folk Tree Canvas Wall Art 3×4 Fe
+  #23008   LI - 1904    -> LI - 190004    Teal City Mirage Canvas Wall Art 3×4 Feet – 
+  #23069   TP - 0511    -> TP - 050011    Narayana on Lotus Canvas Wall Art 3×4 Feet –
+  #23130   SH - 0405    -> SH - 040005    Golden Horses Midnight Run Canvas Wall Art 3
+  #23191   SH - 0404    -> SH - 040004    Seven Horses Cliff Dawn Canvas Wall Art 3×4 
+  #23313   WL - 1712    -> WL - 170012    Safari Friends Nursery Canvas Wall Art 3×4 F
+  #23374   LI - 1932    -> LI - 190032    Moonlit White Horse Canvas Wall Art 3×4 Feet
+  #23619   WL - 1713    -> WL - 170013    Swan Lake Romance Canvas Wall Art 3×4 Feet –
+  #23728   AA - 2016    -> AA - 200016    Stone Face Taking Flight Canvas Wall Art 3×4
+  #23911   TP - 0513    -> TP - 050013    Kalki Avatar Tanjore Canvas Wall Art 3×4 Fee
+  #23972   RK - 0158    -> RK - 010058    Radha Krishna Petal Dance Canvas Wall Art 3×
+  #24033   RK - 0156    -> RK - 010056    Radha Krishna Melody Swirl Canvas Wall Art 3
+  #24094   HD - 0819    -> HD - 080019    Sri Ramanuja Procession Canvas Wall Art 3×4 
+  #24169   MG - 0601    -> MG - 060001    Murugan Sanctum Darshan Canvas Wall Art 3×4 
+  #24230   RK - 0155    -> RK - 010055    Vishvarupa Gita Vision Canvas Wall Art 3×4 F
+  #24291   SL - 1513    -> SL - 150013    Blossom Vases at Moonrise Canvas Wall Art 3×
+  #24409   KR - 1802    -> KR - 180002    Tropical Leaves Mural Canvas Wall Art 3×4 Fe
+  #24531   MG - 0602    -> MG - 060002    Murugan Flower Garden Canvas Wall Art 3×4 Fe
+  #24653   RK - 0101    -> RK - 010001    Radha Krishna Painted Faces Canvas Wall Art 
+  #24775   HD - 0806    -> HD - 080006    Bharat Mata with Lion Canvas Wall Art 3×4 Fe
+  #24897   LI - 1936    -> LI - 190036    Crimson Horse Reverie Canvas Wall Art 3×4 Fe
+  #24958   SL - 1516    -> SL - 150016    Ganesha Fire Abstract Canvas Wall Art 3×4 Fe
+  #25021   HD - 0814    -> HD - 080014    Tanjore Seated Goddess Canvas Wall Art 3×4 F
+  #25185   SL - 1522    -> SL - 150022    Lotus Basket Still Life Canvas Wall Art 3×4 
+  #25297   SA - 1001    -> SA - 100001    Tanjore Deity with Devotees Canvas Wall Art 
+  #25419   RK - 0161    -> RK - 010061    Satyanarayan Katha Scene Canvas Wall Art 3×4
+  #25474   LS - 0311    -> LS - 030011    Lantern Lake Starry Night Canvas Wall Art 3×
+  #25718   KR - 1815    -> KR - 180015    Franklin Graffiti Pop Art Canvas Wall Art 3×
+  #25779   AA - 2008    -> AA - 200008    Dancers by the Lamp Canvas Wall Art 3×4 Feet
+  #25840   IC - 1301    -> IC - 130001    Dancers in Duet Canvas Wall Art 3×4 Feet – F
+  #25901   RK - 0159    -> RK - 010059    Krishna Watercolor Gaze Canvas Wall Art 3×4 
+  #25962   RK - 0115    -> RK - 010015    Radha Krishna Grove Mural Canvas Wall Art 3×
+  #26023   LR - 0708    -> LR - 070008    Utsava Deity in Garlands Canvas Wall Art 3×4
+  #26206   RK - 0168    -> RK - 010068    Krishna in Pearl Attire Canvas Wall Art 3×4 
+  #26267   WL - 1706    -> WL - 170006    Balaji Garland Darshan Canvas Wall Art 3×4 F
+  #26328   HD - 0820    -> HD - 080020    Sri Ramanuja Golden Murti Canvas Wall Art 3×
+  #26389   KR - 1813    -> KR - 180013    Pirate Captain Sketch Canvas Wall Art 3×4 Fe
+  #26628   LS - 0311    -> LS - 030011    Floral Arch Wall Art Canvas Wall Art 3×4 Fee
+  #26690   RK - 0157    -> RK - 010057    Mother and Little Krishna Canvas Wall Art 3×
+  #26753   LG - 0203    -> LG - 020003    Lakshmi Ganesha Blessing Canvas Wall Art 3×4
+  #26814   SA - 1001    -> SA - 100001    Golden Temple at Dusk Canvas Wall Art 3×4 Fe
+  #26875   HD - 0801    -> HD - 080001    Mahavatar Babaji Canvas Wall Art 3×4 Feet – 
+  #26936   SA - 1002    -> SA - 100002    Golden Temple Daylight Canvas Wall Art 3×4 F
+  #27078   LB - 0905    -> LB - 090005    Seven Horses Sunset Beach Canvas Wall Art 3×
+  #27133   LC - 1401    -> LC - 140001    Geometric Falls Sunrise Canvas Wall Art 3×4 
+  #27194   WL - 1709    -> WL - 170009    Murmuration at Dusk Canvas Wall Art 3×4 Feet
+  #27325   RK - 0187    -> RK - 010087    Radha Krishna on the Branch Canvas Wall Art 
+  #27388   KR - 1807    -> KR - 180007    Krishna Minimal Splash Canvas Wall Art 3×4 F
+  #27572   SH - 0410    -> SH - 040010    Two Horses Cubist Canvas Wall Art 3×4 Feet –
+  #27633   KR - 1816    -> KR - 180016    Flight Path Reverie Canvas Wall Art 3×4 Feet
+  #27695   WL - 1715    -> WL - 170015    Savanna Evening Dance Canvas Wall Art 3×4 Fe
+  #27811   LB - 0908    -> LB - 090008    Buddha Among Pink Lotuses Canvas Wall Art 3×
+  #27920   LI - 1934    -> LI - 190034    Rainbow Wings and Butterflies Canvas Wall Ar
+  #28042   WL - 1711    -> WL - 170011    Dream Peacock Garden Canvas Wall Art 3×4 Fee
+  #28225   KR - 1818    -> KR - 180018    Nandi and the Jyotirlingas Canvas Wall Art 3
+  #28300   LR - 0707    -> LR - 070007    Ram Lalla in Garlands Canvas Wall Art 3×4 Fe
+  #28473   SL - 1516    -> SL - 150016    Quiet Harbor Minimal Canvas Wall Art 3×4 Fee
+  #28534   LB - 0906    -> LB - 090006    Kirtan Celebration Canvas Wall Art 3×4 Feet 
+  #28717   SA - 1001    -> SA - 100001    Vishnu in Golden Garlands Canvas Wall Art 3×
+  #28900   RK - 0183    -> RK - 010083    Krishna Kadamba Melody Canvas Wall Art 3×4 F
+  #28962   PA - 1201    -> PA - 120001    Savanna Golden Hour Canvas Wall Art 3×4 Feet
+  #29159   WL - 1702    -> WL - 170002    Horse Studies Collage Canvas Wall Art 3×4 Fe
+  #29220   SA - 1001    -> SA - 100001    Vishnu Cosmic Lotus Canvas Wall Art 3×4 Feet
+  #29281   TP - 0509    -> TP - 050009    Balaji Divine Collage Canvas Wall Art 3×4 Fe
+  #29578   LS - 0309    -> LS - 030009    Twin Faces of Serenity Canvas Wall Art 3×4 F
+  #29690   WL - 1708    -> WL - 170008    Folk Cows Abstract Canvas Wall Art 3×4 Feet 
+  #29751   VA - 1603    -> VA - 160003    Sacred Cow Relief Art Canvas Wall Art 3×4 Fe
+  #29890   TA - 2104    -> TA - 210004    Ganga Aarti Flame Canvas Wall Art 3×4 Feet –
+  #29951   LG - 0202    -> LG - 020002    Lakshmi Ganesha Throne Canvas Wall Art 3×4 F
+  #30154   LS - 0311    -> LS - 030011    Ganesha Dawn Silhouette Canvas Wall Art 3×4 
+  #30215   HD - 0814    -> HD - 080014    Devi in White on Lotus Canvas Wall Art 3×4 F
+  #30276   LS - 0307    -> LS - 030007    Red Sun Winter Tree Canvas Wall Art 3×4 Feet
+  #30470   RK - 0190    -> RK - 010090    Moonlit Lotus Radha Canvas Wall Art 3×4 Feet
+  #30592   RK - 0151    -> RK - 010051    Krishna Floral Halo Canvas Wall Art 3×4 Feet
+  #30653   RK - 0185    -> RK - 010085    Krishna Peacock Serenade Canvas Wall Art 3×4
+  #30836   RK - 0164    -> RK - 010064    Veena Player with Peacock Canvas Wall Art 3×
+  #30966   TP - 0506    -> TP - 050006    Vishnu on Shesha Canvas Wall Art 3×4 Feet – 
+  #31088   TP - 0511    -> TP - 050011    Vaikuntha Celestial Court Canvas Wall Art 3×
+  #31212   RK - 0177    -> RK - 010077    Radha Krishna Jeweled Duet Canvas Wall Art 3
+  #31273   AA - 2014    -> AA - 200014    Palace in the Grove Canvas Wall Art 3×4 Feet
+  #31334   RK - 0186    -> RK - 010086    Radha in Bridal Blooms Canvas Wall Art 3×4 F
+  #31395   WL - 1716    -> WL - 170016    Shiva Smoke and Trident Canvas Wall Art 3×4 
+  #31456   TP - 0508    -> TP - 050008    Balaji Abstract Gold Canvas Wall Art 3×4 Fee
+  #31527   PA - 1201    -> PA - 120001    Krishna Cowherd Modern Art Canvas Wall Art 3
+  #31588   LR - 0709    -> LR - 070009    Kodanda Rama Utsavam Canvas Wall Art 3×4 Fee
+  #31713   TA - 2103    -> TA - 210003    Varanasi Teal Poster Canvas Wall Art 3×4 Fee
+  #31772   RK - 0118    -> RK - 010018    Radha Krishna Mosaic Art Canvas Wall Art 3×4
+  #31829   RK - 0134    -> RK - 010034    Krishna Flute Panorama Canvas Wall Art 3×4 F
+  #31890   TP - 0513    -> TP - 050013    Lord Vishnu Golden Halo Canvas Wall Art 3×4 
+
+--- left alone: these name no page of the book ---
+Each needs its picture put next to the book, which is the audit's work,
+not this pass's. Rows for them belong in tools/artcode-corrections.csv.
+  AL is not a section of the book — 3 product(s)
+     #23435   AL 06        Andal with Parrot Tanjore Canvas Wall Art 3×
+     #23496   AL 05        Mahayogi Tanjore Panel Canvas Wall Art 3×4 F
+     #26145   AL 01        Tanjore Murugan Panel Canvas Wall Art 3×4 Fe
+  Lord Rama has 10 pages in the book today, and the numbering the shop was last written against went up to 9 — 10 product(s)
+     #7803    LR 25        Vaishnav Tilak Shankh Chakra Wall Art 84×24 
+     #7805    LR 13        Stunning Butterfly Tree Canvas Wall Art 36×4
+     #7838    LR 24        Indian Classical Dance Canvas Wall Art – 36 
+     #16191   LR 24        Serene Buddha Statue Canvas Wall Art 3×4 Fee
+     #20026   LR 25        Indian Classical Dancer Canvas Wall Art 3×4 
+     #24714   LR 32        Namaste Henna Hands Canvas Wall Art 3×4 Feet
+     #25535   LR 33        Jazz Man Blue Gold Canvas Wall Art 3×4 Feet 
+     #27264   LR 24        Nataraja Bronze Glory Canvas Wall Art 3×4 Fe
+     #28778   LR 39        Dancer on Stage Canvas Wall Art 3×4 Feet – F
+     #29639   LR 21        Mahavira Golden Shrine Canvas Wall Art 3×4 F
+  Lord Shiva has 18 pages in the book today, and the numbering the shop was last written against went up to 15 — 7 product(s)
+     #7816    LS 22        Divine Lord Shiva Canvas Wall Art (36×48 Inc
+     #17856   LS 16        Shiva The Destroyer Canvas Wall Art 3×4 Feet
+     #19883   LS 21        Shiva Neon Line Art Canvas Wall Art 3×4 Feet
+     #20770   LS 17        Shiva Crescent Dream Canvas Wall Art 3×4 Fee
+     #29023   LS 19        Shiva Parivar Blessing Canvas Wall Art 3×4 F
+     #30338   LS 18        Shiva Parivar in Clouds Canvas Wall Art 3×4 
+     #31150   LS 20        Shiva Family Harmony Canvas Wall Art 3×4 Fee
+  Pichwai Art has 1 pages in the book today, and the numbering the shop was last written against went up to 1 — 1 product(s)
+     #29395   PA 02        Pichwai Ganesha Fountains Canvas Wall Art 3×
+
+renumbered: 247  |  already correct: 0  |  left alone: 21  |  no code: 123
+
+Written. The SKU pass runs next and rebuilds each changed product's SKU
+from its new code; the code each product had before is kept in
+_af_code_before_renumber.
+=== DONE ===

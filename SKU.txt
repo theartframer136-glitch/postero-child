@@ -1,0 +1,150 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+=== SKU → ART CODE ===
+target: artcode-sku-v4-unique  |  budget: 200s or 800 products per run
+products: 391
+  with an art code:    268
+  WITHOUT an art code: 123  (a SKU this tool minted is undone below)
+  art codes shared by more than one product: 37
+  products given a letter so their SKU is unique: 81
+  uniqueness: OK — 268 products, 268 distinct SKUs
+
+changed 247  |  already correct 21  |  clashes left alone 0  |  failed 0  |  5s
+every product with an art code now carries it as its SKU.
+
+what changed (first 8):
+  #141  LI-1902  →  LI-190002   [LI - 190002]
+  #148  LI-1903  →  LI-190003   [LI - 190003]
+  #220  LB-0901A  →  LB-090001A   [LB - 090001]
+  #223  RK-0110  →  RK-010010   [RK - 010010]
+  #229  TP-0504A  →  TP-050004A   [TP - 050004]
+  #232  SH-0401  →  SH-040001   [SH - 040001]
+  #3362  HD-0804  →  HD-080004   [HD - 080004]
+  #7676  LB-0902  →  LB-090002   [LB - 090002]
+
+--- ART CODES ON MORE THAN ONE PRODUCT ---
+These 37 codes are each on several products, so each product
+gets a letter to make its SKU unique. The art code itself is untouched —
+the letter belongs to the SKU alone. A letter, once issued, never moves.
+These are still codes that want correcting; the letters keep the shop
+working in the meantime.
+  LB-090001 (2 products)
+     LB-090001A   #220     Serene Buddha with Lotus Canvas Wall Art 4×3 Feet – Fl
+     LB-090001B   #7839    Buddha Lotus Serenity Canvas Wall Art 36×60 Inches – S
+  TP-050004 (2 products)
+     TP-050004A   #229     Lord Venkateswara Temple Canvas Wall Art 2×3 Feet – Fl
+     TP-050004B   #8474    Divine Lord Balaji Temple Canvas Wall Art – 60 × 36 In
+  VA-160004 (2 products)
+     VA-160004A   #7703    Divine Garuda Sacred Symbol Canvas Wall Art– 36 × 60 I
+     VA-160004B   #21381   Sun Phoenix Vintage Art Canvas Wall Art 3×4 Feet – Flo
+  LR-25 (2 products)
+     LR-25A       #7803    Vaishnav Tilak Shankh Chakra Wall Art 84×24 Inch – Lar
+     LR-25B       #20026   Indian Classical Dancer Canvas Wall Art 3×4 Feet – Flo
+  SA-100002 (2 products)
+     SA-100002A   #7815    Sacred Golden Temple Amritsar Canvas Wall Art – 48 × 3
+     SA-100002B   #26936   Golden Temple Daylight Canvas Wall Art 3×4 Feet – Floa
+  HD-080005 (2 products)
+     HD-080005A   #7830    Modern Abstract Ganesha Canvas Wall Art 36×48 Inches –
+     HD-080005B   #19330   Ganesha Art Canvas Wall Art 3×4 Feet – Floating Frame 
+  SL-150002 (2 products)
+     SL-150002A   #7833    Minimalist Blossom Vase Canvas Wall Art 36 × 60 Inches
+     SL-150002B   #22564   Decorated Lord Murugan Canvas Wall Art 3×4 Feet – Floa
+  AA-200014 (2 products)
+     AA-200014A   #7837    Stunning Statement Geometric Floral Wall Art 60×36 – A
+     AA-200014B   #31273   Palace in the Grove Canvas Wall Art 3×4 Feet – Floatin
+  LR-24 (3 products)
+     LR-24A       #7838    Indian Classical Dance Canvas Wall Art – 36 x 60 Inche
+     LR-24B       #16191   Serene Buddha Statue Canvas Wall Art 3×4 Feet – Floati
+     LR-24C       #27264   Nataraja Bronze Glory Canvas Wall Art 3×4 Feet – Float
+  HD-080024 (2 products)
+     HD-080024A   #8398    Meditating Yogi Spiritual Wall Art – 60 × 24 Inches Pe
+     HD-080024B   #14861   Sadhu in Contemplation Canvas Wall Art 3×4 Feet – Floa
+  TP-050006 (2 products)
+     TP-050006A   #13840   Lord Venkateswara Cosmic Canvas Wall Art 3×4 Feet – Fl
+     TP-050006B   #30966   Vishnu on Shesha Canvas Wall Art 3×4 Feet – Floating F
+  RK-010034 (2 products)
+     RK-010034A   #14617   Krishna Playing Flute Canvas Wall Art 3×4 Feet – Float
+     RK-010034B   #31829   Krishna Flute Panorama Canvas Wall Art 3×4 Feet – Floa
+  HD-080020 (2 products)
+     HD-080020A   #15278   Golden Idol Statue Canvas Wall Art 3×4 Feet – Floating
+     HD-080020B   #26328   Sri Ramanuja Golden Murti Canvas Wall Art 3×4 Feet – F
+  VA-160003 (2 products)
+     VA-160003A   #15340   Nandi The Bull Canvas Wall Art 3×4 Feet – Floating Fra
+     VA-160003B   #29751   Sacred Cow Relief Art Canvas Wall Art 3×4 Feet – Float
+  HD-080021 (2 products)
+     HD-080021A   #15607   Hindu Saint Portrait Canvas Wall Art 3×4 Feet – Floati
+     HD-080021B   #22321   Golden Guru Aura Canvas Wall Art 3×4 Feet – Floating F
+  TP-050013 (3 products)
+     TP-050013A   #15730   Vishnu Blue Form Canvas Wall Art 3×4 Feet – Floating F
+     TP-050013B   #23911   Kalki Avatar Tanjore Canvas Wall Art 3×4 Feet – Floati
+     TP-050013C   #31890   Lord Vishnu Golden Halo Canvas Wall Art 3×4 Feet – Flo
+  LR-070005 (2 products)
+     LR-070005A   #15913   Lord Vishnu Statue Canvas Wall Art 3×4 Feet – Floating
+     LR-070005B   #17543   Lord Balaji Idol Canvas Wall Art 3×4 Feet – Floating F
+  LB-090005 (2 products)
+     LB-090005A   #16096   Buddha Art Canvas Wall Art 3×4 Feet – Floating Frame –
+     LB-090005B   #27078   Seven Horses Sunset Beach Canvas Wall Art 3×4 Feet – F
+  LS-030009 (2 products)
+     LS-030009A   #16257   Buddha Art Canvas Wall Art 3×4 Feet – Floating Frame –
+     LS-030009B   #29578   Twin Faces of Serenity Canvas Wall Art 3×4 Feet – Floa
+  LB-090008 (2 products)
+     LB-090008A   #16382   Golden Buddha Canvas Wall Art 3×4 Feet – Floating Fram
+     LB-090008B   #27811   Buddha Among Pink Lotuses Canvas Wall Art 3×4 Feet – F
+  TP-050012 (2 products)
+     TP-050012A   #16701   Vishnu On Snake Canvas Wall Art 3×4 Feet – Floating Fr
+     TP-050012B   #22686   Vishnu Bhootapuri Art Canvas Wall Art 3×4 Feet – Float
+  LS-030008 (2 products)
+     LS-030008A   #16993   Shiva Family Art Canvas Wall Art 3×4 Feet – Floating F
+     LS-030008B   #22625   Whimsical Tower Scene Canvas Wall Art 3×4 Feet – Float
+  KR-180007 (3 products)
+     KR-180007A   #17402   Vibrant Horse Art Canvas Wall Art 3×4 Feet – Floating 
+     KR-180007B   #21771   Guru Watercolor Splash Canvas Wall Art 3×4 Feet – Floa
+     KR-180007C   #27388   Krishna Minimal Splash Canvas Wall Art 3×4 Feet – Floa
+  HD-080018 (2 products)
+     HD-080018A   #17917   Goddess Lakshmi on Elephant Canvas Wall Art 3×4 Feet –
+     HD-080018B   #21564   Ganesha with Elephants Canvas Wall Art 3×4 Feet – Floa
+  AA-200010 (2 products)
+     AA-200010A   #17978   Tree Under Moonlight Canvas Wall Art 3×4 Feet – Floati
+     AA-200010B   #21503   Vaishnava Saints Kirtan Canvas Wall Art 3×4 Feet – Flo
+  KR-180016 (2 products)
+     KR-180016A   #18168   Whimsical Bird Creatures Canvas Wall Art 3×4 Feet – Fl
+     KR-180016B   #27633   Flight Path Reverie Canvas Wall Art 3×4 Feet – Floatin
+  LS-030005 (2 products)
+     LS-030005A   #18416   Shiva Meditation Scene Canvas Wall Art 3×4 Feet – Floa
+     LS-030005B   #18727   Whimsy Friends Canvas Wall Art 3×4 Feet – Floating Fra
+  SH-040004 (2 products)
+     SH-040004A   #19025   Seven Horses Ocean Run Canvas Wall Art 3×4 Feet – Floa
+     SH-040004B   #23191   Seven Horses Cliff Dawn Canvas Wall Art 3×4 Feet – Flo
+  AA-200006 (2 products)
+     AA-200006A   #19575   Man in Contemplation Canvas Wall Art 3×4 Feet – Floati
+     AA-200006B   #22016   Horses in Color Field Canvas Wall Art 3×4 Feet – Float
+  LB-090006 (2 products)
+     LB-090006A   #20709   Buddha Lotus Twilight Canvas Wall Art 3×4 Feet – Float
+     LB-090006B   #28534   Kirtan Celebration Canvas Wall Art 3×4 Feet – Floating
+  LS-030011 (4 products)
+     LS-030011A   #21625   Krishna and Cow Folk Art Canvas Wall Art 3×4 Feet – Fl
+     LS-030011B   #25474   Lantern Lake Starry Night Canvas Wall Art 3×4 Feet – F
+     LS-030011C   #26628   Floral Arch Wall Art Canvas Wall Art 3×4 Feet – Floati
+     LS-030011D   #30154   Ganesha Dawn Silhouette Canvas Wall Art 3×4 Feet – Flo
+  HD-080006 (2 products)
+     HD-080006A   #22747   Ganesh Pop Art Canvas Wall Art 3×4 Feet – Floating Fra
+     HD-080006B   #24775   Bharat Mata with Lion Canvas Wall Art 3×4 Feet – Float
+  TP-050011 (2 products)
+     TP-050011A   #23069   Narayana on Lotus Canvas Wall Art 3×4 Feet – Floating 
+     TP-050011B   #31088   Vaikuntha Celestial Court Canvas Wall Art 3×4 Feet – F
+  SL-150016 (2 products)
+     SL-150016A   #24958   Ganesha Fire Abstract Canvas Wall Art 3×4 Feet – Float
+     SL-150016B   #28473   Quiet Harbor Minimal Canvas Wall Art 3×4 Feet – Floati
+  HD-080014 (2 products)
+     HD-080014A   #25021   Tanjore Seated Goddess Canvas Wall Art 3×4 Feet – Floa
+     HD-080014B   #30215   Devi in White on Lotus Canvas Wall Art 3×4 Feet – Floa
+  SA-100001 (4 products)
+     SA-100001A   #25297   Tanjore Deity with Devotees Canvas Wall Art 3×4 Feet –
+     SA-100001B   #26814   Golden Temple at Dusk Canvas Wall Art 3×4 Feet – Float
+     SA-100001C   #28717   Vishnu in Golden Garlands Canvas Wall Art 3×4 Feet – F
+     SA-100001D   #29220   Vishnu Cosmic Lotus Canvas Wall Art 3×4 Feet – Floatin
+  PA-120001 (2 products)
+     PA-120001A   #28962   Savanna Golden Hour Canvas Wall Art 3×4 Feet – Floatin
+     PA-120001B   #31527   Krishna Cowherd Modern Art Canvas Wall Art 3×4 Feet – 
+
+no art code: 123 product(s); 0 had the SKU it displaced put back, 0 had a generated SKU cleared, 73 left alone

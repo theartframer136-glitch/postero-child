@@ -1,0 +1,27 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+=== DAILY SHUFFLE — the seven-day loop ===
+  today is day 2 of 7, seed 1015841
+  seven distinct seeds                                 OK  1000003 1007922 1015841 1023760 1031679 1039598 1047517
+  day N and day N+7 share a seed (it loops)            OK
+  consecutive days do not                              OK
+  the index walks 0..6 and wraps, over 14 days         OK  2,3,4,5,6,0,1,2,3,4,5,6,0,1
+
+=== The seven orders, from the real catalogue ===
+  published products: 391
+  day 0  seed 1000003  first 8: 22947 19330 24169 141 33302 8276 115 24409
+  day 1  seed 1007922  first 8: 229 20410 22321 16993 8454 33291 28839 8846
+  day 2  seed 1015841  first 8: 28473 27920 26023 7769 7805 27572 13722 23435
+  day 3  seed 1023760  first 8: 14678 8518 23252 17212 27325 26450 8415 17672
+  day 4  seed 1031679  first 8: 8656 14923 14739 26267 30836 123 15046 28225
+  day 5  seed 1039598  first 8: 15402 13840 16505 26450 23850 17280 7800 31088
+  day 6  seed 1047517  first 8: 31273 26023 8526 27750 25779 30531 31027 7839
+  every day lists all 391 products                     OK
+  no product dropped or duplicated on any day          OK
+  all 21 day-pairs differ in order                     OK  21/21
+  one seed, run twice, gives one order (paging is safe) OK
+
+=== Rollover ===
+  a purge is scheduled                                 OK  next: 2026-09-13 00:05 site time
+
+=== RESULT: ALL CHECKS PASSED ===

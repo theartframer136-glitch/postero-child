@@ -1,0 +1,103 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+=== ART CODES ON MORE THAN ONE PRODUCT ===
+products: 391
+  with an art code: 268  |  without: 123
+  distinct art codes: 224
+  codes used by more than one product: 37
+  products sharing a code with something else: 81
+
+--- how many products per shared code ---
+  2 products: 32 code(s)
+  3 products: 3 code(s)
+  4 products: 2 code(s)
+
+--- every shared code (first 200 groups) ---
+code | product id | current SKU | title
+  LS - 030011 #21625   LS-030011A             Krishna and Cow Folk Art Canvas Wall Art 3×4 Feet – Floating
+  LS - 030011 #25474   LS-030011B             Lantern Lake Starry Night Canvas Wall Art 3×4 Feet – Floatin
+  LS - 030011 #26628   LS-030011C             Floral Arch Wall Art Canvas Wall Art 3×4 Feet – Floating Fra
+  LS - 030011 #30154   LS-030011D             Ganesha Dawn Silhouette Canvas Wall Art 3×4 Feet – Floating 
+  SA - 100001 #25297   SA-100001A             Tanjore Deity with Devotees Canvas Wall Art 3×4 Feet – Float
+  SA - 100001 #26814   SA-100001B             Golden Temple at Dusk Canvas Wall Art 3×4 Feet – Floating Fr
+  SA - 100001 #28717   SA-100001C             Vishnu in Golden Garlands Canvas Wall Art 3×4 Feet – Floatin
+  SA - 100001 #29220   SA-100001D             Vishnu Cosmic Lotus Canvas Wall Art 3×4 Feet – Floating Fram
+  LR 24      #7838    LR-24A                 Indian Classical Dance Canvas Wall Art – 36 x 60 Inches Colo
+  LR 24      #16191   LR-24B                 Serene Buddha Statue Canvas Wall Art 3×4 Feet – Floating Fra
+  LR 24      #27264   LR-24C                 Nataraja Bronze Glory Canvas Wall Art 3×4 Feet – Floating Fr
+  TP - 050013 #15730   TP-050013A             Vishnu Blue Form Canvas Wall Art 3×4 Feet – Floating Frame –
+  TP - 050013 #23911   TP-050013B             Kalki Avatar Tanjore Canvas Wall Art 3×4 Feet – Floating Fra
+  TP - 050013 #31890   TP-050013C             Lord Vishnu Golden Halo Canvas Wall Art 3×4 Feet – Floating 
+  KR - 180007 #17402   KR-180007A             Vibrant Horse Art Canvas Wall Art 3×4 Feet – Floating Frame 
+  KR - 180007 #21771   KR-180007B             Guru Watercolor Splash Canvas Wall Art 3×4 Feet – Floating F
+  KR - 180007 #27388   KR-180007C             Krishna Minimal Splash Canvas Wall Art 3×4 Feet – Floating F
+  LB - 090001 #220     LB-090001A             Serene Buddha with Lotus Canvas Wall Art 4×3 Feet – Floating
+  LB - 090001 #7839    LB-090001B             Buddha Lotus Serenity Canvas Wall Art 36×60 Inches – Spiritu
+  TP - 050004 #229     TP-050004A             Lord Venkateswara Temple Canvas Wall Art 2×3 Feet – Floating
+  TP - 050004 #8474    TP-050004B             Divine Lord Balaji Temple Canvas Wall Art – 60 × 36 Inch Sac
+  VA - 160004 #7703    VA-160004A             Divine Garuda Sacred Symbol Canvas Wall Art– 36 × 60 Inches 
+  VA - 160004 #21381   VA-160004B             Sun Phoenix Vintage Art Canvas Wall Art 3×4 Feet – Floating 
+  LR 25      #7803    LR-25A                 Vaishnav Tilak Shankh Chakra Wall Art 84×24 Inch – Large Spi
+  LR 25      #20026   LR-25B                 Indian Classical Dancer Canvas Wall Art 3×4 Feet – Floating 
+  SA - 100002 #7815    SA-100002A             Sacred Golden Temple Amritsar Canvas Wall Art – 48 × 36 Inch
+  SA - 100002 #26936   SA-100002B             Golden Temple Daylight Canvas Wall Art 3×4 Feet – Floating F
+  HD - 080005 #7830    HD-080005A             Modern Abstract Ganesha Canvas Wall Art 36×48 Inches – Spiri
+  HD - 080005 #19330   HD-080005B             Ganesha Art Canvas Wall Art 3×4 Feet – Floating Frame – Prem
+  SL - 150002 #7833    SL-150002A             Minimalist Blossom Vase Canvas Wall Art 36 × 60 Inches – Ele
+  SL - 150002 #22564   SL-150002B             Decorated Lord Murugan Canvas Wall Art 3×4 Feet – Floating F
+  AA - 200014 #7837    AA-200014A             Stunning Statement Geometric Floral Wall Art 60×36 – Abstrac
+  AA - 200014 #31273   AA-200014B             Palace in the Grove Canvas Wall Art 3×4 Feet – Floating Fram
+  HD - 080024 #8398    HD-080024A             Meditating Yogi Spiritual Wall Art – 60 × 24 Inches Peaceful
+  HD - 080024 #14861   HD-080024B             Sadhu in Contemplation Canvas Wall Art 3×4 Feet – Floating F
+  TP - 050006 #13840   TP-050006A             Lord Venkateswara Cosmic Canvas Wall Art 3×4 Feet – Floating
+  TP - 050006 #30966   TP-050006B             Vishnu on Shesha Canvas Wall Art 3×4 Feet – Floating Frame –
+  RK - 010034 #14617   RK-010034A             Krishna Playing Flute Canvas Wall Art 3×4 Feet – Floating Fr
+  RK - 010034 #31829   RK-010034B             Krishna Flute Panorama Canvas Wall Art 3×4 Feet – Floating F
+  HD - 080020 #15278   HD-080020A             Golden Idol Statue Canvas Wall Art 3×4 Feet – Floating Frame
+  HD - 080020 #26328   HD-080020B             Sri Ramanuja Golden Murti Canvas Wall Art 3×4 Feet – Floatin
+  VA - 160003 #15340   VA-160003A             Nandi The Bull Canvas Wall Art 3×4 Feet – Floating Frame – P
+  VA - 160003 #29751   VA-160003B             Sacred Cow Relief Art Canvas Wall Art 3×4 Feet – Floating Fr
+  HD - 080021 #15607   HD-080021A             Hindu Saint Portrait Canvas Wall Art 3×4 Feet – Floating Fra
+  HD - 080021 #22321   HD-080021B             Golden Guru Aura Canvas Wall Art 3×4 Feet – Floating Frame –
+  LR - 070005 #15913   LR-070005A             Lord Vishnu Statue Canvas Wall Art 3×4 Feet – Floating Frame
+  LR - 070005 #17543   LR-070005B             Lord Balaji Idol Canvas Wall Art 3×4 Feet – Floating Frame –
+  LB - 090005 #16096   LB-090005A             Buddha Art Canvas Wall Art 3×4 Feet – Floating Frame – Premi
+  LB - 090005 #27078   LB-090005B             Seven Horses Sunset Beach Canvas Wall Art 3×4 Feet – Floatin
+  LS - 030009 #16257   LS-030009A             Buddha Art Canvas Wall Art 3×4 Feet – Floating Frame – Premi
+  LS - 030009 #29578   LS-030009B             Twin Faces of Serenity Canvas Wall Art 3×4 Feet – Floating F
+  LB - 090008 #16382   LB-090008A             Golden Buddha Canvas Wall Art 3×4 Feet – Floating Frame – Pr
+  LB - 090008 #27811   LB-090008B             Buddha Among Pink Lotuses Canvas Wall Art 3×4 Feet – Floatin
+  TP - 050012 #16701   TP-050012A             Vishnu On Snake Canvas Wall Art 3×4 Feet – Floating Frame – 
+  TP - 050012 #22686   TP-050012B             Vishnu Bhootapuri Art Canvas Wall Art 3×4 Feet – Floating Fr
+  LS - 030008 #16993   LS-030008A             Shiva Family Art Canvas Wall Art 3×4 Feet – Floating Frame –
+  LS - 030008 #22625   LS-030008B             Whimsical Tower Scene Canvas Wall Art 3×4 Feet – Floating Fr
+  HD - 080018 #17917   HD-080018A             Goddess Lakshmi on Elephant Canvas Wall Art 3×4 Feet – Float
+  HD - 080018 #21564   HD-080018B             Ganesha with Elephants Canvas Wall Art 3×4 Feet – Floating F
+  AA - 200010 #17978   AA-200010A             Tree Under Moonlight Canvas Wall Art 3×4 Feet – Floating Fra
+  AA - 200010 #21503   AA-200010B             Vaishnava Saints Kirtan Canvas Wall Art 3×4 Feet – Floating 
+  KR - 180016 #18168   KR-180016A             Whimsical Bird Creatures Canvas Wall Art 3×4 Feet – Floating
+  KR - 180016 #27633   KR-180016B             Flight Path Reverie Canvas Wall Art 3×4 Feet – Floating Fram
+  LS - 030005 #18416   LS-030005A             Shiva Meditation Scene Canvas Wall Art 3×4 Feet – Floating F
+  LS - 030005 #18727   LS-030005B             Whimsy Friends Canvas Wall Art 3×4 Feet – Floating Frame – P
+  SH - 040004 #19025   SH-040004A             Seven Horses Ocean Run Canvas Wall Art 3×4 Feet – Floating F
+  SH - 040004 #23191   SH-040004B             Seven Horses Cliff Dawn Canvas Wall Art 3×4 Feet – Floating 
+  AA - 200006 #19575   AA-200006A             Man in Contemplation Canvas Wall Art 3×4 Feet – Floating Fra
+  AA - 200006 #22016   AA-200006B             Horses in Color Field Canvas Wall Art 3×4 Feet – Floating Fr
+  LB - 090006 #20709   LB-090006A             Buddha Lotus Twilight Canvas Wall Art 3×4 Feet – Floating Fr
+  LB - 090006 #28534   LB-090006B             Kirtan Celebration Canvas Wall Art 3×4 Feet – Floating Frame
+  HD - 080006 #22747   HD-080006A             Ganesh Pop Art Canvas Wall Art 3×4 Feet – Floating Frame – P
+  HD - 080006 #24775   HD-080006B             Bharat Mata with Lion Canvas Wall Art 3×4 Feet – Floating Fr
+  TP - 050011 #23069   TP-050011A             Narayana on Lotus Canvas Wall Art 3×4 Feet – Floating Frame 
+  TP - 050011 #31088   TP-050011B             Vaikuntha Celestial Court Canvas Wall Art 3×4 Feet – Floatin
+  SL - 150016 #24958   SL-150016A             Ganesha Fire Abstract Canvas Wall Art 3×4 Feet – Floating Fr
+  SL - 150016 #28473   SL-150016B             Quiet Harbor Minimal Canvas Wall Art 3×4 Feet – Floating Fra
+  HD - 080014 #25021   HD-080014A             Tanjore Seated Goddess Canvas Wall Art 3×4 Feet – Floating F
+  HD - 080014 #30215   HD-080014B             Devi in White on Lotus Canvas Wall Art 3×4 Feet – Floating F
+  PA - 120001 #28962   PA-120001A             Savanna Golden Hour Canvas Wall Art 3×4 Feet – Floating Fram
+  PA - 120001 #31527   PA-120001B             Krishna Cowherd Modern Art Canvas Wall Art 3×4 Feet – Floati
+
+full table: https://theartframer.us/wp-content/uploads/taf-reports/artcode-duplicates.csv
+fill this in:  https://theartframer.us/wp-content/uploads/taf-reports/artcode-import-template.csv
+  put the correct code in new_art_code, save it as artcode-import.csv in
+  the same folder, and the next deploy applies it. Rows left blank are
+  skipped, so it can be done a few at a time.
