@@ -73,7 +73,8 @@ jobs:
 
           IFS=',' read -ra PATHS <<< '${{ inputs.urls }}'
           for P in "${PATHS[@]}"; do
-            P="$(echo "$P" | xargs)"; [ -z "$P" ] && continue
+            P="$(echo "$P" | xargs)"
+            if [ -z "$P" ]; then continue; fi
             for N in $(seq 1 "$RUNS"); do
               H=$(mktemp)
               # A unique param the crawl guard does not intercept (it only
@@ -88,9 +89,11 @@ jobs:
                     "$BASE$P$Q" 2>/dev/null || echo "000 0 0 0")
               read -r CODE TTFB TOTAL SIZE <<< "$OUT"
               # LiteSpeed says hit/miss here; Hostinger's edge adds its own.
+              # `|| true`: a cache-busted URL answers with NO cache header,
+              # grep then exits 1, and the step runs under `bash -e`.
               CACHE=$(grep -ihE '^(x-litespeed-cache|x-qc-cache|x-lsadc-cache|cf-cache-status|age):' "$H" \
-                      | tr -d '\r' | paste -sd' ' - | cut -c1-60)
-              [ -z "$CACHE" ] && CACHE='(no cache header)'
+                      | tr -d '\r' | paste -sd' ' - | cut -c1-60 || true)
+              if [ -z "$CACHE" ]; then CACHE='(uncached)'; fi
               printf '%-52s %-4s %6s %8ss %8ss %8sB  %s\n' \
                      "$P" "$N" "$CODE" "$TTFB" "$TOTAL" "$SIZE" "$CACHE"
               rm -f "$H"
