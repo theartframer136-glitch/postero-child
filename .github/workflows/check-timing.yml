@@ -1,0 +1,93 @@
+name: Check Timing
+
+# How long the live site actually takes to answer, and whether the answer came
+# out of the page cache.
+#
+# Four recordings have now shown a category page sitting blank for ten to
+# thirteen seconds, and every attempt to name the cause from the theme source
+# alone has been a guess. This settles it with numbers instead: time to first
+# byte (how long the SERVER took to start answering) separated from total time
+# (first byte plus the download), and the cache header that says whether PHP
+# ran at all.
+#
+# Read-only. It issues plain GETs, writes nothing, touches no SSH, and runs
+# nothing on the host beyond serving pages it already serves. Workflow files
+# are in deploy.yml's paths-ignore, so adding this never spends a deploy.
+#
+# IT FETCHES AS A BROWSER. check-home.yml measured it the hard way on
+# 2026-09-08: this host serves a different page to a bare request than to a
+# real Chrome, so a curl without these headers would be timing a page the
+# owner never sees.
+#
+# Reading the result:
+#   ttfb high, cache MISS   the server built the page — a slow render
+#   ttfb high, cache HIT    the box is saturated; even cached pages queue
+#   ttfb low, total high    the render is fine, the page is simply too heavy
+#   run 2 much faster       the page was cold and is now warm: a warming gap
+
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: 'Paths to time, comma separated'
+        type: string
+        default: '/,/shop/,/product-category/digital-canvas-prints/lord-shiva/,/product-category/digital-canvas-prints/radha-krishna/'
+      runs:
+        description: 'How many times to fetch each (2 shows cold vs warm)'
+        type: string
+        default: '2'
+
+concurrency:
+  group: check-timing
+  cancel-in-progress: false
+
+jobs:
+  time:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Time each page
+        run: |
+          set -uo pipefail
+          BASE=https://theartframer.us
+          # Exactly what the owner's Chrome sends — see the note above.
+          HDRS=(
+            -H 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8'
+            -H 'accept-language: en-US,en;q=0.9'
+            -H 'sec-fetch-dest: document'
+            -H 'sec-fetch-mode: navigate'
+            -H 'sec-fetch-site: none'
+            -H 'sec-fetch-user: ?1'
+            -H 'upgrade-insecure-requests: 1'
+            -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
+          )
+          RUNS='${{ inputs.runs }}'; RUNS=${RUNS:-2}
+
+          printf '%-52s %-4s %6s %9s %9s %9s  %s\n' \
+                 PATH RUN CODE TTFB TOTAL SIZE CACHE
+          printf '%s\n' "--------------------------------------------------------------------------------------------------------"
+
+          IFS=',' read -ra PATHS <<< '${{ inputs.urls }}'
+          for P in "${PATHS[@]}"; do
+            P="$(echo "$P" | xargs)"; [ -z "$P" ] && continue
+            for N in $(seq 1 "$RUNS"); do
+              H=$(mktemp)
+              OUT=$(curl -sS -o /dev/null -D "$H" --max-time 60 "${HDRS[@]}" \
+                    -w '%{http_code} %{time_starttransfer} %{time_total} %{size_download}' \
+                    "$BASE$P" 2>/dev/null || echo "000 0 0 0")
+              read -r CODE TTFB TOTAL SIZE <<< "$OUT"
+              # LiteSpeed says hit/miss here; Hostinger's edge adds its own.
+              CACHE=$(grep -ihE '^(x-litespeed-cache|x-qc-cache|x-lsadc-cache|cf-cache-status|age):' "$H" \
+                      | tr -d '\r' | paste -sd' ' - | cut -c1-60)
+              [ -z "$CACHE" ] && CACHE='(no cache header)'
+              printf '%-52s %-4s %6s %8ss %8ss %8sB  %s\n' \
+                     "$P" "$N" "$CODE" "$TTFB" "$TOTAL" "$SIZE" "$CACHE"
+              rm -f "$H"
+              sleep 2
+            done
+          done
+
+          echo
+          echo "TTFB is the server's thinking time. TOTAL - TTFB is the download."
+          echo "A cached page that is still slow to first byte means the box is busy,"
+          echo "not that the page is expensive to build."
