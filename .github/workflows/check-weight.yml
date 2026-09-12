@@ -108,12 +108,35 @@ jobs:
               print()
           io.open('/tmp/assets.txt', 'w').write('\n'.join(css + js))
           PY
-          echo "  --- slowest of those files (top 12) ---"
+          echo "  --- every one of those files: status, time, size ---"
+          # A browser does NOT ask for a stylesheet the way it asks for a page.
+          # It sends sec-fetch-dest: style (or script), mode: no-cors, site:
+          # same-origin, and a Referer. Probing assets with the document
+          # headers used for pages is measuring something no visitor does, and
+          # a security rule that keys on exactly that will answer differently.
           while read -r U; do
             case "$U" in //*) U="https:$U";; /*) U="https://theartframer.us$U";; esac
+            case "$U" in
+              *.css*) DEST=style;  ACC='text/css,*/*;q=0.1' ;;
+              *.js*)  DEST=script; ACC='*/*' ;;
+              *)      DEST=empty;  ACC='*/*' ;;
+            esac
             curl -sS -o /dev/null --compressed --max-time 20 \
-              -w '%{time_total} %{size_download} '"$U"'\n' "$U" 2>/dev/null || true
-          done < /tmp/assets.txt | sort -rn | head -12 | \
-            awk '{printf "   %6.2fs %8d B  %s\n", $1, $2, $3}'
+              -H "accept: $ACC" \
+              -H "sec-fetch-dest: $DEST" \
+              -H 'sec-fetch-mode: no-cors' \
+              -H 'sec-fetch-site: same-origin' \
+              -H "referer: https://theartframer.us$P" \
+              -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36' \
+              -w '%{http_code} %{time_total} %{size_download} '"$U"'\n' "$U" 2>/dev/null || true
+          done < /tmp/assets.txt > /tmp/assetres.txt || true
+          echo "     status counts:"
+          awk '{print $1}' /tmp/assetres.txt | sort | uniq -c | awk '{printf "       %-6s %s responses\n", $2, $1}'
+          echo "     slowest 8:"
+          sort -k2 -rn /tmp/assetres.txt | head -8 | \
+            awk '{printf "       %s  %6.2fs %8d B  %s\n", $1, $2, $3, $4}'
+          echo "     any non-200 (first 8):"
+          awk '$1 != 200' /tmp/assetres.txt | head -8 | \
+            awk '{printf "       %s  %8d B  %s\n", $1, $3, $4}'
           echo
           done
