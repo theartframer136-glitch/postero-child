@@ -90,5 +90,30 @@ jobs:
                       first = ln[:62]; break
               print('   %7d B  %-6s %-52s %s' % (n, kind, tag, first))
           print()
+          # Every separate file the browser must also fetch. 75 stylesheets is
+          # 75 render-blocking round trips before a single pixel is painted,
+          # which no amount of server-side speed can make up for.
+          links = re.findall(r'<link[^>]+href=["\']([^"\']+)["\'][^>]*>', h, re.I)
+          css = [u for u in links if '.css' in u.lower()]
+          js  = re.findall(r'<script[^>]+src=["\']([^"\']+)["\']', h, re.I)
+          def who(u):
+              m = re.search(r'/(?:wp-content|wp-includes)/(plugins|themes|uploads)/([^/]+)/', u)
+              return (m.group(1)[:6] + ':' + m.group(2))[:34] if m else (re.sub(r'^https?://', '', u).split('/')[0])[:34]
+          from collections import Counter
+          for label, urls in (('STYLESHEETS', css), ('SCRIPTS', js)):
+              c = Counter(who(u) for u in urls)
+              print('  %s by owner (%d files):' % (label, len(urls)))
+              for owner, n in c.most_common(18):
+                  print('     %-36s %d' % (owner, n))
+              print()
+          io.open('/tmp/assets.txt', 'w').write('\n'.join(css + js))
           PY
+          echo "  --- slowest of those files (top 12) ---"
+          while read -r U; do
+            case "$U" in //*) U="https:$U";; /*) U="https://theartframer.us$U";; esac
+            curl -sS -o /dev/null --compressed --max-time 20 \
+              -w '%{time_total} %{size_download} '"$U"'\n' "$U" 2>/dev/null || true
+          done < /tmp/assets.txt | sort -rn | head -12 | \
+            awk '{printf "   %6.2fs %8d B  %s\n", $1, $2, $3}'
+          echo
           done
