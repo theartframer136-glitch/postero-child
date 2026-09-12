@@ -129,6 +129,17 @@ add_action('init', function () {
  * purge happens with the first visitor rather than on the stroke of midnight.
  */
 add_action('af_shuffle_rollover', function () {
-    if (function_exists('wp_cache_flush')) wp_cache_flush();
-    do_action('litespeed_purge_all');
+    // Listing pages only. This used to empty the entire page cache and the
+    // object cache with it, every single day, for a change that shows up on
+    // the shop, the category pages and the tag pages and nowhere else. On a
+    // host that returns 508 when its resource limit is reached, that made
+    // every page on the site a cold render at once, with nothing to warm it
+    // — the condition the deploy workflow carries a guarded re-warm step to
+    // avoid. A shopper landing on a cold category page then waits out a full
+    // build behind a queue of other cold builds.
+    if (function_exists('af_purge_listing_pages')) {
+        af_purge_listing_pages();
+        return;
+    }
+    do_action('litespeed_purge_all');   // theme not loaded (WP-CLI, say)
 });

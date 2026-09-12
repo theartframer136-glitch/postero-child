@@ -3133,6 +3133,73 @@ function af_pim_build_local_map(&$report = null, $skip_id = 0) {
     update_option('af_pim_local', $map, false);
     return $map;
 }
+/**
+ * Purge the product LISTING pages, and only those.
+ *
+ * This host returns HTTP 508 when its resource limit is reached, and a cold
+ * page cache is what gets it there: the deploy workflow says so in as many
+ * words — "the mid-pipeline purge left every page cold — without this, real
+ * visitors pay the cold-render cost and hit 508s while the host is still
+ * busy" — and it carries a whole guarded re-warm step to stop it happening.
+ *
+ * Three places in this theme were calling litespeed_purge_all, which puts the
+ * site into exactly that state with nothing to warm it afterwards, and one of
+ * them ran every single day. None of them needed the whole site: a change to
+ * the running order of the catalogue shows up on the shop, the category pages
+ * and the tag pages, and nowhere else. Product pages, the homepage, the blog,
+ * cart and checkout were being thrown away for nothing.
+ *
+ * wp_cache_flush() went with them, and that was worse than unnecessary: it
+ * empties the OBJECT cache — every option, term and post WordPress had in
+ * memory — so the next request rebuilds the lot. Nothing here is stored in
+ * the object cache to begin with.
+ *
+ * @param int[] $term_ids Limit to these product_cat terms; empty means every
+ *                        listing page.
+ */
+function af_purge_listing_pages($term_ids = array()) {
+    $urls = array();
+
+    if (function_exists('wc_get_page_id')) {
+        $shop = wc_get_page_id('shop');
+        if ($shop > 0) {
+            $u = get_permalink($shop);
+            if ($u) $urls[] = $u;
+        }
+    }
+
+    if ($term_ids) {
+        foreach ((array) $term_ids as $tid) {
+            $u = get_term_link((int) $tid, 'product_cat');
+            if ($u && !is_wp_error($u)) $urls[] = $u;
+        }
+    } else {
+        // Every listing the order actually appears on. Bounded: a runaway
+        // taxonomy must not turn a purge into its own load problem.
+        foreach (array('product_cat', 'product_tag') as $tax) {
+            $terms = get_terms(array(
+                'taxonomy'   => $tax,
+                'hide_empty' => true,
+                'number'     => 100,
+                'orderby'    => 'count',
+                'order'      => 'DESC',
+                'fields'     => 'all',
+            ));
+            if (is_wp_error($terms) || !$terms) continue;
+            foreach ($terms as $t) {
+                $u = get_term_link($t);
+                if ($u && !is_wp_error($u)) $urls[] = $u;
+            }
+        }
+    }
+
+    $urls = array_values(array_unique(array_filter($urls)));
+    foreach ($urls as $u) {
+        do_action('litespeed_purge_url', $u);
+    }
+    return count($urls);
+}
+
 // The whole point of doing this on upload: dragging the files into Media is
 // the owner's only step, and it must be the last one. No deploy, no command.
 function af_pim_media_changed($post_id, $skip_id = 0) {
@@ -3140,8 +3207,10 @@ function af_pim_media_changed($post_id, $skip_id = 0) {
     $r = null;
     af_pim_build_local_map($r, $skip_id);
     // The homepage is cached; a new file that nothing serves is not a fix.
-    if (function_exists('wp_cache_flush')) wp_cache_flush();
-    do_action('litespeed_purge_all');
+    // The row is on the homepage and nowhere else, so purge that one page —
+    // emptying the whole cache on this host is what produces the 508s the
+    // deploy workflow's re-warm step exists to prevent.
+    do_action('litespeed_purge_url', home_url('/'));
 }
 add_action('add_attachment', 'af_pim_media_changed', 20);
 // Two hooks, because one of them can be too early: add_attachment fires as the

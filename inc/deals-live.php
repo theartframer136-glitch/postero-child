@@ -134,8 +134,14 @@ function af_deals_sync() {
         // The count beside the category name is cached on the term.
         wp_update_term_count_now(array($term_id), 'product_cat');
         clean_term_cache(array($term_id), 'product_cat');
-        if (function_exists('wp_cache_flush')) wp_cache_flush();
-        do_action('litespeed_purge_all');
+        // The listing that changed, plus the shop. Not the whole site: a
+        // full purge on this host leaves every page cold and the box 508s
+        // its way back, which is far more damage than a stale deals count.
+        if (function_exists('af_purge_listing_pages')) {
+            af_purge_listing_pages(array($term_id));
+        } else {
+            do_action('litespeed_purge_all');
+        }
     }
 
     $summary = sprintf(
