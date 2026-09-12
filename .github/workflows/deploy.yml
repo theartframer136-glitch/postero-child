@@ -1650,7 +1650,18 @@ jobs:
           # changed theme code only, so the entrance pages are enough and the
           # rest re-warms organically. This is most of the difference between a
           # ~10-minute and a ~3-minute deploy.
-          if [ "${RUN_SUITE:-1}" = "1" ]; then CATN=12; PRODN=8; WARM_CAP=24; else CATN=5; PRODN=0; WARM_CAP=10; fi
+          # The twelve biggest categories are not the twelve a shopper enters
+          # through. The homepage's circle row — Radha Krishna, Lord Shiva,
+          # Seven Horses and the rest — links to the CHILDREN of
+          # digital-canvas-prints, and those are small, so they never made a
+          # top-12-by-count list and were left cold every single deploy. A
+          # recording on 2026-09-12 caught the cost: a signed-out visitor
+          # clicked Lord Shiva from the homepage and got eleven seconds of
+          # blank page, which is this same ~2-3s cold render with a busy box
+          # underneath it. Warm the row the homepage actually points at, first,
+          # and raise the cap so adding it does not push the big categories
+          # back out of the list.
+          if [ "${RUN_SUITE:-1}" = "1" ]; then CATN=12; PRODN=8; WARM_CAP=40; else CATN=5; PRODN=0; WARM_CAP=26; fi
           WARM_LIST=/tmp/warm-urls.txt
           {
             echo "https://theartframer.us/"
@@ -1659,6 +1670,7 @@ jobs:
             echo "https://theartframer.us/frame-the-moment/"
             ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
               "cd ~/websites/OPu0sKi4J/public_html && \
+               wp term list product_cat --field=url --hide_empty=1 --child-of=\$(wp term list product_cat --slug=digital-canvas-prints --field=term_id --allow-root 2>/dev/null | head -1) --allow-root 2>/dev/null; \
                wp term list product_cat --field=url --hide_empty=1 --number=${CATN} --orderby=count --order=DESC --allow-root 2>/dev/null; \
                if [ ${PRODN} -gt 0 ]; then wp post list --post_type=product --post_status=publish --field=url \
                  --posts_per_page=${PRODN} --orderby=modified --order=DESC --allow-root 2>/dev/null; fi" || true

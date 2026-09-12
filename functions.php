@@ -3133,6 +3133,73 @@ function af_pim_build_local_map(&$report = null, $skip_id = 0) {
     update_option('af_pim_local', $map, false);
     return $map;
 }
+/**
+ * Purge the product LISTING pages, and only those.
+ *
+ * This host returns HTTP 508 when its resource limit is reached, and a cold
+ * page cache is what gets it there: the deploy workflow says so in as many
+ * words — "the mid-pipeline purge left every page cold — without this, real
+ * visitors pay the cold-render cost and hit 508s while the host is still
+ * busy" — and it carries a whole guarded re-warm step to stop it happening.
+ *
+ * Three places in this theme were calling litespeed_purge_all, which puts the
+ * site into exactly that state with nothing to warm it afterwards, and one of
+ * them ran every single day. None of them needed the whole site: a change to
+ * the running order of the catalogue shows up on the shop, the category pages
+ * and the tag pages, and nowhere else. Product pages, the homepage, the blog,
+ * cart and checkout were being thrown away for nothing.
+ *
+ * wp_cache_flush() went with them, and that was worse than unnecessary: it
+ * empties the OBJECT cache — every option, term and post WordPress had in
+ * memory — so the next request rebuilds the lot. Nothing here is stored in
+ * the object cache to begin with.
+ *
+ * @param int[] $term_ids Limit to these product_cat terms; empty means every
+ *                        listing page.
+ */
+function af_purge_listing_pages($term_ids = array()) {
+    $urls = array();
+
+    if (function_exists('wc_get_page_id')) {
+        $shop = wc_get_page_id('shop');
+        if ($shop > 0) {
+            $u = get_permalink($shop);
+            if ($u) $urls[] = $u;
+        }
+    }
+
+    if ($term_ids) {
+        foreach ((array) $term_ids as $tid) {
+            $u = get_term_link((int) $tid, 'product_cat');
+            if ($u && !is_wp_error($u)) $urls[] = $u;
+        }
+    } else {
+        // Every listing the order actually appears on. Bounded: a runaway
+        // taxonomy must not turn a purge into its own load problem.
+        foreach (array('product_cat', 'product_tag') as $tax) {
+            $terms = get_terms(array(
+                'taxonomy'   => $tax,
+                'hide_empty' => true,
+                'number'     => 100,
+                'orderby'    => 'count',
+                'order'      => 'DESC',
+                'fields'     => 'all',
+            ));
+            if (is_wp_error($terms) || !$terms) continue;
+            foreach ($terms as $t) {
+                $u = get_term_link($t);
+                if ($u && !is_wp_error($u)) $urls[] = $u;
+            }
+        }
+    }
+
+    $urls = array_values(array_unique(array_filter($urls)));
+    foreach ($urls as $u) {
+        do_action('litespeed_purge_url', $u);
+    }
+    return count($urls);
+}
+
 // The whole point of doing this on upload: dragging the files into Media is
 // the owner's only step, and it must be the last one. No deploy, no command.
 function af_pim_media_changed($post_id, $skip_id = 0) {
@@ -3140,8 +3207,10 @@ function af_pim_media_changed($post_id, $skip_id = 0) {
     $r = null;
     af_pim_build_local_map($r, $skip_id);
     // The homepage is cached; a new file that nothing serves is not a fix.
-    if (function_exists('wp_cache_flush')) wp_cache_flush();
-    do_action('litespeed_purge_all');
+    // The row is on the homepage and nowhere else, so purge that one page —
+    // emptying the whole cache on this host is what produces the 508s the
+    // deploy workflow's re-warm step exists to prevent.
+    do_action('litespeed_purge_url', home_url('/'));
 }
 add_action('add_attachment', 'af_pim_media_changed', 20);
 // Two hooks, because one of them can be too early: add_attachment fires as the
@@ -8978,7 +9047,7 @@ add_action('wp_footer', function() {
             <div class="af-dd-price"><?php echo $price_html; ?></div>
             <div class="af-dd-actions">
               <button id="af-dd-add" class="af-dd-btn solid">Add to Cart</button>
-              <a id="af-dd-view" class="af-dd-btn ghost" href="#">View Product</a>
+              <a id="af-dd-view" class="af-dd-btn ghost">View Product</a>
             </div>
             <p class="af-dd-msg" id="af-dd-msg"></p>
           </div>
@@ -8991,10 +9060,83 @@ add_action('wp_footer', function() {
       var imgEl=document.getElementById('af-dd-img'), titleEl=document.getElementById('af-dd-title');
       var viewEl=document.getElementById('af-dd-view'), addEl=document.getElementById('af-dd-add'), msgEl=document.getElementById('af-dd-msg');
       var curPid='';
+      var AJAX = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
+      // Bumped on every open, so a lookup that comes back after the visitor has
+      // moved on to another card cannot repaint the modal behind their back.
+      var reqSeq = 0;
       function open(){ overlay.classList.add('open'); document.body.style.overflow='hidden'; }
       function close(){ overlay.classList.remove('open'); document.body.style.overflow=''; msgEl.textContent=''; }
-      overlay.querySelectorAll('[data-dd-close]').forEach(function(el){ el.addEventListener('click', function(e){ if(e.target===el) close(); }); });
+      // The overlay carries data-dd-close itself, and querySelectorAll never
+      // returns the element it is called on — so the backdrop, the biggest
+      // click target in the modal, did nothing. Bind it alongside the ×.
+      [overlay].concat(Array.prototype.slice.call(overlay.querySelectorAll('[data-dd-close]')))
+        .forEach(function(el){ el.addEventListener('click', function(e){ if(e.target===el) close(); }); });
       document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
+
+      // "View Product" is the one action that has to survive every branch of
+      // the handler below — including the not-available one, where an item you
+      // cannot buy as a download is still an item you want to go and look at.
+      // Left at its markup default of href="#" it does nothing but jump the
+      // page to the top, which is the dead click reported on the homepage.
+      function setView(a){
+        if(!viewEl) return;
+        if(a && a.href){ viewEl.href = a.href; viewEl.style.display = ''; }
+        else { viewEl.removeAttribute('href'); viewEl.style.display = 'none'; }
+      }
+      // WooCommerce stamps post-<id> on the loop element and themes prefix it
+      // (elementor-post-123). Digits are required, so post-thumbnail and its
+      // friends can never be mistaken for an id.
+      function postId(el){
+        var cn = (el && typeof el.className === 'string') ? el.className : '';
+        var m = cn.match(/\bpost-(\d+)(?=\s|$)/);
+        return m ? m[1] : '';
+      }
+      // Every product id named inside a subtree. One card names exactly one;
+      // a section wrapper that happens to match CARD_SEL names as many as it
+      // holds, which is how the modal can end up describing a card other than
+      // the one that was clicked.
+      function idsIn(el){
+        var out=[];
+        function add(v){ if(v && out.indexOf(v)<0) out.push(v); }
+        el.querySelectorAll('[data-product_id],[data-product-id]').forEach(function(n){
+          add(n.getAttribute('data-product_id') || n.getAttribute('data-product-id'));
+        });
+        el.querySelectorAll('a[href]').forEach(function(a){
+          var m=(a.getAttribute('href')||'').match(/[?&]add-to-cart=(\d+)/); if(m) add(m[1]);
+        });
+        el.querySelectorAll('[class*="post-"]').forEach(function(n){ add(postId(n)); });
+        add(postId(el));
+        return out;
+      }
+      function sameOrigin(href){
+        try { return new URL(href, location.href).origin === location.origin; } catch(e){ return false; }
+      }
+      // src='' renders the browser's broken-image icon; the recording caught it
+      // sitting in the corner of the preview pane. Hide the <img> instead and
+      // let the wrap's own grey stand in for it.
+      function clearImg(){ imgEl.removeAttribute('src'); imgEl.style.display='none'; imgEl.style.opacity='1'; }
+      function showImg(url){
+        if(url){ imgEl.src = url; imgEl.style.display=''; imgEl.style.opacity='1'; }
+        else { clearImg(); }
+      }
+      function unavailable(seq){
+        if(seq !== undefined && seq !== reqSeq) return;
+        clearImg();
+        titleEl.textContent = 'Not available for instant download';
+        if(addEl){ addEl.style.display = 'none'; addEl.disabled = false; }
+        msgEl.style.color = '';
+        msgEl.textContent = 'This item cannot be purchased as a digital download.';
+        open();
+      }
+      // never show the raw artwork here: ask the server for the watermarked
+      // preview (the raw file was one right-click away in the old modal)
+      function loadPreview(pid, seq){
+        clearImg();
+        fetch(AJAX + '?action=af_dd_preview&pid=' + encodeURIComponent(pid), {credentials:'same-origin'})
+          .then(function(r){ return r.json(); })
+          .then(function(j){ if(seq!==reqSeq) return; showImg(j&&j.success&&j.data&&j.data.url ? j.data.url : ''); })
+          .catch(function(){ if(seq!==reqSeq) return; clearImg(); });
+      }
 
       // Detect a "Digital Download" trigger inside a product card.
       // Robust across sections: strip icons/whitespace and match the label
@@ -9014,60 +9156,126 @@ add_action('wp_footer', function() {
         if(!trg) return;
         var card = trg.closest(CARD_SEL); if(!card) return;
         e.preventDefault(); e.stopPropagation();
-        var atc = card.querySelector('[data-product_id]');
-        curPid = atc ? atc.getAttribute('data-product_id') : '';
-        if(!curPid){ // fallback: WooCommerce li.product carries a post-<id> class
-          var m = (card.className||'').match(/post-(\d+)/);
-          if(m) curPid = m[1];
-          if(!curPid){ var pel=card.querySelector('[class*="post-"]'); if(pel){ var m2=(pel.className||'').match(/post-(\d+)/); if(m2) curPid=m2[1]; } }
+
+        // CARD_SEL matches a row wrapper as readily as a card, and closest()
+        // stops at the first match either way — so on a four-across row whose
+        // cards carry no matching class, every lookup below reads the FIRST
+        // card and the modal opens the wrong artwork. Now that View Product
+        // navigates, that would send the shopper somewhere else entirely.
+        // Walk up from the trigger and keep the LARGEST container that still
+        // names exactly one product, never widening past the CARD_SEL match.
+        var scope=null, hop=trg;
+        for(var up=0; up<12 && hop && hop!==document.body; up++){
+          var n=idsIn(hop).length;
+          if(n===1) scope=hop;
+          else if(n>1) break;
+          if(hop===card) break;
+          hop=hop.parentElement;
         }
+        if(scope) card=scope;
+        var seq = ++reqSeq;
+        msgEl.style.color = '';
+        var anchors = Array.prototype.slice.call(card.querySelectorAll('a[href]'));
+
+        // Pick the card's product link. Half the anchors in a card go
+        // somewhere else — the wishlist heart, the brochure PDF, and Add to
+        // Cart, which is only ever ?add-to-cart=<id>. Taking whichever anchor
+        // happened to come first is how View Product ended up on a bare "#".
+        function browsable(h){
+          if(!h) return false;
+          if(/^\s*(#|javascript:|mailto:|tel:)/i.test(h)) return false;
+          if(/[?&]add-to-cart=/i.test(h)) return false;        // that link buys, it does not browse
+          if(/[?&]add_to_wishlist=/i.test(h)) return false;
+          if(/\.(pdf|jpe?g|png|webp|gif|svg|zip)(\?|#|$)/i.test(h)) return false;
+          return true;
+        }
+        var lnk = null, i2, href2;
+        for(i2=0;i2<anchors.length;i2++){
+          href2 = anchors[i2].getAttribute('href');
+          if(browsable(href2) && /\/product\//.test(href2)){ lnk = anchors[i2]; break; }
+        }
+        if(!lnk){
+          // No /product/ permalink base: the title's link, then the image's,
+          // then whatever else in the card actually goes somewhere.
+          var titleLink = card.querySelector('.product-title a[href], .woocommerce-loop-product__title a[href], h2 a[href], h3 a[href]');
+          var imgInA    = card.querySelector('a[href] img');
+          var cands = [titleLink, imgInA ? imgInA.closest('a[href]') : null].concat(anchors);
+          for(i2=0;i2<cands.length;i2++){
+            if(cands[i2] && browsable(cands[i2].getAttribute('href'))){ lnk = cands[i2]; break; }
+          }
+        }
+        // Assign it here, ahead of every early return below: whatever the
+        // modal can or cannot say about this item, the way through to its
+        // product page has to work.
+        setView(lnk);
+
+        var atc = card.querySelector('[data-product_id],[data-product-id]');
+        curPid = atc ? (atc.getAttribute('data-product_id') || atc.getAttribute('data-product-id') || '') : '';
+        if(!curPid){
+          // The loop element carries post-<id>, but a theme's own card markup
+          // often sits inside it — so look up the tree as well as down it.
+          var up = card;
+          while(!curPid && up && up !== document.body){ curPid = postId(up); up = up.parentElement; }
+        }
+        if(!curPid){
+          var inner = card.querySelectorAll('[class*="post-"]');
+          for(i2=0;i2<inner.length && !curPid;i2++) curPid = postId(inner[i2]);
+        }
+        if(!curPid){
+          // Add to Cart spells the id out in its own href: ?add-to-cart=31395
+          for(i2=0;i2<anchors.length;i2++){
+            var mc = (anchors[i2].getAttribute('href')||'').match(/[?&]add-to-cart=(\d+)/);
+            if(mc){ curPid = mc[1]; break; }
+          }
+        }
+
         var im = card.querySelector('img');
         var t  = card.querySelector('.product-title, h2, h3, .woocommerce-loop-product__title');
-        var lnk= card.querySelector('a[href*="/product/"]') || card.querySelector('a[href]');
-        var name = t ? t.textContent.trim() : (lnk && lnk.title ? lnk.title.trim() : '');
-        // No id on the card? Its product link still knows who it is.
-        if(!curPid && lnk && /\/product\/([^\/?#]+)/.test(lnk.href)){
-          var slug = lnk.href.match(/\/product\/([^\/?#]+)/)[1];
-          fetch(<?php echo wp_json_encode(admin_url('admin-ajax.php')); ?> + '?action=af_dd_resolve&slug=' + encodeURIComponent(slug), {credentials:'same-origin'})
+        var name = t ? t.textContent.trim() : (lnk ? (lnk.title || lnk.textContent || '').trim() : '');
+
+        // Still no id? The product link knows who it is — ask the server to
+        // turn its slug back into one.
+        var slug = '';
+        if(!curPid && lnk && sameOrigin(lnk.href)){
+          var ms = lnk.href.match(/\/product\/([^\/?#]+)/) || lnk.href.replace(/[?#].*$/,'').match(/\/([^\/]+)\/?$/);
+          if(ms) slug = ms[1];
+        }
+        if(slug){
+          // Say nothing about availability while the lookup is in flight. The
+          // old code announced "not available" first and corrected itself a
+          // round-trip later — so that wording was what the visitor was left
+          // staring at whenever the lookup never ran.
+          titleEl.textContent = name ? (name + ' — Digital Download') : 'Digital Download';
+          if(addEl){ addEl.style.display = ''; addEl.disabled = true; }
+          msgEl.textContent = '';
+          clearImg();
+          open();
+          fetch(AJAX + '?action=af_dd_resolve&slug=' + encodeURIComponent(slug), {credentials:'same-origin'})
             .then(function(r){ return r.json(); })
             .then(function(j){
+              if(seq !== reqSeq) return;
               if(j && j.success && j.data && j.data.pid){
                 curPid = String(j.data.pid);
-                if(!name && j.data.name){ name = j.data.name; titleEl.textContent = name + ' — Digital Download'; }
-                if(addEl) addEl.style.display = '';
-                msgEl.textContent = '';
-                imgEl.removeAttribute('src'); imgEl.style.opacity = '.35';
-                fetch(<?php echo wp_json_encode(admin_url('admin-ajax.php')); ?> + '?action=af_dd_preview&pid=' + encodeURIComponent(curPid), {credentials:'same-origin'})
-                  .then(function(r2){ return r2.json(); })
-                  .then(function(j2){ imgEl.src = (j2 && j2.success && j2.data && j2.data.url) ? j2.data.url : ''; imgEl.style.opacity = '1'; })
-                  .catch(function(){ imgEl.style.opacity = '1'; });
+                if(!name && j.data.name) name = j.data.name;
+                titleEl.textContent = name + ' — Digital Download';
+                if(addEl){ addEl.style.display = ''; addEl.disabled = false; }
+                loadPreview(curPid, seq);
+              } else {
+                unavailable(seq);
               }
-            }).catch(function(){});
+            })
+            .catch(function(){ unavailable(seq); });
+          return;
         }
+
         // Ghost guard: a product with no image or no name must not sell blind —
         // the recording showed exactly that (blank title, broken image, Add to Cart).
-        if(!curPid || !im || !name){
-          imgEl.removeAttribute('src');
-          titleEl.textContent = 'Not available for instant download';
-          if(addEl) addEl.style.display = 'none';
-          msgEl.textContent = 'This item cannot be purchased as a digital download.';
-          open(); return;
-        }
-        if(addEl) addEl.style.display = '';
-        // never show the raw artwork here: ask the server for the watermarked
-        // preview (the raw file was one right-click away in the old modal)
-        imgEl.removeAttribute('src');
-        imgEl.style.opacity = '.35';
-        fetch(<?php echo wp_json_encode(admin_url('admin-ajax.php')); ?> + '?action=af_dd_preview&pid=' + encodeURIComponent(curPid), {credentials:'same-origin'})
-          .then(function(r){ return r.json(); })
-          .then(function(j){
-            imgEl.src = (j && j.success && j.data && j.data.url) ? j.data.url : '';
-            imgEl.style.opacity = '1';
-          })
-          .catch(function(){ imgEl.style.opacity = '1'; });
+        if(!curPid || !im || !name){ unavailable(seq); return; }
+
+        if(addEl){ addEl.style.display = ''; addEl.disabled = false; }
+        loadPreview(curPid, seq);
         titleEl.textContent = name + ' — Digital Download';
-        viewEl.href = lnk ? lnk.href : '#';
-        msgEl.textContent='';
+        msgEl.textContent = '';
         open();
       }, true);
 
