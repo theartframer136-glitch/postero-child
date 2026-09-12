@@ -44,6 +44,40 @@ proves which page a number names — including the Landscapes table below, whose
 page count did not change but whose contents cannot be assumed to have stayed
 put. Re-read against the pictures before relying on any of it.
 
+## The catalogue moves onto six digits — 2026-09-12
+Asked for the same day: every product to carry what the book prints. So
+`af_artcode_book_label()` writes six digits and the renumbering pass, which runs
+with apply on at every deploy, carries the catalogue over on the next push.
+
+It is a **reformat, not a renumbering**. `LB - 0901` and `LB - 090001` are the
+same section and the same page; only the padding widens. It therefore proves
+nothing about whether the painting is right — and with the new pages having gone
+in a mix of places, that remains unproven until the pictures are compared.
+
+What the reformat may **not** do, and is tested not to: give any product a page
+it did not already name. The map's `legacy` counts bound the writing path, so
+none of the book's 33 new pages can be reached by arithmetic.
+
+### Reading what the deploy actually did
+`renumber-artcodes.php` prints a report saying how many products it moved — the
+only record of what reached the database, since the job log host is not
+reachable from the sandbox and the log truncates from the front anyway.
+
+That report is published to the **`art-sheets`** branch as `RENUMBERED.txt`, but
+only on a run with diagnostics on. An ordinary push deploy runs the renumbering
+and publishes nothing, so `art-sheets` can sit days out of date while looking
+perfectly plausible — on 2026-09-12 it held a report from the 9th whose numbers
+were exactly the ones being looked for. **Check `git log -1 origin/art-sheets`
+before believing it.**
+
+Three ways to get a fresh one:
+
+| | |
+|---|---|
+| `[diag]` in the commit message | the next deploy publishes it, no extra run |
+| Actions → Run workflow → tick Diagnostics | a full deploy |
+| Actions → Run workflow → tick Diagnostics-only | skips the catalogue passes |
+
 ## Matching the shop against this — 2026-09-12
 Joined by section and page number (`LB - 0901` -> `LB-090001`), which says
 where each product *points*, not that the painting is the same one:

@@ -36,12 +36,17 @@ $codes = array(
 	'RK 101' => 'RK-101',     // three digits are left alone, not truncated
 	''      => '',            // no code, no SKU — nothing is invented
 	// The shape the book prints now: section number and page number together,
-	// kept whole because the four digits are one identifier.
+	// kept whole because the six digits are one identifier.
+	'RK - 010001' => 'RK-010001',
+	'HD - 080014' => 'HD-080014',
+	'LI - 190044' => 'LI-190044',
+	'HD - 080014-GF' => 'HD-080014-GF',   // the Gold Foiled & UV suffix survives
+	// The four-digit shape the book printed until 2026-09-12, which the
+	// catalogue still holds until the renumbering pass has been round once.
 	'RK - 0101' => 'RK-0101',
 	'HD - 0814' => 'HD-0814',
-	'LI - 1944' => 'LI-1944',
-	'HD - 0814-GF' => 'HD-0814-GF',   // the Gold Foiled & UV suffix survives
-	'HD 15-GF'     => 'HD-15-GF',     // and did before, in the old shape
+	'HD - 0814-GF' => 'HD-0814-GF',
+	'HD 15-GF'     => 'HD-15-GF',     // and the oldest shape of all
 );
 foreach ( $codes as $in => $want ) {
 	$got = af_sku_code_part( $in );
@@ -54,27 +59,33 @@ foreach ( $codes as $in => $want ) {
 // test: TP 05 and everything after it, and HD 15 and everything after it, move
 // down one, so a product renumbered by pasting the section number on the front
 // would end up pointing at somebody else's painting.
+//
+// Since 2026-09-12 the page number is printed in four digits rather than two,
+// so the codes below are six digits wide. Widening does not move a page — the
+// section and the page number inside are unchanged — but it does mean this
+// list had to be rewritten, and a stale copy of it is the fastest way to find
+// out that the writing path changed when it should not have.
 echo "\n-- the book's numbering --\n";
 if ( ! function_exists( 'af_artcode_book_code' ) ) {
 	$fail++;
 	echo "  FAIL  inc/artcode-book.php is not loaded\n";
 } else {
 	$book_cases = array(
-		'RK 01'    => 'RK - 0101',   // a section that maps straight across
-		'RK 91'    => 'RK - 0191',
-		'LC 09'    => 'LC - 1409',
-		'LI 32'    => 'LI - 1932',
-		'TP 03'    => 'TP - 0503',   // before the gap: unmoved
-		'TP 05'    => 'TP - 0504',   // after it: down one
-		'TP 16'    => 'TP - 0515',
-		'HD 13'    => 'HD - 0813',   // before the gap
-		'HD 15'    => 'HD - 0814',   // after it
-		'HD 28'    => 'HD - 0827',
-		'HD 15-GF' => 'HD - 0814-GF',
-		'rk 1'     => 'RK - 0101',   // case and padding are forgiven
-		'RK-01'    => 'RK - 0101',
-		'RK - 0101' => 'RK - 0101',  // already the book's shape: unchanged
-		'TP - 0504' => 'TP - 0504',
+		'RK 01'    => 'RK - 010001',   // a section that maps straight across
+		'RK 91'    => 'RK - 010091',
+		'LC 09'    => 'LC - 140009',
+		'LI 32'    => 'LI - 190032',
+		'TP 03'    => 'TP - 050003',   // before the gap: unmoved
+		'TP 05'    => 'TP - 050004',   // after it: down one
+		'TP 16'    => 'TP - 050015',
+		'HD 13'    => 'HD - 080013',   // before the gap
+		'HD 15'    => 'HD - 080014',   // after it
+		'HD 28'    => 'HD - 080027',
+		'HD 15-GF' => 'HD - 080014-GF',
+		'rk 1'     => 'RK - 010001',   // case and padding are forgiven
+		'RK-01'    => 'RK - 010001',
+		'RK - 010001' => 'RK - 010001',  // already the book's shape: unchanged
+		'TP - 050004' => 'TP - 050004',
 		'TP 04'    => '',            // never had a page
 		'HD 14'    => '',            // nor this
 		'LR 32'    => '',            // Lord Rama has nine pages
@@ -86,12 +97,18 @@ if ( ! function_exists( 'af_artcode_book_code' ) ) {
 		$ok( $got === $want, "'" . $in . "'", $got === '' ? '(no page)' : $got, $want );
 	}
 
-	// Every page of the book must be reachable, exactly once, and reading a
-	// code twice must give the same answer — the renumbering runs on every
+	// Every page the WRITING PATH may reach must map, exactly once, and reading
+	// a code twice must give the same answer — the renumbering runs on every
 	// deploy, so it has to be a no-op the second time.
+	//
+	// Bounded by 'legacy', not 'count'. The book has 373 pages; the catalogue
+	// was last written against 340 of them, and the 33 it gained this round are
+	// deliberately out of reach until the pictures have been checked against
+	// them. If this ever reads 373, the guard has been removed and products can
+	// land on pages nobody has verified.
 	$pages = 0; $bad = 0; $seen = array();
 	foreach ( af_artcode_book() as $prefix => $sec ) {
-		$top = $sec['count'] + count( $sec['absent'] );
+		$top = $sec['legacy'] + count( $sec['absent'] );
 		$in_section = 0;
 		for ( $n = 1; $n <= $top; $n++ ) {
 			$new = af_artcode_book_code( $prefix . ' ' . $n );
@@ -104,10 +121,20 @@ if ( ! function_exists( 'af_artcode_book_code' ) ) {
 			$in_section++;
 			$pages++;
 		}
-		if ( $in_section !== $sec['count'] ) { $bad++; }
+		if ( $in_section !== $sec['legacy'] ) { $bad++; }
 	}
-	$ok( $bad === 0 && $pages === 340, 'every page maps, once, and maps to itself',
+	$ok( $bad === 0 && $pages === 340, 'every page the shop may reach maps, once, and maps to itself',
 		$pages . ' pages, ' . $bad . ' problems', '340 pages, 0 problems' );
+
+	// And the 33 it may not reach stay out of reach.
+	$reachable_new = 0;
+	foreach ( af_artcode_book() as $prefix => $sec ) {
+		for ( $n = $sec['legacy'] + 1; $n <= $sec['count']; $n++ ) {
+			if ( af_artcode_book_code( sprintf( '%s - %02d%04d', $prefix, $sec['no'], $n ) ) !== '' ) { $reachable_new++; }
+		}
+	}
+	$ok( $reachable_new === 0, "the book's 33 new pages cannot be written onto a product",
+		$reachable_new . ' reachable', '0 reachable' );
 }
 
 // ── the size half, against the real card ────────────────────────────────────

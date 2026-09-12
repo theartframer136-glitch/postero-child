@@ -19,26 +19,35 @@
  * LB-090001 at 197, LB-090013 at 209, SA-100001 at 210, TA-210004 at 377, and
  * page 378 being the back matter. Every section runs 1..N with no gaps.
  *
- * ── Why the counts moved and NOTHING the shop carries did ───────────────────
+ * ── The catalogue moves onto six digits; it does not move pages ─────────────
  *
- * Asked whether the new pages went on the end of each section or were slotted
- * in among the existing ones, the owner's answer was that it was mixed and he
- * is not sure (2026-09-12). That settles how this file may be changed.
+ * Asked for on 2026-09-12: every product to carry the code the book prints
+ * today. So af_artcode_book_label() now writes six digits and the renumbering
+ * pass, which runs with AF_APPLY=1 on every deploy, carries the catalogue over
+ * on the next push.
  *
- * If pages were inserted, then a page's number is no longer the number it had,
- * and every code on the shop may now name a different painting. Which ones is
- * not knowable from the numbering — only from putting the pictures side by
- * side, which is the audit's work and has not been done for this round.
+ * WHAT THAT IS AND IS NOT. "LB - 0901" and "LB - 090001" are the same section
+ * and the same page number; only the padding widens. So this is a reformat. It
+ * is emphatically NOT a verification, and it must not be mistaken for one —
+ * asked in the same conversation whether the book's 33 new pages went on the
+ * end of each section or were slotted in among the old ones, the owner said it
+ * was mixed and he is not sure. If a page was inserted, the product on it
+ * already named the wrong painting under four digits and names exactly the
+ * same wrong painting under six. Widening the number neither causes that nor
+ * cures it; only putting the pictures side by side can, and that audit has not
+ * been done for this round.
  *
- * So the map carries TWO counts. 'count' is the book as it is today and is
- * what reporting and matching read. 'legacy' is frozen at the numbering the
- * catalogue was last written against, and it alone drives the translation
- * below. The effect is deliberate and worth stating plainly: updating this map
- * changes what the code KNOWS and not one character of what any product
- * CARRIES. tools/renumber-artcodes.php runs with AF_APPLY=1 on every single
- * deploy and sku-to-artcode.php stamps the result onto the SKU straight after,
- * so a widened range here would not wait to be asked — it would reach live
- * SKUs, and invoices, on the next push.
+ * SO THE MAP STILL CARRIES TWO COUNTS, and that is the part to leave alone.
+ * 'count' is the book as it is today — 373 pages — and is what reporting and
+ * matching read. 'legacy' is frozen at the numbering the catalogue was last
+ * written against, and it alone bounds what the translation will accept. The
+ * consequence is the one that matters: the reformat moves every product's code
+ * to six digits WITHOUT letting any product acquire a page it did not already
+ * name. A product on no code stays on no code; a product whose code the book
+ * refuses stays refused; nothing lands on one of the 33 new pages by
+ * arithmetic. Raising 'legacy' to 'count' would break all of that silently,
+ * and the deploy would carry it to live SKUs, and to invoices, on the next
+ * push.
  *
  * ── What the rest of this header describes: the PREVIOUS renumbering ────────
  *
@@ -62,13 +71,14 @@
  * was HD 15). The new numbering has no gaps, so from each gap onwards a page's
  * number is one lower than the label it used to carry:
  *
- *     TP 05  ->  TP - 0504        HD 15  ->  HD - 0814
- *     TP 16  ->  TP - 0515        HD 28  ->  HD - 0827
+ *     TP 05  ->  TP - 050004      HD 15  ->  HD - 080014
+ *     TP 16  ->  TP - 050015      HD 28  ->  HD - 080027
  *
- * So this is NOT a matter of pasting the section number onto the front of the
- * old one. Fifteen Tirupati pages and fourteen Hindu Deities pages shift, and
- * a product on TP 05 that were given TP - 0505 would be pointing at somebody
- * else's painting.
+ * So reading a TWO-digit label is not a matter of pasting the section number
+ * onto the front of it. Fifteen Tirupati pages and fourteen Hindu Deities
+ * pages shift, and a product on TP 05 given TP - 050005 would be pointing at
+ * somebody else's painting. (Widening a FOUR-digit code to six is a different
+ * thing entirely and shifts nothing — see the top of this header.)
  *
  * Every other section maps straight across, and every one of the twenty-one
  * was checked page by page against the design rather than assumed: the first
@@ -161,7 +171,13 @@ function af_artcode_section( $prefix ) {
 function af_artcode_split( $code ) {
 	$s = preg_replace( '/\s+/', ' ', trim( (string) $code ) );
 	if ( $s === '' ) { return null; }
-	if ( ! preg_match( '/^([A-Za-z]{2})\s*-?\s*(\d{1,4})(.*)$/', $s, $m ) ) { return null; }
+	// Up to six digits. The book prints six today (LB - 090001); the catalogue
+	// still holds four from the previous round (LB - 0901) and, here and there,
+	// the two the book printed before that (LB 01). All three have to parse, and
+	// the LENGTH is what tells them apart — so this must never be narrowed back
+	// to four, or a six-digit code would parse as four with "01" left dangling
+	// as a suffix and quietly become a different page.
+	if ( ! preg_match( '/^([A-Za-z]{2})\s*-?\s*(\d{1,6})(.*)$/', $s, $m ) ) { return null; }
 	return array(
 		'prefix' => strtoupper( $m[1] ),
 		'digits' => $m[2],
@@ -170,26 +186,30 @@ function af_artcode_split( $code ) {
 }
 
 /**
- * How the book writes page $n of the section with this prefix: "HD - 0814".
+ * How the book writes page $n of the section with this prefix: "HD - 080014".
+ *
+ * Six digits — two for the section, four for the page — which is what the
+ * brochure prints today. It printed four until this round ("HD - 0814") and the
+ * catalogue is being moved onto six; the page number inside is the same number
+ * in both, so the move is a reformat and not a renumbering.
  */
 function af_artcode_book_label( $prefix, $n, $suffix = '' ) {
 	$sec = af_artcode_section( $prefix );
 	if ( ! $sec ) { return ''; }
-	return sprintf( '%s - %02d%02d', strtoupper( $prefix ), $sec['no'], (int) $n ) . $suffix;
+	return sprintf( '%s - %02d%04d', strtoupper( $prefix ), $sec['no'], (int) $n ) . $suffix;
 }
 
 /**
- * How the book prints page $n of this section TODAY: "LB - 090001".
+ * How the book prints page $n of this section: "LB - 090001".
  *
- * Six digits — the section number, then the page number in four. On the page
- * itself the aspect is appended as well ("LB-090001-3050"), which is a
+ * Differs from af_artcode_book_label() in one way that matters: this accepts
+ * any page the book HAS ('count'), including the 33 it gained this round,
+ * whereas the writing path stops at 'legacy'. So this is the function for
+ * reading and reporting on the book itself — listing its pages, checking
+ * coverage — and the other is the one that may touch a product.
+ *
+ * On the page itself the aspect is appended too ("LB-090001-3050"), which is a
  * property of the page and not of the code, so it is not produced here.
- *
- * For reading and reporting only. It is deliberately NOT what
- * af_artcode_book_code() returns: turning a product's four-digit code into a
- * six-digit one is arithmetic nobody has checked a picture against, and the
- * renumbering pass runs with apply on at every deploy. When the audit has put
- * the pictures side by side, this is the function that writes the result.
  */
 function af_artcode_page_label( $prefix, $n ) {
 	$sec = af_artcode_section( $prefix );
@@ -242,6 +262,20 @@ function af_artcode_book_code( $code ) {
 
 	// Already the book's own shape: four digits whose first two are this
 	// section's number and whose last two land inside it.
+	// Six digits: the shape the book prints today, and what this returns. Maps
+	// to itself, which is what lets the renumbering pass run on every deploy
+	// without doing anything after the first time.
+	if ( strlen( $digits ) === 6 ) {
+		$s = (int) substr( $digits, 0, 2 );
+		$n = (int) substr( $digits, 2, 4 );
+		if ( $s === $sec['no'] && $n >= 1 && $n <= $sec['legacy'] ) {
+			return af_artcode_book_label( $parts['prefix'], $n, $parts['suffix'] );
+		}
+	}
+
+	// Four digits: the shape the catalogue is being moved off. The section and
+	// the page number are read out and written back unchanged — only the
+	// padding widens, so "LB - 0901" and "LB - 090001" name the same page.
 	if ( strlen( $digits ) === 4 ) {
 		$s = (int) substr( $digits, 0, 2 );
 		$n = (int) substr( $digits, 2, 2 );

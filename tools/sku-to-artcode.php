@@ -62,6 +62,13 @@ function af_sku_from_code( $code ) {
 	}
 	$s = preg_replace( '/\s+/', ' ', trim( (string) $code ) );
 	if ( $s === '' ) { return ''; }
+	// Kept in step with af_sku_code_part(), including the book's numbering —
+	// without this branch "LB - 090001" would fall through to the last line and
+	// come out as "LB---090001".
+	if ( preg_match( '/^([A-Za-z]+)\s*-\s*(\d{4,6})(.*)$/', $s, $m ) ) {
+		return strtoupper( $m[1] ) . '-' . $m[2]
+		     . strtoupper( str_replace( ' ', '-', trim( $m[3] ) ) );
+	}
 	if ( preg_match( '/^([A-Za-z]+)\s*0*(\d+)$/', $s, $m ) ) {
 		return strtoupper( $m[1] ) . '-' . str_pad( $m[2], 2, '0', STR_PAD_LEFT );
 	}
