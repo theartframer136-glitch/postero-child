@@ -1,26 +1,59 @@
 # Master Brochure DAGzVCQ8PBs — section map and reading progress
 (page numbers are 1-indexed Canva pages; page labels read from design_content)
 
-## Confirmed section boundaries
-| Pages | Codes | Section | Read? |
-|---|---|---|---|
-| 1–95 | RK 01–95 | Radha Krishna | NO (91+ pages, biggest left) |
-| 96–98 | LG 01–03 | Lakshmi–Ganesha | NO |
-| 99–113 | LS 01–15 | Lord Shiva | **DONE** |
-| 114–125 | SH 01–12 | Seven Horses | **DONE** |
-| 126–140 | TP 01–16 (no TP 04) | Tirupati Balaji | **DONE** |
-| 141–~153 | MG 01–.. | Murugan | NO |
-| ~154–180 | HD 01–~27 | Hindu Deities | NO |
-| 181–193 | LB 01–13 | Lord Buddha | **DONE** |
-| ~194–195 | SA 01–03 | Sikh Art | NO |
-| ~196–197 | PA 01–.. | Pichwai | NO |
-| ~198–202 | IC 01–04+ | Indian Culture | NO |
-| 203–212 | LC 01–10 | Landscapes | **DONE** (see below) |
-| 213–~239 | SL 01–~25 | Still Life | NO |
-| ~240–~258 | WL 01–~16 | Wildlife | NO |
-| ~259–277 | KR 01–~18 | Kids Room | NO |
-| 278–~321 | LI 01–~35 | Living Room | NO |
-| ~322–358 | AA 01–~20+ | Abstract Art | NO |
+## The book as it stands — read 2026-09-12
+
+**391 Canva pages: 4 of front matter, 373 product pages (5–377), 14 of back
+matter.** Product page N sits at Canva page 4 + N — measured, not assumed:
+HD-080030 at 196, LB-090001 at 197, LB-090013 at 209, SA-100001 at 210,
+TA-210004 at 377, and 378 is "Who We Are". Sections run back to back with no
+dividers, and every section is numbered 1..N with **no gaps**.
+
+Labels now carry six digits and the aspect: `LB-090001-3050`.
+The catalogue still holds the previous four-digit form, `LB - 0901`.
+
+| Pages | Codes | Section | Now | Was | Read? |
+|---|---|---|---|---|---|
+| 5–101 | RK 010001–010097 | Radha Krishna | 97 | 91 | NO (biggest left) |
+| 102–104 | LG 020001–020003 | Lakshmi–Ganesha | 3 | 3 | NO |
+| 105–122 | LS 030001–030018 | Lord Shiva | 18 | 15 | stale — 3 new |
+| 123–137 | SH 040001–040015 | Seven Horses | 15 | 12 | stale — 3 new |
+| 138–152 | TP 050001–050015 | Tirupati Balaji | 15 | 15 | stale — see note |
+| 153–156 | MG 060001–060004 | Murugan | 4 | 4 | NO |
+| 157–166 | LR 070001–070010 | Lord Rama | 10 | 9 | NO |
+| 167–196 | HD 080001–080030 | Hindu Deities | 30 | 27 | NO |
+| 197–209 | LB 090001–090013 | Lord Buddha | 13 | 13 | stale — see note |
+| 210–214 | SA 100001–100005 | Sikh Art | 5 | 3 | NO |
+| 215 | SN 110001 | Swaminarayan | 1 | 1 | NO |
+| 216 | PA 120001 | Pichwai | 1 | 1 | NO |
+| 217–221 | IC 130001–130005 | Indian Culture | 5 | 4 | NO |
+| 222–231 | LC 140001–140010 | Landscapes | 10 | 10 | stale — see note |
+| 232–254 | SL 150001–150023 | Still Life | 23 | 23 | NO |
+| 255–258 | VA 160001–160004 | Vaastu Art | 4 | 4 | NO |
+| 259–281 | WL 170001–170023 | Wildlife | 23 | 19 | NO |
+| 282–303 | KR 180001–180022 | Kids Room | 22 | 19 | NO |
+| 304–354 | LI 190001–190051 | Living Room | 51 | 44 | NO |
+| 355–373 | AA 200001–200019 | Abstract Art | 19 | 19 | NO |
+| 374–377 | TA 210001–210004 | Travel Art | 4 | 4 | NO |
+
+**Every "DONE" below this line is now marked stale.** Ten sections gained 33
+pages between them, and asked whether the new pages went on the end or were
+slotted in among the old ones, the owner's answer was that it was mixed and he
+is not sure. A reading recorded against the old numbering therefore no longer
+proves which page a number names — including the Landscapes table below, whose
+page count did not change but whose contents cannot be assumed to have stayed
+put. Re-read against the pictures before relying on any of it.
+
+## Matching the shop against this — 2026-09-12
+Joined by section and page number (`LB - 0901` -> `LB-090001`), which says
+where each product *points*, not that the painting is the same one:
+
+- 206 of the 373 pages have a product on them
+- **167 pages have no product at all**
+- 35 pages have more than one product on them
+- no product points at a page the book does not have
+
+## How the old reading was recorded
 
 ## Landscapes (LC 01–10, pages 203–212) — read, nothing to change
 | Code | Page shows | Product |

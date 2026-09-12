@@ -3,19 +3,56 @@
  * The Master Brochure's own numbering, and how to read a product's art code
  * against it.
  *
- * ── What changed in the book ────────────────────────────────────────────────
+ * ── The book has moved again, and this file no longer describes it ──────────
+ *
+ * Read out of Canva on 2026-09-12, the brochure is NOT the book the rest of
+ * this header describes. Three things changed:
+ *
+ *   it grew          340 product pages -> 373. Ten sections gained pages:
+ *                    LI +7, RK +6, WL +4, LS/SH/HD/KR +3, SA +2, LR/IC +1.
+ *   it prints six    LB - 090001, not LB - 0901. Section number, then the page
+ *                    number in four digits.
+ *   it prints size   the page label now ends in the aspect: LB-090001-3050.
+ *
+ * The section map below is now today's book, measured page by page: product
+ * page N sits at Canva page 4 + N, confirmed against HD-080030 at 196,
+ * LB-090001 at 197, LB-090013 at 209, SA-100001 at 210, TA-210004 at 377, and
+ * page 378 being the back matter. Every section runs 1..N with no gaps.
+ *
+ * ── Why the counts moved and NOTHING the shop carries did ───────────────────
+ *
+ * Asked whether the new pages went on the end of each section or were slotted
+ * in among the existing ones, the owner's answer was that it was mixed and he
+ * is not sure (2026-09-12). That settles how this file may be changed.
+ *
+ * If pages were inserted, then a page's number is no longer the number it had,
+ * and every code on the shop may now name a different painting. Which ones is
+ * not knowable from the numbering — only from putting the pictures side by
+ * side, which is the audit's work and has not been done for this round.
+ *
+ * So the map carries TWO counts. 'count' is the book as it is today and is
+ * what reporting and matching read. 'legacy' is frozen at the numbering the
+ * catalogue was last written against, and it alone drives the translation
+ * below. The effect is deliberate and worth stating plainly: updating this map
+ * changes what the code KNOWS and not one character of what any product
+ * CARRIES. tools/renumber-artcodes.php runs with AF_APPLY=1 on every single
+ * deploy and sku-to-artcode.php stamps the result onto the SKU straight after,
+ * so a widened range here would not wait to be asked — it would reach live
+ * SKUs, and invoices, on the next push.
+ *
+ * ── What the rest of this header describes: the PREVIOUS renumbering ────────
  *
  * The brochure used to label a page with its section prefix and a number
- * counted inside that section: RK 01, LI 32, HD 15. It now prints the section's
- * own number as well:
+ * counted inside that section: RK 01, LI 32, HD 15. It then printed the
+ * section's own number as well:
  *
  *     RK - 0101      section 01 (Radha Krishna), first page of it
  *     LI - 1932      section 19 (Living Room), thirty-second page of it
  *
- * That is the whole of the change as far as a reader is concerned. It matters
- * to us for two reasons. The obvious one: every product carries the code the
- * book prints, so every product's code is now out of date. The second is
- * easier to miss — the new numbering is CONTIGUOUS, and the old was not.
+ * That is the numbering the catalogue holds today, and the translation below
+ * still reads it. It mattered for two reasons. The obvious one: every product
+ * carries the code the book prints. The second is easier to miss — that
+ * numbering was CONTIGUOUS, and the one before it was not.
  *
  * ── The two gaps, and why they move everything after them ───────────────────
  *
@@ -57,42 +94,45 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 /**
  * The book, section by section, in the order it prints them.
  *
- *   no        the section number the new codes carry
+ *   no        the section number the codes carry
  *   name      what the contents page calls it
  *   pages     the first and last Canva page of the section, 1-indexed
- *   count     how many pages it has — and so the highest number a new code
- *             can carry inside it
+ *   count     how many pages the section has IN THE BOOK TODAY
+ *   legacy    how many it had when the shop's codes were last written
  *   absent    labels the OLD numbering used that never had a page
  *
- * 'count' plus 'absent' is everything needed in both directions: the old
- * numbering ran from 1 to count + the number of absent labels below the top.
+ * Why two counts. 'count' is the truth about the book and is what reporting
+ * and matching must use. 'legacy' plus 'absent' is what the translation below
+ * reads, and it is deliberately frozen at the numbering the catalogue was last
+ * written against — see the header for why moving it would rewrite live SKUs
+ * on unproven arithmetic.
  */
 function af_artcode_book() {
 	static $book = null;
 	if ( $book !== null ) { return $book; }
 
 	$book = array(
-		'RK' => array( 'no' =>  1, 'name' => 'Radha Krishna',   'pages' => array(   5,  95 ), 'count' => 91, 'absent' => array() ),
-		'LG' => array( 'no' =>  2, 'name' => 'Lakshmi Ganesha', 'pages' => array(  96,  98 ), 'count' =>  3, 'absent' => array() ),
-		'LS' => array( 'no' =>  3, 'name' => 'Lord Shiva',      'pages' => array(  99, 113 ), 'count' => 15, 'absent' => array() ),
-		'SH' => array( 'no' =>  4, 'name' => 'Seven Horses',    'pages' => array( 114, 125 ), 'count' => 12, 'absent' => array() ),
-		'TP' => array( 'no' =>  5, 'name' => 'Tirupati Balaji', 'pages' => array( 126, 140 ), 'count' => 15, 'absent' => array( 4 ) ),
-		'MG' => array( 'no' =>  6, 'name' => 'Murugan',         'pages' => array( 141, 144 ), 'count' =>  4, 'absent' => array() ),
-		'LR' => array( 'no' =>  7, 'name' => 'Lord Rama',       'pages' => array( 145, 153 ), 'count' =>  9, 'absent' => array() ),
-		'HD' => array( 'no' =>  8, 'name' => 'Hindu Deities',   'pages' => array( 154, 180 ), 'count' => 27, 'absent' => array( 14 ) ),
-		'LB' => array( 'no' =>  9, 'name' => 'Buddha',          'pages' => array( 181, 193 ), 'count' => 13, 'absent' => array() ),
-		'SA' => array( 'no' => 10, 'name' => 'Sikh Art',        'pages' => array( 194, 196 ), 'count' =>  3, 'absent' => array() ),
-		'SN' => array( 'no' => 11, 'name' => 'Swaminarayan',    'pages' => array( 197, 197 ), 'count' =>  1, 'absent' => array() ),
-		'PA' => array( 'no' => 12, 'name' => 'Pichwai Art',     'pages' => array( 198, 198 ), 'count' =>  1, 'absent' => array() ),
-		'IC' => array( 'no' => 13, 'name' => 'Indian Culture',  'pages' => array( 199, 202 ), 'count' =>  4, 'absent' => array() ),
-		'LC' => array( 'no' => 14, 'name' => 'Landscapes',      'pages' => array( 203, 212 ), 'count' => 10, 'absent' => array() ),
-		'SL' => array( 'no' => 15, 'name' => 'Still Life',      'pages' => array( 213, 235 ), 'count' => 23, 'absent' => array() ),
-		'VA' => array( 'no' => 16, 'name' => 'Vaastu Art',      'pages' => array( 236, 239 ), 'count' =>  4, 'absent' => array() ),
-		'WL' => array( 'no' => 17, 'name' => 'Wildlife',        'pages' => array( 240, 258 ), 'count' => 19, 'absent' => array() ),
-		'KR' => array( 'no' => 18, 'name' => 'Kids Room',       'pages' => array( 259, 277 ), 'count' => 19, 'absent' => array() ),
-		'LI' => array( 'no' => 19, 'name' => 'Living Room',     'pages' => array( 278, 321 ), 'count' => 44, 'absent' => array() ),
-		'AA' => array( 'no' => 20, 'name' => 'Abstract Art',    'pages' => array( 322, 340 ), 'count' => 19, 'absent' => array() ),
-		'TA' => array( 'no' => 21, 'name' => 'Travel Art',      'pages' => array( 341, 344 ), 'count' =>  4, 'absent' => array() ),
+		'RK' => array( 'no' =>  1, 'name' => 'Radha Krishna',   'pages' => array(   5, 101 ), 'count' => 97, 'legacy' => 91, 'absent' => array() ),
+		'LG' => array( 'no' =>  2, 'name' => 'Lakshmi Ganesha', 'pages' => array( 102, 104 ), 'count' =>  3, 'legacy' =>  3, 'absent' => array() ),
+		'LS' => array( 'no' =>  3, 'name' => 'Lord Shiva',      'pages' => array( 105, 122 ), 'count' => 18, 'legacy' => 15, 'absent' => array() ),
+		'SH' => array( 'no' =>  4, 'name' => 'Seven Horses',    'pages' => array( 123, 137 ), 'count' => 15, 'legacy' => 12, 'absent' => array() ),
+		'TP' => array( 'no' =>  5, 'name' => 'Tirupati Balaji', 'pages' => array( 138, 152 ), 'count' => 15, 'legacy' => 15, 'absent' => array( 4 ) ),
+		'MG' => array( 'no' =>  6, 'name' => 'Murugan',         'pages' => array( 153, 156 ), 'count' =>  4, 'legacy' =>  4, 'absent' => array() ),
+		'LR' => array( 'no' =>  7, 'name' => 'Lord Rama',       'pages' => array( 157, 166 ), 'count' => 10, 'legacy' =>  9, 'absent' => array() ),
+		'HD' => array( 'no' =>  8, 'name' => 'Hindu Deities',   'pages' => array( 167, 196 ), 'count' => 30, 'legacy' => 27, 'absent' => array( 14 ) ),
+		'LB' => array( 'no' =>  9, 'name' => 'Buddha',          'pages' => array( 197, 209 ), 'count' => 13, 'legacy' => 13, 'absent' => array() ),
+		'SA' => array( 'no' => 10, 'name' => 'Sikh Art',        'pages' => array( 210, 214 ), 'count' =>  5, 'legacy' =>  3, 'absent' => array() ),
+		'SN' => array( 'no' => 11, 'name' => 'Swaminarayan',    'pages' => array( 215, 215 ), 'count' =>  1, 'legacy' =>  1, 'absent' => array() ),
+		'PA' => array( 'no' => 12, 'name' => 'Pichwai Art',     'pages' => array( 216, 216 ), 'count' =>  1, 'legacy' =>  1, 'absent' => array() ),
+		'IC' => array( 'no' => 13, 'name' => 'Indian Culture',  'pages' => array( 217, 221 ), 'count' =>  5, 'legacy' =>  4, 'absent' => array() ),
+		'LC' => array( 'no' => 14, 'name' => 'Landscapes',      'pages' => array( 222, 231 ), 'count' => 10, 'legacy' => 10, 'absent' => array() ),
+		'SL' => array( 'no' => 15, 'name' => 'Still Life',      'pages' => array( 232, 254 ), 'count' => 23, 'legacy' => 23, 'absent' => array() ),
+		'VA' => array( 'no' => 16, 'name' => 'Vaastu Art',      'pages' => array( 255, 258 ), 'count' =>  4, 'legacy' =>  4, 'absent' => array() ),
+		'WL' => array( 'no' => 17, 'name' => 'Wildlife',        'pages' => array( 259, 281 ), 'count' => 23, 'legacy' => 19, 'absent' => array() ),
+		'KR' => array( 'no' => 18, 'name' => 'Kids Room',       'pages' => array( 282, 303 ), 'count' => 22, 'legacy' => 19, 'absent' => array() ),
+		'LI' => array( 'no' => 19, 'name' => 'Living Room',     'pages' => array( 304, 354 ), 'count' => 51, 'legacy' => 44, 'absent' => array() ),
+		'AA' => array( 'no' => 20, 'name' => 'Abstract Art',    'pages' => array( 355, 373 ), 'count' => 19, 'legacy' => 19, 'absent' => array() ),
+		'TA' => array( 'no' => 21, 'name' => 'Travel Art',      'pages' => array( 374, 377 ), 'count' =>  4, 'legacy' =>  4, 'absent' => array() ),
 	);
 	return $book;
 }
@@ -139,6 +179,43 @@ function af_artcode_book_label( $prefix, $n, $suffix = '' ) {
 }
 
 /**
+ * How the book prints page $n of this section TODAY: "LB - 090001".
+ *
+ * Six digits — the section number, then the page number in four. On the page
+ * itself the aspect is appended as well ("LB-090001-3050"), which is a
+ * property of the page and not of the code, so it is not produced here.
+ *
+ * For reading and reporting only. It is deliberately NOT what
+ * af_artcode_book_code() returns: turning a product's four-digit code into a
+ * six-digit one is arithmetic nobody has checked a picture against, and the
+ * renumbering pass runs with apply on at every deploy. When the audit has put
+ * the pictures side by side, this is the function that writes the result.
+ */
+function af_artcode_page_label( $prefix, $n ) {
+	$sec = af_artcode_section( $prefix );
+	if ( ! $sec ) { return ''; }
+	$n = (int) $n;
+	if ( $n < 1 || $n > $sec['count'] ) { return ''; }
+	return sprintf( '%s - %02d%04d', strtoupper( $prefix ), $sec['no'], $n );
+}
+
+/**
+ * How many pages the book has today, in total or in one section. The number
+ * matching works against — 'legacy' is only for reading the codes the shop
+ * currently holds.
+ */
+function af_artcode_book_pages( $prefix = '' ) {
+	$book = af_artcode_book();
+	if ( $prefix !== '' ) {
+		$sec = af_artcode_section( $prefix );
+		return $sec ? (int) $sec['count'] : 0;
+	}
+	$total = 0;
+	foreach ( $book as $sec ) { $total += (int) $sec['count']; }
+	return $total;
+}
+
+/**
  * A product's art code as the book writes it today, or '' if the code names no
  * page of the book.
  *
@@ -168,7 +245,10 @@ function af_artcode_book_code( $code ) {
 	if ( strlen( $digits ) === 4 ) {
 		$s = (int) substr( $digits, 0, 2 );
 		$n = (int) substr( $digits, 2, 2 );
-		if ( $s === $sec['no'] && $n >= 1 && $n <= $sec['count'] ) {
+		// 'legacy', not 'count': see the header. The book has pages this range
+		// does not cover, and admitting them here would start writing codes
+		// nobody has checked a picture against.
+		if ( $s === $sec['no'] && $n >= 1 && $n <= $sec['legacy'] ) {
 			return af_artcode_book_label( $parts['prefix'], $n, $parts['suffix'] );
 		}
 		// Four digits that are not this section's — fall through and read them
@@ -179,7 +259,7 @@ function af_artcode_book_code( $code ) {
 	// An old label, counted inside the section with the gaps still in it.
 	$label   = (int) $digits;
 	$absent  = $sec['absent'];
-	$old_max = $sec['count'] + count( $absent );
+	$old_max = $sec['legacy'] + count( $absent );
 
 	if ( $label < 1 || $label > $old_max ) { return ''; }
 	if ( in_array( $label, $absent, true ) ) { return ''; }
@@ -205,11 +285,12 @@ function af_artcode_book_refusal( $code ) {
 
 	$label   = (int) $parts['digits'];
 	$absent  = $sec['absent'];
-	$old_max = $sec['count'] + count( $absent );
+	$old_max = $sec['legacy'] + count( $absent );
 
 	if ( in_array( $label, $absent, true ) ) {
 		return $parts['prefix'] . ' ' . str_pad( $label, 2, '0', STR_PAD_LEFT ) . ' never had a page';
 	}
-	return $sec['name'] . ' has ' . $sec['count'] . ' pages, numbered up to '
-	     . $old_max . ' in the old book';
+	return $sec['name'] . ' has ' . $sec['count'] . ' pages in the book today, '
+	     . 'and the numbering the shop was last written against went up to '
+	     . $old_max;
 }
