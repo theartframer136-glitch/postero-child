@@ -36,6 +36,10 @@ on:
         description: 'How many times to fetch each (2 shows cold vs warm)'
         type: string
         default: '2'
+      bust:
+        description: 'Append a unique query string so every fetch is a cache MISS (measures the true cold render)'
+        type: boolean
+        default: false
 
 concurrency:
   group: check-timing
@@ -72,9 +76,16 @@ jobs:
             P="$(echo "$P" | xargs)"; [ -z "$P" ] && continue
             for N in $(seq 1 "$RUNS"); do
               H=$(mktemp)
+              # A unique param the crawl guard does not intercept (it only
+              # redirects filter_*/orderby/add-to-cart and headerless search),
+              # so every fetch bypasses the page cache and times a real build.
+              Q=''
+              if [ '${{ inputs.bust }}' = 'true' ]; then
+                Q="?afwarm=$(date +%s)$RANDOM$N"
+              fi
               OUT=$(curl -sS -o /dev/null -D "$H" --max-time 60 "${HDRS[@]}" \
                     -w '%{http_code} %{time_starttransfer} %{time_total} %{size_download}' \
-                    "$BASE$P" 2>/dev/null || echo "000 0 0 0")
+                    "$BASE$P$Q" 2>/dev/null || echo "000 0 0 0")
               read -r CODE TTFB TOTAL SIZE <<< "$OUT"
               # LiteSpeed says hit/miss here; Hostinger's edge adds its own.
               CACHE=$(grep -ihE '^(x-litespeed-cache|x-qc-cache|x-lsadc-cache|cf-cache-status|age):' "$H" \
