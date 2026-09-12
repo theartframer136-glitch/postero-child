@@ -1,0 +1,94 @@
+name: Check Weight
+
+# What a live page is actually made of, byte by byte.
+#
+# Check Timing established the two numbers that matter: an uncached page costs
+# 2.3-4.8s of server time, and the HTML that comes back is 650 KB to 977 KB.
+# This answers the next question — where those bytes go — so the theme can be
+# cut where it will help rather than where it looks heavy.
+#
+# It reports transferred (compressed) size against decoded size, how much of
+# the page is inline <style> and inline <script>, how many separate blocks
+# there are, and the biggest offenders by their opening line, so each can be
+# traced back to the hook that printed it.
+#
+# Read-only: one GET per page, nothing written, no SSH. Workflow files are in
+# deploy.yml's paths-ignore, so this never spends a deploy.
+
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: 'Paths to weigh, comma separated'
+        type: string
+        default: '/,/product-category/digital-canvas-prints/lord-shiva/'
+
+concurrency:
+  group: check-weight
+  cancel-in-progress: false
+
+jobs:
+  weigh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Weigh each page
+        shell: bash
+        run: |
+          set -uo pipefail
+          IFS=',' read -ra PATHS <<< '${{ inputs.urls }}'
+          for P in "${PATHS[@]}"; do
+            P="$(echo "$P" | xargs)"
+            if [ -z "$P" ]; then continue; fi
+            echo "=============================================================="
+            echo "  https://theartframer.us$P"
+            echo "=============================================================="
+            # --compressed so the transferred figure is what a browser really
+            # pulls down; curl reports the decoded length separately.
+            curl -sS --compressed --max-time 60 -o /tmp/page.html \
+              -w 'transferred (gzip): %{size_download} B\ntime to first byte : %{time_starttransfer} s\n' \
+              -H 'accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8' \
+              -H 'accept-language: en-US,en;q=0.9' \
+              -H 'sec-fetch-dest: document' -H 'sec-fetch-mode: navigate' \
+              -H 'sec-fetch-site: none' -H 'sec-fetch-user: ?1' \
+              -H 'upgrade-insecure-requests: 1' \
+              -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36' \
+              "https://theartframer.us$P" || true
+            python3 - <<'PY'
+          import re, io
+          h = io.open('/tmp/page.html', encoding='utf-8', errors='replace').read()
+          total = len(h.encode('utf-8', 'replace'))
+          styles  = list(re.finditer(r'<style[^>]*>(.*?)</style>', h, re.S | re.I))
+          scripts = [m for m in re.finditer(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>', h, re.S | re.I)]
+          ext_css = len(re.findall(r'<link[^>]+stylesheet', h, re.I))
+          ext_js  = len(re.findall(r'<script[^>]+\bsrc=', h, re.I))
+          imgs    = len(re.findall(r'<img\b', h, re.I))
+          svg     = sum(len(m.group(0)) for m in re.finditer(r'<svg\b.*?</svg>', h, re.S | re.I))
+          b64     = sum(len(m.group(0)) for m in re.finditer(r'data:[^"\')\s]{200,}', h))
+          cb = sum(len(m.group(0)) for m in styles)
+          jb = sum(len(m.group(0)) for m in scripts)
+          def pct(x): return '%5.1f%%' % (100.0 * x / total) if total else '   -  '
+          print()
+          print('decoded HTML       : %9d B' % total)
+          print('  inline <style>   : %9d B  %s  across %d blocks' % (cb, pct(cb), len(styles)))
+          print('  inline <script>  : %9d B  %s  across %d blocks' % (jb, pct(jb), len(scripts)))
+          print('  inline <svg>     : %9d B  %s' % (svg, pct(svg)))
+          print('  data: URIs       : %9d B  %s' % (b64, pct(b64)))
+          print('  everything else  : %9d B  %s' % (total - cb - jb, pct(total - cb - jb)))
+          print('  external css/js  : %d stylesheets, %d scripts, %d <img>' % (ext_css, ext_js, imgs))
+          print()
+          print('  biggest inline blocks:')
+          rows = [(len(m.group(0)), 'style', m.group(0)) for m in styles] + \
+                 [(len(m.group(0)), 'script', m.group(0)) for m in scripts]
+          rows.sort(reverse=True)
+          for n, kind, src in rows[:12]:
+              tag = re.match(r'<[^>]*>', src).group(0)[:70]
+              first = ''
+              for ln in src.split('\n')[1:]:
+                  ln = ln.strip()
+                  if ln and not ln.startswith(('/*', '//', '*')):
+                      first = ln[:62]; break
+              print('   %7d B  %-6s %-52s %s' % (n, kind, tag, first))
+          print()
+          PY
+          done
