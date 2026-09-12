@@ -8978,7 +8978,7 @@ add_action('wp_footer', function() {
             <div class="af-dd-price"><?php echo $price_html; ?></div>
             <div class="af-dd-actions">
               <button id="af-dd-add" class="af-dd-btn solid">Add to Cart</button>
-              <a id="af-dd-view" class="af-dd-btn ghost" href="#">View Product</a>
+              <a id="af-dd-view" class="af-dd-btn ghost">View Product</a>
             </div>
             <p class="af-dd-msg" id="af-dd-msg"></p>
           </div>
@@ -8997,7 +8997,11 @@ add_action('wp_footer', function() {
       var reqSeq = 0;
       function open(){ overlay.classList.add('open'); document.body.style.overflow='hidden'; }
       function close(){ overlay.classList.remove('open'); document.body.style.overflow=''; msgEl.textContent=''; }
-      overlay.querySelectorAll('[data-dd-close]').forEach(function(el){ el.addEventListener('click', function(e){ if(e.target===el) close(); }); });
+      // The overlay carries data-dd-close itself, and querySelectorAll never
+      // returns the element it is called on — so the backdrop, the biggest
+      // click target in the modal, did nothing. Bind it alongside the ×.
+      [overlay].concat(Array.prototype.slice.call(overlay.querySelectorAll('[data-dd-close]')))
+        .forEach(function(el){ el.addEventListener('click', function(e){ if(e.target===el) close(); }); });
       document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
 
       // "View Product" is the one action that has to survive every branch of
@@ -9021,9 +9025,17 @@ add_action('wp_footer', function() {
       function sameOrigin(href){
         try { return new URL(href, location.href).origin === location.origin; } catch(e){ return false; }
       }
+      // src='' renders the browser's broken-image icon; the recording caught it
+      // sitting in the corner of the preview pane. Hide the <img> instead and
+      // let the wrap's own grey stand in for it.
+      function clearImg(){ imgEl.removeAttribute('src'); imgEl.style.display='none'; imgEl.style.opacity='1'; }
+      function showImg(url){
+        if(url){ imgEl.src = url; imgEl.style.display=''; imgEl.style.opacity='1'; }
+        else { clearImg(); }
+      }
       function unavailable(seq){
         if(seq !== undefined && seq !== reqSeq) return;
-        imgEl.removeAttribute('src'); imgEl.style.opacity = '1';
+        clearImg();
         titleEl.textContent = 'Not available for instant download';
         if(addEl){ addEl.style.display = 'none'; addEl.disabled = false; }
         msgEl.style.color = '';
@@ -9033,11 +9045,11 @@ add_action('wp_footer', function() {
       // never show the raw artwork here: ask the server for the watermarked
       // preview (the raw file was one right-click away in the old modal)
       function loadPreview(pid, seq){
-        imgEl.removeAttribute('src'); imgEl.style.opacity = '.35';
+        clearImg();
         fetch(AJAX + '?action=af_dd_preview&pid=' + encodeURIComponent(pid), {credentials:'same-origin'})
           .then(function(r){ return r.json(); })
-          .then(function(j){ if(seq!==reqSeq) return; imgEl.src = (j&&j.success&&j.data&&j.data.url) ? j.data.url : ''; imgEl.style.opacity='1'; })
-          .catch(function(){ if(seq!==reqSeq) return; imgEl.style.opacity='1'; });
+          .then(function(j){ if(seq!==reqSeq) return; showImg(j&&j.success&&j.data&&j.data.url ? j.data.url : ''); })
+          .catch(function(){ if(seq!==reqSeq) return; clearImg(); });
       }
 
       // Detect a "Digital Download" trigger inside a product card.
@@ -9133,7 +9145,7 @@ add_action('wp_footer', function() {
           titleEl.textContent = name ? (name + ' — Digital Download') : 'Digital Download';
           if(addEl){ addEl.style.display = ''; addEl.disabled = true; }
           msgEl.textContent = '';
-          imgEl.removeAttribute('src'); imgEl.style.opacity = '.35';
+          clearImg();
           open();
           fetch(AJAX + '?action=af_dd_resolve&slug=' + encodeURIComponent(slug), {credentials:'same-origin'})
             .then(function(r){ return r.json(); })
