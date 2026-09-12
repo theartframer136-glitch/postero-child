@@ -9022,6 +9022,23 @@ add_action('wp_footer', function() {
         var m = cn.match(/\bpost-(\d+)(?=\s|$)/);
         return m ? m[1] : '';
       }
+      // Every product id named inside a subtree. One card names exactly one;
+      // a section wrapper that happens to match CARD_SEL names as many as it
+      // holds, which is how the modal can end up describing a card other than
+      // the one that was clicked.
+      function idsIn(el){
+        var out=[];
+        function add(v){ if(v && out.indexOf(v)<0) out.push(v); }
+        el.querySelectorAll('[data-product_id],[data-product-id]').forEach(function(n){
+          add(n.getAttribute('data-product_id') || n.getAttribute('data-product-id'));
+        });
+        el.querySelectorAll('a[href]').forEach(function(a){
+          var m=(a.getAttribute('href')||'').match(/[?&]add-to-cart=(\d+)/); if(m) add(m[1]);
+        });
+        el.querySelectorAll('[class*="post-"]').forEach(function(n){ add(postId(n)); });
+        add(postId(el));
+        return out;
+      }
       function sameOrigin(href){
         try { return new URL(href, location.href).origin === location.origin; } catch(e){ return false; }
       }
@@ -9070,6 +9087,23 @@ add_action('wp_footer', function() {
         if(!trg) return;
         var card = trg.closest(CARD_SEL); if(!card) return;
         e.preventDefault(); e.stopPropagation();
+
+        // CARD_SEL matches a row wrapper as readily as a card, and closest()
+        // stops at the first match either way — so on a four-across row whose
+        // cards carry no matching class, every lookup below reads the FIRST
+        // card and the modal opens the wrong artwork. Now that View Product
+        // navigates, that would send the shopper somewhere else entirely.
+        // Walk up from the trigger and keep the LARGEST container that still
+        // names exactly one product, never widening past the CARD_SEL match.
+        var scope=null, hop=trg;
+        for(var up=0; up<12 && hop && hop!==document.body; up++){
+          var n=idsIn(hop).length;
+          if(n===1) scope=hop;
+          else if(n>1) break;
+          if(hop===card) break;
+          hop=hop.parentElement;
+        }
+        if(scope) card=scope;
         var seq = ++reqSeq;
         msgEl.style.color = '';
         var anchors = Array.prototype.slice.call(card.querySelectorAll('a[href]'));
