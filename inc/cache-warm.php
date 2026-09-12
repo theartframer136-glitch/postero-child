@@ -204,3 +204,45 @@ add_action('delete_product_cat',  function () { delete_transient('af_warm_urls')
 add_action('af_listing_pages_purged', function () {
     update_option('af_warm_cursor', 0, false);
 });
+
+/**
+ * Stop shipping the world's address book on every page.
+ *
+ * Check Weight, against the live product page on 2026-09-12:
+ *
+ *     51246 B  script  <script id="wc-country-select-js-extra">
+ *
+ * That is WooCommerce's wc_country_select_params — every country, and every
+ * state, province and region inside them — serialised into the HTML. It was
+ * the single largest thing on the page, ahead of any stylesheet, and it was
+ * on a PRODUCT page, where nothing asks a visitor for an address.
+ *
+ * It is needed by three screens: the cart's shipping calculator, checkout,
+ * and the address forms in My Account. Everywhere else it is 51 KB of HTML
+ * that no script on the page reads, plus the PHP that builds the array to
+ * print it, paid on every uncached render.
+ *
+ * Checked before cutting: the theme's own "Ship to" control is the
+ * af_country_selector shortcode, which carries its own short list and has no
+ * relationship to this script; nothing in the theme or inc/ enqueues, depends
+ * on, or localises wc-country-select. The two modules that touch countries at
+ * all — shipping.php and fraud-detection.php — read them off the ORDER,
+ * server-side, after checkout.
+ *
+ * Deliberately generous about where it stays: any cart, checkout, account or
+ * WooCommerce endpoint page keeps it, and af_needs_country_select filters the
+ * decision for anything this misses.
+ */
+add_action('wp_enqueue_scripts', function () {
+    if (is_admin() || !function_exists('is_cart')) return;
+
+    $needed = is_cart() || is_checkout() || is_account_page()
+           || (function_exists('is_wc_endpoint_url') && is_wc_endpoint_url());
+
+    if (apply_filters('af_needs_country_select', $needed)) return;
+
+    // country-select carries the 51 KB payload; address-i18n is its partner
+    // and is equally unused away from an address form.
+    wp_dequeue_script('wc-country-select');
+    wp_dequeue_script('wc-address-i18n');
+}, 99);
