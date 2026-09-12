@@ -1,20 +1,32 @@
 <?php
 /* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
- * Tests inc/artcode-book.php — the section map, and the one property that
- * makes updating it safe to deploy.
+ * Tests inc/artcode-book.php — the section map, and the two properties that
+ * make moving the whole catalogue onto the book's new numbering safe.
  *
- * THE PROPERTY. tools/renumber-artcodes.php runs with AF_APPLY=1 on every
- * deploy, and sku-to-artcode.php stamps its result onto the SKU immediately
- * after. So a change to this map does not wait to be asked: it reaches live
- * SKUs on the next push. The map was widened on 2026-09-12 to today's book
- * (340 pages -> 373) while the catalogue still holds codes written against the
- * old one, and the owner has said the new pages were added in a mix of places
- * — so which page a number names is no longer provable from the number.
+ * WHAT IS BEING DONE. The brochure prints six digits now ("LB - 090001"); the
+ * catalogue holds four ("LB - 0901"). The owner asked for every product to
+ * carry what the book prints, so af_artcode_book_label() writes six and
+ * renumber-artcodes.php — which runs with AF_APPLY=1 on every deploy, with
+ * sku-to-artcode.php stamping the result onto the SKU straight after — carries
+ * the catalogue over on the next push. There is no dry run in front of it.
  *
- * Therefore the test is not "does it map correctly". It is: DOES ANY CODE THE
- * SHOP HOLDS COME OUT DIFFERENTLY THAN IT DID BEFORE. The answer must be no,
- * for every code in every section, or the widened map is rewriting paintings.
+ * SO THE TEST IS NOT "does it map correctly". It is the two things that must
+ * hold while several hundred live SKUs are rewritten:
+ *
+ *   1. THE PAGE DOES NOT MOVE. Every code that resolved before still resolves
+ *      to the same section and the same page number — only the padding widens.
+ *      This is a reformat, not a renumbering, and a difference here is a
+ *      product being moved onto a different painting.
+ *
+ *   2. NOTHING GAINS A CODE. The book grew by 33 pages this round and the
+ *      owner has said the new ones went in a mix of places, so which page a
+ *      number names is not provable from the number. Every code the book
+ *      refused before must still be refused: no product may land on one of
+ *      those 33 pages by arithmetic.
+ *
+ * Both are checked by replaying every code the catalogue could hold, in every
+ * shape it could hold it, against the behaviour recorded before the change.
  *
  *     php tools/test-artcode-book.php
  */
@@ -55,11 +67,12 @@ echo "\n=== section numbers are 1..21 in printed order ===\n";
 check('numbered in order', array_values(array_map(
     function ($s) { return $s['no']; }, $book)), range(1, 21));
 
-echo "\n=== THE GUARANTEE: the wider map moves nothing the shop holds ===\n";
-// Replay the translation with the OLD map — count == legacy, which is what
-// the file held before it was widened — and require identical answers. Any
-// difference is a product whose code the next deploy would rewrite.
-function book_code_under_old_map($code) {
+echo "\n=== GUARANTEE 1: the page does not move ===\n";
+// Replay the translation EXACTLY as it behaved before this change — four-digit
+// output, bounded by 'legacy' — and require the new answer to name the same
+// section and the same page. Only the padding may differ. Anything else is a
+// product being moved onto a different painting.
+function book_code_before_the_reformat($code) {
     $parts = af_artcode_split($code);
     if (!$parts) return '';
     $sec = af_artcode_section($parts['prefix']);
@@ -82,26 +95,62 @@ function book_code_under_old_map($code) {
     return sprintf('%s - %02d%02d', $parts['prefix'], $sec['no'], $label - $shift) . $parts['suffix'];
 }
 
-$differs = array();
-$tried   = 0;
+/** ('LB', 9, 1, '-GF') from either width, so the two can be compared. */
+function code_parts($code) {
+    if ($code === '') return null;
+    if (!preg_match('/^([A-Z]{2}) - (\d{2})(\d{2,4})(.*)$/', $code, $m)) return 'UNPARSEABLE: ' . $code;
+    return array($m[1], (int) $m[2], (int) $m[3], $m[4]);
+}
+
+$moved = array(); $gained = array(); $lost = array(); $tried = 0;
 foreach ($book as $pre => $sec) {
-    // every old-style label, every new-style one, past the end of both, and
-    // the Gold Foil suffix the importer creates
+    // every shape the catalogue could hold, past the end of both numberings,
+    // plus the -GF suffix the Gold Foil importer adds and a lower-case spelling
     for ($n = 1; $n <= $sec['count'] + 5; $n++) {
         $forms = array(
-            sprintf('%s %02d', $pre, $n),
-            sprintf('%s - %02d%02d', $pre, $sec['no'], $n),
+            sprintf('%s %02d', $pre, $n),                          // the oldest labels
+            sprintf('%s - %02d%02d', $pre, $sec['no'], $n),        // what the shop holds
+            sprintf('%s - %02d%04d', $pre, $sec['no'], $n),        // what it is moving to
             sprintf('%s %02d-GF', $pre, $n),
+            sprintf('%s - %02d%02d-GF', $pre, $sec['no'], $n),
             strtolower(sprintf('%s-%02d', $pre, $n)),
         );
         foreach ($forms as $f) {
             $tried++;
-            if (af_artcode_book_code($f) !== book_code_under_old_map($f)) $differs[] = $f;
+            $was = book_code_before_the_reformat($f);
+            $now = af_artcode_book_code($f);
+
+            // A six-digit input had no meaning before the reformat, so the old
+            // path refusing it proves nothing. Judge it against the four-digit
+            // spelling of the same page instead.
+            if ($was === '' && strlen(af_artcode_split($f)['digits']) === 6) {
+                $was = book_code_before_the_reformat(
+                    sprintf('%s - %02d%02d%s', $pre, $sec['no'], $n, (strpos($f, '-GF') !== false ? '-GF' : '')));
+            }
+
+            if ($was === '' && $now !== '') { $gained[] = "$f -> $now"; continue; }
+            if ($was !== '' && $now === '') { $lost[]   = "$f (was $was)";  continue; }
+            if ($was === '' && $now === '') continue;
+            if (code_parts($was) !== code_parts($now)) $moved[] = "$f: $was -> $now";
         }
     }
 }
 printf("  %d codes replayed across all 21 sections\n", $tried);
-check('not one of them comes out differently', $differs, array());
+check('not one names a different page than it did', $moved, array());
+check('not one stopped resolving',                  $lost,  array());
+
+echo "\n=== GUARANTEE 2: nothing gains a code ===\n";
+check('no code the book refused now resolves', $gained, array());
+
+echo "\n=== and it really is six digits now ===\n";
+$widened = 0;
+foreach ($book as $pre => $sec) {
+    for ($n = 1; $n <= $sec['legacy']; $n++) {
+        $out = af_artcode_book_code(sprintf('%s - %02d%02d', $pre, $sec['no'], $n));
+        if (preg_match('/^[A-Z]{2} - \d{6}$/', $out)) $widened++;
+    }
+}
+check('every page the shop can hold widens to six digits', $widened, 340);
 
 echo "\n=== the refusals that must stay refused ===\n";
 check('TP 04 never had a page',  af_artcode_book_code('TP 04'), '');
@@ -110,29 +159,40 @@ check('AL is not a section',     af_artcode_book_code('AL 05'), '');
 check('LR 32 is past the end',   af_artcode_book_code('LR 32'), '');
 check('a page the book only gained now is still refused',
       af_artcode_book_code('LI 48'), '');
+check('nor by its six-digit spelling',
+      af_artcode_book_code('LI - 190048'), '');
 check('not a code at all',       af_artcode_book_code('hello'), '');
 
 echo "\n=== the gap arithmetic still shifts what follows it ===\n";
-check('TP 05 -> TP - 0504', af_artcode_book_code('TP 05'), 'TP - 0504');
-check('TP 16 -> TP - 0515', af_artcode_book_code('TP 16'), 'TP - 0515');
-check('HD 15 -> HD - 0814', af_artcode_book_code('HD 15'), 'HD - 0814');
-check('HD 28 -> HD - 0827', af_artcode_book_code('HD 28'), 'HD - 0827');
-check('LB 01 -> LB - 0901', af_artcode_book_code('LB 01'), 'LB - 0901');
-check('the Gold Foil suffix survives', af_artcode_book_code('HD 15-GF'), 'HD - 0814-GF');
-check('a code already in shape maps to itself',
-      af_artcode_book_code('LB - 0901'), 'LB - 0901');
+check('TP 05 -> TP - 050004', af_artcode_book_code('TP 05'), 'TP - 050004');
+check('TP 16 -> TP - 050015', af_artcode_book_code('TP 16'), 'TP - 050015');
+check('HD 15 -> HD - 080014', af_artcode_book_code('HD 15'), 'HD - 080014');
+check('HD 28 -> HD - 080027', af_artcode_book_code('HD 28'), 'HD - 080027');
+check('LB 01 -> LB - 090001', af_artcode_book_code('LB 01'), 'LB - 090001');
 
-echo "\n=== today's six-digit label, for reading and matching only ===\n";
+echo "\n=== the reformat itself ===\n";
+check('LB - 0901 widens to LB - 090001', af_artcode_book_code('LB - 0901'), 'LB - 090001');
+check('LI - 1932 widens to LI - 190032', af_artcode_book_code('LI - 1932'), 'LI - 190032');
+check('HD - 0814 widens to HD - 080014', af_artcode_book_code('HD - 0814'), 'HD - 080014');
+check('the Gold Foil suffix survives the widening',
+      af_artcode_book_code('HD - 0814-GF'), 'HD - 080014-GF');
+check('and survives from the oldest labels too',
+      af_artcode_book_code('HD 15-GF'), 'HD - 080014-GF');
+check('six digits map to themselves, so a second deploy does nothing',
+      af_artcode_book_code('LB - 090001'), 'LB - 090001');
+check('and again with a suffix',
+      af_artcode_book_code('HD - 080014-GF'), 'HD - 080014-GF');
+
+echo "\n=== the book's own page labels ===\n";
 check('LB page 1',   af_artcode_page_label('LB', 1),  'LB - 090001');
 check('LI page 51',  af_artcode_page_label('LI', 51), 'LI - 190051');
 check('RK page 97',  af_artcode_page_label('RK', 97), 'RK - 010097');
 check('past the end of the section', af_artcode_page_label('LI', 52), '');
 check('page zero',   af_artcode_page_label('LI', 0),  '');
 check('unknown prefix', af_artcode_page_label('ZZ', 1), '');
-
-// The point of keeping it separate: it must not be what gets written.
-check('the writing path still returns four digits',
-      af_artcode_book_code('LB 01'), 'LB - 0901');
+// It reads the book, so it reaches the 33 new pages the writing path will not.
+check('it reaches a page the writing path refuses',
+      af_artcode_page_label('LI', 48), 'LI - 190048');
 
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail ? 1 : 0);

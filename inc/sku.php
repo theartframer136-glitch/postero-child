@@ -72,7 +72,17 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 function af_sku_code_part( $code ) {
 	$s = preg_replace( '/\s+/', ' ', trim( (string) $code ) );
 	if ( $s === '' ) { return ''; }
-	if ( preg_match( '/^([A-Za-z]+)\s*-\s*(\d{4})(.*)$/', $s, $m ) ) {
+	// Four digits was the book's numbering until 2026-09-12; it prints six now
+	// ("LB - 090001") and the catalogue is being moved onto them. Both are
+	// matched here, greedily, so the whole number is taken as the number.
+	//
+	// This used to read \d{4} exactly. Six-digit codes still came out right,
+	// but only by accident: "090001" matched as "0900" with "01" falling into
+	// the trailing group, which is then concatenated straight back on. It
+	// worked, and it would have stopped working the moment anything was done
+	// to that group — it is the group that carries the "-GF" the Gold Foil
+	// importer adds, and it gets trimmed and upper-cased on the way through.
+	if ( preg_match( '/^([A-Za-z]+)\s*-\s*(\d{4,6})(.*)$/', $s, $m ) ) {
 		return strtoupper( $m[1] ) . '-' . $m[2]
 		     . strtoupper( str_replace( ' ', '-', trim( $m[3] ) ) );
 	}
