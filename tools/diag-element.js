@@ -18,8 +18,21 @@ const WIDTH = parseInt(process.argv[4] || '420', 10);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 async function dump(sel, vw) {
-  const root = document.querySelector(sel);
-  if (!root) return { error: 'no element matches ' + sel };
+  // "text:Gold Foiled" finds the smallest block containing that wording. A
+  // section built in a page builder has no name you can guess from outside,
+  // and the owner describes it by what it says, not by its class.
+  let root = null;
+  if (sel.indexOf('text:') === 0) {
+    const want = sel.slice(5).toLowerCase();
+    const hits = Array.from(document.querySelectorAll('section, div'))
+      .filter((el) => (el.textContent || '').toLowerCase().includes(want));
+    root = hits.length ? hits[hits.length - 1] : null;
+    // Walk back up to something that actually holds the section's layout.
+    for (let i = 0; i < 3 && root && root.parentElement; i++) root = root.parentElement;
+  } else {
+    root = document.querySelector(sel);
+  }
+  if (!root) return { error: 'nothing matches ' + sel };
   const name = (el) => {
     const id = el.id ? '#' + el.id : '';
     const cls = (typeof el.className === 'string' && el.className)
