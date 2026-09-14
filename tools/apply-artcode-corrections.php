@@ -62,10 +62,45 @@ function af_corr_book_code( $code ) {
 	return $book !== '' ? $book : $code;
 }
 
+/**
+ * The PAGE a code names, with the aspect taken off: RK - 010028-3050 and
+ * RK - 010028 are the same page of the book, and this pass is about pages.
+ *
+ * tools/renumber-artcodes.php now appends the aspect to every product on every
+ * deploy. Comparing the whole string against a row that names a page has two
+ * consequences, and both are bugs:
+ *
+ *   every corrected product reads as wrong again the moment the aspect lands.
+ *   This pass would strip it, renumber would put it back, once per deploy for
+ *   ever — the ping-pong written up at the top of tools/apply-artcode-batch.php.
+ *
+ *   the clash check stops working. It keys products by code, so a product
+ *   holding RK - 010028-3050 would not be seen to be standing on RK - 010028,
+ *   and a row could be handed a page that is already taken. That one is worse
+ *   than churn: it puts two products on one painting.
+ *
+ * A trailing suffix such as -GF is kept, because it distinguishes a product,
+ * not a page: HD - 080014-5030-GF is HD - 080014-GF.
+ */
+function af_corr_page_key( $code ) {
+	$c = af_corr_book_code( $code );
+	if ( $c === '' ) { return ''; }
+	if ( preg_match( '/^(.*?- \d{6})-\d{4}(?![0-9])(.*)$/', $c, $m ) ) {
+		return $m[1] . $m[2];
+	}
+	return $c;
+}
+
 echo "=== ART CODE CORRECTIONS ===\n";
 echo $APPLY ? "mode: APPLYING\n" : "mode: dry run — nothing will be written (set AF_APPLY=1 to apply)\n";
 
-$path = __DIR__ . '/artcode-corrections.csv';
+// AF_CORRECTIONS points this at a different file. It exists so
+// tools/test-corrections-chain.php can run the real pass over a fixture rather
+// than a copy of its logic — the chain handling below is the kind of thing a
+// second copy would quietly disagree with. Unset on every real run, which is
+// every run the deploy makes.
+$path = getenv( 'AF_CORRECTIONS' );
+if ( ! is_string( $path ) || $path === '' ) { $path = __DIR__ . '/artcode-corrections.csv'; }
 if ( ! file_exists( $path ) ) { echo "no corrections file at {$path}\n=== DONE ===\n"; return; }
 
 $fh = fopen( $path, 'r' );
@@ -102,9 +137,44 @@ foreach ( get_posts( array(
 ) ) as $pid ) {
 	$c = get_post_meta( $pid, '_taf_art_code', true );
 	if ( is_string( $c ) && trim( $c ) !== '' ) {
-		$owner[ strtoupper( af_corr_book_code( $c ) ) ][] = (int) $pid;
+		$owner[ strtoupper( af_corr_page_key( $c ) ) ][] = (int) $pid;
 	}
 }
+
+// ── A product named in this file is LEAVING the code it holds ───────────────
+//
+// Without this the pass cannot move a run of products along by one page, and a
+// whole section's worth of corrections is refused on the first row. The Radha
+// Krishna audit found exactly that: twenty-nine products each sitting one page
+// past the picture they show, so #20349 must take RK 28 — which #15135 holds,
+// and #15135 is moving to RK 27 in the very same file. Read row by row against
+// a snapshot of the catalogue, every one of those is "REFUSED — already
+// belongs to", in either order, and nothing can ever be corrected.
+//
+// The clash that is worth refusing is a code held by a product that is NOT
+// itself moving, and two rows of this file claiming one code. Both are still
+// caught: the pids listed here are taken out of the ownership map up front,
+// each row is put back under the code it ends up holding as it is processed,
+// and a row that is refused or left alone is put back under the code it keeps.
+//
+// It does NOT make the file order-independent: a chain must still be written
+// from its free end, or a row hits a code whose owner has not moved out of it
+// yet. It is checked, not assumed — see tools/test-corrections-chain.php.
+$leaving = array();
+foreach ( $rows as $row ) { $leaving[ (int) $row['pid'] ] = true; }
+foreach ( $owner as $k => $pids ) {
+	$kept = array();
+	foreach ( $pids as $pid ) { if ( ! isset( $leaving[ $pid ] ) ) { $kept[] = $pid; } }
+	if ( $kept ) { $owner[ $k ] = $kept; } else { unset( $owner[ $k ] ); }
+}
+// Put a product back under the code it holds. Called for every row that does
+// not end up moving, so a later row cannot be handed a code still in use.
+$af_corr_keep = function ( $pid, $code ) use ( &$owner ) {
+	$k = strtoupper( af_corr_page_key( $code ) );
+	if ( $k === '' ) { return; }
+	if ( ! isset( $owner[ $k ] ) ) { $owner[ $k ] = array(); }
+	if ( ! in_array( (int) $pid, $owner[ $k ], true ) ) { $owner[ $k ][] = (int) $pid; }
+};
 
 $changed = 0; $same = 0; $missing = 0; $clash = 0; $cleared = 0; $shared = 0;
 
@@ -123,7 +193,7 @@ foreach ( $rows as $row ) {
 		$new   = trim( substr( $new, 6 ) );
 	}
 	$new = af_corr_book_code( $new );
-	$key = strtoupper( $new );
+	$key = strtoupper( af_corr_page_key( $new ) );
 
 	$post = get_post( $pid );
 	if ( ! $post || $post->post_type !== 'product' ) {
@@ -135,8 +205,9 @@ foreach ( $rows as $row ) {
 	$title = mb_substr( html_entity_decode( wp_strip_all_tags( get_the_title( $pid ) ) ), 0, 44 );
 	$now   = (string) get_post_meta( $pid, '_taf_art_code', true );
 
-	if ( $key !== 'NONE' && strcasecmp( af_corr_book_code( $now ), $new ) === 0 ) {
+	if ( $key !== 'NONE' && strcasecmp( af_corr_page_key( $now ), af_corr_page_key( $new ) ) === 0 ) {
 		printf( "  #%-7d already %-8s %s\n", $pid, $new, $title );
+		$af_corr_keep( $pid, $now );
 		$same++;
 		continue;
 	}
@@ -155,11 +226,10 @@ foreach ( $rows as $row ) {
 				update_post_meta( $pid, '_af_code_before_fix', $now );
 			}
 			delete_post_meta( $pid, '_taf_art_code' );
-			$oldkey = strtoupper( af_corr_book_code( $now ) );
-			if ( isset( $owner[ $oldkey ] ) ) {
-				$owner[ $oldkey ] = array_values( array_diff( $owner[ $oldkey ], array( $pid ) ) );
-			}
 		}
+		// Nothing to take out of the ownership map: every product named in this
+		// file was taken out of it before the loop, and a cleared one never goes
+		// back in. Its old code is now free for a later row, which is the point.
 		$cleared++;
 		continue;
 	}
@@ -167,6 +237,8 @@ foreach ( $rows as $row ) {
 	$held = isset( $owner[ $key ] ) ? array_diff( $owner[ $key ], array( $pid ) ) : array();
 	if ( $held && ! $share ) {
 		printf( "  #%-7d REFUSED — %s already belongs to #%s\n", $pid, $new, implode( ', #', $held ) );
+		// It keeps what it had, so it goes back into the map under that code.
+		$af_corr_keep( $pid, $now );
 		$clash++;
 		continue;
 	}
@@ -179,17 +251,17 @@ foreach ( $rows as $row ) {
 	printf( "  #%-7d %-8s -> %-8s %s\n", $pid, ( $now !== '' ? $now : '(none)' ), $new, $title );
 	if ( $row['why'] !== '' ) { echo "            because: " . $row['why'] . "\n"; }
 
+	// The map is updated whether or not we are writing. A dry run is what gets
+	// read before deciding to apply, so it has to refuse exactly what an apply
+	// would refuse — if this only ran under AF_APPLY, two rows could claim one
+	// code and the dry run would report both as fine.
+	$af_corr_keep( $pid, $new );
+
 	if ( $APPLY ) {
 		if ( get_post_meta( $pid, '_af_code_before_fix', true ) === '' ) {
 			update_post_meta( $pid, '_af_code_before_fix', $now );
 		}
 		update_post_meta( $pid, '_taf_art_code', $new );
-		// keep the in-memory map honest for the rows still to come
-		$owner[ $key ][] = $pid;
-		$oldkey = strtoupper( af_corr_book_code( $now ) );
-		if ( isset( $owner[ $oldkey ] ) ) {
-			$owner[ $oldkey ] = array_values( array_diff( $owner[ $oldkey ], array( $pid ) ) );
-		}
 	}
 	$changed++;
 }

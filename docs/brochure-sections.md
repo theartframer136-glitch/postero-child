@@ -14,7 +14,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 
 | Pages | Codes | Section | Now | Was | Read? |
 |---|---|---|---|---|---|
-| 5–101 | RK 010001–010097 | Radha Krishna | 97 | 91 | NO (biggest left) |
+| 5–101 | RK 010001–010097 | Radha Krishna | 97 | 91 | DONE — 2026-09-14 |
 | 102–104 | LG 020001–020003 | Lakshmi–Ganesha | 3 | 3 | NO |
 | 105–122 | LS 030001–030018 | Lord Shiva | 18 | 15 | stale — 3 new |
 | 123–137 | SH 040001–040015 | Seven Horses | 15 | 12 | stale — 3 new |
@@ -1184,3 +1184,94 @@ reissued when the code changes. They are handed out in product-id order, the
 same order as before, so a pair keeps its A and B — but a letter is no longer
 guaranteed to be the one printed on an old invoice, because the code it was
 attached to is not either.
+
+
+---
+
+## Radha Krishna — read 2026-09-14, from the pictures
+
+**57 products, 56 pages claimed. Thirty of them were on the wrong painting.**
+
+Product pictures came from the contact sheets of deploy run 1090; every book
+page below was identified by the label PRINTED ON THE PAGE, so the canva-page
+offset cannot have introduced an error.
+
+### What was actually wrong: the catalogue runs one page ahead of the book
+
+Not scattered mistakes. Twenty-six of the thirty are a single fault repeated —
+the product holds page N and is the painting on page N−1 — in four unbroken
+runs:
+
+| run | products | what settles it |
+|---|---|---|
+| 27→34 | #15135 #20349 #15974 #19147 #13916 #18107 #14617 #21320 | Jagannath trio, white cows, the graffiti flute player |
+| 41→47 | #15546 #13662 #16823 #18600 #15217 #18788 #19822 | eyes open vs eyes closed, Vishnu, the baby behind the curtain |
+| 49→50 | #18355 #30592 | the GOVINDA poster |
+| 54→58 | #24230 #24033 #26690 #23972 #25901 | the Vishwarupa, Yashoda and the baby |
+
+and four singles on the same −1 pattern: #19392 (23→22), #11551 (26→25),
+#16318 (40→39), #25419 (61→60), #30836 (64→63).
+
+Each run starts on a page no product holds, which is why they can be written at
+all — and why the file's ROW ORDER MATTERS. A run must be written from its free
+end upwards, or the first row asks for a page whose occupant has not moved out
+of it yet. That is checked, not assumed: tools/test-corrections-chain.php.
+
+Two that are not part of any run:
+
+  #26206  RK 68 → RK 53   the black idol in white and silver. A photograph, so
+                          there is nothing to mistake it for.
+  #31829  RK 34 → RK 33   the same painting as #14617, a wider crop. They share
+                          the code; the SKU letter keeps the two listings apart.
+                          It has to move with #14617 or RK 34 is never free.
+
+### What this says about the book
+
+RK went from 91 pages to 97, and the catalogue sits ONE PAGE AHEAD through the
+middle of the section. Appending six pages to the end could not do that. A page
+that used to sit before RK 27 is gone, and the section was re-laid-out rather
+than added to. **Worth putting to the owner** — the same thing may have happened
+in the other nine sections that gained pages.
+
+### Left alone, and why
+
+Fifteen products are on the right page and were not touched.
+
+Thirteen could not be placed and keep what they hold: #25962, #17280, #7769,
+#31212, #17212, #7824, #13355, #28900, #30653, #31334, #27325, #22138. Most are
+photographs of dressed temple idols, and the book has a dozen of those; the
+thumbnails do not separate them. Canva's export host is blocked from the
+session, so a higher-resolution look needs someone who can open the book.
+
+  #30470  is the Radha-on-a-lotus with swans, which is RK 88 — but RK 88 is held
+          by #22138, and until #22138 is placed there is nowhere for it to go.
+          Recorded here rather than forced.
+
+  #24653  CLEARED. RK 1 is a bright rainbow painting on a cream ground with
+          drips and a bird; this is a muted amber oil. It is not that page. RK 6
+          and RK 16 are both candidates and neither could be confirmed, so it
+          carries no code rather than someone else's.
+
+  #8301   RK 6 → RK 1, on three features shared with page 1 and absent from
+          page 6: the cream ground, the paint drips, the single bird upper
+          right. The weakest call in this section — RK 6 is the alternative.
+
+### Two bugs this audit found in the tooling
+
+Neither could have been seen without a section this size.
+
+**The corrections pass could not move a run at all.** It read the catalogue into
+an ownership map once and never let a product out of the code it held, so every
+row of a chain was "REFUSED — already belongs to", in either file order. All
+twenty-six of the run corrections above would have been refused.
+
+**The aspect broke the clash check.** Since renumber-artcodes.php began
+appending it, products hold `RK - 010028-3050` while a correction row names
+`RK - 010028`. The pass keyed on the whole string, so it could not see that a
+page was occupied — it would have put two products on one painting — and it read
+every already-corrected product as wrong again, ready to strip the aspect and
+let renumber put it back once per deploy for ever.
+
+Both are fixed and both are tested. The comparison is now page-to-page
+(`af_corr_page_key`), and a product named in the file vacates the code it holds
+before anything is checked.
