@@ -1502,3 +1502,23 @@ page is. That pair is the one place in this section where two products sit on
 one page without being the same artwork.
 
 **So LS is marked part done, not done.** Five products still need an answer.
+
+### What would actually settle them
+
+Re-reading the three family scenes against LS 17 at every zoom the thumbnails
+allow did not decide it: #31150 is a tight crop with Shiva upright, and LS 17
+has him seated with Nandi, a lion, mountains and hanging bells. Similar style,
+different composition. Canva's image host is blocked from this session, so the
+book page cannot be fetched and compared pixel-for-pixel the way two product
+tiles can.
+
+The evidence that WOULD settle them was already being collected and thrown away.
+`tools/diag-artcode-from-filenames.php` has run on every diagnostic deploy since
+the audit began, reading the art code off each product's original image
+filename, and its answer went only to the job log — which this session cannot
+read, because GitHub redirects log downloads to blob storage the proxy blocks.
+
+It is now teed to `FILENAMES.txt` on the art-sheets branch, beside the other
+reports. It is the one piece of evidence about a product that is independent of
+both the picture and the title: what the file was called when it was uploaded.
+Every remaining section will have cases like these five.

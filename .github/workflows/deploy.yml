@@ -1854,10 +1854,22 @@ jobs:
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          # Teed out so it reaches the art-sheets branch. This has been running
+          # since the audit began and its answer went only to the job log, which
+          # the session doing the matching cannot read.
+          #
+          # It matters because it is the ONE piece of evidence about a product
+          # that is independent of both the picture and the title: what the
+          # original file was called when it was uploaded. Five Lord Shiva
+          # products could not be placed from their pictures at thumbnail
+          # resolution — three near-identical Shiva-family scenes competing for
+          # one family page — and every remaining section will have cases like
+          # them. A filename is often exactly the tiebreak.
           echo "Can the art code be read off the image filenames (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-artcode-from-filenames.php --allow-root 2>&1" \
+            2>&1 | tee /tmp/af-filenames.txt \
             || true
 
       - name: Shared art codes (read-only)
@@ -1956,6 +1968,9 @@ jobs:
             echo "carrying the renumbering report ($(wc -l < /tmp/af-renumber.txt) lines)"
           fi
 
+          if [ -s /tmp/af-filenames.txt ]; then
+            cp /tmp/af-filenames.txt /tmp/af-sheetout/FILENAMES.txt
+          fi
           if [ -s /tmp/af-codes.txt ]; then
             cp /tmp/af-codes.txt /tmp/af-sheetout/CODES.txt
             echo "carrying the code map ($(wc -l < /tmp/af-codes.txt) lines)"
