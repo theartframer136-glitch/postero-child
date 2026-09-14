@@ -8989,6 +8989,68 @@ add_action('wp_head', function() {
       /* Blog category chips and anything else that landed at 38. */
       .af-hub-cat{ min-height: 40px !important; display: inline-flex !important;
         align-items: center !important; }
+
+      /* ── MEASURED, NOT GUESSED ─────────────────────────────────────────
+         The audit now names the ancestors of every small target, and the
+         first thing that told me is that the "footer links" I wrote rules
+         for last time are not footer links at all: they are Elementor
+         icon-box widgets, `a` inside `h3.elementor-icon-box-title`. That is
+         why nothing moved. These are the real ones. ──────────────────── */
+      .elementor-icon-box-title a, .elementor-icon-box-content a{
+        display: inline-block !important;
+        padding-top: 9px !important; padding-bottom: 9px !important;
+      }
+
+      /* The site title in the slide-out drawer: 246x30, the widest target on
+         the page and still too short to hit confidently. */
+      .menu-scroll-mobile .site-title a{
+        display: inline-block !important;
+        padding-top: 7px !important; padding-bottom: 7px !important;
+      }
+
+      /* The dropdown arrow in the mobile navigation measured 13px wide — the
+         control that opens every submenu. */
+      a.mobile_navbar_menu_dropdown_title{
+        min-width: 44px !important; min-height: 44px !important;
+        display: inline-flex !important; align-items: center !important;
+        justify-content: center !important;
+      }
+
+      /* Product card controls on the home shelves. The cards are a fixed
+         width inside a horizontal rail, so the buttons grow downward only —
+         the rail keeps its shape. */
+      .product-card .add-cart, .product-card .quick-view-btn,
+      .product-card .digital-download-btn{
+        min-height: 40px !important;
+        display: inline-flex !important; align-items: center !important;
+        justify-content: center !important;
+      }
+      .af-wishlist-btn, .wishlist-btn .wishlist-icon{
+        min-width: 40px !important; min-height: 40px !important;
+      }
+      .product-card .product-title a{
+        display: inline-block !important; padding: 4px 0 !important;
+      }
+
+      /* Category pills on the tracking and not-found pages: 38px, two short. */
+      .af-404-cats a{ min-height: 40px !important;
+        display: inline-flex !important; align-items: center !important; }
+
+      /* Eleven-pixel labels on the home page category strip and its small
+         buttons — the smallest type on the site. */
+      button.top-cat-btn, .elementor-button.elementor-size-sm{
+        font-size: 12px !important;
+      }
+
+      /* The cookie notice is ours, and it was the worst of the lot: a 13px
+         checkbox and a 15px policy link on the one panel every first-time
+         visitor must deal with before anything else. */
+      .af-ck-opts input[type="checkbox"]{
+        width: 20px !important; height: 20px !important;
+      }
+      .af-ck-opts label{ min-height: 40px !important;
+        display: flex !important; align-items: center !important; gap: 10px !important; }
+      .af-ck-main p a{ display: inline-block !important; padding: 8px 0 !important; }
     }
     </style>
     <?php
