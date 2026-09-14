@@ -185,13 +185,27 @@ function audit(vw) {
       }
       console.log(`\n─── ${url}`);
       if (!loaded) { console.log('   the host did not answer three times — not measured'); await page.close(); continue; }
-      await sleep(5000);                       // let late scripts place things
-      await page.evaluate(() => window.scrollTo(0, 400));
-      await sleep(1200);
 
-      let r;
-      try { r = await page.evaluate(audit, WIDTH); }
-      catch (e) { console.log('   measure failed: ' + e.message); await page.close(); continue; }
+      // This site navigates itself once on first load (it sets a currency
+      // cookie and reloads), which destroys the execution context under any
+      // evaluate unlucky enough to be running at the time. Measured
+      // 2026-09-14: it killed the whole run, not just the page. So settle,
+      // then measure, then measure AGAIN if the context went away — and keep
+      // every page's work inside its own guard, so one bad page can never
+      // abort the others.
+      let r = null;
+      for (let go = 1; go <= 2 && !r; go++) {
+        try {
+          await sleep(go === 1 ? 5000 : 3500);   // let late scripts place things
+          await page.evaluate(() => window.scrollTo(0, 400));
+          await sleep(1200);
+          r = await page.evaluate(audit, WIDTH);
+        } catch (e) {
+          if (go === 2) console.log('   measure failed: ' + e.message);
+          else console.log('   the page navigated under us — settling and measuring again');
+        }
+      }
+      if (!r) { await page.close(); continue; }
 
       const sideways = r.scrollWidth > r.clientWidth + 1;
       console.log(`   page ${r.scrollWidth}px wide in a ${r.clientWidth}px window`
