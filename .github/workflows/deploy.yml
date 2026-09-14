@@ -86,6 +86,21 @@ on:
         description: 'Clear free-shipping wording stored in the database (Elementor widgets, page and product text)'
         type: boolean
         default: false
+      # The contact sheets are how the shop's pictures get somewhere they can be
+      # held against the book, and until now they only ever drew the products
+      # carrying NO art code. That is the wrong half for the audit that matters:
+      # 247 products carry a code nobody has checked a picture against, and the
+      # book gained 33 pages this round that may have shifted what a number
+      # names. This chooses which half to draw.
+      #
+      # A section at a time, because 391 products is more than one step's ten
+      # minutes and more than anyone can compare in one sitting. "LB" draws
+      # Buddha's thirteen; "nocode" is the old behaviour; "all" is everything and
+      # will be slow.
+      art_sheets:
+        description: 'Draw product pictures for: a section prefix (LB, RK, TP…), "nocode", or "all". Blank draws nothing.'
+        type: string
+        default: ''
 
 # One deploy at a time. Two overlapping runs each rsync --delete the theme and
 # fire a dozen WP-CLI processes at the same shared host, which is enough to hit
@@ -1877,16 +1892,33 @@ jobs:
           # Tiles are large now. They used to be 220px because the log had to carry
           # them; the branch does not care, and 220px is exactly why two Rama idol
           # photographs could not be told apart.
-          # Every product carrying no art code at all, in one go. The branch has
-          # no size limit the way the log did, so there is no reason to take
-          # these ten at a time — 108 products is five sheets and one deploy.
-          echo "Draw every product that carries no art code..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             AF_SHEET_SCOPE=nocode AF_SHEET_TAKE=0 \
-             AF_SHEET_TILE=300 AF_SHEET_Q=60 \
-             wp eval-file wp-content/themes/postero-child/tools/diag-product-contact-sheets.php --allow-root 2>&1" \
-            > /tmp/af-sheets.txt || true
+          # WHICH HALF OF THE CATALOGUE TO DRAW. This drew only the products
+          # carrying no art code, which is the wrong half for the audit that
+          # matters: those turn out to be mostly frames, stretcher bars, size
+          # mock-ups and demo placeholders — things correctly absent from the
+          # book — while the 247 products that DO carry a code have never had a
+          # picture held against the page they name.
+          #
+          # So the set is chosen by the art_sheets input. Blank keeps a plain
+          # diagnostics run cheap by drawing nothing at all.
+          SHEETS="${{ inputs.art_sheets }}"
+          if [ -z "$SHEETS" ]; then
+            echo "art_sheets is blank — no contact sheets this run."
+          else
+            case "$SHEETS" in
+              nocode) SCOPE=nocode; PREFIX='' ;;
+              all)    SCOPE=all;    PREFIX='' ;;
+              *)      SCOPE=all;    PREFIX="$(printf '%s' "$SHEETS" | tr '[:lower:]' '[:upper:]')" ;;
+            esac
+            echo "Drawing product pictures: scope=${SCOPE} prefix=${PREFIX:-(none)}"
+            ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+              "cd ~/websites/OPu0sKi4J/public_html && \
+               AF_SHEET_SCOPE=${SCOPE} AF_SHEET_PREFIX='${PREFIX}' AF_SHEET_TAKE=0 \
+               AF_SHEET_TILE=300 AF_SHEET_Q=60 \
+               wp eval-file wp-content/themes/postero-child/tools/diag-product-contact-sheets.php --allow-root 2>&1" \
+              > /tmp/af-sheets.txt || true
+          fi
+          touch /tmp/af-sheets.txt
           # Everything except the image data goes to the log — which products were
           # drawn, and any error. The base64 itself is deliberately withheld. The
           # log truncates from the FRONT, so a megabyte of it erases every check

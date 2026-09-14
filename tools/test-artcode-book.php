@@ -194,5 +194,65 @@ check('unknown prefix', af_artcode_page_label('ZZ', 1), '');
 check('it reaches a page the writing path refuses',
       af_artcode_page_label('LI', 48), 'LI - 190048');
 
+echo "\n=== the aspect each page is printed at ===\n";
+// Read out of the design with the section map. Four pages were checked against
+// the real Canva thumbnails when this was added: LB 1,2,4 are 3050 and LB 3 is
+// 2060, which the page itself prints as "2x6".
+$sizes = af_artcode_page_sizes();
+$total = 0;
+foreach ($sizes as $run) { $total += count($run); }
+check('every one of the 373 pages has one', $total, 373);
+check('21 sections', count($sizes), 21);
+
+$bad = array();
+foreach ($sizes as $pre => $run) {
+    if (count($run) !== af_artcode_book_pages($pre)) $bad[] = "$pre has " . count($run) . ' sizes for ' . af_artcode_book_pages($pre) . ' pages';
+    foreach ($run as $sz) { if (!preg_match('/^\d{4}$/', $sz)) $bad[] = "$pre: $sz"; }
+}
+check('each section has exactly as many sizes as pages, all four digits', $bad, array());
+
+check('LB page 1 is 3050', af_artcode_page_size('LB', 1), '3050');
+check('LB page 3 is 2060', af_artcode_page_size('LB', 3), '2060');
+check('lower case prefix',  af_artcode_page_size('lb', 1), '3050');
+check('past the end',       af_artcode_page_size('LB', 14), '');
+check('page zero',          af_artcode_page_size('LB', 0), '');
+check('unknown section',    af_artcode_page_size('ZZ', 1), '');
+// The 33 pages the writing path cannot reach still have sizes: the book has
+// them, and reporting needs them even though no product may be written onto one.
+check('a page only the book has',  af_artcode_page_size('LI', 51), '3050');
+
+echo "\n=== a size read as feet, height first ===\n";
+check('3050 is 3 by 5',   af_artcode_size_feet('3050'), array(3.0, 5.0));
+check('5030 is 5 by 3',   af_artcode_size_feet('5030'), array(5.0, 3.0));
+check('2540 is 2.5 by 4', af_artcode_size_feet('2540'), array(2.5, 4.0));
+check('4035 is 4 by 3.5', af_artcode_size_feet('4035'), array(4.0, 3.5));
+check('nonsense gives nothing', af_artcode_size_feet('30x50'), array());
+check('empty gives nothing',    af_artcode_size_feet(''), array());
+
+echo "\n=== the whole code, as the page prints it ===\n";
+check('from the oldest label', af_artcode_full_code('LB 01'),        'LB - 090001-3050');
+check('from four digits',      af_artcode_full_code('LB - 0901'),    'LB - 090001-3050');
+check('from six',              af_artcode_full_code('LB - 090001'),  'LB - 090001-3050');
+check('across a gap',          af_artcode_full_code('HD 15'),        'HD - 080014-5030');
+check('the aspect comes before the Gold Foil suffix',
+      af_artcode_full_code('LB - 090001-GF'), 'LB - 090001-3050-GF');
+check('a code naming no page gets nothing', af_artcode_full_code('TP 04'), '');
+check('nor does one past the end',          af_artcode_full_code('LR 32'), '');
+check('nor a page only the book has',       af_artcode_full_code('LI 48'), '');
+check('nor nonsense',                       af_artcode_full_code('hello'), '');
+
+// Every page the shop can be written onto must produce a whole code, and doing
+// it twice must not append the aspect twice.
+$whole = 0; $twice = array();
+foreach ($book as $pre => $sec) {
+    for ($n = 1; $n <= $sec['legacy']; $n++) {
+        $c = af_artcode_full_code(sprintf('%s - %02d%02d', $pre, $sec['no'], $n));
+        if (preg_match('/^[A-Z]{2} - \d{6}-\d{4}$/', $c)) $whole++;
+        if (af_artcode_full_code($c) !== $c) $twice[] = $c . ' -> ' . af_artcode_full_code($c);
+    }
+}
+check('all 340 reachable pages give a whole code', $whole, 340);
+check('and reading one back gives itself', $twice, array());
+
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail ? 1 : 0);

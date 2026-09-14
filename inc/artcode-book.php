@@ -328,3 +328,150 @@ function af_artcode_book_refusal( $code ) {
 	     . 'and the numbering the shop was last written against went up to '
 	     . $old_max;
 }
+
+/**
+ * The aspect each page of the book is printed at, in page order.
+ *
+ * The page label carries it — "LB-090001-3050" is page 1 of Buddha at 3 ft high
+ * by 5 ft broad — so the full code a product should bear is its page's code and
+ * its page's aspect. Read out of the design on 2026-09-12 along with the
+ * section map; a comma-separated run per section keeps 373 pages to twenty-odd
+ * lines and makes a page's aspect a lookup rather than a second read of Canva.
+ *
+ * Both halves are feet times ten, so 3050 is 3x5, 2540 is 2.5x4, and the first
+ * number is the HEIGHT: 3050 is landscape, 5030 the same picture portrait.
+ */
+function af_artcode_page_sizes() {
+	static $sizes = null;
+	if ( $sizes !== null ) { return $sizes; }
+	$sizes = array(
+		// 97 pages, Radha Krishna
+		'RK' => '3050,3050,3040,4040,3050,3040,3040,3040,3040,5030,5030,3060,' .
+			'3050,3050,3050,3040,5030,3050,5030,5030,4030,3050,3050,5030,' .
+			'5030,5030,5030,3050,3050,3050,4020,4050,3050,4030,4030,3060,' .
+			'5030,3060,5030,5030,5030,3050,4030,5030,5030,6030,5040,5040,' .
+			'4030,5030,5030,5030,5030,3050,6030,5030,5030,3050,5030,3040,' .
+			'3050,5030,4030,5030,6030,4030,5030,5030,5030,4030,6030,5030,' .
+			'4030,5030,5030,5030,6030,6030,5030,5030,5030,4030,5030,5030,' .
+			'5030,5030,5030,5030,5030,5030,5030,3050,3040,4030,3040,5030,' .
+			'3020',
+		//  3 pages, Lakshmi Ganesha
+		'LG' => '4040,4030,4030',
+		// 18 pages, Lord Shiva
+		'LS' => '4030,4030,4030,3050,4030,4030,4030,3040,3040,4030,4030,4030,' .
+			'5030,5030,5030,5030,4030,5030',
+		// 15 pages, Seven Horses
+		'SH' => '3050,3050,3050,3050,3050,3050,3060,3040,3040,4030,3060,5030,' .
+			'3050,3040,3040',
+		// 15 pages, Tirupati Balaji
+		'TP' => '4030,4030,3040,5030,5030,5030,3050,5030,5030,5030,4030,5030,' .
+			'5030,6030,6030',
+		//  4 pages, Murugan
+		'MG' => '5030,5030,5030,5030',
+		// 10 pages, Lord Rama
+		'LR' => '3050,5030,3050,5030,5030,5030,5030,5030,5030,3050',
+		// 30 pages, Hindu Deities
+		'HD' => '5030,4040,3040,5030,5030,5030,5030,4040,5030,4030,5030,5030,' .
+			'5030,5030,5030,4030,5030,5030,5030,5030,4030,5030,4030,5030,' .
+			'5030,4030,4030,4030,4030,3040',
+		// 13 pages, Buddha
+		'LB' => '3050,3050,2060,3050,5030,5030,3050,5030,3050,4030,4030,6030,' .
+			'5030',
+		//  5 pages, Sikh Art
+		'SA' => '3050,3050,3050,3040,4030',
+		//  1 pages, Swaminarayan
+		'SN' => '3040',
+		//  1 pages, Pichwai Art
+		'PA' => '4030',
+		//  5 pages, Indian Culture
+		'IC' => '3050,4035,3050,3040,4030',
+		// 10 pages, Landscapes
+		'LC' => '3050,5030,4030,4030,5030,4030,4030,3020,4030,5030',
+		// 23 pages, Still Life
+		'SL' => '4030,4030,4030,5030,5030,4030,5030,4040,5030,5030,5030,5030,' .
+			'5030,5030,4035,4030,5030,4030,5030,5030,5030,5030,5030',
+		//  4 pages, Vaastu Art
+		'VA' => '3050,3050,5030,5030',
+		// 23 pages, Wildlife
+		'WL' => '4030,5030,5030,5030,5030,5030,2540,3020,4030,5030,4040,5030,' .
+			'5030,5030,4030,5030,5030,5030,6030,3050,3050,3050,5030',
+		// 22 pages, Kids Room
+		'KR' => '3040,4030,5030,4030,5030,4030,4030,4030,3050,3050,4030,3050,' .
+			'3050,3050,4040,4040,5030,5030,6030,6030,3050,4030',
+		// 51 pages, Living Room
+		'LI' => '3050,3050,5030,3050,3050,5030,5030,5030,5030,5030,4030,5030,' .
+			'3050,3040,4030,5030,4030,4030,4030,6030,4030,5030,5030,5030,' .
+			'5030,5030,5030,4030,4030,5030,4030,4030,5030,5030,4040,4040,' .
+			'5030,5030,5030,5030,5030,5030,5030,4030,5030,4030,5030,5030,' .
+			'3050,3050,3050',
+		// 19 pages, Abstract Art
+		'AA' => '4030,5030,4030,4030,4040,4030,4030,4030,5030,4030,5030,5030,' .
+			'4030,5030,4040,4030,5030,5030,5030',
+		//  4 pages, Travel Art
+		'TA' => '6030,6030,3060,5030',
+	);
+	foreach ( $sizes as $prefix => $run ) { $sizes[ $prefix ] = explode( ',', $run ); }
+	return $sizes;
+}
+
+/**
+ * The aspect page $n of this section is printed at — "3050" — or '' if the book
+ * has no such page.
+ */
+function af_artcode_page_size( $prefix, $n ) {
+	$all = af_artcode_page_sizes();
+	$key = strtoupper( trim( (string) $prefix ) );
+	$n   = (int) $n;
+	if ( ! isset( $all[ $key ] ) || $n < 1 || $n > count( $all[ $key ] ) ) { return ''; }
+	return $all[ $key ][ $n - 1 ];
+}
+
+/**
+ * "3050" as feet: array( 3.0, 5.0 ), height first. array() if unreadable.
+ */
+function af_artcode_size_feet( $size ) {
+	$s = trim( (string) $size );
+	if ( ! preg_match( '/^(\d{2})(\d{2})$/', $s, $m ) ) { return array(); }
+	// Cast, because PHP divides 30 by 10 into the integer 3 and 25 by 10 into
+	// the float 2.5 — a caller comparing the two halves, or comparing against a
+	// rate-card size, would have to know which sizes happen to be whole feet.
+	return array( (float) ( (int) $m[1] / 10 ), (float) ( (int) $m[2] / 10 ) );
+}
+
+/**
+ * The whole code as the book prints it on the page: "LB - 090001-3050".
+ *
+ * Takes any shape the catalogue holds and returns the six-digit code with the
+ * page's aspect appended. '' when the code names no page — the same refusal
+ * af_artcode_book_code() makes, and for the same reason.
+ *
+ * NOTE ON WHAT THIS PROVES. Nothing about the picture. It appends the aspect of
+ * the page the product's code NAMES; whether that is the page the product's
+ * artwork is actually on is the audit's question, not this function's. What it
+ * is good for is the opposite direction: a product whose own sizes disagree
+ * with its page's aspect is evidence the code is wrong, and that check is what
+ * tools/diag-artcode-aspect.php does with it.
+ */
+function af_artcode_full_code( $code ) {
+	$book = af_artcode_book_code( $code );
+	if ( $book === '' ) { return ''; }
+	$parts = af_artcode_split( $book );
+	if ( ! $parts || strlen( $parts['digits'] ) !== 6 ) { return ''; }
+	$size = af_artcode_page_size( $parts['prefix'], (int) substr( $parts['digits'], 2, 4 ) );
+	if ( $size === '' ) { return ''; }
+
+	// An aspect already on the end is REPLACED, not added to. This has to be
+	// idempotent: the renumbering pass runs with apply on at every deploy, so a
+	// function that appends unconditionally would give LB - 090001-3050-3050
+	// after two deploys and keep growing a tail from there. Caught by the test,
+	// which reads every whole code back into this function and requires it to
+	// come out unchanged.
+	//
+	// The book's aspect wins over whatever was there, because the book is what
+	// the code is naming. Anything after it — the "-GF" the Gold Foil importer
+	// adds — is kept and stays on the end.
+	$suffix = $parts['suffix'];
+	if ( preg_match( '/^-\d{4}(?![0-9])(.*)$/', $suffix, $m ) ) { $suffix = $m[1]; }
+
+	return $parts['prefix'] . ' - ' . $parts['digits'] . '-' . $size . $suffix;
+}
