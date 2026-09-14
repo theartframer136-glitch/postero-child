@@ -1561,3 +1561,51 @@ can check all three before pushing.
 **SKUCHECK.txt is worth reading on every deploy, not just when something looks
 wrong.** It had been reporting a real failure since the Hindu Deities merge and
 nobody looked, because the sections either side of it said what was expected.
+
+
+---
+
+## FILENAMES.txt answered its question, and the answer is no
+
+Run 1111 published it for the first time. It carries its own calibration step,
+which is the right way round, and the verdict is unambiguous:
+
+    checked: 199  (no image: 0)
+      filename contains that product's own code: 0
+      it does not:                               199
+      --> filenames carry the code 0% of the time.
+          TOO LOW to trust. Treat section B as a hint only.
+
+Not one product in 199 has its art code in its image filename. The filenames are
+`ChatGPT-Image-Jan-30-2026-03_27_15-PM.png`,
+`Gemini_Generated_Image_5fl22a5fl22a5fl2.png`, `Buddha.webp` — they record how
+the picture was MADE, not which page of the book it is.
+
+So the tie-break I went looking for does not exist in this catalogue. That is
+worth knowing rather than worth hiding: it closes the line of investigation for
+good, and the five unplaced Lord Shiva products stay unplaced for a reason that
+is now understood rather than merely unsolved. **Only two things identify a
+product here: its picture and its title, and the title is unreliable.**
+
+Publishing the report was still right. It cost one line in the workflow, it now
+says plainly that it cannot help, and nobody has to wonder again. Credit where
+it is due: the diagnostic refuses to offer hints it cannot support — the
+calibration gate is what turned this from a plausible-looking list of guesses
+into a clear no.
+
+## Correcting what I said about the failed deploy
+
+When run 1110 timed out on the rsync step I reported that "nothing was applied".
+That was wrong, and run 1111 shows it: every Lord Shiva correction reads
+`already` — the six clears as "already has no code", the three moves as
+"already LS - 030001 / 030007 / 030018".
+
+The step is "Deploy (rsync + opcache + mode decision)". The rsync evidently
+FINISHED and the hang was in what came after it, so the new corrections file was
+on the server and the art-code steps — which run `if: always()` — did real work
+against it. The steps reporting success were telling the truth; I read their
+`always()` and assumed stale inputs without checking.
+
+The lesson is narrow and worth keeping: **a failed step is not a step that did
+nothing.** Where several actions share one step, "failed" says only that the
+step did not finish.
