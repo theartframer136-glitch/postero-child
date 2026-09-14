@@ -9080,6 +9080,35 @@ add_action('wp_head', function() {
       .woosw-btn{ min-height: 40px !important;
         display: inline-flex !important; align-items: center !important; }
 
+      /* ── THE REVIEW BANNERS, WHICH WERE SHOWING ONE STAR ───────────────
+         The owner reported "the stars are not responsive". There is no star
+         widget. The six Google-review banners are slide BACKGROUNDS, and
+         measured they are all 2.23:1 — 1580x710. Elementor pins each slide to
+         min-height 420px and paints it with background-size: cover.
+
+         Work that through at phone width: the whole banner at 390px wide is
+         175px tall, but the box demands 420. Cover satisfies the box by
+         scaling the picture 2.4x, and 58% of its width falls off the sides.
+         What survives in the middle is one star, three hundred pixels tall.
+
+         So: contain, which never crops, and a box the shape of the picture
+         instead of a fixed 420px. 45vw is 100/2.23 — the height a 2.23:1
+         banner actually needs — so the whole card is visible, at any phone
+         width, with no empty bands above or below it. ────────────────── */
+      .elementor-element-80f8de4 .swiper-slide,
+      .elementor-element-80f8de4 .swiper-slide-inner,
+      .elementor-element-80f8de4 .swiper-slide-bg{
+        min-height: 45vw !important;
+        height: 45vw !important;
+      }
+      .elementor-element-80f8de4 .swiper-slide-bg{
+        background-size: contain !important;
+        background-repeat: no-repeat !important;
+        background-position: center center !important;
+      }
+      .elementor-element-80f8de4 .elementor-slides-wrapper,
+      .elementor-element-80f8de4 .swiper-wrapper{ height: auto !important; }
+
       /* Shop listing: the filter toggle, the theme links under each card, the
          product name itself, and the breadcrumb trail — every one of them a
          link someone taps to get somewhere, all between 15 and 24px. */
