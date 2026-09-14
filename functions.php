@@ -8934,6 +8934,33 @@ add_action('wp_head', function() {
       body{ overflow-x: clip; }
       /* Media never overflows its container */
       img, svg{ max-width: 100% !important; height: auto !important; }
+
+      /* ── THE FIVE STARS ON "WHAT CLIENTS SAY" ──────────────────────────
+         The Google reviews plugin draws that rating as five separate <img>
+         files, one per star. The rule directly above lets each one grow to
+         the full width of its container, so on a phone they stack into a
+         column of five enormous stars instead of a rating.
+
+         The owner found the right number by hand in the browser: 17%. Five
+         of those sit in a row with room to breathe. But they found it on the
+         `img, svg` rule above, which matches EVERY picture on the site —
+         applied there it would shrink every product photo to a sixth of its
+         width. Same number, aimed only at the stars it was measured for. */
+      .grwp_stars-wrapper img,
+      #g-review .grwp_header-inner .grwp_stars-wrapper img{
+        max-width: 17% !important;
+        width: auto !important;
+        height: auto !important;
+        display: inline-block !important;
+        vertical-align: middle !important;
+      }
+      .grwp_stars-wrapper{
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 4px !important;
+        flex-wrap: nowrap !important;
+      }
       video, iframe{ max-width: 100% !important; }
       /* Long words / URLs wrap instead of forcing width */
       p, h1, h2, h3, h4, h5, h6, a, span, li, td, th{ overflow-wrap: break-word; word-wrap: break-word; }
