@@ -9067,6 +9067,22 @@ add_action('wp_head', function() {
         padding-top: 0 !important; padding-bottom: 0 !important;
         margin-top: 0 !important; margin-bottom: 0 !important;
       }
+
+      /* And now the thing the 360px run finally explained: the "footer links"
+         I had been chasing ARE the bottom navigation labels. Same widget, same
+         container — which is why growing them grew the bar, and why putting
+         the bar back shrank them again. They were never two problems.
+
+         So the target grows sideways instead. Each item owns a third of the
+         width; the link only wrapped its own text, about thirty pixels of it,
+         floating in the middle of a tile four times that wide. Filling the
+         tile turns a 30px target into a ~120px one without adding a single
+         pixel to the bar's height. */
+      .elementor-element-bec7134 .elementor-icon-box-title a,
+      .elementor-element-bec7134 .elementor-icon-box-icon a{
+        display: block !important; width: 100% !important;
+        text-align: center !important;
+      }
     }
     </style>
     <?php
