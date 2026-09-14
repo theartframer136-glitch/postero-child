@@ -87,6 +87,49 @@ where each product *points*, not that the painting is the same one:
 - 35 pages have more than one product on them
 - no product points at a page the book does not have
 
+## Buddha (LB) — read 2026-09-14, 13 pages
+
+All thirteen pages read from Canva. **The aspect on every one agrees with the
+index in `inc/artcode-book.php`**, which is the first end-to-end check of that
+data against the real pages.
+
+| Page | The book shows | Claimed by |
+|---|---|---|
+| LB - 090001-3050 | grey stone Buddha, pastel lotuses on still water | #7839, #220 |
+| LB - 090002-3050 | green meditating figure, radiant lotus aura, splashy | #7676 |
+| LB - 090003-2060 | golden Buddha, deep teal carved ground, wide panorama | #20526 |
+| LB - 090004-3050 | white and gold Buddha, pink blossom, golden sunburst | #20648 |
+| LB - 090005-5030 | grey stone Buddha, torn-paper collage, portrait | #16096, **#27078** |
+| LB - 090006-5030 | Buddha with a peacock, jewelled blues, lotus pond | #20709, **#28534** |
+| LB - 090007-3050 | emerald Buddha, hot pink and orange tropical lotuses | #20892 |
+| LB - 090008-5030 | gold Buddha in profile, pink lotuses, dark navy | #27811, #16382 |
+| LB - 090009-3050 | small stone Buddha in a waterfall cave, turquoise | #20471 |
+| LB - 090010-4030 | line-art Buddha, cream and sage, outlined lotuses | #15402 |
+| LB - 090011-4030 | beige Buddha, layered hills, white lotuses | #16505 |
+| LB - 090012-6030 | golden watercolour head merging with a bodhi leaf | **nothing** |
+| LB - 090013-5030 | **Lord Mahavira's** enlightenment, golden, attendants | #16932 |
+
+### Suspects, and what they are suspected on
+Titles only — the pictures are not in hand yet, and this file's own rule is that
+titles lie in both directions. These are leads, not findings.
+
+- **#27078 "Seven Horses Sunset Beach"** on LB - 090005, a stone Buddha. A Seven
+  Horses picture belongs in SH. Strongest lead in the section.
+- **#28534 "Kirtan Celebration"** on LB - 090006, a Buddha with a peacock.
+- **#20526** on LB - 090003 is titled 3×4, but that page is 2×6 and offers only
+  2×6 and 1.5×5. The aspect disagreeing with the product's own size is the
+  cross-check this section was chosen to try, and it fires here.
+- **LB - 090012 has no product at all** — one of the 167 pages nothing claims.
+- **LB - 090013 shows Mahavira**, a Jain tirthankara, in the Buddha section,
+  and #16932 is titled "Buddha Enlightenment Scene". The page and the product
+  may well be the same picture; the section is what looks odd.
+
+Four pages carry two products each (1, 5, 6, 8). At most one of each pair can be
+the page's picture unless the pair is two listings of one painting.
+
+**Nothing here is settled.** Settling it needs the product pictures, which
+arrive by running the deploy with `art_sheets: LB`.
+
 ## How the old reading was recorded
 
 ## Landscapes (LC 01–10, pages 203–212) — read, nothing to change
