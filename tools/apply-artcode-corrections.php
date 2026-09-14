@@ -157,16 +157,45 @@ foreach ( get_posts( array(
 // each row is put back under the code it ends up holding as it is processed,
 // and a row that is refused or left alone is put back under the code it keeps.
 //
-// It does NOT make the file order-independent: a chain must still be written
-// from its free end, or a row hits a code whose owner has not moved out of it
-// yet. It is checked, not assumed — see tools/test-corrections-chain.php.
+// It DOES make the file order-independent, which is worth stating because the
+// Radha Krishna notes first claimed the opposite. Every product named in the
+// file leaves the map before any row is read, so a row may claim a page held by
+// another product in the same file whichever way round the two are written.
+// What matters is membership, not order: the product standing on the page you
+// want must itself be named in this file, moved or cleared. Both directions and
+// the membership rule are checked in tools/test-corrections-chain.php.
 $leaving = array();
-foreach ( $rows as $row ) { $leaving[ (int) $row['pid'] ] = true; }
+$dup_rows = array();
+foreach ( $rows as $row ) {
+	$pid = (int) $row['pid'];
+	if ( isset( $leaving[ $pid ] ) ) { $dup_rows[ $pid ] = true; }
+	$leaving[ $pid ] = true;
+}
+// Two rows for one product means the file holds two answers about one painting,
+// and which one wins is decided by row order — that is luck, not a decision.
+// Say so loudly; the later row still wins, which is the behaviour that was
+// there, but nobody has to discover it from the numbers not adding up.
+if ( $dup_rows ) {
+	echo "\nWARNING: more than one row for #" . implode( ', #', array_keys( $dup_rows ) ) .
+		 " — the last row for each wins. Merge them into one row.\n";
+}
 foreach ( $owner as $k => $pids ) {
 	$kept = array();
 	foreach ( $pids as $pid ) { if ( ! isset( $leaving[ $pid ] ) ) { $kept[] = $pid; } }
 	if ( $kept ) { $owner[ $k ] = $kept; } else { unset( $owner[ $k ] ); }
 }
+// Take a product out of every key it is listed under. A row that moves a
+// product must vacate the old one, or the map keeps claiming the product still
+// stands there and the next row asking for that page is refused. That is not
+// theoretical: this file had two rows for #7825 — an older one that left it on
+// HD 11, and a newer one moving it to HD 12 — and the stale HD 11 entry refused
+// #17795, which is the picture on HD 11.
+$af_corr_drop = function ( $pid ) use ( &$owner ) {
+	foreach ( $owner as $k => $pids ) {
+		$left = array_values( array_diff( $pids, array( (int) $pid ) ) );
+		if ( $left ) { $owner[ $k ] = $left; } else { unset( $owner[ $k ] ); }
+	}
+};
 // Put a product back under the code it holds. Called for every row that does
 // not end up moving, so a later row cannot be handed a code still in use.
 $af_corr_keep = function ( $pid, $code ) use ( &$owner ) {
@@ -227,9 +256,10 @@ foreach ( $rows as $row ) {
 			}
 			delete_post_meta( $pid, '_taf_art_code' );
 		}
-		// Nothing to take out of the ownership map: every product named in this
-		// file was taken out of it before the loop, and a cleared one never goes
-		// back in. Its old code is now free for a later row, which is the point.
+		// A cleared product holds nothing. It was taken out of the map before the
+		// loop, but an earlier row may have put it back, so drop it again: its
+		// old code must be free for a later row, which is the point of clearing.
+		$af_corr_drop( $pid );
 		$cleared++;
 		continue;
 	}
@@ -255,6 +285,7 @@ foreach ( $rows as $row ) {
 	// read before deciding to apply, so it has to refuse exactly what an apply
 	// would refuse — if this only ran under AF_APPLY, two rows could claim one
 	// code and the dry run would report both as fine.
+	$af_corr_drop( $pid );
 	$af_corr_keep( $pid, $new );
 
 	if ( $APPLY ) {

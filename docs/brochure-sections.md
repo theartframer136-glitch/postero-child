@@ -21,7 +21,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 138–152 | TP 050001–050015 | Tirupati Balaji | 15 | 15 | stale — see note |
 | 153–156 | MG 060001–060004 | Murugan | 4 | 4 | NO |
 | 157–166 | LR 070001–070010 | Lord Rama | 10 | 9 | NO |
-| 167–196 | HD 080001–080030 | Hindu Deities | 30 | 27 | NO |
+| 167–196 | HD 080001–080030 | Hindu Deities | 30 | 27 | DONE — 2026-09-14 |
 | 197–209 | LB 090001–090013 | Lord Buddha | 13 | 13 | stale — see note |
 | 210–214 | SA 100001–100005 | Sikh Art | 5 | 3 | NO |
 | 215 | SN 110001 | Swaminarayan | 1 | 1 | NO |
@@ -1213,9 +1213,17 @@ and four singles on the same −1 pattern: #19392 (23→22), #11551 (26→25),
 #16318 (40→39), #25419 (61→60), #30836 (64→63).
 
 Each run starts on a page no product holds, which is why they can be written at
-all — and why the file's ROW ORDER MATTERS. A run must be written from its free
-end upwards, or the first row asks for a page whose occupant has not moved out
-of it yet. That is checked, not assumed: tools/test-corrections-chain.php.
+all.
+
+**Correction, made while reading Hindu Deities:** this section first said the
+file's row order mattered and that a run had to be written from its free end.
+That is wrong. Every product named in the file leaves the ownership map before
+any row is read, so a run applies whichever way round its rows are written. What
+matters is MEMBERSHIP: the product standing on the page you want must itself be
+in the file, moved or cleared. #21320 was refused here because #31829 was
+missing from the file altogether — not because the rows were ordered badly.
+Both directions, and the membership rule, are now checked in
+tools/test-corrections-chain.php.
 
 Two that are not part of any run:
 
@@ -1275,3 +1283,86 @@ let renumber put it back once per deploy for ever.
 Both are fixed and both are tested. The comparison is now page-to-page
 (`af_corr_page_key`), and a product named in the file vacates the code it holds
 before anything is checked.
+
+
+---
+
+## Hindu Deities — read 2026-09-14, from the pictures
+
+**30 products over 23 pages. Twenty were on the wrong painting, and the drift
+runs the OTHER WAY from Radha Krishna.**
+
+Here the product holds page N and is the picture on N+1 — the catalogue lags the
+book instead of leading it. RK gained six pages and ran one ahead; HD gained
+three and runs one to two behind. So there is no single "the codes are off by
+one" story to apply to the remaining sections: each has to be read.
+
+| run | products | becomes |
+|---|---|---|
+| the guru photographs | #17605 #18477 #14861 #17090 #14985 #22825 | 22-27 -> 24-29 |
+| the Ramanuja idols | #15278 #15607 | 20,21 -> 22,23 |
+| the goddesses | #21075 #30215 #18538 #17917 | 13,14,15,18 -> 15,16,17,20 |
+| the Hanumans | #17472 #17795 #7825 #22260 | 9-12 -> 10-13 |
+
+and three that are not part of any run: #7830 (5 -> 3, the abstract elephant
+head), #21564 (18 -> 6, the infant Ganesha among trunks), #24775 (6 -> 30, the
+Bharat Mata with the lion).
+
+#8398 is the same painting as #26875 — Mahavatar Babaji, wider crop, which is
+why it lists at 60x24 — so the two share HD 1.
+
+### My own earlier correction was one page short
+
+The Buddha audit moved #17472 onto HD 09, saying HD 09 was the monks before the
+golden idol. It is not: HD 09 is Surya Dev above seven white horses and HD 10 is
+the monks. That correction has been live since run 1087. It is fixed IN PLACE in
+the original row rather than by appending a second one, so the file never holds
+two answers about one painting.
+
+### Three products now sit on pages the book only just gained
+
+HD 28, 29 and 30 are new pages, and the resolver refused them in every spelling.
+That guard exists so nothing lands on a new page BY ARITHMETIC — no old code may
+translate onto a page nobody has checked. But it also made a verified correction
+inexpressible, and #24775 is the Bharat Mata with the lion, the map of India and
+the tricolour, which is HD 30 and cannot be mistaken for anything else.
+
+So the SIX-DIGIT path now resolves against the book as it is today, while the
+four-digit and label paths still stop at 'legacy'. Six digits are not
+arithmetic: such a code already names today's page, and the only way a product
+comes to hold one is that somebody wrote it in the corrections file after
+looking at the picture. The replay test pins this to exactly the 33 pages the
+book gained — if anything else ever slips through, that number moves.
+
+### Five cleared, because they are on pages that are not theirs
+
+  #22747  pop-art Ganesha face. HD 6 is an infant Ganesha among elephant trunks.
+  #26328  bronze Ramanuja murti, close crop. HD 20 is a deity on an elephant.
+  #24094  the same murti, wider crop. HD 19 is the four goddesses.
+  #25021  Tanjore panel, jewelled seated figure. HD 14 is Hanuman over demons.
+  #22321  abstract portrait of a turbaned, white-bearded figure with a golden
+          halo — a Sikh guru. Probably belongs to Sikh Art (SA), not here.
+
+None of them matches any of the thirty pages. Clearing #22747 and #26328 is also
+what frees HD 6 and HD 20 for #21564 and #17917, whose pictures those are.
+
+### Correcting what the Radha Krishna notes said about row order
+
+They said the file's row order was load-bearing and a run had to be written from
+its free end. That is wrong, and the fix below is why. Every product named in
+the file leaves the ownership map before any row is read, so a run applies
+whichever way its rows are written. What matters is MEMBERSHIP — the product
+standing on the page you want must itself be in the file, moved or cleared.
+#21320 was refused in RK because #31829 was missing from the file, not because
+of ordering.
+
+### A third bug in the corrections pass
+
+A product that MOVED was added to the map under its new page but never removed
+from its old one. With one row per product that never showed, because every
+product is dropped from the map up front. With two rows for one product it bit
+immediately: an older row left #7825 marked as already on HD 11, the newer row
+moved it to HD 12, and the stale HD 11 entry then refused #17795 — which is the
+picture on HD 11. Moving and clearing now both vacate the old page, and a file
+holding two rows for one product says so loudly instead of letting row order
+decide.

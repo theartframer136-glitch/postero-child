@@ -268,7 +268,26 @@ function af_artcode_book_code( $code ) {
 	if ( strlen( $digits ) === 6 ) {
 		$s = (int) substr( $digits, 0, 2 );
 		$n = (int) substr( $digits, 2, 4 );
-		if ( $s === $sec['no'] && $n >= 1 && $n <= $sec['legacy'] ) {
+		// 'count', not 'legacy' — and the difference is the whole point.
+		//
+		// The rule this file protects is that nothing may land on one of the
+		// book's 33 new pages BY ARITHMETIC: no old code, four digits or label,
+		// may translate onto a page nobody has checked a picture against. Both
+		// paths below still stop at 'legacy', so that holds.
+		//
+		// Six digits are not arithmetic. A six-digit code already names a page
+		// in today's numbering; there is no translation to get wrong, and the
+		// only way a product comes to hold one is that somebody wrote it —
+		// which, for a page the book gained, means tools/artcode-corrections.csv
+		// and a picture held against that page.
+		//
+		// Bounding this at 'legacy' made those pages permanently unreachable,
+		// so a verified correction could not be expressed at all. Hindu Deities
+		// is where that bit: #24775 is the Bharat Mata with the lion and the map
+		// of India, which is HD 30 and unmistakable, and HD's legacy is 27.
+		// The choice was to widen this or to knowingly leave three products on
+		// paintings that are not theirs.
+		if ( $s === $sec['no'] && $n >= 1 && $n <= $sec['count'] ) {
 			return af_artcode_book_label( $parts['prefix'], $n, $parts['suffix'] );
 		}
 	}
