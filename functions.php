@@ -9043,6 +9043,52 @@ add_action('wp_head', function() {
         font-size: 12px !important;
       }
       .elementor-swiper-button{ font-size: 13px !important; }
+      /* And the gallery's arrows are 90x30 boxes: the type grew, the box did
+         not, so it still is not a comfortable thing to hit. */
+      .woocommerce-product-gallery .elementor-swiper-button,
+      a.woocommerce-product-gallery__trigger{
+        min-width: 40px !important; min-height: 40px !important;
+        display: inline-flex !important; align-items: center !important;
+        justify-content: center !important;
+      }
+
+      /* The category strip resisted the last pass: it stayed at 11px because
+         the parent theme sets it from an ID selector, which outranks a plain
+         class no matter how many !importants are stacked behind it. Matching
+         that ID is the only thing that wins. */
+      #topCatSlider .top-cat-btn, #topCatSlider button, #topCatSlider a,
+      .top-category-slider .top-cat-btn, .top-category-container .top-cat-btn{
+        font-size: 12px !important;
+      }
+
+      /* The size and frame chips on a product page, and the DIY kit's
+         checkboxes — ours, both of them, and both below par: 11.5px type on a
+         30px chip, and a 13px box on the list someone ticks to build a kit. */
+      .af-chip-grp, .af-chip-custom{
+        font-size: 12px !important; min-height: 40px !important;
+        display: inline-flex !important; align-items: center !important;
+        justify-content: center !important;
+      }
+      .af-kit-item input[type="checkbox"]{
+        width: 20px !important; height: 20px !important;
+      }
+      .af-kit-item{ min-height: 40px !important;
+        display: flex !important; align-items: center !important; gap: 10px !important; }
+
+      /* Add to wishlist on a product page measured 162x24 — a full-width
+         control two thirds of the height a finger needs. */
+      .woosw-btn{ min-height: 40px !important;
+        display: inline-flex !important; align-items: center !important; }
+
+      /* Shop listing: the filter toggle, the theme links under each card, the
+         product name itself, and the breadcrumb trail — every one of them a
+         link someone taps to get somewhere, all between 15 and 24px. */
+      a.filter-toggle{ min-height: 40px !important;
+        display: inline-flex !important; align-items: center !important; }
+      .product-themes a, .woocommerce-loop-product__title a,
+      .product_meta a, .woocommerce-breadcrumb a{
+        display: inline-block !important; padding: 8px 0 !important;
+      }
 
       /* Signing in: the remember-me box was 13x13 and the show-password eye
          21x14, on the two controls of the login form itself. */
