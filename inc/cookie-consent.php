@@ -89,7 +89,12 @@ add_action('wp_footer', function() {
          28px-tall sliver at the edge of the card. */
       .af-ck-actions{width:100%;gap:7px;}
       .af-ck-btn{flex:1 1 120px;padding:12px 14px;font-size:12.5px;}
+      /* Two floating things in one corner, and the lower one unreachable. The
+         consent notice has first claim; the chat launcher comes back the
+         moment it is answered. */
+      html.af-ck-open #af-chat{opacity:0;pointer-events:none;}
     }
+    #af-chat{transition:opacity .2s;}
     </style>
     <script>
     (function(){
@@ -125,7 +130,16 @@ add_action('wp_footer', function() {
       // work when something reopens it. This used to sit after that return,
       // so on a repeat visit opts was undefined and Save had no handler.
       var opts = box.querySelector('.af-ck-opts');
-      function finish(c){ write(c); box.hidden = true; }
+      // A class on <html> while the notice is up. The mobile audit found the
+      // chat launcher sitting under this banner on all sixteen pages checked:
+      // two floating things in the same corner, one of them unreachable. The
+      // consent notice has first claim — it is the one thing the visitor must
+      // answer — so the launcher stands aside until it is gone, rather than
+      // being buried behind it.
+      function flag(on){
+        try { document.documentElement.classList.toggle('af-ck-open', !!on); } catch(e){}
+      }
+      function finish(c){ write(c); box.hidden = true; flag(false); }
       document.getElementById('af-ck-accept').addEventListener('click', function(){
         finish({ analytics:true, marketing:true });
       });
@@ -169,10 +183,12 @@ add_action('wp_footer', function() {
         document.getElementById('af-ck-prefs').hidden = true;
         document.getElementById('af-ck-save').hidden = false;
         box.hidden = false;
+        flag(true);
       };
 
       if (have) return;                          // already answered — stay hidden
       box.hidden = false;
+      flag(true);
     })();
     </script>
     <?php

@@ -8905,6 +8905,73 @@ add_action('wp_head', function() {
       .af-tow-title{ font-size: 28px !important; }
       .af-pp-sec h2, .af-hs-head h2{ font-size: 20px !important; }
     }
+
+    /* ── TOUCH AND LEGIBILITY, SITE-WIDE ──────────────────────────────────
+       From a measurement of sixteen pages at 390px, 2026-09-14 — the whole
+       customer journey from the home page to checkout, plus the footer pages
+       and the staff tools.
+
+       The structural faults are gone: not one page scrolls sideways and no
+       text is crushed any more. What the audit found instead was the same
+       handful of things on every single page — links a finger cannot
+       reliably hit, and labels too small to read at arm's length:
+
+         footer links            15-19px tall
+         social icons            18x18
+         header cart link        42x24
+         mobile menu close       15x26  (fifteen pixels wide)
+         try-on-wall controls    10.5-11.7px type
+
+       A link is not "too small" because of its font: it is too small because
+       of the box around it. So these rules add room rather than shouting —
+       padding and a min-height, which grow the target without changing type
+       size, weight or colour. Nothing here paints anything new; the footer
+       simply breathes a little on a phone, which it should anyway.
+
+       Everything is inside a media query. Large screens keep the spacing they
+       were designed with. ─────────────────────────────────────────────── */
+    @media (max-width: 781px){
+      /* Footer: the biggest offender, and the easiest to fix well. Give each
+         link its own comfortable row instead of stacking 15px text. */
+      .site-footer a, .af-footer a, footer .widget a, footer li a{
+        display: inline-block; min-height: 40px; line-height: 40px;
+      }
+      .site-footer li, .af-footer li, footer .widget li{ margin-bottom: 2px; }
+
+      /* Social and icon links: a fingertip, not a pin. The glyph inside keeps
+         its size — only the box around it grows. */
+      a.elementor-icon, .elementor-social-icon, .af-social a{
+        min-width: 40px !important; min-height: 40px !important;
+        display: inline-flex !important; align-items: center !important;
+        justify-content: center !important;
+      }
+
+      /* The header cart and account links sit in a tight bar; padding is the
+         only dimension free to grow there. */
+      a.cart-contents, .site-header-cart a{
+        display: inline-flex !important; align-items: center !important;
+        min-height: 40px !important; padding-top: 8px !important; padding-bottom: 8px !important;
+      }
+
+      /* The mobile menu's own close button measured 15px wide — the one
+         control every visitor who opens that menu has to find. */
+      a.mobile-nav-close, .mobile-nav-close, .close-cart-side{
+        min-width: 44px !important; min-height: 44px !important;
+        display: inline-flex !important; align-items: center !important;
+        justify-content: center !important;
+      }
+
+      /* Try It On Your Wall: its control strip is the most label-dense part
+         of the site, and every label was under 12px. */
+      .af-tow-sw, .af-tow-lay, #tow-saveacct, #tow-share-wa,
+      .af-tow-panel button, .af-tow-row button{
+        font-size: 12px !important; min-height: 40px !important;
+      }
+
+      /* Blog category chips and anything else that landed at 38. */
+      .af-hub-cat{ min-height: 40px !important; display: inline-flex !important;
+        align-items: center !important; }
+    }
     </style>
     <?php
 }, 99);
