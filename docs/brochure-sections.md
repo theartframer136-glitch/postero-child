@@ -1522,3 +1522,42 @@ It is now teed to `FILENAMES.txt` on the art-sheets branch, beside the other
 reports. It is the one piece of evidence about a product that is independent of
 both the picture and the title: what the file was called when it was uploaded.
 Every remaining section will have cases like these five.
+
+
+---
+
+## The resolver change broke a check, and I did not notice for a deploy
+
+Widening the six-digit path (see Hindu Deities above) needed three tests
+updating. I updated two and missed the third, because the third cannot run
+here: `tools/test-sku-format.php` needs WordPress loaded, so it only runs on the
+server. Deploy run 1107 published this and it sat in SKUCHECK.txt:
+
+    FAIL  the book's 33 new pages cannot be written onto a product
+          got '33 reachable' want '0 reachable'
+    === 1 CHECK(S) FAILED ===
+
+The resolver was right; the assertion was describing the old rule. It is now
+split into the two halves the rule actually has:
+
+  no OLD code RESOLVES ONTO one of the 33 new pages        must be 0
+  the 33 are reachable by their six-digit spelling         must be 33
+
+Writing the first one exposed a second mistake, mine again. The obvious form —
+"does old label N resolve, for N above legacy" — reports a failure that is not
+one: where a section has a gap the old numbering runs PAST its page count, and
+**HD 28 legitimately means HD 27** because HD lost page 14. The question has to
+be asked the other way round: take every old code, resolve it, and look at the
+page it LANDS ON.
+
+Two things worth keeping from this:
+
+**A check that cannot run in the sandbox will be missed.** The two local suites
+were updated in the same edit as the resolver; this one was not, because nothing
+failed in front of me. Its two book loops are now also runnable standalone —
+see the harness used in this session — so the next person changing the resolver
+can check all three before pushing.
+
+**SKUCHECK.txt is worth reading on every deploy, not just when something looks
+wrong.** It had been reporting a real failure since the Hindu Deities merge and
+nobody looked, because the sections either side of it said what was expected.
