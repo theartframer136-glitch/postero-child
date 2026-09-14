@@ -54,6 +54,26 @@ async function dump(sel, vw) {
   };
   walk(root, 0);
   out.nodes = out.nodes.slice(0, 120);
+  // The verdict, in one line per slide: is the box the shape of the picture,
+  // or is the picture being squeezed into a box of someone else's choosing?
+  out.verdict = [];
+  const bgs = Array.from(document.querySelectorAll('.swiper-slide-bg')).slice(0, 4);
+  for (const b of bgs) {
+    const cs = getComputedStyle(b);
+    const r = b.getBoundingClientRect();
+    const m = (cs.backgroundImage || '').match(/url\(\s*['"]?([^'")]+)/i);
+    const nat = m ? await new Promise((res) => {
+      const im = new Image();
+      im.onload = () => res([im.naturalWidth, im.naturalHeight]);
+      im.onerror = () => res([0, 0]);
+      im.src = m[1];
+    }) : [0, 0];
+    out.verdict.push({
+      box: [Math.round(r.width), Math.round(r.height)],
+      size: cs.backgroundSize, minH: cs.minHeight,
+      nat, wants: nat[0] ? Math.round(r.width * nat[1] / nat[0]) : 0,
+    });
+  }
   out.bgSizes = await Promise.all(bgUrls.slice(0, 8).map((u) => new Promise((res) => {
     const im = new Image();
     im.onload = () => res({ url: u.slice(-46), w: im.naturalWidth, h: im.naturalHeight,
@@ -98,6 +118,15 @@ async function dump(sel, vw) {
       if (n.bg) console.log(`${pad}   background: ${n.bg}  size:${n.bgSize}`);
       if (n.src) console.log(`${pad}   img src …${n.src}  natural ${n.natural}`);
       if (n.txt) console.log(`${pad}   "${n.txt}"`);
+    }
+    if (r.verdict && r.verdict.length) {
+      console.log('\nis each slide the shape of its picture?');
+      r.verdict.forEach((v) => {
+        const ok = v.wants && Math.abs(v.box[1] - v.wants) <= 4;
+        console.log(`  box ${v.box[0]}x${v.box[1]}  picture ${v.nat[0]}x${v.nat[1]}`
+          + `  needs ${v.wants}px tall  (${v.size}, min-height ${v.minH})`
+          + (ok ? '   ✓ fits' : `   ← ${v.box[1] - v.wants}px of slack`));
+      });
     }
     if (r.bgSizes && r.bgSizes.length) {
       console.log('\nbackground images, at their own size:');

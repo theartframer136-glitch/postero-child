@@ -2715,8 +2715,20 @@ add_action('wp_footer', function() { ?>
   }
   function withSlideRatio(next) {
     if (slideRatio) { next(); return; }
-    var bg = document.querySelector('.elementor-slides .swiper-slide-bg, .elementor-widget-slides .swiper-slide-bg');
-    var m  = bg && (bg.getAttribute('style') || '').match(/background-image\s*:\s*url\(\s*['"]?([^'")]+)/i);
+    // Read the COMPUTED background, not the style attribute. Elementor sets a
+    // slide's background-image from its generated stylesheet, so the inline
+    // style has no url in it at all — which is why the first version of this
+    // measured nothing, kept the 420px default, and the owner quite correctly
+    // said it was still not fixed.
+    var bg = null, url = '';
+    var all = document.querySelectorAll('.elementor-slides .swiper-slide-bg, .elementor-widget-slides .swiper-slide-bg');
+    for (var i = 0; i < all.length && !url; i++) {
+      var cand = getComputedStyle(all[i]).backgroundImage
+        || (all[i].getAttribute('style') || '');
+      var mm = cand.match(/url\(\s*['"]?([^'")]+)/i);
+      if (mm) { bg = all[i]; url = mm[1]; }
+    }
+    var m = url ? [null, url] : null;
     if (!m) { next(); return; }
     var im = new Image();
     im.onload = function () {
