@@ -18,7 +18,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 102–104 | LG 020001–020003 | Lakshmi–Ganesha | 3 | 3 | NO |
 | 105–122 | LS 030001–030018 | Lord Shiva | 18 | 15 | stale — 3 new |
 | 123–137 | SH 040001–040015 | Seven Horses | 15 | 12 | stale — 3 new |
-| 138–152 | TP 050001–050015 | Tirupati Balaji | 15 | 15 | stale — see note |
+| 138–152 | TP 050001–050015 | Tirupati Balaji | 15 | 15 | DONE — 2026-09-14 |
 | 153–156 | MG 060001–060004 | Murugan | 4 | 4 | NO |
 | 157–166 | LR 070001–070010 | Lord Rama | 10 | 9 | NO |
 | 167–196 | HD 080001–080030 | Hindu Deities | 30 | 27 | DONE — 2026-09-14 |
@@ -1366,3 +1366,70 @@ moved it to HD 12, and the stale HD 11 entry then refused #17795 — which is th
 picture on HD 11. Moving and clearing now both vacate the old page, and a file
 holding two rows for one product says so loudly instead of letting row order
 decide.
+
+
+---
+
+## Tirupati Balaji — read 2026-09-14, from the pictures
+
+**16 products over 12 pages. NO DRIFT AT ALL — and that is the finding.**
+
+Eight products are on exactly the page their picture is on. Not one is a page
+out. Radha Krishna ran one page ahead through its middle; Hindu Deities ran one
+to two behind. Tirupati Balaji is simply correct.
+
+The difference between them is in the book, not the catalogue:
+
+| section | pages gained | what the codes did |
+|---|---|---|
+| RK | +6 | ran one page AHEAD |
+| HD | +3 | ran one to two BEHIND |
+| **TP** | **0** | **nothing moved** |
+
+Three sections is not proof, but it is the first real evidence for what has been
+a guess since the map was widened: **the drift is caused by the book being
+re-laid-out, and a section whose page count did not change did not drift.** The
+sections still to read that gained pages — LI +7, WL +4, LS/SH/KR +3, SA +2,
+LR/IC +1 — should be expected to have moved. LB, SL, AA, VA, LC, TA, LG, MG, PA
+and SN did not gain any, and on this evidence are likely clean.
+
+That is worth knowing before spending a deploy on each: the sections that gained
+nothing can be checked quickly for confirmation rather than read page by page.
+
+### What WAS wrong here is a different fault entirely
+
+Seven products carry TP codes for pictures that are not in this section at all.
+Not neighbours — not in the fifteen pages:
+
+  #23911  a Tanjore panel, standing figure with a sword and shield
+  #22686  a postcard composite: the word BHOOTAPURI, a deity, a gopuram photo
+  #31456  a warm ochre collage — blue profile, Balaji face, temple bells
+  #29281  a brighter collage of the same kind
+  #31088  a Vaikuntha court: Vishnu, two consorts, attendants, Garuda
+  #30966  a pale watercolour, Vishnu seated on a coiled serpent
+  #229    a darker Venkateswara in a golden arch
+
+These look like codes assigned by SUBJECT rather than by picture — everything
+Vishnu- or Balaji-shaped was given a Tirupati Balaji code. That is a different
+failure from the drift, it will not be caught by any arithmetic, and it can only
+be found the way this was.
+
+All seven are cleared. Five pages of the section (1, 2, 7, 14, 15) have no
+product, which is ordinary — 167 of the book's 373 pages had none.
+
+### #229 is the one I could not finish
+
+Its featured image is a ROOM MOCKUP rather than the artwork, so there is not
+enough picture to compare. What is certain is that it is not TP 4: that page is
+the bright golden sanctum idol, #8474 matches it, and #229 is visibly a
+different photograph. TP 2 — the dark bronze Venkateswara in an orange-lit arch
+— is the candidate if anyone can open the product's other images.
+
+### Two listings of one painting, settled by measurement
+
+#15730 and #31890 are the same artwork. Compared pixel for pixel the RMS
+difference is 6.6, against 102 for #23911, the third product that was sitting on
+TP 13. They share the code; the SKU letter keeps them apart.
+
+Worth doing this more often: three products on one page is exactly where the eye
+wants to see a match, and a number settles it in a second.
