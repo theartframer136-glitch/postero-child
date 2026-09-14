@@ -8935,6 +8935,31 @@ add_action('wp_head', function() {
       /* Media never overflows its container */
       img, svg{ max-width: 100% !important; height: auto !important; }
 
+      /* ── GOLD FOILED & UV, AND EXCLUSIVELY CUSTOMISED CREATIONS ───────
+         Both bands are the same tile grid, and both were ragged on a phone:
+         one column running far below the other, rows not lining up, big
+         gaps of white between them.
+
+         That is my doing. The blanket rule above says `height: auto
+         !important` on every image, and these tiles are built the other way
+         round — a fixed tile height with object-fit: cover, so that every
+         photograph, whatever its shape, fills a box the same size as its
+         neighbour. My !important cancelled that, so each tile fell back to
+         its own proportions and the grid came apart.
+
+         Rather than hand the fixed pixel height back, the tiles get a shape:
+         4:5, applied to the width they actually have. Uniform rows at any
+         phone width, no number to go stale, and the hover photograph is given
+         the same shape so nothing jumps when it swaps. ─────────────────── */
+      .random-product-grid .random-product-item img,
+      .af-gfs-grid .random-product-item img,
+      .random-product-grid .random-product-item .hover-image{
+        width: 100% !important;
+        aspect-ratio: 4 / 5 !important;
+        height: auto !important;
+        object-fit: cover !important;
+      }
+
       /* ── THE FIVE STARS ON "WHAT CLIENTS SAY" ──────────────────────────
          The Google reviews plugin draws that rating as five separate <img>
          files, one per star. The rule directly above lets each one grow to
