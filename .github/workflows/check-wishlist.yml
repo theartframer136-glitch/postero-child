@@ -1,0 +1,33 @@
+name: Inspect Wishlist
+
+# Measure the wishlist page with something actually saved on it.
+#
+# A guest's wishlist lives in a cookie in their own browser, so a fresh
+# headless Chrome opening /wishlist/ is told there is nothing there — which is
+# why the card could not be measured by loading the page directly. This saves
+# one piece first, in its own throwaway session, then measures.
+#
+# Nothing is written anywhere but that browser's cookie jar.
+
+on:
+  workflow_dispatch:
+    inputs:
+      width:
+        description: Viewport width
+        default: '420'
+      product:
+        description: Product page to save from
+        default: https://theartframer.us/product/radha-krishna-mosaic-art-canvas-wall-art/
+
+jobs:
+  wishlist:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Save a piece, then measure the wishlist
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afhead/node_modules node tools/diag-wishlist.js \
+            "${{ inputs.width }}" "${{ inputs.product }}" || true
