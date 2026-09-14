@@ -8932,11 +8932,29 @@ add_action('wp_head', function() {
        were designed with. ─────────────────────────────────────────────── */
     @media (max-width: 781px){
       /* Footer: the biggest offender, and the easiest to fix well. Give each
-         link its own comfortable row instead of stacking 15px text. */
+         link its own comfortable row instead of stacking 15px text.
+
+         `line-height: 40px` was a mistake here and the next audit caught it:
+         the fixed bottom navigation bar lives inside <footer> too, so the rule
+         reached it and grew the bar from 65px to 86px — a fifth of the screen
+         given to a bar nobody asked to be taller. Padding grows a target
+         without setting a line box, so it cannot do that again, and the bar is
+         put back explicitly below. */
       .site-footer a, .af-footer a, footer .widget a, footer li a{
-        display: inline-block; min-height: 40px; line-height: 40px;
+        display: inline-block; padding-top: 10px; padding-bottom: 10px;
       }
       .site-footer li, .af-footer li, footer .widget li{ margin-bottom: 2px; }
+
+      /* Hands off anything pinned to the screen. A fixed bar is sized by its
+         designer to a specific height and every pixel added to it is taken
+         from the page. This restores the bottom navigation bar to the 65px it
+         was built at. */
+      .elementor-element-bec7134 a, .elementor-element-bec7134 li,
+      .af-bottom-nav a, .af-bottom-nav li{
+        min-height: 0 !important; line-height: normal !important;
+        padding-top: 0 !important; padding-bottom: 0 !important;
+        margin-bottom: 0 !important;
+      }
 
       /* Social and icon links: a fingertip, not a pin. The glyph inside keeps
          its size — only the box around it grows. */

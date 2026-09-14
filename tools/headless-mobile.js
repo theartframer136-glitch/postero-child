@@ -157,7 +157,16 @@ function audit(vw) {
     if (seenT.has(key)) continue;
     seenT.add(key);
     if (r.height < 40 || r.width < 24) {
-      out.tiny.push({ el: name(el), w: Math.round(r.width), h: Math.round(r.height) });
+      // Name the ancestors too. A bare "a 30x15" is unfixable: you cannot
+      // write a selector for it, and guessing a plugin's markup is how a
+      // stylesheet ends up written against classes that do not exist — which
+      // is exactly how the footer links survived the first pass untouched.
+      const chain = [];
+      for (let a = el.parentElement, n = 0; a && n < 4; a = a.parentElement, n++) chain.push(name(a));
+      out.tiny.push({
+        el: name(el), w: Math.round(r.width), h: Math.round(r.height),
+        inside: chain.join(' < '),
+      });
     }
     const fs = parseFloat(cs.fontSize) || 0;
     if (fs && fs < 12 && (el.textContent || '').trim().length > 2) {
@@ -251,7 +260,10 @@ function audit(vw) {
       }
       if (r.tiny.length) {
         console.log('   tap targets under 40px tall:');
-        r.tiny.forEach((t) => console.log(`     ${t.el}  ${t.w}x${t.h}`));
+        r.tiny.forEach((t) => {
+          console.log(`     ${t.el}  ${t.w}x${t.h}`);
+          console.log(`        inside: ${t.inside}`);
+        });
       }
       if (r.smallText.length) {
         console.log('   text under 12px:');
