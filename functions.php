@@ -9032,6 +9032,32 @@ add_action('wp_head', function() {
         font-size: 12px !important;
       }
 
+      /* The buying buttons. A full sweep of all sixteen pages found 10 and 11
+         pixel type on the controls that carry the whole shop: add to cart,
+         buy now, add to wishlist, return to shop, sign in, register — and the
+         product gallery's own arrows at ten. These are not decorative labels;
+         they are the words someone reads before spending money. */
+      .single_add_to_cart_button, .af-buynow, .woosw-btn,
+      .button.wc-backward, .woocommerce-form-login__submit,
+      .woocommerce-Button, .woocommerce a.button, .woocommerce button.button{
+        font-size: 12px !important;
+      }
+      .elementor-swiper-button{ font-size: 13px !important; }
+
+      /* Signing in: the remember-me box was 13x13 and the show-password eye
+         21x14, on the two controls of the login form itself. */
+      input.woocommerce-form__input-checkbox, input#rememberme{
+        width: 20px !important; height: 20px !important;
+      }
+      .woocommerce-form-login__rememberme{ min-height: 34px !important;
+        display: inline-flex !important; align-items: center !important; gap: 8px !important; }
+      button.show-password-input{
+        min-width: 40px !important; min-height: 40px !important;
+      }
+      .woocommerce-LostPassword a, a.woocommerce-privacy-policy-link{
+        display: inline-block !important; padding: 8px 0 !important;
+      }
+
       /* The cookie notice is ours, and it was the worst of the lot: a 13px
          checkbox and a 15px policy link on the one panel every first-time
          visitor must deal with before anything else. */
