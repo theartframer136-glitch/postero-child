@@ -70,11 +70,41 @@ function dump(vw) {
       return 'clicked ' + (b.className || '');
     });
     console.log('  ' + clicked);
-    await sleep(6000);                       // let the save round-trip finish
+    await sleep(9000);                       // let the save round-trip finish
+
+    // Did it actually save? The button class says so, and where the list is
+    // kept says how to seed it if the click alone is not enough — the first
+    // run clicked, the class stayed "woosw-adding", and the page still
+    // reported an empty wishlist.
+    const state = await page.evaluate(() => ({
+      cls: (document.querySelector('.woosw-btn') || {}).className || '(gone)',
+      cookies: document.cookie,
+      ls: Object.keys(localStorage).filter((k) => /woosw|wish/i.test(k))
+        .map((k) => k + '=' + String(localStorage.getItem(k)).slice(0, 60)),
+    }));
+    console.log('  button now: ' + state.cls);
+    console.log('  cookies: ' + (state.cookies || '(none)').slice(0, 240));
+    console.log('  local storage: ' + (state.ls.join(' | ') || '(nothing wishlist-shaped)'));
 
     await page.goto('https://theartframer.us/wishlist/', { waitUntil: 'domcontentloaded', timeout: 90000 });
     await sleep(7000);
-    const r = await page.evaluate(dump, WIDTH);
+    let r = await page.evaluate(dump, WIDTH);
+
+    // If the click did not take, seed the plugin's own cookie and ask again.
+    // WPC Smart Wishlist keeps a guest's list in woosw_items; writing it here
+    // is the same thing the plugin does in the visitor's own browser.
+    const empty = (o) => JSON.stringify(o).includes('no products on the Wishlist');
+    if (empty(r)) {
+      console.log('\nthe click did not save — seeding the plugin cookie instead');
+      const id = (PRODUCT.match(/-(\d{4,6})\/?$/) || [])[1] || '31772';
+      await page.evaluate((pid) => {
+        document.cookie = 'woosw_items=' + pid + '; path=/';
+        document.cookie = 'woosw_ids=' + pid + '; path=/';
+      }, id);
+      await page.goto('https://theartframer.us/wishlist/', { waitUntil: 'domcontentloaded', timeout: 90000 });
+      await sleep(7000);
+      r = await page.evaluate(dump, WIDTH);
+    }
     if (r.error) { console.log(r.error); return; }
 
     console.log(`\n=== ${r.root} at ${r.vw}px ===`);
