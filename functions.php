@@ -18205,7 +18205,10 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
     flex:0 0 auto!important;}
 
   /* Under the 40px a fingertip needs. */
-  .af-ca-btn,.af-rel-nav{width:40px!important;height:40px!important;}
+  /* .af-ca-btn is sized inline by makeBtn() with !important, which no
+     stylesheet can override — it reads the width there instead. Only the
+     carousel arrows are raised here. */
+  .af-rel-nav{width:40px!important;height:40px!important;}
 }
 </style>
 <script>
@@ -19069,7 +19072,13 @@ add_action('wp_footer', function () {
     b.title = title;
     b.setAttribute('aria-label', title);
     b.innerHTML = ICONS[kind];
-    [['width','38px'],['height','38px'],['min-width','38px'],['border-radius','50%'],
+    // 38px on a desktop card, 40px on a phone. These are written inline with
+    // !important, which beats any stylesheet — so a media query cannot raise
+    // them and the size has to be decided here. 40px is the smallest
+    // comfortable touch target; the mobile audit flagged this button at 38
+    // after every other control on the page had been lifted.
+    var CA = (window.innerWidth <= 781) ? '40px' : '38px';
+    [['width',CA],['height',CA],['min-width',CA],['border-radius','50%'],
      ['display','inline-flex'],['align-items','center'],['justify-content','center'],
      ['padding','0'],['margin','0'],['border','0'],['cursor','pointer'],
      ['box-shadow','0 2px 8px rgba(0,0,0,.18)'],['flex','0 0 auto'],
