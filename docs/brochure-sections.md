@@ -1775,13 +1775,38 @@ but they are a fine way to SHORTLIST which pages are worth rendering. All 51
 Living Room captions came back in one call, and the two real matches were found
 by looking at seven pages instead of fifty-one.
 
-### One row held back
+### One row held back, then settled — Indian Culture, read 2026-09-14
 
-**#7838 is IC 01** — pixel for pixel, the rainbow watercolour Bharatanatyam
-dancer. But #25840 "Dancers in Duet" already holds IC 01, and it is the only
-Indian Culture product in the catalogue, so its picture has never been drawn.
-Writing #7838 onto IC 01 would be refused as a clash, correctly, until #25840
-is either confirmed or moved. The row is not written. An `art_sheets: IC` run
-will settle it, and IC 02, 03 and 04 are all free for #25840 to land on.
+**#7838 is IC 01** — pixel for pixel, the rainbow watercolour dancer. But
+#25840 "Dancers in Duet" held IC 01, and writing over it would have been
+refused as a clash, correctly. So the row was withheld and an `art_sheets: IC`
+run was dispatched instead of guessing.
 
-**LR is otherwise done, and this closes Living Room's ten strays.**
+The sheet brought back **three** products, not the one the last renumber
+listing showed, and it settled the whole section at once:
+
+| page | product | verdict |
+|---|---|---|
+| IC 01 | #25840 Dancers in Duet | **wrong** — see below |
+| IC 02 | #13781 | right — the splash dancer in teal and silver |
+| IC 03 | #7700 | right — the orange Bharatanatyam dancer |
+| IC 04 | — | unclaimed: a woman with a basket in a landscape |
+| IC 05 | — | **#20026**, from the strays above |
+
+#25840's own picture is a photograph of **two** dancers in blue and green on a
+black ground. It is not IC 01, not IC 02, not IC 03, not IC 04, not IC 05, and
+no page of Living Room's fifty-one is two dancers either. It clears, and #7838
+takes IC 01.
+
+That makes this the audit's **first real chained move**: one product must
+vacate a code before another can have it. It lands because of the fix made
+during the Hindu Deities work — the pass now removes every leaving product from
+the ownership map *before* it places anyone. Written against the old pass, both
+rows would have been refused and the section would have stayed wrong.
+
+Worth noting what the withholding bought. Writing #7838 onto IC 01 blind would
+have been refused; clearing #25840 blind would have thrown away a correct code
+if its picture had matched. One cheap read-only run answered both, and turned a
+blocked row into a finished section.
+
+**Indian Culture is done. LR is done. Living Room's ten strays are closed.**
