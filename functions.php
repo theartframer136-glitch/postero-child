@@ -18702,9 +18702,15 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
     table.querySelectorAll('tbody').forEach(function(tb){
       tb.style.setProperty('display', 'block', 'important');
     });
+    // A phone has no room for image, words and button on one line. Below
+    // 781px the row wraps and the buying control takes a line of its own;
+    // above it, the single row this was written for is unchanged.
+    var narrow = window.innerWidth <= 781;
     table.querySelectorAll('tr').forEach(function(tr){
       tr.style.setProperty('display', 'flex', 'important');
-      tr.style.setProperty('align-items', 'center', 'important');
+      tr.style.setProperty('align-items', narrow ? 'flex-start' : 'center', 'important');
+      tr.style.setProperty('flex-wrap', narrow ? 'wrap' : 'nowrap', 'important');
+      tr.style.setProperty('position', 'relative', 'important');
       tr.style.setProperty('gap', '14px', 'important');
       tr.style.setProperty('width', '100%', 'important');
       tr.style.setProperty('box-sizing', 'border-box', 'important');
@@ -18719,10 +18725,23 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
       td.style.setProperty('flex', isInfo ? '1 1 auto' : 'none', 'important');
       if (isInfo) td.style.setProperty('min-width', '0', 'important');
       if (td.className.indexOf('actions') !== -1 || td.querySelector('a[href*="add-to-cart="]')) {
-        td.style.setProperty('margin-left', 'auto', 'important');
+        // On a phone this is the one control the card exists for. Give it the
+        // full width of its own line; pinning it right leaves 180px of empty
+        // gutter beside it and a target too small to aim at with a thumb.
+        td.style.setProperty('margin-left', narrow ? '0' : 'auto', 'important');
         td.style.setProperty('min-width', '0', 'important');
-        td.style.setProperty('text-align', 'right', 'important');
-        td.style.setProperty('flex', 'none', 'important');
+        td.style.setProperty('text-align', narrow ? 'left' : 'right', 'important');
+        td.style.setProperty('flex', narrow ? '0 0 100%' : 'none', 'important');
+        if (narrow) td.style.setProperty('width', '100%', 'important');
+      }
+      // The x belongs in the corner of the card, not beside the photograph
+      // competing with it for the first line.
+      if (narrow && td.className.indexOf('remove') !== -1) {
+        td.style.setProperty('position', 'absolute', 'important');
+        td.style.setProperty('top', '6px', 'important');
+        td.style.setProperty('right', '8px', 'important');
+        td.style.setProperty('flex', '0 0 auto', 'important');
+        td.style.setProperty('z-index', '2', 'important');
       }
     });
     table.querySelectorAll('.woosw-item--image img, td img').forEach(function(im){
@@ -18801,7 +18820,8 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
               padding:'11px 20px', borderRadius:'6px', whiteSpace:'nowrap', textDecoration:'none',
               position:'static', transform:'none', opacity:'1', visibility:'visible',
               margin:'0', right:'auto', left:'auto', top:'auto', bottom:'auto',
-              width:'auto', minWidth:'0', maxWidth:'none', height:'auto', minHeight:'0',
+              width:(window.innerWidth <= 781 ? '100%' : 'auto'), minWidth:'0', maxWidth:'none',
+              height:'auto', minHeight:(window.innerWidth <= 781 ? '44px' : '0'),
               overflow:'visible', textIndent:'0', lineHeight:'1.2', flex:'none',
               boxSizing:'border-box', textTransform:'none'};
     for (var k in st) a.style.setProperty(k.replace(/[A-Z]/g, function(m){return '-'+m.toLowerCase();}), st[k], 'important');
@@ -18825,8 +18845,11 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
     }
     if (n && n.matches('td')) {
       n.style.setProperty('overflow', 'visible', 'important');
-      n.style.setProperty('min-width', '190px', 'important');
-      n.style.setProperty('text-align', 'right', 'important');
+      // 190px and right-aligned is the desktop row. On a phone that is what
+      // stranded the button at 172px with an empty gutter beside it.
+      var narrow = window.innerWidth <= 781;
+      n.style.setProperty('min-width', narrow ? '0' : '190px', 'important');
+      n.style.setProperty('text-align', narrow ? 'left' : 'right', 'important');
     }
   }
   // an art code printed outside a product card is noise between sections
