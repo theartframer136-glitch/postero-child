@@ -17,6 +17,10 @@ on:
         description: 'Viewport width in px'
         type: string
         default: '420'
+      urls:
+        description: 'Space-separated URLs to measure (blank = the default set)'
+        type: string
+        default: ''
 
 jobs:
   mobile:
@@ -29,4 +33,6 @@ jobs:
           set -uo pipefail
           npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
           W="${{ github.event.inputs.width }}"
-          NODE_PATH=/tmp/afhead/node_modules node tools/headless-mobile.js "${W:-420}" || true
+          U="${{ github.event.inputs.urls }}"
+          # shellcheck disable=SC2086 — the URL list is deliberately word-split
+          NODE_PATH=/tmp/afhead/node_modules node tools/headless-mobile.js "${W:-420}" ${U} || true

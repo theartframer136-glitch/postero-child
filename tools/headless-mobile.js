@@ -94,9 +94,11 @@ function audit(vw) {
     // Under about three characters wide, and tall enough to have wrapped many
     // times over: that is a column collapsed to nothing.
     if (r.width < fs * 3 && r.height > fs * 3) {
+      const chain = [];
+      for (let a = el.parentElement, n = 0; a && n < 4; a = a.parentElement, n++) chain.push(name(a));
       out.crushed.push({
         el: name(el), w: Math.round(r.width), h: Math.round(r.height),
-        text: txt.slice(0, 28),
+        text: txt.slice(0, 28), inside: chain.join(' < '),
       });
     }
   }
@@ -204,7 +206,10 @@ function audit(vw) {
       if (r.crushed.length) {
         problems++;
         console.log('   TEXT CRUSHED into a sliver (words breaking mid-character):');
-        r.crushed.forEach((c) => console.log(`     ${c.el}  ${c.w}x${c.h}px  "${c.text}"`));
+        r.crushed.forEach((c) => {
+          console.log(`     ${c.el}  ${c.w}x${c.h}px  "${c.text}"`);
+          console.log(`        inside: ${c.inside}`);
+        });
       }
       if (r.buried.length) {
         problems++;
