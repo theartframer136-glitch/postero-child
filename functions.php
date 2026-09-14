@@ -1543,7 +1543,7 @@ html body .swiper-slide-bg {
     width: 100vw !important;
     min-width: 100vw !important;
     max-width: 100vw !important;
-    min-height: 420px !important;
+    min-height: 45vw !important;
     position: relative !important;
     overflow: hidden !important;
     flex-shrink: 0 !important;
@@ -1564,8 +1564,15 @@ html body .swiper-slide-bg {
     top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
     width: 100% !important;
     height: 100% !important;
-    min-height: 420px !important;
-    background-size: cover !important;
+    /* NOT cover, and NOT a fixed 420. The banners in this slider are 2.23:1;
+       the whole picture at 390px wide is 175px tall. Demanding 420px of it and
+       then saying "cover" scales it 2.4x and throws away 58% of its width —
+       which is how the Google review cards came to show one enormous star and
+       nothing else. Contain never crops, and a box the shape of the picture
+       leaves no empty bands around it. */
+    min-height: 45vw !important;
+    background-size: contain !important;
+    background-repeat: no-repeat !important;
     background-position: center center !important;
     z-index: 0 !important;
   }
@@ -1575,7 +1582,7 @@ html body .swiper-slide-bg {
     position: relative !important;
     z-index: 1 !important;
     width: 100% !important;
-    min-height: 420px !important;
+    min-height: 45vw !important;
     box-sizing: border-box !important;
   }
 }
@@ -2688,6 +2695,38 @@ add_action('wp_footer', function() { ?>
   if (window.innerWidth > 768) return;
   function sp(el, p, v) { el.style.setProperty(p, v, 'important'); }
 
+  // How tall is a slide? The shape of the picture in it — never a number
+  // picked in advance.
+  //
+  // This block used to stamp min-height:420px and background-size:cover onto
+  // every slide as an INLINE important style, which beats any stylesheet no
+  // matter what it says. So the fault could not be corrected in CSS at all,
+  // and the owner kept seeing the same thing after each "fix": the Google
+  // review banners are 2.23:1, their whole width at 390px is 175px tall, and
+  // forcing 420px of height out of them scaled each one 2.4x until only the
+  // middle — one star — was still inside the box.
+  //
+  // So measure the picture and give it a box its own shape. Contain never
+  // crops; a box the right shape leaves no empty bands. Until the image has
+  // loaded, 420 stays, so a slider can never collapse to nothing.
+  var slideRatio = 0;
+  function slideH() {
+    return slideRatio ? Math.round(window.innerWidth / slideRatio) : 420;
+  }
+  function withSlideRatio(next) {
+    if (slideRatio) { next(); return; }
+    var bg = document.querySelector('.elementor-slides .swiper-slide-bg, .elementor-widget-slides .swiper-slide-bg');
+    var m  = bg && (bg.getAttribute('style') || '').match(/background-image\s*:\s*url\(\s*['"]?([^'")]+)/i);
+    if (!m) { next(); return; }
+    var im = new Image();
+    im.onload = function () {
+      if (im.naturalWidth && im.naturalHeight) slideRatio = im.naturalWidth / im.naturalHeight;
+      next();
+    };
+    im.onerror = next;
+    im.src = m[1];
+  }
+
   function fixContainers() {
     // Fix Elementor lazy-load: mark all e-con ancestors of any slider as loaded
     // so the rule `.e-con:nth-of-type(n+3):not(.e-lazyloaded) * { background-image:none!important }` stops firing
@@ -2752,7 +2791,7 @@ add_action('wp_footer', function() { ?>
     document.querySelectorAll('.elementor-slides .swiper-slide, .elementor-widget-slides .swiper-slide').forEach(function(s) {
       sp(s, 'width',      '100vw'); sp(s, 'min-width',  '100vw');
       sp(s, 'max-width',  '100vw'); sp(s, 'flex-shrink','0');
-      sp(s, 'min-height', '420px'); sp(s, 'position',   'relative');
+      sp(s, 'min-height', slideH() + 'px'); sp(s, 'position',   'relative');
       sp(s, 'overflow',   'hidden'); sp(s, 'box-sizing', 'border-box');
     });
     document.querySelectorAll('.elementor-slides .swiper-slide-bg, .elementor-widget-slides .swiper-slide-bg').forEach(function(bg) {
@@ -2760,22 +2799,27 @@ add_action('wp_footer', function() { ?>
       sp(bg, 'top',    '0'); sp(bg, 'left',   '0');
       sp(bg, 'right',  '0'); sp(bg, 'bottom', '0');
       sp(bg, 'width',  '100%'); sp(bg, 'height', '100%');
-      sp(bg, 'min-height',          '420px');
-      sp(bg, 'background-size',     'cover');
+      sp(bg, 'min-height',          slideH() + 'px');
+      sp(bg, 'background-size',     'contain');
+      sp(bg, 'background-repeat',   'no-repeat');
       sp(bg, 'background-position', 'center center');
       sp(bg, 'z-index',             '0');
     });
     document.querySelectorAll('.elementor-slides .swiper-slide-inner, .elementor-widget-slides .swiper-slide-inner').forEach(function(inner) {
       sp(inner, 'position',   'relative'); sp(inner, 'z-index',     '1');
       sp(inner, 'width',      '100%');     sp(inner, 'max-width',   '100%');
-      sp(inner, 'min-height', '420px');    sp(inner, 'box-sizing',  'border-box');
+      sp(inner, 'min-height', slideH() + 'px');    sp(inner, 'box-sizing',  'border-box');
     });
   }
 
   function fullFix() {
-    fixContainers();
-    fixSwiperAPI();
-    fixSlideInlineWidths();
+    // Measure first: every rule below writes the height inline, so it has to
+    // know the picture's shape before it writes anything.
+    withSlideRatio(function () {
+      fixContainers();
+      fixSwiperAPI();
+      fixSlideInlineWidths();
+    });
   }
 
   [300, 900, 2000].forEach(function(d) { setTimeout(fullFix, d); });
@@ -2798,7 +2842,7 @@ add_action('wp_footer', function() { ?>
           s.style.setProperty('width',      '100vw', 'important');
           s.style.setProperty('min-width',  '100vw', 'important');
           s.style.setProperty('max-width',  '100vw', 'important');
-          s.style.setProperty('min-height', '420px', 'important');
+          s.style.setProperty('min-height', slideH() + 'px', 'important');
           s.style.setProperty('position',   'relative', 'important');
           s.style.setProperty('overflow',   'hidden', 'important');
         }
@@ -9080,34 +9124,10 @@ add_action('wp_head', function() {
       .woosw-btn{ min-height: 40px !important;
         display: inline-flex !important; align-items: center !important; }
 
-      /* ── THE REVIEW BANNERS, WHICH WERE SHOWING ONE STAR ───────────────
-         The owner reported "the stars are not responsive". There is no star
-         widget. The six Google-review banners are slide BACKGROUNDS, and
-         measured they are all 2.23:1 — 1580x710. Elementor pins each slide to
-         min-height 420px and paints it with background-size: cover.
-
-         Work that through at phone width: the whole banner at 390px wide is
-         175px tall, but the box demands 420. Cover satisfies the box by
-         scaling the picture 2.4x, and 58% of its width falls off the sides.
-         What survives in the middle is one star, three hundred pixels tall.
-
-         So: contain, which never crops, and a box the shape of the picture
-         instead of a fixed 420px. 45vw is 100/2.23 — the height a 2.23:1
-         banner actually needs — so the whole card is visible, at any phone
-         width, with no empty bands above or below it. ────────────────── */
-      .elementor-element-80f8de4 .swiper-slide,
-      .elementor-element-80f8de4 .swiper-slide-inner,
-      .elementor-element-80f8de4 .swiper-slide-bg{
-        min-height: 45vw !important;
-        height: 45vw !important;
-      }
-      .elementor-element-80f8de4 .swiper-slide-bg{
-        background-size: contain !important;
-        background-repeat: no-repeat !important;
-        background-position: center center !important;
-      }
-      .elementor-element-80f8de4 .elementor-slides-wrapper,
-      .elementor-element-80f8de4 .swiper-wrapper{ height: auto !important; }
+      /* The review banners are fixed where the fault actually is — in the
+         slider script further up this file, which writes the slide height and
+         background-size inline. A stylesheet rule here, however specific,
+         could never have won against that; see the note there. */
 
       /* Shop listing: the filter toggle, the theme links under each card, the
          product name itself, and the breadcrumb trail — every one of them a
