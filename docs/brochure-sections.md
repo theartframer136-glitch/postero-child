@@ -177,10 +177,38 @@ identification, and where the honest answer for a given product may be
 onto invoices, and the rule this project runs on prefers no code to someone
 else's.
 
-**#27078 is waiting on this section.** Cleared from Buddha on 2026-09-14, its
-picture is seven white horses galloping through surf at sunset with a visible
-sun and warm cream-gold clouds — which is pages 1, 2 and 4 described loosely.
-It stays cleared until one of them is the actual painting.
+### SETTLED by the pictures — 2026-09-14
+Sheets drawn by deploy run 1087. Eight of the fifteen pages had a claimant.
+
+**Seven are right.**
+
+| Page | Product |
+|---|---|
+| SH - 040001-3050 | #232 — painterly, low sun, dark treeline, reflections |
+| SH - 040004-3050 | #19025 **and** #23191 — one painting, two listings; the dark cliffs settle it |
+| SH - 040005-3050 | #23130 — golden and dark horses on black |
+| SH - 040006-3050 | #19759 — paint-splatter colour |
+| SH - 040007-3060 | #20953 — brown and white together, golden dust |
+| SH - 040008-3040 | #19636 — charging through golden cloud |
+| SH - 040009-3040 | #21014 — orange sunrise, tree, birds |
+
+**One is wrong. #27572 on SH - 040010.** The page is a galloping herd in red,
+orange, black and ivory — warm, earthy, geometric. The product is two horses'
+heads in white, cream and ochre on **deep blue**: cool palette, different
+composition, and not a herd. No Seven Horses page is this picture. Set to NONE;
+try Abstract Art.
+
+**#27078 is narrowed, not placed.** Its picture — recovered from the Buddha
+sheet, which the branch had since overwritten — is seven white horses in **open
+ocean surf with a flat sea horizon**, pale cream and peach cloud. That rules out
+page 1 (dark treeline), page 4 (cliffs), page 3 (pastel pink and lavender) and
+page 11 (dry sunlit landscape, no water). **Page 2 is the only candidate left**,
+and the page thumbnails are room mock-ups in which the horizon and wave pattern
+are not legible enough to be sure. So it stays cleared, exactly as promised
+before the comparison began: unclear is recorded as unclear.
+
+**Seven pages have no product**: 2, 3, 11, 12, 13, 14, 15. If #27078 is page 2,
+six.
 
 ## How the old reading was recorded
 
