@@ -18138,6 +18138,75 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
   .wishlist_table td.product-thumbnail img{width:64px!important;height:64px!important}
   .wishlist_table td.product-name a{font-size:14px!important}
 }
+
+/* ── PHONES AND SMALL TABLETS ───────────────────────────────────────────────
+   Measured on the live wishlist at 420px, 2026-09-14: the saved item's name
+   rendered as a link 22px wide and 1483px TALL — one character per line, all
+   the way down the page.
+
+   Same cause as the inventory table. This theme prints a global rule for every
+   page at 781px and under — table{display:block;width:100%;max-width:100%} —
+   so a wide prose table scrolls in its own box. It takes this table out of
+   table layout too, the cells collapse toward zero, and overflow-wrap:
+   break-word (set on td by the same block) then breaks the title
+   mid-character.
+
+   The rules above only ever addressed .wishlist_table, the OTHER wishlist
+   plugin's class. The plugin actually running here renders .woosw-items, which
+   had no mobile treatment at all.
+
+   A row is one saved artwork, so on a phone it becomes one card. This uses
+   flex rather than a fixed grid deliberately: the cells this plugin emits vary
+   with its settings — name, price, stock, date, add-to-cart, remove — and a
+   grid with named areas would drop any cell it had not been told about. Flex
+   lays out whatever arrives, and giving the info cell a flex-basis is what
+   actually fixes the 22px crush. ─────────────────────────────────────────── */
+@media (max-width:781px){
+  .woosw-list table.woosw-items{display:block!important;width:100%!important;
+    min-width:0!important;max-width:100%!important;border-spacing:0!important;}
+  .woosw-items thead{display:none!important;}
+  .woosw-items tbody{display:block!important;width:100%!important;}
+
+  .woosw-items tr,.woosw-items tr.woosw-item{
+    display:flex!important;flex-wrap:wrap!important;align-items:center!important;
+    gap:10px 12px!important;padding:14px!important;margin:0 0 12px!important;
+    border-radius:14px!important;width:auto!important;}
+  .woosw-items td,.woosw-item td{display:block!important;padding:0!important;
+    border:0!important;width:auto!important;border-radius:0!important;
+    text-align:left!important;vertical-align:top!important;}
+
+  .woosw-item--image,td.woosw-item--image{flex:0 0 72px!important;}
+  .woosw-item--image img,.woosw-items td img{width:72px!important;height:72px!important;}
+
+  /* The cell that was 22px wide. A flex-basis is the whole fix. */
+  .woosw-item--info,td.woosw-item--info{flex:1 1 190px!important;min-width:0!important;}
+  .woosw-item--name a,.woosw-item--info a{font-size:14px!important;line-height:1.4!important;
+    display:-webkit-box!important;-webkit-line-clamp:3;-webkit-box-orient:vertical;
+    overflow:hidden!important;word-break:normal!important;overflow-wrap:break-word!important;}
+
+  .woosw-item--price,td.woosw-item--price{flex:0 0 auto!important;font-size:14px!important;}
+  .woosw-item--stock,td.woosw-item--stock{flex:0 0 auto!important;}
+  /* Buying and removing get a line of their own, full width, so neither ends
+     up a sliver squeezed against the card's edge. */
+  .woosw-item--actions,td.woosw-item--actions,
+  .woosw-item--atc,td.woosw-item--atc,
+  .woosw-item--add,td.woosw-item--add{flex:1 1 100%!important;min-width:0!important;
+    padding-right:0!important;text-align:left!important;}
+  .woosw-items td a[href*="add-to-cart="],.woosw-item--add a{width:100%!important;
+    justify-content:center!important;}
+
+  /* The share row measured 450px in a 420px window — 77px of it off the
+     screen, taking part of the copy field with it. */
+  .woosw-copy,.woosw-actions{max-width:100%!important;width:auto!important;
+    flex-wrap:wrap!important;box-sizing:border-box!important;}
+  .woosw-copy input,.woosw-copy .woosw-copy-text{flex:1 1 100%!important;
+    min-width:0!important;max-width:100%!important;box-sizing:border-box!important;}
+  #woosw_copy_btn.button,.woosw-copy button{font-size:12px!important;
+    flex:0 0 auto!important;}
+
+  /* Under the 40px a fingertip needs. */
+  .af-ca-btn,.af-rel-nav{width:40px!important;height:40px!important;}
+}
 </style>
 <script>
 (function(){
@@ -18231,9 +18300,32 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
   // width that matches, measure where the related row's cards actually start
   // and end and put the saved-item card on exactly those edges.
   function alignSections(){
-    var rel  = document.querySelector('.af-wl-related');
     var list = document.querySelector('.woosw-list');
-    if (!rel || !list || !list.parentElement) return;
+    if (!list) return;
+    var heads = ['.af-wl-head', '.woosw-actions'].map(function(sel){
+      return document.querySelector(sel);
+    });
+
+    // On a phone there are no two columns to line up. The related row is a
+    // carousel whose first card starts well inside the page, and copying that
+    // inset onto the saved-item card squeezed it to a sliver: measured on the
+    // live page at 420px wide, this set margin-left AND margin-right to 121px,
+    // leaving 178px of usable width. Clear whatever a wider layout wrote and
+    // let the container's own width stand. This runs on every resize, so a
+    // window dragged narrow is corrected too.
+    if (window.innerWidth <= 781) {
+      [list].concat(heads).forEach(function(el){
+        if (!el) return;
+        ['margin-left','margin-right','max-width','width',
+         'padding-left','padding-right','box-sizing'].forEach(function(prop){
+          el.style.removeProperty(prop);
+        });
+      });
+      return;
+    }
+
+    var rel = document.querySelector('.af-wl-related');
+    if (!rel || !list.parentElement) return;
     var cards = rel.querySelectorAll('li.product');
     if (!cards.length) return;
     var first = cards[0].getBoundingClientRect();
@@ -18249,8 +18341,7 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
     list.style.setProperty('margin-left', left + 'px', 'important');
     list.style.setProperty('margin-right', right + 'px', 'important');
     // the heading and the share row belong on the same edges
-    ['.af-wl-head', '.woosw-actions'].forEach(function(sel){
-      var el = document.querySelector(sel);
+    heads.forEach(function(el){
       if (!el) return;
       el.style.setProperty('box-sizing', 'border-box', 'important');
       el.style.setProperty('max-width', 'none', 'important');
