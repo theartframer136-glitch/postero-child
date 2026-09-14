@@ -19,7 +19,7 @@
  *      This is a reformat, not a renumbering, and a difference here is a
  *      product being moved onto a different painting.
  *
- *   2. NOTHING GAINS A CODE. The book grew by 33 pages this round and the
+ *   2. NOTHING GAINS A CODE BY ARITHMETIC. The book grew by 33 pages and the
  *      owner has said the new ones went in a mix of places, so which page a
  *      number names is not provable from the number. Every code the book
  *      refused before must still be refused: no product may land on one of
@@ -103,6 +103,9 @@ function code_parts($code) {
 }
 
 $moved = array(); $gained = array(); $lost = array(); $tried = 0;
+// Gains that are legitimate: the six-digit spelling of a page the book HAS.
+// Kept apart from $gained so the arithmetic guarantee stays exactly as strict.
+$gained_six = array();
 foreach ($book as $pre => $sec) {
     // every shape the catalogue could hold, past the end of both numberings,
     // plus the -GF suffix the Gold Foil importer adds and a lower-case spelling
@@ -128,7 +131,17 @@ foreach ($book as $pre => $sec) {
                     sprintf('%s - %02d%02d%s', $pre, $sec['no'], $n, (strpos($f, '-GF') !== false ? '-GF' : '')));
             }
 
-            if ($was === '' && $now !== '') { $gained[] = "$f -> $now"; continue; }
+            if ($was === '' && $now !== '') {
+                $sp = af_artcode_split($f);
+                if ($sp && strlen($sp['digits']) === 6 && $n >= 1 && $n <= $sec['count']) {
+                    // Names a real page of today's book in today's spelling.
+                    // Not arithmetic: nothing was translated to get here.
+                    $gained_six[] = "$f -> $now";
+                } else {
+                    $gained[] = "$f -> $now";
+                }
+                continue;
+            }
             if ($was !== '' && $now === '') { $lost[]   = "$f (was $was)";  continue; }
             if ($was === '' && $now === '') continue;
             if (code_parts($was) !== code_parts($now)) $moved[] = "$f: $was -> $now";
@@ -139,8 +152,17 @@ printf("  %d codes replayed across all 21 sections\n", $tried);
 check('not one names a different page than it did', $moved, array());
 check('not one stopped resolving',                  $lost,  array());
 
-echo "\n=== GUARANTEE 2: nothing gains a code ===\n";
-check('no code the book refused now resolves', $gained, array());
+echo "\n=== GUARANTEE 2: nothing gains a code BY ARITHMETIC ===\n";
+check('no old code — label or four digits — reaches a page it could not', $gained, array());
+
+// The only codes that newly resolve are the six-digit spellings of the pages
+// the book gained. Pinned to the exact count so this cannot quietly widen: if
+// a future edit lets anything else through, one of these two numbers moves.
+$new_pages = 0;
+foreach ($book as $sec) { $new_pages += $sec['count'] - $sec['legacy']; }
+check('and the only new answers are the book\'s own new pages, spelled in six digits',
+      count($gained_six), $new_pages);
+check('which is the 33 pages the book gained', $new_pages, 33);
 
 echo "\n=== and it really is six digits now ===\n";
 $widened = 0;
@@ -157,10 +179,26 @@ check('TP 04 never had a page',  af_artcode_book_code('TP 04'), '');
 check('HD 14 never had a page',  af_artcode_book_code('HD 14'), '');
 check('AL is not a section',     af_artcode_book_code('AL 05'), '');
 check('LR 32 is past the end',   af_artcode_book_code('LR 32'), '');
-check('a page the book only gained now is still refused',
+check('a page the book only gained is still refused from the OLD numbering',
       af_artcode_book_code('LI 48'), '');
-check('nor by its six-digit spelling',
-      af_artcode_book_code('LI - 190048'), '');
+
+// The rule is "nothing lands on a new page BY ARITHMETIC", and six digits are
+// not arithmetic: such a code already names a page in today's numbering, so
+// there is no translation that could put a product somewhere nobody checked.
+// The only way one is written is tools/artcode-corrections.csv, which is a
+// picture held against a page. Bounding this at 'legacy' too made the book's
+// new pages permanently unreachable and a verified correction inexpressible —
+// Hindu Deities #24775 is the Bharat Mata with the lion, which is HD 30.
+check('but its six-digit spelling names a real page, so it resolves',
+      af_artcode_book_code('LI - 190048'), 'LI - 190048');
+check('and the aspect comes with it',
+      af_artcode_full_code('LI - 190048'), 'LI - 190048-' . af_artcode_page_size('LI', 48));
+check('past the end of the book is still refused, six digits or not',
+      af_artcode_book_code('LI - 190052'), '');
+check('HD 30 resolves in six digits',
+      af_artcode_book_code('HD - 080030'), 'HD - 080030');
+check('HD 31 does not — the book has 30',
+      af_artcode_book_code('HD - 080031'), '');
 check('not a code at all',       af_artcode_book_code('hello'), '');
 
 echo "\n=== the gap arithmetic still shifts what follows it ===\n";

@@ -203,5 +203,68 @@ check('a code in no section passes through', af_corr_page_key('AL 05'), 'AL 05')
 check('NONE is left alone',     af_corr_page_key('NONE'), 'NONE');
 check('empty stays empty',      af_corr_page_key(''), '');
 
+echo "\n=== A CHAIN THAT CLIMBS, written from the top down ===\n";
+// Hindu Deities moves the other way from Radha Krishna: each product holds page
+// N and is the picture on N+1. The free end is then the TOP, so the rows have
+// to descend. Same rule as before — write from the free end — but it points the
+// other way, and getting it backwards is refusals all the way down.
+$cat = array(801 => 'HD - 080009-5030', 802 => 'HD - 080010-4030', 803 => 'HD - 080011-5030');
+$rows = array(array(803, 'HD - 080012'), array(802, 'HD - 080011'), array(801, 'HD - 080010'));
+list($out, $codes) = run_pass($cat, $rows);
+check('nothing refused going down', (bool) preg_match('/REFUSED/', $out), false);
+check('#803 -> HD 12', $codes[803], 'HD - 080012');
+check('#802 -> HD 11', $codes[802], 'HD - 080011');
+check('#801 -> HD 10', $codes[801], 'HD - 080010');
+
+// ORDER DOES NOT ACTUALLY MATTER, and it is worth being exact about why,
+// because the Radha Krishna notes claimed it did. Every product named in the
+// file is taken out of the ownership map before any row is read, so a row may
+// claim a page held by another product in the same file whichever way round
+// they are written. What matters is not the order but the MEMBERSHIP: the
+// product standing on the page you want must itself be in the file, moved or
+// cleared. #21320 was refused in Radha Krishna because #31829 was missing from
+// the file entirely — not because the rows were the wrong way round.
+list($out2, $codes2) = run_pass($cat, array_reverse($rows));
+check('the same rows in the opposite order do the same thing', $codes2, $codes);
+check('and still refuse nothing', (bool) preg_match('/REFUSED/', $out2), false);
+
+// The membership rule, shown failing: #805 is NOT in the file, so its page is
+// genuinely occupied and the row asking for it is refused however it is ordered.
+$cat3  = array(804 => 'HD - 080009-5030', 805 => 'HD - 080010-4030');
+list($out3, $codes3) = run_pass($cat3, array(array(804, 'HD - 080010')));
+check('a page held by a product NOT in the file is still refused',
+      (bool) preg_match('/REFUSED/', $out3), true);
+
+echo "\n=== A PRODUCT THAT MOVES LEAVES ITS OLD PAGE ===\n";
+// The bug this caught: an earlier row said #901 was already on HD 11, which put
+// it back into the ownership map there; a later row moved it to HD 12 but never
+// took the HD 11 entry out. #902, whose picture IS HD 11, was then refused.
+$cat  = array(901 => 'HD - 080011-5030', 902 => 'HD - 080010-4030');
+$rows = array(
+    array(901, 'HD - 080011'),   // says what it already holds
+    array(901, 'HD - 080012'),   // then moves it
+    array(902, 'HD - 080011'),   // needs the page 901 just left
+);
+list($out, $codes) = run_pass($cat, $rows);
+check('the mover ends up on its new page', $codes[901], 'HD - 080012');
+check('and the page it left is handed on', $codes[902], 'HD - 080011');
+check('nothing refused', (bool) preg_match('/REFUSED/', $out), false);
+check('two rows for one product are reported', (bool) preg_match('/WARNING: more than one row/', $out), true);
+
+echo "\n=== A CLEARED PRODUCT ALSO LEAVES ITS PAGE ===\n";
+$cat  = array(911 => 'HD - 080006-5030', 912 => 'HD - 080018-5030');
+$rows = array(array(911, 'HD - 080006'), array(911, 'NONE'), array(912, 'HD - 080006'));
+list($out, $codes) = run_pass($cat, $rows);
+check('#911 cleared', $codes[911], '');
+check('#912 took the freed page', $codes[912], 'HD - 080006');
+check('nothing refused', (bool) preg_match('/REFUSED/', $out), false);
+
+echo "\n=== A PAGE THE BOOK GAINED CAN BE ASSIGNED IN SIX DIGITS ===\n";
+$cat = array(921 => 'HD - 080006-5030');
+list($out, $codes) = run_pass($cat, array(array(921, 'HD - 080030')));
+check('#921 -> HD 30', $codes[921], 'HD - 080030');
+check('and the old numbering still cannot reach it',
+      af_artcode_book_code('HD 30'), '');
+
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail ? 1 : 0);

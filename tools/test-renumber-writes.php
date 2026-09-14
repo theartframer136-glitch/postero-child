@@ -98,10 +98,33 @@ foreach (af_artcode_book() as $pre => $sec) {
 check('not one of the 340 names a different page', $moved, array());
 check('and every one of them got a code', $n_done, 340);
 
-echo "\n=== nothing gains a code ===\n";
-foreach (array('TP 04', 'HD 14', 'AL 05', 'LR 32', 'LI 48', 'LI - 190048', 'hello', '') as $c) {
+echo "\n=== nothing gains a code BY ARITHMETIC ===\n";
+// An old code must never translate onto one of the book's new pages. This is
+// the live writing path — renumber-artcodes.php runs with AF_APPLY=1 on every
+// deploy — so a code that resolves here reaches real SKUs.
+foreach (array('TP 04', 'HD 14', 'AL 05', 'LR 32', 'LI 48', 'hello', '') as $c) {
     check(($c === '' ? '(empty)' : $c) . ' is still refused', what_the_deploy_writes($c), '');
 }
+
+// The six-digit spelling of a page the book HAS is a different matter, and is
+// deliberately allowed: it names today's page directly, so nothing was
+// translated to get there. A product can only come to hold one by a row in
+// tools/artcode-corrections.csv, which means a picture was held against that
+// page. Hindu Deities is where this became necessary — #24775 is the Bharat
+// Mata with the lion and the map of India, which is HD 30, and HD's legacy
+// numbering stops at 27.
+//
+// What this pass must NOT do is invent one, so the guard that matters is the
+// one above: no old code reaches a new page.
+check('a new page, named in six digits, is written with its aspect',
+      what_the_deploy_writes('LI - 190048'), 'LI - 190048-' . af_artcode_page_size('LI', 48));
+check('HD 30 likewise',
+      what_the_deploy_writes('HD - 080030'), 'HD - 080030-' . af_artcode_page_size('HD', 30));
+check('but past the end of the book is still refused',
+      what_the_deploy_writes('HD - 080031'), '');
+check('and it still settles on a second pass',
+      what_the_deploy_writes(what_the_deploy_writes('HD - 080030')),
+      what_the_deploy_writes('HD - 080030'));
 
 echo "\n=== the SKU the customer sees follows the code ===\n";
 check('LB - 090001-3050',    af_sku_code_part('LB - 090001-3050'),    'LB-090001-3050');
