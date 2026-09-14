@@ -14,7 +14,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 
 | Pages | Codes | Section | Now | Was | Read? |
 |---|---|---|---|---|---|
-| 5–101 | RK 010001–010097 | Radha Krishna | 97 | 91 | NO (biggest left) |
+| 5–101 | RK 010001–010097 | Radha Krishna | 97 | 91 | DONE — 2026-09-14 |
 | 102–104 | LG 020001–020003 | Lakshmi–Ganesha | 3 | 3 | NO |
 | 105–122 | LS 030001–030018 | Lord Shiva | 18 | 15 | stale — 3 new |
 | 123–137 | SH 040001–040015 | Seven Horses | 15 | 12 | stale — 3 new |
@@ -145,6 +145,70 @@ someone else's.
 bodhi leaf. Nothing in the catalogue claims it and nothing seen here is it.
 
 So Buddha finishes at **11 pages right, 3 products cleared, 1 page empty**.
+
+## Seven Horses (SH) — pages read 2026-09-14, 15 pages
+
+The book half, read from Canva pages 123–137. The product pictures are being
+drawn as this goes in; the match itself is not done.
+
+| Page | The book shows |
+|---|---|
+| SH - 040001-3050 | white horses, shallow water, warm golden sunset, sun disc visible |
+| SH - 040002-3050 | white horses in water, cooler and brighter, sun behind, blue-white |
+| SH - 040003-3050 | white horses in surf, **pastel pink and lavender** sky, dreamy |
+| SH - 040004-3050 | white horses, dramatic cloud, splashing, blue-grey with warm light |
+| SH - 040005-3050 | **golden and dark** horses on **black**, gold manes |
+| SH - 040006-3050 | bold splash colours — magenta, orange, blue, teal — paint-splatter |
+| SH - 040007-3060 | **brown and white** horses together, golden dust, wide |
+| SH - 040008-3040 | white horses charging through golden **clouds**, sunburst |
+| SH - 040009-3040 | sunrise, **orange-red** sky, big sun, tree silhouette, birds |
+| SH - 040010-4030 | **abstract** horses, red/orange/black geometric, portrait |
+| SH - 040011-3060 | white horses, sunlit landscape, dust, wide |
+| SH - 040012-5030 | white horses with **golden flame manes**, orange flowers, portrait |
+| SH - 040013-3050 | red/yellow/blue/teal colour blocks, mixed dark and white horses |
+| SH - 040014-3040 | white horses, teal and orange **impressionist** brushwork |
+| SH - 040015-3040 | white horses, **3D relief** style, big sun, teal and gold, sculptural |
+
+**The hard part, named in advance.** Pages 1, 2, 3, 4 and 11 are all white
+horses in or above water and differ mainly in sky colour, sun position and
+aspect. This is the section where "it looks like horses in water" is not an
+identification, and where the honest answer for a given product may be
+*unclear*. Say unclear rather than guess: a wrong code travels onto the SKU and
+onto invoices, and the rule this project runs on prefers no code to someone
+else's.
+
+### SETTLED by the pictures — 2026-09-14
+Sheets drawn by deploy run 1087. Eight of the fifteen pages had a claimant.
+
+**Seven are right.**
+
+| Page | Product |
+|---|---|
+| SH - 040001-3050 | #232 — painterly, low sun, dark treeline, reflections |
+| SH - 040004-3050 | #19025 **and** #23191 — one painting, two listings; the dark cliffs settle it |
+| SH - 040005-3050 | #23130 — golden and dark horses on black |
+| SH - 040006-3050 | #19759 — paint-splatter colour |
+| SH - 040007-3060 | #20953 — brown and white together, golden dust |
+| SH - 040008-3040 | #19636 — charging through golden cloud |
+| SH - 040009-3040 | #21014 — orange sunrise, tree, birds |
+
+**One is wrong. #27572 on SH - 040010.** The page is a galloping herd in red,
+orange, black and ivory — warm, earthy, geometric. The product is two horses'
+heads in white, cream and ochre on **deep blue**: cool palette, different
+composition, and not a herd. No Seven Horses page is this picture. Set to NONE;
+try Abstract Art.
+
+**#27078 is narrowed, not placed.** Its picture — recovered from the Buddha
+sheet, which the branch had since overwritten — is seven white horses in **open
+ocean surf with a flat sea horizon**, pale cream and peach cloud. That rules out
+page 1 (dark treeline), page 4 (cliffs), page 3 (pastel pink and lavender) and
+page 11 (dry sunlit landscape, no water). **Page 2 is the only candidate left**,
+and the page thumbnails are room mock-ups in which the horizon and wave pattern
+are not legible enough to be sure. So it stays cleared, exactly as promised
+before the comparison began: unclear is recorded as unclear.
+
+**Seven pages have no product**: 2, 3, 11, 12, 13, 14, 15. If #27078 is page 2,
+six.
 
 ## How the old reading was recorded
 
@@ -1120,3 +1184,94 @@ reissued when the code changes. They are handed out in product-id order, the
 same order as before, so a pair keeps its A and B — but a letter is no longer
 guaranteed to be the one printed on an old invoice, because the code it was
 attached to is not either.
+
+
+---
+
+## Radha Krishna — read 2026-09-14, from the pictures
+
+**57 products, 56 pages claimed. Thirty of them were on the wrong painting.**
+
+Product pictures came from the contact sheets of deploy run 1090; every book
+page below was identified by the label PRINTED ON THE PAGE, so the canva-page
+offset cannot have introduced an error.
+
+### What was actually wrong: the catalogue runs one page ahead of the book
+
+Not scattered mistakes. Twenty-six of the thirty are a single fault repeated —
+the product holds page N and is the painting on page N−1 — in four unbroken
+runs:
+
+| run | products | what settles it |
+|---|---|---|
+| 27→34 | #15135 #20349 #15974 #19147 #13916 #18107 #14617 #21320 | Jagannath trio, white cows, the graffiti flute player |
+| 41→47 | #15546 #13662 #16823 #18600 #15217 #18788 #19822 | eyes open vs eyes closed, Vishnu, the baby behind the curtain |
+| 49→50 | #18355 #30592 | the GOVINDA poster |
+| 54→58 | #24230 #24033 #26690 #23972 #25901 | the Vishwarupa, Yashoda and the baby |
+
+and four singles on the same −1 pattern: #19392 (23→22), #11551 (26→25),
+#16318 (40→39), #25419 (61→60), #30836 (64→63).
+
+Each run starts on a page no product holds, which is why they can be written at
+all — and why the file's ROW ORDER MATTERS. A run must be written from its free
+end upwards, or the first row asks for a page whose occupant has not moved out
+of it yet. That is checked, not assumed: tools/test-corrections-chain.php.
+
+Two that are not part of any run:
+
+  #26206  RK 68 → RK 53   the black idol in white and silver. A photograph, so
+                          there is nothing to mistake it for.
+  #31829  RK 34 → RK 33   the same painting as #14617, a wider crop. They share
+                          the code; the SKU letter keeps the two listings apart.
+                          It has to move with #14617 or RK 34 is never free.
+
+### What this says about the book
+
+RK went from 91 pages to 97, and the catalogue sits ONE PAGE AHEAD through the
+middle of the section. Appending six pages to the end could not do that. A page
+that used to sit before RK 27 is gone, and the section was re-laid-out rather
+than added to. **Worth putting to the owner** — the same thing may have happened
+in the other nine sections that gained pages.
+
+### Left alone, and why
+
+Fifteen products are on the right page and were not touched.
+
+Thirteen could not be placed and keep what they hold: #25962, #17280, #7769,
+#31212, #17212, #7824, #13355, #28900, #30653, #31334, #27325, #22138. Most are
+photographs of dressed temple idols, and the book has a dozen of those; the
+thumbnails do not separate them. Canva's export host is blocked from the
+session, so a higher-resolution look needs someone who can open the book.
+
+  #30470  is the Radha-on-a-lotus with swans, which is RK 88 — but RK 88 is held
+          by #22138, and until #22138 is placed there is nowhere for it to go.
+          Recorded here rather than forced.
+
+  #24653  CLEARED. RK 1 is a bright rainbow painting on a cream ground with
+          drips and a bird; this is a muted amber oil. It is not that page. RK 6
+          and RK 16 are both candidates and neither could be confirmed, so it
+          carries no code rather than someone else's.
+
+  #8301   RK 6 → RK 1, on three features shared with page 1 and absent from
+          page 6: the cream ground, the paint drips, the single bird upper
+          right. The weakest call in this section — RK 6 is the alternative.
+
+### Two bugs this audit found in the tooling
+
+Neither could have been seen without a section this size.
+
+**The corrections pass could not move a run at all.** It read the catalogue into
+an ownership map once and never let a product out of the code it held, so every
+row of a chain was "REFUSED — already belongs to", in either file order. All
+twenty-six of the run corrections above would have been refused.
+
+**The aspect broke the clash check.** Since renumber-artcodes.php began
+appending it, products hold `RK - 010028-3050` while a correction row names
+`RK - 010028`. The pass keyed on the whole string, so it could not see that a
+page was occupied — it would have put two products on one painting — and it read
+every already-corrected product as wrong again, ready to strip the aspect and
+let renumber put it back once per deploy for ever.
+
+Both are fixed and both are tested. The comparison is now page-to-page
+(`af_corr_page_key`), and a product named in the file vacates the code it holds
+before anything is checked.
