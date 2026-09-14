@@ -18573,6 +18573,79 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
      stylesheet can override — it reads the width there instead. Only the
      carousel arrows are raised here. */
   .af-rel-nav{width:40px!important;height:40px!important;}
+
+  /* ── THE SAVED PIECE, MEASURED AT LAST ──────────────────────────────────
+     Everything above this was written without ever having seen the card.
+     A guest's wishlist lives in a cookie in their own browser, so every check
+     I ran opened /wishlist/ and was told, correctly, that there was nothing
+     saved. The rules were aimed at markup I had guessed — one of them at
+     .woosw-page, which does not exist on this page at all.
+
+     Measured at 420px, with a piece actually saved, the card lays out like
+     this and every complaint in the owner's video is visible in the numbers:
+
+       td.woosw-item--remove    30x30 at left 33   the x, loose beside the photo
+       td.woosw-item--image     88x88 at left 77
+       td.woosw-item--info      354x81             on its own line, fine
+       td.woosw-item--actions   172x63 at left 215 Add to Cart stranded right,
+                                                   180px of empty gutter beside it
+
+     So: the photograph and the words share the top line, the buying control
+     gets the full width underneath where a thumb can reach it, and the x goes
+     to the corner of the card — which is where it belongs and where it stops
+     competing with the photograph for the first line. ────────────────────── */
+  .woosw-items tr.woosw-item{
+    position:relative!important;padding:14px!important;
+    align-items:flex-start!important;}
+
+  .woosw-items tr.woosw-item > td.woosw-item--image{
+    flex:0 0 88px!important;order:1!important;}
+  .woosw-items tr.woosw-item > td.woosw-item--image img{
+    width:88px!important;height:88px!important;border-radius:10px!important;}
+
+  .woosw-items tr.woosw-item > td.woosw-item--info{
+    flex:1 1 calc(100% - 148px)!important;order:2!important;
+    padding-right:34px!important;min-width:0!important;}
+
+  /* Full width, its own line, and tall enough to hit. */
+  .woosw-items tr.woosw-item > td.woosw-item--actions{
+    flex:0 0 100%!important;width:100%!important;order:3!important;
+    min-width:0!important;padding:0!important;text-align:left!important;}
+  .woosw-items tr.woosw-item td.woosw-item--actions .opal-add-to-cart-button,
+  .woosw-items tr.woosw-item td.woosw-item--actions .woosw-item--atc{
+    width:100%!important;display:block!important;}
+  .woosw-items tr.woosw-item td.woosw-item--actions a.button,
+  .woosw-items tr.woosw-item td.woosw-item--actions a.add_to_cart_button{
+    width:100%!important;min-height:44px!important;
+    display:inline-flex!important;align-items:center!important;
+    justify-content:center!important;box-sizing:border-box!important;}
+
+  /* The x, in the corner of its own card. */
+  .woosw-items tr.woosw-item > td.woosw-item--remove{
+    position:absolute!important;top:8px!important;right:8px!important;
+    flex:0 0 auto!important;order:0!important;z-index:2!important;}
+  .woosw-items tr.woosw-item > td.woosw-item--remove span{
+    width:34px!important;height:34px!important;line-height:34px!important;
+    text-align:center!important;border-radius:50%!important;font-size:16px!important;}
+
+  /* ── THE SHARE ROW ──────────────────────────────────────────────────────
+     Measured: the label 87px, the field 265px beside it, and the Copy button
+     dropped onto a line of its own at 122x61 — a tall lopsided block sitting
+     under a field whose address it cannot fit. Give the label its own line,
+     the field the full width, and put Copy beside it at a sane height. */
+  .woosw-actions .woosw-copy{flex-wrap:wrap!important;gap:8px!important;
+    align-items:center!important;}
+  .woosw-copy .woosw-copy-label{flex:0 0 100%!important;width:100%!important;
+    font-size:13px!important;}
+  .woosw-copy .woosw-copy-url{flex:1 1 200px!important;min-width:0!important;}
+  .woosw-copy .woosw-copy-url input#woosw_copy_url{
+    width:100%!important;height:44px!important;box-sizing:border-box!important;
+    font-size:13px!important;padding:0 12px!important;}
+  .woosw-copy .woosw-copy-btn{flex:0 0 auto!important;}
+  .woosw-copy .woosw-copy-btn button#woosw_copy_btn.button{
+    height:44px!important;min-height:44px!important;padding:0 20px!important;
+    font-size:12px!important;display:inline-flex!important;
+    align-items:center!important;justify-content:center!important;}
 }
 </style>
 <script>
