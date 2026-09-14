@@ -27,11 +27,26 @@ const puppeteer = require('puppeteer-core');
 const argv = process.argv.slice(2);
 const WIDTH = /^\d+$/.test(argv[0] || '') ? parseInt(argv.shift(), 10) : 420;
 const BASE = 'https://theartframer.us';
+// The customer's journey, not a sample. These are the pages someone actually
+// passes through between arriving and paying, plus the ones the owner and
+// staff use daily. Order matters only for reading the report.
 const URLS = argv.length ? argv : [
-  BASE + '/',
-  BASE + '/?s=Krishna',
-  BASE + '/shop/',
-  BASE + '/inventory-management/',
+  BASE + '/',                                                    // home
+  BASE + '/shop/',                                               // the aisle
+  BASE + '/product/radha-krishna-mosaic-art-canvas-wall-art/',   // a piece
+  BASE + '/?s=Krishna',                                          // search results
+  BASE + '/cart/',
+  BASE + '/checkout/',
+  BASE + '/my-account/',
+  BASE + '/wishlist/',
+  BASE + '/try-on-wall/',
+  BASE + '/blog/',
+  BASE + '/about/',
+  BASE + '/contact/',
+  BASE + '/artists/',
+  BASE + '/help-support/',
+  BASE + '/order-tracking/',
+  BASE + '/inventory-management/',                               // staff
 ];
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
