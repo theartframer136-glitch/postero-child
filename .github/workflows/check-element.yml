@@ -1,0 +1,33 @@
+name: Inspect One Element
+
+# Print the subtree under a selector, measured on a real phone-sized Chrome:
+# every box, the background image and how it is sized, the images inside it.
+#
+# The mobile audit says a page is wrong; this says why a particular widget is.
+# Read-only — it loads a page and measures it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Page to load
+        default: https://theartframer.us/
+      selector:
+        description: CSS selector to look inside
+        required: true
+      width:
+        description: Viewport width
+        default: '420'
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Look inside the element
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afhead/node_modules node tools/diag-element.js \
+            "${{ inputs.url }}" "${{ inputs.selector }}" "${{ inputs.width }}" || true
