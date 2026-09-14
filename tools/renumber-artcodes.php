@@ -49,8 +49,11 @@ if ( ! function_exists( 'af_artcode_book_code' ) ) {
 	$af_book = get_stylesheet_directory() . '/inc/artcode-book.php';
 	if ( file_exists( $af_book ) ) { require_once $af_book; }
 }
-if ( ! function_exists( 'af_artcode_book_code' ) ) {
-	echo "inc/artcode-book.php is not loaded — nothing can be renumbered safely.\n=== DONE ===\n";
+// Both are required. af_artcode_full_code() is the newer of the two and is what
+// this pass writes, so checking only for the other one would let a half-updated
+// theme through and fatal in the loop instead of stopping here with a sentence.
+if ( ! function_exists( 'af_artcode_book_code' ) || ! function_exists( 'af_artcode_full_code' ) ) {
+	echo "inc/artcode-book.php is missing or out of date — nothing can be renumbered safely.\n=== DONE ===\n";
 	return;
 }
 
@@ -83,7 +86,12 @@ foreach ( $ids as $pid ) {
 	$code = is_string( $code ) ? preg_replace( '/\s+/', ' ', trim( $code ) ) : '';
 	if ( $code === '' ) { $nocode++; continue; }
 
-	$new = af_artcode_book_code( $code );
+	// The WHOLE code the page prints, aspect and all: "LB - 090001-3050".
+	// af_artcode_book_code() gives the page; af_artcode_full_code() appends the
+	// aspect that page is printed at, which is what the owner asked every
+	// product to carry. Both are idempotent, so a second deploy changes
+	// nothing — tested, because this pass runs with apply on every time.
+	$new = af_artcode_full_code( $code );
 	if ( $new === '' ) {
 		$refused[ $pid ] = array( $code, af_artcode_book_refusal( $code ) );
 		continue;

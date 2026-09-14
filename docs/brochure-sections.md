@@ -109,26 +109,42 @@ data against the real pages.
 | LB - 090012-6030 | golden watercolour head merging with a bodhi leaf | **nothing** |
 | LB - 090013-5030 | **Lord Mahavira's** enlightenment, golden, attendants | #16932 |
 
-### Suspects, and what they are suspected on
-Titles only — the pictures are not in hand yet, and this file's own rule is that
-titles lie in both directions. These are leads, not findings.
+### SETTLED by the pictures — 2026-09-14
+Contact sheets drawn by deploy run 1081 and held against all thirteen pages.
 
-- **#27078 "Seven Horses Sunset Beach"** on LB - 090005, a stone Buddha. A Seven
-  Horses picture belongs in SH. Strongest lead in the section.
-- **#28534 "Kirtan Celebration"** on LB - 090006, a Buddha with a peacock.
-- **#20526** on LB - 090003 is titled 3×4, but that page is 2×6 and offers only
-  2×6 and 1.5×5. The aspect disagreeing with the product's own size is the
-  cross-check this section was chosen to try, and it fires here.
-- **LB - 090012 has no product at all** — one of the 167 pages nothing claims.
-- **LB - 090013 shows Mahavira**, a Jain tirthankara, in the Buddha section,
-  and #16932 is titled "Buddha Enlightenment Scene". The page and the product
-  may well be the same picture; the section is what looks odd.
+**Eleven pages are right.** #7676 (2), #20648 (4), #16096 (5), #20709 (6),
+#20892 (7), #16382 (8), #20471 (9), #15402 (10), #16505 (11) and #16932 (13)
+are each the painting their page prints. #220 and #7839 on page 1 are the same
+painting listed twice — one shown in a room, one as the artwork — so the pair is
+deliberate, not a clash.
 
-Four pages carry two products each (1, 5, 6, 8). At most one of each pair can be
-the page's picture unless the pair is two listings of one painting.
+**#20526 on page 3 is CLEARED, and the way it was suspected is the lesson.**
+It was flagged because its title says 3×4 while the page is 2×6. The picture is
+the page: golden Buddha, deep teal carved ground, gold and white lotuses, and
+genuinely the wide panorama. **The title is wrong, not the code.** So the aspect
+cross-check fires on titles as readily as on codes, and a title's size is no more
+trustworthy than its words.
 
-**Nothing here is settled.** Settling it needs the product pictures, which
-arrive by running the deploy with `art_sheets: LB`.
+**Three are wrong, and none of them is a Buddha's page:**
+
+| Product | Its picture | Claimed |
+|---|---|---|
+| **#27078** | seven white horses galloping through surf at sunset | LB - 090005, a stone Buddha |
+| **#28534** | Radha and Krishna with gopis playing instruments | LB - 090006, a peacock Buddha |
+| **#27811** | pale cream Buddha head, close-cropped, light beige | LB - 090008, gold in profile on near-black |
+
+#27078 belongs in Seven Horses and #28534 in Radha Krishna, but which page is
+not knowable until those sections are read. #27811 is a Buddha and still matches
+no page of Buddha.
+
+All three are set to NONE in `tools/artcode-corrections.csv`, on this file's own
+rule: a picture that is on no page of the book carries no code rather than
+someone else's.
+
+**LB - 090012 still has no product** — the golden watercolour head merging with a
+bodhi leaf. Nothing in the catalogue claims it and nothing seen here is it.
+
+So Buddha finishes at **11 pages right, 3 products cleared, 1 page empty**.
 
 ## How the old reading was recorded
 
