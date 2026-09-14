@@ -146,6 +146,42 @@ bodhi leaf. Nothing in the catalogue claims it and nothing seen here is it.
 
 So Buddha finishes at **11 pages right, 3 products cleared, 1 page empty**.
 
+## Seven Horses (SH) — pages read 2026-09-14, 15 pages
+
+The book half, read from Canva pages 123–137. The product pictures are being
+drawn as this goes in; the match itself is not done.
+
+| Page | The book shows |
+|---|---|
+| SH - 040001-3050 | white horses, shallow water, warm golden sunset, sun disc visible |
+| SH - 040002-3050 | white horses in water, cooler and brighter, sun behind, blue-white |
+| SH - 040003-3050 | white horses in surf, **pastel pink and lavender** sky, dreamy |
+| SH - 040004-3050 | white horses, dramatic cloud, splashing, blue-grey with warm light |
+| SH - 040005-3050 | **golden and dark** horses on **black**, gold manes |
+| SH - 040006-3050 | bold splash colours — magenta, orange, blue, teal — paint-splatter |
+| SH - 040007-3060 | **brown and white** horses together, golden dust, wide |
+| SH - 040008-3040 | white horses charging through golden **clouds**, sunburst |
+| SH - 040009-3040 | sunrise, **orange-red** sky, big sun, tree silhouette, birds |
+| SH - 040010-4030 | **abstract** horses, red/orange/black geometric, portrait |
+| SH - 040011-3060 | white horses, sunlit landscape, dust, wide |
+| SH - 040012-5030 | white horses with **golden flame manes**, orange flowers, portrait |
+| SH - 040013-3050 | red/yellow/blue/teal colour blocks, mixed dark and white horses |
+| SH - 040014-3040 | white horses, teal and orange **impressionist** brushwork |
+| SH - 040015-3040 | white horses, **3D relief** style, big sun, teal and gold, sculptural |
+
+**The hard part, named in advance.** Pages 1, 2, 3, 4 and 11 are all white
+horses in or above water and differ mainly in sky colour, sun position and
+aspect. This is the section where "it looks like horses in water" is not an
+identification, and where the honest answer for a given product may be
+*unclear*. Say unclear rather than guess: a wrong code travels onto the SKU and
+onto invoices, and the rule this project runs on prefers no code to someone
+else's.
+
+**#27078 is waiting on this section.** Cleared from Buddha on 2026-09-14, its
+picture is seven white horses galloping through surf at sunset with a visible
+sun and warm cream-gold clouds — which is pages 1, 2 and 4 described loosely.
+It stays cleared until one of them is the actual painting.
+
 ## How the old reading was recorded
 
 ## Landscapes (LC 01–10, pages 203–212) — read, nothing to change
