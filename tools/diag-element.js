@@ -17,7 +17,7 @@ const SEL = process.argv[3];
 const WIDTH = parseInt(process.argv[4] || '420', 10);
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-function dump(sel, vw) {
+async function dump(sel, vw) {
   const root = document.querySelector(sel);
   if (!root) return { error: 'no element matches ' + sel };
   const name = (el) => {
@@ -27,11 +27,17 @@ function dump(sel, vw) {
     return el.tagName.toLowerCase() + id + cls;
   };
   const out = { root: name(root), vw, nodes: [] };
+  const bgUrls = [];
   const walk = (el, depth) => {
     if (depth > 6) return;
     const r = el.getBoundingClientRect();
     const cs = getComputedStyle(el);
     const bg = cs.backgroundImage && cs.backgroundImage !== 'none' ? cs.backgroundImage : '';
+    // A background image's own proportions decide whether "cover" crops it to
+    // nothing. Without them you cannot choose a height that shows the picture
+    // instead of a fragment of it.
+    const m = bg && bg.match(/url\("?([^")]+)"?\)/);
+    if (m && bgUrls.indexOf(m[1]) === -1) bgUrls.push(m[1]);
     out.nodes.push({
       d: depth, el: name(el),
       box: [Math.round(r.width), Math.round(r.height)],
@@ -48,6 +54,13 @@ function dump(sel, vw) {
   };
   walk(root, 0);
   out.nodes = out.nodes.slice(0, 120);
+  out.bgSizes = await Promise.all(bgUrls.slice(0, 8).map((u) => new Promise((res) => {
+    const im = new Image();
+    im.onload = () => res({ url: u.slice(-46), w: im.naturalWidth, h: im.naturalHeight,
+      ratio: Math.round((im.naturalWidth / im.naturalHeight) * 100) / 100 });
+    im.onerror = () => res({ url: u.slice(-46), w: 0, h: 0, ratio: 0 });
+    im.src = u;
+  })));
   return out;
 }
 
@@ -85,6 +98,10 @@ function dump(sel, vw) {
       if (n.bg) console.log(`${pad}   background: ${n.bg}  size:${n.bgSize}`);
       if (n.src) console.log(`${pad}   img src …${n.src}  natural ${n.natural}`);
       if (n.txt) console.log(`${pad}   "${n.txt}"`);
+    }
+    if (r.bgSizes && r.bgSizes.length) {
+      console.log('\nbackground images, at their own size:');
+      r.bgSizes.forEach((b) => console.log(`  …${b.url}  ${b.w}x${b.h}  ratio ${b.ratio}`));
     }
   } catch (e) {
     console.log('DIAG ERROR: ' + e.message);
