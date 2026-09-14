@@ -32,7 +32,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 255–258 | VA 160001–160004 | Vaastu Art | 4 | 4 | NO |
 | 259–281 | WL 170001–170023 | Wildlife | 23 | 19 | NO |
 | 282–303 | KR 180001–180022 | Kids Room | 22 | 19 | NO |
-| 304–354 | LI 190001–190051 | Living Room | 51 | 44 | NO |
+| 304–354 | LI 190001–190051 | Living Room | 51 | 44 | part done — 2026-09-14 |
 | 355–373 | AA 200001–200019 | Abstract Art | 19 | 19 | NO |
 | 374–377 | TA 210001–210004 | Travel Art | 4 | 4 | NO |
 
@@ -1609,3 +1609,59 @@ against it. The steps reporting success were telling the truth; I read their
 The lesson is narrow and worth keeping: **a failed step is not a step that did
 nothing.** Where several actions share one step, "failed" says only that the
 step did not finish.
+
+
+---
+
+## Living Room — read 2026-09-14, from the pictures
+
+**16 products on LI codes. Nine right, seven one page short — and the drift has
+a boundary you can point at.**
+
+Pages 1 to 11 are correct. From page 12 on, every product sits one page behind
+the picture it shows. Not a section-wide shift: a shift that STARTS somewhere.
+
+| product | held | is |
+|---|---|---|
+| #7688  Luxury Floral Birds | LI 12 | LI 13 — two birds on a flowering branch |
+| #16444 Running Brown Horse | LI 23 | LI 24 — the horse in ink-splash on cream |
+| #19697 Moonlit Sailing | LI 28 | LI 29 — the galleon in a moonlit canyon |
+| #13473 Joyful Man | LI 31 | LI 32 — the leaping man with a bouquet |
+| #23374 Moonlit White Horse | LI 32 | LI 33 — the white horse in gold leaf |
+| #27920 Rainbow Wings | LI 34 | LI 35 — the wings among butterflies |
+| #24897 Crimson Horse | LI 36 | LI 37 — the red horse and the woman in water |
+
+LI 23 and LI 24 are both charging horses, which is exactly the pair that makes
+this worth doing by picture: LI 23 is fiery chestnut on teal and orange, LI 24
+is brown in ink-splash on cream. One is #16444 and one is not.
+
+### All seven were already corrected once, and all seven were off by one
+
+Every one of them has a row in this file from the LR-to-LI migration — Living
+Room used to be LR, and a previous pass moved them across. That pass got the
+section right and the page number wrong, by one, seven times out of seven.
+
+So this is the same fault as #17472 in Hindu Deities, at scale: **a correction
+made against a numbering that had already drifted inherits the drift.** The
+migration was reading the old LR page number and assuming it carried over.
+
+Fixed IN PLACE in the original rows, as with #17472 and #7825 — the file never
+holds two answers about one painting. The duplicate-row guard added during the
+Hindu Deities work is what caught all seven at once; without it they would have
+been appended as contradictions and the last row would have won silently.
+
+### The aspect corroborates one of them independently
+
+#27920 is sold 4x4 square. LI 34 is 5030 and LI 35 is 4040. The product's own
+size agrees with the page the picture says, and disagrees with the page it held.
+
+### Still to do: ten products stranded on LR codes
+
+Ten more Living Room products hold LR 13, 21, 24 x3, 25 x2, 32, 33 and 39. Lord
+Rama has ten pages, so none of those resolve and none appears in any renumbered
+listing — the same blind spot as Lord Shiva's LS 16-22. They will not be drawn
+by an LI sheet run either, because the tool draws by prefix; they need an LR run,
+which will also bring in Lord Rama's own eight products.
+
+**LI is marked part done for that reason.** The 16 LI-coded products are
+finished; the 10 on LR codes have not been looked at.
