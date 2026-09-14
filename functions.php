@@ -8945,16 +8945,6 @@ add_action('wp_head', function() {
       }
       .site-footer li, .af-footer li, footer .widget li{ margin-bottom: 2px; }
 
-      /* Hands off anything pinned to the screen. A fixed bar is sized by its
-         designer to a specific height and every pixel added to it is taken
-         from the page. This restores the bottom navigation bar to the 65px it
-         was built at. */
-      .elementor-element-bec7134 a, .elementor-element-bec7134 li,
-      .af-bottom-nav a, .af-bottom-nav li{
-        min-height: 0 !important; line-height: normal !important;
-        padding-top: 0 !important; padding-bottom: 0 !important;
-        margin-bottom: 0 !important;
-      }
 
       /* Social and icon links: a fingertip, not a pin. The glyph inside keeps
          its size — only the box around it grows. */
@@ -9048,9 +9038,35 @@ add_action('wp_head', function() {
       .af-ck-opts input[type="checkbox"]{
         width: 20px !important; height: 20px !important;
       }
-      .af-ck-opts label{ min-height: 40px !important;
+      /* A full-width row 34px tall is a comfortable target even though the
+         box itself is 20px — the whole label is clickable. Taller rows pushed
+         the card to 450px, half the screen, which is its own fault. */
+      .af-ck-opts label{ min-height: 34px !important;
         display: flex !important; align-items: center !important; gap: 10px !important; }
       .af-ck-main p a{ display: inline-block !important; padding: 8px 0 !important; }
+
+      /* ── HANDS OFF ANYTHING PINNED TO THE SCREEN ───────────────────────
+         This must come last, and here is why. The bottom navigation bar is
+         built out of Elementor icon boxes — the same widget as the footer
+         links — so the rule that gave those links a comfortable row reached
+         into the bar as well and grew it 86px, then 105px. An earlier reset
+         lost to it: same specificity, and the later rule wins.
+
+         A bar fixed to the bottom of the screen is sized deliberately, and
+         every pixel added to it is taken from the page the visitor came to
+         read. So it is put back here, after everything, where nothing can
+         outrank it. ──────────────────────────────────────────────────── */
+      .elementor-element-bec7134 a,
+      .elementor-element-bec7134 li,
+      .elementor-element-bec7134 .elementor-icon-box-title,
+      .elementor-element-bec7134 .elementor-icon-box-title a,
+      .elementor-element-bec7134 .elementor-icon-box-content,
+      .elementor-element-bec7134 .elementor-icon-box-wrapper,
+      .af-bottom-nav a, .af-bottom-nav li{
+        min-height: 0 !important; line-height: normal !important;
+        padding-top: 0 !important; padding-bottom: 0 !important;
+        margin-top: 0 !important; margin-bottom: 0 !important;
+      }
     }
     </style>
     <?php
