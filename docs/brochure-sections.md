@@ -16,7 +16,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 |---|---|---|---|---|---|
 | 5–101 | RK 010001–010097 | Radha Krishna | 97 | 91 | DONE — 2026-09-14 |
 | 102–104 | LG 020001–020003 | Lakshmi–Ganesha | 3 | 3 | NO |
-| 105–122 | LS 030001–030018 | Lord Shiva | 18 | 15 | stale — 3 new |
+| 105–122 | LS 030001–030018 | Lord Shiva | 18 | 15 | part done — 2026-09-14 |
 | 123–137 | SH 040001–040015 | Seven Horses | 15 | 12 | stale — 3 new |
 | 138–152 | TP 050001–050015 | Tirupati Balaji | 15 | 15 | DONE — 2026-09-14 |
 | 153–156 | MG 060001–060004 | Murugan | 4 | 4 | NO |
@@ -1433,3 +1433,72 @@ TP 13. They share the code; the SKU letter keeps them apart.
 
 Worth doing this more often: three products on one page is exactly where the eye
 wants to see a match, and a number settles it in a second.
+
+
+---
+
+## Lord Shiva — read 2026-09-14, from the pictures
+
+**23 products, not 16. Two separate faults, and the section is only part done.**
+
+Nine products are on exactly the page their picture is on — no drift of the kind
+Radha Krishna and Hindu Deities had, even though LS gained three pages. That is
+the third section to suggest the drift is not simply "gained pages means moved
+codes"; what LS has instead is two different problems.
+
+### One: seven products are stranded on codes that name nothing
+
+The contact sheets came back with seven files the others never produced —
+LS_16 through LS_22 — because seven products hold OLD codes LS 16 to LS 22 and
+the renumber pass refuses them: Lord Shiva's legacy numbering stops at 15. They
+are invisible to every report that lists renumbered products, which is why they
+had not been noticed.
+
+All seven are genuinely Lord Shiva pictures. Three are placed here:
+
+  #7816   LS 22 -> LS 1    the smoky Shiva head, fire orange down one side
+  #19883  LS 21 -> LS 7    the neon line-art face on black
+  #20770  LS 17 -> LS 18   the crescent-moon head in blue and purple
+
+LS 18 is one of the three pages the book gained, so it is written in six digits
+and only resolves because of the widening made for Hindu Deities. That is the
+second section to need it.
+
+**This also means `'legacy' => 15` is questionable for LS.** The catalogue was
+plainly written against a numbering that had at least 22 Lord Shiva pages. The
+map was not changed here — every placement above is by picture and written in
+six digits, so the translation is not used — but somebody should check what LS's
+legacy count ought to be before trusting it for anything else.
+
+### Two: six products are not Lord Shiva at all
+
+  #18727  two whimsical cartoon creatures on grass      (reads as Kids Room)
+  #30276  a bare tree against a red sun                 (a landscape)
+  #22625  a whimsical tower of balloons and oddments    (reads as Kids Room)
+  #25474  a boat on a lake under a swirling starry sky  (a landscape)
+  #26628  a botanical pattern of leaves and blossom
+  #30154  a Ganesha silhouette on a pier at sunrise     (Hindu Deities)
+
+Two of those are landscapes, which is the documented collision: **Landscapes
+used to be LS and the book renamed it LC.** All six are cleared — they carry no
+code rather than someone else's — with the likely section named in each row.
+Clearing #30276 is also what frees LS 7 for #19883, whose picture that is.
+
+### Left unresolved, and why
+
+Four of the seven stranded products could not be placed: #17856 (Shiva standing
+with a trident), #30338 (the family in clouds), #29023 (the family seated,
+calendar style) and #31150 (the family close-up in mural style). Three of them
+are Shiva-family scenes and the section has ONE family page, LS 17 — #29023 is
+the closest but not close enough to write down.
+
+They are left exactly as they are, and that is safe in a way clearing would not
+improve: the codes they hold resolve to nothing, so they are not standing on
+another painting. A product on a code that names no page is untidy; a product on
+a code that names someone else's page is the thing this audit exists to stop.
+
+#29578 is also unresolved and stays on LS 9 beside #16257, whose picture that
+page is. That pair is the one place in this section where two products sit on
+one page without being the same artwork.
+
+**So LS is marked part done, not done.** Five products still need an answer.
