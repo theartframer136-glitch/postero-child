@@ -6098,9 +6098,28 @@ add_action('wp_footer', function() {
     .af-qv-back{position:absolute;inset:0;background:rgba(12,10,6,.62);backdrop-filter:blur(2px);}
     .af-qv-box{position:relative;width:min(1200px,94vw);height:92vh;background:#fff;border-radius:16px;
       overflow:hidden;box-shadow:0 30px 90px rgba(0,0,0,.45);}
-    .af-qv-x{position:absolute;top:10px;right:10px;z-index:3;width:38px;height:38px;border:none;border-radius:50%;
-      background:#1a1a1a;color:#fff;font-size:16px;font-weight:700;cursor:pointer;line-height:1;}
-    .af-qv-x:hover{background:#c9a84c;}
+    /* A bare cross, not a black disc. The owner asked for the circle gone
+       (2026-09-14) — and it was not even a circle on the page: this button
+       inherits the theme's global button padding of 14px 40px, which stretched
+       a 38px round button into a wide black pill floating over the artwork.
+       The chat launcher and the quick panel both carry padding:0 !important
+       for exactly this reason; this one was missed.
+
+       So: no background, no border, no shadow — just the glyph in the page's
+       own ink, darkening to gold on hover with the faintest disc behind it so
+       there is still something to aim at. The box stays 40px because that is
+       what a fingertip needs, even though nothing of it is painted. */
+    .af-qv-x{position:absolute;top:10px;right:10px;z-index:3;
+      width:40px !important;height:40px !important;min-width:0 !important;
+      padding:0 !important;margin:0 !important;
+      border:none !important;border-radius:50% !important;
+      background:transparent !important;box-shadow:none !important;
+      color:#1a1a1a !important;font-size:20px;font-weight:400;line-height:1;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;
+      transition:background .18s,color .18s,transform .18s;}
+    .af-qv-x:hover,.af-qv-x:focus{background:rgba(26,26,26,.07) !important;
+      color:#a8872e !important;transform:rotate(90deg);}
+    .af-qv-x:focus-visible{outline:2px solid #c9a84c;outline-offset:2px;}
     .af-qv-frame{position:absolute;inset:0;width:100%;height:100%;border:0;opacity:0;transition:opacity .25s;}
     .af-qv.loaded .af-qv-frame{opacity:1;}
     .af-qv-spin{position:absolute;left:50%;top:50%;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;
