@@ -126,15 +126,50 @@ if ( ! function_exists( 'af_artcode_book_code' ) ) {
 	$ok( $bad === 0 && $pages === 340, 'every page the shop may reach maps, once, and maps to itself',
 		$pages . ' pages, ' . $bad . ' problems', '340 pages, 0 problems' );
 
-	// And the 33 it may not reach stay out of reach.
-	$reachable_new = 0;
+	// And the 33 it may not reach stay out of reach FROM THE OLD NUMBERING.
+	//
+	// This assertion used to read the six-digit spelling and require 0. That was
+	// right until the Hindu Deities audit: #24775 is the Bharat Mata with the
+	// lion and the map of India, which is HD 30 — a page the book gained — and
+	// there was no way to write it down. inc/artcode-book.php now resolves a
+	// six-digit code against the book as it is today, while the four-digit and
+	// label paths still stop at 'legacy'.
+	//
+	// The rule that matters is unchanged and still checked below: no OLD code
+	// may translate onto a page nobody has held a picture against. A six-digit
+	// code is not a translation — it names today's page directly, and a product
+	// only comes to hold one because somebody wrote it in
+	// tools/artcode-corrections.csv after looking at the picture.
+	//
+	// This check runs on the server and cannot run locally, which is how it was
+	// left failing for a deploy: the two tests that DO run locally were updated
+	// with the resolver and this one was not. If it fails again, read what it
+	// says before assuming the resolver is wrong.
+	// Asked the right way round: does any OLD code RESOLVE TO a page above
+	// 'legacy'? Not "does old label N resolve", which is a different question —
+	// where a section has a gap the old numbering runs past its page count, and
+	// HD 28 legitimately means HD 27 because HD lost page 14. Getting that
+	// backwards made this read 1 reachable when nothing was wrong.
+	$reachable_old = 0; $reachable_six = 0;
 	foreach ( af_artcode_book() as $prefix => $sec ) {
+		$old_top = $sec['legacy'] + count( $sec['absent'] ) + 5;
+		for ( $n = 1; $n <= $old_top; $n++ ) {
+			foreach ( array( sprintf( '%s %02d', $prefix, $n ),
+			                 sprintf( '%s - %02d%02d', $prefix, $sec['no'], $n ) ) as $old ) {
+				$r = af_artcode_book_code( $old );
+				if ( $r === '' ) { continue; }
+				$page = (int) substr( af_artcode_split( $r )['digits'], 2, 4 );
+				if ( $page > $sec['legacy'] ) { $reachable_old++; }
+			}
+		}
 		for ( $n = $sec['legacy'] + 1; $n <= $sec['count']; $n++ ) {
-			if ( af_artcode_book_code( sprintf( '%s - %02d%04d', $prefix, $sec['no'], $n ) ) !== '' ) { $reachable_new++; }
+			if ( af_artcode_book_code( sprintf( '%s - %02d%04d', $prefix, $sec['no'], $n ) ) !== '' ) { $reachable_six++; }
 		}
 	}
-	$ok( $reachable_new === 0, "the book's 33 new pages cannot be written onto a product",
-		$reachable_new . ' reachable', '0 reachable' );
+	$ok( $reachable_old === 0, "no OLD code resolves onto one of the book's 33 new pages",
+		$reachable_old . ' reachable', '0 reachable' );
+	$ok( $reachable_six === 33, "the 33 new pages are reachable only by their six-digit spelling",
+		$reachable_six . ' reachable', '33 reachable' );
 }
 
 // ── the size half, against the real card ────────────────────────────────────

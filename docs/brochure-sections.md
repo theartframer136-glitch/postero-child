@@ -16,7 +16,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 |---|---|---|---|---|---|
 | 5–101 | RK 010001–010097 | Radha Krishna | 97 | 91 | DONE — 2026-09-14 |
 | 102–104 | LG 020001–020003 | Lakshmi–Ganesha | 3 | 3 | NO |
-| 105–122 | LS 030001–030018 | Lord Shiva | 18 | 15 | stale — 3 new |
+| 105–122 | LS 030001–030018 | Lord Shiva | 18 | 15 | part done — 2026-09-14 |
 | 123–137 | SH 040001–040015 | Seven Horses | 15 | 12 | stale — 3 new |
 | 138–152 | TP 050001–050015 | Tirupati Balaji | 15 | 15 | DONE — 2026-09-14 |
 | 153–156 | MG 060001–060004 | Murugan | 4 | 4 | NO |
@@ -1433,3 +1433,131 @@ TP 13. They share the code; the SKU letter keeps them apart.
 
 Worth doing this more often: three products on one page is exactly where the eye
 wants to see a match, and a number settles it in a second.
+
+
+---
+
+## Lord Shiva — read 2026-09-14, from the pictures
+
+**23 products, not 16. Two separate faults, and the section is only part done.**
+
+Nine products are on exactly the page their picture is on — no drift of the kind
+Radha Krishna and Hindu Deities had, even though LS gained three pages. That is
+the third section to suggest the drift is not simply "gained pages means moved
+codes"; what LS has instead is two different problems.
+
+### One: seven products are stranded on codes that name nothing
+
+The contact sheets came back with seven files the others never produced —
+LS_16 through LS_22 — because seven products hold OLD codes LS 16 to LS 22 and
+the renumber pass refuses them: Lord Shiva's legacy numbering stops at 15. They
+are invisible to every report that lists renumbered products, which is why they
+had not been noticed.
+
+All seven are genuinely Lord Shiva pictures. Three are placed here:
+
+  #7816   LS 22 -> LS 1    the smoky Shiva head, fire orange down one side
+  #19883  LS 21 -> LS 7    the neon line-art face on black
+  #20770  LS 17 -> LS 18   the crescent-moon head in blue and purple
+
+LS 18 is one of the three pages the book gained, so it is written in six digits
+and only resolves because of the widening made for Hindu Deities. That is the
+second section to need it.
+
+**This also means `'legacy' => 15` is questionable for LS.** The catalogue was
+plainly written against a numbering that had at least 22 Lord Shiva pages. The
+map was not changed here — every placement above is by picture and written in
+six digits, so the translation is not used — but somebody should check what LS's
+legacy count ought to be before trusting it for anything else.
+
+### Two: six products are not Lord Shiva at all
+
+  #18727  two whimsical cartoon creatures on grass      (reads as Kids Room)
+  #30276  a bare tree against a red sun                 (a landscape)
+  #22625  a whimsical tower of balloons and oddments    (reads as Kids Room)
+  #25474  a boat on a lake under a swirling starry sky  (a landscape)
+  #26628  a botanical pattern of leaves and blossom
+  #30154  a Ganesha silhouette on a pier at sunrise     (Hindu Deities)
+
+Two of those are landscapes, which is the documented collision: **Landscapes
+used to be LS and the book renamed it LC.** All six are cleared — they carry no
+code rather than someone else's — with the likely section named in each row.
+Clearing #30276 is also what frees LS 7 for #19883, whose picture that is.
+
+### Left unresolved, and why
+
+Four of the seven stranded products could not be placed: #17856 (Shiva standing
+with a trident), #30338 (the family in clouds), #29023 (the family seated,
+calendar style) and #31150 (the family close-up in mural style). Three of them
+are Shiva-family scenes and the section has ONE family page, LS 17 — #29023 is
+the closest but not close enough to write down.
+
+They are left exactly as they are, and that is safe in a way clearing would not
+improve: the codes they hold resolve to nothing, so they are not standing on
+another painting. A product on a code that names no page is untidy; a product on
+a code that names someone else's page is the thing this audit exists to stop.
+
+#29578 is also unresolved and stays on LS 9 beside #16257, whose picture that
+page is. That pair is the one place in this section where two products sit on
+one page without being the same artwork.
+
+**So LS is marked part done, not done.** Five products still need an answer.
+
+### What would actually settle them
+
+Re-reading the three family scenes against LS 17 at every zoom the thumbnails
+allow did not decide it: #31150 is a tight crop with Shiva upright, and LS 17
+has him seated with Nandi, a lion, mountains and hanging bells. Similar style,
+different composition. Canva's image host is blocked from this session, so the
+book page cannot be fetched and compared pixel-for-pixel the way two product
+tiles can.
+
+The evidence that WOULD settle them was already being collected and thrown away.
+`tools/diag-artcode-from-filenames.php` has run on every diagnostic deploy since
+the audit began, reading the art code off each product's original image
+filename, and its answer went only to the job log — which this session cannot
+read, because GitHub redirects log downloads to blob storage the proxy blocks.
+
+It is now teed to `FILENAMES.txt` on the art-sheets branch, beside the other
+reports. It is the one piece of evidence about a product that is independent of
+both the picture and the title: what the file was called when it was uploaded.
+Every remaining section will have cases like these five.
+
+
+---
+
+## The resolver change broke a check, and I did not notice for a deploy
+
+Widening the six-digit path (see Hindu Deities above) needed three tests
+updating. I updated two and missed the third, because the third cannot run
+here: `tools/test-sku-format.php` needs WordPress loaded, so it only runs on the
+server. Deploy run 1107 published this and it sat in SKUCHECK.txt:
+
+    FAIL  the book's 33 new pages cannot be written onto a product
+          got '33 reachable' want '0 reachable'
+    === 1 CHECK(S) FAILED ===
+
+The resolver was right; the assertion was describing the old rule. It is now
+split into the two halves the rule actually has:
+
+  no OLD code RESOLVES ONTO one of the 33 new pages        must be 0
+  the 33 are reachable by their six-digit spelling         must be 33
+
+Writing the first one exposed a second mistake, mine again. The obvious form —
+"does old label N resolve, for N above legacy" — reports a failure that is not
+one: where a section has a gap the old numbering runs PAST its page count, and
+**HD 28 legitimately means HD 27** because HD lost page 14. The question has to
+be asked the other way round: take every old code, resolve it, and look at the
+page it LANDS ON.
+
+Two things worth keeping from this:
+
+**A check that cannot run in the sandbox will be missed.** The two local suites
+were updated in the same edit as the resolver; this one was not, because nothing
+failed in front of me. Its two book loops are now also runnable standalone —
+see the harness used in this session — so the next person changing the resolver
+can check all three before pushing.
+
+**SKUCHECK.txt is worth reading on every deploy, not just when something looks
+wrong.** It had been reporting a real failure since the Hindu Deities merge and
+nobody looked, because the sections either side of it said what was expected.
