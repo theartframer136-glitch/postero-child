@@ -1810,3 +1810,71 @@ if its picture had matched. One cheap read-only run answered both, and turned a
 blocked row into a finished section.
 
 **Indian Culture is done. LR is done. Living Room's ten strays are closed.**
+
+---
+
+## Seven Horses — read 2026-09-15, from the pictures
+
+**Eight products, seven right. The eighth exposes a "duplicate listing" that
+was never a duplicate.**
+
+Six were confirmed against their pages pixel for pixel and are untouched:
+#232 SH 01, #23130 SH 05, #19759 SH 06, #20953 SH 07, #19636 SH 08,
+#21014 SH 09. Nothing in this section drifted — the three pages it gained
+(13, 14, 15) are all at the END, so SH 01–12 did not move.
+
+### The two products on SH 04 are two different renders
+
+A row in `artcode-corrections.csv` had #23191 sharing SH 04 with #19025, on the
+grounds that #23191 is *"a brighter, tighter crop"* of it. It is not a crop of
+it at all:
+
+> **#23191 has a brilliant sunburst with rays at the upper right.
+> #19025 has snow-capped brown mountains in that same place.**
+
+A crop can only remove content. It can never add a sun. So neither picture can
+be a crop of the other — they are two renders of one idea, sharing the left
+cliff, the peach cloud bank and the horses' poses.
+
+All six mockups on the SH 04 page show the burst. So **SH 04 is #23191**, its
+row is corrected in place and is no longer a SHARE, and **#19025 is on no page
+of this section** — SH 02 is a gold burst over flat water with no cliffs, SH 03
+is peach surf with no cliffs, and nothing else in the fifteen puts horses
+between cliffs.
+
+### A measurement that does not work, recorded so it is not tried again
+
+RMS between the two tiles is 59.6, which looks conclusive against the 6.6 of a
+genuine duplicate file. **It proves nothing here.** A different framing moves
+every pixel, so a real crop would also score high — the number cannot separate
+"different picture" from "same picture, cropped".
+
+A crop-search was then written: slide every sub-rectangle of one image over the
+other, across six scales, with brightness normalised so "brighter" could not
+explain a mismatch. Calibrated against pairs whose answer is already known, it
+is worthless:
+
+```
+same painting, mirrored   (#15913 / #17543)   50.7
+plainly different         (#15913 / #28300)   59.5
+plainly different         (#28300 / #31588)   61.2
+```
+
+It scores a true match barely better than two unrelated pictures. Discarded.
+
+**What settles a crop claim is content: an element present in one picture and
+absent from the other.** The sun does that here, and nothing else needed to.
+
+### Still open: three cleared horse pictures, never held against the new pages
+
+#7662, #30093 and #27572 were cleared in an earlier pass, each explicitly
+"re-checked against all twelve Seven Horses pages". The section has fifteen
+now. The three it gained were not in that comparison — the same blind spot as
+every other new page in this book. They have no code, so no `SH` sheet draws
+them; a read-only `art_sheets: nocode` run is in flight to bring their pictures
+back so they can be held against SH 13, 14 and 15.
+
+Being cleared, they are visible as "no code" rather than silently wrong, so
+this is a possible missed placement, not a live error.
+
+**Unclaimed after this pass: SH 02, 03, 10, 11, 12, 13, 14, 15.**
