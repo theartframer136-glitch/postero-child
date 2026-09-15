@@ -1881,7 +1881,7 @@ this is a possible missed placement, not a live error.
 
 ---
 
-## Kids Room — book read 2026-09-15, products NOT yet compared
+## Kids Room — read 2026-09-15, from the pictures
 
 All 22 pages read and recorded. **Nothing is written for this section yet, and
 that is deliberate.**
@@ -1914,46 +1914,58 @@ that is deliberate.**
 Fourteen products claim KR 01, 02, 03, 04, 07 ×3, 11, 12, 13, 15, 16 ×2, 18.
 Unclaimed: 05, 06, 08, 09, 10, 14, 17, 19, 20, 21, 22.
 
-### Why nothing is written yet
+### The result: four right, two in the wrong section, seven cleared
 
-**No Kids Room contact sheet has ever been drawn.** Every `art-sheets` commit
-still retained in the reflog was checked — runs 1073 through 1132 — and not one
-contains a `KR_` file. So not a single product in this section has ever had its
-picture held against the page it names, and on this audit's own rule there is
-nothing that can honestly be written.
+The sheets took four attempts to arrive — one run drew all 11 correctly and lost
+the push to a GitHub 500, one was cancelled while pending, one while running.
+The drawing was never the problem.
 
-A read-only `art_sheets: KR` run is what unblocks it. It has not been
-dispatched because the deploy queue is being churned: the concurrency group
-keeps exactly one pending run, so each new push evicts whoever is waiting.
-Run 1133 (the `nocode` run for Seven Horses) was queued at 08:54, never
-started, and was **cancelled at 09:31:32** — the exact second another session's
-push queued run 1134. 1134 was then evicted by 1135 three minutes later.
-Dispatching now would evict a live debugging run, so it waits for a free slot.
+**Right, and untouched:** #7765 KR 01 (the stacked cats), #14923 KR 11 (the Iron
+Man sketch), #15046 KR 12 (Batman over comic panels), #18168 KR 16 (the row of
+modernist birds). Each matches its page exactly.
 
-### The shortlist the titles suggest — to CHECK, not to write
+**In the wrong section, and placed:**
 
-Titles in this catalogue have been wrong in both directions, so these are
-leads only:
-
-| product | sits on | which is |
+| product | held | is |
 |---|---|---|
-| #16640 Vishnu Ji Statue | KR 04 | a cartoon bee |
-| #17402 Vibrant Horse | KR 07 | a volcano erupting flowers |
-| #21771 Guru Watercolor | KR 07 | the same volcano |
-| #27388 Krishna Minimal | KR 07 | the same volcano |
-| #24409 Tropical Leaves Mural | KR 02 | a sleeping cat |
-| #26389 Pirate Captain Sketch | KR 13 | a panda in a straw hat |
-| #28225 Nandi and the Jyotirlingas | KR 18 | two children under an umbrella |
-| #25718 Franklin Graffiti Pop Art | KR 15 | two monsters |
+| #25718 Franklin Graffiti | KR 15 | **LI 46** — the banknote Franklin over spray paint |
+| #26389 Pirate Captain Sketch | KR 13 | **LI 47** — the pencil pirate with tankard and blueprint |
 
-If it holds, this is the **Tirupati fault** again at scale — the right kind of
-thing on the wrong page — and three products sharing the volcano page cannot
-all be right whatever the pictures show.
+Both are pages Living Room GAINED this round, so no arithmetic could have
+reached either; only the picture could.
 
-One lead worth trying first: **LI 46 is a Ben Franklin pop-art portrait**, read
-during the Living Room pass. #25718 is titled "Franklin Graffiti Pop Art".
+**Cleared, seven:** #24409 (tropical-leaf mural on the sleeping-cat page),
+#16640 (a golden deity idol on the cartoon-bee page), #17402, #21771 and #27388
+(an abstract horse, a Guru Nanak watercolour and a cubist Krishna — **all three
+on KR 07, which is a volcano erupting flowers**), #27633 (a murmuration on the
+birds page, which is #18168's), #28225 (a Nandi bull among temple bells on the
+page of two children under a red umbrella).
 
----
+Three products on one volcano was the clearest signal in the section, and none
+of the three was it. This is the Tirupati fault at scale: the right kind of
+thing filed by subject, on a page that shows something else.
+
+### #8866 is a SET, and it is left where it is
+
+"Kids Cartoon Animal Canvas Wall Art Set – 72×24" holds KR 03. Its featured
+image is a room mockup showing **two** framed pieces: the KR 03 snail and the
+KR 04 bee. So it is not on someone else's painting — KR 03's painting is
+genuinely in it — and the rule's purpose is served by leaving it alone.
+
+But it is worth the owner's attention. **The only product in the catalogue
+showing the KR 03 snail or the KR 04 bee is this one set**, and it can carry
+only one code. KR 04's own claimant, #16640, is the deity idol now cleared. A
+two-piece set on a single-painting code under-describes what ships.
+
+### Still open in this section
+
+#21771 is a Guru Nanak watercolour and belongs to Sikh Art by subject; SA's
+five pages have not been drawn against their products, so it clears rather than
+moves. #24409, #17402, #27388, #27633 and #28225 found no page anywhere read so
+far.
+
+Unclaimed after this pass: KR 02, 04, 05, 06, 07, 08, 09, 10, 13, 14, 15, 17,
+19, 20, 21, 22.
 
 ## Wildlife — book read 2026-09-15, products NOT yet compared
 
