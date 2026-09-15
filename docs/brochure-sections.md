@@ -2441,3 +2441,64 @@ That is the third pair of near-identical devotional images this audit has had to
 separate by content, after the two murmurations and the two Kedarnath
 photographs — and the second time a Tirupati idol photograph has turned out to
 have a double.
+
+### Radha Krishna — the products, 2026-09-15
+
+Run 1153 drew 55 sheets, one per claimed code, 56 products (RK 33 carries two).
+**Forty-eight are right and eight are wrong** — six cleared and two that turn
+out to be a swap.
+
+Every product was first held against the 2026-09-14 index, which was written
+from the pages. Eleven did not match it and were settled by fetching the page
+itself. Three of those eleven turned out to be matches the index had described
+loosely (RK 01, RK 45) or that the tile was too small to read (RK 55, where two
+figures merged into one at 312 pixels). The other eight are below.
+
+### The swap on RK 88 and RK 90
+
+**#22138 → RK 95.** Radha seated centre in blue and gold, the same twelve gopis
+in the same poses, the same parrot, the same garlands being strung, the same
+sunset over the river. RK 95 is one of the six pages the section gained, and had
+never been read before today.
+
+**#30470 → RK 88**, the page #22138 vacates. Radha on the lotus with the gold
+halo, the swan, the crescent moon, Krishna playing the flute above, the doves,
+the pink lotuses, the waterfall.
+
+The corrections pass applies these in one go and reports `refused as a clash: 0`,
+because it vacates before it writes — the same chain that was first exercised on
+Indian Culture.
+
+### Six cleared
+
+| product | sat on | which is |
+|---|---|---|
+| #25962 Kerala Mural Krishna Cows | RK 15 | a pair seated in an orange and red forest grove |
+| #17280 Krishna Radha Shrine Idols | RK 21 | ONE blue deity on a lotus inside a mandala border |
+| #30836 Veena Player with Peacock | RK 63 | the same subject in a PINK moonlit haze with Krishna's silhouette behind — this one is sepia with neither |
+| #31212 Radha Krishna Flute Gold | RK 77 | Bal Krishna alone on a glowing lotus leaf, cosmic teal |
+| #17212 Black Krishna Idol Garlands | RK 78 | an EMERALD-GREEN idol before a fan of peacock feathers |
+| #7824 Krishna Peacock Crown | RK 79 | a Krishna portrait resting his head on his hand, teal and gold |
+
+**#25962 was already known.** The 2026-09-14 pass wrote it into its own findings
+— *"#25962 015 green Kerala mural with cows (page 15 is an orange/red grove)"* —
+and never resolved it. The page was fetched and held against the product today.
+
+**#30836 overturns a row this audit wrote**, an early short-form move from RK 64
+to RK 63. Patched in place, so the product keeps one row.
+
+### A note on method, and a mistake worth recording
+
+The stale `brochure-to-website.csv` page map disagrees with the live catalogue
+in many places — products have moved since it was generated, including by this
+audit's own corrections. Where it disagreed with the sheets, the sheets were
+right. It is not evidence and was not used as any.
+
+Separately: eleven of the files in the working directory looked like duplicate
+pairs, which for a few minutes looked like a defect in the contact-sheet tool.
+It was not. They were leftovers from the 2026-09-14 pass sitting in the same
+directory, identical to a current file because the same product had moved to a
+different code between the two runs. The run's own output was 55 distinct files
+with no duplicates at all. Recorded because the near-miss was a contaminated
+working directory, not a bug, and the check that caught it — comparing the
+directory against the run's actual file list — is the one to run first next time.
