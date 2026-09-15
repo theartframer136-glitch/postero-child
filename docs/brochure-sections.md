@@ -2383,3 +2383,61 @@ Fixed by seeding those products into the harness with the empty code that is
 their real state. The counts moved from `to change: 42 | missing: 56` to
 `to change: 44 | missing: 51`, which is the two placements plus the five
 products now visible.
+
+## Radha Krishna — the unclaimed pages, read 2026-09-15
+
+The 2026-09-14 pass settled this section's **claimed** pages. Its own index says
+so in its header: *"what each CLAIMED page ACTUALLY SHOWS"*. Forty-one of the
+ninety-seven pages carry no product and had never been looked at. They are read
+here. The 57 products on the other 56 pages are being drawn by run 1153 and are
+not touched yet.
+
+### The six pages this section gained sit at the end, and nothing drifted
+
+RK went from 91 pages to 97. **RK 92 to RK 97 are the new ones, and all six are
+uncaptioned** — the same signature LI 46–51, KR 21 and WL 20–23 carried. RK 91
+is uncaptioned too and also unclaimed.
+
+That matters for the earlier pass: pages added at the end shift nothing before
+them, so the page numbers that pass wrote still hold. It was right to treat the
+drift it found (the `-1` shifts on RK 29, 34 and 42) as the whole of it.
+
+| page | what the picture is |
+|---|---|
+| RK 91 | baby Krishna reclining on gold and green, peacock feather |
+| RK 92 | Krishna and Arjuna on the chariot at Kurukshetra, sunrise |
+| RK 93 | the raas — Krishna and six gopis dancing in a moonlit marble courtyard |
+| RK 94 | a black Krishna idol in a golden shrine hung with lamps |
+| RK 95 | Radha seated among gopis making garlands, riverside at sunset |
+| RK 96 | abstract Radha and Krishna faces in gold, teal and orange |
+| RK 97 | Pichwai Shrinathji on purple and blue with lotuses |
+
+The other thirty-four unclaimed pages were read from their captions only, which
+this audit does not treat as evidence about a picture — they are a shortlist,
+nothing more. Three were worth looking at and were: **RK 67** a photograph of a
+Venkateswara idol in orange marigold garlands, **RK 70** a Shrinathji idol with
+lamps and attendants, **RK 71** an ornate Krishna shrine with devotees.
+
+### Two strays checked against them, and both stay cleared
+
+**#28534 Kirtan Celebration.** Deferred twice — once by the Buddha pass on
+2026-09-14, again by the no-code sweep this morning — both times because Radha
+Krishna's unclaimed pages had not been read. They have been now. Its picture is
+a daylight riverside grove, Krishna and Radha among a crowd of gopis with one
+seated playing a veena. The two candidate pages are neither: **RK 93** is a
+moonlit courtyard raas with six dancers and a full moon, **RK 95** is Radha
+among gopis making garlands with no Krishna in it. No caption among the other
+thirty-nine describes this scene.
+
+It stays cleared, and "not found" now means something it did not mean before.
+
+**#26267 Balaji Garland Darshan.** Cleared off WL 06 in the Wildlife pass
+against Tirupati's three garlanded-idol pages. **RK 67 is a fourth garlanded
+Balaji photograph**, unclaimed, and it is not this one: RK 67's idol wears
+orange marigold garlands against a stone wall; #26267's wears red, white and
+green garlands between gold panels under an overhead strip light.
+
+That is the third pair of near-identical devotional images this audit has had to
+separate by content, after the two murmurations and the two Kedarnath
+photographs — and the second time a Tirupati idol photograph has turned out to
+have a double.
