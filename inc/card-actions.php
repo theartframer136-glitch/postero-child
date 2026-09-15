@@ -87,8 +87,46 @@ add_action('wp_footer', function () {
     html body ul.products li.product .af-icon-corner,
     html body ul.products li.product .group-action,
     html body ul.products li.product .shop-action{
-      opacity:1 !important;visibility:visible !important;
-      transform:none !important;}
+      opacity:1 !important;visibility:visible !important;}
+
+    /* ── AND THEY MUST BE INSIDE THE PICTURE ────────────────────────────────
+       This is the part I got wrong, and it is worth writing down plainly.
+
+       Measured: div.product-transition has overflow:hidden and a box 300px
+       tall. All four buttons sit at y+517 against a clip that ends at y+497 —
+       twenty pixels below it, and therefore clipped out of existence. They
+       report a correct 38x38 box, full opacity and a chip background the whole
+       time, because a clip is invisible to getComputedStyle and to
+       getBoundingClientRect alike. That is why every check I ran said the
+       buttons were fine while the owner's screen showed nothing.
+
+       The theme parks them under the picture on purpose and slides them up
+       into it on hover, with a transform. My previous change set
+       transform:none, which cancelled precisely that slide — so I made them
+       opaque and stranded them outside the clip in the same breath.
+
+       Rather than restore a slide that only happens under a cursor, they are
+       placed inside the picture outright: the pair of plugin buttons along the
+       bottom, cart and compare in the top corner. Absolute, within the box
+       that does the clipping, so there is nothing left to clip. ──────────── */
+    html body ul.products li.product .product-transition{position:relative !important;}
+
+    html body ul.products li.product .group-action{
+      position:absolute !important;left:0 !important;right:0 !important;
+      bottom:12px !important;top:auto !important;width:auto !important;
+      margin:0 !important;padding:0 !important;
+      transform:none !important;z-index:6 !important;
+      display:flex !important;justify-content:center !important;
+      align-items:center !important;}
+    html body ul.products li.product .group-action .shop-action{
+      display:flex !important;gap:10px !important;
+      justify-content:center !important;align-items:center !important;
+      width:auto !important;min-width:0 !important;}
+
+    html body ul.products li.product .af-icon-corner{
+      position:absolute !important;top:10px !important;right:10px !important;
+      left:auto !important;bottom:auto !important;
+      display:flex !important;gap:8px !important;z-index:6 !important;}
 
     /* ── THE LABEL ──────────────────────────────────────────────────────────
        An unlabelled glyph is a guess, and "⇄" tells nobody it means compare.
