@@ -49,6 +49,26 @@ add_action('wp_footer', function() {
     ul.products.af-masonry li.product div.product-image img{
       height:auto !important;width:100% !important;
       object-fit:contain !important;aspect-ratio:auto !important;}
+
+    /* ── AND GRID KEEPS ITS TIDY UNIFORM CROP ──────────────────────────────
+       Verified after the change above: masonry staggers properly now — ten
+       distinct card tops instead of five, spans of 26, 21, 29, 20, 28, 29
+       instead of twenty every time. But the same run showed grid had lost its
+       uniform crop as well, cards stretching to 822px with pictures at three
+       different heights inside them.
+
+       Grid's whole appeal is the opposite of masonry's: every card the same,
+       a calm regular wall. So it is stated here rather than left to a rule
+       elsewhere that evidently is not holding. An aspect-ratio rather than the
+       theme's fixed 300px, because the column is not 300px wide on a phone —
+       14/15 is the shape those cards had at full width, and it keeps it at
+       every width. ──────────────────────────────────────────────────────── */
+    ul.products:not(.af-masonry) li.product div.product-image,
+    ul.products:not(.af-masonry) li.product .product-image.image-main{
+      aspect-ratio:14 / 15 !important;height:auto !important;
+      overflow:hidden !important;}
+    ul.products:not(.af-masonry) li.product div.product-image img{
+      width:100% !important;height:100% !important;object-fit:cover !important;}
     /* Phones. These buttons measure 32px tall — 8px of padding either side of
        a 12px line — against the ~40px a fingertip wants, and the toggle's 10px
        left margin pushed the pair out of line with the toolbar it belongs to
