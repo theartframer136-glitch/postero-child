@@ -33,7 +33,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 259–281 | WL 170001–170023 | Wildlife | 23 | 19 | DONE — 2026-09-15 |
 | 282–303 | KR 180001–180022 | Kids Room | 22 | 19 | DONE — 2026-09-15 |
 | 304–354 | LI 190001–190051 | Living Room | 51 | 44 | part done — 2026-09-14 |
-| 355–373 | AA 200001–200019 | Abstract Art | 19 | 19 | NO |
+| 355–373 | AA 200001–200019 | Abstract Art | 19 | 19 | DONE — 2026-09-15 |
 | 374–377 | TA 210001–210004 | Travel Art | 4 | 4 | NO |
 
 **Every "DONE" below this line is now marked stale.** Ten sections gained 33
@@ -2254,3 +2254,68 @@ So four products passed through Landscapes on their way somewhere else, and the
 section keeps three.
 
 Unclaimed after this pass: 01, 03, 04, 05, 07, 08, 10 — seven of ten.
+
+## Abstract Art — read 2026-09-15, from the pictures
+
+Seven of the nineteen pages are claimed, by **ten** products — three pages carry
+two claimants each. AA gained no pages, so nothing here drifted.
+
+**Five are right, one is in the wrong section, four are cleared — and one of
+the five "right" ones has a different problem entirely.**
+
+| page | the picture | claimed by | verdict |
+|---|---|---|---|
+| AA 02 | embracing figures in gold swirls, a red pomegranate | #15463 Pomegranate Goddess | right — **but see below** |
+| AA 06 | red/teal abstract, bare tree, seated figure | #19575 Man in Contemplation | right |
+| | | #22016 Horses in Color Field | cleared |
+| AA 08 | five elongated walking figures | #25779 Dancers by the Lamp | cleared |
+| AA 10 | bare tree, red apple, split gold/blue moon | #17978 Tree Under Moonlight | right |
+| | | #21503 Vaishnava Saints Kirtan | cleared |
+| AA 11 | cubist bird shapes, earthy tones | #15791 Geometric Animal Composition | right |
+| AA 14 | a woman's profile blended with a blue bird | #7837 Geometric Floral | **→ WL 23** |
+| | | #31273 Palace in the Grove | cleared |
+| AA 16 | fragmented stone face, blue birds | #23728 Stone Face Taking Flight | right |
+
+### #15463 is on the right page, and its photograph is sideways
+
+Held against AA 02 the product looked like a different, landscape-shaped
+painting. Rotated 90° clockwise it is AA 02 exactly — the same two embracing
+figures, the same dark curly hair, the same hand holding the red pomegranate at
+lower right, the same swirls and leaves in the same places, the same green
+ground at top left.
+
+So the **code is right and the image is wrong**: the product's picture is stored
+rotated a quarter turn. No correction row is written, because there is nothing
+wrong with the art code. This is a different defect from everything else in this
+audit, and the repository already has tooling for it — the deploy runs a
+"Product image orientation scan" and there is a `fix-orientation.yml` workflow.
+Flagged here for whoever runs that next.
+
+### #7837 Geometric Floral → WL 23
+
+The same two stained-glass tulips, the same faceted sun disc, the same leaves in
+the same places, the same colour bands. The product's own image is a tighter
+crop that stops above the blue lower half — and nothing in it is absent from the
+page, which is what a crop does and the reverse of the #23191 case in Seven
+Horses, where the product **added** a sun that the page did not have.
+
+WL 23 is one of the four pages Wildlife gained, and the Wildlife pass recorded
+it as a floral sitting inside a wildlife section. This is what belongs on it.
+That is now three of Wildlife's four new pages filled from other sections:
+WL 21 and WL 22 by Still Life, WL 23 by Abstract Art.
+
+### Four cleared
+
+| product | sat on | which is | where it was hunted |
+|---|---|---|---|
+| #22016 Horses in Color Field | the red/teal abstract | chestnut, blue-grey and tan horses on plain cream | all fifteen Seven Horses pages, the three new ones included — SH 13 is red, gold and blue with dark horses, SH 14 all-white on teal and orange, SH 15 white under a golden sun |
+| #25779 Dancers by the Lamp | the walking figures | a **photograph** of two child dancers between brass lamps | all five Indian Culture pages — every one a painted or watercolour dancer |
+| #21503 Vaishnava Saints Kirtan | the moonlit tree | saffron-robed saints with staffs | a devotional illustration with no page here |
+| #31273 Palace in the Grove | the blue-bird portrait | a miniature of a temple palace among trees with cows | PA 01, the one Pichwai page, is a pink Shrinathji with cows and is not it |
+
+**AA 08 and AA 14 both emptied completely.** That is the same shape as SL 02 and
+SL 16 in Still Life: a page with two claimants where neither is the picture.
+Four such pages now, across two sections.
+
+Unclaimed after this pass: every page except 02, 06, 10, 11 and 16 — fourteen of
+nineteen.
