@@ -69,6 +69,33 @@ add_action('wp_footer', function() {
         try { localStorage.setItem(KEY, mode); } catch(e){}
       }
 
+      /**
+       * The address bar is part of the answer, not decoration.
+       *
+       * This toggle used to remember its choice in localStorage alone, and
+       * never looked at ?layout= — while the theme's own view icons, sitting
+       * a few pixels to its left, put exactly that in the URL. So the page
+       * could quite happily read "layout=grid" with MASONRY lit up, which is
+       * what the owner filmed. Two switchers, and this one deaf to the other.
+       *
+       * Reading the URL first settles it, and writing it on a click makes the
+       * view something you can bookmark or send to someone — which is the
+       * whole point of having it in the address bar.
+       */
+      function fromUrl(){
+        try {
+          var v = new URLSearchParams(location.search).get('layout');
+          return (v === 'masonry' || v === 'grid') ? v : '';
+        } catch(e){ return ''; }
+      }
+      function toUrl(mode){
+        try {
+          var u = new URL(location.href);
+          u.searchParams.set('layout', mode);
+          history.replaceState(null, '', u.toString());
+        } catch(e){}
+      }
+
       // the toggle, next to the result count / ordering toolbar
       var host = document.querySelector('.woocommerce-result-count, .woocommerce-ordering, .shop-control-bar');
       var wrap = document.createElement('span');
@@ -81,11 +108,17 @@ add_action('wp_footer', function() {
       if (host && host.parentNode) host.parentNode.insertBefore(wrap, host);
       else grids[0].parentNode.insertBefore(wrap, grids[0]);
       wrap.addEventListener('click', function(e){
-        var b = e.target.closest('button'); if (b) apply(b.dataset.mode);
+        var b = e.target.closest('button');
+        if (!b) return;
+        apply(b.dataset.mode);
+        toUrl(b.dataset.mode);
       });
 
-      var mode = 'grid';
-      try { mode = localStorage.getItem(KEY) || 'grid'; } catch(e){}
+      // What the URL asks for wins: it is the more deliberate of the two, and
+      // it is the one a visitor can see. Only when it says nothing does the
+      // remembered choice apply.
+      var mode = fromUrl();
+      if (!mode) { try { mode = localStorage.getItem(KEY) || 'grid'; } catch(e){ mode = 'grid'; } }
       if (mode !== 'masonry') mode = 'grid';
       apply(mode);
 

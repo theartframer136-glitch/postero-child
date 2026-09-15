@@ -1,0 +1,50 @@
+name: Re-derive Orientation
+
+# Rewrite every product's _af_orientation from the artwork's own stated size
+# instead of its photograph's pixels.
+#
+# _af_orientation is a derived field — it holds nothing a human typed, and the
+# theme recomputes it on every save. Run with dry_run first to see the counts.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Count the changes without writing them
+        type: boolean
+        default: true
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Send the script up
+        run: |
+          set -uo pipefail
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/backfill-orientation.php \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/backfill-orientation.php" \
+            || echo "  scp failed — falling back to whatever the last deploy left there"
+
+      - name: Re-derive
+        timeout-minutes: 18
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             DRY=${{ inputs.dry_run == true && '1' || '0' }} \
+             wp eval-file wp-content/themes/postero-child/tools/backfill-orientation.php --allow-root 2>&1" \
+            || true

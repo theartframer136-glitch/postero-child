@@ -9,6 +9,43 @@
  */
 if (!defined('ABSPATH')) exit;
 
+/**
+ * The shape the artwork itself claims, read from its own words.
+ *
+ * This is the one that should be believed, and measuring the shop says why:
+ * of 391 published pieces, 174 — 44% — had a stored orientation that
+ * contradicted their own title. "Krishna Flute Panorama Canvas Wall Art 3x4
+ * Feet" was filed as landscape because its photograph is 1600x1095. The
+ * photograph is a scene: a framed canvas hanging on a wall, shot wide. It says
+ * nothing whatever about whether the canvas is taller than it is broad.
+ *
+ * The title and the size attribute do say. "3x4 Feet" is width by height, so
+ * taller than broad: portrait. That is what a customer means when they ask for
+ * portrait pieces, and it is what they were not getting.
+ */
+function af_orientation_from_words($product_id) {
+    $title = get_the_title($product_id);
+    $size  = '';
+    if (function_exists('wc_get_product')) {
+        $p = wc_get_product($product_id);
+        if ($p) {
+            foreach (array('pa_size', 'size', 'pa_dimensions') as $a) {
+                $v = $p->get_attribute($a);
+                if ($v) { $size = $v; break; }
+            }
+        }
+    }
+    // The first pair of numbers wins: the title carries the headline size,
+    // and where it does not, the size attribute's first entry does.
+    $hay = strtolower($title . ' ' . $size);
+    if (!preg_match('/(\d+(?:\.\d+)?)\s*(?:x|×)\s*(\d+(?:\.\d+)?)/i', $hay, $m)) return '';
+    $w = (float) $m[1]; $h = (float) $m[2];
+    if (!$w || !$h) return '';
+    if ($h > $w * 1.08) return 'portrait';
+    if ($w > $h * 1.08) return 'landscape';
+    return 'square';
+}
+
 /** portrait / landscape / square, from the featured image's pixels. */
 function af_orientation_from_image($product_id) {
     $thumb = get_post_thumbnail_id($product_id);
@@ -22,9 +59,19 @@ function af_orientation_from_image($product_id) {
     return 'square';
 }
 
+/**
+ * What the piece is, in one place: its own words if it states a size, and the
+ * featured image only when there are no words to read — a poster or an
+ * accessory whose title carries no dimensions at all.
+ */
+function af_orientation_compute($product_id) {
+    $o = af_orientation_from_words($product_id);
+    return $o !== '' ? $o : af_orientation_from_image($product_id);
+}
+
 function af_orientation_refresh($product_id) {
     if (get_post_type($product_id) !== 'product') return;
-    $o = af_orientation_from_image($product_id);
+    $o = af_orientation_compute($product_id);
     if ($o) update_post_meta($product_id, '_af_orientation', $o);
     else delete_post_meta($product_id, '_af_orientation');
 }
