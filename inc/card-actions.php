@@ -63,16 +63,32 @@ add_action('wp_footer', function () {
     html body ul.products li.product .af-icon-corner .af-cmp-icon{
       font-size:17px !important;line-height:1 !important;color:#fff !important;}
 
-    /* ── SHOWN TOGETHER, ON HOVER ───────────────────────────────────────────
-       The wishlist and quick view pair already fade in with the card. The cart
-       and compare pair sat at full opacity permanently — invisible in practice,
-       so nobody noticed. Now that they can be seen, they join the others
-       instead of cluttering a card at rest. */
-    html body ul.products li.product .af-icon-corner{
-      opacity:0 !important;transition:opacity .2s ease !important;}
-    html body ul.products li.product:hover .af-icon-corner,
-    html body ul.products li.product:focus-within .af-icon-corner{
-      opacity:1 !important;}
+    /* ── SHOWN, FULL STOP ───────────────────────────────────────────────────
+       Not on hover. On hover was the plan, and the owner reported three times
+       that the buttons were still not there, so I went and read the pixels
+       actually painted at each button's centre while hovering:
+
+         cart      rgb(254,254,254)   nothing
+         compare   rgb(254,254,254)   nothing
+         wishlist  rgb(178,142,83)    the artwork, showing through
+         quickview rgb(216,184,147)   the artwork, showing through
+
+       Four controls reporting "fully opaque" a moment earlier and painting
+       nothing. Whatever the exact mechanism — and a hover state is a fragile
+       thing, lost to a repaint, a re-render of the listing, a touch screen
+       that never sends one — a control that exists only while the cursor is
+       held still is a control that is missing most of the time.
+
+       These four ARE the card: buy it, look closer, compare it, keep it. They
+       are small, they sit on the picture, and they cost nothing to leave
+       where they can be seen. So they stay. The theme hides its own pair at
+       opacity 0 until hover; that is overridden here too, for the same
+       reason. */
+    html body ul.products li.product .af-icon-corner,
+    html body ul.products li.product .group-action,
+    html body ul.products li.product .shop-action{
+      opacity:1 !important;visibility:visible !important;
+      transform:none !important;}
 
     /* ── THE LABEL ──────────────────────────────────────────────────────────
        An unlabelled glyph is a guess, and "⇄" tells nobody it means compare.
@@ -97,13 +113,10 @@ add_action('wp_footer', function () {
       opacity:1;transform:translateX(-50%) translateY(0);}
 
     /* ── A PHONE HAS NO HOVER ───────────────────────────────────────────────
-       Everything above hangs off :hover, which a touch screen never sends. On
-       a phone these four are the only way to reach quick view or the wishlist
-       from a listing, so they are simply always there — and the tooltip is
-       dropped, because a finger cannot hover to read it. */
+       Nothing above hangs off :hover any more, so the buttons are already
+       there on a touch screen. What a phone does need is the tooltip gone — a
+       finger cannot hover to read one — and a slightly larger target. */
     @media (max-width:781px){
-      html body ul.products li.product .af-icon-corner{opacity:1 !important;}
-      html body ul.products li.product .group-action{opacity:1 !important;}
       html body ul.products li.product [data-af-tip]::after{display:none !important;}
       html body ul.products li.product .af-icon-corner > a.add_to_cart_button,
       html body ul.products li.product .af-icon-corner > .af-cmp-btn,

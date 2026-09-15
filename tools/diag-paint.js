@@ -119,7 +119,11 @@ function samplePixels(dataUrl, clip, points) {
     });
 
     const clip = { x: info.card[0], y: info.card[1], width: info.card[2], height: info.card[3] };
-    const shot = await page.screenshot({ clip, encoding: 'base64' });
+    // fromSurface:false captures from the renderer rather than the host
+    // surface. It matters: a screenshot taken the usual way loses the :hover
+    // state, so the previous run reported four opaque buttons and then
+    // photographed an empty card — the probe misleading me, not the site.
+    const shot = await page.screenshot({ clip, encoding: 'base64', fromSurface: false });
     const points = info.rows.filter((r) => !r.missing)
       .map((r) => ({ label: r.label, x: r.centre[0], y: r.centre[1] }));
     const px = await page.evaluate(samplePixels, 'data:image/png;base64,' + shot, clip, points);
