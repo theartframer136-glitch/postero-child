@@ -1952,3 +1952,72 @@ all be right whatever the pictures show.
 
 One lead worth trying first: **LI 46 is a Ben Franklin pop-art portrait**, read
 during the Living Room pass. #25718 is titled "Franklin Graffiti Pop Art".
+
+---
+
+## Wildlife — book read 2026-09-15, products NOT yet compared
+
+All 23 pages read. As with Kids Room, **nothing is written, because no `WL_`
+contact sheet has ever been drawn** — every art-sheets commit still in the
+reflog was checked and none holds one. No product in this section has had its
+picture held against the page it names.
+
+|page|asp |the picture|
+|---|---|---|
+|01|4030|ELEPHANTS with an arch of BIRDS, sage green and gold|
+|02|5030|black ELEPHANT silhouette, red and gold sun discs|
+|03|5030|geometric/watercolour ELEPHANT head, red and teal circles|
+|04|5030|LEOPARD between CRIMSON PILLARS, orchid vine|
+|05|5030|GIRAFFE beside a big stylised TREE, folk style|
+|06|5030|two PEACOCKS in a white blossom garden|
+|07|2540|GOND DEER pair under trees, orange ground|
+|08|3020|folk DEER cluster on yellow, Madhubani-style tree|
+|09|4030|ZEBRA with branch-antlers on RED|
+|10|5030|ornate art-nouveau PEACOCK panel, teal and red|
+|11|4040|watercolour PEACOCK, dreamy pastel|
+|12|5030|two red-crowned CRANES flying, GOLD ground|
+|13|5030|two white SWANS on a misty lake|
+|14|5030|geometric LEOPARD portrait, teal, gold and ivory|
+|15|4030|CHEETAH on a curved ledge, red floral panels|
+|16|5030|PEACOCK before an ornate RED PALACE doorway|
+|17|5030|golden TIGER emerging from paint splashes|
+|18|5030|white LION among wildflowers, pastel mountains|
+|19|6030|TALL. two DEER by a misty stream, birch, songbirds|
+|20|3050|NEW. vivid PEACOCK, teal, gold and blue swirls|
+|21|3050|NEW. STILL LIFE — white blossom in a vase, teal wall|
+|22|3050|NEW. STILL LIFE — white blossom in a stone vase|
+|23|5030|NEW. stained-glass/cubist TULIPS|
+
+Twelve products claim WL 01, 02, 03, 06, 07, 08, 09, 11, 12, 13, 15, 16, none
+of them twice. Unclaimed: 04, 05, 10, 14, 17, 18, 19, 20, 21, 22, 23.
+
+### Three of the four pages this section GAINED are not wildlife
+
+WL 21 and WL 22 are **still lifes**; WL 23 is a **floral**. Only WL 20, the
+peacock, belongs to the section by subject. That is a fact about the book
+rather than the catalogue, and it matters before anything is placed there: a
+wildlife product is unlikely to be the answer for those three, and a Still Life
+product might be.
+
+### Leads from titles only — to check, never to write
+
+| product | sits on | which is |
+|---|---|---|
+| #26267 Balaji Garland Darshan | WL 06 | two peacocks |
+| #31395 Shiva Smoke and Trident | WL 16 | a peacock at a red palace door |
+| #23313 Safari Friends Nursery | WL 12 | two cranes on gold |
+| #29690 Folk Cows Abstract | WL 08 | folk **deer**, not cows |
+| #29159 Horse Studies Collage | WL 02 | an elephant |
+
+Two deity pictures inside a wildlife section is the Tirupati fault again.
+
+And one cross-section lead worth trying first: **KR 21 — one of Kids Room's new
+pages — is a watercolour jungle set: flamingo, elephant, giraffe, monkey.**
+#23313 is titled "Safari Friends Nursery".
+
+### Both sections are blocked on the same thing
+
+One `art_sheets` run draws one prefix. `KR` was dispatched first and is queued;
+`WL` follows. The deploy queue keeps exactly one pending run and each push
+evicts whoever waits, which is how run 1133 died — cancelled at 09:31:32, the
+second another session's push queued 1134.
