@@ -1,0 +1,31 @@
+name: Inspect Clipping
+
+# The buttons report a correct box, full opacity and a chip background, and
+# paint nothing. The usual cause is an ancestor with overflow:hidden whose box
+# does not contain them — invisible to every check so far. This names any such
+# ancestor and says which side the button falls outside, then tests the painted
+# colour by SATURATION, because a grey chip desaturates what is behind it and a
+# luminance test mistakes strong colour for a dark chip. Read-only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Listing page
+        default: https://theartframer.us/product-category/digital-canvas-prints/
+      width:
+        description: Viewport width
+        default: '1280'
+
+jobs:
+  clip:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Look for a clipping ancestor
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afhead/node_modules node tools/diag-clip.js \
+            "${{ inputs.url }}" "${{ inputs.width }}" || true
