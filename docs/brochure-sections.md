@@ -29,7 +29,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 217–221 | IC 130001–130005 | Indian Culture | 5 | 4 | NO |
 | 222–231 | LC 140001–140010 | Landscapes | 10 | 10 | DONE — 2026-09-15 |
 | 232–254 | SL 150001–150023 | Still Life | 23 | 23 | DONE — 2026-09-15 |
-| 255–258 | VA 160001–160004 | Vaastu Art | 4 | 4 | NO |
+| 255–258 | VA 160001–160004 | Vaastu Art | 4 | 4 | DONE — 2026-09-15 |
 | 259–281 | WL 170001–170023 | Wildlife | 23 | 19 | DONE — 2026-09-15 |
 | 282–303 | KR 180001–180022 | Kids Room | 22 | 19 | DONE — 2026-09-15 |
 | 304–354 | LI 190001–190051 | Living Room | 51 | 44 | part done — 2026-09-14 |
@@ -2502,3 +2502,50 @@ different code between the two runs. The run's own output was 55 distinct files
 with no duplicates at all. Recorded because the near-miss was a contaminated
 working directory, not a bug, and the check that caught it — comparing the
 directory against the run's actual file list — is the one to run first next time.
+
+## Vaastu Art — read 2026-09-15, from the pictures
+
+Four pages, five products on three of them, two pages doubled. VA gained no
+pages, so nothing here drifted. **Three are right, one moves onto the page
+nobody claimed, one is cleared.**
+
+|page|asp |the picture|
+|---|---|---|
+|01|3050|teal and gold PEACOCK among white blossoms|
+|02|3050|stylised blue-and-gold GARUDA, wings spread, two white elephants, gold radiance|
+|03|5030|two stylised BULLS in blue and ochre on teal, glyph patterns|
+|04|5030|**TWO artworks side by side** — a phoenix against a golden sun, and a stained-glass floral|
+
+### #7703 → VA 02, which resolves VA 04's double
+
+**#7703 Divine Garuda Sacred Symbol → VA 02.** The same blue and gold Garuda,
+the same two white elephants flanking it, the same crowned head, the same gold
+radiance. VA 02 was unclaimed.
+
+VA 04 prints two artworks under one code and its caption describes only the
+left one — the phoenix against a golden sun. That is **#21381 Sun Phoenix
+Vintage Art**, which stays. So moving #7703 off VA 04 also empties the double:
+one product, one code, one picture.
+
+### #29751 cleared, and its title is lying about its own product
+
+**#29751 "Sacred Cow Relief Art"** is a cream and gold **relief of Radha and
+Krishna** — two faces, a flute, a peacock feather, lotuses, ornate jewellery.
+There are no cows in it at all. VA 03 is two stylised bulls on teal, and that is
+**#15340 Nandi The Bull**, which matches it exactly.
+
+Every other title this audit has caught was wrong about the *page* it named.
+This one is wrong about the product it is attached to, which is a different and
+worse thing: no amount of reading the book would have caught it.
+
+### One artwork, printed on two pages
+
+VA 04's right-hand panel — a stained-glass floral of tulips against a faceted
+sun — is **the same painting as WL 23**, which prints it alone as a full page.
+Held side by side they are identical: same tulips, same sun, same colour bands.
+
+This is the first artwork found printed twice in the book, and it raises a
+question the Abstract Art pass could not have seen: **is #7837 on the right
+code?** It is. WL 23 is the artwork's own page and prints only it; VA 04's code
+names the phoenix, which its caption describes and which #21381 holds.
+**#7837 → WL 23 stands.**
