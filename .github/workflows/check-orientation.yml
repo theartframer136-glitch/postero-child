@@ -45,3 +45,35 @@ jobs:
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-orientation.php --allow-root 2>&1" \
             || true
+
+      # The query can be right and the page still wrong, if what a visitor gets
+      # is a cached copy made before the fix. Fetch the real URLs from inside
+      # the server and count what comes back.
+      #
+      # The Sec-Fetch-* headers are essential: this site's own crawl guard
+      # redirects a filtered URL that arrives without them, and without these
+      # the check reports a redirect no visitor ever sees.
+      - name: Fetch the filtered pages a visitor would get
+        timeout-minutes: 10
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            'for o in portrait landscape square; do \
+               echo "--- orientation=${o} ---"; \
+               curl -sSL --max-time 45 -H "Host: theartframer.us" \
+                 -H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) Chrome/140.0.0.0" \
+                 -H "Sec-Fetch-Mode: navigate" -H "Sec-Fetch-Site: none" \
+                 -H "Sec-Fetch-Dest: document" \
+                 -o /tmp/afo.html -w "  http=%{http_code} url=%{url_effective}\n" \
+                 "https://127.0.0.1/product-category/digital-canvas-prints/?orientation=${o}" \
+                 --insecure 2>&1 || echo "  fetch failed"; \
+               echo -n "  result count line: "; \
+               (grep -o "Showing [0-9–-]* of [0-9]* results\|of [0-9]* results" /tmp/afo.html | head -1) || echo "(none)"; \
+               echo -n "  product cards: "; grep -o "li class=\"product" /tmp/afo.html | wc -l; \
+               echo "  first titles:"; \
+               grep -o "woocommerce-loop-product__title[^>]*>[^<]*" /tmp/afo.html \
+                 | sed "s/.*>//" | head -3 | sed "s/^/     /"; \
+             done' \
+            || true

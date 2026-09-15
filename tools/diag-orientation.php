@@ -96,3 +96,28 @@ if ($examples) {
     echo "where they disagree — stored from the image, words from the piece:\n";
     echo implode("\n", $examples) . "\n";
 }
+
+/* ── What does the filter actually RETURN now? ──────────────────────────────
+   The stored values can be perfect and the shop still show the wrong pieces,
+   if the filter never reaches the query — a cached page, a query that is not
+   the main one, a category template that runs its own loop. So ask the same
+   question the shop asks, for each value, inside the category the owner was
+   looking at. */
+echo "\n=== what the filter returns, in Digital Canvas Prints ===\n";
+$cat = 'digital-canvas-prints';
+foreach (array('portrait', 'landscape', 'square') as $o) {
+    $q = new WP_Query(array(
+        'post_type'      => 'product',
+        'post_status'    => 'publish',
+        'posts_per_page' => 3,
+        'tax_query'      => array(array(
+            'taxonomy' => 'product_cat', 'field' => 'slug', 'terms' => $cat,
+        )),
+        'meta_query'     => array(array('key' => '_af_orientation', 'value' => $o)),
+        'fields'         => 'ids',
+    ));
+    echo sprintf("\n  %-10s %d pieces\n", $o, (int) $q->found_posts);
+    foreach ($q->posts as $pid) {
+        echo '     ' . mb_substr(get_the_title($pid), 0, 70) . "\n";
+    }
+}
