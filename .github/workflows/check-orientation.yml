@@ -1,0 +1,47 @@
+name: Inspect Orientation Data
+
+# Ask the database whether the orientation filter is telling the truth.
+#
+# Orientation is derived from the featured image's pixel dimensions, and on
+# this shop the featured image is usually a scene mockup. This counts what is
+# stored and compares it with the shape the artwork's own title and size
+# attribute claim. Read-only: it counts and prints.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      # The probe carries itself up, so it does not wait on a deploy that an
+      # unrelated push may cancel.
+      - name: Send the probe up
+        run: |
+          set -uo pipefail
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/diag-orientation.php \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-orientation.php" \
+            || echo "  scp failed — falling back to whatever the last deploy left there"
+
+      - name: Ask the database
+        timeout-minutes: 12
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-orientation.php --allow-root 2>&1" \
+            || true
