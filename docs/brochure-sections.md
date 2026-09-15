@@ -28,7 +28,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 216 | PA 120001 | Pichwai | 1 | 1 | NO |
 | 217–221 | IC 130001–130005 | Indian Culture | 5 | 4 | NO |
 | 222–231 | LC 140001–140010 | Landscapes | 10 | 10 | stale — see note |
-| 232–254 | SL 150001–150023 | Still Life | 23 | 23 | book read — 2026-09-15 |
+| 232–254 | SL 150001–150023 | Still Life | 23 | 23 | DONE — 2026-09-15 |
 | 255–258 | VA 160001–160004 | Vaastu Art | 4 | 4 | NO |
 | 259–281 | WL 170001–170023 | Wildlife | 23 | 19 | DONE — 2026-09-15 |
 | 282–303 | KR 180001–180022 | Kids Room | 22 | 19 | DONE — 2026-09-15 |
@@ -2056,6 +2056,11 @@ one more reason none of the six cleared above was pushed onto them.
 Unclaimed after this pass: 02, 04, 05, 06, 08, 09, 10, 12, 14, 15, 16, 17, 18,
 19, 20, 21, 22, 23.
 
+**Superseded for WL 21 and WL 22.** The very next section audited, Still Life,
+put #7833 on WL 21 and #7834 on WL 22 — the two still lifes among Wildlife's
+new pages, found because this pass wrote down that a Still Life product might
+be their answer. Those two are no longer unclaimed.
+
 ### `diag_only` does not skip the corrections
 
 Run 1141 was dispatched with `diag_only: true` to draw the `WL` sheets, and its
@@ -2065,16 +2070,15 @@ that run prints, "DIAGNOSTICS ONLY: theme deployed, every catalogue script
 skipped", is not true of the corrections pass. Worth knowing before dispatching
 a sheet run off a branch whose corrections are not meant to land yet.
 
-## Still Life — book read 2026-09-15, products NOT yet compared
+## Still Life — read 2026-09-15, from the pictures
 
-All 23 pages read. **Nothing is written yet, because no `SL_` contact sheet has
-been drawn** — deploy run 1143 is queued to draw them. No product in this
-section has had its picture held against the page it names.
+All 23 pages read and all **twelve** products held against them. (The book-read
+note posted first said eleven and was wrong: SL 02 and SL 16 each carry two
+claimants, which makes ten claimed pages but twelve products.) Still Life
+gained no pages, so nothing here drifted — every wrong code below was wrong
+before the book was re-laid-out.
 
-Still Life gained **no** pages this round (count 23 = legacy 23, no `absent`
-gaps), so nothing here drifted. Any wrong code in this section was wrong
-before the book was re-laid-out — which is exactly the shape Wildlife turned
-out to have, and Wildlife was wrong on seven of twelve.
+**Six are right, two are in the wrong section, four are cleared.**
 
 |page|asp |the picture|
 |---|---|---|
@@ -2102,50 +2106,65 @@ out to have, and Wildlife was wrong on seven of twelve.
 |22|5030|white LOTUS flowers in a WOVEN BASKET on water|
 |23|5030|stylised BLOSSOMS in two decorative vases with BUTTERFLIES|
 
-### The back half of this section is not still life
+### Right, and left alone
 
-SL 15 to SL 21 are a boat of poppies, a rower, a sailboat, rainbow trees, an
-umbrella in the rain, a building under a tree, and two faces fused with a
-forest. Only SL 01–14, SL 22 and SL 23 are objects on a surface.
-
-That matters in both directions. A scenic product must not be ruled out of
-this section on subject alone — and the seven scenic pages are exactly where a
-product filed here by its *title* would be least likely to actually sit.
-
-### What the eleven products claim
-
-| page | the page shows | claimed by |
+| product | page | what settled it |
 |---|---|---|
-| SL 01 | the gold-vase bouquet | #8805 Modern Cafe Decor Wall Art **Set** |
-| SL 02 | yellow callas | #7833 Minimalist Blossom Vase **and** #22564 Decorated Lord Murugan |
-| SL 06 | mid-century vessels | #15852 Modern Plant Art |
-| SL 08 | dogwood on an orange sun | #14093 Dogwood Blossom Still Life |
-| SL 09 | the pop still life | #13239 Vibrant Floral Still Life |
-| SL 12 | two minimalist vases | #7834 Rustic Blossom Vase |
-| SL 13 | magnolia at moonrise | #24291 Blossom Vases at Moonrise |
-| SL 16 | the rower on marbled water | #24958 Ganesha Fire Abstract **and** #28473 Quiet Harbor Minimal |
-| SL 18 | rainbow trees in water | #8494 Sacred Kedarnath Temple with Lord Shiva |
-| SL 22 | lotus in a woven basket | #25185 Lotus Basket Still Life |
+| #15852 Modern Plant Art | SL 06 | every shape in the same place — the two circles on stems, the small dark red circle, the monstera leaves, the three striped vessels. The product is warmer (orange where the page is yellow) but the composition is identical, so it is the same artwork colour-graded, not a different one |
+| #14093 Dogwood Blossom Still Life | SL 08 | same vase, same branch, same orange sun disc, same ledge |
+| #13239 Vibrant Floral Still Life | SL 09 | same four vessels, same gold sun, same red/teal split, same purple blossoms |
+| #24291 Blossom Vases at Moonrise | SL 13 | the same three vases — pink, dark embossed, cream crackle — and the same magnolia |
+| #25185 Lotus Basket Still Life | SL 22 | same two lotus, same woven basket, same lily pads |
 
-Unclaimed: 03, 04, 05, 07, 10, 11, 14, 15, 17, 19, 20, 21, 23 — thirteen pages,
-seven of them the scenic ones.
+**#8805 Modern Cafe Decor is left on SL 01 and flagged.** Its featured image is
+a *café interior mockup* showing four framed panels on a wall, and the second
+of them is the SL 01 bouquet — the same gold cylinder vase, the same red-orange
+and green colour blocks. So it is not sitting on someone else's page. But it is
+a SET, the other three panels are different artworks, and it can carry one
+code. Identical in shape to **#8866** in Kids Room, which was left and flagged
+for the same reason.
 
-### Leads from titles only — to check, never to write
+### Two in the wrong section — and both landed on pages Wildlife gained
 
-**Three deity products are filed inside Still Life.** #22564 Murugan on the
-calla page, #24958 Ganesha on the rower, #8494 Kedarnath-with-Shiva on the
-rainbow trees. The Tirupati fault, and by now the commonest shape in this
-audit: filed by subject into a section that has none of that subject.
+**#7833 Minimalist Blossom Vase → WL 21.** Same blossom branches, same pale
+stone vase, same dark bowl, same ledge, same teal weathered wall, same light.
 
-#8494 has an obvious candidate home already read: **TA 02**, whose caption is
-"Kedarnath glows with countless lamps, set against the Himalayas". Try that
-first.
+**#7834 Rustic Blossom Vase → WL 22.** Same round speckled stone vase, same
+rough stone slab, same blossom branch and buds, same weathered plaster wall.
 
-Two pages are doubled up (SL 02 and SL 16) and in each case one claimant is a
-deity picture and the other is not — so the likely answer for both is that the
-non-deity product is the real owner and the deity one belongs elsewhere. That
-is a prediction from the titles, and the pictures decide it.
+This is the Wildlife pass paying off directly. That audit recorded, as a fact
+about the book rather than the catalogue, that *three of the four pages Wildlife
+gained are not wildlife* — WL 21 and WL 22 being still lifes of white blossom in
+a vase — and wrote down that a Still Life product might be the answer for them.
+Both turned out to be, and both were found in the first section audited after
+the note was written.
 
-And one page-shape note: **WL 21 and WL 22 are still lifes** — white blossom in
-a vase, both unclaimed. If a Still Life product turns out not to be on its own
-page, those two are worth checking before it is cleared.
+### Four cleared
+
+| product | sat on | which is | where it was hunted |
+|---|---|---|---|
+| #22564 Decorated Lord Murugan | SL 02 | three yellow callas | a photograph of a garlanded idol; Still Life has no deity page |
+| #24958 Ganesha Fire Abstract | SL 16 | the rower on marbled water | likewise |
+| #28473 Quiet Harbor Minimal | SL 16 | the rower on marbled water | LC 07, LC 08, LC 10 and AA 12, the minimalist landscape pages — none is a house on an island |
+| #8494 Sacred Kedarnath Temple | SL 18 | rainbow trees in water | TA 02, which is also Kedarnath — and is not this one |
+
+**Both doubled-up pages emptied completely.** The book-read note predicted that
+each pair would resolve to the non-deity claimant, because SL 02 and SL 16 each
+held one deity product and one plausible one. That prediction was **wrong in
+both cases**: on SL 02 the non-deity claimant turned out to belong to Wildlife,
+and on SL 16 the non-deity claimant is a different picture from the page. SL 02
+and SL 16 are now unclaimed. A reasonable inference from titles, and the
+pictures overruled it — which is the whole reason this audit reads pictures.
+
+### Two Kedarnath photographs, not one
+
+#8494 and TA 02 are both the Kedarnath temple lit with lamps, and they are
+different pictures. TA 02 is a portrait composition with a **purple sunset sky**
+and a **large crowd** in front of the temple. #8494 is a closer, landscape view
+from the front-left with a **red-lit side building** and a plain dark blue sky,
+and no crowd. Each carries something the other does not, so this is not a crop
+pair — the same test that separated #23191 from #19025 in Seven Horses: a crop
+can remove content, never add it.
+
+Unclaimed after this pass: 01 aside (the set), pages 02, 03, 04, 05, 07, 10, 11,
+12, 14, 15, 16, 17, 18, 19, 20, 21, 23 — seventeen of twenty-three.
