@@ -39,6 +39,28 @@ function shape() {
     // Does any card carry the row-span the masonry packing writes?
     spans: Array.from(ul.querySelectorAll('li.product'))
       .slice(0, 6).map((li) => li.style.gridRowEnd || '(none)'),
+    // Why is every card the same height? Masonry can only stagger cards that
+    // differ, so whatever pins the picture to one size is the real subject.
+    cardInternals: Array.from(ul.querySelectorAll('li.product')).slice(0, 3).map((li) => {
+      const r = li.getBoundingClientRect();
+      const img = li.querySelector('img');
+      const wrap = img && img.parentElement;
+      const ics = img ? getComputedStyle(img) : null;
+      const wcs = wrap ? getComputedStyle(wrap) : null;
+      const ir = img ? img.getBoundingClientRect() : null;
+      const wr = wrap ? wrap.getBoundingClientRect() : null;
+      return {
+        card: Math.round(r.height),
+        img: ir ? Math.round(ir.width) + 'x' + Math.round(ir.height) : '(none)',
+        natural: img ? img.naturalWidth + 'x' + img.naturalHeight : '',
+        imgHeight: ics ? ics.height : '', imgAspect: ics ? ics.aspectRatio : '',
+        imgObjectFit: ics ? ics.objectFit : '',
+        wrapEl: wrap ? wrap.tagName.toLowerCase() + '.' + String(wrap.className).split(/\s+/).slice(0,2).join('.') : '',
+        wrapBox: wr ? Math.round(wr.width) + 'x' + Math.round(wr.height) : '',
+        wrapHeight: wcs ? wcs.height : '', wrapAspect: wcs ? wcs.aspectRatio : '',
+        wrapPadTop: wcs ? wcs.paddingTop : '',
+      };
+    }),
   };
 }
 
@@ -77,6 +99,11 @@ function shape() {
       console.log(`  ${s.cards} cards, ${s.distinctLefts} distinct left edges, ${s.distinctTops} distinct tops`);
       console.log(`  first tops: ${s.firstTops.join(', ')}`);
       console.log(`  row spans written: ${s.spans.join(', ')}`);
+      (s.cardInternals || []).forEach((c, i) => {
+        console.log(`  card ${i + 1}: ${c.card}px tall`);
+        console.log(`     img ${c.img} (natural ${c.natural})  height:${c.imgHeight} aspect:${c.imgAspect} fit:${c.imgObjectFit}`);
+        console.log(`     wrap ${c.wrapEl} ${c.wrapBox}  height:${c.wrapHeight} aspect:${c.wrapAspect} pad-top:${c.wrapPadTop}`);
+      });
     }
   } catch (e) {
     console.log('DIAG ERROR: ' + e.message);
