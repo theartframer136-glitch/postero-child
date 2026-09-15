@@ -17,12 +17,12 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 5–101 | RK 010001–010097 | Radha Krishna | 97 | 91 | DONE — 2026-09-14 |
 | 102–104 | LG 020001–020003 | Lakshmi–Ganesha | 3 | 3 | NO |
 | 105–122 | LS 030001–030018 | Lord Shiva | 18 | 15 | part done — 2026-09-14 |
-| 123–137 | SH 040001–040015 | Seven Horses | 15 | 12 | DONE — 2026-09-15; 3 no-code unchecked |
+| 123–137 | SH 040001–040015 | Seven Horses | 15 | 12 | DONE — 2026-09-15 |
 | 138–152 | TP 050001–050015 | Tirupati Balaji | 15 | 15 | DONE — 2026-09-14 |
 | 153–156 | MG 060001–060004 | Murugan | 4 | 4 | NO |
 | 157–166 | LR 070001–070010 | Lord Rama | 10 | 9 | DONE — 2026-09-15 |
 | 167–196 | HD 080001–080030 | Hindu Deities | 30 | 27 | DONE — 2026-09-14 |
-| 197–209 | LB 090001–090013 | Lord Buddha | 13 | 13 | stale — see note |
+| 197–209 | LB 090001–090013 | Lord Buddha | 13 | 13 | DONE — re-verified 2026-09-15 |
 | 210–214 | SA 100001–100005 | Sikh Art | 5 | 3 | NO |
 | 215 | SN 110001 | Swaminarayan | 1 | 1 | NO |
 | 216 | PA 120001 | Pichwai | 1 | 1 | NO |
@@ -2319,3 +2319,67 @@ Four such pages now, across two sections.
 
 Unclaimed after this pass: every page except 02, 06, 10, 11 and 16 — fourteen of
 nineteen.
+
+## The no-code sweep — 2026-09-15
+
+Every product carrying no art code, drawn in one run as eight `BATCH_` contact
+sheets. This is the run that could not be done section by section: a prefix run
+only draws products already on that prefix, so a product cleared to NONE is
+invisible to it. Two long-deferred questions were waiting on this.
+
+### Buddha's two deferred strays, finally placed
+
+The Buddha pass of 2026-09-14 cleared three products and said of two of them
+that the right page *"is not knowable until those sections are read"*. Both
+sections have since been read.
+
+**#27078 Seven Horses Sunset Beach → SH 03.** The same seven white horses
+through pale blue surf, the same peach-and-cream cloud bank, the same spray. It
+had been sitting on LB 05, a grey stone Buddha.
+
+**#28534 Kirtan Celebration → still cleared, and still deferred.** Radha and
+Krishna with gopis playing instruments in a grove. The catch is that only Radha
+Krishna's **claimed** pages have been read — that section is 97 pages and its
+unclaimed ones are unread. So the answer is the same as before, for the same
+reason, and this is recorded so nobody re-derives it a third time.
+
+**#27811** was never deferred: it is a Buddha that matches no Buddha page, and
+Buddha gained no pages this round, so the verdict stands.
+
+### Seven Horses gains two pages, one of them from Buddha
+
+**#7662 → SH 02.** The same seven white horses in dark blue water, the same low
+gold sun, the same broken reflections. This was one of the three products
+cleared against the **twelve-page** Seven Horses book and never held against the
+three pages the section gained — the oldest loose end in this audit. The nocode
+sheet made its picture visible again, and SH 02 turned out to be unclaimed all
+along.
+
+So Seven Horses finishes at **8 products on their own page**, not 6.
+
+### Three horse products that stay cleared, now for checked reasons
+
+| product | its picture | checked against |
+|---|---|---|
+| #30093 Seven Horses Dust Charge | a sepia herd of brown, grey and white horses in dust on plain cream | every Seven Horses page, the three new ones included |
+| #27572 Abstract Horse Pair | a close-up of large stylised horse heads in cream, blue and gold — one composition, not a group of seven | all fifteen SH pages, and Living Room's six single-horse pages (LI 22, 23, 24, 25, 26, 33) |
+| #22016 Horses in Color Field | a herd with bright orange, red and blue splashes | as above, in the Abstract Art pass |
+
+**#30093 and #22016 are not the same painting**, though they look it at a
+glance: same series, same cream ground, but #22016 carries splashes of orange,
+red and blue that #30093 does not. That is the third near-duplicate pair this
+audit has had to separate, after the two murmurations and the two Kedarnath
+photographs.
+
+### The replay harness was blind to every product in this sweep
+
+Worth recording as a defect in the checking, not the catalogue. The harness
+rebuilds the catalogue from the renumber listing, which only contains products
+that **have** a code. A product cleared to NONE never appears — so a correction
+row placing one of them was counted as `missing` and silently not checked. Both
+placements above read as "missing" on the first replay.
+
+Fixed by seeding those products into the harness with the empty code that is
+their real state. The counts moved from `to change: 42 | missing: 56` to
+`to change: 44 | missing: 51`, which is the two placements plus the five
+products now visible.
