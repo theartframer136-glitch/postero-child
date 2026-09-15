@@ -1,0 +1,29 @@
+name: Inspect Layout Toggle
+
+# Click Grid, then Masonry, then Grid again, and measure where the cards sit
+# each time. Masonry staggers the card tops; grid lines them up. Counting
+# distinct top offsets tells the two apart without anyone squinting at a
+# screenshot. Read-only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Listing page to test
+        default: https://theartframer.us/product-category/digital-canvas-prints/
+      width:
+        description: Viewport width
+        default: '1280'
+
+jobs:
+  layout:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Click the toggle and measure
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afhead/node_modules node tools/diag-layout.js \
+            "${{ inputs.url }}" "${{ inputs.width }}" || true
