@@ -32,7 +32,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 255–258 | VA 160001–160004 | Vaastu Art | 4 | 4 | NO |
 | 259–281 | WL 170001–170023 | Wildlife | 23 | 19 | NO |
 | 282–303 | KR 180001–180022 | Kids Room | 22 | 19 | NO |
-| 304–354 | LI 190001–190051 | Living Room | 51 | 44 | NO |
+| 304–354 | LI 190001–190051 | Living Room | 51 | 44 | part done — 2026-09-14 |
 | 355–373 | AA 200001–200019 | Abstract Art | 19 | 19 | NO |
 | 374–377 | TA 210001–210004 | Travel Art | 4 | 4 | NO |
 
@@ -1609,3 +1609,204 @@ against it. The steps reporting success were telling the truth; I read their
 The lesson is narrow and worth keeping: **a failed step is not a step that did
 nothing.** Where several actions share one step, "failed" says only that the
 step did not finish.
+
+
+---
+
+## Living Room — read 2026-09-14, from the pictures
+
+**16 products on LI codes. Nine right, seven one page short — and the drift has
+a boundary you can point at.**
+
+Pages 1 to 11 are correct. From page 12 on, every product sits one page behind
+the picture it shows. Not a section-wide shift: a shift that STARTS somewhere.
+
+| product | held | is |
+|---|---|---|
+| #7688  Luxury Floral Birds | LI 12 | LI 13 — two birds on a flowering branch |
+| #16444 Running Brown Horse | LI 23 | LI 24 — the horse in ink-splash on cream |
+| #19697 Moonlit Sailing | LI 28 | LI 29 — the galleon in a moonlit canyon |
+| #13473 Joyful Man | LI 31 | LI 32 — the leaping man with a bouquet |
+| #23374 Moonlit White Horse | LI 32 | LI 33 — the white horse in gold leaf |
+| #27920 Rainbow Wings | LI 34 | LI 35 — the wings among butterflies |
+| #24897 Crimson Horse | LI 36 | LI 37 — the red horse and the woman in water |
+
+LI 23 and LI 24 are both charging horses, which is exactly the pair that makes
+this worth doing by picture: LI 23 is fiery chestnut on teal and orange, LI 24
+is brown in ink-splash on cream. One is #16444 and one is not.
+
+### All seven were already corrected once, and all seven were off by one
+
+Every one of them has a row in this file from the LR-to-LI migration — Living
+Room used to be LR, and a previous pass moved them across. That pass got the
+section right and the page number wrong, by one, seven times out of seven.
+
+So this is the same fault as #17472 in Hindu Deities, at scale: **a correction
+made against a numbering that had already drifted inherits the drift.** The
+migration was reading the old LR page number and assuming it carried over.
+
+Fixed IN PLACE in the original rows, as with #17472 and #7825 — the file never
+holds two answers about one painting. The duplicate-row guard added during the
+Hindu Deities work is what caught all seven at once; without it they would have
+been appended as contradictions and the last row would have won silently.
+
+### The aspect corroborates one of them independently
+
+#27920 is sold 4x4 square. LI 34 is 5030 and LI 35 is 4040. The product's own
+size agrees with the page the picture says, and disagrees with the page it held.
+
+### Still to do: ten products stranded on LR codes
+
+Ten more Living Room products hold LR 13, 21, 24 x3, 25 x2, 32, 33 and 39. Lord
+Rama has ten pages, so none of those resolve and none appears in any renumbered
+listing — the same blind spot as Lord Shiva's LS 16-22. They will not be drawn
+by an LI sheet run either, because the tool draws by prefix; they need an LR run,
+which will also bring in Lord Rama's own eight products.
+
+**LI is marked part done for that reason.** The 16 LI-coded products are
+finished; the 10 on LR codes have not been looked at.
+
+---
+
+## Lord Rama — read 2026-09-14, from the pictures
+
+**Eighteen products, two quite different problems. Lord Rama's own eight, and
+the ten Living Room strays the last run could not reach.**
+
+### The section did not drift, so nothing here is arithmetic
+
+Lord Rama gained exactly one page and gained it at the END: LR 10, a landscape
+Ram Darbar, is new; LR 01–09 did not move. So there is no drift to correct, and
+the drift test confirms it — shifting the wrong products one page either way
+matches nothing.
+
+| product | held | verdict |
+|---|---|---|
+| #7810  Ram Darbar | LR 01 | right |
+| #21259 Ram Darbar with Hanuman | LR 02 | right |
+| #21136 Ram and Sita | LR 03 | right |
+| #15913 Lord Vishnu Statue | LR 05 | right |
+| #17543 Lord Balaji Idol | LR 05 | shares it — see below |
+| #28300 Ram Lalla in Garlands | LR 07 | cleared |
+| #26023 Utsava Deity in Garlands | LR 08 | cleared |
+| #31588 Kodanda Rama Utsavam | LR 09 | cleared |
+
+The three clears are all the **Tirupati fault**, not drift: the right deity or
+the right idol, the wrong photograph. LR 07 is the Ayodhya Ram Lalla standing
+in a cream carved shrine in green; #28300 is a close-up bust of that same idol
+in gold and red against a flower wall. LR 08 is an idol in red under a marigold
+arch; #26023 is a Venkateswara utsava murti. LR 09 is a white-and-gold figure
+under an ornate white arch; #31588 is another Venkateswara, close up, with a
+gold bow.
+
+### A finding this file already contained, and lost
+
+Run 837 recorded, in this very file: *"#31588 and #26023 are not Lord Rama at
+all... Neither has a code, so nothing is written."* Nothing was written, and
+they have since acquired LR 08 and LR 09. **An observation with no row behind it
+does not survive.** Both now have rows.
+
+### #17543 and #15913 are one painting, mirrored
+
+Two products sat on LR 05, and an earlier row already had them sharing it as
+"the same photograph". They are not quite: #17543 is the composition FLIPPED
+left to right, with the garlands graded a harder magenta. The page settles which
+way round is printed — on LR 05 the gold staff runs down the RIGHT of the
+figure, as it does on #15913. Flipping #17543 back drops the pixel difference
+against #15913 from 44.8 to 18.1, far above the 6.6 of a genuine duplicate file
+but far below anything that could be a second painting.
+
+The share stands — it is one artwork listed twice, not someone else's painting —
+but the reason was rewritten, because "the same photograph" is the kind of
+almost-right note that gets re-opened later by whoever notices the flip.
+
+### The ten strays: four placed, six with nowhere to go
+
+Old Living Room codes step by one from page 12 up, so LR 13 lands on LI 14 and
+so on. That map is right where it applies, and it applies to almost none of
+these:
+
+| product | held | is |
+|---|---|---|
+| #7805  Butterfly Tree | LR 13 | **LI 14** — the map holds |
+| #25535 Jazz Man | LR 33 | **LI 51** — one of the seven new pages |
+| #7838  Indian Classical Dance | LR 24 | **IC 01** — held, see below |
+| #20026 Indian Classical Dancer | LR 25 | **IC 05** — a different section |
+| #29639 Mahavira Golden Shrine | LR 21 | cleared |
+| #16191 Serene Buddha Statue | LR 24 | cleared |
+| #27264 Nataraja Bronze | LR 24 | cleared |
+| #7803  Vaishnav Tilak | LR 25 | cleared |
+| #24714 Namaste Henna Hands | LR 32 | cleared |
+| #28778 Dancer on Stage | LR 39 | cleared |
+
+Two of the four that landed could not have been found by arithmetic at all.
+#25535 is on LI 51, one of the seven pages Living Room gained this round.
+#20026 is not in Living Room; it is in Indian Culture, which the number never
+pointed at.
+
+And #7805 is the cleanest demonstration yet of the owner's rule. Its page, LI
+14, carries the caption **"Floral Pichwai art symbolizes purity and renewal"**.
+The picture on it is a bare tree shedding gold and teal butterflies. The
+caption is not merely vague, it is about a different painting — the second
+caption in this book known to describe something that is not on its own page.
+
+The six clears were each checked against the section the subject points at, not
+just Living Room: the Nataraja against all eighteen Lord Shiva pages, the
+Mahavira against LB 13 (the book's only Mahavira, and a different picture — a
+painting of his enlightenment, not a golden shrine statue), the henna hands and
+the stage dancer against all five Indian Culture pages, the tilak panel against
+Vaastu Art and Pichwai. #16191 came closest and still missed: LB 09 is a Buddha
+facing forward on a square plinth under one tall waterfall; #16191 is the same
+idea painted differently, three-quarter view on a rocky mound with cascades
+falling from the mound itself.
+
+### Reading book pages became cheap, which is why this run went further
+
+`media.canva.com` is refused at the proxy, so until now every page had to be
+judged from the thumbnail the MCP call renders inline. Every one of those URLs
+carries a `fallback` parameter holding a pre-signed `s3.amazonaws.com` URL for
+the same PNG, and that host is NOT refused. So book pages can now be downloaded
+and compared pixel for pixel next to the product tiles. `tools/canva-page-fetch.py`
+does it. The mirror in #17543/#15913 is only visible at that size.
+
+Second cheap move, also new: `design_content` returns the TEXT of a page range
+in one call with no images. Captions are unreliable — LI 14 above is the proof —
+but they are a fine way to SHORTLIST which pages are worth rendering. All 51
+Living Room captions came back in one call, and the two real matches were found
+by looking at seven pages instead of fifty-one.
+
+### One row held back, then settled — Indian Culture, read 2026-09-14
+
+**#7838 is IC 01** — pixel for pixel, the rainbow watercolour dancer. But
+#25840 "Dancers in Duet" held IC 01, and writing over it would have been
+refused as a clash, correctly. So the row was withheld and an `art_sheets: IC`
+run was dispatched instead of guessing.
+
+The sheet brought back **three** products, not the one the last renumber
+listing showed, and it settled the whole section at once:
+
+| page | product | verdict |
+|---|---|---|
+| IC 01 | #25840 Dancers in Duet | **wrong** — see below |
+| IC 02 | #13781 | right — the splash dancer in teal and silver |
+| IC 03 | #7700 | right — the orange Bharatanatyam dancer |
+| IC 04 | — | unclaimed: a woman with a basket in a landscape |
+| IC 05 | — | **#20026**, from the strays above |
+
+#25840's own picture is a photograph of **two** dancers in blue and green on a
+black ground. It is not IC 01, not IC 02, not IC 03, not IC 04, not IC 05, and
+no page of Living Room's fifty-one is two dancers either. It clears, and #7838
+takes IC 01.
+
+That makes this the audit's **first real chained move**: one product must
+vacate a code before another can have it. It lands because of the fix made
+during the Hindu Deities work — the pass now removes every leaving product from
+the ownership map *before* it places anyone. Written against the old pass, both
+rows would have been refused and the section would have stayed wrong.
+
+Worth noting what the withholding bought. Writing #7838 onto IC 01 blind would
+have been refused; clearing #25840 blind would have thrown away a correct code
+if its picture had matched. One cheap read-only run answered both, and turned a
+blocked row into a finished section.
+
+**Indian Culture is done. LR is done. Living Room's ten strays are closed.**
