@@ -22,6 +22,33 @@ add_action('wp_footer', function() {
     /* masonry mode: rows become a fine grid and each card spans what it needs */
     ul.products.af-masonry{display:grid !important;grid-auto-rows:8px !important;align-items:start !important;}
     ul.products.af-masonry li.product{height:auto !important;margin-bottom:0 !important;}
+
+    /* ── AND THE PICTURES MUST BE ALLOWED TO DIFFER ────────────────────────
+       Without this the toggle does everything right and changes nothing, which
+       is exactly what the owner filmed. Measured on the live category page:
+       every card 577px tall, every card given the same "span 20", because the
+       image wrapper is pinned to height:300px and the picture is cropped to
+       fill it with object-fit:cover.
+
+       Masonry's whole purpose is packing cards of DIFFERENT heights. Give it
+       twelve identical cards and it produces a grid — correctly, and
+       indistinguishably.
+
+       The artworks are not identical. The same three cards measured 800x1040,
+       800x616 and 800x1280 underneath the crop: a tall canvas, a wide one, and
+       a taller one still. In masonry the crop comes off and each piece is
+       shown at its own proportions — which is the point of a masonry wall of
+       art, and the only thing that makes the choice worth offering.
+
+       Grid is untouched: these rules exist only inside .af-masonry, so
+       switching back restores the tidy uniform crop. ────────────────────── */
+    ul.products.af-masonry li.product div.product-image,
+    ul.products.af-masonry li.product .product-image.image-main{
+      height:auto !important;min-height:0 !important;max-height:none !important;
+      aspect-ratio:auto !important;}
+    ul.products.af-masonry li.product div.product-image img{
+      height:auto !important;width:100% !important;
+      object-fit:contain !important;aspect-ratio:auto !important;}
     /* Phones. These buttons measure 32px tall — 8px of padding either side of
        a 12px line — against the ~40px a fingertip wants, and the toggle's 10px
        left margin pushed the pair out of line with the toolbar it belongs to
