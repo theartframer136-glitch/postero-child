@@ -77,6 +77,18 @@ function look(sels) {
       color: cs.color, background: cs.backgroundColor,
       fontSize: cs.fontSize, fontFamily: (cs.fontFamily || '').slice(0, 34),
       text: (el.textContent || '').trim().slice(0, 22),
+      tip: el.getAttribute('data-af-tip') || '(NO TOOLTIP)',
+      // A button nobody can hit is no better than an invisible one. Ask the
+      // page who is on top at the button's own centre.
+      hitBy: (function () {
+        var b = el.getBoundingClientRect();
+        var t = document.elementFromPoint(Math.round(b.left + b.width / 2),
+                                          Math.round(b.top + b.height / 2));
+        if (!t) return '(nothing)';
+        return (t === el || el.contains(t)) ? 'ITSELF'
+          : t.tagName.toLowerCase() + (typeof t.className === 'string' && t.className
+              ? '.' + t.className.trim().split(/\s+/).slice(0, 2).join('.') : '');
+      })(),
       beforeContent: bf.content, beforeFont: (bf.fontFamily || '').slice(0, 34),
       beforeSize: bf.fontSize, beforeColor: bf.color, beforeDisplay: bf.display,
     });
@@ -107,7 +119,7 @@ const show = (label, r) => {
   });
   (r.glyphs || []).forEach((g) => {
     if (g.missing) { console.log(`  ${g.sel}  — not in the card`); return; }
-    console.log(`  ${g.sel}  at ${g.at}  text:"${g.text}"`);
+    console.log(`  ${g.sel}  at ${g.at}  tooltip:"${g.tip}"  hit by: ${g.hitBy}`);
     console.log(`     font ${g.fontSize} ${g.fontFamily}  colour ${g.color} on ${g.background}`);
     console.log(`     ::before content:${g.beforeContent} font:${g.beforeFont} `
       + `size:${g.beforeSize} colour:${g.beforeColor} display:${g.beforeDisplay}`);
