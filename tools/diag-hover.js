@@ -59,6 +59,29 @@ function look(sels) {
       pointer: cs.pointerEvents,
     });
   }
+  // A button drawn at font-size 0 has nothing to draw with. These plugins put
+  // their icon in a ::before with its own size, so the pseudo-element is where
+  // the glyph actually lives — or fails to. And a glyph the right size is
+  // still invisible if it is white on white, so take the colours too.
+  out.glyphs = [];
+  for (const sel of ['.woosw-btn', '.woosq-btn', '.af-icon-corner .add_to_cart_button',
+                     '.af-icon-corner .af-cmp-btn']) {
+    const el = card.querySelector(sel);
+    if (!el) { out.glyphs.push({ sel, missing: true }); continue; }
+    const cs = getComputedStyle(el);
+    const bf = getComputedStyle(el, '::before');
+    const r = el.getBoundingClientRect();
+    out.glyphs.push({
+      sel,
+      at: Math.round(r.left) + ',' + Math.round(r.top),
+      color: cs.color, background: cs.backgroundColor,
+      fontSize: cs.fontSize, fontFamily: (cs.fontFamily || '').slice(0, 34),
+      text: (el.textContent || '').trim().slice(0, 22),
+      beforeContent: bf.content, beforeFont: (bf.fontFamily || '').slice(0, 34),
+      beforeSize: bf.fontSize, beforeColor: bf.color, beforeDisplay: bf.display,
+    });
+  }
+
   // Who receives the click in the middle of the picture, and in the corner
   // where the cart and compare buttons live?
   const img = card.querySelector('.product-image, .product-img-wrap');
@@ -81,6 +104,13 @@ const show = (label, r) => {
     if (x.missing) { console.log(`  ${x.sel}  — NOT IN THE CARD`); return; }
     console.log(`  ${x.sel}  ${x.box}  opacity:${x.opacity} vis:${x.visibility} `
       + `display:${x.display} z:${x.z} pos:${x.position} transform:${x.transform} pointer:${x.pointer}`);
+  });
+  (r.glyphs || []).forEach((g) => {
+    if (g.missing) { console.log(`  ${g.sel}  — not in the card`); return; }
+    console.log(`  ${g.sel}  at ${g.at}  text:"${g.text}"`);
+    console.log(`     font ${g.fontSize} ${g.fontFamily}  colour ${g.color} on ${g.background}`);
+    console.log(`     ::before content:${g.beforeContent} font:${g.beforeFont} `
+      + `size:${g.beforeSize} colour:${g.beforeColor} display:${g.beforeDisplay}`);
   });
   if (r.onTop) {
     console.log('  what is on top:');
