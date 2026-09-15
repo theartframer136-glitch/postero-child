@@ -27,7 +27,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 215 | SN 110001 | Swaminarayan | 1 | 1 | NO |
 | 216 | PA 120001 | Pichwai | 1 | 1 | NO |
 | 217–221 | IC 130001–130005 | Indian Culture | 5 | 4 | NO |
-| 222–231 | LC 140001–140010 | Landscapes | 10 | 10 | book read — 2026-09-15 |
+| 222–231 | LC 140001–140010 | Landscapes | 10 | 10 | DONE — 2026-09-15 |
 | 232–254 | SL 150001–150023 | Still Life | 23 | 23 | DONE — 2026-09-15 |
 | 255–258 | VA 160001–160004 | Vaastu Art | 4 | 4 | NO |
 | 259–281 | WL 170001–170023 | Wildlife | 23 | 19 | DONE — 2026-09-15 |
@@ -2169,14 +2169,13 @@ can remove content, never add it.
 Unclaimed after this pass: 01 aside (the set), pages 02, 03, 04, 05, 07, 10, 11,
 12, 14, 15, 16, 17, 18, 19, 20, 21, 23 — seventeen of twenty-three.
 
-## Landscapes — book read 2026-09-15, products NOT yet compared
+## Landscapes — read 2026-09-15, from the pictures
 
-All 10 pages read. **Nothing is written for the five LC products yet, because
-no `LC_` contact sheet has been drawn** — deploy run 1146 is drawing them now.
-One cross-section placement *is* written here, and is explained below.
+All 10 pages read and all five products held against them. LC gained no pages,
+so nothing here drifted.
 
-Landscapes gained **no** pages (count 10 = legacy 10, no `absent` gaps), so
-nothing here drifted.
+**Three are right, one is in the wrong section, one is cleared — and two of
+those verdicts overturn rows this audit wrote itself.**
 
 |page|asp |the picture|
 |---|---|---|
@@ -2191,42 +2190,67 @@ nothing here drifted.
 |09|4030|whimsical TRAIN in a flower meadow, steam turning into FLOWERS|
 |10|5030|abstract overlapping CIRCLES with tree silhouettes, earthy tones|
 
-Five products claim five pages, none twice: LC 01 #27133, LC 02 #13722,
-LC 03 #18897, LC 06 #14739, LC 09 #16566. Unclaimed: 04, 05, 07, 08, 10.
+### The whole section was re-coded by arithmetic, and it was right three times in five
 
-### The reason to read this section was never its own five products
+Every one of the five products reached its LC page the same way: an early pass
+moved it from `LS n` to `LC n`, keeping the page number, when the book renamed
+Lord Shiva's landscape half to LC. The rows say so in their own words — "book
+LC 09 is the whimsical train", "book LC 02 is the pathway towards a celestial
+entity", "book LC 03 is the misty cliffs over calm waters". Those are the page
+**captions**, not the pictures; no `LC_` contact sheet existed at the time.
 
-**Landscapes was split out of Lord Shiva** — the book renamed LS to LC — and the
-Lord Shiva pass cleared six products that are not Shiva at all, naming the
-likely section for each. Two of them it called landscapes:
+Held against the pictures now:
 
-| product | what its picture is | what the LS pass said |
+| product | early row said | verdict |
 |---|---|---|
-| #25474 Lantern Lake Starry Night | a boat on a lake under a swirling starry sky | "a landscape, and another casualty of Landscapes having been LS" |
-| #30276 Red Sun Winter Tree | a bare tree against a red sun | "a landscape" |
+| #16566 Whimsical Train Journey | LS 09 → LC 09 | **right** — same train, same flower-steam, same red poppy |
+| #13722 Stairway to the Moon | LS 02 → LC 02 | **right** — same split moon, same tree on the ledge, same figure |
+| #14739 Moonlit Mountain Forest | LS 06 → LC 06 | **right** — and this row already gave a picture reason, not a caption |
+| #18897 Surreal Landscape | LS 03 → LC 03 | **wrong** — it is AA 09 |
+| #27133 Geometric Falls Sunrise | LS 01 → LC 01 | **wrong** — it is nothing yet |
 
-Both have now been held against pages, and **neither is in Landscapes**.
+Three in five is a good hit rate for arithmetic and a bad one for a code that
+travels onto a SKU. Both wrong rows are patched in place rather than appended,
+so each product keeps one row.
 
-**#25474 → LI 50.** Living Room, not Landscapes. The same red boat with two
-figures, the same three glowing lanterns in the same places, the same swirling
-blue-green sky, the same tree silhouette on the left horizon, the same orange
-reflection streaks. LI 50 is one of the pages Living Room gained this round.
-Its row is patched in place from `NONE` rather than added, so the product keeps
-one row.
+### #18897 Surreal Landscape → AA 09
 
-**#30276 stays cleared.** Its picture is a painterly collage — a red sun disc, a
-gnarled bare tree, a translucent red panel with a standing figure — and it is
-neither of the two pages its description pointed at. LC 04 is tall thin conifers
-against an orange moon; LC 07 is flat minimalist hills with a red tree. The
-original clear was right, and is now right for a checked reason rather than an
-unchecked one.
+Abstract Art, not Landscapes. The same floating bowl of cracked earth, the same
+bare tree leaning off its right rim, the same lone figure walking the inner
+curve, the same sun burning through ochre cloud, the same reflection pool below.
+LC 03 is a Japanese-style scene of teal cliffs and a white sun on orange.
 
-So the LS→LC collision is real but smaller than the LS pass implied: of the two
-products it filed under that heading, one belongs to a third section and the
-other belongs nowhere yet.
+Both pages are "surreal landscapes" by title and neither is the other. AA 09's
+own caption reads *"Where imagination defies gravity — art that bends reality"*,
+which is this picture exactly — the one time in this audit a caption has led
+straight to the right page. AA 09 carries no product today.
 
-### Lead from titles only — to check, never to write
+### #27133 Geometric Falls Sunrise → cleared
 
-#27133 "Geometric Falls Sunrise" sits on LC 01, which is a naturalistic green
-forest waterfall. Neither "geometric" nor "sunrise" fits it. The other four
-titles read straight, which in this audit means nothing either way.
+Its picture is a geometric mountain landscape in flat panels of blue, orange,
+green and white, with a small orange tree and a sun disc. LC 01 is a
+naturalistic green forest waterfall over mossy rocks. Neither "geometric" nor
+"sunrise" describes that page — the title was the lead written down before the
+sheets were drawn, and it held.
+
+Hunted and not found: Abstract Art's geometric pages (AA 05 is two cubist faces,
+AA 07 a golden tree over grey blocks, AA 10 a tree against a split moon, AA 12
+Japanese layered hills, AA 13 terracotta shapes), LC 10, and all four Vaastu
+pages.
+
+### The LS→LC collision, closed
+
+The Lord Shiva pass cleared two products it called landscapes on the grounds
+that Landscapes used to be LS. Both were checked while this section was being
+read, and **neither is in Landscapes** — the finding recorded with the book half.
+
+- **#25474 → LI 50.** Living Room: the starry-night boat, same three lanterns,
+  same swirling sky, same horizon silhouette.
+- **#30276 stays cleared.** Its red-sun-and-bare-tree collage is neither LC 04
+  (conifers against an orange moon) nor LC 07 (minimalist hills with a red
+  tree).
+
+So four products passed through Landscapes on their way somewhere else, and the
+section keeps three.
+
+Unclaimed after this pass: 01, 03, 04, 05, 07, 08, 10 — seven of ten.
