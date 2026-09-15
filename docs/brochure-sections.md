@@ -27,7 +27,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 215 | SN 110001 | Swaminarayan | 1 | 1 | NO |
 | 216 | PA 120001 | Pichwai | 1 | 1 | NO |
 | 217–221 | IC 130001–130005 | Indian Culture | 5 | 4 | NO |
-| 222–231 | LC 140001–140010 | Landscapes | 10 | 10 | stale — see note |
+| 222–231 | LC 140001–140010 | Landscapes | 10 | 10 | book read — 2026-09-15 |
 | 232–254 | SL 150001–150023 | Still Life | 23 | 23 | DONE — 2026-09-15 |
 | 255–258 | VA 160001–160004 | Vaastu Art | 4 | 4 | NO |
 | 259–281 | WL 170001–170023 | Wildlife | 23 | 19 | DONE — 2026-09-15 |
@@ -2168,3 +2168,65 @@ can remove content, never add it.
 
 Unclaimed after this pass: 01 aside (the set), pages 02, 03, 04, 05, 07, 10, 11,
 12, 14, 15, 16, 17, 18, 19, 20, 21, 23 — seventeen of twenty-three.
+
+## Landscapes — book read 2026-09-15, products NOT yet compared
+
+All 10 pages read. **Nothing is written for the five LC products yet, because
+no `LC_` contact sheet has been drawn** — deploy run 1146 is drawing them now.
+One cross-section placement *is* written here, and is explained below.
+
+Landscapes gained **no** pages (count 10 = legacy 10, no `absent` gaps), so
+nothing here drifted.
+
+|page|asp |the picture|
+|---|---|---|
+|01|3050|LANDSCAPE. green forest WATERFALL over mossy rocks, sunlit woodland|
+|02|5030|STAIRWAY rising to a SPLIT MOON — blue/teal left, gold/orange right, lone figure|
+|03|4030|surreal ORANGE sky, white SUN, misty grey cliffs with pines over calm water|
+|04|4030|huge ORANGE MOON behind tall thin CONIFERS, layered red and grey hills|
+|05|5030|two white EGRETS on a bare branch, soft PINK MOON, misty water|
+|06|4030|GOLDEN MOON behind a misty BLUE MOUNTAIN, pines, reflective lake|
+|07|4030|flat minimalist hills, a RED TREE, pale sun, birds|
+|08|3020|watercolour PINES, yellow sun, three birds|
+|09|4030|whimsical TRAIN in a flower meadow, steam turning into FLOWERS|
+|10|5030|abstract overlapping CIRCLES with tree silhouettes, earthy tones|
+
+Five products claim five pages, none twice: LC 01 #27133, LC 02 #13722,
+LC 03 #18897, LC 06 #14739, LC 09 #16566. Unclaimed: 04, 05, 07, 08, 10.
+
+### The reason to read this section was never its own five products
+
+**Landscapes was split out of Lord Shiva** — the book renamed LS to LC — and the
+Lord Shiva pass cleared six products that are not Shiva at all, naming the
+likely section for each. Two of them it called landscapes:
+
+| product | what its picture is | what the LS pass said |
+|---|---|---|
+| #25474 Lantern Lake Starry Night | a boat on a lake under a swirling starry sky | "a landscape, and another casualty of Landscapes having been LS" |
+| #30276 Red Sun Winter Tree | a bare tree against a red sun | "a landscape" |
+
+Both have now been held against pages, and **neither is in Landscapes**.
+
+**#25474 → LI 50.** Living Room, not Landscapes. The same red boat with two
+figures, the same three glowing lanterns in the same places, the same swirling
+blue-green sky, the same tree silhouette on the left horizon, the same orange
+reflection streaks. LI 50 is one of the pages Living Room gained this round.
+Its row is patched in place from `NONE` rather than added, so the product keeps
+one row.
+
+**#30276 stays cleared.** Its picture is a painterly collage — a red sun disc, a
+gnarled bare tree, a translucent red panel with a standing figure — and it is
+neither of the two pages its description pointed at. LC 04 is tall thin conifers
+against an orange moon; LC 07 is flat minimalist hills with a red tree. The
+original clear was right, and is now right for a checked reason rather than an
+unchecked one.
+
+So the LS→LC collision is real but smaller than the LS pass implied: of the two
+products it filed under that heading, one belongs to a third section and the
+other belongs nowhere yet.
+
+### Lead from titles only — to check, never to write
+
+#27133 "Geometric Falls Sunrise" sits on LC 01, which is a naturalistic green
+forest waterfall. Neither "geometric" nor "sunrise" fits it. The other four
+titles read straight, which in this audit means nothing either way.
