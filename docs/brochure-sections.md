@@ -28,7 +28,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 216 | PA 120001 | Pichwai | 1 | 1 | NO |
 | 217–221 | IC 130001–130005 | Indian Culture | 5 | 4 | NO |
 | 222–231 | LC 140001–140010 | Landscapes | 10 | 10 | stale — see note |
-| 232–254 | SL 150001–150023 | Still Life | 23 | 23 | NO |
+| 232–254 | SL 150001–150023 | Still Life | 23 | 23 | book read — 2026-09-15 |
 | 255–258 | VA 160001–160004 | Vaastu Art | 4 | 4 | NO |
 | 259–281 | WL 170001–170023 | Wildlife | 23 | 19 | DONE — 2026-09-15 |
 | 282–303 | KR 180001–180022 | Kids Room | 22 | 19 | DONE — 2026-09-15 |
@@ -2064,3 +2064,88 @@ APPLIED report reads `to change: 2 | codes cleared: 7 | refused as a clash: 0`
 that run prints, "DIAGNOSTICS ONLY: theme deployed, every catalogue script
 skipped", is not true of the corrections pass. Worth knowing before dispatching
 a sheet run off a branch whose corrections are not meant to land yet.
+
+## Still Life — book read 2026-09-15, products NOT yet compared
+
+All 23 pages read. **Nothing is written yet, because no `SL_` contact sheet has
+been drawn** — deploy run 1143 is queued to draw them. No product in this
+section has had its picture held against the page it names.
+
+Still Life gained **no** pages this round (count 23 = legacy 23, no `absent`
+gaps), so nothing here drifted. Any wrong code in this section was wrong
+before the book was re-laid-out — which is exactly the shape Wildlife turned
+out to have, and Wildlife was wrong on seven of twelve.
+
+|page|asp |the picture|
+|---|---|---|
+|01|4030|BOUQUET of red/pink/cream blooms in a gold cylinder vase, red-orange and green colour-block ground|
+|02|4030|three YELLOW CALLA lilies, big green leaves, glass vases, teal geometric ground|
+|03|4030|cluster of glass and amber BOTTLES/JARS on a grid, orange and grey abstract|
+|04|5030|three TRANSLUCENT X-RAY TULIPS — red, orange, olive — on cream|
+|05|5030|BOHO botanical — leaves, pampas, gold arcs and beads, marble ground|
+|06|4030|MID-CENTURY: circles on stems and leaf shapes above three striped VESSELS|
+|07|5030|two GOLDEN BRASS VASES with white blossom, teal and gold painterly ground|
+|08|4040|white DOGWOOD blossom in a round ivory vase against a glowing ORANGE SUN|
+|09|5030|POP still life — red and teal ground, yellow sun, bright vases and pots|
+|10|5030|potted OLIVE TREE with black olives, rustic Tuscan ochre wall|
+|11|5030|BOHO vase with dried floral stems, terracotta circles, sage ledge|
+|12|5030|two MINIMALIST VASES (orange, black/cream) with dried botanicals, beige|
+|13|5030|three vases of PINK MAGNOLIA against a GOLDEN MOON|
+|14|5030|watercolour BUTTERFLIES, orange, grey and cream|
+|15|4035|red POPPIES growing out of a weathered BOAT on green water|
+|16|4030|abstract blue-teal MARBLED WATER, a tiny ROWER silhouette|
+|17|5030|a SAILBOAT, bold palette-knife blue, yellow and red|
+|18|4030|colourful TREES reflected in water, rainbow canopy|
+|19|5030|a YELLOW UMBRELLA over watercolour rain, blue and yellow drips|
+|20|5030|a stone BUILDING with a huge green TREE, tiny figure at the door|
+|21|5030|two FACES in profile fused with a GOLDEN FOREST|
+|22|5030|white LOTUS flowers in a WOVEN BASKET on water|
+|23|5030|stylised BLOSSOMS in two decorative vases with BUTTERFLIES|
+
+### The back half of this section is not still life
+
+SL 15 to SL 21 are a boat of poppies, a rower, a sailboat, rainbow trees, an
+umbrella in the rain, a building under a tree, and two faces fused with a
+forest. Only SL 01–14, SL 22 and SL 23 are objects on a surface.
+
+That matters in both directions. A scenic product must not be ruled out of
+this section on subject alone — and the seven scenic pages are exactly where a
+product filed here by its *title* would be least likely to actually sit.
+
+### What the eleven products claim
+
+| page | the page shows | claimed by |
+|---|---|---|
+| SL 01 | the gold-vase bouquet | #8805 Modern Cafe Decor Wall Art **Set** |
+| SL 02 | yellow callas | #7833 Minimalist Blossom Vase **and** #22564 Decorated Lord Murugan |
+| SL 06 | mid-century vessels | #15852 Modern Plant Art |
+| SL 08 | dogwood on an orange sun | #14093 Dogwood Blossom Still Life |
+| SL 09 | the pop still life | #13239 Vibrant Floral Still Life |
+| SL 12 | two minimalist vases | #7834 Rustic Blossom Vase |
+| SL 13 | magnolia at moonrise | #24291 Blossom Vases at Moonrise |
+| SL 16 | the rower on marbled water | #24958 Ganesha Fire Abstract **and** #28473 Quiet Harbor Minimal |
+| SL 18 | rainbow trees in water | #8494 Sacred Kedarnath Temple with Lord Shiva |
+| SL 22 | lotus in a woven basket | #25185 Lotus Basket Still Life |
+
+Unclaimed: 03, 04, 05, 07, 10, 11, 14, 15, 17, 19, 20, 21, 23 — thirteen pages,
+seven of them the scenic ones.
+
+### Leads from titles only — to check, never to write
+
+**Three deity products are filed inside Still Life.** #22564 Murugan on the
+calla page, #24958 Ganesha on the rower, #8494 Kedarnath-with-Shiva on the
+rainbow trees. The Tirupati fault, and by now the commonest shape in this
+audit: filed by subject into a section that has none of that subject.
+
+#8494 has an obvious candidate home already read: **TA 02**, whose caption is
+"Kedarnath glows with countless lamps, set against the Himalayas". Try that
+first.
+
+Two pages are doubled up (SL 02 and SL 16) and in each case one claimant is a
+deity picture and the other is not — so the likely answer for both is that the
+non-deity product is the real owner and the deity one belongs elsewhere. That
+is a prediction from the titles, and the pictures decide it.
+
+And one page-shape note: **WL 21 and WL 22 are still lifes** — white blossom in
+a vase, both unclaimed. If a Still Life product turns out not to be on its own
+page, those two are worth checking before it is cleared.
