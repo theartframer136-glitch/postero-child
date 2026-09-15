@@ -1,0 +1,52 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+=== ART CODES FROM IMAGE FILENAMES ===
+
+--- A) calibration: products whose code is already their own ---
+checked: 185  (no image: 0)
+  filename contains that product's own code: 0
+  it does not:                               185
+  --> filenames carry the code 0% of the time.
+      TOO LOW to trust. Treat section B as a hint only.
+  [ no  ] #141  code LI - 190002-3050  ChatGPT-Image-Jan-30-2026-03_27_15-PM.png | ChatGPT-Image-Jan-30-2026-03_27_15-PM.png
+  [ no  ] #148  code LI - 190003-5030  ChatGPT-Image-Feb-2-2026-12_17_17-PM.png | ChatGPT-Image-Feb-2-2026-12_17_17-PM.png
+  [ no  ] #223  code RK - 010010-5030  Goddess-Durga.webp | Gemini_Generated_Image_5fl22a5fl22a5fl2.png | Gemini_Generated_Image_
+  [ no  ] #232  code SH - 040001-3050  The-Art-Framer-scaled.webp | Gemini_Generated_Image_9zvs2j9zvs2j9zvs.png | Gemini_Generate
+  [ no  ] #3362  code HD - 080004-5030  Gemini_Generated_Image_2a4v332a4v332a4v-e1771325192791.png | Gemini_Generated_Image_2a4v33
+  [ no  ] #7662  code SH - 040002-3050  The-Art-Framer-1.webp | Gemini_Generated_Image_9zvs2j9zvs2j9zvs.png | Gemini_Generated_Ima
+
+--- B) the products under a shared code ---
+  LB - 090001-3050 #220     JAN 14                 Serene Buddha with Lotus Canvas Wall Art 4×3 Feet – 
+  LB - 090001-3050 #7839    JAN 14                 Buddha Lotus Serenity Canvas Wall Art 36×60 Inches –
+  VA - 160004-5030 #7703    JAN 17,JAN 16          Divine Garuda Sacred Symbol Canvas Wall Art– 36 × 60
+  VA - 160004-5030 #21381   —                    Sun Phoenix Vintage Art Canvas Wall Art 3×4 Feet – F
+  SA - 100002-3050 #7815    JAN 29                 Sacred Golden Temple Amritsar Canvas Wall Art – 48 ×
+  SA - 100002-3050 #26936   —                    Golden Temple Daylight Canvas Wall Art 3×4 Feet – Fl
+  HD - 080001-5030 #8398    JAN 16                 Meditating Yogi Spiritual Wall Art – 60 × 24 Inches 
+  HD - 080001-5030 #26875   PCS 01                 Mahavatar Babaji Canvas Wall Art 3×4 Feet – Floating
+  RK - 010033-3050 #14617   —                    Krishna Playing Flute Canvas Wall Art 3×4 Feet – Flo
+  RK - 010033-3050 #31829   —                    Krishna Flute Panorama Canvas Wall Art 3×4 Feet – Fl
+  VA - 160003-5030 #15340   —                    Nandi The Bull Canvas Wall Art 3×4 Feet – Floating F
+  VA - 160003-5030 #29751   FEB 12,PM 01           Sacred Cow Relief Art Canvas Wall Art 3×4 Feet – Flo
+  TP - 050013-5030 #15730   —                    Vishnu Blue Form Canvas Wall Art 3×4 Feet – Floating
+  TP - 050013-5030 #31890   —                    Lord Vishnu Golden Halo Canvas Wall Art 3×4 Feet – F
+  LR - 070005-5030 #15913   LR 05                  Lord Vishnu Statue Canvas Wall Art 3×4 Feet – Floati
+  LR - 070005-5030 #17543   —                    Lord Balaji Idol Canvas Wall Art 3×4 Feet – Floating
+  LS - 030009-3040 #16257   —                    Buddha Art Canvas Wall Art 3×4 Feet – Floating Frame
+  LS - 030009-3040 #29578   —                    Twin Faces of Serenity Canvas Wall Art 3×4 Feet – Fl
+  SA - 100001-3050 #25297   NEW 01                 Tanjore Deity with Devotees Canvas Wall Art 3×4 Feet
+  SA - 100001-3050 #26814   —                    Golden Temple at Dusk Canvas Wall Art 3×4 Feet – Flo
+  SA - 100001-3050 #28717   —                    Vishnu in Golden Garlands Canvas Wall Art 3×4 Feet –
+  SA - 100001-3050 #29220   FEB 12,PM 01           Vishnu Cosmic Lotus Canvas Wall Art 3×4 Feet – Float
+  PA - 120001-4030 #28962   FEB 14,PM 01           Savanna Golden Hour Canvas Wall Art 3×4 Feet – Float
+  PA - 120001-4030 #31527   —                    Krishna Cowherd Modern Art Canvas Wall Art 3×4 Feet 
+
+of 24 products under a shared code:
+  one clear candidate from the filename: 7
+  filename only repeats the shared code: 0
+  no code-shaped text in the filename:   13
+  (the rest had several candidates and need a person to choose)
+
+candidates: https://theartframer.us/wp-content/uploads/taf-reports/artcode-candidates.csv
+  Nothing here has been applied. Check each row against the picture, fix
+  what is wrong, then save it as artcode-import.csv to apply it.

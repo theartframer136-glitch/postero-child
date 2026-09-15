@@ -1,0 +1,45 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+=== ART CODES ON MORE THAN ONE PRODUCT ===
+products: 391
+  with an art code: 209  |  without: 182
+  distinct art codes: 196
+  codes used by more than one product: 11
+  products sharing a code with something else: 24
+
+--- how many products per shared code ---
+  2 products: 10 code(s)
+  4 products: 1 code(s)
+
+--- every shared code (first 200 groups) ---
+code | product id | current SKU | title
+  SA - 100001-3050 #25297   SA-100001-3050A        Tanjore Deity with Devotees Canvas Wall Art 3×4 Feet – Float
+  SA - 100001-3050 #26814   SA-100001-3050B        Golden Temple at Dusk Canvas Wall Art 3×4 Feet – Floating Fr
+  SA - 100001-3050 #28717   SA-100001-3050C        Vishnu in Golden Garlands Canvas Wall Art 3×4 Feet – Floatin
+  SA - 100001-3050 #29220   SA-100001-3050D        Vishnu Cosmic Lotus Canvas Wall Art 3×4 Feet – Floating Fram
+  LB - 090001-3050 #220     LB-090001-3050A        Serene Buddha with Lotus Canvas Wall Art 4×3 Feet – Floating
+  LB - 090001-3050 #7839    LB-090001-3050B        Buddha Lotus Serenity Canvas Wall Art 36×60 Inches – Spiritu
+  VA - 160004-5030 #7703    VA-160004-5030A        Divine Garuda Sacred Symbol Canvas Wall Art– 36 × 60 Inches 
+  VA - 160004-5030 #21381   VA-160004-5030B        Sun Phoenix Vintage Art Canvas Wall Art 3×4 Feet – Floating 
+  SA - 100002-3050 #7815    SA-100002-3050A        Sacred Golden Temple Amritsar Canvas Wall Art – 48 × 36 Inch
+  SA - 100002-3050 #26936   SA-100002-3050B        Golden Temple Daylight Canvas Wall Art 3×4 Feet – Floating F
+  HD - 080001-5030 #8398    HD-080001-5030A        Meditating Yogi Spiritual Wall Art – 60 × 24 Inches Peaceful
+  HD - 080001-5030 #26875   HD-080001-5030         Mahavatar Babaji Canvas Wall Art 3×4 Feet – Floating Frame –
+  RK - 010033-3050 #14617   RK-010033-3050A        Krishna Playing Flute Canvas Wall Art 3×4 Feet – Floating Fr
+  RK - 010033-3050 #31829   RK-010033-3050B        Krishna Flute Panorama Canvas Wall Art 3×4 Feet – Floating F
+  VA - 160003-5030 #15340   VA-160003-5030A        Nandi The Bull Canvas Wall Art 3×4 Feet – Floating Frame – P
+  VA - 160003-5030 #29751   VA-160003-5030B        Sacred Cow Relief Art Canvas Wall Art 3×4 Feet – Floating Fr
+  TP - 050013-5030 #15730   TP-050013-5030A        Vishnu Blue Form Canvas Wall Art 3×4 Feet – Floating Frame –
+  TP - 050013-5030 #31890   TP-050013-5030C        Lord Vishnu Golden Halo Canvas Wall Art 3×4 Feet – Floating 
+  LR - 070005-5030 #15913   LR-070005-5030A        Lord Vishnu Statue Canvas Wall Art 3×4 Feet – Floating Frame
+  LR - 070005-5030 #17543   LR-070005-5030B        Lord Balaji Idol Canvas Wall Art 3×4 Feet – Floating Frame –
+  LS - 030009-3040 #16257   LS-030009-3040A        Buddha Art Canvas Wall Art 3×4 Feet – Floating Frame – Premi
+  LS - 030009-3040 #29578   LS-030009-3040B        Twin Faces of Serenity Canvas Wall Art 3×4 Feet – Floating F
+  PA - 120001-4030 #28962   PA-120001-4030A        Savanna Golden Hour Canvas Wall Art 3×4 Feet – Floating Fram
+  PA - 120001-4030 #31527   PA-120001-4030B        Krishna Cowherd Modern Art Canvas Wall Art 3×4 Feet – Floati
+
+full table: https://theartframer.us/wp-content/uploads/taf-reports/artcode-duplicates.csv
+fill this in:  https://theartframer.us/wp-content/uploads/taf-reports/artcode-import-template.csv
+  put the correct code in new_art_code, save it as artcode-import.csv in
+  the same folder, and the next deploy applies it. Rows left blank are
+  skipped, so it can be done a few at a time.

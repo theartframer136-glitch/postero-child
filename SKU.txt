@@ -1,0 +1,57 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.7/wp-includes/functions.php on line 6131
+=== SKU → ART CODE ===
+target: artcode-sku-v4-unique  |  budget: 200s or 800 products per run
+products: 391
+  with an art code:    209
+  WITHOUT an art code: 182  (a SKU this tool minted is undone below)
+  art codes shared by more than one product: 11
+  products given a letter so their SKU is unique: 24
+  uniqueness: OK — 209 products, 209 distinct SKUs
+
+changed 0  |  already correct 209  |  clashes left alone 0  |  failed 0  |  0s
+every product with an art code now carries it as its SKU.
+
+--- ART CODES ON MORE THAN ONE PRODUCT ---
+These 11 codes are each on several products, so each product
+gets a letter to make its SKU unique. The art code itself is untouched —
+the letter belongs to the SKU alone. A letter, once issued, never moves.
+These are still codes that want correcting; the letters keep the shop
+working in the meantime.
+  LB-090001-3050 (2 products)
+     LB-090001-3050A #220     Serene Buddha with Lotus Canvas Wall Art 4×3 Feet – Fl
+     LB-090001-3050B #7839    Buddha Lotus Serenity Canvas Wall Art 36×60 Inches – S
+  VA-160004-5030 (2 products)
+     VA-160004-5030A #7703    Divine Garuda Sacred Symbol Canvas Wall Art– 36 × 60 I
+     VA-160004-5030B #21381   Sun Phoenix Vintage Art Canvas Wall Art 3×4 Feet – Flo
+  SA-100002-3050 (2 products)
+     SA-100002-3050A #7815    Sacred Golden Temple Amritsar Canvas Wall Art – 48 × 3
+     SA-100002-3050B #26936   Golden Temple Daylight Canvas Wall Art 3×4 Feet – Floa
+  HD-080001-5030 (2 products)
+     HD-080001-5030A #8398    Meditating Yogi Spiritual Wall Art – 60 × 24 Inches Pe
+     HD-080001-5030B #26875   Mahavatar Babaji Canvas Wall Art 3×4 Feet – Floating F
+  RK-010033-3050 (2 products)
+     RK-010033-3050A #14617   Krishna Playing Flute Canvas Wall Art 3×4 Feet – Float
+     RK-010033-3050B #31829   Krishna Flute Panorama Canvas Wall Art 3×4 Feet – Floa
+  VA-160003-5030 (2 products)
+     VA-160003-5030A #15340   Nandi The Bull Canvas Wall Art 3×4 Feet – Floating Fra
+     VA-160003-5030B #29751   Sacred Cow Relief Art Canvas Wall Art 3×4 Feet – Float
+  TP-050013-5030 (2 products)
+     TP-050013-5030A #15730   Vishnu Blue Form Canvas Wall Art 3×4 Feet – Floating F
+     TP-050013-5030C #31890   Lord Vishnu Golden Halo Canvas Wall Art 3×4 Feet – Flo
+  LR-070005-5030 (2 products)
+     LR-070005-5030A #15913   Lord Vishnu Statue Canvas Wall Art 3×4 Feet – Floating
+     LR-070005-5030B #17543   Lord Balaji Idol Canvas Wall Art 3×4 Feet – Floating F
+  LS-030009-3040 (2 products)
+     LS-030009-3040A #16257   Buddha Art Canvas Wall Art 3×4 Feet – Floating Frame –
+     LS-030009-3040B #29578   Twin Faces of Serenity Canvas Wall Art 3×4 Feet – Floa
+  SA-100001-3050 (4 products)
+     SA-100001-3050A #25297   Tanjore Deity with Devotees Canvas Wall Art 3×4 Feet –
+     SA-100001-3050B #26814   Golden Temple at Dusk Canvas Wall Art 3×4 Feet – Float
+     SA-100001-3050C #28717   Vishnu in Golden Garlands Canvas Wall Art 3×4 Feet – F
+     SA-100001-3050D #29220   Vishnu Cosmic Lotus Canvas Wall Art 3×4 Feet – Floatin
+  PA-120001-4030 (2 products)
+     PA-120001-4030A #28962   Savanna Golden Hour Canvas Wall Art 3×4 Feet – Floatin
+     PA-120001-4030B #31527   Krishna Cowherd Modern Art Canvas Wall Art 3×4 Feet – 
+
+no art code: 182 product(s); 0 had the SKU it displaced put back, 0 had a generated SKU cleared, 132 left alone
