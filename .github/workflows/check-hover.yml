@@ -1,0 +1,29 @@
+name: Inspect Card Hover
+
+# The four controls exist in the card and none of them appear on hover. Sizes
+# cannot explain that, so this reports what sizes leave out: opacity, stacking,
+# and which element is actually on top where the cursor lands — before hover
+# and while hovering. Read-only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Listing page to test
+        default: https://theartframer.us/product-category/digital-canvas-prints/
+      width:
+        description: Viewport width
+        default: '1280'
+
+jobs:
+  hover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hover a card and measure
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afhead/node_modules node tools/diag-hover.js \
+            "${{ inputs.url }}" "${{ inputs.width }}" || true
