@@ -176,6 +176,56 @@ add_action('wp_footer', function () {
         ['.shop-action .woosw-btn',              'Add to wishlist'],
         ['.shop-action .woosq-btn',              'Quick view']
       ];
+      /**
+       * Put the four controls inside the picture, by moving them there.
+       *
+       * The stylesheet route has been tried and measured, twice. The buttons
+       * sit twenty pixels below a box with overflow:hidden, and every rule
+       * written to lift them — position, bottom, top — loses to something that
+       * sets those inline with priority. A stylesheet cannot win that
+       * argument; three separate faults in this codebase have already been
+       * hidden behind exactly the same thing.
+       *
+       * So they are moved rather than styled into place: appended into the
+       * picture's own wrapper, which is the element doing the clipping, and
+       * positioned with inline priority. Inside the clip there is nothing left
+       * to clip, and an inline important declaration is the one thing nothing
+       * else can override.
+       */
+      function put(el, rules){
+        for (var k in rules) el.style.setProperty(k, rules[k], 'important');
+      }
+      function place(){
+        document.querySelectorAll('ul.products li.product').forEach(function(card){
+          var img = card.querySelector('.product-img-wrap')
+                 || card.querySelector('.product-transition');
+          if (!img) return;
+          put(img, {position: 'relative', overflow: 'visible'});
+
+          var corner = card.querySelector('.af-icon-corner');
+          if (corner) {
+            if (corner.parentElement !== img) img.appendChild(corner);
+            put(corner, {position: 'absolute', top: '10px', right: '10px',
+                         left: 'auto', bottom: 'auto', display: 'flex',
+                         gap: '8px', 'z-index': '6', opacity: '1',
+                         visibility: 'visible', transform: 'none',
+                         width: 'auto', margin: '0'});
+          }
+          // .shop-action holds the wishlist and quick view pair. It is taken
+          // out of .group-action, which is the thing parked below the picture.
+          var shop = card.querySelector('.shop-action');
+          if (shop) {
+            if (shop.parentElement !== img) img.appendChild(shop);
+            put(shop, {position: 'absolute', left: '0', right: '0',
+                       bottom: '12px', top: 'auto', display: 'flex',
+                       'justify-content': 'center', 'align-items': 'center',
+                       gap: '10px', 'z-index': '6', opacity: '1',
+                       visibility: 'visible', transform: 'none',
+                       width: 'auto', margin: '0'});
+          }
+        });
+      }
+
       function label(){
         document.querySelectorAll('ul.products li.product').forEach(function(card){
           NAMED.forEach(function(pair){
@@ -192,18 +242,20 @@ add_action('wp_footer', function () {
           });
         });
       }
-      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', label);
-      else label();
+      function run(){ place(); label(); }
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
+      else run();
       // The listing re-renders when a filter changes, and the new cards arrive
       // without labels unless something is watching.
       try {
         new MutationObserver(function(m){
           for (var i = 0; i < m.length; i++) {
-            if (m[i].addedNodes && m[i].addedNodes.length) { label(); break; }
+            if (m[i].addedNodes && m[i].addedNodes.length) { run(); break; }
           }
         }).observe(document.body, {childList:true, subtree:true});
       } catch(e){}
-      [600, 1800].forEach(function(d){ setTimeout(label, d); });
+      [400, 1200, 2600].forEach(function(d){ setTimeout(run, d); });
+      window.addEventListener('load', run);
     })();
     </script>
     <?php
