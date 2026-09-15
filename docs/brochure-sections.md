@@ -17,10 +17,10 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 5–101 | RK 010001–010097 | Radha Krishna | 97 | 91 | DONE — 2026-09-14 |
 | 102–104 | LG 020001–020003 | Lakshmi–Ganesha | 3 | 3 | NO |
 | 105–122 | LS 030001–030018 | Lord Shiva | 18 | 15 | part done — 2026-09-14 |
-| 123–137 | SH 040001–040015 | Seven Horses | 15 | 12 | stale — 3 new |
+| 123–137 | SH 040001–040015 | Seven Horses | 15 | 12 | DONE — 2026-09-15; 3 no-code unchecked |
 | 138–152 | TP 050001–050015 | Tirupati Balaji | 15 | 15 | DONE — 2026-09-14 |
 | 153–156 | MG 060001–060004 | Murugan | 4 | 4 | NO |
-| 157–166 | LR 070001–070010 | Lord Rama | 10 | 9 | NO |
+| 157–166 | LR 070001–070010 | Lord Rama | 10 | 9 | DONE — 2026-09-15 |
 | 167–196 | HD 080001–080030 | Hindu Deities | 30 | 27 | DONE — 2026-09-14 |
 | 197–209 | LB 090001–090013 | Lord Buddha | 13 | 13 | stale — see note |
 | 210–214 | SA 100001–100005 | Sikh Art | 5 | 3 | NO |
@@ -30,8 +30,8 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 222–231 | LC 140001–140010 | Landscapes | 10 | 10 | stale — see note |
 | 232–254 | SL 150001–150023 | Still Life | 23 | 23 | NO |
 | 255–258 | VA 160001–160004 | Vaastu Art | 4 | 4 | NO |
-| 259–281 | WL 170001–170023 | Wildlife | 23 | 19 | NO |
-| 282–303 | KR 180001–180022 | Kids Room | 22 | 19 | NO |
+| 259–281 | WL 170001–170023 | Wildlife | 23 | 19 | DONE — 2026-09-15 |
+| 282–303 | KR 180001–180022 | Kids Room | 22 | 19 | DONE — 2026-09-15 |
 | 304–354 | LI 190001–190051 | Living Room | 51 | 44 | part done — 2026-09-14 |
 | 355–373 | AA 200001–200019 | Abstract Art | 19 | 19 | NO |
 | 374–377 | TA 210001–210004 | Travel Art | 4 | 4 | NO |
@@ -1881,7 +1881,7 @@ this is a possible missed placement, not a live error.
 
 ---
 
-## Kids Room — book read 2026-09-15, products NOT yet compared
+## Kids Room — read 2026-09-15, from the pictures
 
 All 22 pages read and recorded. **Nothing is written for this section yet, and
 that is deliberate.**
@@ -1914,53 +1914,64 @@ that is deliberate.**
 Fourteen products claim KR 01, 02, 03, 04, 07 ×3, 11, 12, 13, 15, 16 ×2, 18.
 Unclaimed: 05, 06, 08, 09, 10, 14, 17, 19, 20, 21, 22.
 
-### Why nothing is written yet
+### The result: four right, two in the wrong section, seven cleared
 
-**No Kids Room contact sheet has ever been drawn.** Every `art-sheets` commit
-still retained in the reflog was checked — runs 1073 through 1132 — and not one
-contains a `KR_` file. So not a single product in this section has ever had its
-picture held against the page it names, and on this audit's own rule there is
-nothing that can honestly be written.
+The sheets took four attempts to arrive — one run drew all 11 correctly and lost
+the push to a GitHub 500, one was cancelled while pending, one while running.
+The drawing was never the problem.
 
-A read-only `art_sheets: KR` run is what unblocks it. It has not been
-dispatched because the deploy queue is being churned: the concurrency group
-keeps exactly one pending run, so each new push evicts whoever is waiting.
-Run 1133 (the `nocode` run for Seven Horses) was queued at 08:54, never
-started, and was **cancelled at 09:31:32** — the exact second another session's
-push queued run 1134. 1134 was then evicted by 1135 three minutes later.
-Dispatching now would evict a live debugging run, so it waits for a free slot.
+**Right, and untouched:** #7765 KR 01 (the stacked cats), #14923 KR 11 (the Iron
+Man sketch), #15046 KR 12 (Batman over comic panels), #18168 KR 16 (the row of
+modernist birds). Each matches its page exactly.
 
-### The shortlist the titles suggest — to CHECK, not to write
+**In the wrong section, and placed:**
 
-Titles in this catalogue have been wrong in both directions, so these are
-leads only:
-
-| product | sits on | which is |
+| product | held | is |
 |---|---|---|
-| #16640 Vishnu Ji Statue | KR 04 | a cartoon bee |
-| #17402 Vibrant Horse | KR 07 | a volcano erupting flowers |
-| #21771 Guru Watercolor | KR 07 | the same volcano |
-| #27388 Krishna Minimal | KR 07 | the same volcano |
-| #24409 Tropical Leaves Mural | KR 02 | a sleeping cat |
-| #26389 Pirate Captain Sketch | KR 13 | a panda in a straw hat |
-| #28225 Nandi and the Jyotirlingas | KR 18 | two children under an umbrella |
-| #25718 Franklin Graffiti Pop Art | KR 15 | two monsters |
+| #25718 Franklin Graffiti | KR 15 | **LI 46** — the banknote Franklin over spray paint |
+| #26389 Pirate Captain Sketch | KR 13 | **LI 47** — the pencil pirate with tankard and blueprint |
 
-If it holds, this is the **Tirupati fault** again at scale — the right kind of
-thing on the wrong page — and three products sharing the volcano page cannot
-all be right whatever the pictures show.
+Both are pages Living Room GAINED this round, so no arithmetic could have
+reached either; only the picture could.
 
-One lead worth trying first: **LI 46 is a Ben Franklin pop-art portrait**, read
-during the Living Room pass. #25718 is titled "Franklin Graffiti Pop Art".
+**Cleared, seven:** #24409 (tropical-leaf mural on the sleeping-cat page),
+#16640 (a golden deity idol on the cartoon-bee page), #17402, #21771 and #27388
+(an abstract horse, a Guru Nanak watercolour and a cubist Krishna — **all three
+on KR 07, which is a volcano erupting flowers**), #27633 (a murmuration on the
+birds page, which is #18168's), #28225 (a Nandi bull among temple bells on the
+page of two children under a red umbrella).
 
----
+Three products on one volcano was the clearest signal in the section, and none
+of the three was it. This is the Tirupati fault at scale: the right kind of
+thing filed by subject, on a page that shows something else.
 
-## Wildlife — book read 2026-09-15, products NOT yet compared
+### #8866 is a SET, and it is left where it is
 
-All 23 pages read. As with Kids Room, **nothing is written, because no `WL_`
-contact sheet has ever been drawn** — every art-sheets commit still in the
-reflog was checked and none holds one. No product in this section has had its
-picture held against the page it names.
+"Kids Cartoon Animal Canvas Wall Art Set – 72×24" holds KR 03. Its featured
+image is a room mockup showing **two** framed pieces: the KR 03 snail and the
+KR 04 bee. So it is not on someone else's painting — KR 03's painting is
+genuinely in it — and the rule's purpose is served by leaving it alone.
+
+But it is worth the owner's attention. **The only product in the catalogue
+showing the KR 03 snail or the KR 04 bee is this one set**, and it can carry
+only one code. KR 04's own claimant, #16640, is the deity idol now cleared. A
+two-piece set on a single-painting code under-describes what ships.
+
+### Still open in this section
+
+#21771 is a Guru Nanak watercolour and belongs to Sikh Art by subject; SA's
+five pages have not been drawn against their products, so it clears rather than
+moves. #24409, #17402, #27388, #27633 and #28225 found no page anywhere read so
+far.
+
+Unclaimed after this pass: KR 02, 04, 05, 06, 07, 08, 09, 10, 13, 14, 15, 17,
+19, 20, 21, 22.
+
+## Wildlife — read 2026-09-15, from the pictures
+
+All 23 pages read and, at last, all twelve products held against them. The
+`WL_` sheets were drawn by deploy run 1141 — the first ever for this section.
+**Five are right, one is in the wrong section, six are cleared.**
 
 |page|asp |the picture|
 |---|---|---|
@@ -1988,36 +1999,68 @@ picture held against the page it names.
 |22|3050|NEW. STILL LIFE — white blossom in a stone vase|
 |23|5030|NEW. stained-glass/cubist TULIPS|
 
-Twelve products claim WL 01, 02, 03, 06, 07, 08, 09, 11, 12, 13, 15, 16, none
-of them twice. Unclaimed: 04, 05, 10, 14, 17, 18, 19, 20, 21, 22, 23.
+Wildlife gained its four pages at the END, so nothing in this section drifted.
+Every wrong code here was wrong before the book was re-laid-out.
+
+### Right, and left alone
+
+| product | page | what settled it |
+|---|---|---|
+| #7767 Sacred Elephant Harmony | WL 01 | the two elephants under the red-dotted arch, green clouds, flying birds |
+| #17151 Geometric Elephant | WL 03 | the elephant head quartered red/ochre/teal, same spiral |
+| #22886 Autumn Deer Folk Tree | WL 07 | the Gond deer pair, bird on the blue one's back, same tree |
+| #28042 Dream Peacock Garden | WL 11 | the pastel watercolour peacock, same daisies |
+| #23619 Swan Lake Romance | WL 13 | the two swans, same reeds, same reflection |
+
+### One in the wrong section
+
+**#23313 Safari Friends Nursery → KR 21.** The cross-section lead written down
+before any sheet was drawn, and it held: KR 21 is this exact artwork — monkey
+on a vine, cockatoo, two flamingos in flight, giraffe, elephant with calf, pink
+lotus, a bunch of bananas, each in the same place. WL 12, which it held, is two
+red-crowned cranes on gold. KR 21 is one of the pages **Kids Room** gained this
+round, so no arithmetic on the old numbering could have reached it.
+
+### Six cleared, and where each was looked for first
+
+| product | sat on | which is | where it was hunted |
+|---|---|---|---|
+| #29159 Horse Studies Collage | WL 02 | a black elephant silhouette | all 15 Seven Horses pages, looked at — every one is a painted group of running horses, not a sketchbook. Living Room's horse pages were ruled out **on their captions only** (LI 23–26, 33, 37 each describe one painted horse) |
+| #26267 Balaji Garland Darshan | WL 06 | two peacocks | TP 04, TP 05 and TP 15, the three garlanded-idol pages — all paintings of a differently dressed idol; this is a photograph, strip light and temple sign included |
+| #29690 Folk Cows Abstract | WL 08 | folk **deer**, not cows | Radha Krishna's cow pages are Krishna among many white cows; the Pichwai page is a Shrinathji the book has struck out |
+| #27194 Murmuration at Dusk | WL 09 | a zebra with branch-antlers | AA 11 and AA 16, Abstract Art's bird pages — neither |
+| #27695 Savanna Evening Dance | WL 15 | a cheetah on a ledge | LC 04, the nearest thing in Landscapes — a grey and orange pine forest under a huge orange moon, no figures |
+| #31395 Shiva Smoke and Trident | WL 16 | a peacock at a red palace door | all eight unclaimed Lord Shiva pages — LS 01 is a smoky head but front-on and orange, LS 18 is the serene purple one, none carries the dancer |
+
+Two deity pictures inside a wildlife section: the Tirupati fault again, and by
+now the commonest single shape in this audit.
+
+### Two murmurations, not one duplicate
+
+#27194 "Murmuration at Dusk" (WL 09) and #27633 "Flight Path Reverie", cleared
+off KR 16 in the Kids Room pass, were described in almost the same words —
+birds swirling above a lone figure on burnt orange. Held side by side they are
+**two different paintings**: #27633's flock is a single ribbon curling down from
+the top-left, #27194's is a scattered swarm filling the whole sky. Same series,
+same artist, different pictures. Worth recording because the earlier note on
+#27633 already said "KR 21 is not this either", and a reader could reasonably
+have taken the two for one listing entered twice.
 
 ### Three of the four pages this section GAINED are not wildlife
 
 WL 21 and WL 22 are **still lifes**; WL 23 is a **floral**. Only WL 20, the
-peacock, belongs to the section by subject. That is a fact about the book
-rather than the catalogue, and it matters before anything is placed there: a
-wildlife product is unlikely to be the answer for those three, and a Still Life
-product might be.
+peacock, belongs to the section by subject. A wildlife product is unlikely to
+be the answer for those three, and a Still Life product might be — which is
+one more reason none of the six cleared above was pushed onto them.
 
-### Leads from titles only — to check, never to write
+Unclaimed after this pass: 02, 04, 05, 06, 08, 09, 10, 12, 14, 15, 16, 17, 18,
+19, 20, 21, 22, 23.
 
-| product | sits on | which is |
-|---|---|---|
-| #26267 Balaji Garland Darshan | WL 06 | two peacocks |
-| #31395 Shiva Smoke and Trident | WL 16 | a peacock at a red palace door |
-| #23313 Safari Friends Nursery | WL 12 | two cranes on gold |
-| #29690 Folk Cows Abstract | WL 08 | folk **deer**, not cows |
-| #29159 Horse Studies Collage | WL 02 | an elephant |
+### `diag_only` does not skip the corrections
 
-Two deity pictures inside a wildlife section is the Tirupati fault again.
-
-And one cross-section lead worth trying first: **KR 21 — one of Kids Room's new
-pages — is a watercolour jungle set: flamingo, elephant, giraffe, monkey.**
-#23313 is titled "Safari Friends Nursery".
-
-### Both sections are blocked on the same thing
-
-One `art_sheets` run draws one prefix. `KR` was dispatched first and is queued;
-`WL` follows. The deploy queue keeps exactly one pending run and each push
-evicts whoever waits, which is how run 1133 died — cancelled at 09:31:32, the
-second another session's push queued 1134.
+Run 1141 was dispatched with `diag_only: true` to draw the `WL` sheets, and its
+APPLIED report reads `to change: 2 | codes cleared: 7 | refused as a clash: 0`
+— it applied the **Kids Room** corrections to the live catalogue. The header
+that run prints, "DIAGNOSTICS ONLY: theme deployed, every catalogue script
+skipped", is not true of the corrections pass. Worth knowing before dispatching
+a sheet run off a branch whose corrections are not meant to land yet.
