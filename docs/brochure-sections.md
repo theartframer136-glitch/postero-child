@@ -1810,3 +1810,214 @@ if its picture had matched. One cheap read-only run answered both, and turned a
 blocked row into a finished section.
 
 **Indian Culture is done. LR is done. Living Room's ten strays are closed.**
+
+---
+
+## Seven Horses — read 2026-09-15, from the pictures
+
+**Eight products, seven right. The eighth exposes a "duplicate listing" that
+was never a duplicate.**
+
+Six were confirmed against their pages pixel for pixel and are untouched:
+#232 SH 01, #23130 SH 05, #19759 SH 06, #20953 SH 07, #19636 SH 08,
+#21014 SH 09. Nothing in this section drifted — the three pages it gained
+(13, 14, 15) are all at the END, so SH 01–12 did not move.
+
+### The two products on SH 04 are two different renders
+
+A row in `artcode-corrections.csv` had #23191 sharing SH 04 with #19025, on the
+grounds that #23191 is *"a brighter, tighter crop"* of it. It is not a crop of
+it at all:
+
+> **#23191 has a brilliant sunburst with rays at the upper right.
+> #19025 has snow-capped brown mountains in that same place.**
+
+A crop can only remove content. It can never add a sun. So neither picture can
+be a crop of the other — they are two renders of one idea, sharing the left
+cliff, the peach cloud bank and the horses' poses.
+
+All six mockups on the SH 04 page show the burst. So **SH 04 is #23191**, its
+row is corrected in place and is no longer a SHARE, and **#19025 is on no page
+of this section** — SH 02 is a gold burst over flat water with no cliffs, SH 03
+is peach surf with no cliffs, and nothing else in the fifteen puts horses
+between cliffs.
+
+### A measurement that does not work, recorded so it is not tried again
+
+RMS between the two tiles is 59.6, which looks conclusive against the 6.6 of a
+genuine duplicate file. **It proves nothing here.** A different framing moves
+every pixel, so a real crop would also score high — the number cannot separate
+"different picture" from "same picture, cropped".
+
+A crop-search was then written: slide every sub-rectangle of one image over the
+other, across six scales, with brightness normalised so "brighter" could not
+explain a mismatch. Calibrated against pairs whose answer is already known, it
+is worthless:
+
+```
+same painting, mirrored   (#15913 / #17543)   50.7
+plainly different         (#15913 / #28300)   59.5
+plainly different         (#28300 / #31588)   61.2
+```
+
+It scores a true match barely better than two unrelated pictures. Discarded.
+
+**What settles a crop claim is content: an element present in one picture and
+absent from the other.** The sun does that here, and nothing else needed to.
+
+### Still open: three cleared horse pictures, never held against the new pages
+
+#7662, #30093 and #27572 were cleared in an earlier pass, each explicitly
+"re-checked against all twelve Seven Horses pages". The section has fifteen
+now. The three it gained were not in that comparison — the same blind spot as
+every other new page in this book. They have no code, so no `SH` sheet draws
+them; a read-only `art_sheets: nocode` run is in flight to bring their pictures
+back so they can be held against SH 13, 14 and 15.
+
+Being cleared, they are visible as "no code" rather than silently wrong, so
+this is a possible missed placement, not a live error.
+
+**Unclaimed after this pass: SH 02, 03, 10, 11, 12, 13, 14, 15.**
+
+---
+
+## Kids Room — book read 2026-09-15, products NOT yet compared
+
+All 22 pages read and recorded. **Nothing is written for this section yet, and
+that is deliberate.**
+
+|page|asp |the picture|
+|---|---|---|
+|01|3040|four stacked cartoon CATS — green, red, white, black|
+|02|4030|a CAT asleep on a patchwork of colour blocks and flowers|
+|03|5030|PORTRAIT. happy SNAIL cheering in the rain|
+|04|4030|cute BEE with a parasol and a basket, flower meadow|
+|05|5030|PORTRAIT. GIRL in glasses reading on a window seat|
+|06|4030|CHILD holding balloons made of FISH BOWLS, ink on cream|
+|07|4030|VOLCANO erupting a bloom of FLOWERS, teal sky|
+|08|4030|SUPERMAN, red and black ink splash|
+|09|3050|CAPTAIN AMERICA with hammer and shield|
+|10|3050|IRON MAN / Hulkbuster crouching in rubble|
+|11|4030|IRON MAN sketch, cream ground with blueprint lines|
+|12|3050|BATMAN over a collage of comic panels|
+|13|3050|PANDA in a straw hat, orange blueprint ground|
+|14|3050|ANIME boy, yellow hair, lightning|
+|15|4040|two quirky round MONSTERS, orange and green|
+|16|4040|abstract modernist BIRDS in a row|
+|17|5030|PORTRAIT. MOTHER hugging CHILD among flowers, paper-craft|
+|18|5030|PORTRAIT. two CHILDREN under a RED UMBRELLA, paper-craft|
+|19|6030|TALL. two stylised GIRAFFES, geometric|
+|20|6030|NEW. TALL. whimsical TOWER of houses, balloons, a fire engine|
+|21|3050|NEW. watercolour JUNGLE ANIMALS — flamingo, elephant, giraffe|
+|22|4030|NEW. two figures with CELLOS among leaves, warm ochre|
+
+Fourteen products claim KR 01, 02, 03, 04, 07 ×3, 11, 12, 13, 15, 16 ×2, 18.
+Unclaimed: 05, 06, 08, 09, 10, 14, 17, 19, 20, 21, 22.
+
+### Why nothing is written yet
+
+**No Kids Room contact sheet has ever been drawn.** Every `art-sheets` commit
+still retained in the reflog was checked — runs 1073 through 1132 — and not one
+contains a `KR_` file. So not a single product in this section has ever had its
+picture held against the page it names, and on this audit's own rule there is
+nothing that can honestly be written.
+
+A read-only `art_sheets: KR` run is what unblocks it. It has not been
+dispatched because the deploy queue is being churned: the concurrency group
+keeps exactly one pending run, so each new push evicts whoever is waiting.
+Run 1133 (the `nocode` run for Seven Horses) was queued at 08:54, never
+started, and was **cancelled at 09:31:32** — the exact second another session's
+push queued run 1134. 1134 was then evicted by 1135 three minutes later.
+Dispatching now would evict a live debugging run, so it waits for a free slot.
+
+### The shortlist the titles suggest — to CHECK, not to write
+
+Titles in this catalogue have been wrong in both directions, so these are
+leads only:
+
+| product | sits on | which is |
+|---|---|---|
+| #16640 Vishnu Ji Statue | KR 04 | a cartoon bee |
+| #17402 Vibrant Horse | KR 07 | a volcano erupting flowers |
+| #21771 Guru Watercolor | KR 07 | the same volcano |
+| #27388 Krishna Minimal | KR 07 | the same volcano |
+| #24409 Tropical Leaves Mural | KR 02 | a sleeping cat |
+| #26389 Pirate Captain Sketch | KR 13 | a panda in a straw hat |
+| #28225 Nandi and the Jyotirlingas | KR 18 | two children under an umbrella |
+| #25718 Franklin Graffiti Pop Art | KR 15 | two monsters |
+
+If it holds, this is the **Tirupati fault** again at scale — the right kind of
+thing on the wrong page — and three products sharing the volcano page cannot
+all be right whatever the pictures show.
+
+One lead worth trying first: **LI 46 is a Ben Franklin pop-art portrait**, read
+during the Living Room pass. #25718 is titled "Franklin Graffiti Pop Art".
+
+---
+
+## Wildlife — book read 2026-09-15, products NOT yet compared
+
+All 23 pages read. As with Kids Room, **nothing is written, because no `WL_`
+contact sheet has ever been drawn** — every art-sheets commit still in the
+reflog was checked and none holds one. No product in this section has had its
+picture held against the page it names.
+
+|page|asp |the picture|
+|---|---|---|
+|01|4030|ELEPHANTS with an arch of BIRDS, sage green and gold|
+|02|5030|black ELEPHANT silhouette, red and gold sun discs|
+|03|5030|geometric/watercolour ELEPHANT head, red and teal circles|
+|04|5030|LEOPARD between CRIMSON PILLARS, orchid vine|
+|05|5030|GIRAFFE beside a big stylised TREE, folk style|
+|06|5030|two PEACOCKS in a white blossom garden|
+|07|2540|GOND DEER pair under trees, orange ground|
+|08|3020|folk DEER cluster on yellow, Madhubani-style tree|
+|09|4030|ZEBRA with branch-antlers on RED|
+|10|5030|ornate art-nouveau PEACOCK panel, teal and red|
+|11|4040|watercolour PEACOCK, dreamy pastel|
+|12|5030|two red-crowned CRANES flying, GOLD ground|
+|13|5030|two white SWANS on a misty lake|
+|14|5030|geometric LEOPARD portrait, teal, gold and ivory|
+|15|4030|CHEETAH on a curved ledge, red floral panels|
+|16|5030|PEACOCK before an ornate RED PALACE doorway|
+|17|5030|golden TIGER emerging from paint splashes|
+|18|5030|white LION among wildflowers, pastel mountains|
+|19|6030|TALL. two DEER by a misty stream, birch, songbirds|
+|20|3050|NEW. vivid PEACOCK, teal, gold and blue swirls|
+|21|3050|NEW. STILL LIFE — white blossom in a vase, teal wall|
+|22|3050|NEW. STILL LIFE — white blossom in a stone vase|
+|23|5030|NEW. stained-glass/cubist TULIPS|
+
+Twelve products claim WL 01, 02, 03, 06, 07, 08, 09, 11, 12, 13, 15, 16, none
+of them twice. Unclaimed: 04, 05, 10, 14, 17, 18, 19, 20, 21, 22, 23.
+
+### Three of the four pages this section GAINED are not wildlife
+
+WL 21 and WL 22 are **still lifes**; WL 23 is a **floral**. Only WL 20, the
+peacock, belongs to the section by subject. That is a fact about the book
+rather than the catalogue, and it matters before anything is placed there: a
+wildlife product is unlikely to be the answer for those three, and a Still Life
+product might be.
+
+### Leads from titles only — to check, never to write
+
+| product | sits on | which is |
+|---|---|---|
+| #26267 Balaji Garland Darshan | WL 06 | two peacocks |
+| #31395 Shiva Smoke and Trident | WL 16 | a peacock at a red palace door |
+| #23313 Safari Friends Nursery | WL 12 | two cranes on gold |
+| #29690 Folk Cows Abstract | WL 08 | folk **deer**, not cows |
+| #29159 Horse Studies Collage | WL 02 | an elephant |
+
+Two deity pictures inside a wildlife section is the Tirupati fault again.
+
+And one cross-section lead worth trying first: **KR 21 — one of Kids Room's new
+pages — is a watercolour jungle set: flamingo, elephant, giraffe, monkey.**
+#23313 is titled "Safari Friends Nursery".
+
+### Both sections are blocked on the same thing
+
+One `art_sheets` run draws one prefix. `KR` was dispatched first and is queued;
+`WL` follows. The deploy queue keeps exactly one pending run and each push
+evicts whoever waits, which is how run 1133 died — cancelled at 09:31:32, the
+second another session's push queued 1134.
