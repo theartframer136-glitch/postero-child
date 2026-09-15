@@ -59,6 +59,13 @@ function shape() {
         wrapBox: wr ? Math.round(wr.width) + 'x' + Math.round(wr.height) : '',
         wrapHeight: wcs ? wcs.height : '', wrapAspect: wcs ? wcs.aspectRatio : '',
         wrapPadTop: wcs ? wcs.paddingTop : '',
+        // A stylesheet rule cannot beat an inline one with priority. This
+        // codebase has already hidden three faults that way, so ask directly
+        // rather than reason about specificity from the outside.
+        wrapInline: wrap ? (wrap.getAttribute('style') || '(no inline style)').slice(0, 120) : '',
+        imgInline: img ? (img.getAttribute('style') || '(no inline style)').slice(0, 120) : '',
+        imgPosition: ics ? ics.position : '', wrapPosition: wcs ? wcs.position : '',
+        imgMaxH: ics ? ics.maxHeight : '',
       };
     }),
   };
@@ -102,7 +109,10 @@ function shape() {
       (s.cardInternals || []).forEach((c, i) => {
         console.log(`  card ${i + 1}: ${c.card}px tall`);
         console.log(`     img ${c.img} (natural ${c.natural})  height:${c.imgHeight} aspect:${c.imgAspect} fit:${c.imgObjectFit}`);
-        console.log(`     wrap ${c.wrapEl} ${c.wrapBox}  height:${c.wrapHeight} aspect:${c.wrapAspect} pad-top:${c.wrapPadTop}`);
+        console.log(`     wrap ${c.wrapEl} ${c.wrapBox}  height:${c.wrapHeight} aspect:${c.wrapAspect} pad-top:${c.wrapPadTop} pos:${c.wrapPosition}`);
+        console.log(`     img  max-height:${c.imgMaxH} position:${c.imgPosition}`);
+        console.log(`     wrap inline: ${c.wrapInline}`);
+        console.log(`     img  inline: ${c.imgInline}`);
       });
     }
   } catch (e) {
