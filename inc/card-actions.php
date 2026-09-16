@@ -28,7 +28,7 @@ if (!defined('ABSPATH')) exit;
 add_action('wp_footer', function () {
     if (is_admin()) return;
     if (!function_exists('is_shop')) return;
-    if (!(is_shop() || is_product_taxonomy() || is_product() || is_front_page())) return;
+    if (!(is_shop() || is_product_taxonomy() || is_product() || is_front_page() || is_search())) return;
     ?>
     <style id="af-card-actions">
     /* The row: stars on the left, the four actions on the right. */
@@ -49,7 +49,8 @@ add_action('wp_footer', function () {
        clipping the button clips the tooltip with it. font-size:0 hides the
        words on its own and costs nothing. */
     html body ul.products li.product .af-acts > *{
-      width:30px !important;min-width:30px !important;height:30px !important;
+      width:30px !important;min-width:30px !important;max-width:30px !important;
+      height:30px !important;min-height:30px !important;max-height:30px !important;
       padding:0 !important;margin:0 !important;border:0 !important;
       background:transparent !important;border-radius:50% !important;
       display:inline-flex !important;align-items:center !important;
@@ -63,6 +64,24 @@ add_action('wp_footer', function () {
       transition:color .15s ease, background .15s ease !important;}
     html body ul.products li.product .af-acts > *:hover{
       color:#c9a84c !important;background:rgba(201,168,76,.14) !important;}
+
+    /* The cart anchor is given .af-icon-only elsewhere in this theme, and
+       assets/css/custom.css sizes that class at 36px with overflow:hidden.
+       That is the very clip this file exists to undo, and it would have eaten
+       the cart's tooltip and drawn it as an oval six pixels wider than its
+       neighbours. The class is also removed in the script; this is the belt to
+       that pair of braces. */
+    html body ul.products li.product .af-acts > a.add_to_cart_button,
+    html body ul.products li.product .af-acts > a.add_to_cart_button.af-icon-only{
+      width:30px !important;min-width:30px !important;max-width:30px !important;
+      overflow:visible !important;}
+
+    /* WooCommerce drops a "View cart" link in beside the button it was clicked
+       from. Inside this row that link would become a fifth, empty circle. */
+    html body ul.products li.product .af-acts > .added_to_cart{display:none !important;}
+    /* A click deserves an answer: the cart stays gold once the piece is in. */
+    html body ul.products li.product .af-acts > .add_to_cart_button.added{
+      color:#c9a84c !important;}
 
     /* One icon set, drawn one way. The four arrived with three different
        kinds of mark between them — a colour emoji bag, a bare arrows
@@ -83,33 +102,48 @@ add_action('wp_footer', function () {
     /* The tooltip, drawn by the button itself.
 
        It hangs BELOW the icon, not above. Above is the conventional place and
-       it is the wrong one here: the rating row sits at the very top of the
-       caption, so a tooltip above it has to escape the caption's top edge — and
-       this card has overflow:hidden on div.product-block, on li.product and on
-       div.hfeed.site. Below, it opens into the caption over the title, with
-       nothing in its way.
+       the wrong one here: the rating row sits at the top of the caption, so a
+       tooltip above it must escape the caption's top edge — and this card has
+       overflow:hidden on div.product-block, on li.product and on div.hfeed.site.
+       Below, it opens into the caption over the title, with nothing in its way.
 
        font-size is stated outright because the button is set to font-size 0 to
        hide its label, and a pseudo-element inherits that. A tooltip at 0px is
-       no tooltip at all — which is one of the two reasons it never appeared. */
-    html body ul.products li.product .af-acts [data-af-tip]::after{
-      content:attr(data-af-tip);
-      position:absolute;top:calc(100% + 7px);left:50%;
-      transform:translateX(-50%) translateY(-3px);
-      background:#1a1a1a;color:#fff;font-size:11px !important;font-weight:600;
-      font-family:"Instrument Sans",system-ui,sans-serif;letter-spacing:.2px;
-      line-height:1;padding:6px 9px;border-radius:4px;white-space:nowrap;
-      opacity:0;pointer-events:none;z-index:60;
-      box-shadow:0 3px 10px rgba(0,0,0,.22);
-      transition:opacity .15s ease, transform .15s ease;}
-    html body ul.products li.product .af-acts [data-af-tip]:hover::after{
-      opacity:1;transform:translateX(-50%) translateY(0);}
+       no tooltip at all — one of the two reasons it never appeared.
+
+       Only where there is a cursor to hover with. Keying this to screen width
+       would take the tooltip away from a narrow desktop window and leave it
+       stuck, mid-card, after a tap on a large tablet. */
+    @media (hover:hover) and (pointer:fine){
+      html body ul.products li.product .af-acts [data-af-tip]::after{
+        content:attr(data-af-tip);
+        position:absolute;top:calc(100% + 7px);left:50%;
+        transform:translateX(-50%) translateY(-3px);
+        background:#1a1a1a;color:#fff;font-size:11px !important;font-weight:600;
+        font-family:"Instrument Sans",system-ui,sans-serif;letter-spacing:.2px;
+        line-height:1;padding:6px 9px;border-radius:4px;white-space:nowrap;
+        opacity:0;pointer-events:none;z-index:60;
+        box-shadow:0 3px 10px rgba(0,0,0,.22);
+        transition:opacity .15s ease, transform .15s ease;}
+      html body ul.products li.product .af-acts [data-af-tip]:hover::after{
+        opacity:1;transform:translateX(-50%) translateY(0);}
+
+      /* The last two sit within a label's width of the card's right edge, and
+         "Add to wishlist" is the longest of the four. Centred, it would hang
+         past the card and be cut off by the very overflow:hidden described
+         above. These grow inward instead. */
+      html body ul.products li.product .af-acts > *:nth-last-child(-n+2)[data-af-tip]::after{
+        left:auto;right:-2px;transform:translateY(-3px);}
+      html body ul.products li.product .af-acts > *:nth-last-child(-n+2)[data-af-tip]:hover::after{
+        transform:translateY(0);}
+    }
 
     /* A finger needs more room than a cursor, and a touch screen never sends
        the hover that draws the tooltip. */
     @media (max-width:781px){
       html body ul.products li.product .af-acts > *{
-        width:34px !important;min-width:34px !important;height:34px !important;}
+        width:34px !important;min-width:34px !important;max-width:34px !important;
+        height:34px !important;min-height:34px !important;max-height:34px !important;}
       html body ul.products li.product .af-acts [data-af-tip]::after{
         display:none !important;}
     }
@@ -120,15 +154,23 @@ add_action('wp_footer', function () {
       // read as a single row rather than three icon libraries side by side.
       var S = '<svg class="af-ico" viewBox="0 0 24 24" aria-hidden="true">';
       var ICON = {
-        // A trolley, not a bag. The previous bag outline read as a dustbin at
-        // this size — two wheels and a handle say "cart" unmistakably.
-        cart:    S + '<circle cx="9.5" cy="19.5" r="1.4"/><circle cx="17.5" cy="19.5" r="1.4"/>'
-                   + '<path d="M2.5 3.5h2.2l2.6 11.2h11l2.2-8H6.2"/></svg>',
-        compare: S + '<path d="M4 9.2h13.2l-3.4-3.4"/><path d="M20 14.8H6.8l3.4 3.4"/></svg>',
+        // A trolley, not a bag: an outline bag at this size reads as a dustbin.
+        cart:    S + '<circle cx="10" cy="18.5" r="1.3"/><circle cx="17.5" cy="18.5" r="1.3"/>'
+                   + '<path d="M2.8 4.5h2.1l2.5 10.2h10.4l2.1-7.4H6"/></svg>',
+        // Both arrowheads need two barbs. With one, it reads as a flick, not
+        // an arrow, and the pair does not say "compare" at nineteen pixels.
+        compare: S + '<path d="M4 9.3h13.4m-3.5-3.5 3.5 3.5-3.5 3.5"/>'
+                   + '<path d="M20 14.7H6.6m3.5-3.5-3.5 3.5 3.5 3.5"/></svg>',
         quick:   S + '<path d="M2.4 12S6 6.4 12 6.4 21.6 12 21.6 12 18 17.6 12 17.6 2.4 12 2.4 12Z"/>'
                    + '<circle cx="12" cy="12" r="2.6"/></svg>',
-        wish:    S + '<path d="M12 19.7s-6.9-4.4-6.9-9.1a3.85 3.85 0 0 1 6.9-2 3.85 3.85 0 0 1 6.9 2'
-                   + 'c0 4.7-6.9 9.1-6.9 9.1Z"/></svg>'
+        wish:    S + '<path d="M12 19.3s-6.7-4.3-6.7-8.9a3.75 3.75 0 0 1 6.7-1.9 3.75 3.75 0 0 1 6.7 1.9'
+                   + 'c0 4.6-6.7 8.9-6.7 8.9Z"/></svg>',
+        // Saved: the same heart, filled. The plugin shows its own added state
+        // in a ::before that this file suppresses, so without this the heart
+        // would stay hollow forever and the click would look ignored.
+        wishOn:  '<svg class="af-ico af-ico-on" viewBox="0 0 24 24" aria-hidden="true">'
+                   + '<path d="M12 19.3s-6.7-4.3-6.7-8.9a3.75 3.75 0 0 1 6.7-1.9 3.75 3.75 0 0 1 6.7 1.9'
+                   + 'c0 4.6-6.7 8.9-6.7 8.9Z" fill="currentColor" stroke="currentColor"/></svg>'
       };
       var WANTED = [
         ['.af-icon-corner a.add_to_cart_button, .product-block a.add_to_cart_button', 'Add to cart', 'cart'],
@@ -146,28 +188,63 @@ add_action('wp_footer', function () {
           acts.className = 'af-acts';
           row.appendChild(acts);
         }
+
         // The four do not all exist at the same moment — the plugins add theirs
         // after the theme adds its own — so first-come placement produced the
-        // order the owner filmed: eye, heart, cart, arrows. Collect them, then
-        // put them in the intended order whenever that order is wrong.
+        // order the owner filmed. Collect them, then correct the order only
+        // when it is actually wrong.
         var found = [];
         WANTED.forEach(function(pair){
           var el = card.querySelector(pair[0]);
           if (el) found.push([el, pair]);
         });
-        var moved = found.length;
-        var wrong = found.some(function(f, i){ return acts.children[i] !== f[0]; })
-                 || acts.children.length !== found.length;
+        if (!found.length) return;
+
+        // Compare against OUR buttons only, never against the row's child
+        // count. WooCommerce inserts a "View cart" link into this row after an
+        // add-to-cart, and counting children would then make the order look
+        // wrong forever: every pass would re-append, every append would wake
+        // the observer that called it, and the tab would spin until it was
+        // closed.
+        var mine = [];
+        for (var i = 0; i < acts.children.length; i++) {
+          for (var j = 0; j < found.length; j++) {
+            if (acts.children[i] === found[j][0]) { mine.push(acts.children[i]); break; }
+          }
+        }
+        var wrong = mine.length !== found.length
+                 || found.some(function(f, k){ return mine[k] !== f[0]; });
+
         found.forEach(function(f){
           var el = f[0], pair = f[1];
           if (wrong || el.parentElement !== acts) acts.appendChild(el);
-          // Drawn by us, and only when it is not already ours: the wishlist
-          // plugin rewrites its own button when a piece is saved, and redrawing
-          // on every mutation would chase its own tail.
-          if (!el.querySelector('svg.af-ico')) el.innerHTML = ICON[pair[2]];
-          if (el.getAttribute('data-af-tip') !== pair[1]) {
-            el.setAttribute('data-af-tip', pair[1]);
-            el.setAttribute('aria-label', pair[1]);
+
+          // Another rule in this theme sizes .af-icon-only at 36px with
+          // overflow:hidden, which would clip this button's tooltip and draw
+          // it as an oval. It has no business on a button that now lives here.
+          el.classList.remove('af-icon-only');
+
+          // The theme and the plugins put a native title on these. Left alone,
+          // the browser draws its own bubble a beat after ours, in a different
+          // place, sometimes saying something different. Removed on every pass,
+          // because a plugin redraw puts it back.
+          if (el.hasAttribute('title')) el.removeAttribute('title');
+
+          // Drawn by us. The wishlist button has two states and the plugin
+          // shows its own in a ::before we suppress, so the heart is re-stamped
+          // when that state changes — and only then, or a redraw would chase
+          // its own tail through the observer.
+          var on  = /(^|\s)(woosw-added|added)(\s|$)/.test(el.className);
+          var key = pair[2] === 'wish' ? (on ? 'wishOn' : 'wish') : pair[2];
+          if (el.getAttribute('data-af-ico') !== key) {
+            el.innerHTML = ICON[key];
+            el.setAttribute('data-af-ico', key);
+          }
+
+          var tip = (pair[2] === 'wish' && on) ? 'In your wishlist' : pair[1];
+          if (el.getAttribute('data-af-tip') !== tip) {
+            el.setAttribute('data-af-tip', tip);
+            el.setAttribute('aria-label', tip);
           }
         });
 
@@ -175,27 +252,51 @@ add_action('wp_footer', function () {
         // containers go. Hiding them in the stylesheet would mean that if this
         // script ever failed to run, the buttons would vanish altogether
         // rather than simply stay where the theme put them.
-        if (moved) {
-          ['.group-action', '.af-icon-corner'].forEach(function(sel){
-            var box = card.querySelector(sel);
-            if (box && !box.querySelector('a, button')) {
-              box.style.setProperty('display', 'none', 'important');
-            }
-          });
-        }
+        ['.group-action', '.af-icon-corner'].forEach(function(sel){
+          var box = card.querySelector(sel);
+          if (box && !box.querySelector('a, button')) {
+            box.style.setProperty('display', 'none', 'important');
+          }
+        });
       }
 
+      // Not re-entrant. Everything below moves nodes, and moving a node wakes
+      // the observer that asked for the move; without this guard the two call
+      // each other until the tab gives up.
+      var busy = false, pending = false;
       function run(){
-        document.querySelectorAll('ul.products li.product').forEach(place);
+        if (busy) return;
+        busy = true;
+        try { document.querySelectorAll('ul.products li.product').forEach(place); }
+        finally { busy = false; }
       }
+      function schedule(){
+        if (pending) return;
+        pending = true;
+        requestAnimationFrame(function(){ pending = false; run(); });
+      }
+
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
       else run();
       window.addEventListener('load', run);
+
       // A filter change re-renders the listing and the new cards arrive bare.
+      // Only insertions that could plausibly be a card or one of these buttons
+      // are worth a pass — this page already carries several unfiltered
+      // observers and they are not free.
       try {
-        new MutationObserver(function(m){
-          for (var i = 0; i < m.length; i++) {
-            if (m[i].addedNodes && m[i].addedNodes.length) { run(); break; }
+        new MutationObserver(function(muts){
+          for (var i = 0; i < muts.length; i++) {
+            var added = muts[i].addedNodes;
+            for (var j = 0; j < added.length; j++) {
+              var n = added[j];
+              if (n.nodeType !== 1) continue;
+              if (n.matches && (n.matches('li.product, .woosq-btn, .woosw-btn, .add_to_cart_button, .af-cmp-btn')
+                  || n.querySelector('li.product, .woosq-btn, .woosw-btn, .add_to_cart_button, .af-cmp-btn'))) {
+                schedule();
+                return;
+              }
+            }
           }
         }).observe(document.body, {childList:true, subtree:true});
       } catch(e){}
