@@ -16,7 +16,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 |---|---|---|---|---|---|
 | 5–101 | RK 010001–010097 | Radha Krishna | 97 | 91 | DONE — 2026-09-14 |
 | 102–104 | LG 020001–020003 | Lakshmi–Ganesha | 3 | 3 | NO |
-| 105–122 | LS 030001–030018 | Lord Shiva | 18 | 15 | part done — 2026-09-14 |
+| 105–122 | LS 030001–030018 | Lord Shiva | 18 | 15 | DONE — 2026-09-16 |
 | 123–137 | SH 040001–040015 | Seven Horses | 15 | 12 | DONE — 2026-09-15 |
 | 138–152 | TP 050001–050015 | Tirupati Balaji | 15 | 15 | DONE — 2026-09-14 |
 | 153–156 | MG 060001–060004 | Murugan | 4 | 4 | NO |
@@ -2872,3 +2872,84 @@ in cream and gold wedding attire holding a kirpan, and it is the same person as
 #33278. These are personal or event photographs, not catalogue artworks, and they
 belong with the frames and canvas rolls in the sixty products that have no page
 because they are not in the brochure.
+
+## Lord Shiva finished, 2026-09-16 — the blocker had expired
+
+LS has been "part done" since 2026-09-14 with **five products that needed an
+answer**. All five have one now, and the reason it was possible is worth stating
+first.
+
+The 2026-09-14 pass wrote down exactly why it stopped:
+
+> Canva's image host is blocked from this session, so the book page cannot be
+> fetched and compared pixel-for-pixel the way two product tiles can.
+
+**That is no longer true.** Every thumbnail URL `read-design` returns carries a
+`fallback` query parameter holding a pre-signed `s3.amazonaws.com` URL for the
+same PNG, and that host is reachable. The pages have been fetchable for days.
+The conclusion was sound when written and stale by the time it was being quoted
+as settled — worth remembering for anything else this log calls closed.
+
+### Two placements, both from products that had no code at all
+
+| product | had been cleared off | now |
+|---|---|---|
+| **#30531** Shiva Parivar with Lion | LR 03 | **LS 17** |
+| **#24352** Shiva Parvati on Kailash | SH 07 | **LS 16** |
+
+**LS 17** is the section's only family page, and the match is whole: Shiva seated
+at the left, Parvati in the green sari at the right, Kartikeya as a child in
+front, Ganesha at the right, Nandi at the left, the lion at the right, the
+peacock below, the hanging bells above, the snow peaks behind.
+
+**The three stranded family scenes are none of them.** #30338 is the family
+standing among clouds in landscape, #29023 is a calendar print on a tiger skin,
+#31150 is a tight mural close-up of four faces. The earlier pass called #29023
+"the closest but not close enough to write down" and declined. **It was right.**
+The page belonged to a product nobody had held against it, because that product
+had no code and so never appeared in any sheet the section drew.
+
+**LS 16** is #24352 — Shiva glowing blue and Parvati gold on the same snowy peak,
+her head on his shoulder, her hand cupped the same way, the same dark Nandi lying
+at the right, the same small stone cairn at the lower right.
+
+### A correction to this audit's own method note
+
+#24352's stored image is **landscape**; LS 16 is a portrait page, 5 ft (H) by
+3 ft (B). They are still the same artwork: the product is a landscape crop that
+loses the moon and some height and adds nothing.
+
+So **an aspect mismatch on its own does not prove two different artworks.** The
+Travel Art pass listed shape first among its reasons for clearing #8424 off
+TA 01, and that reads as more load-bearing than it was — the decision there
+rested on content, on lamp-trees and a second boat and a sky that one picture had
+and the other did not. Content decides; shape is a hint that something is worth
+looking at.
+
+### The five answered, and the stranding removed
+
+| product | its picture | now | why |
+|---|---|---|---|
+| #17856 Shiva The Destroyer | Shiva alone with a trident, orange splash ring on cream | cleared | none of the six unclaimed pages is it, and it holds the literal string `LS 16` — which is now #24352's page |
+| #30338 Shiva Parivar in Clouds | the family standing among clouds, landscape | cleared | LS 17 is a different composition and is #30531's; it holds `LS 18`, which is #20770's page |
+| #29023 Shiva Parivar Blessing | seated on a tiger skin, calendar print | cleared | not LS 17; `LS 19` names no page of the book |
+| #31150 Shiva Family Harmony | tight mural close-up of four faces | cleared | not LS 17; `LS 20` names no page of the book |
+| #29578 Twin Faces of Serenity | two serene faces, the right plainly a **Buddha** with lotuses and white cows | cleared | not Lord Shiva at all. LS 09 is the profile pair with the sun, which is #16257; LB 12, the one unclaimed Buddha page, is a golden head with a bodhi leaf |
+
+The first four were left alone in September on the argument that a code resolving
+to nothing harms nobody, which was true then. **It is not true now**: LS 16 and
+LS 18 are real pages with real owners, and two of these products were holding
+those exact strings. Clearing removes a collision that was waiting to happen.
+
+Measured on the replay, this pass takes Lord Shiva from:
+
+```
+  claimed 12 of 18  ->  14 of 18
+  pages carrying more than one product   1 -> 0   (LS 09 was shared with #29578)
+  products on untranslatable LS codes    4 -> 0
+  NO ASPECT lines across the catalogue   7 -> 3   (only AL 01, AL 05, AL 06 remain)
+```
+
+LS 02 (the cubist fusion), LS 13 (the watercolour faces), LS 14 and LS 15 (the
+two cosmic dances) stay unclaimed. #22077, #28225, #29084 and #27264 were held
+against all four and are none of them.
