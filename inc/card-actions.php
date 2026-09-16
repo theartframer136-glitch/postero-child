@@ -49,6 +49,13 @@ add_action('wp_footer', function () {
       display:inline-flex !important;align-items:center !important;
       justify-content:center !important;cursor:pointer !important;
       color:#6b6250 !important;line-height:1 !important;
+      /* The words go. The plugins hide their own button text with font-size 0
+         in a rule scoped to .shop-action, and moving these buttons out of that
+         container stopped it matching — which is why "QUICK VIEW" and "ADD TO
+         WISHLIST" came back, overlapping, in the rating row. Stated here so it
+         no longer depends on where the button happens to sit. */
+      font-size:0 !important;overflow:hidden !important;
+      white-space:nowrap !important;
       opacity:1 !important;visibility:visible !important;
       position:relative !important;transform:none !important;
       box-shadow:none !important;text-decoration:none !important;
@@ -56,22 +63,21 @@ add_action('wp_footer', function () {
     html body ul.products li.product .af-acts > *:hover{
       color:#c9a84c !important;background:rgba(201,168,76,.12) !important;}
 
-    /* The glyphs. The plugin buttons carry theirs in a ::before and set the
-       button to font-size 0 to hide their words; the theme's two carry a
-       character in a span. Both want the same size and the button's colour. */
-    html body ul.products li.product .af-acts > *::before{
-      font-size:15px !important;line-height:1 !important;color:inherit !important;}
-    html body ul.products li.product .af-acts .af-icon-glyph,
-    html body ul.products li.product .af-acts .af-cmp-icon,
-    html body ul.products li.product .af-acts svg{
-      font-size:15px !important;width:15px !important;height:15px !important;
-      line-height:1 !important;color:inherit !important;fill:currentColor !important;}
-    /* No words. Any label inside is for screen readers only. */
-    html body ul.products li.product .af-acts .af-icon-label,
-    html body ul.products li.product .af-acts > * > span:not(.af-icon-glyph):not(.af-cmp-icon){
+    /* One icon set, drawn one way. The four arrived with three different
+       kinds of mark between them — a colour emoji bag, a bare arrows
+       character, and two glyphs from the theme's icon font — which is why the
+       row looked assembled from spare parts. They are replaced below with one
+       stroked set that takes its colour from the button. */
+    html body ul.products li.product .af-acts svg.af-ico{
+      width:16px !important;height:16px !important;display:block !important;
+      fill:none !important;stroke:currentColor !important;
+      stroke-width:1.9 !important;stroke-linecap:round !important;
+      stroke-linejoin:round !important;}
+    /* Nothing else inside a button may take up room. */
+    html body ul.products li.product .af-acts > * > *:not(svg){
       position:absolute !important;width:1px !important;height:1px !important;
-      overflow:hidden !important;clip:rect(0 0 0 0) !important;
-      white-space:nowrap !important;}
+      overflow:hidden !important;clip:rect(0 0 0 0) !important;}
+    html body ul.products li.product .af-acts > *::before{display:none !important;}
 
     /* The tooltip, drawn by the button itself. font-size is stated outright
        because these buttons are set to font-size 0 and a pseudo-element
@@ -99,13 +105,22 @@ add_action('wp_footer', function () {
     </style>
     <script>
     (function(){
-      // In the order a customer wants them: buy it, compare it, look closer,
-      // keep it.
+      // One stroked set on a 24px grid, taking the button's colour, so the four
+      // read as a single row rather than three icon libraries side by side.
+      var S = '<svg class="af-ico" viewBox="0 0 24 24" aria-hidden="true">';
+      var ICON = {
+        cart:    S + '<path d="M6 7.5h12l-1 11.5H7L6 7.5Z"/><path d="M9 7.5a3 3 0 0 1 6 0"/></svg>',
+        compare: S + '<path d="M4 9h13l-3.2-3.2"/><path d="M20 15H7l3.2 3.2"/></svg>',
+        quick:   S + '<path d="M2.5 12S6 6.5 12 6.5 21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12Z"/>'
+                   + '<circle cx="12" cy="12" r="2.5"/></svg>',
+        wish:    S + '<path d="M12 19.5s-6.8-4.3-6.8-9A3.8 3.8 0 0 1 12 8.6a3.8 3.8 0 0 1 6.8 1.9'
+                   + 'c0 4.7-6.8 9-6.8 9Z"/></svg>'
+      };
       var WANTED = [
-        ['.af-icon-corner a.add_to_cart_button, .product-block a.add_to_cart_button', 'Add to cart'],
-        ['.af-cmp-btn',  'Compare'],
-        ['.woosq-btn',   'Quick view'],
-        ['.woosw-btn',   'Add to wishlist']
+        ['.af-icon-corner a.add_to_cart_button, .product-block a.add_to_cart_button', 'Add to cart', 'cart'],
+        ['.af-cmp-btn',  'Compare',         'compare'],
+        ['.woosq-btn',   'Quick view',      'quick'],
+        ['.woosw-btn',   'Add to wishlist', 'wish']
       ];
 
       function place(card){
@@ -123,14 +138,13 @@ add_action('wp_footer', function () {
           if (!el) return;
           if (el.parentElement !== acts) acts.appendChild(el);
           moved++;
+          // Drawn by us, and only when it is not already ours: the wishlist
+          // plugin rewrites its own button when a piece is saved, and redrawing
+          // on every mutation would chase its own tail.
+          if (!el.querySelector('svg.af-ico')) el.innerHTML = ICON[pair[2]];
           if (!el.getAttribute('data-af-tip')) {
-            // Prefer the words the control already carries — the plugins put
-            // real text inside and then hide it — over a name I invent.
-            var own = (el.getAttribute('aria-label') || el.textContent || '')
-                        .replace(/[\s​]+/g, ' ').replace(/^[^\w(]+/, '').trim();
-            var tip = own.length > 2 ? own : pair[1];
-            el.setAttribute('data-af-tip', tip);
-            if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', tip);
+            el.setAttribute('data-af-tip', pair[1]);
+            el.setAttribute('aria-label', pair[1]);
           }
         });
 
