@@ -3283,13 +3283,11 @@ What the audit found across the whole book, and what it left:
 
 1. ~~**Living Room is part done.**~~ **Closed 2026-09-16** — see "Living Room
    finished" at the end of this file. Every table row now says done.
-2. **#26145, #23496 and #23435 sit on AL 01, AL 05 and AL 06**, a section that
-   does not exist. They are left deliberately — `AL` can never resolve, so they
-   stand on nobody — but they have never been held against Hindu Deities' six
-   unclaimed pages, and they are Tanjore panels of exactly the kind HD carries.
-   **#31527 and #29395**, cleared in the Pichwai pass, point at the same check: a
-   modern Krishna and a Ganesha, both plausible HD subjects. Five products, one
-   unfinished question.
+2. ~~**#26145, #23496 and #23435 sit on AL 01, AL 05 and AL 06**, and have never
+   been held against Hindu Deities' six unclaimed pages.~~ **Closed 2026-09-16 —
+   see "The Hindu Deities check" at the end of this file. The answer is no: none
+   of the five belongs on any unclaimed HD page.** The three AL products stay
+   exactly as they are.
 3. **Pages with no product at all.** PA 01, TA 01 and TA 02, SH 10/11/12,
    TP 07/08/14/15, LS 02/13/14/15, MG 03/04, IC 04, LB 12, KR's thirteen, and the
    long tail in RK and LI. These are not faults: the book is a catalogue of
@@ -3417,3 +3415,79 @@ all *seven*-horse paintings, which belong to Seven Horses and were checked there
 No row in the status table says `NO` and none says `part done`. What remains open
 is the Hindu Deities question against five products, and the pages that simply
 have no product — both listed under "The book is read" above.
+
+---
+
+## The Hindu Deities check on the five, 2026-09-16 — the answer is no
+
+The last substantive question in the audit. Five products had been recorded as
+pointing at Hindu Deities and never actually held against it:
+
+- **#26145**, **#23496** and **#23435**, sitting on `AL 01`, `AL 05` and `AL 06`
+  — a section that does not exist in this book. They are left alone deliberately,
+  because `AL` can never resolve and so they stand on nobody's painting.
+- **#31527** and **#29395**, cleared in the Pichwai pass — a modern Krishna and a
+  Pichwai Ganesha, both plausible HD subjects.
+
+The reasoning behind the suspicion was sound: HD had **six** unclaimed pages, and
+three of the five are Tanjore panels of exactly the kind HD carries.
+
+**It is still no. Not one of the five belongs on any of the six.**
+
+| the six pages | what the book actually shows |
+|---|---|
+| HD 08 | Surya seated on the seven-horse chariot before a huge gold disc |
+| HD 09 | a *different* Surya — standing, four arms holding flames, a charioteer below |
+| HD 14 | a multi-armed warrior goddess astride a demon |
+| HD 18 | Lakshmi seated on a lotus in a golden shrine |
+| HD 19 | Durga, Lakshmi, Kali and Saraswati in one tableau |
+| HD 21 | saffron-robed acharyas walking forward |
+
+Against that, the five are a Tanjore **Murugan** with the vel, a Tanjore figure
+with hands joined, a Tanjore **Andal with her parrot**, a Pichwai **Ganesha**, and
+a cubist **Krishna** with a cow. There is no Ganesha, no Krishna and no Tanjore
+panel among the six. The subjects do not even collide, let alone the pictures.
+
+**So the three AL products stay on AL 01, AL 05 and AL 06, and #31527 and #29395
+stay cleared.** The reasoning that kept the AL three in place — a code that names
+no page stands on nobody, and `AL` can never become real — is unchanged.
+
+### But the check found two owners anyway, and neither is one of the five
+
+Holding the five against the six pages meant rendering all six, and two of them
+turned out to be claimable by products nobody had offered:
+
+| product | was | now |
+|---|---|---|
+| **#21503** Vaishnava Saints Kirtan | cleared (off AA 10) | **HD 21** |
+| **#19086** Surya on the seven-horse chariot | no code, never had one | **HD 08** |
+
+**#21503 is the fourth instance of the pattern this audit keeps finding.** Its
+row read *"a devotional illustration with no page in Abstract Art"* — correct,
+and the end of the matter as far as anything in the tooling was concerned. HD 21
+is that illustration: the same central acharya with a sunburst halo, the same
+tilaka and sacred thread, the same deep orange dhoti, the same staff and the
+danda with its white binding, the same bearded disciple in red at the left, the
+same flag-bearer at the right, the same pale violet ghost figures behind.
+
+**#19086 is HD 08** — Surya seated cross-legged on the ornate chariot, a white
+lotus bud in the raised right hand, the concentric patterned gold disc filling
+the ground, the scarf billowing left, the seven horses fanned three-one-three.
+The page reads paler only because it is a framed mockup on a lit wall, the same
+effect already recorded on SH 14.
+
+**HD 09 is the reason this had to be done by picture.** It is also Surya, also
+with seven white horses, also gold — and it is a different painting: a standing
+four-armed Surya holding flames, with a charioteer beneath him and the horses in
+a flat row. Anything matching on subject would have put #19086 on either page
+with equal confidence.
+
+Hindu Deities goes from 24 claimed pages to **26 of 30**. The one page claimed
+twice is HD 01, which is the deliberate `SHARE:` of #8398 and #26875 — two
+listings of one artwork. HD 09, HD 14, HD 18 and HD 19 have no product.
+
+### What this leaves
+
+The five products are settled: the question is answered and closed, and nothing
+about them changes. The audit's remaining open items are now only the pages with
+no product at all, listed under "The book is read" and "Living Room finished".
