@@ -8,8 +8,10 @@
  * site — cards, galleries, the modal, inline pictures in descriptions, and
  * anything drawn as a CSS background.
  *
- * What is closed: right-click save, drag to desktop, select-and-copy, and the
- * keyboard routes (Ctrl/Cmd+S, Ctrl+U, F12, Ctrl+Shift+I/J/C). What is not,
+ * What is closed: the context menu itself (which carries both "Save image as"
+ * and the "Save as... / Webpage, Complete" route that writes every picture on
+ * the page to a folder), drag to desktop, select-and-copy, and the keyboard
+ * routes (Ctrl/Cmd+S, Ctrl+U, F12, Ctrl+Shift+I/J/C). What is not,
  * and cannot be from a page: a screenshot, or a determined person with the
  * network tab. The paid download is the full-resolution master; what the page
  * shows is a smaller preview, and the modal's is watermarked.
@@ -37,8 +39,24 @@ add_action('wp_footer', function() {
         }
         return false;
       }
+      // A person typing into a field still needs their own menu: cut, paste,
+      // spell-check. Everywhere else the menu stays shut.
+      function editable(el){
+        for (var n = el; n && n !== document.body; n = n.parentElement) {
+          var t = n.tagName;
+          if (t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT') return true;
+          if (n.isContentEditable) return true;
+        }
+        return false;
+      }
+      // The recording showed the hole. The menu was only blocked over a
+      // picture, so a right-click on any blank margin still opened it — and
+      // that menu carries "Save as...", which writes the page to disk as
+      // "Webpage, Complete": every image on it, in one folder, in two clicks.
+      // Guarding the pictures and leaving the menu open guarded nothing.
       document.addEventListener('contextmenu', function(e){
-        if (pictorial(e.target)) e.preventDefault();
+        if (editable(e.target)) return;
+        e.preventDefault();
       }, true);
       document.addEventListener('dragstart', function(e){
         if (pictorial(e.target)) e.preventDefault();

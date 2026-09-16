@@ -9719,8 +9719,27 @@ add_action('wp_footer', function() {
     .af-dd-overlay{position:fixed;inset:0;z-index:100000;display:none;background:rgba(15,15,15,.82);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px;}
     .af-dd-overlay.open{display:flex;}
     .af-dd-modal{background:#fff;border-radius:16px;max-width:720px;width:100%;position:relative;box-shadow:0 24px 70px rgba(0,0,0,.5);overflow:hidden;}
-    .af-dd-x{position:absolute;top:12px;right:14px;background:none;border:none;font-size:28px;line-height:1;color:#888;cursor:pointer;z-index:2;}
-    .af-dd-x:hover{color:#1a1a1a;}
+    /* Stated in full, on every state, because the theme's generic button:hover
+       otherwise lands on it: that rule carries a dark fill and its own padding,
+       which turned the small grey cross into a black pill wider than the modal
+       corner the moment the pointer touched it. */
+    html body .af-dd-modal .af-dd-x{
+      position:absolute;top:10px;right:10px;z-index:3;
+      width:32px;height:32px;min-width:0;min-height:0;padding:0;margin:0;
+      display:flex;align-items:center;justify-content:center;
+      box-sizing:border-box;border:1px solid rgba(26,26,26,.10);border-radius:50%;
+      background:rgba(26,26,26,.05);box-shadow:none;
+      font-family:inherit;font-size:20px;font-weight:400;line-height:1;
+      letter-spacing:0;text-transform:none;text-indent:0;
+      color:#6b6b6b;cursor:pointer;
+      transition:background .18s ease,color .18s ease,border-color .18s ease;}
+    html body .af-dd-modal .af-dd-x:hover,
+    html body .af-dd-modal .af-dd-x:focus,
+    html body .af-dd-modal .af-dd-x:focus-visible,
+    html body .af-dd-modal .af-dd-x:active{
+      width:32px;height:32px;padding:0;
+      background:#f3ead6;border-color:rgba(201,168,76,.55);
+      color:#a8872e;box-shadow:none;outline:none;transform:none;}
     .af-dd-flex{display:flex;flex-wrap:wrap;}
     .af-dd-imgwrap{flex:1 1 260px;min-height:240px;background:#f4f4f4;position:relative;}
     .af-dd-shield{position:absolute;inset:0;z-index:2;}
