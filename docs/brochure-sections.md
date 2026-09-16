@@ -3535,3 +3535,69 @@ to describe the picture, say plainly that is what you are doing, and correct it
 on the next report — not to invent a plausible title. #19086's row still carries
 a description for exactly this reason, and will be corrected the same way once
 its placement is applied.
+
+---
+
+## Lord Rama's unclaimed pages, 2026-09-16 — one placement, five that stay empty
+
+Lord Rama was closed on 2026-09-15 with its own eight products settled, but as
+with Living Room and Hindu Deities, only half the job had been done: the
+section's **six unclaimed pages had never been held against the catalogue.**
+
+**One of the six has an owner. Five have no product anywhere.**
+
+| product | was | now |
+|---|---|---|
+| **#18229** | no code, never had one | **LR 06** |
+
+Lord Rama goes from 4 claimed pages to **5 of 10**. The one page claimed twice is
+`LR 05`, the documented deliberate pair — #15913 and #17543 are one artwork
+listed twice, the second mirrored left to right.
+
+### Why #18229 is LR 06 and not merely an idol that resembles it
+
+This section is the hardest in the book for the audit's rule, because five of its
+six empty pages are **photographs of garlanded Rama idols**, and the catalogue
+holds a dozen photographs of garlanded South Indian idols. Subject agreement is
+worth nothing here. What settles LR 06 is that the page and the product are the
+**same photograph**:
+
+- the same black stone carved arch with the same scalloped crest
+- the same radiating gold halo behind the crown
+- the same white-and-red namam, and the red dot on the chin
+- the same embossed gold chest-plate and the same red-and-green beaded belt with
+  its square gold plaques
+- the same yellow dhoti with a red border, and the same red V-shaped sash hung
+  with green and red flower clusters
+- the same gold bow and shaft either side of the figure
+- and the garland columns either side in the same order: yellow, magenta, blue,
+  white
+
+The product tile is a tighter, warmer crop; the page render shows more of the
+pale grey wall behind. Nothing in one is absent from the other.
+
+### The five that stay empty, and what was held against them
+
+| page | the book shows | the closest candidates, and why not |
+|---|---|---|
+| LR 04 | a dark Rama idol in a **pink** dhoti, orange-and-white garland, pale grey carved stone niche | nothing uncoded is in a pink dhoti or a grey stone niche |
+| LR 07 | the Ayodhya **Ram Lalla** in a richly carved cream shrine with dark garlands | #28300 is a close-up bust of that same idol against a flower wall — the right idol, a different photograph. Cleared earlier for exactly this |
+| LR 08 | a statue in **red** attire under a dense marigold arch with oil lamps | #26023 and #26267 are Venkateswara utsava murtis; #22564 is one on a palanquin flanked by two purple panels |
+| LR 09 | a dark idol under an ornate **white and silver** temple arch, holding a bow | #31588 is a Venkateswara close-up with a gold bow, cleared earlier. #23911 is a Tanjore *painting* of a figure with a **sword** and shield — wrong weapon, wrong medium |
+| LR 10 | a painted **Ram Darbar**: Rama and Sita enthroned, Lakshmana and Bharata standing, Hanuman kneeling, in a pillared hall | #30409 is an outdoor crowd scene before a temple façade; #31088 is a radiant Vishnu court with Garuda below. Neither is a five-figure Ram Darbar |
+
+#24094 and #26328, the two bronze acharya statues with the gold staff, are not
+Rama idols at all and were ruled out on sight.
+
+### The section is a standing warning about subject-matching
+
+Three products were cleared off LR 07, LR 08 and LR 09 by the earlier pass, and
+every one of those clears was the **Tirupati fault** — the right deity or the
+right idol, the wrong photograph. This pass adds five more near-misses of the
+same kind. Any pass that matched on subject would have filled all six of these
+pages confidently and filled five of them wrongly.
+
+**#18229's title.** Its row carries a description rather than a title, for the
+reason recorded with #26450: a product with no code appears in no report, so its
+title is unreadable precisely while it is homeless. It will be corrected from
+`APPLIED.txt` once this placement is applied, as #26450's was.
