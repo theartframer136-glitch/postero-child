@@ -9349,7 +9349,13 @@ function af_digital_price_html($pid = 0) {
     // <del>was</del><ins>now</ins> is WooCommerce's own sale markup; the
     // pricerow script that styles every card then adds the "(x% off)" badge
     // and the weights, so this reads exactly like the canvases' prices.
-    return wc_format_sale_price(wc_price(af_digital_was($pid)), wc_price(af_digital_price($pid)));
+    // The badge is written here rather than left to the pricerow scanner:
+    // the modal's price is swapped in after load and the scanner did not
+    // reliably catch that swap, so the owner saw the strike without the saving.
+    $now = af_digital_price($pid); $was = af_digital_was($pid);
+    $pct = $was > 0 ? (int) round(($was - $now) / $was * 100) : 0;
+    return wc_format_sale_price(wc_price($was), wc_price($now))
+         . ($pct > 0 ? ' <span class="af-pct-off">(' . $pct . '% off)</span>' : '');
 }
 
 // Mark the cart item as a digital download with its own price/label
@@ -9726,7 +9732,10 @@ add_action('wp_footer', function() {
     .af-dd-feat{list-style:none;margin:0 0 16px;padding:0;display:flex;flex-direction:column;gap:8px;}
     .af-dd-feat li{font-size:13px;color:#555;padding-left:22px;position:relative;line-height:1.5;}
     .af-dd-feat li::before{content:'✓';position:absolute;left:0;color:#c9a84c;font-weight:800;}
-    .af-dd-price{font-size:24px;font-weight:800;color:#1a1a1a;margin:0 0 16px;}
+    .af-dd-price{font-size:24px;font-weight:800;color:#1a1a1a;margin:0 0 16px;
+      display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
+    .af-dd-price del{color:#9a9a9a;font-weight:400;font-size:.8em;text-decoration:line-through;}
+    .af-dd-price .af-pct-off{color:#4caf2f;font-weight:700;font-size:.62em;}
     .af-dd-actions{display:flex;gap:10px;flex-wrap:wrap;}
     .af-dd-btn{flex:1;min-width:130px;text-align:center;padding:12px 14px;border-radius:9px;font-weight:800;font-size:13.5px;cursor:pointer;text-decoration:none;border:none;}
     .af-dd-btn.solid{background:#c9a84c;color:#fff;}
