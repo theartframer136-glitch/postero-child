@@ -1,23 +1,27 @@
 <?php
 /**
- * The four actions on a product card — visible, and labelled.
+ * Cart, compare, quick view and wishlist — in the rating row, icons only.
  *
- * The owner reported that hovering a card dims the picture and shows nothing.
- * Every control was already there. Measured on the live category page:
+ * All four controls already exist on every product card; they are rendered by
+ * the theme and by the WPC plugins. What they lacked was somewhere sensible to
+ * be. Measured on the live listing, they sat twenty pixels BELOW a box with
+ * overflow:hidden (div.product-transition, 300px tall) waiting for a hover
+ * that slid them up — so they were clipped out of existence, while reporting a
+ * perfect 38x38 box and full opacity to every check. That is why they appeared
+ * to be missing rather than misplaced.
  *
- *   .woosw-btn  40x40  "Add to wishlist"  white on rgba(255,255,255,0)
- *   .woosq-btn  40x40  "Quick view"       white on rgba(255,255,255,0)
- *   .add_to_cart_button 36x36  "🛍"       white on rgba(0,0,0,0)
- *   .af-cmp-btn         36x36  "⇄"        white on rgba(0,0,0,0)
+ * They now live in the card's rating row, to the right of the stars: one line,
+ * icons only, each naming itself on hover. That row already exists
+ * (div.product-action holding div.count-review), it is inside the caption
+ * rather than the picture, and nothing there clips.
  *
- * Four white glyphs on a transparent background, over artwork that is usually
- * pale. Nothing was broken: the hover reveal worked, the icon font loaded, the
- * buttons were the right size and clickable the whole time. They just could
- * not be seen.
+ * The move is done in JavaScript and the layout written inline with priority.
+ * That is not a flourish: this theme sets these positions inline itself, and a
+ * stylesheet — however specific, however many !importants — measurably loses
+ * to it. Four separate faults in this codebase have now come down to the same
+ * thing.
  *
- * So each gets a dark chip to sit on — which reads against any artwork,
- * light or dark — and the name of what it does, because an unlabelled glyph
- * is a guess. "⇄" in particular tells nobody it means compare.
+ * Nothing outside the product card is touched.
  */
 if (!defined('ABSPATH')) exit;
 
@@ -27,226 +31,130 @@ add_action('wp_footer', function () {
     if (!(is_shop() || is_product_taxonomy() || is_product() || is_front_page())) return;
     ?>
     <style id="af-card-actions">
-    /* ── THE CHIP ───────────────────────────────────────────────────────────
-       A circle dark enough that a white glyph reads on any picture. The
-       artwork behind it is the point of the page, so the chip is translucent
-       rather than solid: it darkens what is behind it without hiding it. */
-    html body ul.products li.product .af-icon-corner > a.add_to_cart_button,
-    html body ul.products li.product .af-icon-corner > .af-cmp-btn,
-    html body ul.products li.product .shop-action .woosw-btn,
-    html body ul.products li.product .shop-action .woosq-btn{
-      width:38px !important;height:38px !important;min-width:38px !important;
-      border-radius:50% !important;border:0 !important;
-      background:rgba(26,26,26,.68) !important;
-      color:#fff !important;
+    /* The row: stars on the left, the four actions on the right. */
+    html body ul.products li.product .product-action{
+      display:flex !important;align-items:center !important;
+      justify-content:space-between !important;gap:8px !important;
+      flex-wrap:nowrap !important;}
+    html body ul.products li.product .af-acts{
       display:inline-flex !important;align-items:center !important;
-      justify-content:center !important;
-      box-shadow:0 2px 10px rgba(0,0,0,.28) !important;
-      backdrop-filter:saturate(140%) blur(2px);
-      transition:background .18s ease, transform .18s ease !important;
-      cursor:pointer !important;padding:0 !important;
-    }
-    html body ul.products li.product .af-icon-corner > a.add_to_cart_button:hover,
-    html body ul.products li.product .af-icon-corner > .af-cmp-btn:hover,
-    html body ul.products li.product .shop-action .woosw-btn:hover,
-    html body ul.products li.product .shop-action .woosq-btn:hover{
-      background:#c9a84c !important;transform:translateY(-2px) !important;
-    }
-    /* The glyphs themselves. The wishlist and quick view buttons carry their
-       icon in a ::before at 18px; the other two carry a character. Both want
-       to be white and centred, and neither wants the button's own font-size:0
-       (which is how the plugin hides the words) to reach them. */
-    html body ul.products li.product .shop-action .woosw-btn::before,
-    html body ul.products li.product .shop-action .woosq-btn::before{
-      font-size:17px !important;line-height:1 !important;color:#fff !important;}
-    html body ul.products li.product .af-icon-corner .af-icon-glyph,
-    html body ul.products li.product .af-icon-corner .af-cmp-icon{
-      font-size:17px !important;line-height:1 !important;color:#fff !important;}
+      gap:2px !important;margin-left:auto !important;flex:0 0 auto !important;}
 
-    /* ── SHOWN, FULL STOP ───────────────────────────────────────────────────
-       Not on hover. On hover was the plan, and the owner reported three times
-       that the buttons were still not there, so I went and read the pixels
-       actually painted at each button's centre while hovering:
+    /* One button. Icon only — no words, no chip, nothing to compete with the
+       artwork above it. The gold is the colour the rest of the shop uses. */
+    html body ul.products li.product .af-acts > *{
+      width:26px !important;min-width:26px !important;height:26px !important;
+      padding:0 !important;margin:0 !important;border:0 !important;
+      background:transparent !important;border-radius:50% !important;
+      display:inline-flex !important;align-items:center !important;
+      justify-content:center !important;cursor:pointer !important;
+      color:#6b6250 !important;line-height:1 !important;
+      opacity:1 !important;visibility:visible !important;
+      position:relative !important;transform:none !important;
+      box-shadow:none !important;text-decoration:none !important;
+      transition:color .15s ease, background .15s ease !important;}
+    html body ul.products li.product .af-acts > *:hover{
+      color:#c9a84c !important;background:rgba(201,168,76,.12) !important;}
 
-         cart      rgb(254,254,254)   nothing
-         compare   rgb(254,254,254)   nothing
-         wishlist  rgb(178,142,83)    the artwork, showing through
-         quickview rgb(216,184,147)   the artwork, showing through
+    /* The glyphs. The plugin buttons carry theirs in a ::before and set the
+       button to font-size 0 to hide their words; the theme's two carry a
+       character in a span. Both want the same size and the button's colour. */
+    html body ul.products li.product .af-acts > *::before{
+      font-size:15px !important;line-height:1 !important;color:inherit !important;}
+    html body ul.products li.product .af-acts .af-icon-glyph,
+    html body ul.products li.product .af-acts .af-cmp-icon,
+    html body ul.products li.product .af-acts svg{
+      font-size:15px !important;width:15px !important;height:15px !important;
+      line-height:1 !important;color:inherit !important;fill:currentColor !important;}
+    /* No words. Any label inside is for screen readers only. */
+    html body ul.products li.product .af-acts .af-icon-label,
+    html body ul.products li.product .af-acts > * > span:not(.af-icon-glyph):not(.af-cmp-icon){
+      position:absolute !important;width:1px !important;height:1px !important;
+      overflow:hidden !important;clip:rect(0 0 0 0) !important;
+      white-space:nowrap !important;}
 
-       Four controls reporting "fully opaque" a moment earlier and painting
-       nothing. Whatever the exact mechanism — and a hover state is a fragile
-       thing, lost to a repaint, a re-render of the listing, a touch screen
-       that never sends one — a control that exists only while the cursor is
-       held still is a control that is missing most of the time.
-
-       These four ARE the card: buy it, look closer, compare it, keep it. They
-       are small, they sit on the picture, and they cost nothing to leave
-       where they can be seen. So they stay. The theme hides its own pair at
-       opacity 0 until hover; that is overridden here too, for the same
-       reason. */
-    html body ul.products li.product .af-icon-corner,
-    html body ul.products li.product .group-action,
-    html body ul.products li.product .shop-action{
-      opacity:1 !important;visibility:visible !important;}
-
-    /* ── AND THEY MUST BE INSIDE THE PICTURE ────────────────────────────────
-       This is the part I got wrong, and it is worth writing down plainly.
-
-       Measured: div.product-transition has overflow:hidden and a box 300px
-       tall. All four buttons sit at y+517 against a clip that ends at y+497 —
-       twenty pixels below it, and therefore clipped out of existence. They
-       report a correct 38x38 box, full opacity and a chip background the whole
-       time, because a clip is invisible to getComputedStyle and to
-       getBoundingClientRect alike. That is why every check I ran said the
-       buttons were fine while the owner's screen showed nothing.
-
-       The theme parks them under the picture on purpose and slides them up
-       into it on hover, with a transform. My previous change set
-       transform:none, which cancelled precisely that slide — so I made them
-       opaque and stranded them outside the clip in the same breath.
-
-       Rather than restore a slide that only happens under a cursor, they are
-       placed inside the picture outright: the pair of plugin buttons along the
-       bottom, cart and compare in the top corner. Absolute, within the box
-       that does the clipping, so there is nothing left to clip. ──────────── */
-    html body ul.products li.product .product-transition{position:relative !important;}
-
-    html body ul.products li.product .group-action{
-      position:absolute !important;left:0 !important;right:0 !important;
-      bottom:12px !important;top:auto !important;width:auto !important;
-      margin:0 !important;padding:0 !important;
-      transform:none !important;z-index:6 !important;
-      display:flex !important;justify-content:center !important;
-      align-items:center !important;}
-    html body ul.products li.product .group-action .shop-action{
-      display:flex !important;gap:10px !important;
-      justify-content:center !important;align-items:center !important;
-      width:auto !important;min-width:0 !important;}
-
-    html body ul.products li.product .af-icon-corner{
-      position:absolute !important;top:10px !important;right:10px !important;
-      left:auto !important;bottom:auto !important;
-      display:flex !important;gap:8px !important;z-index:6 !important;}
-
-    /* ── THE LABEL ──────────────────────────────────────────────────────────
-       An unlabelled glyph is a guess, and "⇄" tells nobody it means compare.
-       The tooltip sits above the chip and is drawn by the button itself, so
-       there is no extra element to position or to leave behind.
-
-       font-size is stated outright: these buttons are set to font-size 0 by
-       the plugin to hide their words, and a pseudo-element inherits that — a
-       tooltip at 0px is no tooltip at all. */
-    html body ul.products li.product [data-af-tip]{position:relative !important;}
-    html body ul.products li.product [data-af-tip]::after{
+    /* The tooltip, drawn by the button itself. font-size is stated outright
+       because these buttons are set to font-size 0 and a pseudo-element
+       inherits that — a tooltip at 0px is no tooltip at all. */
+    html body ul.products li.product .af-acts [data-af-tip]::after{
       content:attr(data-af-tip);
-      position:absolute;bottom:calc(100% + 9px);left:50%;
+      position:absolute;bottom:calc(100% + 7px);left:50%;
       transform:translateX(-50%) translateY(3px);
       background:#1a1a1a;color:#fff;font-size:11px !important;font-weight:600;
-      letter-spacing:.2px;line-height:1;padding:6px 9px;border-radius:5px;
-      white-space:nowrap;opacity:0;pointer-events:none;
-      transition:opacity .15s ease, transform .15s ease;z-index:60;
-      font-family:"Instrument Sans",system-ui,sans-serif;
-    }
-    html body ul.products li.product [data-af-tip]:hover::after{
+      font-family:"Instrument Sans",system-ui,sans-serif;letter-spacing:.2px;
+      line-height:1;padding:5px 8px;border-radius:4px;white-space:nowrap;
+      opacity:0;pointer-events:none;z-index:40;
+      transition:opacity .15s ease, transform .15s ease;}
+    html body ul.products li.product .af-acts [data-af-tip]:hover::after{
       opacity:1;transform:translateX(-50%) translateY(0);}
 
-    /* ── A PHONE HAS NO HOVER ───────────────────────────────────────────────
-       Nothing above hangs off :hover any more, so the buttons are already
-       there on a touch screen. What a phone does need is the tooltip gone — a
-       finger cannot hover to read one — and a slightly larger target. */
+    /* A finger needs more room than a cursor, and a touch screen never sends
+       the hover that draws the tooltip. */
     @media (max-width:781px){
-      html body ul.products li.product [data-af-tip]::after{display:none !important;}
-      html body ul.products li.product .af-icon-corner > a.add_to_cart_button,
-      html body ul.products li.product .af-icon-corner > .af-cmp-btn,
-      html body ul.products li.product .shop-action .woosw-btn,
-      html body ul.products li.product .shop-action .woosq-btn{
-        width:40px !important;height:40px !important;min-width:40px !important;}
+      html body ul.products li.product .af-acts > *{
+        width:32px !important;min-width:32px !important;height:32px !important;}
+      html body ul.products li.product .af-acts [data-af-tip]::after{
+        display:none !important;}
     }
     </style>
     <script>
     (function(){
-      // The words each button already carries, used as its label. The plugins
-      // put real text inside their buttons and then set font-size to 0 to hide
-      // it; that text is the most accurate description available, so it is
-      // reused rather than invented. Only where a button has no words of its
-      // own does a name get supplied.
-      var NAMED = [
-        ['.af-icon-corner a.add_to_cart_button', 'Add to cart'],
-        ['.af-icon-corner .af-cmp-btn',          'Compare'],
-        ['.shop-action .woosw-btn',              'Add to wishlist'],
-        ['.shop-action .woosq-btn',              'Quick view']
+      // In the order a customer wants them: buy it, compare it, look closer,
+      // keep it.
+      var WANTED = [
+        ['.af-icon-corner a.add_to_cart_button, .product-block a.add_to_cart_button', 'Add to cart'],
+        ['.af-cmp-btn',  'Compare'],
+        ['.woosq-btn',   'Quick view'],
+        ['.woosw-btn',   'Add to wishlist']
       ];
-      /**
-       * Put the four controls inside the picture, by moving them there.
-       *
-       * The stylesheet route has been tried and measured, twice. The buttons
-       * sit twenty pixels below a box with overflow:hidden, and every rule
-       * written to lift them — position, bottom, top — loses to something that
-       * sets those inline with priority. A stylesheet cannot win that
-       * argument; three separate faults in this codebase have already been
-       * hidden behind exactly the same thing.
-       *
-       * So they are moved rather than styled into place: appended into the
-       * picture's own wrapper, which is the element doing the clipping, and
-       * positioned with inline priority. Inside the clip there is nothing left
-       * to clip, and an inline important declaration is the one thing nothing
-       * else can override.
-       */
-      function put(el, rules){
-        for (var k in rules) el.style.setProperty(k, rules[k], 'important');
-      }
-      function place(){
-        document.querySelectorAll('ul.products li.product').forEach(function(card){
-          var img = card.querySelector('.product-img-wrap')
-                 || card.querySelector('.product-transition');
-          if (!img) return;
-          put(img, {position: 'relative', overflow: 'visible'});
 
-          var corner = card.querySelector('.af-icon-corner');
-          if (corner) {
-            if (corner.parentElement !== img) img.appendChild(corner);
-            put(corner, {position: 'absolute', top: '10px', right: '10px',
-                         left: 'auto', bottom: 'auto', display: 'flex',
-                         gap: '8px', 'z-index': '6', opacity: '1',
-                         visibility: 'visible', transform: 'none',
-                         width: 'auto', margin: '0'});
-          }
-          // .shop-action holds the wishlist and quick view pair. It is taken
-          // out of .group-action, which is the thing parked below the picture.
-          var shop = card.querySelector('.shop-action');
-          if (shop) {
-            if (shop.parentElement !== img) img.appendChild(shop);
-            put(shop, {position: 'absolute', left: '0', right: '0',
-                       bottom: '12px', top: 'auto', display: 'flex',
-                       'justify-content': 'center', 'align-items': 'center',
-                       gap: '10px', 'z-index': '6', opacity: '1',
-                       visibility: 'visible', transform: 'none',
-                       width: 'auto', margin: '0'});
+      function place(card){
+        var row = card.querySelector('.product-action');
+        if (!row) return;
+        var acts = row.querySelector('.af-acts');
+        if (!acts) {
+          acts = document.createElement('span');
+          acts.className = 'af-acts';
+          row.appendChild(acts);
+        }
+        var moved = 0;
+        WANTED.forEach(function(pair){
+          var el = card.querySelector(pair[0]);
+          if (!el) return;
+          if (el.parentElement !== acts) acts.appendChild(el);
+          moved++;
+          if (!el.getAttribute('data-af-tip')) {
+            // Prefer the words the control already carries — the plugins put
+            // real text inside and then hide it — over a name I invent.
+            var own = (el.getAttribute('aria-label') || el.textContent || '')
+                        .replace(/[\s​]+/g, ' ').replace(/^[^\w(]+/, '').trim();
+            var tip = own.length > 2 ? own : pair[1];
+            el.setAttribute('data-af-tip', tip);
+            if (!el.getAttribute('aria-label')) el.setAttribute('aria-label', tip);
           }
         });
-      }
 
-      function label(){
-        document.querySelectorAll('ul.products li.product').forEach(function(card){
-          NAMED.forEach(function(pair){
-            var el = card.querySelector(pair[0]);
-            if (!el || el.getAttribute('data-af-tip')) return;
-            var own = (el.getAttribute('aria-label') || el.textContent || '')
-                        .replace(/[\s​]+/g, ' ').trim();
-            // Strip a leading glyph: the cart button reads "🛍Add to cart".
-            own = own.replace(/^[^\w(]+/, '').trim();
-            el.setAttribute('data-af-tip', own.length > 2 ? own : pair[1]);
-            if (!el.getAttribute('aria-label')) {
-              el.setAttribute('aria-label', own.length > 2 ? own : pair[1]);
+        // Only once the controls are safely in their new home do the empty
+        // containers go. Hiding them in the stylesheet would mean that if this
+        // script ever failed to run, the buttons would vanish altogether
+        // rather than simply stay where the theme put them.
+        if (moved) {
+          ['.group-action', '.af-icon-corner'].forEach(function(sel){
+            var box = card.querySelector(sel);
+            if (box && !box.querySelector('a, button')) {
+              box.style.setProperty('display', 'none', 'important');
             }
           });
-        });
+        }
       }
-      function run(){ place(); label(); }
+
+      function run(){
+        document.querySelectorAll('ul.products li.product').forEach(place);
+      }
       if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', run);
       else run();
-      // The listing re-renders when a filter changes, and the new cards arrive
-      // without labels unless something is watching.
+      window.addEventListener('load', run);
+      // A filter change re-renders the listing and the new cards arrive bare.
       try {
         new MutationObserver(function(m){
           for (var i = 0; i < m.length; i++) {
@@ -255,7 +163,6 @@ add_action('wp_footer', function () {
         }).observe(document.body, {childList:true, subtree:true});
       } catch(e){}
       [400, 1200, 2600].forEach(function(d){ setTimeout(run, d); });
-      window.addEventListener('load', run);
     })();
     </script>
     <?php
