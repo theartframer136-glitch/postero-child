@@ -187,6 +187,17 @@ add_action('wp_footer', function () {
         height:34px !important;min-height:34px !important;max-height:34px !important;}
       html body ul.products li.product .af-acts [data-af-tip]::after{
         display:none !important;}
+      /* A phone card is ~200px wide; stars plus four finger-sized buttons
+         need ~270px on one line and the last button fell off the card. The
+         row wraps: stars on the first line, the four buttons on the next,
+         still kept to the right. */
+      html body ul.products li.product .product-action{
+        flex-wrap:wrap !important;row-gap:2px !important;}
+      html body ul.products li.product .product-action > .count-review,
+      html body ul.products li.product .product-action > .woocommerce-product-rating{
+        flex:1 1 100% !important;min-width:0 !important;}
+      html body ul.products li.product .af-acts{
+        flex:0 0 100% !important;justify-content:flex-end !important;margin-left:0 !important;}
     }
     </style>
     <script>
