@@ -19,7 +19,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 105–122 | LS 030001–030018 | Lord Shiva | 18 | 15 | DONE — 2026-09-16 |
 | 123–137 | SH 040001–040015 | Seven Horses | 15 | 12 | DONE — 2026-09-15 |
 | 138–152 | TP 050001–050015 | Tirupati Balaji | 15 | 15 | DONE — 2026-09-14 |
-| 153–156 | MG 060001–060004 | Murugan | 4 | 4 | NO |
+| 153–156 | MG 060001–060004 | Murugan | 4 | 4 | DONE — 2026-09-16, nothing to change |
 | 157–166 | LR 070001–070010 | Lord Rama | 10 | 9 | DONE — 2026-09-15 |
 | 167–196 | HD 080001–080030 | Hindu Deities | 30 | 27 | DONE — 2026-09-14 |
 | 197–209 | LB 090001–090013 | Lord Buddha | 13 | 13 | DONE — re-verified 2026-09-15, sweep 2026-09-16 |
@@ -3133,3 +3133,62 @@ difference recorded for #24352 on LS 16 — content decides, shape is only a hin
 
 The other two, #29951 and #26753, have never needed a correction row and still
 do not.
+
+## Murugan, 2026-09-16 — nothing to change, and the Alwars are not in this book
+
+Four pages, two products, **no corrections**. The fourth section in a row to end
+that way, after Indian Culture, Buddha and Lakshmi–Ganesha.
+
+| page | the book shows | claimed by | verdict |
+| --- | --- | --- | --- |
+| MG 01 - 060001-5030 | Murugan between Valli and Devasena, all garlanded, under an ornate gold arch with a kirtimukha above, lamps and offerings below, peacock at the right | #24169 | right |
+| MG 02 - 060002-5030 | Murugan with his peacock in a blooming garden at sunrise, pink lotuses and marigolds | #24531 | right |
+| MG 03 - 060003-5030 | a golden Murugan idol with his vel, peacock at his left, in a dark temple lit by rows of oil lamps | **nothing** | unclaimed |
+| MG 04 - 060004-5030 | six-faced Shanmukha with many arms before a grand gopuram under a moonlit sky, peacocks below | **nothing** | unclaimed |
+
+Two sheets were drawn, one per claimed code, confirming MG 03 and MG 04 are the
+empty ones.
+
+#24169 had been moved here from **TA 04** by an earlier pass, which is the
+Travel Art dumping ground again; holding its picture against MG 01 confirms that
+move was right.
+
+### The two empty pages have no claimant
+
+| candidate | why not |
+|---|---|
+| **#22564** Decorated Lord Murugan | a dark processional idol garlanded in a mandapam with embroidered cushions either side — no vel, no peacock, and not the lamp-lit sanctum of MG 03. It was cleared off SL 02 and stays cleared |
+| **#26145** Tanjore Murugan Panel | a flat Tanjore panel on a black ground under a gold arch. MG 03 is a modelled golden idol among lamps and MG 04 a painted Shanmukha before a gopuram; neither is a Tanjore panel |
+| **#14034** Lord Murugan Art | already cleared, and correctly: despite its title it is an acharya with a tridandi staff and two disciples, not Murugan at all |
+
+### The book has no Alwars section
+
+Worth recording as a finding in its own right, because three products depend on
+it. Three rows in the corrections file place products on **AL 01, AL 05 and
+AL 06**, each reasoned from "the Alwars page":
+
+```
+#26145  AL 01   "the Alwars page AL 01 is the Tanjore Murugan under an ornate arch"
+#23496  AL 05   "the Alwars page AL 05 carries the word Mahayogi in the painting itself"
+#23435  AL 06   "the Alwars page AL 06 is the standing goddess in a green sari"
+```
+
+**There is no Alwars section.** Counting every page marker in the book gives 373
+across 21 prefixes — RK, LI, HD, WL, SL, KR, AA, LS, TP, SH, LB, LR, LC, SA, IC,
+VA, TA, MG, LG, SN, PA — and the counts match `af_artcode_book()` exactly. No AL
+appears anywhere. That is why the renumber pass reports "AL is not a section of
+the book — 3 product(s)" on every run, and why these three are three of the four
+codes in the catalogue that name no page.
+
+The three are plainly one series: standing devotional figures on a black ground
+under heavy gold Tanjore arches — #26145 with a staff, #23496 with hands in
+namaste, #23435 a woman in a green sari holding a parrot, which is Andal.
+
+**They are left as they are for now, deliberately.** The September argument for
+leaving a code that resolves to nothing — it cannot stand on another painting —
+was overturned for Lord Shiva only because LS 16 and LS 18 became real pages with
+real owners. `AL` can never become a real prefix, so these three harm nobody
+where they sit. What they have not had is a check against **Hindu Deities' six
+unclaimed pages**, which is where a Tanjore acharya panel would most plausibly
+belong; the #14034 row already notes HD 22 is "a single gold acharya". That is
+the next loose end, and it is not a Murugan question.
