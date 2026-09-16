@@ -131,11 +131,31 @@ foreach ($ids as $id) {
             $skipped++; continue;
         }
         $price = round($sqft * $RATE, 2);
-        printf("  %s  #%d  %s\n        %s sq ft (%s)  →  \$%.2f   (was \$%s)\n",
-            $dry ? 'WOULD' : 'SET  ', $prod->get_id(), mb_substr($label, 0, 70), $sqft, $src, $price, $current);
+
+        // What the customer pays is the square-foot price and nothing else.
+        // But a card carrying no reference price prints the same figure twice
+        // with "(0% off)" beside it, which is how the banners looked on the
+        // homepage: a saving announced and withdrawn in the same breath.
+        // Every other product on the site already carries a reference price
+        // above what it sells for, from af_mrp_discount_pct() — its own saving
+        // in the 20-45% band, fixed per product so it never moves between
+        // runs. The banners follow that rule rather than inventing a second
+        // one: the rate price becomes the SALE price, the reference price
+        // sits above it.
+        $pct     = function_exists('af_mrp_discount_pct') ? af_mrp_discount_pct($prod->get_id()) : 0;
+        $regular = ($pct > 0 && function_exists('af_mrp_multiplier'))
+                 ? round($price * af_mrp_multiplier($prod->get_id()), 2)
+                 : $price;
+        printf("  %s  #%d  %s\n        %s sq ft (%s)  pays \$%.2f, was \$%.2f (%d%% off)   (previously \$%s)\n",
+            $dry ? 'WOULD' : 'SET  ', $prod->get_id(), mb_substr($label, 0, 70), $sqft, $src, $price, $regular, $pct, $current);
         if (!$dry) {
-            $prod->set_regular_price($price);
-            $prod->set_sale_price('');          // the rate IS the price; no strike-through
+            if ($regular > $price) {
+                $prod->set_regular_price($regular);
+                $prod->set_sale_price($price);
+            } else {
+                $prod->set_regular_price($price);
+                $prod->set_sale_price('');
+            }
             $prod->save();
             $done++;
         }
