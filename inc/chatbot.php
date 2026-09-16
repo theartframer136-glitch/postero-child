@@ -114,7 +114,7 @@ function af_bot_intents() {
         ),
         'digital' => array(
             'k' => array('digital', 'download', 'downloadable', 'file', 'jpg', 'print at home', 'instant', 'printable'),
-            'a' => "Most artworks are also available as an instant digital download for " . af_bot_money(af_digital_price()) . ".\n\nYou get a high-resolution, print-ready file by email straight after payment — print it at home or at any print shop. The link allows 5 downloads within 30 days.\n\nLook for the “Digital Download” option on a product card.",
+            'a' => "Most artworks are also available as an instant digital download for under " . af_bot_money(10) . ".\n\nYou get a high-resolution, print-ready file by email straight after payment — print it at home or at any print shop. The link allows 5 downloads within 30 days.\n\nLook for the “Digital Download” option on a product card.",
             'c' => array('Digital downloads' => home_url('/product-category/digital-downloads/')),
         ),
         'custom' => array(

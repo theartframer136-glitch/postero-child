@@ -9330,14 +9330,33 @@ add_action('wp_footer', function() {
 // adds a digital line (own price + label). Additive.
 // ─────────────────────────────────────────────────────────────
 
-// Digital download flat price (adjustable via filter)
-function af_digital_price() { return (float) apply_filters('af_digital_price', 9.99); }
+// Digital download price — per piece, not one flat number.
+//
+// Every download used to be $9.99, which reads as a placeholder rather than a
+// price. Each piece now gets its own figure between $9.00 and $9.99, fixed for
+// life by its product ID so it never drifts between page loads or between the
+// modal, the cart and the order. The "was" price is 40% above it and shown
+// struck through, in the same sale format the canvases use.
+function af_digital_price($pid = 0) {
+    $pid = (int) $pid;
+    $base = $pid ? 9.00 + ((crc32('af-dd-' . $pid) % 100) / 100) : 9.99;
+    return (float) apply_filters('af_digital_price', round($base, 2), $pid);
+}
+function af_digital_was($pid = 0) {
+    return round(af_digital_price($pid) * 1.40, 2);
+}
+function af_digital_price_html($pid = 0) {
+    // <del>was</del><ins>now</ins> is WooCommerce's own sale markup; the
+    // pricerow script that styles every card then adds the "(x% off)" badge
+    // and the weights, so this reads exactly like the canvases' prices.
+    return wc_format_sale_price(wc_price(af_digital_was($pid)), wc_price(af_digital_price($pid)));
+}
 
 // Mark the cart item as a digital download with its own price/label
 add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
     if (!empty($_REQUEST['af_digital'])) {
         $data['af_digital'] = '1';
-        $data['af_price']   = af_digital_price();
+        $data['af_price']   = af_digital_price($pid);
         $data['af_unique']  = md5('digital|' . $pid . '|' . microtime());
     }
     return $data;
@@ -9379,8 +9398,9 @@ function af_dd_preview_handler() {
     if (!$pid || get_post_type($pid) !== 'product') wp_send_json_error();
     $thumb = get_post_thumbnail_id($pid);
     if (!$thumb) wp_send_json_error();
+    $price = af_digital_price_html($pid);
     $wm = function_exists('af_wm_preview_url') ? af_wm_preview_url($thumb) : false;
-    if ($wm && !empty($wm['url'])) wp_send_json_success(array('url' => $wm['url'], 'wm' => 1));
+    if ($wm && !empty($wm['url'])) wp_send_json_success(array('url' => $wm['url'], 'wm' => 1, 'price_html' => $price));
     // Watermarking unavailable (GD can choke on the very large masters).
     // Fall back to a genuinely small size — and never the master: WordPress
     // returns the ORIGINAL file for any size an image never generated, which
@@ -9389,7 +9409,7 @@ function af_dd_preview_handler() {
     foreach (array('medium', 'woocommerce_thumbnail', 'thumbnail') as $size) {
         $small = wp_get_attachment_image_src($thumb, $size);
         if ($small && !empty($small[0]) && $small[0] !== $master) {
-            wp_send_json_success(array('url' => $small[0], 'wm' => 0));
+            wp_send_json_success(array('url' => $small[0], 'wm' => 0, 'price_html' => $price));
         }
     }
     wp_send_json_error();
@@ -9415,7 +9435,7 @@ add_action('wp_footer', function() {
     if (is_admin()) return;
     $is_shop = function_exists('is_shop') && (is_shop() || is_product_category() || is_product_tag());
     if (!is_front_page() && !$is_shop) return;
-    $price_html = wc_price(af_digital_price());
+    $price_html = af_digital_price_html();   // replaced per piece once the preview loads
     ?>
     <div id="af-dd-overlay" class="af-dd-overlay" data-dd-close>
       <div class="af-dd-modal">
@@ -9430,7 +9450,7 @@ add_action('wp_footer', function() {
               <li>Delivered instantly by email after purchase</li>
               <li>Print at home or any print shop — no frame needed</li>
             </ul>
-            <div class="af-dd-price"><?php echo $price_html; ?></div>
+            <div class="af-dd-price" id="af-dd-price"><?php echo $price_html; ?></div>
             <div class="af-dd-actions">
               <button id="af-dd-add" class="af-dd-btn solid">Add to Cart</button>
               <a id="af-dd-view" class="af-dd-btn ghost">View Product</a>
@@ -9520,7 +9540,13 @@ add_action('wp_footer', function() {
         clearImg();
         fetch(AJAX + '?action=af_dd_preview&pid=' + encodeURIComponent(pid), {credentials:'same-origin'})
           .then(function(r){ return r.json(); })
-          .then(function(j){ if(seq!==reqSeq) return; showImg(j&&j.success&&j.data&&j.data.url ? j.data.url : ''); })
+          .then(function(j){
+            if(seq!==reqSeq) return;
+            var d = j&&j.success&&j.data ? j.data : null;
+            showImg(d&&d.url ? d.url : '');
+            var priceEl = document.getElementById('af-dd-price');
+            if(priceEl && d && d.price_html) priceEl.innerHTML = d.price_html;
+          })
           .catch(function(){ if(seq!==reqSeq) return; clearImg(); });
       }
 
