@@ -35,33 +35,34 @@ add_action('wp_footer', function () {
     html body ul.products li.product .product-action{
       display:flex !important;align-items:center !important;
       justify-content:space-between !important;gap:8px !important;
-      flex-wrap:nowrap !important;}
+      flex-wrap:nowrap !important;overflow:visible !important;}
     html body ul.products li.product .af-acts{
       display:inline-flex !important;align-items:center !important;
-      gap:2px !important;margin-left:auto !important;flex:0 0 auto !important;}
+      gap:4px !important;margin-left:auto !important;flex:0 0 auto !important;
+      overflow:visible !important;}
 
-    /* One button. Icon only — no words, no chip, nothing to compete with the
-       artwork above it. The gold is the colour the rest of the shop uses. */
+    /* One button. Icon only — no words, nothing to compete with the artwork.
+
+       overflow is stated as VISIBLE deliberately. The previous version set it
+       to hidden to stop stray label text showing, and that is what swallowed
+       the tooltip: the tooltip is drawn above the button, outside its box, so
+       clipping the button clips the tooltip with it. font-size:0 hides the
+       words on its own and costs nothing. */
     html body ul.products li.product .af-acts > *{
-      width:26px !important;min-width:26px !important;height:26px !important;
+      width:30px !important;min-width:30px !important;height:30px !important;
       padding:0 !important;margin:0 !important;border:0 !important;
       background:transparent !important;border-radius:50% !important;
       display:inline-flex !important;align-items:center !important;
       justify-content:center !important;cursor:pointer !important;
-      color:#6b6250 !important;line-height:1 !important;
-      /* The words go. The plugins hide their own button text with font-size 0
-         in a rule scoped to .shop-action, and moving these buttons out of that
-         container stopped it matching — which is why "QUICK VIEW" and "ADD TO
-         WISHLIST" came back, overlapping, in the rating row. Stated here so it
-         no longer depends on where the button happens to sit. */
-      font-size:0 !important;overflow:hidden !important;
+      color:#4E423D !important;line-height:1 !important;
+      font-size:0 !important;overflow:visible !important;
       white-space:nowrap !important;
       opacity:1 !important;visibility:visible !important;
       position:relative !important;transform:none !important;
       box-shadow:none !important;text-decoration:none !important;
       transition:color .15s ease, background .15s ease !important;}
     html body ul.products li.product .af-acts > *:hover{
-      color:#c9a84c !important;background:rgba(201,168,76,.12) !important;}
+      color:#c9a84c !important;background:rgba(201,168,76,.14) !important;}
 
     /* One icon set, drawn one way. The four arrived with three different
        kinds of mark between them — a colour emoji bag, a bare arrows
@@ -69,9 +70,9 @@ add_action('wp_footer', function () {
        row looked assembled from spare parts. They are replaced below with one
        stroked set that takes its colour from the button. */
     html body ul.products li.product .af-acts svg.af-ico{
-      width:16px !important;height:16px !important;display:block !important;
+      width:19px !important;height:19px !important;display:block !important;
       fill:none !important;stroke:currentColor !important;
-      stroke-width:1.9 !important;stroke-linecap:round !important;
+      stroke-width:1.7 !important;stroke-linecap:round !important;
       stroke-linejoin:round !important;}
     /* Nothing else inside a button may take up room. */
     html body ul.products li.product .af-acts > * > *:not(svg){
@@ -79,17 +80,27 @@ add_action('wp_footer', function () {
       overflow:hidden !important;clip:rect(0 0 0 0) !important;}
     html body ul.products li.product .af-acts > *::before{display:none !important;}
 
-    /* The tooltip, drawn by the button itself. font-size is stated outright
-       because these buttons are set to font-size 0 and a pseudo-element
-       inherits that — a tooltip at 0px is no tooltip at all. */
+    /* The tooltip, drawn by the button itself.
+
+       It hangs BELOW the icon, not above. Above is the conventional place and
+       it is the wrong one here: the rating row sits at the very top of the
+       caption, so a tooltip above it has to escape the caption's top edge — and
+       this card has overflow:hidden on div.product-block, on li.product and on
+       div.hfeed.site. Below, it opens into the caption over the title, with
+       nothing in its way.
+
+       font-size is stated outright because the button is set to font-size 0 to
+       hide its label, and a pseudo-element inherits that. A tooltip at 0px is
+       no tooltip at all — which is one of the two reasons it never appeared. */
     html body ul.products li.product .af-acts [data-af-tip]::after{
       content:attr(data-af-tip);
-      position:absolute;bottom:calc(100% + 7px);left:50%;
-      transform:translateX(-50%) translateY(3px);
+      position:absolute;top:calc(100% + 7px);left:50%;
+      transform:translateX(-50%) translateY(-3px);
       background:#1a1a1a;color:#fff;font-size:11px !important;font-weight:600;
       font-family:"Instrument Sans",system-ui,sans-serif;letter-spacing:.2px;
-      line-height:1;padding:5px 8px;border-radius:4px;white-space:nowrap;
-      opacity:0;pointer-events:none;z-index:40;
+      line-height:1;padding:6px 9px;border-radius:4px;white-space:nowrap;
+      opacity:0;pointer-events:none;z-index:60;
+      box-shadow:0 3px 10px rgba(0,0,0,.22);
       transition:opacity .15s ease, transform .15s ease;}
     html body ul.products li.product .af-acts [data-af-tip]:hover::after{
       opacity:1;transform:translateX(-50%) translateY(0);}
@@ -98,7 +109,7 @@ add_action('wp_footer', function () {
        the hover that draws the tooltip. */
     @media (max-width:781px){
       html body ul.products li.product .af-acts > *{
-        width:32px !important;min-width:32px !important;height:32px !important;}
+        width:34px !important;min-width:34px !important;height:34px !important;}
       html body ul.products li.product .af-acts [data-af-tip]::after{
         display:none !important;}
     }
@@ -109,12 +120,15 @@ add_action('wp_footer', function () {
       // read as a single row rather than three icon libraries side by side.
       var S = '<svg class="af-ico" viewBox="0 0 24 24" aria-hidden="true">';
       var ICON = {
-        cart:    S + '<path d="M6 7.5h12l-1 11.5H7L6 7.5Z"/><path d="M9 7.5a3 3 0 0 1 6 0"/></svg>',
-        compare: S + '<path d="M4 9h13l-3.2-3.2"/><path d="M20 15H7l3.2 3.2"/></svg>',
-        quick:   S + '<path d="M2.5 12S6 6.5 12 6.5 21.5 12 21.5 12 18 17.5 12 17.5 2.5 12 2.5 12Z"/>'
-                   + '<circle cx="12" cy="12" r="2.5"/></svg>',
-        wish:    S + '<path d="M12 19.5s-6.8-4.3-6.8-9A3.8 3.8 0 0 1 12 8.6a3.8 3.8 0 0 1 6.8 1.9'
-                   + 'c0 4.7-6.8 9-6.8 9Z"/></svg>'
+        // A trolley, not a bag. The previous bag outline read as a dustbin at
+        // this size — two wheels and a handle say "cart" unmistakably.
+        cart:    S + '<circle cx="9.5" cy="19.5" r="1.4"/><circle cx="17.5" cy="19.5" r="1.4"/>'
+                   + '<path d="M2.5 3.5h2.2l2.6 11.2h11l2.2-8H6.2"/></svg>',
+        compare: S + '<path d="M4 9.2h13.2l-3.4-3.4"/><path d="M20 14.8H6.8l3.4 3.4"/></svg>',
+        quick:   S + '<path d="M2.4 12S6 6.4 12 6.4 21.6 12 21.6 12 18 17.6 12 17.6 2.4 12 2.4 12Z"/>'
+                   + '<circle cx="12" cy="12" r="2.6"/></svg>',
+        wish:    S + '<path d="M12 19.7s-6.9-4.4-6.9-9.1a3.85 3.85 0 0 1 6.9-2 3.85 3.85 0 0 1 6.9 2'
+                   + 'c0 4.7-6.9 9.1-6.9 9.1Z"/></svg>'
       };
       var WANTED = [
         ['.af-icon-corner a.add_to_cart_button, .product-block a.add_to_cart_button', 'Add to cart', 'cart'],
@@ -132,17 +146,26 @@ add_action('wp_footer', function () {
           acts.className = 'af-acts';
           row.appendChild(acts);
         }
-        var moved = 0;
+        // The four do not all exist at the same moment — the plugins add theirs
+        // after the theme adds its own — so first-come placement produced the
+        // order the owner filmed: eye, heart, cart, arrows. Collect them, then
+        // put them in the intended order whenever that order is wrong.
+        var found = [];
         WANTED.forEach(function(pair){
           var el = card.querySelector(pair[0]);
-          if (!el) return;
-          if (el.parentElement !== acts) acts.appendChild(el);
-          moved++;
+          if (el) found.push([el, pair]);
+        });
+        var moved = found.length;
+        var wrong = found.some(function(f, i){ return acts.children[i] !== f[0]; })
+                 || acts.children.length !== found.length;
+        found.forEach(function(f){
+          var el = f[0], pair = f[1];
+          if (wrong || el.parentElement !== acts) acts.appendChild(el);
           // Drawn by us, and only when it is not already ours: the wishlist
           // plugin rewrites its own button when a piece is saved, and redrawing
           // on every mutation would chase its own tail.
           if (!el.querySelector('svg.af-ico')) el.innerHTML = ICON[pair[2]];
-          if (!el.getAttribute('data-af-tip')) {
+          if (el.getAttribute('data-af-tip') !== pair[1]) {
             el.setAttribute('data-af-tip', pair[1]);
             el.setAttribute('aria-label', pair[1]);
           }
