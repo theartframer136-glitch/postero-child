@@ -26,7 +26,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 210–214 | SA 100001–100005 | Sikh Art | 5 | 3 | DONE — 2026-09-16 |
 | 215 | SN 110001 | Swaminarayan | 1 | 1 | NO |
 | 216 | PA 120001 | Pichwai | 1 | 1 | NO |
-| 217–221 | IC 130001–130005 | Indian Culture | 5 | 4 | NO |
+| 217–221 | IC 130001–130005 | Indian Culture | 5 | 4 | DONE — 2026-09-16, nothing to change |
 | 222–231 | LC 140001–140010 | Landscapes | 10 | 10 | DONE — 2026-09-15 |
 | 232–254 | SL 150001–150023 | Still Life | 23 | 23 | DONE — 2026-09-15 |
 | 255–258 | VA 160001–160004 | Vaastu Art | 4 | 4 | DONE — 2026-09-15 |
@@ -3014,3 +3014,45 @@ patchwork of colour blocks and KR 06 a child holding ink-drawn bubble-balloons
 with fish and turtles inside — neither has an uncoded claimant.
 
 Thirteen Kids Room pages remain unclaimed.
+
+## Indian Culture, 2026-09-16 — the first section that needed nothing
+
+Five pages, four products, **no corrections**. This is the first section the
+audit has read end to end and found entirely correct, and it is worth recording
+precisely because there is no diff to show for it.
+
+| page | the book shows | claimed by | verdict |
+| --- | --- | --- | --- |
+| IC 01 - 130001-3050 | splash-watercolour dancer, arm curved over the head, rainbow pleated skirt on white | #7838 | right |
+| IC 02 - 130002-4035 | dancer with a conical silver headdress, both hands raised in mudra, rainbow-teal bodice, paint drips | #13781 | right |
+| IC 03 - 130003-3050 | Bharatanatyam dancer in orange and red, arm outstretched right, warm ochre wash, jasmine in her hair | #7700 | right |
+| IC 04 - 130004-3040 | a woman in an orange sari seen from behind carrying a basket, green river landscape with mountains | **nothing** | unclaimed |
+| IC 05 - 130005-4030 | watercolour woman dancing among pots, a kettle and stylised flowers, teal and coral washes | #20026 | right |
+
+Four sheets were drawn, one per claimed code — IC 01, 02, 03 and 05 — which is
+the catalogue confirming from its own side that IC 04 is the only empty page.
+
+### Why it was worth reading anyway
+
+The section had been read once, before the re-layout, when it had four pages and
+they sat at 199–202. The status table has said **NO** ever since, because a read
+against the old numbering proves nothing about the book as it stands: that gap
+is exactly what this whole audit exists to close. Reading it again cost four page
+fetches and one sheet run, and the answer is that the drift did not touch it.
+
+### IC 04 has no claimant, and the obvious candidates are already spent
+
+The no-code sweep listed Indian Culture as a lead with five candidates. Held
+against IC 04 — a woman with a basket in a landscape — none of them is it:
+
+| candidate | what it actually is |
+|---|---|
+| #24714 and #33285 | the same henna-hands namaste on two products; **already checked against all five IC pages** by the Living Room pass and cleared |
+| #28778 | a stage-dancer photograph; checked against all five by the same pass and cleared |
+| #25358, #25840 | photographs of dancer *pairs*; every IC dancer page is a single painted figure |
+| #28164 | temple bells and white cows |
+
+Nothing uncoded in the catalogue is a woman carrying a basket in a river
+landscape, so **IC 04 stays unclaimed** and no row is written. That the Living
+Room pass had already spent two of these candidates is a good sign about the
+audit's own record-keeping: the leads list was stale, and the docs said so.
