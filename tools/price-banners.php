@@ -78,6 +78,15 @@ foreach ($ids as $id) {
              || strpos($lname, 'media wall') !== false || strpos($lname, 'step & repeat') !== false
              || strpos($lname, 'step and repeat') !== false || strpos($lname, 'backdrop') !== false;
 
+    // Say what the product actually is before saying what to do to it. The
+    // first dry run read "7.5 sq ft" off five different banners at once, which
+    // can only mean the size attribute is a LIST and the parser took its first
+    // entry. That list is the thing to see.
+    printf("\n  #%d  %s\n     type: %s   price: %s   size attr: %s\n",
+        $id, mb_substr($name, 0, 80), $p->get_type(),
+        $p->get_price() === '' ? '(none)' : '$' . $p->get_price(),
+        af_banner_size_text($p) !== '' ? '"' . mb_substr(af_banner_size_text($p), 0, 160) . '"' : '(none)');
+
     $items = array();   // [ [ WC_Product to price, label ] ]
     if ($p->is_type('variable')) {
         foreach ($p->get_children() as $vid) {
@@ -99,6 +108,13 @@ foreach ($ids as $id) {
             }
         }
         $current = $prod->get_price();
+        $sizeText = $prod->is_type('variation') ? $label : af_banner_size_text($prod);
+        $pairs = preg_match_all('/\d+(?:\.\d+)?\s*[x×]\s*\d+(?:\.\d+)?/i', $sizeText, $mm) ? count($mm[0]) : 0;
+        if ($pairs > 1 && !$prod->is_type('variation')) {
+            printf("  LIST  #%d  %s\n        carries %d sizes in one attribute — one price cannot stand for all of them; left at \$%s\n",
+                $prod->get_id(), mb_substr($label, 0, 70), $pairs, $current);
+            $skipped++; continue;
+        }
         if (!$isBanner) {
             printf("  SKIP  #%d  %s\n        not a banner — left at \$%s\n", $prod->get_id(), mb_substr($label, 0, 70), $current);
             $skipped++; continue;
