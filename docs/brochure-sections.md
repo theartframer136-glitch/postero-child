@@ -15,7 +15,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | Pages | Codes | Section | Now | Was | Read? |
 |---|---|---|---|---|---|
 | 5–101 | RK 010001–010097 | Radha Krishna | 97 | 91 | DONE — 2026-09-14 |
-| 102–104 | LG 020001–020003 | Lakshmi–Ganesha | 3 | 3 | NO |
+| 102–104 | LG 020001–020003 | Lakshmi–Ganesha | 3 | 3 | DONE — 2026-09-16, nothing to change |
 | 105–122 | LS 030001–030018 | Lord Shiva | 18 | 15 | DONE — 2026-09-16 |
 | 123–137 | SH 040001–040015 | Seven Horses | 15 | 12 | DONE — 2026-09-15 |
 | 138–152 | TP 050001–050015 | Tirupati Balaji | 15 | 15 | DONE — 2026-09-14 |
@@ -3096,3 +3096,40 @@ different paintings.
 
 So Buddha is finished with **no corrections**, the second section in a row to
 end that way after Indian Culture.
+
+## Lakshmi–Ganesha, 2026-09-16 — three pages, three products, nothing to change
+
+The smallest section in the book and the third in a row to need no corrections,
+after Indian Culture and Buddha.
+
+| page | the book shows | claimed by | verdict |
+| --- | --- | --- | --- |
+| LG 01 - 020001-4040 | Ganesha at the left in a purple shawl holding a bowl of modaks, Lakshmi at the right in green and red with lotuses raised, both on a lotus against a sunset sky over water | #8412 | right |
+| LG 02 - 020002-4030 | Lakshmi on a gold throne at the left, Ganesha at the right in a yellow dhoti, ornate gold pillars, a green arch with a magenta centre | #29951 | right |
+| LG 03 - 020003-4030 | Lakshmi at the left with four arms and lotuses, Ganesha at the right in yellow and blue, a carved dark arch with hanging lamps, fruit and a book at the base | #26753 | right |
+
+Three sheets were drawn, one per claimed code, so every page has exactly one
+product and no page is empty. The section is complete.
+
+### The three pages are near-identical in subject and not at all in picture
+
+All three are Lakshmi and Ganesha seated side by side, all three captions say
+"prosperity, wisdom, and the removal of obstacles", and in a contact grid they
+would be hard to tell apart. They separate instantly on content: LG 01 is
+outdoors at sunset over water with Ganesha on the **left**; LG 02 and LG 03 both
+put Lakshmi on the left, and differ in that LG 02 is bright gold temple pillars
+against magenta while LG 03 is a dark carved arch with hanging lamps and an
+offering of fruit below.
+
+This is the Tirupati lesson again — many products sharing a subject, each page a
+specific picture — but here the catalogue had it right already.
+
+### #8412 was placed by an earlier pass and is now confirmed
+
+Its row reads `(none) -> LG 01`, written when the product had no code at all.
+Holding the picture against the page confirms it. The product's stored image is
+slightly wider than the square page crop, which is the same harmless crop
+difference recorded for #24352 on LS 16 — content decides, shape is only a hint.
+
+The other two, #29951 and #26753, have never needed a correction row and still
+do not.
