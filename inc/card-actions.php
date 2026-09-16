@@ -192,12 +192,23 @@ add_action('wp_footer', function () {
          row wraps: stars on the first line, the four buttons on the next,
          still kept to the right. */
       html body ul.products li.product .product-action{
-        flex-wrap:wrap !important;row-gap:2px !important;}
+        flex-wrap:wrap !important;row-gap:6px !important;}
       html body ul.products li.product .product-action > .count-review,
       html body ul.products li.product .product-action > .woocommerce-product-rating{
-        flex:1 1 100% !important;min-width:0 !important;}
+        flex:1 1 100% !important;min-width:0 !important;
+        display:flex !important;align-items:center !important;gap:6px !important;}
+      /* The second line is a toolbar: the four buttons spread evenly across
+         the card under a hairline, so the row reads as one designed strip
+         rather than icons huddled in a corner. */
       html body ul.products li.product .af-acts{
-        flex:0 0 100% !important;justify-content:flex-end !important;margin-left:0 !important;}
+        flex:0 0 100% !important;display:flex !important;
+        justify-content:space-around !important;margin-left:0 !important;
+        padding-top:6px !important;border-top:1px solid rgba(78,66,61,.12) !important;}
+      html body ul.products li.product .af-acts > *{
+        width:32px !important;min-width:32px !important;max-width:32px !important;
+        height:32px !important;min-height:32px !important;max-height:32px !important;
+        background:rgba(78,66,61,.06) !important;}
+      html body ul.products li.product .af-acts svg.af-ico{width:18px !important;height:18px !important;}
     }
     </style>
     <script>
