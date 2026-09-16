@@ -34,7 +34,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 282–303 | KR 180001–180022 | Kids Room | 22 | 19 | DONE — 2026-09-15 |
 | 304–354 | LI 190001–190051 | Living Room | 51 | 44 | part done — 2026-09-14 |
 | 355–373 | AA 200001–200019 | Abstract Art | 19 | 19 | DONE — 2026-09-15 |
-| 374–377 | TA 210001–210004 | Travel Art | 4 | 4 | NO |
+| 374–377 | TA 210001–210004 | Travel Art | 4 | 4 | DONE — 2026-09-16 |
 
 **Every "DONE" below this line is now marked stale.** Ten sections gained 33
 pages between them, and asked whether the new pages went on the end or were
@@ -2549,3 +2549,78 @@ question the Abstract Art pass could not have seen: **is #7837 on the right
 code?** It is. WL 23 is the artwork's own page and prints only it; VA 04's code
 names the phoenix, which its caption describes and which #21381 holds.
 **#7837 → WL 23 stands.**
+
+### Travel Art, 2026-09-16
+
+Four pages, three of them claimed. Run 1169 drew three sheets, one product each.
+**Two are right and one is wrong** — and the wrong one overturns a row this audit
+wrote itself.
+
+| Page | The book shows | Claimed by | Verdict |
+| --- | --- | --- | --- |
+| TA 01 - 210001-6030 | portrait; lilac twilight sky, four dark temple spires and a green-roofed pavilion above a lit ghat, one boat of figures carrying no lamps | #8424 | **wrong — cleared** |
+| TA 02 - 210002-6030 | Kedarnath, lamplit temple against the Himalayas, crimson sunset, crowd | nothing | unclaimed |
+| TA 03 - 210003-3060 | wide; crimson sky meeting teal water, white peaks, red spires over pale steps, a boat | #31713 | right |
+| TA 04 - 210004-5030 | one priest lifting a blazing lamp, huge flame, temple spire, glowing crowd | #29890 | right |
+
+TA 02 drew no sheet at all, which is the cleanest confirmation of an unclaimed
+page this audit has had: the sheet builder makes one sheet per *claimed* code, so
+a missing sheet is the catalogue itself saying nothing points there.
+
+### #8424 — the second Varanasi
+
+**#8424 Divine Varanasi Ganga Aarti → cleared.** The row that put it on TA 01
+was written by an earlier pass of this audit, and its stated reason describes
+TA 01 correctly — purple sky, temple spires, hundreds of lamps, dark boats with
+figures in front. All true of the page. None of it was ever checked against the
+product's own picture, which is what the rule requires. The title agreed with the
+page, and that was allowed to settle it.
+
+Held side by side they are plainly two pictures:
+
+| | TA 01 | #8424 |
+| --- | --- | --- |
+| shape | portrait — and both sizes the page offers are portrait | landscape |
+| sky | lilac twilight, four dark shikharas, a green-roofed pavilion | none in frame at all |
+| the ghat | architecture, warm glow, a few flames | dozens of conical lamp-trees |
+| foreground boat | figures, no lamps | figures **and two lamp-trees** |
+| second boat | small, near empty | crowded, with its own lamp-tree |
+
+Each holds what the other has not, and a crop can remove content but never add
+it, so neither is a crop of the other. That is the fourth near-identical pair
+this audit has had to separate by content, after the two murmurations, the two
+Kedarnath photographs and the two Tirupati idols.
+
+Nothing else in the book is it either. TA 02 is Kedarnath, TA 03 is the stylised
+river, TA 04 is the single priest. A search of every caption in the book turns up
+five mentions of Varanasi, Ganga, aarti or ghat, and all five are accounted for:
+three are the TA pages, and the other two are **RK 55 and RK 81**, which print
+the TA 04 caption over pictures of Krishna — on RK 81 the text is not even inside
+its box, spilling across the sofa in the mockup. Leftover template text, not a
+description of anything. The five sections still unread hold fourteen pages
+between them; none is a travel scene, and the only two of those without captions,
+SA 03 and SA 04, are the Golden Temple and Guru Nanak.
+
+So #8424 is cleared, and its home is unfound — the same standing as #28534
+Kirtan Celebration.
+
+### TA 04 was the dumping ground
+
+Worth recording because it explains the shape of this section. Counting the whole
+audit, **eighteen products have been taken off Travel Art codes and one put on**,
+and the great majority of those clears came off TA 04: KR 01, SH 04, SL 22,
+LS 06, MG 01, LI 04, LI 07, LI 11, LI 37, TP 05 and a long tail besides. Whatever
+assigned these was using TA 04 as a default for anything it could not place, not
+making a judgement. #29890 is what was left on it, and #29890 is right.
+
+### What the export route gives, and what it does not
+
+`export-design` will render a page at full resolution, which would beat the
+516×387 thumbnail this audit has worked from throughout. It is not usable from
+here: the download lands on `export-download.canva.com`, which the proxy refuses
+like `media.canva.com`, and the S3 fallback trick does not carry over because the
+export signature is host-scoped (`SignatureDoesNotMatch`). The live site is
+refused too, so 312-pixel tiles remain the ceiling for product pictures. The way
+through, used for #8424, is to crop all six mockup renders off one page and
+upscale them together — six independent views of the same artwork, and agreement
+between them is worth more than any single one.
