@@ -22,7 +22,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 153–156 | MG 060001–060004 | Murugan | 4 | 4 | NO |
 | 157–166 | LR 070001–070010 | Lord Rama | 10 | 9 | DONE — 2026-09-15 |
 | 167–196 | HD 080001–080030 | Hindu Deities | 30 | 27 | DONE — 2026-09-14 |
-| 197–209 | LB 090001–090013 | Lord Buddha | 13 | 13 | DONE — re-verified 2026-09-15 |
+| 197–209 | LB 090001–090013 | Lord Buddha | 13 | 13 | DONE — re-verified 2026-09-15, sweep 2026-09-16 |
 | 210–214 | SA 100001–100005 | Sikh Art | 5 | 3 | DONE — 2026-09-16 |
 | 215 | SN 110001 | Swaminarayan | 1 | 1 | NO |
 | 216 | PA 120001 | Pichwai | 1 | 1 | NO |
@@ -3056,3 +3056,43 @@ Nothing uncoded in the catalogue is a woman carrying a basket in a river
 landscape, so **IC 04 stays unclaimed** and no row is written. That the Living
 Room pass had already spent two of these candidates is a good sign about the
 audit's own record-keeping: the leads list was stale, and the docs said so.
+
+### The no-code sweep, Buddha — 2026-09-16
+
+The last lead on the sweep's list, and it places nothing. **LB 12 stays
+unclaimed and no row is written.**
+
+LB 12 - 090012-6030 prints a serene Buddha head in **golden watercolour**, three
+-quarter view, eyes closed, on cream, the wash behind it shaped like a bodhi
+leaf — which is what its caption says too, one of the few in this book that
+matches its own picture.
+
+Every uncoded Buddha in the catalogue was held against it:
+
+| product | what it actually is |
+|---|---|
+| #27449 Buddha Offering Lotus | a blue Buddha behind a hand offering a lotus and a bowl, orange drape |
+| #27510 Cubist Buddha Visage | a grey and gold face assembled from cubist blocks |
+| #27811 Buddha Among Pink Lotuses | a cream sculpted relief head with pink lotuses on a pale ground |
+| #28103 | a blue face with a peacock feather and lotuses on colour blocks |
+| #25124 Cosmic Buddha Nebula | seated among planets in a nebula |
+| #16191 Serene Buddha Statue | a stone statue at a waterfall, teal |
+| #29639 | a gold seated figure under a sunburst, Jain in style |
+| #29578 Twin Faces of Serenity | two faces, one a Buddha, with lotuses and white cows — cleared in the Lord Shiva pass |
+
+None is a golden watercolour head. The set is complete rather than convenient:
+every product in the corrections file whose title carries *Buddha*, *Bodhi*,
+*Zen*, *serenity* or *meditat* was pulled and checked, and the two that carry
+none of those words (#28103, #29639) were caught by reading the grids.
+
+### LB 01's two products are deliberate, not a clash
+
+Worth restating since it shows up in every shared-code report. **#7839 and #220
+both sit on LB 01**, and that is correct: #220 is a room mockup *of the LB 01
+artwork*, so it is a second listing of the same painting, and its row says so in
+the `SHARE:` form the apply tool supports. The same arrangement holds #8398 and
+#26875 on HD 01. A shared code is only a fault when the two products are
+different paintings.
+
+So Buddha is finished with **no corrections**, the second section in a row to
+end that way after Indian Culture.
