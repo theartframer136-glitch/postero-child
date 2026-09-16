@@ -63,3 +63,22 @@ wp_reset_postdata();
 
 echo "=== page gates ===\n";
 echo "  af_is_wishlist_page() exists : " . ( function_exists('af_is_wishlist_page') ? 'yes' : 'no' ) . "\n";
+
+echo "=== gates as the wishlist page sees them ===\n";
+echo "  af_cards_secondary_page() exists : " . ( function_exists('af_cards_secondary_page') ? 'yes' : 'NO' ) . "\n";
+
+echo "\n=== the ajax payload the card injector reads ===\n";
+$_POST['ids'] = array_map( function( $x ) { return $x->get_id(); }, array_slice( $picks, 0, 2 ) );
+ob_start();
+af_card_variations_handler();
+$json = ob_get_clean();
+$d = json_decode( $json, true );
+if ( ! $d || empty( $d['success'] ) ) { echo "  payload did not decode\n"; }
+else {
+    echo "  label : " . ( $d['data']['meta']['label'] ?? '(none)' ) . "\n";
+    foreach ( $d['data']['items'] as $id => $i ) {
+        echo "  #{$id}  ok=" . ( $i['ok'] ?? '?' )
+           . "  from=" . ( $i['from'] ?? '-' )
+           . "  code=" . ( isset($i['code']) ? ( $i['code'] !== '' ? $i['code'] : '(empty)' ) : 'KEY MISSING' ) . "\n";
+    }
+}
