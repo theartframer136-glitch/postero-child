@@ -3491,3 +3491,47 @@ listings of one artwork. HD 09, HD 14, HD 18 and HD 19 have no product.
 The five products are settled: the question is answered and closed, and nothing
 about them changes. The audit's remaining open items are now only the pages with
 no product at all, listed under "The book is read" and "Living Room finished".
+
+---
+
+## The Living Room placements, verified live — 2026-09-16
+
+Run 1211 published a report timestamped after the merge, and all four reached the
+database:
+
+```
+#21832   already LI - 190012    Divine Mercy Radiance
+#17402   already LI - 190022    Vibrant Horse Art
+#19944   already LI - 190048    Green Leafy Plants Art
+#26450   already LI - 190049    Starry City Nights
+rows in the file: 236
+```
+
+`art_sheets: LI` drew **25 sheets, up from 21** — the builder makes one per
+claimed code, so the count is the claim map — and each of the four new codes drew
+one carrying the right picture.
+
+**An independent corroboration nobody asked for.** The sheet filenames carry the
+aspect. `LI_190049_3050` is landscape where the other three are portrait `5030`,
+and #26450's own picture is landscape. The book's aspect agrees with the product
+on the one page of the four where it could have disagreed.
+
+The Hindu Deities conclusion holds live too: #26145, #23496 and #23435 still read
+`already AL 01/05/06`, and #31527 and #29395 still read `already has no code`.
+Codes naming no page: 3, all `AL`.
+
+### #26450 has a real title after all
+
+Its row was written with a description — *"Night City Skyline in Blue (described
+by its picture — no report in this audit carries this product title)"* — because
+at the time that was true. The apply report that confirmed the placement names
+it: **Starry City Nights**. The row now carries the real title and its `why`
+records where the title came from.
+
+Worth stating as a small rule, because the same situation will recur: **a product
+with no code appears in no report**, so its title is unavailable precisely while
+it is homeless. Placing it is what makes the title readable. The honest thing is
+to describe the picture, say plainly that is what you are doing, and correct it
+on the next report — not to invent a plausible title. #19086's row still carries
+a description for exactly this reason, and will be corrected the same way once
+its placement is applied.
