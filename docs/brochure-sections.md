@@ -26,7 +26,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 210–214 | SA 100001–100005 | Sikh Art | 5 | 3 | DONE — 2026-09-16 |
 | 215 | SN 110001 | Swaminarayan | 1 | 1 | NO |
 | 216 | PA 120001 | Pichwai | 1 | 1 | NO |
-| 217–221 | IC 130001–130005 | Indian Culture | 5 | 4 | NO |
+| 217–221 | IC 130001–130005 | Indian Culture | 5 | 4 | DONE — 2026-09-16, nothing to change |
 | 222–231 | LC 140001–140010 | Landscapes | 10 | 10 | DONE — 2026-09-15 |
 | 232–254 | SL 150001–150023 | Still Life | 23 | 23 | DONE — 2026-09-15 |
 | 255–258 | VA 160001–160004 | Vaastu Art | 4 | 4 | DONE — 2026-09-15 |
@@ -2953,3 +2953,106 @@ Measured on the replay, this pass takes Lord Shiva from:
 LS 02 (the cubist fusion), LS 13 (the watercolour faces), LS 14 and LS 15 (the
 two cosmic dances) stay unclaimed. #22077, #28225, #29084 and #27264 were held
 against all four and are none of them.
+
+### The no-code sweep, Kids Room — 2026-09-16
+
+Sixteen Kids Room pages had no product. **Three of them are filled**, and the
+method that found them is worth as much as the result.
+
+Sixteen pages is too many to read blind, so the captions were pulled first as a
+shortlist — never as evidence — and they narrowed it to five pages worth
+fetching: KR 02 ("serenity… whimsy"), KR 06 ("imagination… beyond boundaries"),
+KR 15 ("quirky charm"), and the two that carry no caption at all, KR 20 and
+KR 22. The superhero and vehicle pages (KR 08, 09, 10, 13, 14 — "unstoppable
+power", "heroism", "lightning-charged") match nothing uncoded, and were skipped
+on that basis rather than fetched.
+
+**Two of the three placements came from the uncaptioned pages.** Had the
+shortlist been trusted as evidence rather than as a shortlist, both would have
+been missed.
+
+| product | had been cleared off | now |
+|---|---|---|
+| **#18727** Whimsy Friends | LS 05 | **KR 15** |
+| **#22625** Whimsical Tower Scene | LS 08 | **KR 20** |
+| **#23850** Melody Makers Illustration | TA 04 | **KR 22** |
+
+- **KR 15** is the same two creatures — the orange one with three eyes and
+  dandelion-tufted antennae beside the green one with the crown of pins — on the
+  same grass under the same sage sky with the same tiny houses on the horizon.
+- **KR 20** is the same tower under the red mushroom roof and striped cone, the
+  same inky black creature at the left, the same striped hot-air balloon, the
+  same heart-shaped window, the same bunting, the same red fire engine at its
+  foot.
+- **KR 22** is the same figure in the yellow patterned top holding the child in
+  green, the same second figure in the green spotted top, the same double bass
+  and violin, the same brown case, the same sheet-music leaves falling, the same
+  toy car below.
+
+Kids Room goes from 6 claimed pages to **9 of 22**.
+
+### An earlier pass's guess, proved
+
+The Lord Shiva pass cleared **#18727 off LS 05 and #22625 off LS 08**, and wrote
+in both rows that they "read as Kids Room". It could not do more than say so —
+the products then had no code, so they appeared in no sheet any section drew.
+
+Both guesses were right. That is the second time this sweep has closed a loop an
+earlier pass opened and labelled honestly: the same thing happened with the three
+Seven Horses products, cleared correctly off wrong pages and left homeless
+because nobody held them against the pages their real section had gained.
+
+**#23850 was on TA 04**, the page the Travel Art pass identified as the audit's
+dumping ground. That is the twentieth product taken off a Travel Art code.
+
+### What did not match
+
+#22505 (baby Krishna asleep under a peacock feather) and #23558 (baby Krishna
+seated in gold) are Krishna paintings, not nursery art, and no Kids Room page is
+either of them. They stay cleared. KR 02 turns out to be a sleeping cat on a
+patchwork of colour blocks and KR 06 a child holding ink-drawn bubble-balloons
+with fish and turtles inside — neither has an uncoded claimant.
+
+Thirteen Kids Room pages remain unclaimed.
+
+## Indian Culture, 2026-09-16 — the first section that needed nothing
+
+Five pages, four products, **no corrections**. This is the first section the
+audit has read end to end and found entirely correct, and it is worth recording
+precisely because there is no diff to show for it.
+
+| page | the book shows | claimed by | verdict |
+| --- | --- | --- | --- |
+| IC 01 - 130001-3050 | splash-watercolour dancer, arm curved over the head, rainbow pleated skirt on white | #7838 | right |
+| IC 02 - 130002-4035 | dancer with a conical silver headdress, both hands raised in mudra, rainbow-teal bodice, paint drips | #13781 | right |
+| IC 03 - 130003-3050 | Bharatanatyam dancer in orange and red, arm outstretched right, warm ochre wash, jasmine in her hair | #7700 | right |
+| IC 04 - 130004-3040 | a woman in an orange sari seen from behind carrying a basket, green river landscape with mountains | **nothing** | unclaimed |
+| IC 05 - 130005-4030 | watercolour woman dancing among pots, a kettle and stylised flowers, teal and coral washes | #20026 | right |
+
+Four sheets were drawn, one per claimed code — IC 01, 02, 03 and 05 — which is
+the catalogue confirming from its own side that IC 04 is the only empty page.
+
+### Why it was worth reading anyway
+
+The section had been read once, before the re-layout, when it had four pages and
+they sat at 199–202. The status table has said **NO** ever since, because a read
+against the old numbering proves nothing about the book as it stands: that gap
+is exactly what this whole audit exists to close. Reading it again cost four page
+fetches and one sheet run, and the answer is that the drift did not touch it.
+
+### IC 04 has no claimant, and the obvious candidates are already spent
+
+The no-code sweep listed Indian Culture as a lead with five candidates. Held
+against IC 04 — a woman with a basket in a landscape — none of them is it:
+
+| candidate | what it actually is |
+|---|---|
+| #24714 and #33285 | the same henna-hands namaste on two products; **already checked against all five IC pages** by the Living Room pass and cleared |
+| #28778 | a stage-dancer photograph; checked against all five by the same pass and cleared |
+| #25358, #25840 | photographs of dancer *pairs*; every IC dancer page is a single painted figure |
+| #28164 | temple bells and white cows |
+
+Nothing uncoded in the catalogue is a woman carrying a basket in a river
+landscape, so **IC 04 stays unclaimed** and no row is written. That the Living
+Room pass had already spent two of these candidates is a good sign about the
+audit's own record-keeping: the leads list was stale, and the docs said so.
