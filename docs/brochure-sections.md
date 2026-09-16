@@ -24,7 +24,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 167–196 | HD 080001–080030 | Hindu Deities | 30 | 27 | DONE — 2026-09-14 |
 | 197–209 | LB 090001–090013 | Lord Buddha | 13 | 13 | DONE — re-verified 2026-09-15, sweep 2026-09-16 |
 | 210–214 | SA 100001–100005 | Sikh Art | 5 | 3 | DONE — 2026-09-16 |
-| 215 | SN 110001 | Swaminarayan | 1 | 1 | NO |
+| 215 | SN 110001 | Swaminarayan | 1 | 1 | DONE — 2026-09-16, nothing to change |
 | 216 | PA 120001 | Pichwai | 1 | 1 | DONE — 2026-09-16 |
 | 217–221 | IC 130001–130005 | Indian Culture | 5 | 4 | DONE — 2026-09-16, nothing to change |
 | 222–231 | LC 140001–140010 | Landscapes | 10 | 10 | DONE — 2026-09-15 |
@@ -3253,3 +3253,59 @@ Pinning all three products to the codes they really hold gives
 `codes cleared: 67`, which is the three rows actually doing their work. The
 general fix from the no-code sweep covers products with *no* code; it does not
 cover products whose code resolves to nothing. Both need pinning to be checked.
+
+## Swaminarayan, 2026-09-16 — one page, one product, right
+
+`SN - 110001-3040` prints a golden Swaminarayan statue with both arms raised in
+front of the white marble temple, its stepped shikhara behind him, smaller spires
+either side, red-brown base structures below and a warm cloudbank catching the
+light at the right.
+
+**#8454** is that photograph exactly. No correction row, and none needed — the
+section has never had one.
+
+## The book is read
+
+Swaminarayan was the last section. **Every one of the 373 pages has now been
+held against the products that claim it**, and every section in the table above
+is marked done.
+
+What the audit found across the whole book, and what it left:
+
+| | |
+|---|---|
+| correction rows written | 235 |
+| codes shared by more than one product | 9 codes over 20 products → **6 over 12** |
+| codes naming no page of the book | 8 → **3** |
+| `refused as a clash` on every apply | **0**, throughout |
+
+### The three things still open
+
+1. **Living Room is part done.** 51 pages, the largest section in the book, and
+   the only one whose table row does not say done.
+2. **#26145, #23496 and #23435 sit on AL 01, AL 05 and AL 06**, a section that
+   does not exist. They are left deliberately — `AL` can never resolve, so they
+   stand on nobody — but they have never been held against Hindu Deities' six
+   unclaimed pages, and they are Tanjore panels of exactly the kind HD carries.
+   **#31527 and #29395**, cleared in the Pichwai pass, point at the same check: a
+   modern Krishna and a Ganesha, both plausible HD subjects. Five products, one
+   unfinished question.
+3. **Pages with no product at all.** PA 01, TA 01 and TA 02, SH 10/11/12,
+   TP 07/08/14/15, LS 02/13/14/15, MG 03/04, IC 04, LB 12, KR's thirteen, and the
+   long tail in RK and LI. These are not faults: the book is a catalogue of
+   paintings and the shop does not stock all of them. They are recorded so nobody
+   reads an empty page as a missing code.
+
+### What the audit is for, restated
+
+Every placement in this log was made by holding the product's own picture against
+the book page it names. Titles were wrong in both directions — a "Sacred Cow
+Relief" with no cows in it, a "Lord Murugan Art" that is an acharya and two
+disciples, a "Savanna Golden Hour" on a Pichwai page. Captions were wrong too,
+and not rarely: RK 55 and RK 81 print the Ganga Aarti text over pictures of
+Krishna, SA 01 describes a vase of flowers on a photograph of the Golden Temple,
+LI 14 promises Pichwai and shows a bare tree shedding butterflies.
+
+The picture decides. That is the whole method, and it is why a wrong code was
+worth this much work: the code travels onto the SKU and onto the invoice, and a
+customer who orders TA 04 should not receive somebody else's painting.
