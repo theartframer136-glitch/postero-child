@@ -83,6 +83,47 @@ add_action('wp_footer', function () {
     html body ul.products li.product .af-acts > .add_to_cart_button.added{
       color:#c9a84c !important;}
 
+    /* WooCommerce, on an AJAX add-to-cart, dims the button to 25% and paints
+       a spinner and then a tick into its ::after — the same ::after that
+       carries the tooltip here. The two collide into a squashed dark blob
+       beside a greyed-out icon, which is the "animation" the owner wants gone.
+       The button stays as it is; the answer to the click is the toast below
+       and the icon turning gold once the piece is in. */
+    html body ul.products li.product .af-acts > .add_to_cart_button.loading,
+    html body ul.products li.product .af-acts > .add_to_cart_button.added{
+      opacity:1 !important;}
+    html body ul.products li.product .af-acts > .add_to_cart_button.loading::after,
+    html body ul.products li.product .af-acts > .add_to_cart_button.added::after{
+      animation:none !important;font-family:"Instrument Sans",system-ui,sans-serif !important;
+      vertical-align:baseline !important;margin:0 !important;}
+    @media not all and (hover:hover) and (pointer:fine){
+      html body ul.products li.product .af-acts > .add_to_cart_button.loading::after,
+      html body ul.products li.product .af-acts > .add_to_cart_button.added::after{
+        display:none !important;}
+    }
+
+    /* ── THE TOAST ──────────────────────────────────────────────────────────
+       One line, bottom centre, gone in three seconds. Dark like the tooltip,
+       a gold edge like the rest of the shop. On a phone it sits above the
+       bottom navigation bar rather than under it. */
+    #af-toast{
+      position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom,0px));
+      transform:translateX(-50%) translateY(14px);
+      background:#1a1a1a;color:#fff;border-left:3px solid #c9a84c;
+      padding:12px 18px;border-radius:8px;
+      font:600 13px/1.3 "Instrument Sans",system-ui,sans-serif;letter-spacing:.2px;
+      box-shadow:0 8px 28px rgba(0,0,0,.28);white-space:nowrap;
+      max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis;
+      opacity:0;pointer-events:none;z-index:2147483000;
+      transition:opacity .2s ease, transform .2s ease;}
+    #af-toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+    #af-toast a{color:#c9a84c;text-decoration:none;margin-left:12px;
+      border-bottom:1px solid rgba(201,168,76,.55);}
+    #af-toast a:hover{border-bottom-color:#c9a84c;}
+    @media (max-width:781px){
+      #af-toast{bottom:calc(84px + env(safe-area-inset-bottom,0px));}
+    }
+
     /* One icon set, drawn one way. The four arrived with three different
        kinds of mark between them — a colour emoji bag, a bare arrows
        character, and two glyphs from the theme's icon font — which is why the
@@ -236,10 +277,17 @@ add_action('wp_footer', function () {
           // its own tail through the observer.
           var on  = /(^|\s)(woosw-added|added)(\s|$)/.test(el.className);
           var key = pair[2] === 'wish' ? (on ? 'wishOn' : 'wish') : pair[2];
-          if (el.getAttribute('data-af-ico') !== key) {
+          // Two conditions, and the second is the one that matters: the
+          // wishlist plugin syncs its buttons over AJAX after load and wipes
+          // their innerHTML. The attribute survived that, the SVG did not, and
+          // a guard on the attribute alone declared the heart "already drawn"
+          // over an empty button — which is precisely what the owner filmed.
+          if (el.getAttribute('data-af-ico') !== key || !el.querySelector('svg.af-ico')) {
             el.innerHTML = ICON[key];
             el.setAttribute('data-af-ico', key);
           }
+
+          if (pair[2] === 'wish') watchWishlist(el);
 
           var tip = (pair[2] === 'wish' && on) ? 'In your wishlist' : pair[1];
           if (el.getAttribute('data-af-tip') !== tip) {
@@ -258,6 +306,62 @@ add_action('wp_footer', function () {
             box.style.setProperty('display', 'none', 'important');
           }
         });
+      }
+
+      // ── THE TOAST ───────────────────────────────────────────────────────
+      var toastEl = null, toastTimer = null;
+      function toast(msg, linkText, linkHref){
+        if (!toastEl) {
+          toastEl = document.createElement('div');
+          toastEl.id = 'af-toast';
+          toastEl.setAttribute('role', 'status');
+          toastEl.setAttribute('aria-live', 'polite');
+          document.body.appendChild(toastEl);
+        }
+        toastEl.textContent = msg;
+        if (linkText && linkHref) {
+          var a = document.createElement('a');
+          a.href = linkHref; a.textContent = linkText;
+          toastEl.appendChild(a);
+        }
+        clearTimeout(toastTimer);
+        // Force a frame between "off" and "on" so the transition runs even
+        // when two toasts follow each other.
+        toastEl.classList.remove('on');
+        requestAnimationFrame(function(){
+          toastEl.classList.add('on');
+          toastTimer = setTimeout(function(){ toastEl.classList.remove('on'); }, 3200);
+        });
+      }
+
+      // Add to cart: WooCommerce announces a successful AJAX add on the body.
+      // The "View cart" link it would have dropped into the row is hidden
+      // there, so it is offered here instead, where it can be read.
+      if (window.jQuery) {
+        jQuery(document.body).on('added_to_cart', function(){
+          var url = (window.wc_add_to_cart_params && window.wc_add_to_cart_params.cart_url) || '/cart/';
+          toast('Added to your cart', 'View cart', url);
+        });
+      }
+
+      // Wishlist: the plugin says nothing usable, but it flips a class on the
+      // button. Watch for that flip and speak when it happens — and only on a
+      // real change, so a page load with saved pieces stays quiet.
+      function watchWishlist(el){
+        if (el.dataset.afWatched) return;
+        el.dataset.afWatched = '1';
+        var was = /(^|\s)(woosw-added|added)(\s|$)/.test(el.className);
+        try {
+          new MutationObserver(function(){
+            var now = /(^|\s)(woosw-added|added)(\s|$)/.test(el.className);
+            if (now !== was) {
+              was = now;
+              toast(now ? 'Saved to your wishlist' : 'Removed from your wishlist',
+                    now ? 'View wishlist' : '', now ? '/wishlist/' : '');
+              schedule();   // redraw the heart, filled or hollow
+            }
+          }).observe(el, {attributes:true, attributeFilter:['class']});
+        } catch(e){}
       }
 
       // Not re-entrant. Everything below moves nodes, and moving a node wakes
