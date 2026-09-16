@@ -32,7 +32,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 255–258 | VA 160001–160004 | Vaastu Art | 4 | 4 | DONE — 2026-09-15 |
 | 259–281 | WL 170001–170023 | Wildlife | 23 | 19 | DONE — 2026-09-15 |
 | 282–303 | KR 180001–180022 | Kids Room | 22 | 19 | DONE — 2026-09-15 |
-| 304–354 | LI 190001–190051 | Living Room | 51 | 44 | part done — 2026-09-14 |
+| 304–354 | LI 190001–190051 | Living Room | 51 | 44 | DONE — 2026-09-16, 4 pages filled |
 | 355–373 | AA 200001–200019 | Abstract Art | 19 | 19 | DONE — 2026-09-15 |
 | 374–377 | TA 210001–210004 | Travel Art | 4 | 4 | DONE — 2026-09-16 |
 
@@ -3281,8 +3281,8 @@ What the audit found across the whole book, and what it left:
 
 ### The three things still open
 
-1. **Living Room is part done.** 51 pages, the largest section in the book, and
-   the only one whose table row does not say done.
+1. ~~**Living Room is part done.**~~ **Closed 2026-09-16** — see "Living Room
+   finished" at the end of this file. Every table row now says done.
 2. **#26145, #23496 and #23435 sit on AL 01, AL 05 and AL 06**, a section that
    does not exist. They are left deliberately — `AL` can never resolve, so they
    stand on nobody — but they have never been held against Hindu Deities' six
@@ -3309,3 +3309,111 @@ LI 14 promises Pichwai and shows a bare tree shedding butterflies.
 The picture decides. That is the whole method, and it is why a wrong code was
 worth this much work: the code travels onto the SKU and onto the invoice, and a
 customer who orders TA 04 should not receive somebody else's painting.
+
+---
+
+## Living Room finished, 2026-09-16 — the last section, and four pages filled
+
+Living Room had been "part done" since 2026-09-14. The 16 LI-coded products were
+finished then, and the 10 stranded on Lord Rama codes were finished the same day
+by the LR pass. What had never been done was the other half: **holding the
+section's unclaimed pages against the catalogue.** Living Room has 51 pages, the
+most in the book, and 30 of them claimed nothing.
+
+**Four of the thirty now have owners. Twenty-six genuinely have no product.**
+
+| product | was | now | why |
+|---|---|---|---|
+| **#21832** Divine Mercy Radiance | cleared (off LR 09) | **LI 12** | the Divine Mercy image, and LI 12 is it |
+| **#17402** Vibrant Horse Art | cleared (off KR 07) | **LI 22** | the blue-and-orange horse |
+| **#19944** Green Leafy Plants Art | cleared (off LR 03) | **LI 48** | the flat-graphic green jungle |
+| **#26450** (night city skyline) | no code, never had one | **LI 49** | the blue night city under a moon |
+
+Living Room goes from 21 claimed pages to **25 of 51**, still with no page
+claimed twice and no untranslatable LI code.
+
+### Three of the four were cleared by earlier passes, and all three clears were right
+
+This is the third time the audit has hit this shape, and it is now the most
+common single fault it finds:
+
+- Seven Horses: #20169, #21893 and #20087 were cleared off Lord Shiva, Lord Rama
+  and Travel Art pages, correctly, and then sat homeless until SH 13/14/15 were
+  held against them.
+- Living Room: #25535 was cleared and then found on LI 51, one of the pages the
+  section had just gained.
+- And now #21832, #17402 and #19944.
+
+**A clear is only half the job.** Taking a product off a page it does not belong
+on is correct and necessary, but it leaves the product with nothing, and nothing
+in the tooling ever brings it back. The product then disappears from every
+section's sheet run, because the builder draws by prefix and a cleared product
+has no prefix. Only the no-code grids can see it.
+
+#21832 is the sharpest case, because the earlier pass did the work and still
+could not win. Its row reads, in this file: *"The Living Room Christian run LI
+05-LI 11 is the only place it could be, and it is not there."* That was true.
+It could not have been anywhere else **in the numbering that existed when it was
+written** — and the book has since gained LI 12, which is the Divine Mercy image
+itself. The reasoning was sound; the book moved underneath it.
+
+### What the captions did, again
+
+Two of the four were found by caption and two were found in spite of it.
+
+`LI 22` prints *"where power meets artistry — a fusion of strength and
+imagination in motion"*, which names no subject at all; the page is a horse and
+the picture settled it. `LI 48` and `LI 49` print **no caption whatsoever** —
+they are among the handful of pages that carry only sizes — so nothing but the
+picture could have found them.
+
+And the one caption that read like a match was wrong. `LI 41` promises *"a modern
+botanical abstract featuring overlapping tropical leaves in soft beige, charcoal,
+gray, and muted terracotta tones"*. **#24409** is a wide mural of tropical leaves
+in beige, gray and gold. Every noun agrees. Side by side they are plainly two
+different paintings — LI 41 is a flat composition of translucent x-ray leaves,
+#24409 is a deep foliage scene with teal banana leaves. The same test killed
+**#26628** against `LI 40`: the caption's "soft beige, blush, charcoal and gray"
+fits both, and LI 40 is x-ray petals while #26628 is a chinoiserie arch panel of
+pink blossoms and berries.
+
+`LI 31` was the near-miss that mattered most. Its caption — *"where every street
+sparkles with wonder"* — pointed straight at **#26450**, the night city. The page
+is a **pastel canal under bunting in daylight**. #26450 belongs on LI 49, twenty
+pages further on, and a caption-led pass would have put it on LI 31 and called
+the section finished.
+
+### The twenty-six pages that stay empty
+
+Recorded so they are not re-opened. None has any candidate in the no-code grids,
+which hold every uncoded product in the catalogue.
+
+| pages | what the book shows |
+|---|---|
+| LI 01 | a dark vase of dry blossoming branches on mottled green (shown in all six frame finishes) |
+| LI 06 | a crowned Madonna with a gold halo among red and yellow flowers |
+| LI 15 | white lotuses over green lily pads on a gold patchwork ground |
+| LI 16, LI 17 | a ballerina in pink-and-white impasto; an orange stained-glass silhouette dancer against a sun |
+| LI 18, LI 19 | a woman in a long orange gown beside a white vase; an art-nouveau woman in a gold mosaic halo |
+| LI 20, LI 21 | a watercolour cellist; a woman with a lute and a deer |
+| LI 23, LI 25, LI 26 | a fiery chestnut horse; a black stallion on red; a white horse in golden waves |
+| LI 27, LI 28 | stylised cats in hot colour; a Native American archer |
+| LI 30, LI 31 | a sepia parchment galleon; the pastel canal street |
+| LI 34, LI 36 | bougainvillea over a shuttered window; a pastel arch with two tigers |
+| LI 38, LI 39 | a white bird beside flowers in a glass vase; a Bodhi leaf full of cottages |
+| LI 40, LI 41, LI 42 | x-ray petals; x-ray leaves; gold and white fan leaves |
+| LI 43 | black-and-white deer with tree-like antlers on olive green |
+| LI 44, LI 45 | two cubist portraits of a woman, one with orange accents, one in browns |
+
+The horse pages are worth one note. Living Room carries **six** horses — LI 22,
+23, 24, 25, 26 and 33 — and only three are claimed. LI 23 and LI 24 are both
+charging horses and the audit has already had to separate them once; LI 23, LI 25
+and LI 26 stay empty because nothing uncoded is a fiery chestnut, a black
+stallion on red, or a single white horse in surf. The uncoded horse pictures are
+all *seven*-horse paintings, which belong to Seven Horses and were checked there.
+
+### With this, every section of the book is read and closed
+
+No row in the status table says `NO` and none says `part done`. What remains open
+is the Hindu Deities question against five products, and the pages that simply
+have no product — both listed under "The book is read" above.
