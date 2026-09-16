@@ -14351,6 +14351,7 @@ function af_card_variations_handler() {
             'ok'   => 1,
             'from' => wp_strip_all_tags(wc_price($base)),
             'url'  => get_permalink($id) . '#af-opts',
+            'code' => function_exists('af_get_art_code') ? af_get_art_code($p) : '',
         );
     }
     wp_send_json_success(array('meta' => $meta, 'items' => $out));
@@ -14360,7 +14361,12 @@ add_action('wp_ajax_nopriv_af_card_variations', 'af_card_variations_handler');
 
 add_action('wp_footer', function() {
     if (!function_exists('is_shop')) return;
-    if (!is_shop() && !is_product_category() && !is_product_tag() && !is_front_page()) return;
+    // The wishlist and cart "You may also like" rows print the same cards and
+    // were left out, which is why they showed a price and then jumped straight
+    // to the brochure button while every archive card carried the art code and
+    // the colour strip between the two.
+    if (!is_shop() && !is_product_category() && !is_product_tag() && !is_front_page()
+        && !af_cards_secondary_page()) return;
     ?>
 <style>
 .af-card-vars{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:7px 0 4px;font-size:11.5px;color:#8a6d1f;font-weight:700;}
@@ -14402,6 +14408,20 @@ add_action('wp_footer', function() {
             '<span class="af-card-from">From ' + info.from + '</span></a>';
           var anchor = card.querySelector('.price') || card.querySelector('.woocommerce-loop-product__title') || card;
           anchor.parentElement ? anchor.parentElement.insertBefore(strip, anchor.nextSibling) : card.appendChild(strip);
+
+          // The art code belongs above the price, under the title. The PHP
+          // hook that writes it never fires in this card template, so the
+          // archives get it the same way: from here.
+          if (info.code && !card.querySelector('.af-art-code')) {
+            var title = card.querySelector('.woocommerce-loop-product__title, .product-title, h2, h3');
+            var priceEl = card.querySelector('.price');
+            if (title && priceEl && title.parentElement) {
+              var c = document.createElement('span');
+              c.className = 'af-art-code af-art-code--card';
+              c.textContent = 'Art Code: ' + info.code;
+              priceEl.parentElement.insertBefore(c, priceEl);
+            }
+          }
         });
       });
   }
@@ -18170,6 +18190,20 @@ function af_is_wishlist_page() {
     if (function_exists('is_page') && (is_page('wishlist') || is_page('Wishlist'))) return true;
     $path = trim((string) wp_parse_url(add_query_arg(array()), PHP_URL_PATH), '/');
     return $path !== '' && strpos($path, 'wishlist') === 0;
+}
+
+/**
+ * Pages that print product cards without being an archive: the cart and the
+ * wishlist, both of which carry a "You may also like" row built from the same
+ * template. The card modules were all written against the archives and each
+ * one repeated the same four is_*() calls, so these two pages fell through
+ * every time and their cards came out missing rows.
+ */
+function af_cards_secondary_page() {
+    if (!function_exists('is_shop')) return false;
+    if (function_exists('is_cart') && is_cart()) return true;
+    if (function_exists('af_is_wishlist_page') && af_is_wishlist_page()) return true;
+    return false;
 }
 
 function af_wl_related_html($markup) {

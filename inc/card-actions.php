@@ -28,7 +28,12 @@ if (!defined('ABSPATH')) exit;
 add_action('wp_footer', function () {
     if (is_admin()) return;
     if (!function_exists('is_shop')) return;
-    if (!(is_shop() || is_product_taxonomy() || is_product() || is_front_page() || is_search())) return;
+    // The cart and wishlist "You may also like" rows print the same cards and
+    // were outside this list, so their four buttons stayed as the theme leaves
+    // them: floating over the artwork on hover instead of inline beside the
+    // stars.
+    if (!(is_shop() || is_product_taxonomy() || is_product() || is_front_page() || is_search()
+          || (function_exists('af_cards_secondary_page') && af_cards_secondary_page()))) return;
     ?>
     <style id="af-card-actions">
     /* The row: stars on the left, the four actions on the right. */
