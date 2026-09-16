@@ -2731,3 +2731,64 @@ section with unclaimed pages and uncoded artworks that plausibly belong:
 Also noted for whoever wants it: **#11541 and #11617 appear to be the same
 picture on two products**, as do **#24714 and #33285**. Neither pair has been
 confirmed at full size.
+
+### The no-code sweep, Tirupati Balaji — 2026-09-16
+
+Seven Tirupati pages had no product. The grids held eighteen uncoded Balaji
+idols, Tanjore panels and temple photographs, which looked like the richest
+lead in the sweep. **Three of the seven are filled and four are not**, and the
+reason for the gap is worth more than the placements.
+
+| product | had been cleared off | now |
+|---|---|---|
+| **#29829** Forest Vishnu Murti | TA 03, a Varanasi page | **TP 01** |
+| **#22947** Temple Sanctum Vishnu | TA 03, the same Varanasi page | **TP 02** |
+| **#16640** Vishnu Ji Statue Art | KR 04, a Kids Room page | **TP 09** |
+
+- **TP 01** is the same dark stone four-armed Vishnu seated in a mossy hollow —
+  the same gold namam, the same gold disc earrings, the same moss over chest and
+  arms, the same ferns, the same waterfall below.
+- **TP 02** is the same black stone standing Vishnu on its pedestal, the same
+  arch behind the head, the same carved pillars lit warm orange either side, the
+  same small offering at the foot.
+- **TP 09** is the same green-skinned four-armed figure with the same gold
+  crown, the same kirtimukha medallion low on the torso, the same pink and white
+  garlands and the same gold gopuram at the lower left. The product's own image
+  is cropped a little tighter at the crown, which removes nothing the page has.
+
+Tirupati goes from 8 claimed pages to **11 of 15**.
+
+### Why the other fifteen candidates placed nothing
+
+They are photographs of the same subject, not the same photograph. Tirupati is
+the section where that distinction bites hardest: a dozen products are pictures
+of the Venkateswara idol, garlanded, crowned, in a temple, and they look
+interchangeable in a contact grid at 312 pixels. Held against the actual pages
+they are plainly different exposures, different garlands, different backgrounds.
+
+| page | the book shows | nearest candidates, and why not |
+|---|---|---|
+| TP 07 - 050007-3050 | a reclining Vishnu in gold silks among two rows of brass oil lamps | nothing uncoded is a reclining figure |
+| TP 08 - 050008-5030 | a huge golden face in dark gold dust, a tiny silhouetted figure below for scale | #29281 and #31456 are multi-panel abstracts, not this |
+| TP 14 - 050014-6030 | a gold gopuram arch, chakra and conch flanking a namam at its top, Balaji standing, Lakshmi seated on a lotus below | #18229 has no gold arch and no Lakshmi; #14678 is a gold-skinned flute player, not Balaji |
+| TP 15 - 050015-6030 | the full standing idol, gold breastplate and mace, white dhoti, red and white garland columns, ochre ground | #26267, #26023 and #22564 are three different photographs of the idol — a bust on a dark ground, a bust on pink, and a wide shot on a purple dais |
+
+None of those four was cleared or moved. They stay unclaimed, and the products
+stay uncoded, which is the right answer rather than a missing one.
+
+### TA 03 was a dumping ground too
+
+The Travel Art pass recorded TA 04 as the audit's dumping ground. TA 03 was one
+as well, and this pass shows how bad it was: **#20087 (seven horses), #22947 (a
+stone Vishnu) and #29829 (a forest Vishnu)** were all sitting on TA 03, a wide
+stylised painting of the Varanasi ghats. Three unrelated products on one page.
+All three are now on pages that are actually their own, and all three had to be
+cleared first by three separate passes before anything could find them.
+
+### The sweep's leads are worth less than they look
+
+Recorded because it should temper the next pass. The Tirupati lead was the
+largest in the sweep by candidate count — eighteen — and returned three. The
+Seven Horses lead had eight candidates and returned three. Candidate count
+measures how many products share a subject with a section, not how many pages
+are waiting. The pages are specific images, and most near-misses are near.
