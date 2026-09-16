@@ -26,13 +26,20 @@ $RATE = 5.70;
 $dry  = getenv('DRY') === '1';
 echo $dry ? "=== DRY RUN — nothing is written ===\n\n" : "=== PRICING BANNERS at \${$RATE}/sq ft ===\n\n";
 
-// The brochure, page 2. Feet.
-$BROCHURE = array(
-    'hanging ceiling banner'   => array(4, 4),
-    'framed display banner'    => array(3, 4),
-    'fabric event tapestry'    => array(4, 5),
-    'step & repeat media wall' => array(8, 8),
-    'step and repeat'          => array(8, 8),
+// Each website banner, matched to the brochure item it is — by material and
+// construction, not by name, because the names differ. Sizes are the
+// brochure's (pages 2 and 3); the per-square-foot rate is the owner's.
+//
+// The products' own size attribute is NOT used. Measured: all five carry the
+// canvas size list (2.5×3 ft … 3×2 ft) copied in, which has nothing to do
+// with banners and is shown nowhere, since the theme's size engine excludes
+// this category. Reading it priced five different banners at 7.5 sq ft.
+$MATCH = array(
+    8656 => array('Hanging Ceiling Banner · 16 oz PVC (vinyl)', 4,     4,     'ft'),
+    8653 => array('Framed Display Banner · grommets (fence)',   3,     4,     'ft'),
+    8649 => array('Fabric Event Tapestry (fabric)',            4,     5,     'ft'),
+    8646 => array('Compact Roll-Up Standee (roll-up stand)',   33,    79,    'in'),
+    8643 => array('Step & Repeat Media Wall (backdrop)',       8,     8,     'ft'),
 );
 
 /** "4 × 4 FT" / "36 × 84 in" / "3×4 ft (36×48 in)" / "8x8 feet" → sq ft, or 0. */
@@ -99,18 +106,18 @@ foreach ($ids as $id) {
 
     foreach ($items as $it) {
         list($prod, $label) = $it;
-        $src = 'title';
-        $sqft = af_banner_sqft($label);
-        if (!$sqft) { $sqft = af_banner_sqft(af_banner_size_text($prod)); $src = 'size attribute'; }
-        if (!$sqft) {
-            foreach ($BROCHURE as $key => $wh) {
-                if (strpos($lname, $key) !== false) { $sqft = $wh[0] * $wh[1]; $src = "brochure ({$wh[0]}×{$wh[1]} ft)"; break; }
-            }
+        $sqft = 0; $src = '';
+        if (isset($MATCH[$prod->get_id()])) {
+            list($what, $w, $h, $u) = $MATCH[$prod->get_id()];
+            $sqft = $u === 'in' ? round(($w / 12) * ($h / 12), 3) : round($w * $h, 3);
+            $src  = "brochure: {$what}, {$w}×{$h} {$u}";
+        } else {
+            $sqft = af_banner_sqft($label); $src = 'title';
         }
         $current = $prod->get_price();
         $sizeText = $prod->is_type('variation') ? $label : af_banner_size_text($prod);
-        $pairs = preg_match_all('/\d+(?:\.\d+)?\s*[x×]\s*\d+(?:\.\d+)?/i', $sizeText, $mm) ? count($mm[0]) : 0;
-        if ($pairs > 1 && !$prod->is_type('variation')) {
+        $pairs = preg_match_all('/\d+(?:\.\d+)?\s*x\s*\d+(?:\.\d+)?/i', str_replace('×', 'x', $sizeText), $mm) ? count($mm[0]) : 0;
+        if ($pairs > 1 && !$prod->is_type('variation') && !isset($MATCH[$prod->get_id()])) {
             printf("  LIST  #%d  %s\n        carries %d sizes in one attribute — one price cannot stand for all of them; left at \$%s\n",
                 $prod->get_id(), mb_substr($label, 0, 70), $pairs, $current);
             $skipped++; continue;
