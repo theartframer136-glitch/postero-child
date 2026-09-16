@@ -2953,3 +2953,64 @@ Measured on the replay, this pass takes Lord Shiva from:
 LS 02 (the cubist fusion), LS 13 (the watercolour faces), LS 14 and LS 15 (the
 two cosmic dances) stay unclaimed. #22077, #28225, #29084 and #27264 were held
 against all four and are none of them.
+
+### The no-code sweep, Kids Room — 2026-09-16
+
+Sixteen Kids Room pages had no product. **Three of them are filled**, and the
+method that found them is worth as much as the result.
+
+Sixteen pages is too many to read blind, so the captions were pulled first as a
+shortlist — never as evidence — and they narrowed it to five pages worth
+fetching: KR 02 ("serenity… whimsy"), KR 06 ("imagination… beyond boundaries"),
+KR 15 ("quirky charm"), and the two that carry no caption at all, KR 20 and
+KR 22. The superhero and vehicle pages (KR 08, 09, 10, 13, 14 — "unstoppable
+power", "heroism", "lightning-charged") match nothing uncoded, and were skipped
+on that basis rather than fetched.
+
+**Two of the three placements came from the uncaptioned pages.** Had the
+shortlist been trusted as evidence rather than as a shortlist, both would have
+been missed.
+
+| product | had been cleared off | now |
+|---|---|---|
+| **#18727** Whimsy Friends | LS 05 | **KR 15** |
+| **#22625** Whimsical Tower Scene | LS 08 | **KR 20** |
+| **#23850** Melody Makers Illustration | TA 04 | **KR 22** |
+
+- **KR 15** is the same two creatures — the orange one with three eyes and
+  dandelion-tufted antennae beside the green one with the crown of pins — on the
+  same grass under the same sage sky with the same tiny houses on the horizon.
+- **KR 20** is the same tower under the red mushroom roof and striped cone, the
+  same inky black creature at the left, the same striped hot-air balloon, the
+  same heart-shaped window, the same bunting, the same red fire engine at its
+  foot.
+- **KR 22** is the same figure in the yellow patterned top holding the child in
+  green, the same second figure in the green spotted top, the same double bass
+  and violin, the same brown case, the same sheet-music leaves falling, the same
+  toy car below.
+
+Kids Room goes from 6 claimed pages to **9 of 22**.
+
+### An earlier pass's guess, proved
+
+The Lord Shiva pass cleared **#18727 off LS 05 and #22625 off LS 08**, and wrote
+in both rows that they "read as Kids Room". It could not do more than say so —
+the products then had no code, so they appeared in no sheet any section drew.
+
+Both guesses were right. That is the second time this sweep has closed a loop an
+earlier pass opened and labelled honestly: the same thing happened with the three
+Seven Horses products, cleared correctly off wrong pages and left homeless
+because nobody held them against the pages their real section had gained.
+
+**#23850 was on TA 04**, the page the Travel Art pass identified as the audit's
+dumping ground. That is the twentieth product taken off a Travel Art code.
+
+### What did not match
+
+#22505 (baby Krishna asleep under a peacock feather) and #23558 (baby Krishna
+seated in gold) are Krishna paintings, not nursery art, and no Kids Room page is
+either of them. They stay cleared. KR 02 turns out to be a sleeping cat on a
+patchwork of colour blocks and KR 06 a child holding ink-drawn bubble-balloons
+with fish and turtles inside — neither has an uncoded claimant.
+
+Thirteen Kids Room pages remain unclaimed.
