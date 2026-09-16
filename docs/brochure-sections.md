@@ -24,8 +24,8 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 167–196 | HD 080001–080030 | Hindu Deities | 30 | 27 | DONE — 2026-09-14 |
 | 197–209 | LB 090001–090013 | Lord Buddha | 13 | 13 | DONE — re-verified 2026-09-15, sweep 2026-09-16 |
 | 210–214 | SA 100001–100005 | Sikh Art | 5 | 3 | DONE — 2026-09-16 |
-| 215 | SN 110001 | Swaminarayan | 1 | 1 | NO |
-| 216 | PA 120001 | Pichwai | 1 | 1 | NO |
+| 215 | SN 110001 | Swaminarayan | 1 | 1 | DONE — 2026-09-16, nothing to change |
+| 216 | PA 120001 | Pichwai | 1 | 1 | DONE — 2026-09-16 |
 | 217–221 | IC 130001–130005 | Indian Culture | 5 | 4 | DONE — 2026-09-16, nothing to change |
 | 222–231 | LC 140001–140010 | Landscapes | 10 | 10 | DONE — 2026-09-15 |
 | 232–254 | SL 150001–150023 | Still Life | 23 | 23 | DONE — 2026-09-15 |
@@ -3192,3 +3192,120 @@ where they sit. What they have not had is a check against **Hindu Deities' six
 unclaimed pages**, which is where a Tanjore acharya panel would most plausibly
 belong; the #14034 row already notes HD 22 is "a single gold acharya". That is
 the next loose end, and it is not a Murugan question.
+
+## Pichwai, 2026-09-16 — one page, three products, none of them it
+
+The smallest section in the book: **one page**. Three products pointed at it and
+**all three are wrong**, so the page ends the pass unclaimed and all three are
+cleared. No section this audit has read has been wrong across the board before.
+
+### What PA 01 actually is
+
+`PA - 120001-4030` is a traditional Pichwai: **Shrinathji** with a black face and
+gold halo, one arm raised, standing inside a crimson lotus-shaped mandorla, white
+cows either side at the base, pink lotus blossom and green leaves scattered on
+cream. All six of the page's mockup renders were checked and show the same
+picture.
+
+| product | was on | its picture | now |
+|---|---|---|---|
+| **#28962** Savanna Golden Hour | PA 01 | tall bare trees against an orange sunset over mountains, silhouetted figures walking between them — an African savanna | cleared |
+| **#31527** Krishna Cowherd Modern Art | PA 01 | a modern, near-cubist Krishna in blue with the flute beside a large stylised cow's head, cows tiled flat on ochre and olive | cleared |
+| **#29395** Pichwai Ganesha Fountains | PA 02 | a Pichwai Ganesha — multi-armed, elephant-headed, saffron against pale teal arches with small attendants | cleared |
+
+#28962 and #31527 were sharing PA 01, which is how the section first drew
+attention: a savanna landscape and a cubist Krishna on the same code, and the
+code belonging to neither.
+
+Two uncoded Pichwai products were held against the page as well and are not it
+either: **#25962**, Krishna and Radha seated under a tree with two white cows,
+and **#31273**, a Pichwai palace with cows in a garden. Both stay cleared.
+
+**So PA 01 has no owner anywhere in the catalogue.** The page is real, the
+picture is specific, and nothing in the shop is it.
+
+### Why #29395 is cleared where the AL three are not
+
+PA 02 names no page — Pichwai has exactly one. That is the same shape as the
+three products sitting on AL 01, AL 05 and AL 06, which the Murugan pass left
+alone on the grounds that a code resolving to nothing cannot stand on another
+painting.
+
+The difference is that **`PA` is a real prefix and `AL` is not.** If the book
+ever gains a second Pichwai page, `PA 02` starts resolving — to whatever painting
+that page carries. That is exactly the hazard that forced the Lord Shiva clears,
+where `LS 16` and `LS 18` had become real pages with real owners while four
+products still held those literal strings. `AL` can never become real, so the
+three there stay; `PA 02` can, so it goes.
+
+That takes the catalogue's codes-naming-no-page count from **4 to 3**, and the
+three that remain are all AL.
+
+### A harness note, again
+
+The first replay reported these as `codes cleared: 66 | already correct: 104`,
+which looked right and was not. **#29395 was not in the rebuilt catalogue at
+all** — its code names no page, so the renumber listing never carries it — and
+the general seeding added it with an empty code, against which its clear counted
+as "already correct" rather than being exercised.
+
+Pinning all three products to the codes they really hold gives
+`codes cleared: 67`, which is the three rows actually doing their work. The
+general fix from the no-code sweep covers products with *no* code; it does not
+cover products whose code resolves to nothing. Both need pinning to be checked.
+
+## Swaminarayan, 2026-09-16 — one page, one product, right
+
+`SN - 110001-3040` prints a golden Swaminarayan statue with both arms raised in
+front of the white marble temple, its stepped shikhara behind him, smaller spires
+either side, red-brown base structures below and a warm cloudbank catching the
+light at the right.
+
+**#8454** is that photograph exactly. No correction row, and none needed — the
+section has never had one.
+
+## The book is read
+
+Swaminarayan was the last section. **Every one of the 373 pages has now been
+held against the products that claim it**, and every section in the table above
+is marked done.
+
+What the audit found across the whole book, and what it left:
+
+| | |
+|---|---|
+| correction rows written | 235 |
+| codes shared by more than one product | 9 codes over 20 products → **6 over 12** |
+| codes naming no page of the book | 8 → **3** |
+| `refused as a clash` on every apply | **0**, throughout |
+
+### The three things still open
+
+1. **Living Room is part done.** 51 pages, the largest section in the book, and
+   the only one whose table row does not say done.
+2. **#26145, #23496 and #23435 sit on AL 01, AL 05 and AL 06**, a section that
+   does not exist. They are left deliberately — `AL` can never resolve, so they
+   stand on nobody — but they have never been held against Hindu Deities' six
+   unclaimed pages, and they are Tanjore panels of exactly the kind HD carries.
+   **#31527 and #29395**, cleared in the Pichwai pass, point at the same check: a
+   modern Krishna and a Ganesha, both plausible HD subjects. Five products, one
+   unfinished question.
+3. **Pages with no product at all.** PA 01, TA 01 and TA 02, SH 10/11/12,
+   TP 07/08/14/15, LS 02/13/14/15, MG 03/04, IC 04, LB 12, KR's thirteen, and the
+   long tail in RK and LI. These are not faults: the book is a catalogue of
+   paintings and the shop does not stock all of them. They are recorded so nobody
+   reads an empty page as a missing code.
+
+### What the audit is for, restated
+
+Every placement in this log was made by holding the product's own picture against
+the book page it names. Titles were wrong in both directions — a "Sacred Cow
+Relief" with no cows in it, a "Lord Murugan Art" that is an acharya and two
+disciples, a "Savanna Golden Hour" on a Pichwai page. Captions were wrong too,
+and not rarely: RK 55 and RK 81 print the Ganga Aarti text over pictures of
+Krishna, SA 01 describes a vase of flowers on a photograph of the Golden Temple,
+LI 14 promises Pichwai and shows a bare tree shedding butterflies.
+
+The picture decides. That is the whole method, and it is why a wrong code was
+worth this much work: the code travels onto the SKU and onto the invoice, and a
+customer who orders TA 04 should not receive somebody else's painting.
