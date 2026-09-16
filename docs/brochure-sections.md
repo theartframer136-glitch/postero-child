@@ -23,7 +23,7 @@ The catalogue still holds the previous four-digit form, `LB - 0901`.
 | 157–166 | LR 070001–070010 | Lord Rama | 10 | 9 | DONE — 2026-09-15 |
 | 167–196 | HD 080001–080030 | Hindu Deities | 30 | 27 | DONE — 2026-09-14 |
 | 197–209 | LB 090001–090013 | Lord Buddha | 13 | 13 | DONE — re-verified 2026-09-15 |
-| 210–214 | SA 100001–100005 | Sikh Art | 5 | 3 | NO |
+| 210–214 | SA 100001–100005 | Sikh Art | 5 | 3 | DONE — 2026-09-16 |
 | 215 | SN 110001 | Swaminarayan | 1 | 1 | NO |
 | 216 | PA 120001 | Pichwai | 1 | 1 | NO |
 | 217–221 | IC 130001–130005 | Indian Culture | 5 | 4 | NO |
@@ -2792,3 +2792,83 @@ largest in the sweep by candidate count — eighteen — and returned three. The
 Seven Horses lead had eight candidates and returned three. Candidate count
 measures how many products share a subject with a section, not how many pages
 are waiting. The pages are specific images, and most near-misses are near.
+
+## Sikh Art, 2026-09-16
+
+Five pages, seven products, and **the worst clash in the catalogue**: four
+products stacked on SA 01 and two on SA 02, while SA 04 and SA 05 had nothing at
+all. All five pages now carry exactly one product and nothing is shared.
+
+| page | the book shows | belongs to | was held by |
+| --- | --- | --- | --- |
+| SA 01 - 100001-3050 | the gold sanctum in daylight, a white archway at the left, a blue-purple awning along the causeway, turquoise water | **#7815** (moves from SA 02) | #25297, #26814, #28717, #29220 |
+| SA 02 - 100002-3050 | flat hazy daylight, pale sky, the sanctum closer and centred, crowds along the parikrama | #26936 — right | #7815, #26936 |
+| SA 03 - 100003-3050 | dusk; orange cloud streaks over blue, the lit sanctum small in a wide panorama, the clock tower right | **#26814** (moves from SA 01) | #8504 |
+| SA 04 - 100004-3040 | a textured Guru Nanak, orange turban, gold sunburst, blue-teal running to crimson | **#22321** (had no code) | nothing |
+| SA 05 - 100005-4030 | Guru Nanak seated in saffron, hand raised in blessing, brass vessel, the Golden Temple behind | **#8504** (moves from SA 03) | nothing |
+
+### The section was shifted, not merely crowded
+
+The three moves are a chain, and it is the same shape as the Radha Krishna swap:
+
+```
+#7815   SA 02 -> SA 01     (SA 01 vacated by #26814)
+#26814  SA 01 -> SA 03     (SA 03 vacated by #8504)
+#8504   SA 03 -> SA 05     (SA 05 was empty)
+```
+
+The corrections pass vacates before it writes, so the whole chain applies in one
+go and reports `refused as a clash: 0`.
+
+**#8504 is the one that unlocked it.** SA 03 is a dusk photograph of the temple
+with no figure in it at all, and #8504 is Guru Nanak seated in saffron with the
+Golden Temple behind him — down to the white flowers at the lower left that SA 05
+prints. Once that moved, SA 03 was free for the dusk photograph that had been
+parked on SA 01, and SA 01 was free for the daylight photograph on SA 02.
+
+### Three Golden Temple photographs, three different photographs
+
+This section is the clearest case yet of the trap Tirupati set. Three products
+are the Golden Temple reflected in the sarovar and they are interchangeable in a
+contact grid. They are not the same photograph:
+
+| | sky | sanctum | tell |
+|---|---|---|---|
+| #7815 | blue, bright | vivid gold, close | a **blue-purple awning** runs along the causeway; white archway at the left |
+| #26936 | pale, hazy, almost white | paler, centred | crowds along the marble parikrama, no awning |
+| #26814 | dusk, orange streaks over blue | small, lit, far | wide panorama, clock tower at the right |
+
+All six of SA 01's frame-option renders were checked, not one: the page is a
+frame-colour sheet with the same artwork six times, and agreement across all six
+is what settled #7815 rather than #26936.
+
+### Three products on SA 01 that are not Sikh art at all
+
+**#25297 Tanjore Deity with Devotees**, **#28717 Vishnu in Golden Garlands** and
+**#29220 Vishnu Cosmic Lotus** were all sitting on SA 01. A Tanjore panel, a
+standing Vishnu with garlands, and Vishnu on a lotus against a starfield. None of
+the five Sikh Art pages is a Vaishnava figure, so all three are cleared rather
+than left on someone else's page. Whatever put four products on one code was not
+looking at them.
+
+### A third page printing a caption that belongs to something else
+
+**SA 01's caption reads "The image of a vase with blossoming flowers symbolizes
+growth, freshness, and harmony in Vastu, bringing positivity and new
+opportunities when placed in the east or northeast direction."** On a page whose
+picture is the Golden Temple.
+
+That is the third instance, after RK 55 and RK 81 printed TA 04's Ganga Aarti
+caption over pictures of Krishna. Stale template text is not a one-off in this
+book, and it is another reason the rule holds: **the caption is not evidence,
+the picture is.**
+
+### #8669 is a photograph of a living person
+
+Flagged so no later sweep wastes time on it. #8669 appeared in the no-code grids
+looking like a Guru Nanak candidate — a bearded figure in a turban, richly
+dressed, in an ornate interior. Blown up it is a **photograph of a living man**
+in cream and gold wedding attire holding a kirpan, and it is the same person as
+#33278. These are personal or event photographs, not catalogue artworks, and they
+belong with the frames and canvas rolls in the sixty products that have no page
+because they are not in the brochure.
