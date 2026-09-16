@@ -2624,3 +2624,110 @@ refused too, so 312-pixel tiles remain the ceiling for product pictures. The way
 through, used for #8424, is to crop all six mockup renders off one page and
 upscale them together — six independent views of the same artwork, and agreement
 between them is worth more than any single one.
+
+## The no-code sweep, 2026-09-16
+
+The sweep run published eight contact grids covering **182 of the 183 products
+that carry no art code** — everything except #29751, whose clear landed between
+the grids being drawn and this reading, and which this audit had just examined
+in the Vaastu pass anyway.
+
+### Most of them are not artworks
+
+Worth stating plainly, because it changes what the remaining work is. Read
+across the eight grids:
+
+| grid | artworks | not artworks |
+|---|---|---|
+| 01 | 8 | 16 — blank placeholders, bare stretcher bars, empty frame mockups |
+| 02 | 0 | 24 — frames, canvas rolls, easels, blank canvases, banner products |
+| 03 | 13 | 11 — frames, a photo collage, room mockups |
+| 04 | 24 | 0 |
+| 05 | 23 | 1 |
+| 06 | 24 | 0 |
+| 07 | 24 | 0 |
+| 08 | 6 | 8 — event photographs of dancers and exhibition stands |
+
+About **sixty of the 183 are not artworks at all** — they are frames, rolls,
+easels, blank canvases, signage and event photographs. They have no page in the
+brochure because they are not in the brochure, and no future sweep should spend
+time on them. That leaves roughly 120 real artworks to place, of which this pass
+settles three.
+
+### Three horses that had been rescued but never rehoused
+
+The strongest lead in the sweep: Seven Horses had six pages no product claimed,
+and the grids held eight uncoded horse paintings.
+
+| product | had been cleared off | now |
+|---|---|---|
+| **#20169** Rainbow Horse Gallop | LS 01, a Lord Shiva page | **SH 13** |
+| **#21893** Wild Horses Stampede | LR 04, a Lord Rama page | **SH 14** |
+| **#20087** Seven Horses Green Meadow | TA 03, a Varanasi page | **SH 15** |
+
+Each had been taken off a page it did not belong on by an earlier pass — all
+three clears were right — and each then sat with no code because no one had held
+it against the pages the section *gained*. The clear was half the job and the
+audit had only been doing that half.
+
+The matches are not close calls. SH 13 has the seven horses in the same order
+left to right, maroon, black, white, pale white, black, white, chestnut, against
+the same three colour fields. SH 14 has the same tan tail flowing left from the
+second horse, the same second tan tail at the middle right, the same band of
+coloured dabs along the base, and the same signature in the corner; its page
+render reads cooler only because the mockup wall light desaturates it. SH 15 has
+the same sculpted cloud masses with the blue cluster behind the right one, the
+same gold cracked texture, the same green grass band and gold flecks.
+
+Seven Horses goes from 9 claimed pages to **12 of 15**.
+
+### The three Seven Horses pages that stay empty
+
+| page | the book shows | why no product fits |
+|---|---|---|
+| SH 10 - 040010-4030 | a cubist composition of horse heads in deep red, orange, brown, black and ivory on dark maroon, angular planes | nothing uncoded is abstract in this way |
+| SH 11 - 040011-3060 | wide; seven all-white horses across sunlit sand under a pale gold sky | #30093's herd is brown, grey and white on a smoky ground, and #19025's is in blue water below mountains |
+| SH 12 - 040012-5030 | portrait; white horses with flame-like golden manes among big orange and yellow blossoms, glowing sun | nothing uncoded is a portrait of this kind |
+
+#30093, #22016, #19025 and #27572 stay cleared, which agrees with the
+2026-09-15 pass that had already checked #30093 and #22016 against every Seven
+Horses page including the three new ones.
+
+### The harness blindness, fixed properly this time
+
+The 2026-09-15 pass found this defect and patched it by hand-listing the
+nineteen uncoded products then involved. That was always going to go stale, and
+it did: all three placements above came back `(absent)` from the harness on the
+first replay, and their rows counted as `missing` and were never checked — the
+same silent failure, one pass later.
+
+The fix now derives the list instead of spelling it out. Any product named by a
+correction row that is still not in the rebuilt catalogue can only be one with
+no code, because anything holding a code appears in the renumber listing. So the
+harness seeds every such product with the empty code that is its real state:
+
+```
+seeded 51 uncoded products named by correction rows
+to change: 53 | codes cleared: 60 | already correct: 108 | refused as a clash: 0 | missing: 0
+```
+
+**`missing` goes from 51 to 0.** Every one of the 221 rows is now exercised on
+every replay, and a row placing a cleared product can no longer pass unchecked.
+
+### Where the rest of the sweep points
+
+Recorded so the next pass starts with the leads rather than the grids. Each is a
+section with unclaimed pages and uncoded artworks that plausibly belong:
+
+| section | unclaimed pages | uncoded candidates seen in the grids |
+|---|---|---|
+| Tirupati Balaji | 7 | a dozen-plus Balaji idol photographs and Tanjore panels — #14678, #16640, #18229, #22564, #22947, #23911, #24094, #24470, #25021, #25596, #25657, #26023, #26267, #26328, #29281, #29829, #31456, #31588 |
+| Sikh Art | 2 | #21771 and #22321, both Guru Nanak portraits; SA 04's page is a textured Guru Nanak |
+| Lord Shiva | 6 | #22077, #24352, #28225, #29084, #30531 |
+| Kids Room | 16 | #18727, #22625, #22505, #23850, #23558 |
+| Indian Culture | 1 | #24714 and #33285 (the same henna-hands picture on two products), #25358, #25840, #28164 |
+| Buddha | 1 (LB 12) | #27449, #27510, #27811, #28103, #25124, #16191, #29639 |
+
+Also noted for whoever wants it: **#11541 and #11617 appear to be the same
+picture on two products**, as do **#24714 and #33285**. Neither pair has been
+confirmed at full size.
