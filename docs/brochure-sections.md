@@ -4072,3 +4072,88 @@ held against `LC 10` in the Still Life pass and is not it either. **#29517** and
 
 Ten owners across 107 unclaimed pages. **Nine of the ten were products an earlier
 pass had already handled and left without a home.**
+
+---
+
+## Lord Shiva's unclaimed pages, 2026-09-17 — a clear that was simply wrong
+
+Four of Lord Shiva's eighteen pages claimed no product. All four were rendered.
+
+**#21954 → LS 02 — restoring the code it already held.**
+
+Lord Shiva goes from 14 claimed pages to **15 of 18**.
+
+### This is not the usual shape. This one took a product off the right page.
+
+Every overturned row so far was a *correct* clear whose product was then left
+homeless — #22199, #7800, #8144 and the rest. **This one is different.** #21954
+held `LS 02`, the audit cleared it, and `LS 02` is its page.
+
+The row's reason, in full:
+
+> *"re-checked against the two cubist Lord Shiva pages, LS 02 and LS 08. **LS 02
+> is a cubist couple, blue man and woman in red, no animals**; LS 08 is a
+> landscape cubist family with a single bull at the right. This is a portrait
+> cubist Shiva family with **a red bull at the LEFT and a lion at the RIGHT on
+> gold**, matching neither. No other cubist family page exists. Clear confirmed"*
+
+The description of the product is correct and is a description of LS 02. The page
+has the red Nandi head at the left, the lion at the right, the blue Shiva and
+ochre Parvati faces merged at the top, the maroon hair swirling left, the white
+swan at the chest, the small ochre Ganesha seated lower right, the magenta sari,
+the blue leg, the gold base panel with its emblem squares — all on gold beneath a
+sun disc. **"No animals" is false about the page, and the pass wrote "clear
+confirmed" on the strength of it.**
+
+### The six-up frame pages are systematically under-read
+
+`LS 02` is one of the pages the book prints in **all six frame finishes**: the
+artwork appears six times on one page, each at roughly a sixth of full size. At
+that scale the bull and the lion sit at the edges of a thumbnail a few dozen
+pixels wide.
+
+That is very likely the mechanism, and it is not an isolated case. **Three of the
+eleven placements this audit's sweeps have made are on six-up pages, and all
+three overturned a confident negative:**
+
+| page | six-up? | the negative it overturned |
+|---|---|---|
+| `LC 01` | yes | *"the Landscapes section LC 01-10 has no waterfall of this kind"* |
+| `AA 01` | yes | ruled out of Living Room, never placed |
+| `LS 02` | yes | *"LS 02 is a cubist couple… no animals"* |
+
+The other eight placements are all single-render pages. **A six-up page needs its
+artwork cropped from one mockup and enlarged before any judgement is made about
+it** — which is what found all three of these, and what the passes that wrote
+those negatives did not do.
+
+### The three that stay empty
+
+| page | what the book shows |
+|---|---|
+| LS 13 | Shiva and Parvati's faces blending in watercolour, with frangipani |
+| LS 14 | the cosmic dance inside rings of flame, orange on dark |
+| LS 15 | the Tandava among planets and lightning, red on dark |
+
+**#22077** — "Shiva in the Sea", cleared earlier because *"no LS page shows Shiva
+rising from the sea under a full moon"* — was held against all four unclaimed
+pages and that clear stands: none of them is a sea or a moon. With LS 02 now
+restored, all eighteen Lord Shiva pages have been accounted for.
+
+### Nine sweeps in
+
+| sweep | unclaimed | placed |
+|---|---|---|
+| Living Room | 30 | 4 |
+| Hindu Deities | 6 | 2 |
+| Lord Rama | 6 | 1 |
+| Still Life | 17 | 0 |
+| Abstract Art | 13 | 1 |
+| Wildlife | 15 | 1 |
+| Kids Room | 13 | 0 |
+| Landscapes | 7 | 1 |
+| **Lord Shiva** | **4** | **1** |
+
+Eleven owners across 111 unclaimed pages. Ten were products an earlier pass had
+already handled and left homeless; **one, #21954, was a product an earlier pass
+had actively removed from the right page.**
