@@ -5208,3 +5208,30 @@ the result was checked against it field by field before anything was built from
 it. If this export is wanted regularly, the right fix is to publish the rows to
 the `art-sheets` branch the way the contact sheets are published, so the data
 arrives by git rather than by hand.
+
+### The other invariants, checked at the same time
+
+- `#26145`, `#23496`, `#23435` still read **AL 01, AL 05, AL 06**. The temporary
+  pass touches only an empty code, and those three are not empty.
+- 424 products, **418 distinct codes**, 6 codes on more than one product, over 12
+  products. The SKU pass gives those 12 a letter so no two SKUs collide:
+  *uniqueness: OK — 424 products, 424 distinct SKUs*, and *WITHOUT an art code: 0*.
+
+### The trap that nearly hid all of this: `paths-ignore`
+
+The fix merged and **did not reach the server.** `deploy.yml` now carries
+`tools/**` and `docs/**` in its `paths-ignore`, so a pull request touching only
+those triggers no deploy at all.
+
+That is right for the `check-*.yml` probes — each one scp's its own script up, so
+nothing in `tools/` has ever needed a deploy to reach the server, and a read-only
+question should not cost a four to six minute deploy queued in front of the
+owner's. But **`deploy.yml` itself runs `wp eval-file` against the *rsynced*
+theme.** So a fix to any tool the deploy runs — `apply-artcode-corrections.php`,
+`renumber-artcodes.php`, `assign-temp-artcodes.php`, `sku-to-artcode.php` — will
+merge green and leave the server running the old version.
+
+It was shipped by `workflow_dispatch`, which is **not** subject to `paths-ignore`.
+Anyone changing one of those four tools has to dispatch a deploy by hand, or the
+merge is theatre. The list itself belongs to another session and has been left
+alone; this is a note, not a change.
