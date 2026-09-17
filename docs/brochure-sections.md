@@ -3924,3 +3924,60 @@ one landed, at 07:19:21.
 
 Had this been checked on the timestamp, as the check-ins used to say, the answer
 at any point in those nine minutes would have been "the apply failed".
+
+---
+
+## Kids Room's unclaimed pages, 2026-09-17 — nothing to place, for a structural reason
+
+Thirteen of Kids Room's twenty-two pages claimed no product. **All thirteen were
+rendered** — no caption shortlist, per the rule the Wildlife sweep forced — and
+held against the no-code grids. **Nothing matches. All thirteen stay empty and no
+row is written.**
+
+This is the second sweep to place nothing, after Still Life. Unlike Still Life,
+the reason here is not a near miss. It is that the two sets do not overlap at all.
+
+| pages | what the book shows |
+|---|---|
+| KR 08, KR 09, KR 10 | Superman in red and black ink; Captain America mid-swing; an Iron Man / Hulkbuster suit |
+| KR 13, KR 14 | Kung Fu Panda in a straw hat on an orange blueprint; an anime swordsman in a lightning strike |
+| KR 04, KR 06 | a cartoon bee with a parasol and basket; a child holding jellyfish balloons |
+| KR 02, KR 05 | a cat asleep on colour blocks; a bespectacled girl reading on a windowsill |
+| KR 07 | a volcano erupting a bloom of flowers into a teal sky |
+| KR 17, KR 18 | a mother hugging her child among flowers; two children under a red umbrella in the rain |
+| KR 19 | two stylised giraffes in bold geometric pattern |
+
+**Kids Room is the one section of the book whose subject matter the catalogue
+does not stock.** Its empty pages are licensed and pop-culture imagery —
+superheroes, anime, a DreamWorks panda — plus children's storybook illustration.
+Every uncoded product in the catalogue is devotional art, an abstract, a horse, a
+dancer or an idol. There is no candidate to weigh, and no near miss to record.
+
+`KR 07` is worth one note: it is the volcano page that **#17402** was cleared off,
+and seeing it confirms that clear was right. #17402 is a blue-and-orange horse,
+now correctly on `LI 22`.
+
+### Seven sweeps in
+
+| sweep | unclaimed | placed |
+|---|---|---|
+| Living Room | 30 | 4 |
+| Hindu Deities | 6 | 2 |
+| Lord Rama | 6 | 1 |
+| Still Life | 17 | 0 |
+| Abstract Art | 13 | 1 |
+| Wildlife | 15 | 1 |
+| **Kids Room** | **13** | **0** |
+
+Nine owners across 100 unclaimed pages, and **eight of the nine were products an
+earlier pass had already handled and left without a home.** The two sweeps that
+placed nothing — Still Life and Kids Room — are both sections whose subject
+matter the shop simply does not carry: decorator botanicals and children's
+licensed characters.
+
+### What is left to sweep
+
+Landscapes 7 (and `LC 10` is **not** #27133 — see the Still Life pass), Lord Shiva
+4, Tirupati 4, Seven Horses 3, Murugan 2, Travel Art 2, Buddha 1, Indian Culture
+1, Pichwai 1. Radha Krishna's 48 were swept on 2026-09-15. That leaves **25
+unclaimed pages across nine small sections**, none larger than seven.
