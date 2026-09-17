@@ -5018,3 +5018,68 @@ No deploys, no page renders, no picture comparisons. The whole pass is the
 corrections file read against a dump of the catalogue after corrections apply.
 **It is the cheapest check in the audit and the only one that scales with the
 file rather than with the book.**
+
+---
+
+## Temporary art codes for the products that have none (2026-09-17)
+
+391 products; 220 carry a code from the book. The other **171 carry nothing**, so
+nothing builds them a SKU either and they still show whatever machine-made string
+they were created with. `tools/assign-temp-artcodes.php` gives each of them
+**`TMP-1000`, `TMP-1001`, …** so every product in the shop can be referred to by
+one short string until its real code is known.
+
+### Why `TMP-` and not a bare number
+
+A bare `1000` would be indistinguishable from a real art code to anyone reading
+the catalogue later, and these will appear in the renumber report among the codes
+that name no page of the book. The prefix says what it is. Each product is also
+marked `_af_artcode_temp`, so the whole set can be found and cleared in one query
+when the real codes arrive — and the flag is removed automatically once a product
+is given a real code, so it never goes stale.
+
+### What it will not touch
+
+**Only a product whose art code is empty.** Anything holding a code is left
+exactly as it is, and one case makes that worth stating: `#26145`, `#23496` and
+`#23435` hold `AL 01`, `AL 05` and `AL 06`. Those name no page — `AL` is not a
+section of the book — but they are a **flag the audit put there on purpose**,
+recording that the product came from the Alwars set and has no home yet.
+Overwriting them with `TMP` codes would erase that, so the rule is "empty", not
+"not a book code".
+
+### It settles, and a number never moves
+
+The counter starts above the **highest `TMP` already in the catalogue**, not at
+1000, so a second deploy assigns nothing and a product that was `TMP-1004`
+yesterday is `TMP-1004` today. That is the same promise `sku-to-artcode.php`
+makes about its uniqueness letters, and for the same reason: a SKU that has been
+printed on an invoice cannot be pulled out from under it.
+
+### The SKU follows on its own
+
+Nothing in the new tool writes a SKU. It runs in the deploy **after** the
+renumbering and **before** `sku-to-artcode.php`, which makes the SKU the art code
+by the route every other code takes — `af_sku_code_part('TMP-1000')` returns
+`TMP-1000` unchanged, so no formatting special case was needed.
+
+That pass keeps the SKU it replaces in `_af_sku_before_artcode`, so
+`tools/restore-sku-from-backup.php` can put all 171 back exactly as they were.
+**This is the reversal path**, and it matters: 171 live SKUs change on the next
+deploy, including on frames, canvas rolls, easels, banner mockups and
+made-to-order print services — every product, as asked, not only the artworks.
+
+### Checks
+
+`tools/test-temp-artcodes.php` — 21 assertions, run with `php`, no WordPress
+needed. It holds the rules still: only empty codes are filled, `AL 01` is left
+alone, assignment is in ascending product-id order, a second run assigns nothing,
+a new product continues above the highest number rather than reusing one, no
+number is issued twice, whitespace counts as empty, and `TMP-1000` survives the
+SKU formatter unchanged.
+
+### What this does not do
+
+It does not give any product a **page**. A temporary code is a handle, not a
+placement: the 162 brochure pages with no product still have no product, and
+these 171 products still match no page. The audit's own numbering is untouched.

@@ -1484,6 +1484,27 @@ jobs:
           # log cannot be relied on to still hold it by the time anyone reads
           # it. The publish step carries it out on the art-sheets branch.
 
+      # Every product without a code gets TMP-1000, TMP-1001, … so that all 391
+      # can be referred to by one short string. It runs HERE, after the
+      # renumbering and before the SKU pass, because the SKU pass is what turns
+      # a code into a SKU: put this after it and the temporary codes would sit
+      # a whole deploy without one. It only ever fills an EMPTY code, so it
+      # settles after the first run and cannot move a number already issued.
+      - name: Temporary art codes for products that have none
+        if: always()
+        timeout-minutes: 6
+        run: |
+          set -uo pipefail
+          USER="${{ secrets.HOSTINGER_USERNAME }}"
+          HOST="${{ secrets.HOSTINGER_HOST }}"
+          PORT="${{ secrets.HOSTINGER_PORT }}"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          echo "Giving every uncoded product a temporary art code..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/assign-temp-artcodes.php --allow-root 2>&1" \
+            2>&1 | tee /tmp/af-temp.txt || true
+
       - name: SKU → art code (batched, resumable)
         if: always()
         timeout-minutes: 8
