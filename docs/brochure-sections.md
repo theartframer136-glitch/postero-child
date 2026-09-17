@@ -4728,3 +4728,184 @@ opposite rules to the same situation.
 | **Buddha** | **1** | **0 — five clears re-checked, all correct** |
 
 Twelve owners across 123 unclaimed pages. Seven sections place nothing.
+
+---
+
+## Indian Culture — the unclaimed page (2026-09-17)
+
+Five pages, 217–221. Four claimed, one not: **IC 04** (p220) — a woman in an
+orange sari seen **from behind**, carrying a basket, walking in a blue-green hill
+landscape under a yellow sky. **Nothing placed.**
+
+### The section was already well understood
+
+Unusually, IC 04 needed no discovery: five separate correction rows already
+describe it correctly while ruling their own product out of it.
+
+| product | what it is | the row's words |
+|---|---|---|
+| #24714 Namaste Henna Hands | henna hands in namaste on dark | *"three dancers, **a woman with a basket in a landscape**, and the watercolour dancer that is #20026 — and none of them is this"* |
+| #25840 Dancers in Duet | photograph of two dancers | *"**IC 04 is a woman with a basket in a landscape**"* |
+| #25358 Dancers in Ocean Light | several dancers in blue-green light | *"the three IC dancer pages are single dancers"* |
+| #28778 Dancer on Stage | photograph, red-lit stage | *"**Every Indian Culture page is a painting**"* |
+| #25779 Dancers by the Lamp | photograph, two child dancers | *"every one is a painted or watercolour dancer, not a photograph"* |
+
+Every one of those five is a dancer or a pair of hands. None is a woman with a
+basket, and the rejections are right on their face.
+
+### Nothing in the pool is that picture
+
+The uncoded pool was searched for the specific subject rather than the section
+name. `BATCH_06` and `BATCH_07` — the two grids holding the painterly and
+landscape work — were re-read tile by tile for this sweep; `BATCH_01`–`05` and
+`08` had already been read tile by tile earlier the same day during the Tirupati
+sweep. The nearest things in the whole pool are `#31273` (a palace and village
+with cows, buildings and no single figure) and `#27695` / `#28839` (orange
+sunsets with small silhouetted groups among thin trees). Neither is a lone sari
+figure with a basket.
+
+**IC 04 is a page with no product, which is not a fault.**
+
+### A third numbering shape
+
+Indian Culture behaves like Seven Horses, not like Tirupati:
+
+| written | resolves to |
+|---|---|
+| `IC 01` … `IC 04` | `IC - 130001` … `IC - 130004` — straight across |
+| `IC 05` | ***nothing*** |
+| `IC - 130005` | `IC - 130005` |
+
+`legacy` is 4 against 5 pages, so **IC 05 is a gained page** that the old
+numbering never had. `#20026` sits on IC 05, and its row correctly writes the
+full six digits — had it written `IC 05`, the code would have been refused.
+
+That is now three sections whose numbering has been pinned in the harness (TP,
+SH, IC), covering both shapes: **silent shift** (TP/HD) and **refused gained
+page** (every section whose `legacy` is below its `count`).
+
+### Fifteen sweeps in
+
+| sweep | unclaimed | placed |
+|---|---|---|
+| Living Room | 30 | 4 |
+| Hindu Deities | 6 | 2 |
+| Lord Rama | 6 | 1 |
+| Still Life | 17 | 0 |
+| Abstract Art | 13 | 1 |
+| Wildlife | 15 | 1 |
+| Kids Room | 13 | 0 |
+| Landscapes | 7 | 1 |
+| Lord Shiva | 4 | 1 |
+| Tirupati | 4 | 0 — one restored elsewhere |
+| Seven Horses | 3 | 0 — five clears re-checked, all correct |
+| Murugan | 2 | 0 — the obvious candidate is a different medium |
+| Travel Art | 2 | 0 — two clears re-checked, both correct |
+| Buddha | 1 | 0 — five clears re-checked, all correct |
+| **Indian Culture** | **1** | **0 — five clears re-checked, all correct** |
+
+Twelve owners across 124 unclaimed pages. Eight sections place nothing.
+**One section remains: Pichwai, one page.**
+
+---
+
+## Pichwai — the last section (2026-09-17)
+
+One page, 216. **Claimed by nothing.** Pichwai is the only section in the book
+whose entire content — a single page — has no product at all.
+
+PA 01 is a traditional Pichwai: **Shrinathji**, black face, gold crown, one arm
+raised, inside a **crimson lotus mandorla**, white cows either side at the base,
+pink blossom scattered on cream. It is a **six-up** page, and all six renders
+show the same artwork.
+
+### Three products were cleared off it, and all three clears hold
+
+| product | what it actually is | verdict |
+|---|---|---|
+| #28962 Savanna Golden Hour | tall bare trees against an orange sunset over mountains, silhouetted figures walking between them | not Pichwai in any sense |
+| #31527 Krishna Cowherd Modern Art | a near-cubist **blue Krishna** in profile with a flute beside a large stylised cream cow's head, small cows tiled flat across ochre and olive | Pichwai subject matter, different idiom entirely. **Sharing a subject is not sharing a picture** |
+| #29395 Pichwai Ganesha Fountains | a Pichwai **Ganesha** — multi-armed, saffron dhoti, pale teal arches, small attendants above | a genuine Pichwai, but not *this* Pichwai |
+
+`#29395` had been sitting on the literal code `PA 02`, which names no page —
+Pichwai has exactly one. Its row cleared it rather than leaving it, on the
+reasoning that **the PA prefix is real**: if the book ever gains a second Pichwai
+page, `PA 02` would start resolving to somebody else's painting. That is the same
+hazard that forced the Lord Shiva clears, and it is the right call.
+
+### An open question, now closed
+
+`#31527`'s row ended with a loose end:
+
+> Its home **may be among Hindu Deities' six unclaimed pages, which this pass did
+> not check**; it is cleared rather than left on a page that is not its own.
+
+Hindu Deities has since been swept and has **four** unclaimed pages left. All four
+were rendered and held against both homeless Pichwai-section products:
+
+| page | what the book shows |
+|---|---|
+| HD 09 | the standing four-armed Surya |
+| HD 14 | a fierce multi-armed deity over defeated demons, gold halo |
+| HD 18 | Lakshmi seated on a lotus with gold pots, pink lotuses below |
+| HD 19 | Durga, Lakshmi, Kali and Saraswati in one tableau, with tiger, swan and peacock |
+
+Neither `#31527` nor `#29395` is any of them. **The question the row raised is
+answered: there is no home for either.** The harness now asserts that all four HD
+pages stay empty and both products stay cleared, so a later pass cannot quietly
+file one there.
+
+---
+
+# The unclaimed-page sweep is complete
+
+All 21 sections of the Master Brochure have now had their unclaimed pages
+rendered and held against the catalogue.
+
+| sweep | unclaimed | placed |
+|---|---|---|
+| Living Room | 30 | 4 |
+| Still Life | 17 | 0 |
+| Wildlife | 15 | 1 |
+| Abstract Art | 13 | 1 |
+| Kids Room | 13 | 0 |
+| Landscapes | 7 | 1 |
+| Hindu Deities | 6 | 2 |
+| Lord Rama | 6 | 1 |
+| Lord Shiva | 4 | 1 |
+| Tirupati | 4 | 0 — one restored elsewhere |
+| Seven Horses | 3 | 0 |
+| Murugan | 2 | 0 |
+| Travel Art | 2 | 0 |
+| Buddha | 1 | 0 |
+| Indian Culture | 1 | 0 |
+| **Pichwai** | **1** | **0** |
+
+**125 unclaimed pages examined. Twelve owners found. Nine sections placed
+nothing**, and that number is worth as much as the placements: it is the evidence
+that a page without a product is usually just a page without a product.
+
+### What the sweep actually caught
+
+**Two products had been taken off pages they belonged on** — `#21954` from LS 02
+and `#229` from TP 04 — and both were found while sweeping a **different page of
+the same section**. Neither would ever have surfaced from its own page's read.
+Both were restored and both are verified live.
+
+The other ten owners were products an earlier pass had correctly cleared and then
+left homeless, because a clear removes a product's prefix and no section report
+can see it again. Only the no-code grids can.
+
+### What decided the negatives
+
+Nine sections placed nothing, and in the later ones the deciding evidence was
+consistently the same shape: **an element present in one picture and absent from
+the other**, counted rather than felt.
+
+- Seven Horses: pairs by one hand — count the horses, name the ground colour
+- Murugan: the right deity in the wrong medium — Tanjore panel against 3D render
+- Travel Art: the same place photographed twice — *a crop cannot add a sky*
+- Buddha: watercolour against block collage
+- Pichwai: the right subject in the wrong idiom — *sharing a subject is not sharing a picture*
+
+Subject, palette and mood decided none of them.
