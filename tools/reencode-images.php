@@ -30,12 +30,17 @@ $dry     = (bool) getenv( 'DRY' );
 $limit   = (int) ( getenv( 'LIMIT' ) ?: 400 );
 $quality = (int) ( getenv( 'QUALITY' ) ?: apply_filters( 'af_jpeg_quality', 92 ) );
 $minGain = 0.08;   // skip unless at least 8% smaller — not worth the rewrite
+// Below this, a file is already lean enough that decoding it to find out is
+// wasted work. Set from the measured result: quality-92 output landed around
+// 250-300 KB per megapixel, quality-100 output at 480-800.
+$skipUnderPerMp = (float) ( getenv( 'SKIP_UNDER' ) ?: 380000 );
 
 if ( ! extension_loaded( 'imagick' ) ) { echo "ABORT: Imagick is not available.\n"; return; }
 
 echo '=== RE-ENCODE DERIVATIVES ' . ( $dry ? '(DRY RUN — nothing is written)' : '(WRITING)' ) . " ===\n";
 echo "  target quality : {$quality}\n";
-echo "  file cap       : {$limit}\n\n";
+echo "  file cap       : {$limit}\n";
+printf( "  skip under     : %d KB per megapixel (already lean; not opened)\n\n", round( $skipUnderPerMp / 1024 ) );
 
 $up   = wp_upload_dir();
 $base = rtrim( $up['basedir'], '/' );
@@ -63,6 +68,19 @@ foreach ( $ids as $id ) {
 
         $sizeBefore = filesize( $f );
         if ( $sizeBefore < 60000 ) { continue; }   // already small; leave it alone
+
+        // Decide from the numbers before opening the file. Every later run was
+        // decoding all 6000 derivatives just to discover it had already done
+        // them, and that is what broke the connection twice: the work of
+        // skipping cost as much as the work of converting. Bytes per megapixel
+        // comes free from metadata already in hand, and a file already under
+        // the threshold cannot gain 8% from a re-encode at this quality.
+        $w = (int) ( $s['width'] ?? 0 );
+        $h = (int) ( $s['height'] ?? 0 );
+        if ( $w > 0 && $h > 0 ) {
+            $perMp = $sizeBefore / max( 0.01, ( $w * $h ) / 1000000 );
+            if ( $perMp < $skipUnderPerMp ) { $skipped++; continue; }
+        }
         $examined++;
 
         try {
