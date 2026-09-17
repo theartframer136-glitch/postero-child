@@ -18,6 +18,28 @@ const URL = process.argv[2] || 'https://theartframer.us/refund-policy/';
   await page.setViewport({ width: 420, height: 720, isMobile: true, deviceScaleFactor: 2 });
   await page.goto(URL, { waitUntil: 'networkidle2', timeout: 60000 });
 
+  // The host puts a "Checking your browser before accessing theartframer.us"
+  // interstitial in front of a headless request, and it answers 200 with a
+  // complete document — so the first run measured that page, found no tables
+  // and no squeezed text, and looked like a clean result. It is not a result
+  // at all. Wait the challenge out and confirm the real page arrived before
+  // measuring anything.
+  for (let i = 0; i < 12; i++) {
+    const challenged = await page.evaluate(() =>
+      document.body.innerText.includes('Checking your browser') ||
+      document.body.innerText.length < 400);
+    if (!challenged) break;
+    await new Promise(r => setTimeout(r, 2500));
+    try { await page.reload({ waitUntil: 'networkidle2', timeout: 45000 }); } catch {}
+  }
+  const stillBlocked = await page.evaluate(() =>
+    document.body.innerText.includes('Checking your browser'));
+  if (stillBlocked) {
+    console.log('BLOCKED: the host is still showing its bot check. Nothing below would mean anything.');
+    await browser.close();
+    process.exit(0);
+  }
+
   const out = await page.evaluate(() => {
     const r = { steps: [], table: null, overflow: null, actual: {} };
 
