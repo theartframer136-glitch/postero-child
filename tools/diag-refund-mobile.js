@@ -51,6 +51,21 @@ const URL = process.argv[2] || 'https://theartframer.us/refund-policy/';
     });
     r.actual.narrow = narrow.slice(0, 12);
 
+    // The page reported no tables and no squeezed text, which contradicts the
+    // recording. Before styling anything else, confirm this is even the page
+    // that was filmed.
+    r.actual.where = {
+      url: location.href,
+      title: document.title,
+      h1: [...document.querySelectorAll('h1')].map(h => h.textContent.trim().slice(0, 60)),
+      h2: [...document.querySelectorAll('h2')].map(h => h.textContent.trim().slice(0, 60)).slice(0, 14),
+      bodyClass: document.body.className.slice(0, 160),
+      textLen: document.body.innerText.length,
+      sample: document.body.innerText.replace(/\s+/g, ' ').slice(0, 280),
+      hasEachCase: document.body.innerText.includes('What Happens in Each Case'),
+      hasTrack: document.body.innerText.includes('Track Your Refund'),
+    };
+
     document.querySelectorAll('.taf-track li').forEach(li => {
       const span = li.querySelector('span');
       const b = li.querySelector('b');
@@ -111,6 +126,18 @@ const URL = process.argv[2] || 'https://theartframer.us/refund-policy/';
       console.log(`    cell ${String(c.width).padStart(4)}px  label=${c.label || '(none)'}  drawn=${c.labelShown}`);
     }
   }
+  console.log('--- which page did the browser actually get ---');
+  const w = out.actual.where;
+  console.log(`  final url  : ${w.url}`);
+  console.log(`  title      : ${w.title}`);
+  console.log(`  body class : ${w.bodyClass}`);
+  console.log(`  h1         : ${w.h1.join(' | ') || '(none)'}`);
+  console.log(`  h2         : ${w.h2.join(' | ') || '(none)'}`);
+  console.log(`  body text  : ${w.textLen} chars`);
+  console.log(`  contains "What Happens in Each Case": ${w.hasEachCase}`);
+  console.log(`  contains "Track Your Refund"        : ${w.hasTrack}`);
+  console.log(`  sample     : ${w.sample}`);
+
   console.log('\n--- what is actually on the page ---');
   console.log('  tables:');
   if (!out.actual.tables.length) console.log('    none');
