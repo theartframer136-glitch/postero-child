@@ -11485,15 +11485,28 @@ add_action('woocommerce_checkout_create_order', function($order) {
 }, 10, 1);
 
 // ── Resized-copy quality ─────────────────────────────────────
-// WordPress re-encodes every registered size at quality 82 by default. That's
+// WordPress re-encodes every registered size at quality 82 by default. That is
 // tuned for photographs; this catalogue is flat-colour, hard-edged artwork,
-// where any re-encode leaves visible ringing along the colour boundaries.
-// Set to 100 (no additional compression loss) so every generated thumbnail/
-// medium/large copy stays visually identical to the uploaded original.
-// Only affects copies generated from here on — existing sizes keep their
-// current quality until thumbnails are regenerated.
-add_filter('jpeg_quality',          function() { return 100; }, 10, 0);
-add_filter('wp_editor_set_quality', function() { return 100; }, 10, 0);
+// where a hard re-encode leaves visible ringing along the colour boundaries.
+// The original decision here was therefore quality 100, and the reasoning was
+// right even though the number was not.
+//
+// 100 is a special case in JPEG, not simply "the best". It switches off almost
+// all quantisation, so the file keeps coefficients no eye can resolve, and the
+// cost is not marginal: measured on this catalogue, an 800x1423 card thumbnail
+// came to 757 KB where the same image at 92 lands near 300 KB. One category
+// page was shipping 5.6 MB of pictures, and that is the largest single reason
+// the site feels slow.
+//
+// 92 keeps the intent. It is above the threshold where ringing appears on flat
+// colour and hard edges — that begins in the 70s and 80s, which is why the
+// default was wrong for this catalogue — while being roughly half the bytes of
+// 100. The artwork stays clean; the page stops carrying pixels nobody can see.
+//
+// Only affects copies generated from here on. Existing derivatives keep their
+// current size until they are re-encoded; tools/reencode-images.php does that.
+add_filter('jpeg_quality',          function() { return (int) apply_filters('af_jpeg_quality', 92); }, 10, 0);
+add_filter('wp_editor_set_quality', function() { return (int) apply_filters('af_jpeg_quality', 92); }, 10, 0);
 
 // ── The size the cards actually need ─────────────────────────
 // WooCommerce generates the catalogue thumbnail at 600px wide. A card on the
