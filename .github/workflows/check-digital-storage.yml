@@ -30,5 +30,8 @@ jobs:
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
+             echo '=== DISK, FROM THE SHELL ==='; df -h . 2>/dev/null | tail -2; \
+             echo; echo 'uploads by year:'; du -sh wp-content/uploads/* 2>/dev/null | sort -h | tail -12; \
+             echo; du -sh wp-content/uploads 2>/dev/null; echo; \
              wp eval-file wp-content/themes/postero-child/tools/diag-digital-storage.php --allow-root 2>&1" \
             || true

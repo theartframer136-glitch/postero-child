@@ -37,11 +37,13 @@ $base = rtrim( $up['basedir'], '/' );
 echo "=== DISK ===\n";
 echo "  uploads dir : {$base}\n";
 $root = ABSPATH;
-$free = @disk_free_space( $root );
-$tot  = @disk_total_space( $root );
+// disk_free_space and shell_exec are both disabled on this host, so the free
+// space figure comes from the workflow's own df over ssh instead.
+$free = function_exists( 'disk_free_space' ) ? @disk_free_space( $root ) : 0;
+$tot  = function_exists( 'disk_total_space' ) ? @disk_total_space( $root ) : 0;
 if ( $tot ) printf( "  filesystem  : %s free of %s (%.1f%% used)\n",
     af_ds_human( $free ), af_ds_human( $tot ), 100 - ( $free / $tot * 100 ) );
-else echo "  filesystem  : quota not readable from PHP\n";
+else echo "  filesystem  : PHP cannot read it here; see the df above\n";
 
 $count = 0; $biggest = array();
 $uploads_total = af_ds_dirsize( $base, $count, $biggest );
