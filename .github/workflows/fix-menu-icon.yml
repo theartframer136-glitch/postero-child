@@ -10,6 +10,10 @@ on:
         description: Show what would change, write nothing (run this first)
         type: boolean
         default: true
+      icon:
+        description: Icon class from the theme font (blank = pick a sensible one)
+        type: string
+        default: ''
 
 jobs:
   add:
@@ -46,7 +50,7 @@ jobs:
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             DRY=1 wp eval-file wp-content/themes/postero-child/tools/fix-menu-icon.php --allow-root 2>&1" \
+             DRY=1 ICON='${{ inputs.icon }}' wp eval-file wp-content/themes/postero-child/tools/fix-menu-icon.php --allow-root 2>&1" \
             || true
 
       - name: Apply
@@ -58,5 +62,5 @@ jobs:
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/fix-menu-icon.php --allow-root 2>&1" \
+             ICON='${{ inputs.icon }}' wp eval-file wp-content/themes/postero-child/tools/fix-menu-icon.php --allow-root 2>&1" \
             || true
