@@ -9,6 +9,18 @@ on:
     # edited only check workflows still triggered a full deploy each time.
     paths-ignore:
       - '.github/workflows/**'
+      # Nor does a diagnostic. Every check-*.yml scp's its own script up before
+      # running it, so nothing in tools/ has ever needed a deploy to reach the
+      # server — yet pushing one has been spending a four to six minute deploy
+      # each time, and queueing in front of the owner's real ones. Asking the
+      # site a read-only question should cost nothing.
+      #
+      # The one thing this gives up: the "scp failed, falling back to whatever
+      # the last deploy left there" line in those workflows. For a brand new
+      # tool there is now nothing to fall back to, and the run says so rather
+      # than running a stale copy — which is the better failure anyway.
+      - 'tools/**'
+      - 'docs/**'
   workflow_dispatch:
     inputs:
       # Reading the live database is only possible from inside a deploy, and a
