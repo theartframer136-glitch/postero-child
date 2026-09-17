@@ -4334,3 +4334,247 @@ needed.
 
 This is worth remembering generally — **the stamped grids can confirm an
 id-to-picture binding for any uncoded product without a deploy.**
+
+---
+
+## Seven Horses — the unclaimed pages (2026-09-17)
+
+Fifteen pages, 123–137. Twelve claimed, three not: **SH 10** (p132), **SH 11**
+(p133), **SH 12** (p134).
+
+**Nothing placed, and this time that is a finding rather than a gap.** Seven
+Horses is the section with the most near-twins in the book, and five horse
+products are sitting cleared in the uncoded pool. Every one of the five was
+re-checked against all three pages and **every clear stands.**
+
+### The three pages
+
+| page | what the book shows |
+|---|---|
+| SH 10 | a cubist composition of about seven horse **heads** in faceted planes — red, orange, black, brown, ivory on a mottled maroon ground. No bodies, no legs |
+| SH 11 | seven clean **all-white** horses evenly spaced across a pale gold sky, dust at the hooves, wide 3×6 panorama |
+| SH 12 | white horses with golden flame-like manes under a glowing sun, orange and yellow flowers, tall 5×3 portrait |
+
+### The five cleared horses, re-checked
+
+| product | what it actually is | nearest page | why it is not that page |
+|---|---|---|---|
+| #27572 Two Horses Cubist | **two** horse heads, cream/white/gold, on **deep blue** | SH 10 | same artist and series — faceted cubist heads — but two heads not seven, and blue where SH 10 is maroon. SH 10's palette has no blue in it at all |
+| #30093 Seven Horses Dust Charge | a crowded herd with **dark brown and black** horses mixed among cream, on grey-brown dust | SH 11 | SH 11's seven are **all white**, evenly spaced, under a warm gold sky; this herd is denser, overlapping in depth, and cool-toned |
+| #22016 Horses in Color Field | seven **full-body** horses running at the viewer, cream ground, orange-red splashes | SH 10 | naturalistic, not cubist; bodies not heads; cream ground not maroon |
+| #19025 Seven Horses Ocean Run | seven white horses in **water**, cliffs left, snow-capped mountains right | — | none of the three has water or cliffs |
+| #29159 Horse Studies Collage | a sepia **pencil-sketch** collage, dozens of heads, one chestnut horse painted over | — | all three pages are painted groups, not a sketchbook |
+
+`#27572` is the one that had to be looked at hardest, because it **was on SH 10**
+and an earlier pass cleared it off. That is the exact signature of the two wrong
+clears found today (#21954 off LS 02, #229 off TP 04), so it got the same
+treatment — and unlike those two, this clear is correct. The row's stated reason,
+*"one composition, not a group of seven"*, is what the picture shows.
+
+### The same-series trap
+
+The reason this section needed care is that it contains **pairs by the same hand
+that differ only in detail**. `#30093`'s row had already spotted one:
+
+> Also NOT the same painting as #22016 … same series, but #22016 carries bright
+> orange, red and blue splashes this one does not
+
+`#27572` and SH 10 are a second such pair. A section like this cannot be swept on
+style, subject or palette family — only on the specific picture. Counting the
+horses and naming the ground colour is what separates them.
+
+### The other numbering trap
+
+TP's trap is that a short legacy code **silently shifts**. Seven Horses has the
+opposite one, and it is safer:
+
+| written | resolves to |
+|---|---|
+| `SH 01` … `SH 12` | `SH - 040001` … `SH - 040012` — straight across |
+| `SH 13`, `SH 14`, `SH 15` | ***nothing*** |
+| `SH - 040013` | `SH - 040013` |
+
+SH has no `absent` entry, but its `legacy` count is **12 against 15 pages** — the
+section *gained* three. Those three exist only in the new numbering, so a short
+form naming one is **refused** rather than misfiled. Refused is visible; TP's
+silent shift is not.
+
+Any section whose `legacy` is lower than its `count` behaves this way — RK, LS,
+SH, LR, HD, SA, IC, WL, KR and LI all do. **Write the full six digits every
+time** and neither trap can bite.
+
+### Eleven sweeps in
+
+| sweep | unclaimed | placed |
+|---|---|---|
+| Living Room | 30 | 4 |
+| Hindu Deities | 6 | 2 |
+| Lord Rama | 6 | 1 |
+| Still Life | 17 | 0 |
+| Abstract Art | 13 | 1 |
+| Wildlife | 15 | 1 |
+| Kids Room | 13 | 0 |
+| Landscapes | 7 | 1 |
+| Lord Shiva | 4 | 1 |
+| Tirupati | 4 | 0 — one restored elsewhere |
+| **Seven Horses** | **3** | **0 — five clears re-checked, all correct** |
+
+Twelve owners across 118 unclaimed pages. Four sections now place nothing, and
+that number is worth as much as the placements: it is the evidence that the
+pages without products are genuinely pages without products.
+
+---
+
+## Murugan — the unclaimed pages (2026-09-17)
+
+Four pages, 153–156. Two claimed, two not: **MG 03** (p155), **MG 04** (p156).
+**Nothing placed.**
+
+This is the shortest section swept so far and it had the most obvious-looking
+lead in the whole audit, which is why it is worth writing down: the lead was
+wrong, and only looking showed it.
+
+### The lead
+
+`#26145` is titled **"Tanjore Murugan Panel Canvas Wall Art"** and carries the
+raw code **`AL 01`** — and `AL` is not a section of the book, so that code names
+no page. A Murugan product with nowhere to live, and a Murugan section with two
+empty pages. Every noun agrees.
+
+### What the pages actually show
+
+| page | what the book shows |
+|---|---|
+| MG 01 | Murugan with Valli and Devasena, three figures in a garlanded temple |
+| MG 02 | Murugan with a peacock in a blooming garden at sunrise |
+| MG 03 | a golden-bronze Murugan holding the vel, peacock at his side, lamplit stone sanctum |
+| MG 04 | Murugan in his six-faced Shanmukha form before a gopuram under a moon |
+
+All four are **photorealistic, 3D-rendered devotional artworks**. `#26145` is a
+**Tanjore panel** — flat gold-leaf arch, gem-set jewellery, single standing
+figure, black ground, square. It is not any of the four, and not because of a
+detail: it is a different medium.
+
+So `#26145` stays on `AL 01`. **A code that names no page is not a reason to file
+a product onto a page of the right subject.** The section is short and the
+temptation to tidy it was real; the picture settled it in seconds.
+
+### The other two candidates, also ruled out by looking
+
+`#24094` and `#26328` are both uncoded bronze idols and both read at grid scale
+like they might be a Murugan murti:
+
+| | what they actually are |
+|---|---|
+| #24094 | bronze figure, **white Vaishnava namam**, holding a **tridandam** and a gold banner, hands in anjali, red cloth behind |
+| #26328 | the same subject again — bronze bust, namam, tridandam, banner, garland |
+
+Both are **Vaishnava acharyas**. Murugan is Shaiva and carries the **vel**, which
+MG 03's figure plainly holds. Wrong tradition, wrong attribute, wrong deity.
+(The two are near-identical to each other and are presumably one subject listed
+twice — not this sweep's business, but recorded here in case it matters later.)
+
+Nothing in the uncoded pool is six-faced, so MG 04 has no candidate at all.
+
+### Not re-checked
+
+MG 01 and MG 02's claims (`#24169`, `#24531`) were **not** re-verified here. After
+the Tirupati finding — where a fault sat on a *claimed* page — that is worth
+stating rather than glossing: seeing those two product pictures needs a contact
+sheet run, and the deploy queue was occupied by the outstanding `#229`
+verification. No evidence suggests either is wrong.
+
+### Twelve sweeps in
+
+| sweep | unclaimed | placed |
+|---|---|---|
+| Living Room | 30 | 4 |
+| Hindu Deities | 6 | 2 |
+| Lord Rama | 6 | 1 |
+| Still Life | 17 | 0 |
+| Abstract Art | 13 | 1 |
+| Wildlife | 15 | 1 |
+| Kids Room | 13 | 0 |
+| Landscapes | 7 | 1 |
+| Lord Shiva | 4 | 1 |
+| Tirupati | 4 | 0 — one restored elsewhere |
+| Seven Horses | 3 | 0 — five clears re-checked, all correct |
+| **Murugan** | **2** | **0 — the obvious candidate is a different medium** |
+
+Twelve owners across 120 unclaimed pages. Five sections now place nothing.
+
+---
+
+## Travel Art — the unclaimed pages (2026-09-17)
+
+Four pages, 374–377. Two claimed (TA 03 `#31713`, TA 04 `#29890`), two not:
+**TA 01** (p374) and **TA 02** (p375). **Nothing placed** — and both clears that
+emptied them are confirmed correct by looking.
+
+### Both unclaimed pages are six-up — and both were read correctly
+
+This matters, because the six-up frame-variant pages were flagged after LC 01,
+AA 01 and LS 02 each overturned a confident negative. TA 01 and TA 02 are both
+six-up, printing the artwork six times across room settings at roughly 1/6 size.
+**Neither hid anything.** Enlarged 6×, both compositions are perfectly legible
+and decisively different from their nearest candidates.
+
+So the six-up risk is **not** that the format is unreadable. It is that a pass
+which does not zoom will misread it. TA 01's own row records exactly that failure
+and its correction — it had originally placed `#8424` there *"from the page's
+description without ever seeing the product's picture"*, and then overturned
+itself after looking.
+
+### TA 01 — `#8424` is a different Varanasi
+
+| | TA 01 (the page) | #8424 Divine Varanasi Ganga Aarti |
+|---|---|---|
+| format | **portrait** (6×3 and 5×3, both portrait) | **landscape** |
+| sky | a **lilac twilight sky** across the top third | **none at all** — ghat and water fill the frame |
+| skyline | dark temple spires and a **green-roofed pavilion** | not present |
+| lamps | lit windows and buildings along the ghat | **dozens of conical lamp-trees** covering the steps |
+| boats | one boat of plain standing figures, carrying no lamps | two boats — the near one carrying **two lamp-trees of its own**, a second crowded boat at right |
+
+Each holds what the other has not, and **a crop can remove content but never add
+it**. Two different Varanasi ghat artworks.
+
+### TA 02 — `#8494` is a different Kedarnath
+
+| | TA 02 (the page) | #8494 Sacred Kedarnath Temple |
+|---|---|---|
+| format | portrait | landscape |
+| viewpoint | head-on, temple centred | angled from the front-left, showing the long side |
+| sky | **purple/orange sunset** behind snow peaks | **dark blue** night sky |
+| people | a **dense crowd** across the foreground | no crowd |
+| extra | — | a **red-lit side building** that appears nowhere on the page |
+
+Two photographs of the same temple. This was reached independently here and
+matches the existing row's wording exactly: *"a crop cannot add a sky."*
+
+### The near-twin problem, three sections running
+
+Seven Horses had pairs by one hand differing in detail; Murugan had the right
+deity in the wrong medium; Travel Art has **the same place photographed twice**.
+In all three the separating evidence was the same kind: an element **present in
+one picture and absent from the other**, counted rather than impressionistic.
+Subject, palette and mood decided none of them.
+
+### Thirteen sweeps in
+
+| sweep | unclaimed | placed |
+|---|---|---|
+| Living Room | 30 | 4 |
+| Hindu Deities | 6 | 2 |
+| Lord Rama | 6 | 1 |
+| Still Life | 17 | 0 |
+| Abstract Art | 13 | 1 |
+| Wildlife | 15 | 1 |
+| Kids Room | 13 | 0 |
+| Landscapes | 7 | 1 |
+| Lord Shiva | 4 | 1 |
+| Tirupati | 4 | 0 — one restored elsewhere |
+| Seven Horses | 3 | 0 — five clears re-checked, all correct |
+| Murugan | 2 | 0 — the obvious candidate is a different medium |
+| **Travel Art** | **2** | **0 — two clears re-checked, both correct** |
+
+Twelve owners across 122 unclaimed pages. Six sections place nothing.
