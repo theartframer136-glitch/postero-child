@@ -106,11 +106,21 @@ if ( $dry ) {
     return;
 }
 
-update_post_meta( $ours->ID, 'postero_megamenu_item_data', wp_slash( wp_json_encode( $blob ) ) );
+// Write it the way the theme stores it. get_post_meta un-serialises an array
+// transparently, so the model came back as an ARRAY and the first attempt wrote
+// it back as a JSON STRING. The read-back looked right because the script
+// json_decoded its own string, but the theme expects an array and got text, so
+// no <i class="menu-icon"> was ever emitted. update_post_meta serialises an
+// array by itself; hand it the array.
+update_post_meta( $ours->ID, 'postero_megamenu_item_data', wp_slash( $blob ) );
 echo "\n  written.\n";
 $check = get_post_meta( $ours->ID, 'postero_megamenu_item_data', true );
-$back  = is_string( $check ) ? json_decode( $check, true ) : $check;
-printf( "  read back: icon = %s\n", is_array( $back ) && isset( $back['icon'] ) ? $back['icon'] : '(FAILED)' );
+printf( "  read back: %s, icon = %s\n",
+    gettype( $check ),
+    ( is_array( $check ) && isset( $check['icon'] ) ) ? $check['icon'] : '(FAILED — not an array)' );
+$model_type = gettype( get_post_meta( $model_item->ID, 'postero_megamenu_item_data', true ) );
+printf( "  model is : %s   %s\n", $model_type,
+    $model_type === gettype( $check ) ? '(same shape — good)' : '(DIFFERENT SHAPE — still wrong)' );
 
 if ( function_exists( 'do_action' ) ) do_action( 'litespeed_purge_all' );
 echo "  cache purged.\n";
