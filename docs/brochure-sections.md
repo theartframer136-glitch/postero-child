@@ -5083,3 +5083,72 @@ SKU formatter unchanged.
 It does not give any product a **page**. A temporary code is a handle, not a
 placement: the 162 brochure pages with no product still have no product, and
 these 171 products still match no page. The audit's own numbering is untouched.
+
+---
+
+## The temporary codes climbed, and the fix — 2026-09-17
+
+The temporary art codes went live and **immediately did the one thing the tool
+promised they would not**: 102 products were given a new code, and therefore a
+new SKU, on a second deploy.
+
+### What happened
+
+`tools/artcode-corrections.csv` holds **102 rows that clear a product's code on
+purpose** — the audit looked at the picture and found it on no page of the book.
+`apply-artcode-corrections.php` runs **before** the temporary-code pass on every
+deploy. So the order each deploy was:
+
+1. apply clears the code — the report literally reads `#27133 TMP-1104 -> (cleared)`
+2. the temp pass sees an empty code and issues **the next free number**
+3. the SKU pass makes that new number the product's SKU
+
+Those 102 products therefore climbed: `TMP-1104` one deploy, `TMP-1206` the next,
+for ever, with the SKU moving each time. The evidence was in the numbers —
+**204 numbers issued across the range TMP-1000 … TMP-1203 for 102 products**, with
+gaps where the reissued ones had been.
+
+### How it was caught
+
+Not by a test — by the verification reading badly. I predicted the renumber
+report would show about 174 codes naming no page and it showed 105, and the
+temporary codes ran to TMP-1203 when 171 products should have stopped at
+TMP-1170. Chasing that mismatch rather than accepting it is what surfaced the
+`-> (cleared)` lines.
+
+### The fix
+
+The number now lives in **`_af_artcode_temp`, which no other pass writes**, and a
+product that already has one is given **that one back** rather than the next free
+number. The code in `_taf_art_code` is derived and disposable; the number is the
+record. A product's number is now fixed for as long as the product exists.
+
+`af_temp_plan()` also counts numbers that were issued to products whose code has
+since been cleared, so a reissue can never collide with one that is out on an
+invoice but not currently being worn.
+
+### What it cost, and what it did not
+
+**The undo path was never damaged.** `sku-to-artcode.php` writes
+`_af_sku_before_artcode` only when it is still empty, so every product's original
+SKU survived the churn untouched and `restore-sku-from-backup.php` still works.
+
+What it did cost: those 102 products carried two different SKUs over two deploys.
+Nothing else in the catalogue moved.
+
+### The test that would have caught it
+
+`tools/test-temp-artcodes.php` now runs **28 assertions**, seven of them new and
+all about this:
+
+- a product whose code was cleared gets the **same** number back, not the next one
+- a new product continues above the highest number **ever issued**, even when
+  nothing is currently wearing it
+- the restored and the new cannot collide
+- three deploys in a row write **identical** codes — no climb
+
+The lesson is narrower than "write more tests". The original test asserted that a
+second run over *its own output* assigns nothing — which was true, and useless,
+because **the real second run does not see its own output.** Another pass edits
+the catalogue in between. A test of an idempotent pass has to model what runs
+between the runs.
