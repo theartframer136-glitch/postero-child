@@ -106,7 +106,11 @@ if ( $term_id && ! $dry ) {
     if ( get_term_meta( $term_id, 'rank_math_description', true ) === '' ) {
         update_term_meta( $term_id, 'rank_math_description', wp_trim_words( $DESC, 26, '' ) );
     }
-    if ( get_term_description( $term_id, 'product_cat' ) === '' ) {
+    // get_term_description() lives in wp-includes/category-template.php, which
+    // WP-CLI does not load for eval-file; calling it killed the first run after
+    // the term was already created. Read the field off the term object instead.
+    $tobj = get_term( $term_id, 'product_cat' );
+    if ( $tobj && ! is_wp_error( $tobj ) && trim( (string) $tobj->description ) === '' ) {
         wp_update_term( $term_id, 'product_cat', array( 'description' => $DESC ) );
     }
 }
