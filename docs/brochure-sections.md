@@ -4273,3 +4273,64 @@ left homeless; **two — #21954 and #229 — were products an earlier pass activ
 removed from the right page.** Both wrong clears were found by a sweep of a
 *different* page in the same section, which is an argument for finishing the
 remaining sections rather than stopping at the ones with unclaimed pages.
+
+---
+
+## The Landscapes and Lord Shiva placements, verified live — 2026-09-17
+
+Two placements confirmed on the live catalogue, and both needed a different
+freshness test from the one that has served until now.
+
+### #7800 → LC 01
+
+Run 1230's report confirms it as a write:
+
+```
+#7800   (none)  -> LC - 140001    Stunning Forest Waterfall Landscape Wall Art
+to change: 1  |  codes cleared: 0  |  already correct: 238  |  refused as a clash: 0  |  missing: 0
+```
+
+### #21954 → LS 02
+
+Run 1232's report shows it at rest, the whole file quiet behind it:
+
+```
+#21954  already LS - 030002   Shiva Family Cubist Art
+to change: 0  |  codes cleared: 0  |  already correct: 239  |  refused as a clash: 0  |  missing: 0
+```
+
+`art_sheets: LS` drew **15 sheets, up from 14**, including `LS_030002_4030`. That
+sheet is stamped `#21954` and carries the LS 02 painting: the blue Shiva and
+ochre Parvati faces merged at the top, maroon hair swirling left, the white swan
+at the chest, the red-brown Nandi head left, the lion right, the small ochre
+Ganesha lower right, magenta sari, blue leg, gold base panel with emblem squares.
+The product the code now points at is the painting on the page.
+
+### The row count is not always a discriminator
+
+Both of these rows were **patched in place** rather than appended, so the file
+read `rows in the file: 239` on both sides of each change. The 239-count test
+that caught the Abstract Art placement would have passed against a stale report
+here and said nothing at all.
+
+What worked was polling on **the product's own line**: `#7800` had to stop
+reading `already has no code`, and `#21954` had to stop reading the same. The
+rule this leaves behind:
+
+> Poll on the row count when the change **adds** a row. Poll on the specific
+> product line when the change **patches** one. The timestamp is never the test —
+> `art-sheets` is force-pushed as an orphan branch, so its commit time records a
+> re-push, not the report's age.
+
+### A picture loop closed without spending a deploy
+
+`#7800`'s code was verified from the report, but the report only proves a code
+landed on a product id — not that the id is the picture that was compared. The
+contact-sheet builder stamps every tile with its product id
+(`imagestring( $sheet, 3, $x + 2, $y + $TILE + 3, '#' . $pid, $ink )`), so the
+cached no-code grids answer that question for nothing: `#7800`'s tile in
+`BATCH_01` is the autumn forest waterfall. A second `art_sheets: LC` run was not
+needed.
+
+This is worth remembering generally — **the stamped grids can confirm an
+id-to-picture binding for any uncoded product without a deploy.**
