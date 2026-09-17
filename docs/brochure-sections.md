@@ -4578,3 +4578,69 @@ Subject, palette and mood decided none of them.
 | **Travel Art** | **2** | **0 — two clears re-checked, both correct** |
 
 Twelve owners across 122 unclaimed pages. Six sections place nothing.
+
+---
+
+## The Tirupati restore, verified live — 2026-09-17
+
+`#229 → TP - 050004` is confirmed on the live catalogue, and this one took three
+dispatches to see.
+
+```
+#229    already TP - 050004   Lord Venkateswara Temple Canvas Wall Art 2×3
+to change: 0  |  codes cleared: 0  |  already correct: 239  |  refused as a clash: 0  |  missing: 0
+```
+
+The structural prediction written into the PR held exactly: **codes used by more
+than one product went from 5 to 6**, and TP 04 now lists both holders with
+distinct SKUs —
+
+```
+TP - 050004-5030 #229    TP-050004-5030A   Lord Venkateswara Temple Canvas Wall Art 2×3
+TP - 050004-5030 #8474   TP-050004-5030B   Divine Lord Balaji Temple Canvas Wall Art
+```
+
+### The sheet closes the argument
+
+`art_sheets: TP` drew 11 sheets including `TP_050004_5030`, and that one sheet
+settles the dispute that started the whole Tirupati sweep. It shows **both
+products side by side, stamped**: `#229` is the room mockup with the framed print
+on the wall, `#8474` is the zoomed crop — and they are visibly the same picture.
+
+That is precisely what `#8474`'s row claimed (*"#229 is the framed piece shown
+whole; #8474 is a zoomed crop of it"*) and what `#229`'s row denied (*"This is a
+different photograph"*). The live catalogue now prints the evidence in one frame.
+
+### Three dispatches, and a mechanism stated wrongly until now
+
+The first two diagnostics dispatches produced nothing at all. They were not slow
+and they did not fail — they were **cancelled**, within a minute of being
+created. A push deploy (run 1238) died the same way.
+
+Earlier notes in this log say the deploy workflow *"queues rather than cancels"*.
+**That is only half true**, and it is worth correcting because it caused an hour
+of misreading:
+
+> `concurrency: group: deploy-production, cancel-in-progress: false` protects the
+> run that is **already running**. But GitHub keeps only **one pending run per
+> group**, so a run still queued is **superseded** when a newer one arrives.
+
+The consequence: **a dispatch fired behind busy traffic is not guaranteed to run
+at all.** When a report does not appear, check the run for
+`conclusion: cancelled` before concluding that the apply failed or the deploy is
+slow. Another session was deploying heavily that morning, which is why three
+attempts were needed.
+
+### Freshness, restated
+
+`#229`'s row was patched in place, so the file read `rows in the file: 239` on
+both sides of the change and a row-count test would have proved nothing. The
+discriminator was the `#229` line itself.
+
+> Poll the **row count** when a change **adds** a row. Poll the **product's own
+> line** when it **patches** one. Never the timestamp — `art-sheets` is
+> force-pushed as an orphan branch, so its commit time records a re-push, not the
+> report's age.
+
+**Every placement the audit has made is now verified live.** Nothing is
+outstanding.
