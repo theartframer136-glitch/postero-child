@@ -3893,3 +3893,34 @@ earlier pass had already handled and left without a home** — six cleared off a
 wrong page, #8144 rejected from a section without being placed, and now #22199,
 cleared correctly and then declared homeless on the strength of an incomplete
 list.
+
+---
+
+## The Abstract Art placement, verified live — 2026-09-17
+
+Run 1225's report confirms it as a write, not a code already present:
+
+```
+#8144   (none)  -> AA - 200001    Red Floral Face Wall Art
+rows in the file: 239
+```
+
+`art_sheets: AA` drew **7 sheets, up from 6**, including `AA_200001_4030`, and that
+sheet carries the picture: the cream relief face, one closed eye with its single
+lash, the crimson allium on a thin stem covering the other, dark red lips.
+
+**#8144's title is recovered**: *Red Floral Face Wall Art*. No row in the
+corrections file now carries a placeholder title — the fourth recovered this way,
+after #26450 → "Starry City Nights", #19086 → "Surya in Chariot" and #18229 →
+"Lord Krishna Statue".
+
+### The row-count test earned its place again
+
+The report on `art-sheets` sat at `rows in the file: 238` for nine minutes after
+the merge while deploy run 1225 worked. Every one of those reads had a commit
+timestamp later than the merge, and every one was the previous report. Polling on
+**239** — the row count of the file actually merged — tripped the moment the real
+one landed, at 07:19:21.
+
+Had this been checked on the timestamp, as the check-ins used to say, the answer
+at any point in those nine minutes would have been "the apply failed".
