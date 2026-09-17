@@ -3819,3 +3819,77 @@ an earlier pass had already handled and left without a home** — six cleared of
 a wrong page, and #8144 rejected from a section without ever being placed. The
 sweeps are not mostly finding new paintings; they are finishing jobs that were
 left half done.
+
+---
+
+## Wildlife's unclaimed pages, 2026-09-17 — one placement, and the caption shortlist's blind spot
+
+Fifteen of Wildlife's twenty-three pages claimed no product. All fifteen were
+rendered and held against the no-code grids.
+
+**#22199 → WL 20.** Wildlife goes from 8 claimed pages to **9 of 23**.
+
+### This overturns my own clear, and the reason is the most useful finding yet
+
+#22199's existing row read, in full confidence:
+
+> *"every section of the Master Brochure has now been read, and this picture is on
+> no page of it. the book has five peacock pages — WL 06, WL 10, WL 11, WL 16 and
+> VA 01 — and this is none of them. Its peacock has a fanned teal and gold tail on
+> a dark blue painterly ground"*
+
+The clear off `TA 04` was right. Everything after it was wrong, and **the row's own
+closing sentence describes WL 20 exactly.**
+
+The mistake was in how the five peacock pages were enumerated: **from the
+captions.** `WL 20` has no caption at all — it prints only sizes — so it never
+entered the shortlist, and a page that never enters the shortlist cannot be ruled
+out. The pass then wrote "this picture is on no page of it" on the strength of a
+list that was missing a page.
+
+**Captions have been this audit's cheap shortlist throughout**, and this is the
+cost: they are not merely unreliable about what a page *shows* — they are
+*silently incomplete about which pages exist*. The three captioned peacock pages
+are genuinely not #22199 (WL 06 is a pale garden pair, WL 10 an Art-Nouveau
+mandala, WL 16 a photographic bird before a red doorway); the uncaptioned fourth
+one is.
+
+This is the same root cause as `LI 48` and `LI 49`, both uncaptioned and both
+found only because the Living Room finish rendered all thirty unclaimed pages
+rather than shortlisting. **The rule that follows: a section is not swept until
+every unclaimed page has been rendered and looked at. Reading captions first is
+fine for ordering the work; it is not fine for deciding which pages to skip.**
+
+### The fourteen that stay empty
+
+| pages | what the book shows |
+|---|---|
+| WL 02 | an elephant silhouette against a red and gold sun |
+| WL 04, WL 14, WL 15 | a leopard between crimson pillars with orchids; a geometric leopard in teal and gold; a cheetah on a curved ledge |
+| WL 05, WL 08 | Gond-style: a tree with a giraffe; a cluster of deer on yellow |
+| WL 06, WL 10, WL 16 | two peacocks in a pale garden; an Art-Nouveau peacock mandala; a peacock before a red palace doorway |
+| WL 09 | a zebra whose mane becomes bare branches, on red |
+| WL 12 | white red-crowned cranes on gold |
+| WL 17, WL 18 | a tiger emerging from golden splashes; a white lion among wildflowers |
+| WL 19 | two deer by a misty birch stream |
+
+Nothing uncoded is a leopard, cheetah, tiger, lion, zebra, giraffe, crane or deer.
+The catalogue's animal pictures are horses (all held against Seven Horses), cows
+(#28164, a temple-bells picture) and this one peacock.
+
+### Six sweeps in
+
+| sweep | unclaimed | placed |
+|---|---|---|
+| Living Room | 30 | 4 |
+| Hindu Deities | 6 | 2 |
+| Lord Rama | 6 | 1 |
+| Still Life | 17 | 0 |
+| Abstract Art | 13 | 1 |
+| **Wildlife** | **15** | **1** |
+
+Nine owners across 87 unclaimed pages. **Eight of the nine were products an
+earlier pass had already handled and left without a home** — six cleared off a
+wrong page, #8144 rejected from a section without being placed, and now #22199,
+cleared correctly and then declared homeless on the strength of an incomplete
+list.
