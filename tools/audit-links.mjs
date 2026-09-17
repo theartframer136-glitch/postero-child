@@ -178,12 +178,18 @@ function harvest(pageUrl, html) {
     if (list.length > 8) console.log(`      ... and ${list.length - 8} more`);
   }
 
-  console.log(`\n--- NAVIGATION LINKS (${navLinks.size}) ---`);
-  for (const [label, u] of navLinks) {
+  // Only the ones that are wrong. Printing all of them buried the report:
+  // every product page contributes its own header and footer, so a clean site
+  // produced thousands of "200 OK" lines and the findings scrolled off.
+  const navBad = [...navLinks].filter(([, u]) => {
     const r = seen.get(u);
-    const st = r ? (r.status === -1 ? 'ERR' : r.status) : '(not checked)';
-    const flag = (!r || r.status === 200) ? '' : '   <-- PROBLEM';
-    console.log(`  ${String(st).padEnd(5)} ${label}${flag}`);
+    return r && r.status !== 200;
+  });
+  console.log(`\n--- NAVIGATION LINKS: ${navLinks.size} distinct, ${navBad.length} not answering 200 ---`);
+  if (!navBad.length) console.log('  every navigation link that was checked answers 200');
+  for (const [label, u] of navBad) {
+    const r = seen.get(u);
+    console.log(`  ${String(r.status === -1 ? 'ERR' : r.status).padEnd(5)} ${label}`);
   }
 
   console.log(`\n--- SLOWEST PAGES (time to full response) ---`);
