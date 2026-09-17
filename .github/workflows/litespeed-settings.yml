@@ -30,27 +30,43 @@ jobs:
           mkdir -p ~/.ssh
           printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-      - name: Apply
+      # The guard has to be decided HERE, not inside the quoted remote command.
+      # The first version expanded $DRY on the far side of the ssh, where it
+      # was never set, so an empty string compared unequal to 'true' and the
+      # "report only" run went ahead and wrote the setting. Two steps with
+      # GitHub-side `if:` cannot make that mistake.
+      - name: Report only
+        if: ${{ inputs.dry_run }}
         timeout-minutes: 12
         run: |
           set -uo pipefail
-          DRY='${{ inputs.dry_run }}'
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             echo '=== CURRENT ==='; \
+             for k in cache-browser optm-css_min optm-js_min optm-css_comb optm-js_comb optm-js_defer; do \
+               printf '  %-22s ' \$k; wp litespeed-option get \$k --allow-root 2>/dev/null || echo '(unreadable)'; \
+             done; \
+             echo; echo 'Report only. Nothing changed.'" \
+            || true
+
+      - name: Apply
+        if: ${{ !inputs.dry_run }}
+        timeout-minutes: 12
+        run: |
+          set -uo pipefail
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              echo '=== BEFORE ==='; \
-             for k in cache-browser cache-browser_ttl optm-css_min optm-js_min optm-css_comb optm-js_comb; do \
+             for k in cache-browser optm-css_min optm-js_min optm-css_comb optm-js_comb; do \
                printf '  %-22s ' \$k; wp litespeed-option get \$k --allow-root 2>/dev/null || echo '(unreadable)'; \
              done; \
-             if [ \"\$DRY\" != 'true' ]; then \
-               echo; echo '=== SETTING ==='; \
-               wp litespeed-option set cache-browser 1 --allow-root 2>&1; \
-               wp litespeed-option set cache-browser_ttl 31557600 --allow-root 2>&1; \
-               echo; echo '=== AFTER ==='; \
-               for k in cache-browser cache-browser_ttl; do \
-                 printf '  %-22s ' \$k; wp litespeed-option get \$k --allow-root 2>/dev/null || echo '(unreadable)'; \
-               done; \
-               wp litespeed-purge all --allow-root 2>&1 | tail -2; \
-             else echo; echo 'Report only. Nothing changed.'; fi" \
+             echo; echo '=== SETTING ==='; \
+             wp litespeed-option set cache-browser 1 --allow-root 2>&1; \
+             echo; echo '=== AFTER ==='; \
+             printf '  %-22s ' cache-browser; wp litespeed-option get cache-browser --allow-root 2>/dev/null; \
+             wp litespeed-purge all --allow-root 2>&1 | tail -2" \
             || true
