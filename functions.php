@@ -19190,6 +19190,11 @@ function af_sidebar_cat_menu() {
         array('label' => 'Direct from Artists',   'slugs' => array('direct-from-artists', 'from-artists')),
         array('label' => 'Art Accessories',       'slugs' => array('art-accessories')),
         array('label' => 'Banners & Signage',     'slugs' => array('banners-signage', 'banners-and-signage')),
+        // A category of its own, sitting directly after Banners & Signage in
+        // the header, so it belongs here in the same place. Empty for now,
+        // which this allow-list handles the same way it handles Gold Foiled
+        // & UV below.
+        array('label' => 'Corporate Printing',    'slugs' => array('corporate-printing')),
         array('label' => 'Digital Downloads',     'slugs' => array('digital-downloads', 'digital-downloads-2')),
         array('label' => 'Home Decor Space',      'slugs' => array('home-decor-space', 'home-decor-by-space', 'home-decor')),
         array('label' => 'Personalised Prints',   'slugs' => array('personalised-prints', 'personalized-prints')),
