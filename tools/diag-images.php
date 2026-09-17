@@ -28,9 +28,15 @@ if ( function_exists( 'gd_info' ) ) {
        . ', jpeg ' . ( ! empty( $g['JPEG Support'] ) ? 'yes' : 'no' ) . ')';
 }
 echo "\n  Imagick     : " . ( extension_loaded( 'imagick' ) ? 'yes' : 'no' ) . "\n";
-foreach ( array( 'cwebp', 'convert', 'jpegoptim', 'optipng' ) as $bin ) {
-    $path = trim( (string) @shell_exec( 'command -v ' . escapeshellarg( $bin ) . ' 2>/dev/null' ) );
-    echo "  {$bin}" . str_repeat( ' ', max( 1, 12 - strlen( $bin ) ) ) . ": " . ( $path !== '' ? $path : 'not available' ) . "\n";
+// shell_exec is disabled on this host — the first run died on it — so ask PHP
+// what it has rather than asking the shell what is installed.
+if ( class_exists( 'Imagick' ) ) {
+    try {
+        $fmts = array_map( 'strtoupper', (array) Imagick::queryFormats() );
+        foreach ( array( 'JPEG', 'WEBP', 'PNG', 'AVIF' ) as $f ) {
+            echo "  Imagick {$f}" . str_repeat( ' ', max( 1, 6 - strlen( $f ) ) ) . ": " . ( in_array( $f, $fmts, true ) ? 'yes' : 'no' ) . "\n";
+        }
+    } catch ( Throwable $e ) { echo "  Imagick formats: unreadable (" . $e->getMessage() . ")\n"; }
 }
 echo "  WP editor   : " . ( class_exists( 'WP_Image_Editor' ) ? implode( ', ', array_filter( array(
         extension_loaded('imagick') ? 'Imagick' : '', extension_loaded('gd') ? 'GD' : '' ) ) ) : '?' ) . "\n";

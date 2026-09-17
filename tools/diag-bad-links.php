@@ -89,6 +89,46 @@ foreach ( $seen_hosts as $h => $n ) {
     if ( ++$i >= 25 ) break;
 }
 
+// The four homepage links the crawl flagged are not in post content or post
+// meta, which means they are not in a post: Slider Revolution keeps its slides
+// in its own tables, and the theme was set up from a demo whose CDN is still
+// referenced 277 times. Look there.
+echo "\n=== SLIDER REVOLUTION SLIDES (its own tables, outside posts) ===\n";
+$sl = $wpdb->get_var( "SHOW TABLES LIKE '{$wpdb->prefix}revslider_slides'" );
+if ( ! $sl ) echo "  no revslider_slides table\n";
+else {
+    $slides = $wpdb->get_results( "SELECT id, slider_id, params, layers FROM {$wpdb->prefix}revslider_slides" );
+    echo "  " . count( $slides ) . " slides\n";
+    $hits = 0;
+    foreach ( $slides as $s ) {
+        foreach ( array( 'params' => $s->params, 'layers' => $s->layers ) as $where => $blob ) {
+            foreach ( af_bl_scan( (string) $blob ) as $hit ) {
+                if ( $hit['host'] === $home_host ) continue;
+                if ( ! preg_match( '#demo|wpopal|staging|localhost|\.test|preview|placeholder#i', $hit['host'] ) ) continue;
+                echo "  slide #{$s->id} (slider {$s->slider_id}) in {$where}: {$hit['url']}\n";
+                if ( ++$hits >= 25 ) break 3;
+            }
+        }
+    }
+    if ( ! $hits ) echo "  no demo/staging URLs in slider data\n";
+}
+
+echo "\n=== THE THEME DEMO CDN (demo2wpopal.b-cdn.net) ===\n";
+$cdn = $wpdb->get_results( "
+    SELECT post_id, meta_key, LEFT(meta_value, 0) AS x FROM {$wpdb->postmeta}
+    WHERE meta_value LIKE '%demo2wpopal%' LIMIT 40" );
+echo "  postmeta rows referencing it : " . count( $cdn ) . "\n";
+foreach ( array_slice( $cdn, 0, 12 ) as $c ) {
+    $p = get_post( $c->post_id );
+    echo "    #{$c->post_id} " . ( $p ? "[{$p->post_type}] " . substr( $p->post_title, 0, 40 ) : '(gone)' ) . "  meta: {$c->meta_key}\n";
+}
+$cdnPosts = $wpdb->get_col( "SELECT ID FROM {$wpdb->posts} WHERE post_content LIKE '%demo2wpopal%' LIMIT 40" );
+echo "  posts whose content references it : " . count( $cdnPosts ) . "\n";
+foreach ( array_slice( $cdnPosts, 0, 12 ) as $pid ) {
+    $p = get_post( $pid );
+    echo "    #{$pid} [{$p->post_type}/{$p->post_status}] " . substr( $p->post_title, 0, 45 ) . "  " . get_permalink( $pid ) . "\n";
+}
+
 echo "\n=== THE EMPTY-HREF BUTTONS THE CRAWL NAMED ===\n";
 foreach ( array( 6030, 6032 ) as $pid ) {
     $p = get_post( $pid );
