@@ -3678,3 +3678,72 @@ An unclaimed page is not a fault. The book is a catalogue of paintings and the
 shop does not stock all of them. The reason to sweep a section is that sometimes
 it does — and the four sweeps so far have found seven owners between them, six of
 which were products an earlier pass had correctly cleared and then left homeless.
+
+---
+
+## The Hindu Deities and Lord Rama placements, verified live — 2026-09-17
+
+All three reached the database. Run 1221's report shows them as writes, not
+as codes already present:
+
+```
+#21503   (none)  -> HD - 080021    Vaishnava Saints Kirtan
+#19086   (none)  -> HD - 080008    Surya in Chariot
+#18229   (none)  -> LR - 070006    Lord Krishna Statue
+rows in the file: 238
+```
+
+`art_sheets: HD` drew **26 sheets, up from 24**, including `HD_080008` and
+`HD_080021`. Both carry the right picture: HD 08 is the **seated** Surya with the
+white lotus and the great patterned gold disc — not the standing four-armed Surya
+of HD 09, which stays empty — and HD 21 the walking acharyas.
+
+The conclusion of the check itself also holds live: #26145, #23496 and #23435
+still read `already AL 01/05/06`, and #31527 and #29395 still read `already has
+no code`. Codes naming no page: 3. Shared codes: 5 over 10 products.
+
+### A freshness test that does not work, and the one that does
+
+**This nearly went wrong.** The first report fetched after the merge carried a
+commit timestamp of 06:29:54, comfortably after the 06:25:38 merge — and it was
+**stale**: `rows in the file: 236`, #21503 still `already has no code`, and a
+commit message naming *deploy run 1211*, which had run the previous day. Read on
+its timestamp alone it would have said the apply had failed.
+
+The `art-sheets` branch is force-pushed as an orphan on every publish, so a
+commit date on it is the date something re-pushed a tree, not the date the report
+inside it was produced. **The timestamp is not a freshness test.**
+
+What works is content that changes when the corrections file changes:
+`rows in the file` must equal the row count of the file just merged — 238 here,
+236 before. Polling on that found the real report eight minutes later, published
+by run 1221 as expected.
+
+Earlier verifications in this audit were not affected — PR #267 and PR #268 were
+each confirmed on content as well (products reading their new codes, sheet counts
+moving 21→25 and 24→26) — but the rule as written in the check-ins was wrong and
+is corrected here.
+
+### #18229 is titled "Lord Krishna Statue", and sits on a Lord Rama page
+
+The apply report finally names it, and the name disagrees with the book. `LR 06`
+is captioned *"A divine and vibrant image of Lord Rama adorned in majestic attire
+and colorful garlands"*; the product is called **Lord Krishna Statue**; and the
+idol in the picture carries a **bow**, which is Rama's attribute and not
+Krishna's.
+
+The placement stands, because none of that is evidence about which page the
+picture belongs on. Page and product are the same photograph — the same black
+stone arch and scalloped crest, the same gold halo, the same chest-plate, belt
+and red V-sash, the same garland columns in the same order. **The picture
+decides.**
+
+It is recorded because it is the sharpest disagreement of its kind the audit has
+turned up: a title and a caption naming two different deities over one identical
+photograph. Either the shop's title is wrong or the book's caption is, and this
+audit cannot say which — only that the code is right.
+
+**Both descriptive titles are now gone.** #19086 reads "Surya in Chariot" and
+#18229 "Lord Krishna Statue", each taken from the report that confirmed its
+placement, exactly as #26450 became "Starry City Nights". No row in the file now
+carries a placeholder title.
