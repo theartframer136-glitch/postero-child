@@ -3283,13 +3283,11 @@ What the audit found across the whole book, and what it left:
 
 1. ~~**Living Room is part done.**~~ **Closed 2026-09-16** — see "Living Room
    finished" at the end of this file. Every table row now says done.
-2. **#26145, #23496 and #23435 sit on AL 01, AL 05 and AL 06**, a section that
-   does not exist. They are left deliberately — `AL` can never resolve, so they
-   stand on nobody — but they have never been held against Hindu Deities' six
-   unclaimed pages, and they are Tanjore panels of exactly the kind HD carries.
-   **#31527 and #29395**, cleared in the Pichwai pass, point at the same check: a
-   modern Krishna and a Ganesha, both plausible HD subjects. Five products, one
-   unfinished question.
+2. ~~**#26145, #23496 and #23435 sit on AL 01, AL 05 and AL 06**, and have never
+   been held against Hindu Deities' six unclaimed pages.~~ **Closed 2026-09-16 —
+   see "The Hindu Deities check" at the end of this file. The answer is no: none
+   of the five belongs on any unclaimed HD page.** The three AL products stay
+   exactly as they are.
 3. **Pages with no product at all.** PA 01, TA 01 and TA 02, SH 10/11/12,
    TP 07/08/14/15, LS 02/13/14/15, MG 03/04, IC 04, LB 12, KR's thirteen, and the
    long tail in RK and LI. These are not faults: the book is a catalogue of
@@ -3417,3 +3415,189 @@ all *seven*-horse paintings, which belong to Seven Horses and were checked there
 No row in the status table says `NO` and none says `part done`. What remains open
 is the Hindu Deities question against five products, and the pages that simply
 have no product — both listed under "The book is read" above.
+
+---
+
+## The Hindu Deities check on the five, 2026-09-16 — the answer is no
+
+The last substantive question in the audit. Five products had been recorded as
+pointing at Hindu Deities and never actually held against it:
+
+- **#26145**, **#23496** and **#23435**, sitting on `AL 01`, `AL 05` and `AL 06`
+  — a section that does not exist in this book. They are left alone deliberately,
+  because `AL` can never resolve and so they stand on nobody's painting.
+- **#31527** and **#29395**, cleared in the Pichwai pass — a modern Krishna and a
+  Pichwai Ganesha, both plausible HD subjects.
+
+The reasoning behind the suspicion was sound: HD had **six** unclaimed pages, and
+three of the five are Tanjore panels of exactly the kind HD carries.
+
+**It is still no. Not one of the five belongs on any of the six.**
+
+| the six pages | what the book actually shows |
+|---|---|
+| HD 08 | Surya seated on the seven-horse chariot before a huge gold disc |
+| HD 09 | a *different* Surya — standing, four arms holding flames, a charioteer below |
+| HD 14 | a multi-armed warrior goddess astride a demon |
+| HD 18 | Lakshmi seated on a lotus in a golden shrine |
+| HD 19 | Durga, Lakshmi, Kali and Saraswati in one tableau |
+| HD 21 | saffron-robed acharyas walking forward |
+
+Against that, the five are a Tanjore **Murugan** with the vel, a Tanjore figure
+with hands joined, a Tanjore **Andal with her parrot**, a Pichwai **Ganesha**, and
+a cubist **Krishna** with a cow. There is no Ganesha, no Krishna and no Tanjore
+panel among the six. The subjects do not even collide, let alone the pictures.
+
+**So the three AL products stay on AL 01, AL 05 and AL 06, and #31527 and #29395
+stay cleared.** The reasoning that kept the AL three in place — a code that names
+no page stands on nobody, and `AL` can never become real — is unchanged.
+
+### But the check found two owners anyway, and neither is one of the five
+
+Holding the five against the six pages meant rendering all six, and two of them
+turned out to be claimable by products nobody had offered:
+
+| product | was | now |
+|---|---|---|
+| **#21503** Vaishnava Saints Kirtan | cleared (off AA 10) | **HD 21** |
+| **#19086** Surya on the seven-horse chariot | no code, never had one | **HD 08** |
+
+**#21503 is the fourth instance of the pattern this audit keeps finding.** Its
+row read *"a devotional illustration with no page in Abstract Art"* — correct,
+and the end of the matter as far as anything in the tooling was concerned. HD 21
+is that illustration: the same central acharya with a sunburst halo, the same
+tilaka and sacred thread, the same deep orange dhoti, the same staff and the
+danda with its white binding, the same bearded disciple in red at the left, the
+same flag-bearer at the right, the same pale violet ghost figures behind.
+
+**#19086 is HD 08** — Surya seated cross-legged on the ornate chariot, a white
+lotus bud in the raised right hand, the concentric patterned gold disc filling
+the ground, the scarf billowing left, the seven horses fanned three-one-three.
+The page reads paler only because it is a framed mockup on a lit wall, the same
+effect already recorded on SH 14.
+
+**HD 09 is the reason this had to be done by picture.** It is also Surya, also
+with seven white horses, also gold — and it is a different painting: a standing
+four-armed Surya holding flames, with a charioteer beneath him and the horses in
+a flat row. Anything matching on subject would have put #19086 on either page
+with equal confidence.
+
+Hindu Deities goes from 24 claimed pages to **26 of 30**. The one page claimed
+twice is HD 01, which is the deliberate `SHARE:` of #8398 and #26875 — two
+listings of one artwork. HD 09, HD 14, HD 18 and HD 19 have no product.
+
+### What this leaves
+
+The five products are settled: the question is answered and closed, and nothing
+about them changes. The audit's remaining open items are now only the pages with
+no product at all, listed under "The book is read" and "Living Room finished".
+
+---
+
+## The Living Room placements, verified live — 2026-09-16
+
+Run 1211 published a report timestamped after the merge, and all four reached the
+database:
+
+```
+#21832   already LI - 190012    Divine Mercy Radiance
+#17402   already LI - 190022    Vibrant Horse Art
+#19944   already LI - 190048    Green Leafy Plants Art
+#26450   already LI - 190049    Starry City Nights
+rows in the file: 236
+```
+
+`art_sheets: LI` drew **25 sheets, up from 21** — the builder makes one per
+claimed code, so the count is the claim map — and each of the four new codes drew
+one carrying the right picture.
+
+**An independent corroboration nobody asked for.** The sheet filenames carry the
+aspect. `LI_190049_3050` is landscape where the other three are portrait `5030`,
+and #26450's own picture is landscape. The book's aspect agrees with the product
+on the one page of the four where it could have disagreed.
+
+The Hindu Deities conclusion holds live too: #26145, #23496 and #23435 still read
+`already AL 01/05/06`, and #31527 and #29395 still read `already has no code`.
+Codes naming no page: 3, all `AL`.
+
+### #26450 has a real title after all
+
+Its row was written with a description — *"Night City Skyline in Blue (described
+by its picture — no report in this audit carries this product title)"* — because
+at the time that was true. The apply report that confirmed the placement names
+it: **Starry City Nights**. The row now carries the real title and its `why`
+records where the title came from.
+
+Worth stating as a small rule, because the same situation will recur: **a product
+with no code appears in no report**, so its title is unavailable precisely while
+it is homeless. Placing it is what makes the title readable. The honest thing is
+to describe the picture, say plainly that is what you are doing, and correct it
+on the next report — not to invent a plausible title. #19086's row still carries
+a description for exactly this reason, and will be corrected the same way once
+its placement is applied.
+
+---
+
+## Lord Rama's unclaimed pages, 2026-09-16 — one placement, five that stay empty
+
+Lord Rama was closed on 2026-09-15 with its own eight products settled, but as
+with Living Room and Hindu Deities, only half the job had been done: the
+section's **six unclaimed pages had never been held against the catalogue.**
+
+**One of the six has an owner. Five have no product anywhere.**
+
+| product | was | now |
+|---|---|---|
+| **#18229** | no code, never had one | **LR 06** |
+
+Lord Rama goes from 4 claimed pages to **5 of 10**. The one page claimed twice is
+`LR 05`, the documented deliberate pair — #15913 and #17543 are one artwork
+listed twice, the second mirrored left to right.
+
+### Why #18229 is LR 06 and not merely an idol that resembles it
+
+This section is the hardest in the book for the audit's rule, because five of its
+six empty pages are **photographs of garlanded Rama idols**, and the catalogue
+holds a dozen photographs of garlanded South Indian idols. Subject agreement is
+worth nothing here. What settles LR 06 is that the page and the product are the
+**same photograph**:
+
+- the same black stone carved arch with the same scalloped crest
+- the same radiating gold halo behind the crown
+- the same white-and-red namam, and the red dot on the chin
+- the same embossed gold chest-plate and the same red-and-green beaded belt with
+  its square gold plaques
+- the same yellow dhoti with a red border, and the same red V-shaped sash hung
+  with green and red flower clusters
+- the same gold bow and shaft either side of the figure
+- and the garland columns either side in the same order: yellow, magenta, blue,
+  white
+
+The product tile is a tighter, warmer crop; the page render shows more of the
+pale grey wall behind. Nothing in one is absent from the other.
+
+### The five that stay empty, and what was held against them
+
+| page | the book shows | the closest candidates, and why not |
+|---|---|---|
+| LR 04 | a dark Rama idol in a **pink** dhoti, orange-and-white garland, pale grey carved stone niche | nothing uncoded is in a pink dhoti or a grey stone niche |
+| LR 07 | the Ayodhya **Ram Lalla** in a richly carved cream shrine with dark garlands | #28300 is a close-up bust of that same idol against a flower wall — the right idol, a different photograph. Cleared earlier for exactly this |
+| LR 08 | a statue in **red** attire under a dense marigold arch with oil lamps | #26023 and #26267 are Venkateswara utsava murtis; #22564 is one on a palanquin flanked by two purple panels |
+| LR 09 | a dark idol under an ornate **white and silver** temple arch, holding a bow | #31588 is a Venkateswara close-up with a gold bow, cleared earlier. #23911 is a Tanjore *painting* of a figure with a **sword** and shield — wrong weapon, wrong medium |
+| LR 10 | a painted **Ram Darbar**: Rama and Sita enthroned, Lakshmana and Bharata standing, Hanuman kneeling, in a pillared hall | #30409 is an outdoor crowd scene before a temple façade; #31088 is a radiant Vishnu court with Garuda below. Neither is a five-figure Ram Darbar |
+
+#24094 and #26328, the two bronze acharya statues with the gold staff, are not
+Rama idols at all and were ruled out on sight.
+
+### The section is a standing warning about subject-matching
+
+Three products were cleared off LR 07, LR 08 and LR 09 by the earlier pass, and
+every one of those clears was the **Tirupati fault** — the right deity or the
+right idol, the wrong photograph. This pass adds five more near-misses of the
+same kind. Any pass that matched on subject would have filled all six of these
+pages confidently and filled five of them wrongly.
+
+**#18229's title.** Its row carries a description rather than a title, for the
+reason recorded with #26450: a product with no code appears in no report, so its
+title is unreadable precisely while it is homeless. It will be corrected from
+`APPLIED.txt` once this placement is applied, as #26450's was.
