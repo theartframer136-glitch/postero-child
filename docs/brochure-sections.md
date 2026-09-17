@@ -3981,3 +3981,94 @@ Landscapes 7 (and `LC 10` is **not** #27133 — see the Still Life pass), Lord S
 4, Tirupati 4, Seven Horses 3, Murugan 2, Travel Art 2, Buddha 1, Indian Culture
 1, Pichwai 1. Radha Krishna's 48 were swept on 2026-09-15. That leaves **25
 unclaimed pages across nine small sections**, none larger than seven.
+
+---
+
+## Landscapes' unclaimed pages, 2026-09-17 — one placement, and a whole class of rows now in doubt
+
+Seven of Landscapes' ten pages claimed no product. All seven were rendered.
+
+**#7800 → LC 01.** Landscapes goes from 3 claimed pages to **4 of 10**.
+
+### This is the second clear overturned in two hours, and both came from one pass
+
+#7800's row read:
+
+> *"every section of the Master Brochure has now been read, and this picture is on
+> no page of it. a forest waterfall. **The Landscapes section LC 01-10 has no
+> waterfall of this kind**, and LB 09 is a Buddha before a waterfall, not a
+> landscape"*
+
+`LC 01` **is** a forest waterfall. Its caption says so in as many words: *"the
+image of a flowing waterfall in Vastu signifies continuous prosperity, abundance,
+and positive energy flow."*
+
+So this is **not** the caption blind spot that explained #22199 on WL 20. It is
+simpler and worse: the caption was there, naming the subject, and the negative was
+written anyway. **Those pages were never looked at, and those captions were never
+read.** The row asserts a fact about ten pages on the strength of nothing.
+
+#7800 is the same painting as LC 01 in every detail — the broad low fall over a
+dark rock ledge into a still pool, the autumn woods in yellow-green with pale bare
+trunks, the mist rising at centre-left, the dark boulders banking the right, the
+yellow leaves scattered on the water — and LC 01 is printed in all six frame
+finishes, identical in each.
+
+### Eleven rows were written by that pass. Two are now known false.
+
+Every one carries the same formula — *"every section of the Master Brochure has
+now been read, and this picture is on no page of it"* — and every one is a blanket
+negative over the whole book:
+
+| product | title | status |
+|---|---|---|
+| **#22199** | Peacock Art | **false** — it is WL 20 |
+| **#7800** | Stunning Forest Waterfall Landscape | **false** — it is LC 01 |
+| #7781 | Luxurious Modern Floral Abstract Vase | held against Still Life's 17, no match |
+| #30775 | Marigold Dreams Portrait | held against AA 03/14/18, no match |
+| #28839 | Savanna Sunset Silhouettes | held against AA 08, no match |
+| #25358 | Dancers in Ocean Light | Indian Culture read and closed |
+| #14034, #24470, #25657, #24836, #30905, #28103 | devotional panels and portraits | **not re-checked** |
+
+**Two of eleven are already overturned, and the six devotional rows have had no
+re-check at all.** A negative asserted over 373 pages is only as good as the
+enumeration behind it, and this pass's enumeration has now failed twice — once by
+using captions that were incomplete (WL 20 has none), once by not consulting the
+pages or the captions at all (LC 01 has both).
+
+**Recorded as an open item, not started:** the remaining nine rows from that pass
+deserve the same treatment these two got — hold the picture against every
+unclaimed page in the book, not against a remembered list.
+
+### The six that stay empty
+
+| page | what the book shows |
+|---|---|
+| LC 03 | surreal misty cliffs under a huge orange sun over calm water |
+| LC 04 | tall bare conifers against a cratered orange moon, layered grey and orange hills |
+| LC 05 | white egrets on a branch under a soft pink moon over misty water |
+| LC 07 | minimalist hills with an orange sun, one red tree and birds |
+| LC 08 | pine trees against a yellow sun with birds, in watercolour |
+| LC 10 | three overlapping translucent circles in gold, teal and mauve with fine bare trees |
+
+**#30276** was held against `LC 04` and is not it — the page is a dense stand of
+bare conifers under a cratered moon; #30276 is a surreal collage with a single
+deciduous tree, a figure on a plinth and blocks of red and green. **#27133** was
+held against `LC 10` in the Still Life pass and is not it either. **#29517** and
+**#28473** are neither `LC 07` nor `LC 08`.
+
+### Eight sweeps in
+
+| sweep | unclaimed | placed |
+|---|---|---|
+| Living Room | 30 | 4 |
+| Hindu Deities | 6 | 2 |
+| Lord Rama | 6 | 1 |
+| Still Life | 17 | 0 |
+| Abstract Art | 13 | 1 |
+| Wildlife | 15 | 1 |
+| Kids Room | 13 | 0 |
+| **Landscapes** | **7** | **1** |
+
+Ten owners across 107 unclaimed pages. **Nine of the ten were products an earlier
+pass had already handled and left without a home.**
