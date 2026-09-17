@@ -1991,9 +1991,42 @@ body:has(.taf-page) .site-main{max-width:none;}
 @media(max-width:760px){
   .taf-track{flex-direction:column;gap:22px;}
   .taf-track::before{display:none;}
-  .taf-track li{display:grid;grid-template-columns:48px 1fr;gap:14px;text-align:left;align-items:start;}
-  .taf-track li::before{margin:0;}
-  .taf-table{display:block;overflow-x:auto;}
+  /* Each step holds three boxes, not two: the numbered ::before, the <b>
+     title and the <span> description. Declaring two columns and leaving
+     placement to the grid put the number in 1/1, the title in 2/1 and then
+     wrapped the description back to column ONE — the 48px one — which is why
+     its text came down the page a word at a time. Place all three. */
+  .taf-track li{display:grid;grid-template-columns:48px 1fr;
+    column-gap:14px;row-gap:4px;text-align:left;align-items:start;}
+  .taf-track li::before{margin:0;grid-column:1;grid-row:1 / span 2;}
+  .taf-track li b{grid-column:2;grid-row:1;align-self:center;}
+  .taf-track li span{grid-column:2;grid-row:2;}
+
+  /* A four-column table cannot be read on a 420px phone, and making it
+     display:block did not even let it scroll — the cells simply squeezed
+     until the headings ran one letter per line. Each row becomes its own
+     card and each cell carries its column's name, which is the only layout
+     of this table that reads on a phone. The labels are written onto the
+     cells by inc/taf-tables.php from the table's own <th> row, so this works
+     for every .taf-table without touching page content. */
+  .taf-table,
+  .taf-table tbody,
+  .taf-table tr,
+  .taf-table td{display:block;width:100%;}
+  .taf-table{border:0;background:transparent;box-shadow:none;overflow:visible;margin:22px 0 8px;}
+  .taf-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+  .taf-table tr{background:#fff;border:1px solid #ece5d4;border-top:3px solid var(--taf-gold);
+    border-radius:14px;box-shadow:0 3px 14px rgba(20,20,20,.05);padding:6px 0;margin:0 0 14px;overflow:hidden;}
+  .taf-table tbody tr:nth-child(even) td,
+  .taf-table tbody tr:hover td{background:transparent;}
+  .taf-table td{border-top:0;padding:11px 18px;font-size:14.5px;line-height:1.6;}
+  .taf-table td + td{border-top:1px solid #f4efe0;}
+  .taf-table td:first-child{white-space:normal;font-size:16px;font-weight:800;padding-top:14px;}
+  .taf-table td[data-taf-label]::before{content:attr(data-taf-label);display:block;
+    font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--taf-gold-d);margin-bottom:4px;}
+  /* The first cell is the row's subject; its own heading adds nothing. */
+  .taf-table td:first-child[data-taf-label]::before{display:none;}
 }
 
 /* Phase 13.7 — dynamic artist cards */
