@@ -66,7 +66,10 @@ jobs:
              done; \
              echo; echo '=== SETTING ==='; \
              wp litespeed-option set cache-browser 1 --allow-root 2>&1; \
+             wp litespeed-option set optm-qs_rm 0 --allow-root 2>&1; \
              echo; echo '=== AFTER ==='; \
-             printf '  %-22s ' cache-browser; wp litespeed-option get cache-browser --allow-root 2>/dev/null; \
+             for k in cache-browser optm-qs_rm; do \
+               printf '  %-22s ' \$k; wp litespeed-option get \$k --allow-root 2>/dev/null; \
+             done; \
              wp litespeed-purge all --allow-root 2>&1 | tail -2" \
             || true
