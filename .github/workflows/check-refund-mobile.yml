@@ -1,0 +1,20 @@
+name: Check Refund Mobile
+# Prove the refund policy page reads at the width the video was filmed at.
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Page to measure
+        type: string
+        default: 'https://theartframer.us/refund-policy/'
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Measure
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afhead/node_modules node tools/diag-refund-mobile.js "${{ inputs.url }}" || true
