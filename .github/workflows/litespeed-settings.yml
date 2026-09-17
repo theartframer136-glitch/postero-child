@@ -1,0 +1,56 @@
+name: LiteSpeed Settings
+# Turn on the caching that is installed but switched off.
+#
+# The audit found browser caching disabled, which is why moving between pages
+# feels slow: with no Cache-Control headers the browser re-downloads all 75
+# stylesheets, 79 scripts and every image on each navigation, even though it
+# already has them.
+#
+# Reports current values first. Combining CSS/JS is deliberately NOT touched
+# here: on a site with 35 plugins and Elementor it is the setting most likely
+# to break a layout, and it needs to be watched when it is turned on.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Report the current settings, change nothing (run this first)
+        type: boolean
+        default: true
+
+jobs:
+  settings:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Apply
+        timeout-minutes: 12
+        run: |
+          set -uo pipefail
+          DRY='${{ inputs.dry_run }}'
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             echo '=== BEFORE ==='; \
+             for k in cache-browser cache-browser_ttl optm-css_min optm-js_min optm-css_comb optm-js_comb; do \
+               printf '  %-22s ' \$k; wp litespeed-option get \$k --allow-root 2>/dev/null || echo '(unreadable)'; \
+             done; \
+             if [ \"\$DRY\" != 'true' ]; then \
+               echo; echo '=== SETTING ==='; \
+               wp litespeed-option set cache-browser 1 --allow-root 2>&1; \
+               wp litespeed-option set cache-browser_ttl 31557600 --allow-root 2>&1; \
+               echo; echo '=== AFTER ==='; \
+               for k in cache-browser cache-browser_ttl; do \
+                 printf '  %-22s ' \$k; wp litespeed-option get \$k --allow-root 2>/dev/null || echo '(unreadable)'; \
+               done; \
+               wp litespeed-purge all --allow-root 2>&1 | tail -2; \
+             else echo; echo 'Report only. Nothing changed.'; fi" \
+            || true
