@@ -4422,3 +4422,83 @@ time** and neither trap can bite.
 Twelve owners across 118 unclaimed pages. Four sections now place nothing, and
 that number is worth as much as the placements: it is the evidence that the
 pages without products are genuinely pages without products.
+
+---
+
+## Murugan — the unclaimed pages (2026-09-17)
+
+Four pages, 153–156. Two claimed, two not: **MG 03** (p155), **MG 04** (p156).
+**Nothing placed.**
+
+This is the shortest section swept so far and it had the most obvious-looking
+lead in the whole audit, which is why it is worth writing down: the lead was
+wrong, and only looking showed it.
+
+### The lead
+
+`#26145` is titled **"Tanjore Murugan Panel Canvas Wall Art"** and carries the
+raw code **`AL 01`** — and `AL` is not a section of the book, so that code names
+no page. A Murugan product with nowhere to live, and a Murugan section with two
+empty pages. Every noun agrees.
+
+### What the pages actually show
+
+| page | what the book shows |
+|---|---|
+| MG 01 | Murugan with Valli and Devasena, three figures in a garlanded temple |
+| MG 02 | Murugan with a peacock in a blooming garden at sunrise |
+| MG 03 | a golden-bronze Murugan holding the vel, peacock at his side, lamplit stone sanctum |
+| MG 04 | Murugan in his six-faced Shanmukha form before a gopuram under a moon |
+
+All four are **photorealistic, 3D-rendered devotional artworks**. `#26145` is a
+**Tanjore panel** — flat gold-leaf arch, gem-set jewellery, single standing
+figure, black ground, square. It is not any of the four, and not because of a
+detail: it is a different medium.
+
+So `#26145` stays on `AL 01`. **A code that names no page is not a reason to file
+a product onto a page of the right subject.** The section is short and the
+temptation to tidy it was real; the picture settled it in seconds.
+
+### The other two candidates, also ruled out by looking
+
+`#24094` and `#26328` are both uncoded bronze idols and both read at grid scale
+like they might be a Murugan murti:
+
+| | what they actually are |
+|---|---|
+| #24094 | bronze figure, **white Vaishnava namam**, holding a **tridandam** and a gold banner, hands in anjali, red cloth behind |
+| #26328 | the same subject again — bronze bust, namam, tridandam, banner, garland |
+
+Both are **Vaishnava acharyas**. Murugan is Shaiva and carries the **vel**, which
+MG 03's figure plainly holds. Wrong tradition, wrong attribute, wrong deity.
+(The two are near-identical to each other and are presumably one subject listed
+twice — not this sweep's business, but recorded here in case it matters later.)
+
+Nothing in the uncoded pool is six-faced, so MG 04 has no candidate at all.
+
+### Not re-checked
+
+MG 01 and MG 02's claims (`#24169`, `#24531`) were **not** re-verified here. After
+the Tirupati finding — where a fault sat on a *claimed* page — that is worth
+stating rather than glossing: seeing those two product pictures needs a contact
+sheet run, and the deploy queue was occupied by the outstanding `#229`
+verification. No evidence suggests either is wrong.
+
+### Twelve sweeps in
+
+| sweep | unclaimed | placed |
+|---|---|---|
+| Living Room | 30 | 4 |
+| Hindu Deities | 6 | 2 |
+| Lord Rama | 6 | 1 |
+| Still Life | 17 | 0 |
+| Abstract Art | 13 | 1 |
+| Wildlife | 15 | 1 |
+| Kids Room | 13 | 0 |
+| Landscapes | 7 | 1 |
+| Lord Shiva | 4 | 1 |
+| Tirupati | 4 | 0 — one restored elsewhere |
+| Seven Horses | 3 | 0 — five clears re-checked, all correct |
+| **Murugan** | **2** | **0 — the obvious candidate is a different medium** |
+
+Twelve owners across 120 unclaimed pages. Five sections now place nothing.
