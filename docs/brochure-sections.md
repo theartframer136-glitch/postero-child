@@ -4502,3 +4502,79 @@ verification. No evidence suggests either is wrong.
 | **Murugan** | **2** | **0 — the obvious candidate is a different medium** |
 
 Twelve owners across 120 unclaimed pages. Five sections now place nothing.
+
+---
+
+## Travel Art — the unclaimed pages (2026-09-17)
+
+Four pages, 374–377. Two claimed (TA 03 `#31713`, TA 04 `#29890`), two not:
+**TA 01** (p374) and **TA 02** (p375). **Nothing placed** — and both clears that
+emptied them are confirmed correct by looking.
+
+### Both unclaimed pages are six-up — and both were read correctly
+
+This matters, because the six-up frame-variant pages were flagged after LC 01,
+AA 01 and LS 02 each overturned a confident negative. TA 01 and TA 02 are both
+six-up, printing the artwork six times across room settings at roughly 1/6 size.
+**Neither hid anything.** Enlarged 6×, both compositions are perfectly legible
+and decisively different from their nearest candidates.
+
+So the six-up risk is **not** that the format is unreadable. It is that a pass
+which does not zoom will misread it. TA 01's own row records exactly that failure
+and its correction — it had originally placed `#8424` there *"from the page's
+description without ever seeing the product's picture"*, and then overturned
+itself after looking.
+
+### TA 01 — `#8424` is a different Varanasi
+
+| | TA 01 (the page) | #8424 Divine Varanasi Ganga Aarti |
+|---|---|---|
+| format | **portrait** (6×3 and 5×3, both portrait) | **landscape** |
+| sky | a **lilac twilight sky** across the top third | **none at all** — ghat and water fill the frame |
+| skyline | dark temple spires and a **green-roofed pavilion** | not present |
+| lamps | lit windows and buildings along the ghat | **dozens of conical lamp-trees** covering the steps |
+| boats | one boat of plain standing figures, carrying no lamps | two boats — the near one carrying **two lamp-trees of its own**, a second crowded boat at right |
+
+Each holds what the other has not, and **a crop can remove content but never add
+it**. Two different Varanasi ghat artworks.
+
+### TA 02 — `#8494` is a different Kedarnath
+
+| | TA 02 (the page) | #8494 Sacred Kedarnath Temple |
+|---|---|---|
+| format | portrait | landscape |
+| viewpoint | head-on, temple centred | angled from the front-left, showing the long side |
+| sky | **purple/orange sunset** behind snow peaks | **dark blue** night sky |
+| people | a **dense crowd** across the foreground | no crowd |
+| extra | — | a **red-lit side building** that appears nowhere on the page |
+
+Two photographs of the same temple. This was reached independently here and
+matches the existing row's wording exactly: *"a crop cannot add a sky."*
+
+### The near-twin problem, three sections running
+
+Seven Horses had pairs by one hand differing in detail; Murugan had the right
+deity in the wrong medium; Travel Art has **the same place photographed twice**.
+In all three the separating evidence was the same kind: an element **present in
+one picture and absent from the other**, counted rather than impressionistic.
+Subject, palette and mood decided none of them.
+
+### Thirteen sweeps in
+
+| sweep | unclaimed | placed |
+|---|---|---|
+| Living Room | 30 | 4 |
+| Hindu Deities | 6 | 2 |
+| Lord Rama | 6 | 1 |
+| Still Life | 17 | 0 |
+| Abstract Art | 13 | 1 |
+| Wildlife | 15 | 1 |
+| Kids Room | 13 | 0 |
+| Landscapes | 7 | 1 |
+| Lord Shiva | 4 | 1 |
+| Tirupati | 4 | 0 — one restored elsewhere |
+| Seven Horses | 3 | 0 — five clears re-checked, all correct |
+| Murugan | 2 | 0 — the obvious candidate is a different medium |
+| **Travel Art** | **2** | **0 — two clears re-checked, both correct** |
+
+Twelve owners across 122 unclaimed pages. Six sections place nothing.
