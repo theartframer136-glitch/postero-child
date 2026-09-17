@@ -19,7 +19,37 @@ const URL = process.argv[2] || 'https://theartframer.us/refund-policy/';
   await page.goto(URL, { waitUntil: 'networkidle2', timeout: 60000 });
 
   const out = await page.evaluate(() => {
-    const r = { steps: [], table: null, overflow: null };
+    const r = { steps: [], table: null, overflow: null, actual: {} };
+
+    // The first run found neither .taf-track nor .taf-table on the live page,
+    // so the classes in the repo's page-builder script are not the classes the
+    // stored page actually uses. Report what IS there before styling anything.
+    const tables = [...document.querySelectorAll('table')];
+    r.actual.tables = tables.map(t => ({
+      cls: t.className || '(no class)',
+      cols: t.querySelectorAll('tr') [0] ? t.querySelectorAll('tr')[0].children.length : 0,
+      rows: t.querySelectorAll('tr').length,
+      width: Math.round(t.getBoundingClientRect().width),
+      parentCls: t.parentElement ? (t.parentElement.className || '(no class)') : '',
+      firstHeader: (t.querySelector('th,td') || {}).textContent ?
+        (t.querySelector('th,td').textContent.trim().slice(0, 24)) : '',
+    }));
+
+    // Anything that looks like a numbered step: a narrow element whose text
+    // wraps badly. Find the narrowest text blocks on the page.
+    const narrow = [];
+    document.querySelectorAll('p, span, div, li, td').forEach(el => {
+      const txt = (el.textContent || '').trim();
+      if (txt.length < 25 || el.children.length > 0) return;
+      const b = el.getBoundingClientRect();
+      if (b.width > 0 && b.width < 140 && b.height > 60) {
+        narrow.push({ tag: el.tagName, cls: (el.className || '').toString().slice(0, 44),
+          w: Math.round(b.width), h: Math.round(b.height),
+          parent: el.parentElement ? (el.parentElement.className || el.parentElement.tagName).toString().slice(0, 44) : '',
+          text: txt.slice(0, 40) });
+      }
+    });
+    r.actual.narrow = narrow.slice(0, 12);
 
     document.querySelectorAll('.taf-track li').forEach(li => {
       const span = li.querySelector('span');
@@ -81,6 +111,20 @@ const URL = process.argv[2] || 'https://theartframer.us/refund-policy/';
       console.log(`    cell ${String(c.width).padStart(4)}px  label=${c.label || '(none)'}  drawn=${c.labelShown}`);
     }
   }
+  console.log('\n--- what is actually on the page ---');
+  console.log('  tables:');
+  if (!out.actual.tables.length) console.log('    none');
+  for (const t of out.actual.tables) {
+    console.log(`    <table class="${t.cls}"> ${t.rows} rows x ${t.cols} cols, ${t.width}px, inside .${t.parentCls}`);
+    console.log(`        first cell: "${t.firstHeader}"`);
+  }
+  console.log('  text squeezed into a narrow column:');
+  if (!out.actual.narrow.length) console.log('    none found');
+  for (const n of out.actual.narrow) {
+    console.log(`    ${n.tag}.${n.cls || '(none)'}  ${n.w}x${n.h}px  in .${n.parent}`);
+    console.log(`        "${n.text}"`);
+  }
+
   console.log('\n--- page overflow ---');
   console.log(`  document ${out.overflow.docWidth}px vs viewport ${out.overflow.viewport}px` +
               (out.overflow.horizontalScroll ? '   <-- SIDEWAYS SCROLL' : '   (no sideways scroll)'));
