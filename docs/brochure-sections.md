@@ -3601,3 +3601,80 @@ pages confidently and filled five of them wrongly.
 reason recorded with #26450: a product with no code appears in no report, so its
 title is unreadable precisely while it is homeless. It will be corrected from
 `APPLIED.txt` once this placement is applied, as #26450's was.
+
+---
+
+## Still Life's unclaimed pages, 2026-09-17 — the first sweep that places nothing
+
+Seventeen of Still Life's twenty-three pages claim no product. Every one was
+rendered and held against the no-code grids, which hold every uncoded product in
+the catalogue. **Nothing matches. All seventeen stay empty, and no row is
+written.**
+
+This is the first unclaimed-page sweep to come back with nothing at all, after
+Living Room (4 placed), Hindu Deities (2) and Lord Rama (1). It is a result, not
+a failure: the shop does not stock these paintings, and recording that stops the
+pages being re-opened.
+
+| pages | what the book shows |
+|---|---|
+| SL 02, SL 03 | yellow calla lilies in glass vases on teal; an abstract of blue and rust vessels on an orange grid |
+| SL 04 | three translucent x-ray tulips — red, orange, green — on cream |
+| SL 05 | boho botanical: leaves, pampas and gold beaded arcs on marble |
+| SL 07 | golden brass vases of white blossom against painterly teal and gold |
+| SL 10 | a potted olive tree with black olives against a Tuscan ochre wall |
+| SL 11, SL 12 | a terracotta boho vase of dried stems; minimalist black and cream vases with dried botanicals |
+| SL 14 | drifting butterflies in orange, grey and cream |
+| SL 15 | a weathered boat filled with red poppies on green water |
+| SL 16, SL 17 | a tiny rower in blue-and-white marbled water; a sailboat in blocks of blue, yellow and red |
+| SL 18 | trees with circular canopies reflected in water |
+| SL 19 | a yellow umbrella under rainbow rain |
+| SL 20 | a grey building beneath an enormous green canopy |
+| SL 21 | faces carved into golden forest trunks |
+| SL 23 | stylized blossoms in two decorative vases with butterflies |
+
+The closest the catalogue comes is **#7781**, poppies and anemones on a split red
+and cream panel. It is not SL 04 (those tulips are translucent x-ray studies, not
+opaque blooms) and not SL 15 (a boat of poppies on water). The two botanicals
+that failed against Living Room — **#24409**'s foliage mural and **#26628**'s
+chinoiserie arch — fail here too: no SL page is either.
+
+### The caption trap, a third time
+
+`LC 10` prints *"A modern abstract artwork blending geometric shapes, delicate
+tree silhouettes, and earthy tones to create a calm and contemporary
+nature-inspired composition."* The catalogue contains **#27133 "Geometric Falls
+Sunrise"**, uncoded, and that sentence describes it noun for noun.
+
+It is not LC 10. The page is **sparse**: three overlapping translucent circles in
+gold, deep teal and mauve, with fine bare tree silhouettes drawn across them on a
+pale cream ground. #27133 is **dense**: a saturated collage of mountains,
+waterfalls, a yellow sun and blocks of orange, red, navy and green, with one
+orange tree at the lower left. Same vocabulary, different paintings.
+
+That makes three in two days — `LI 41` against #24409, `LI 40` against #26628,
+and now `LC 10` against #27133. In each the caption's every noun agreed and the
+picture disagreed at a glance. **LC 10 therefore stays unclaimed**, and the
+Landscapes sweep, when it happens, should start from that knowing it.
+
+### Where the book stands on unclaimed pages
+
+Worth writing down, because nobody had: **166 of the 373 pages claim no product.**
+
+| section | unclaimed | swept |
+|---|---|---|
+| Radha Krishna | 48 | 2026-09-15 |
+| Living Room | 26 | 2026-09-16 |
+| **Still Life** | **17** | **2026-09-17 — nothing found** |
+| Wildlife | 15 | — |
+| Abstract Art | 13 | — |
+| Kids Room | 13 | — |
+| Landscapes | 7 | — (but see LC 10 above) |
+| Lord Rama | 5 | 2026-09-16 |
+| Hindu Deities | 4 | 2026-09-16 |
+| Lord Shiva 4, Tirupati 4, Seven Horses 3, Murugan 2, Travel Art 2, Buddha 1, Indian Culture 1, Pichwai 1 | 18 | — |
+
+An unclaimed page is not a fault. The book is a catalogue of paintings and the
+shop does not stock all of them. The reason to sweep a section is that sometimes
+it does — and the four sweeps so far have found seven owners between them, six of
+which were products an earlier pass had correctly cleared and then left homeless.
