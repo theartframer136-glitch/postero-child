@@ -4157,3 +4157,180 @@ restored, all eighteen Lord Shiva pages have been accounted for.
 Eleven owners across 111 unclaimed pages. Ten were products an earlier pass had
 already handled and left homeless; **one, #21954, was a product an earlier pass
 had actively removed from the right page.**
+
+---
+
+## Tirupati Balaji — the unclaimed pages (2026-09-17)
+
+Fifteen pages, 138–152. Eleven claimed, four not: **TP 07** (p144), **TP 08**
+(p145), **TP 14** (p151), **TP 15** (p152). All four were rendered and held
+against the whole uncoded pool — eight contact grids, 182 products, every tile
+looked at rather than a caption-built shortlist.
+
+**Nothing was found for any of the four.** But the sweep found something on a
+page it had not gone looking at: **TP 04 had been emptied of a product that
+belongs on it.**
+
+### The four pages, and why nothing fits them
+
+| page | what the book shows | nearest thing in the pool |
+|---|---|---|
+| TP 07 | a reclining Ranganatha in yellow silk among lit brass lamp-stands, dark carved sanctum | nothing reclining at all. #22505 is a sleeping infant Krishna, not a temple murti |
+| TP 08 | Venkateswara's head out of near-black, only the gold namam lit, gold nebula below, a tiny worshipper silhouetted for scale | nothing. #31395 is the closest dark piece and it is a Shiva subject |
+| TP 14 | Balaji standing in a sanctum with a small four-armed Lakshmi seated on an orange lotus in front, chakra and shankha above | nothing has two figures |
+| TP 15 | the utsava murti alone: silver filigree crown, white silk over the arm, green-gold waist cloth, gold kalasha base, garlands in separate columns beside the figure, ochre ground | #26267, #26023, #31588 are all Balaji photographs and none is this one |
+
+The three near-misses on TP 15 are worth naming, because "another photograph of
+the same deity" is the easiest way to place a product wrongly. In all three the
+garlands are **draped on the figure**; on TP 15 they hang as **separate columns
+beside it**, and the background, base and silk are different again.
+
+### The finding: #229 was wrongly cleared off TP 04
+
+Baseline had **#229 and #8474 both on TP - 050004**. Two rows were then written
+about that page, and they contradict each other:
+
+| row | says |
+|---|---|
+| #8474 → `SHARE:TP 05` | "the same painting as #229 … #229 is the framed piece shown whole; #8474 is a zoomed crop of it" |
+| #229 → `NONE` | "**This is a different photograph** … the product's featured image is a ROOM MOCKUP rather than the artwork, so there is not enough of the picture to compare" |
+
+#8474's row is the correct one. #229's featured image *is* a room mockup — but
+that is not a reason it cannot be compared. Enlarged 8×, the framed print on the
+wall carries the whole composition of TP 04 and agrees with the page on five
+independent points:
+
+1. the ornate pointed crest above the gold prabhavali arch
+2. twin garlands angling down and outward from the shoulders, red/white/green
+3. the closed **oval vanamala loop** hanging to below the waist — an unusual
+   shape, in the same position and proportion in both
+4. banded gold pillars flanking left and right
+5. lamp flames in the same two upper corners
+
+**Why the earlier pass got it wrong.** A room mockup prints the artwork small
+and under ambient light, so it renders darker and flatter than the book page.
+That row judged on *tone* — "a darker idol in a golden arch" — and tone is
+exactly what a mockup changes. Composition is what survives it.
+
+This is **the second wrong clear** the audit has written, after #21954 on LS 02,
+and it has the same signature: a product taken off the page it belonged on and
+left with no code at all. #229 has been sitting uncoded on the live site since
+that clear applied.
+
+`#229 → SHARE: TP - 050004`. TP 04 is a deliberate share, not a clash: two
+listings of one picture, and the SKU letter keeps the SKUs apart.
+
+### The numbering trap this ran into
+
+TP is one of only two sections whose old and new numbering differ
+(`'absent' => array( 4 )`; the other is HD 14). A **short** legacy code shifts:
+
+| written | resolves to |
+|---|---|
+| `TP 05` | `TP - 050004` |
+| `TP 13` | `TP - 050012` |
+| `TP 04` | *nothing* — old TP 04 never named a page |
+| `TP - 050004` | `TP - 050004` (full codes shift nothing) |
+
+So `#8474`'s `SHARE:TP 05` names the page it already stands on — a no-op, not a
+move, which is why it reads "already correct" and why TP 05 never became a
+shared page. **Any TP or HD row must be written with the full six digits.** The
+replay harness now asserts all five of these forms, so a change to the mapping
+shows up as a failure rather than as a silently mis-filed product.
+
+### The SHARE rows, checked
+
+Six rows in the corrections file carry a `SHARE:` prefix. The three touching
+this sweep were read in full and all three are sound — each is two listings of
+one artwork, evidenced rather than assumed:
+
+| row | evidence given |
+|---|---|
+| #31890 shares TP 13 | RMS difference 6.6 against #15730, versus 102 for the other product on the page |
+| #17543 shares LR 05 | the same artwork mirrored; flipping it back drops the difference against #15913 from 44.8 to 18.1 |
+| #8474 shares TP 04 | one picture shown whole (#229) and cropped (#8474) — now confirmed from the page itself |
+
+The other three (#220 on LB 01, #31829 on RK 33, #8398 on HD 01) were not
+re-checked and are not in doubt; they are simply outside this sweep.
+
+### Ten sweeps in
+
+| sweep | unclaimed | placed |
+|---|---|---|
+| Living Room | 30 | 4 |
+| Hindu Deities | 6 | 2 |
+| Lord Rama | 6 | 1 |
+| Still Life | 17 | 0 |
+| Abstract Art | 13 | 1 |
+| Wildlife | 15 | 1 |
+| Kids Room | 13 | 0 |
+| Landscapes | 7 | 1 |
+| Lord Shiva | 4 | 1 |
+| **Tirupati** | **4** | **0 — but one restored elsewhere** |
+
+Twelve owners across 115 unclaimed pages. Ten were products an earlier pass had
+left homeless; **two — #21954 and #229 — were products an earlier pass actively
+removed from the right page.** Both wrong clears were found by a sweep of a
+*different* page in the same section, which is an argument for finishing the
+remaining sections rather than stopping at the ones with unclaimed pages.
+
+---
+
+## The Landscapes and Lord Shiva placements, verified live — 2026-09-17
+
+Two placements confirmed on the live catalogue, and both needed a different
+freshness test from the one that has served until now.
+
+### #7800 → LC 01
+
+Run 1230's report confirms it as a write:
+
+```
+#7800   (none)  -> LC - 140001    Stunning Forest Waterfall Landscape Wall Art
+to change: 1  |  codes cleared: 0  |  already correct: 238  |  refused as a clash: 0  |  missing: 0
+```
+
+### #21954 → LS 02
+
+Run 1232's report shows it at rest, the whole file quiet behind it:
+
+```
+#21954  already LS - 030002   Shiva Family Cubist Art
+to change: 0  |  codes cleared: 0  |  already correct: 239  |  refused as a clash: 0  |  missing: 0
+```
+
+`art_sheets: LS` drew **15 sheets, up from 14**, including `LS_030002_4030`. That
+sheet is stamped `#21954` and carries the LS 02 painting: the blue Shiva and
+ochre Parvati faces merged at the top, maroon hair swirling left, the white swan
+at the chest, the red-brown Nandi head left, the lion right, the small ochre
+Ganesha lower right, magenta sari, blue leg, gold base panel with emblem squares.
+The product the code now points at is the painting on the page.
+
+### The row count is not always a discriminator
+
+Both of these rows were **patched in place** rather than appended, so the file
+read `rows in the file: 239` on both sides of each change. The 239-count test
+that caught the Abstract Art placement would have passed against a stale report
+here and said nothing at all.
+
+What worked was polling on **the product's own line**: `#7800` had to stop
+reading `already has no code`, and `#21954` had to stop reading the same. The
+rule this leaves behind:
+
+> Poll on the row count when the change **adds** a row. Poll on the specific
+> product line when the change **patches** one. The timestamp is never the test —
+> `art-sheets` is force-pushed as an orphan branch, so its commit time records a
+> re-push, not the report's age.
+
+### A picture loop closed without spending a deploy
+
+`#7800`'s code was verified from the report, but the report only proves a code
+landed on a product id — not that the id is the picture that was compared. The
+contact-sheet builder stamps every tile with its product id
+(`imagestring( $sheet, 3, $x + 2, $y + $TILE + 3, '#' . $pid, $ink )`), so the
+cached no-code grids answer that question for nothing: `#7800`'s tile in
+`BATCH_01` is the autumn forest waterfall. A second `art_sheets: LC` run was not
+needed.
+
+This is worth remembering generally — **the stamped grids can confirm an
+id-to-picture binding for any uncoded product without a deploy.**
