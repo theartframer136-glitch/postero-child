@@ -5152,3 +5152,59 @@ second run over *its own output* assigns nothing — which was true, and useless
 because **the real second run does not see its own output.** Another pass edits
 the catalogue in between. A test of an idempotent pass has to model what runs
 between the runs.
+
+## The churn is over — proved from the live catalogue
+
+The fix in the previous section shipped on deploy run 1258 and had to be proved,
+not assumed. Two read-only exports of the whole catalogue, taken either side of
+deploy run 1259, settle it.
+
+### The evidence
+
+| | 14:06, before run 1259 wrote anything | 14:28, after run 1259 finished |
+|---|---|---|
+| products | 424 | 424 |
+| carrying a temporary code | 199 | **204** |
+| carrying no code at all | 5 | **0** |
+| highest temporary number | **TMP-1305** | **TMP-1305** |
+
+The five products holding no code were `#22505`, `#23789`, `#27017`, `#28422`
+and `#28595`. Run 1259 gave them **TMP-1072, TMP-1078, TMP-1103, TMP-1120 and
+TMP-1123** — the numbers they had held before, out of the gaps in the sequence.
+Not TMP-1306 through TMP-1310, which is what the old behaviour would have issued.
+
+**The ceiling did not move.** That is the whole proof: a deploy ran, codes were
+cleared and rewritten, and not one new number was spent. Before the fix, every
+deploy spent 102 of them.
+
+### What else the two exports show
+
+24 products gained an aspect suffix during that same deploy — `RK - 010010`
+became `RK - 010010-5030`, and so on for 23 more. That is the corrections file
+doing its job and is unrelated. Everything else in the catalogue was byte for
+byte identical across the two exports: the same 424 product ids, the same
+permalinks, the same titles, the same categories. **Only art codes changed, which
+is the only thing this chain is allowed to change.**
+
+### The final shape of the catalogue
+
+424 products, every one carrying a code:
+
+- **217** real codes naming a page of the book
+- **204** temporary `TMP-` codes, TMP-1000 … TMP-1305, none repeated
+- **3** `AL` flags, left alone on purpose — they record that the piece came from
+  the Alwars set and has no home yet, which a TMP code would erase
+
+### A note on reading a report through a log
+
+The export comes back gzipped and base64'd because this log truncates from the
+front. Reading it back meant copying 116 lines of base64 by hand, and the first
+attempt failed its CRC — one row had been mangled. The size still matched and
+424 rows still parsed, so nothing about the row count or the structure would
+have caught it. **The checksum caught it, and only the checksum.**
+
+The damaged row was repaired from the earlier export, whose CRC did verify, and
+the result was checked against it field by field before anything was built from
+it. If this export is wanted regularly, the right fix is to publish the rows to
+the `art-sheets` branch the way the contact sheets are published, so the data
+arrives by git rather than by hand.
