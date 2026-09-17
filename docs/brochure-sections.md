@@ -4644,3 +4644,87 @@ discriminator was the `#229` line itself.
 
 **Every placement the audit has made is now verified live.** Nothing is
 outstanding.
+
+---
+
+## Buddha — the unclaimed page (2026-09-17)
+
+Thirteen pages, 197–209. Twelve claimed, one not: **LB 12** (p208), *"Serene
+Buddha in golden watercolor, merging with a Bodhi leaf."* **Nothing placed.**
+
+### LB 12 and the five cleared Buddhas
+
+The page is a Buddha head and shoulders in **warm golden-ochre watercolour** —
+soft washes, no hard edges, a cream ground, the Bodhi leaf bleeding into the wash
+beside the head. No black, no cool grey, no lotuses.
+
+| product | what it is | why it is not LB 12 |
+|---|---|---|
+| #27510 Cubist Buddha Visage | a face built of **grey, black, white and gold geometric blocks** | hard-edged collage; LB 12 has no blocks and no cool greys at all |
+| #27811 Buddha Among Pink Lotuses | a **sculptural** cream head with pink lotuses on stems | different medium, and the lotuses appear nowhere on the page |
+| #27449 Buddha Offering Lotus | blue-teal ground, a hand holding a lotus, a bowl, orange drape | nothing of this is on the page |
+| #25124 Cosmic Buddha Nebula | seated Buddha in a dark nebula with planets | landscape, dark, cosmic |
+| #16191 Serene Buddha Statue | a stone Buddha at a waterfall | a photograph of a statue in a landscape |
+
+Two of the six Buddha-looking tiles in the uncoded pool turned out not to be
+Buddhas at all: **#28103 is "Krishna Serene Face"** (peacock feather, blue skin)
+and **#29639 is "Mahavira Golden Shrine"** (Jain). Worth noting because both read
+as meditating figures at grid scale.
+
+### Two clears, two very different qualities of reasoning
+
+`#27811`'s row does the work:
+
+> Re-checked from the nocode sheet against all thirteen Buddha pages: still none.
+> Buddha gained no pages this round, so the 2026-09-14 verdict stands rather than
+> needing revisiting.
+
+`#27510`'s row is a single line with no evidence in it at all:
+
+> cubist Buddha face — no LB page in the book shows it
+
+That is the same shape as the eleven-row *"on no page of it"* class, **two of
+which have already been overturned** (#22199 onto WL 20, #7800 onto LC 01). So it
+was checked properly here, and it happens to be **right** — LB 12 is a watercolour
+and #27510 is a block collage.
+
+**Being right is not the same as being sound.** A bare assertion that survives one
+check is still a bare assertion; it survived because someone looked, not because
+the row argued anything. The six never-re-checked rows of that class remain the
+outstanding risk.
+
+### The mockup rule, confirmed from a third direction
+
+LB 01 is a deliberate share between `#7839` and `#220`, and `#220`'s row states
+the principle that the Tirupati sweep later had to rediscover:
+
+> …that reasoning contradicts the rule I applied to #229 and #8474, where a room
+> mockup and a crop of one painting were ruled two listings of it. **A mockup
+> showing artwork X is a listing of artwork X.**
+
+`#229`'s clear contradicted exactly this, and the Tirupati sweep resolved the
+contradiction in `#220`'s favour. The audit had the right rule written down before
+it broke it. Worth keeping in view: **the inconsistency was discoverable from the
+corrections file alone**, without looking at a single picture — two rows applying
+opposite rules to the same situation.
+
+### Fourteen sweeps in
+
+| sweep | unclaimed | placed |
+|---|---|---|
+| Living Room | 30 | 4 |
+| Hindu Deities | 6 | 2 |
+| Lord Rama | 6 | 1 |
+| Still Life | 17 | 0 |
+| Abstract Art | 13 | 1 |
+| Wildlife | 15 | 1 |
+| Kids Room | 13 | 0 |
+| Landscapes | 7 | 1 |
+| Lord Shiva | 4 | 1 |
+| Tirupati | 4 | 0 — one restored elsewhere |
+| Seven Horses | 3 | 0 — five clears re-checked, all correct |
+| Murugan | 2 | 0 — the obvious candidate is a different medium |
+| Travel Art | 2 | 0 — two clears re-checked, both correct |
+| **Buddha** | **1** | **0 — five clears re-checked, all correct** |
+
+Twelve owners across 123 unclaimed pages. Seven sections place nothing.
