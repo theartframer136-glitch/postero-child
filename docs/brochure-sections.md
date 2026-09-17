@@ -4909,3 +4909,177 @@ the other**, counted rather than felt.
 - Pichwai: the right subject in the wrong idiom — *sharing a subject is not sharing a picture*
 
 Subject, palette and mood decided none of them.
+
+---
+
+## The row cross-check (2026-09-17)
+
+The Buddha sweep showed that the `#229` error had been sitting in the corrections
+file in plain text: `#220`'s LB 01 row states *"a mockup showing artwork X is a
+listing of artwork X"* and names `#229` and `#8474` as its precedent, and `#229`'s
+own row then applied the opposite rule and cleared it. **No pictures were needed
+to find that.** This pass asks what else the file contradicts about itself.
+
+Method: parse all 239 rows, extract every claim one row makes about another
+product or page, and test it against the catalogue as it stands after every
+correction is applied. Six invariants, all checkable from the file plus the code
+map — no deploys, no page renders, no image comparisons.
+
+### Results
+
+| # | invariant | checked | violations |
+|---|---|---|---|
+| 1 | a page/product claim in one row must match where that product ends up | 33 | **0** |
+| 2 | calling two products one artwork means they must share a page | 9 | **0** |
+| 3 | every `new_art_code` must name a real page | 135 codes | **0** |
+| 4 | two rows must not target one page unless marked `SHARE` | 135 pages | **0** |
+| 5 | a `SHARE` row must land on a page something else holds | 7 | **0** |
+| 6 | a row must not claim "on no page" *and* place the product | 12 | **0** |
+
+**The file is now internally consistent.** The one contradiction it contained was
+the `#229`/`#8474` pair, and the Tirupati sweep resolved it; invariant 2 is the
+check that would have caught it, and it now passes.
+
+### The extraction is not the mechanism
+
+Eight of the first pass's flags were false, and reading them is what separated
+signal from noise:
+
+- five were clauses describing a **clear** rather than an ownership claim —
+  *"neither of them is it"*, *"was cleared off KR 16"*
+- one was `PR #186` read as a product id
+- three were **narration of superseded reasoning** — `#229`'s row quoting the old
+  wrong wording it replaces, `#220`'s row quoting the rule it cites
+
+A clause that names two other products usually relates **them to each other**, not
+to the row's own product. Excluding narration verbs (*said, called it, wording,
+contradicts, superseding*) and treating multi-product clauses as pairwise removed
+every false positive without hiding a real one.
+
+### Two things the check found that are not violations
+
+**The prose and the code field use different numbering.** `#229`'s row writes
+"TP 4" meaning the page stamped `TP-050004` — the *new* number. `#8474`'s and
+`#232`'s rows write "TP 05" and "TP 12" in prose meaning the *legacy* labels,
+which resolve to `TP - 050004` and `TP - 050011`. Same section, same file,
+opposite conventions in the same column. No code is wrong, but **the prose cannot
+be read without knowing which convention a given row chose**, and in TP, HD and
+the eight other shifted sections that ambiguity is one page wide.
+
+**The `current_art_code` column mixes vintages and cannot be trusted.** 74 of the
+161 rows whose product appears in the baseline listing disagree with it — but the
+pattern is systematic, not faulty: rows say `LS 09` where the baseline has
+`LC - 140009`, `LR 32` where it has `LI - 190032`. Those are pre-renumber
+prefixes, from before Landscapes became `LC` and Living Room became `LI`. The
+column is **decorative** — the apply tool reads only `product_id`,
+`new_art_code` and `why` — so nothing is broken, but it should not be read as a
+record of what a product held.
+
+### Evidence weight across the file
+
+| kind | rows |
+|---|---|
+| reasoning under 90 characters | 50 |
+| …of those, positive identifications naming the page and the artwork | 40 |
+| …"not an artwork at all" — blank canvas, empty frame, customer photos | 5 |
+| …**bare negatives: a clear with no evidence beyond the assertion** | **5** |
+
+The five bare negatives are the `#27510` class:
+
+| product | the whole of its reasoning | status |
+|---|---|---|
+| #27510 | *cubist Buddha face — no LB page in the book shows it* | **checked, correct** (Buddha sweep) |
+| #27449 | *blue Buddha with bowl — no LB page in the book shows it* | **checked, correct** (Buddha sweep) |
+| #27750 | *Krishna folk art with monkeys — none of the nine Lord Rama pages shows it* | not re-checked |
+| #25240 | *the chakra, tilak and shankha on black — none of the nine Lord Rama pages shows it* | not re-checked |
+| #26628 | *a botanical pattern of leaves and blossom. No page of Lord Shiva is this* | not re-checked |
+
+A terse **positive** is low risk — it names a page and asserts the artwork is
+that page, which the next report either confirms or contradicts. A terse
+**negative** asserts a whole section was searched and leaves no trace of the
+search. Those are the rows worth re-reading.
+
+### The "on no page of it" class, recounted
+
+The check independently reproduces the list that has been carried by hand:
+**10 rows** now assert *"every section has been read and this is on no page of
+it"*. Four have since been tested — `#25358` by the Indian Culture sweep,
+`#7781`, `#28839` and `#30775` by earlier one-section checks. **Six have never
+been re-checked:**
+
+`#14034` · `#24470` · `#24836` · `#25657` · `#28103` · `#30905`
+
+Two rows that once carried this phrasing were overturned outright — `#22199` onto
+WL 20 and `#7800` onto LC 01 — which is the whole reason the class is suspect.
+
+### What this cost
+
+No deploys, no page renders, no picture comparisons. The whole pass is the
+corrections file read against a dump of the catalogue after corrections apply.
+**It is the cheapest check in the audit and the only one that scales with the
+file rather than with the book.**
+
+---
+
+## Temporary art codes for the products that have none (2026-09-17)
+
+391 products; 220 carry a code from the book. The other **171 carry nothing**, so
+nothing builds them a SKU either and they still show whatever machine-made string
+they were created with. `tools/assign-temp-artcodes.php` gives each of them
+**`TMP-1000`, `TMP-1001`, …** so every product in the shop can be referred to by
+one short string until its real code is known.
+
+### Why `TMP-` and not a bare number
+
+A bare `1000` would be indistinguishable from a real art code to anyone reading
+the catalogue later, and these will appear in the renumber report among the codes
+that name no page of the book. The prefix says what it is. Each product is also
+marked `_af_artcode_temp`, so the whole set can be found and cleared in one query
+when the real codes arrive — and the flag is removed automatically once a product
+is given a real code, so it never goes stale.
+
+### What it will not touch
+
+**Only a product whose art code is empty.** Anything holding a code is left
+exactly as it is, and one case makes that worth stating: `#26145`, `#23496` and
+`#23435` hold `AL 01`, `AL 05` and `AL 06`. Those name no page — `AL` is not a
+section of the book — but they are a **flag the audit put there on purpose**,
+recording that the product came from the Alwars set and has no home yet.
+Overwriting them with `TMP` codes would erase that, so the rule is "empty", not
+"not a book code".
+
+### It settles, and a number never moves
+
+The counter starts above the **highest `TMP` already in the catalogue**, not at
+1000, so a second deploy assigns nothing and a product that was `TMP-1004`
+yesterday is `TMP-1004` today. That is the same promise `sku-to-artcode.php`
+makes about its uniqueness letters, and for the same reason: a SKU that has been
+printed on an invoice cannot be pulled out from under it.
+
+### The SKU follows on its own
+
+Nothing in the new tool writes a SKU. It runs in the deploy **after** the
+renumbering and **before** `sku-to-artcode.php`, which makes the SKU the art code
+by the route every other code takes — `af_sku_code_part('TMP-1000')` returns
+`TMP-1000` unchanged, so no formatting special case was needed.
+
+That pass keeps the SKU it replaces in `_af_sku_before_artcode`, so
+`tools/restore-sku-from-backup.php` can put all 171 back exactly as they were.
+**This is the reversal path**, and it matters: 171 live SKUs change on the next
+deploy, including on frames, canvas rolls, easels, banner mockups and
+made-to-order print services — every product, as asked, not only the artworks.
+
+### Checks
+
+`tools/test-temp-artcodes.php` — 21 assertions, run with `php`, no WordPress
+needed. It holds the rules still: only empty codes are filled, `AL 01` is left
+alone, assignment is in ascending product-id order, a second run assigns nothing,
+a new product continues above the highest number rather than reusing one, no
+number is issued twice, whitespace counts as empty, and `TMP-1000` survives the
+SKU formatter unchanged.
+
+### What this does not do
+
+It does not give any product a **page**. A temporary code is a handle, not a
+placement: the 162 brochure pages with no product still have no product, and
+these 171 products still match no page. The audit's own numbering is untouched.
