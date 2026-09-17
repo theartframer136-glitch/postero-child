@@ -3747,3 +3747,75 @@ audit cannot say which — only that the code is right.
 #18229 "Lord Krishna Statue", each taken from the report that confirmed its
 placement, exactly as #26450 became "Starry City Nights". No row in the file now
 carries a placeholder title.
+
+---
+
+## Abstract Art's unclaimed pages, 2026-09-17 — one placement, twelve that stay empty
+
+Thirteen of Abstract Art's nineteen pages claimed no product. All thirteen were
+rendered and held against the no-code grids.
+
+**One has an owner. Twelve have no product anywhere.**
+
+| product | was | now |
+|---|---|---|
+| **#8144** | no code, never had one | **AA 01** |
+
+Abstract Art goes from 6 claimed pages to **7 of 19**, with no page claimed twice.
+
+### #8144 had been seen twice and placed neither time
+
+Its picture — a stylised face in low relief on cream, one eye closed with a
+single drawn lash, a deep crimson allium bloom on a bare stem covering the other,
+dark red lips — was noted in the very first no-code grid and considered against
+**LI 18** and **LI 19** during the Living Room finish, where the captions promised
+*"elegance redefined — where art, fashion, and modern grace flow"* and *"where
+beauty whispers through every curve"*. Both are women, both are elegant, and
+neither is this painting: LI 18 is a woman in a long orange gown beside a white
+vase, LI 19 an art-nouveau figure in a gold mosaic halo.
+
+AA 01 is it, exactly, in all six frame finishes the page prints.
+
+The lesson is the one the audit keeps relearning from the other side: **a product
+ruled out of one section is not thereby placed, and nothing carries it forward.**
+#8144 was correctly rejected from Living Room and then sat in the grids for
+another day. It is only luck of ordering that Abstract Art came up at all.
+
+### The twelve that stay empty
+
+| pages | what the book shows |
+|---|---|
+| AA 03, AA 05 | a cubist collage portrait with a large eye and a dandelion; two faces built from wood-toned planes |
+| AA 04 | a silhouetted man in a top hat, seated, on gold and cream panels |
+| AA 07 | a golden tree among pale city buildings |
+| AA 08 | figures walking in coloured coats on cream |
+| AA 12 | Japanese-minimalist layered hills with gold circles and vertical lines |
+| AA 13, AA 17 | layered terracotta geometry with dandelions; earthy circles with flowing lines |
+| AA 14 | a woman's profile blended with a soaring blue bird, in blue and gold |
+| AA 15 | gold and black circle-halves with a vase of metallic leaves |
+| AA 18 | a serene collage face among terracotta botanicals |
+| AA 19 | three women carrying bowls of fruit, in flowing blue and orange silhouettes |
+
+The two abstract faces in the grids were held against `AA 03`, `AA 14` and
+`AA 18` and are none of them: **#27981** is a soft-focus photographic face with
+coral brush-slashes across it, **#30775** a muted grey-green face with rust
+flowers over the eyes and paint drips. Both are painterly portraits; all three
+pages are hard-edged collage. **#27133**, **#29517**, **#28473** and **#30276**
+were held against `AA 07` and `AA 12` and are landscapes, not abstractions of
+this kind.
+
+### Five sweeps in, the pattern is stable
+
+| sweep | unclaimed | placed |
+|---|---|---|
+| Living Room | 30 | 4 |
+| Hindu Deities | 6 | 2 |
+| Lord Rama | 6 | 1 |
+| Still Life | 17 | 0 |
+| **Abstract Art** | **13** | **1** |
+
+Eight owners found across 72 unclaimed pages. **Seven of the eight were products
+an earlier pass had already handled and left without a home** — six cleared off
+a wrong page, and #8144 rejected from a section without ever being placed. The
+sweeps are not mostly finding new paintings; they are finishing jobs that were
+left half done.
