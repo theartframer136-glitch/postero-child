@@ -12,23 +12,36 @@ const puppeteer = require('puppeteer-core');
     try { await p.reload({ waitUntil: 'networkidle2', timeout: 45000 }); } catch {}
   }
   const out = await p.evaluate(() => {
-    const find = (name) => {
-      const as = [...document.querySelectorAll('a')];
-      const a = as.find(x => x.textContent.trim().replace(/\s+/g,' ') === name ||
-                             x.textContent.trim().startsWith(name));
-      if (!a) return { name, found: false };
-      const li = a.closest('li');
-      return { name, found: true,
-        liClass: li ? li.className : '',
-        html: (li ? li.innerHTML : a.outerHTML).replace(/\s+/g,' ').slice(0, 340) };
+    const all = (name) => {
+      const as = [...document.querySelectorAll('a')].filter(x =>
+        x.textContent.trim().replace(/\s+/g,' ').startsWith(name));
+      return as.map(a => {
+        const li = a.closest('li');
+        const box = li || a;
+        const r = box.getBoundingClientRect();
+        return {
+          liClass: li ? li.className : '(no li)',
+          visible: r.width > 0 && r.height > 0,
+          ancestors: (() => { const out = []; let n = box.parentElement;
+            for (let i = 0; i < 4 && n; i++, n = n.parentElement)
+              out.push(n.tagName.toLowerCase() + (n.className ? '.' + String(n.className).split(/\s+/).slice(0,3).join('.') : ''));
+            return out.join(' < '); })(),
+          html: box.outerHTML.replace(/\s+/g,' ').slice(0, 400),
+        };
+      });
     };
-    return ['Banners & Signage', 'Corporate Printing', 'Gold Foiled & UV'].map(find);
+    const o = {};
+    for (const n of ['Banners & Signage', 'Corporate Printing', 'Gold Foiled & UV']) o[n] = all(n);
+    return o;
   });
-  for (const r of out) {
-    console.log(`\n=== ${r.name} ===`);
-    if (!r.found) { console.log('  NOT FOUND in the page'); continue; }
-    console.log(`  li class: ${r.liClass}`);
-    console.log(`  html    : ${r.html}`);
+  for (const name of Object.keys(out)) {
+    console.log(`\n================ ${name}  (${out[name].length} matches) ================`);
+    out[name].forEach((r, i) => {
+      console.log(`  --- match ${i+1}  visible=${r.visible}`);
+      console.log(`      li class : ${r.liClass}`);
+      console.log(`      in       : ${r.ancestors}`);
+      console.log(`      html     : ${r.html}`);
+    });
   }
   await b.close();
 })();
