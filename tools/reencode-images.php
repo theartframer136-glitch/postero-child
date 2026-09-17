@@ -46,10 +46,10 @@ $up   = wp_upload_dir();
 $base = rtrim( $up['basedir'], '/' );
 
 $ids = get_posts( array(
-    'post_type' => 'attachment', 'post_mime_type' => 'image/jpeg', 'post_status' => 'inherit',
+    'post_type' => 'attachment', 'post_mime_type' => array( 'image/jpeg', 'image/webp' ), 'post_status' => 'inherit',
     'posts_per_page' => -1, 'fields' => 'ids', 'orderby' => 'ID', 'order' => 'DESC',
 ) );
-echo "  " . count( $ids ) . " JPEG attachments in the library\n\n";
+echo "  " . count( $ids ) . " JPEG and WebP attachments in the library\n\n";
 
 $done = 0; $skipped = 0; $saved = 0; $before = 0; $examined = 0;
 
@@ -62,7 +62,8 @@ foreach ( $ids as $id ) {
     foreach ( $meta['sizes'] as $name => $s ) {
         if ( $done >= $limit ) break;
         if ( empty( $s['file'] ) ) continue;
-        if ( ( $s['mime-type'] ?? '' ) !== 'image/jpeg' ) continue;
+        $mime = $s['mime-type'] ?? '';
+        if ( $mime !== 'image/jpeg' && $mime !== 'image/webp' ) continue;
         $f = $dir . $s['file'];
         if ( ! file_exists( $f ) || ! is_writable( $f ) ) continue;
 
@@ -85,10 +86,22 @@ foreach ( $ids as $id ) {
 
         try {
             $im = new Imagick( $f );
-            $im->setImageFormat( 'jpeg' );
-            $im->setImageCompressionQuality( $quality );
-            $im->stripImage();                         // camera/editor metadata a browser never reads
-            $im->setInterlaceScheme( Imagick::INTERLACE_PLANE );  // progressive: paints early
+            if ( $mime === 'image/webp' ) {
+                // WebP was being skipped entirely, and it is where the weight
+                // now sits: the category pages are WebP, and an 800x533 frame
+                // at 404 KB is about 940 KB per megapixel, which is heavier
+                // than the JPEGs this script was written for. WebP's quality
+                // scale is not JPEG's — 82 here is visually equivalent to the
+                // 92 used above — and it takes no interlace scheme.
+                $im->setImageFormat( 'webp' );
+                $im->setImageCompressionQuality( min( 85, max( 70, $quality - 10 ) ) );
+                $im->stripImage();
+            } else {
+                $im->setImageFormat( 'jpeg' );
+                $im->setImageCompressionQuality( $quality );
+                $im->stripImage();                     // camera/editor metadata a browser never reads
+                $im->setInterlaceScheme( Imagick::INTERLACE_PLANE );  // progressive: paints early
+            }
             $blob = $im->getImageBlob();
             $im->clear(); $im->destroy();
         } catch ( Throwable $e ) {
