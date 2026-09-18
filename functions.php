@@ -9346,6 +9346,56 @@ add_action('wp_head', function() {
       .elementor-element-bec7134 .elementor-icon-box-icon{
         text-align: center !important;
       }
+
+      /* ── AND THE FOUR ON ONE BASELINE ──────────────────────────────────
+         Measured at 420px: three of these cells are Elementor icon boxes and
+         the fourth, Search, is a different widget entirely - the theme's own
+         search control, with its own line boxes. Its icon started 5px above
+         the others and its label 5px above theirs, so the whole cell rode
+         high. That is the "one is a little down and another a little up" in
+         the screenshot, and no amount of centring the icon inside its cell
+         could fix it, because the cells themselves were laid out differently.
+
+         So the four are given one layout instead of two: each cell centres its
+         content as a column, the icon sits in a line box of a fixed height,
+         and the same gap separates icon from label everywhere. Four different
+         widgets then produce the same two rows at the same two heights. Sizes
+         and colours are left alone - only where things sit changes. */
+      .elementor-element-bec7134 > .e-con-inner > .elementor-widget{
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      .elementor-element-bec7134 .elementor-icon-box-wrapper,
+      .elementor-element-bec7134 .site-header-search,
+      .elementor-element-bec7134 .site-header-search .button-search-popup{
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        margin: 0 !important;
+      }
+      /* The icon's line box, not the glyph: a fixed height here is what puts
+         every label on the same line, whatever the glyph inside measures. */
+      .elementor-element-bec7134 .elementor-icon-box-icon,
+      .elementor-element-bec7134 .site-header-search .button-search-popup > i{
+        height: 20px !important; line-height: 20px !important;
+        display: flex !important;
+        align-items: center !important; justify-content: center !important;
+        margin: 0 !important; padding: 0 !important;
+      }
+      .elementor-element-bec7134 .elementor-icon-box-icon i,
+      .elementor-element-bec7134 .elementor-icon-box-icon svg,
+      .elementor-element-bec7134 .site-header-search .button-search-popup > i{
+        font-size: 18px !important; width: 18px !important; height: 18px !important;
+        line-height: 18px !important;
+      }
+      .elementor-element-bec7134 .elementor-icon-box-title,
+      .elementor-element-bec7134 .site-header-search .content{
+        display: block !important; line-height: 15px !important;
+        margin: 0 !important; padding: 0 !important;
+      }
     }
     </style>
     <?php

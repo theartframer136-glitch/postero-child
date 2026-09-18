@@ -11,7 +11,20 @@ const puppeteer = createRequire(import.meta.url)('puppeteer-core');
 const b = await puppeteer.launch({ channel: 'chrome', headless: 'new', args: ['--no-sandbox','--disable-dev-shm-usage'] });
 const p = await b.newPage();
 await p.setViewport({ width: 420, height: 720, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
-await p.goto('https://theartframer.us/', { waitUntil: 'networkidle2', timeout: 60000 });
+// The server is slow enough at times that a single attempt times out and the
+// run reports nothing; that is not a finding about the page.
+let loaded = false;
+for (let attempt = 1; attempt <= 3 && !loaded; attempt++) {
+  try {
+    await p.goto('https://theartframer.us/', { waitUntil: 'domcontentloaded', timeout: 90000 });
+    loaded = true;
+  } catch (e) {
+    console.log('load attempt ' + attempt + ' failed: ' + e.message);
+    await new Promise(r => setTimeout(r, 4000));
+  }
+}
+if (!loaded) { console.log('could not load the page - no measurement'); await b.close(); process.exit(0); }
+await new Promise(r => setTimeout(r, 4000));
 for (let i = 0; i < 8; i++) {
   if (!(await p.evaluate(() => document.body.innerText.includes('Checking your browser')))) break;
   await new Promise(r => setTimeout(r, 2500));
@@ -75,6 +88,22 @@ else {
     console.log('   text ', JSON.stringify(c.text));
     if (c.icon && c.text) console.log('   >> iconCx-textCx = ' + (c.icon.cx - c.text.box.cx).toFixed(1) + '   iconCx-cellCx = ' + (c.icon.cx - c.cell.cx).toFixed(1) + '   textCx-cellCx = ' + (c.text.box.cx - c.cell.cx).toFixed(1));
     console.log('');
+  }
+  // VERTICAL: the fault in the screenshot is that the four do not share a
+  // baseline - one sits a little low, another a little high. Compare each
+  // icon's top and each label's top against the others.
+  const withBoth = out.cells.filter(c => c.icon && c.text);
+  if (withBoth.length) {
+    const iconTops = withBoth.map(c => c.icon.t);
+    const textTops = withBoth.map(c => c.text.box.t);
+    const spread = a => +(Math.max(...a) - Math.min(...a)).toFixed(1);
+    console.log('\nVERTICAL ALIGNMENT');
+    withBoth.forEach(c => console.log('   ' + c.label.padEnd(10) + ' iconTop=' + c.icon.t + '  labelTop=' + c.text.box.t + '  iconH=' + c.icon.h));
+    console.log('   icon tops differ by  : ' + spread(iconTops) + 'px');
+    console.log('   label tops differ by : ' + spread(textTops) + 'px');
+    console.log(spread(iconTops) <= 1 && spread(textTops) <= 1
+      ? '   OK: all four share one baseline'
+      : '   FAIL: the four do not share a baseline');
   }
   const bad = out.cells.filter(c => c.icon && c.text && Math.abs(c.icon.cx - c.text.box.cx) > 1.5);
   console.log(bad.length ? 'RESULT: ' + bad.length + ' cell(s) still off-centre' : 'RESULT: all cells centred (icon within 1.5px of its label)');
