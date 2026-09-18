@@ -268,6 +268,35 @@ add_action('wp_footer', function () {
         });
         if (!found.length) return;
 
+        // Two different Quick Views answer this icon depending on the page.
+        // The homepage card carries <a class="quick-view-btn"> and opens the
+        // theme's own #quickViewModal: wide, two columns, thumbnail strip,
+        // sticky add-to-cart bar. A shop or category card carries
+        // <button class="woosq-btn"> and opens the WPC plugin's popup, which
+        // is the cramped one the owner filmed — a title wrapping a word to a
+        // line and a brochure button escaping the panel.
+        //
+        // #quickViewModal is already printed on shop and category pages; it is
+        // only the button that points elsewhere. So give that button the class
+        // the theme's handler listens for. That handler is registered in the
+        // CAPTURE phase and calls stopImmediatePropagation(), so it runs before
+        // the plugin's delegated click on document and the plugin never sees
+        // the event. One modal everywhere, and nothing is dequeued or patched
+        // inside the plugin.
+        found.forEach(function(entry){
+          var el = entry[0];
+          if (entry[1][2] !== 'quick') return;
+          if (!el.classList.contains('woosq-btn')) return;
+          if (el.classList.contains('quick-view-btn')) return;
+          el.classList.add('quick-view-btn');
+          // The theme's handler finds the product from the card's own link and
+          // falls back to this attribute. The plugin names it data-id.
+          if (!el.getAttribute('data-product-id')) {
+            var pid = el.getAttribute('data-id');
+            if (pid) el.setAttribute('data-product-id', pid);
+          }
+        });
+
         // Compare against OUR buttons only, never against the row's child
         // count. WooCommerce inserts a "View cart" link into this row after an
         // add-to-cart, and counting children would then make the order look

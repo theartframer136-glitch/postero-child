@@ -163,6 +163,22 @@ async function measure(browser, url, label, warm) {
     }
   }
 
+  // Machine-readable, for the report builder.
+  const payload = detail.map(d => ({
+    label: d.label, url: d.url,
+    ttfb: d.nav ? Math.round(d.nav.ttfb) : null,
+    fcp: d.nav && d.nav.fcp != null ? Math.round(d.nav.fcp) : null,
+    lcp: d.nav && d.nav.lcp != null ? Math.round(d.nav.lcp) : null,
+    load: d.nav ? Math.round(d.nav.load) : null,
+    reqs: d.reqs, kb: Math.round(d.total / 1024),
+    css: d.blocking.css, syncJs: d.blocking.js, allJs: d.blocking.jsAll,
+    inlineCssKb: Math.round(d.blocking.inlineCss / 1024), inlineJsKb: Math.round(d.blocking.inlineJs / 1024),
+    imgs: d.blocking.imgs, lazy: d.blocking.lazy,
+    heaviest: d.heaviest.slice(0, 5).map(h => ({ kb: Math.round(h.size / 1024), type: h.type, url: h.url.replace(ORIGIN, '').slice(0, 90) })),
+    cache: d.serverCache,
+  }));
+  console.log('\n@@PERF@@' + JSON.stringify(payload) + '@@END@@');
+
   console.log('\n\n=== READING THIS ===');
   const worstTtfb = detail.filter(d => d.nav).sort((a, b) => b.nav.ttfb - a.nav.ttfb)[0];
   const worstLoad = detail.filter(d => d.nav).sort((a, b) => b.nav.load - a.nav.load)[0];

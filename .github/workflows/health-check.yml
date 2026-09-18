@@ -1,0 +1,53 @@
+name: Health Check
+# Is the site down, or is the host refusing this runner? Two vantage points in
+# one run: plain HTTP from the runner, then the server's own view over SSH —
+# load, memory, whether the web server answers on localhost, whether PHP
+# answers at all, and the tail of the error log.
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: HTTP from this runner
+        run: |
+          set +e
+          for u in https://theartframer.us/ https://theartframer.us/shop/; do
+            printf '%-40s ' "$u"
+            curl -sS -o /dev/null -m 25 -w 'HTTP %{http_code}  connect %{time_connect}s  ttfb %{time_starttransfer}s  total %{time_total}s\n' "$u" 2>&1 || echo "FAILED"
+          done
+          echo; echo "resolves to:"; getent hosts theartframer.us || echo "  DNS lookup failed"
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: The server's own view
+        run: |
+          set +e
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" '
+            echo "=== SSH reached the server ==="
+            echo; echo "--- load / uptime ---"; uptime
+            echo; echo "--- memory (MB) ---"; free -m 2>/dev/null | head -2
+            echo; echo "--- php processes ---"; ps aux 2>/dev/null | grep -c "[p]hp"
+            echo; echo "--- HTTP from the server to itself ---"
+            for u in "https://theartframer.us/" "https://theartframer.us/shop/"; do
+              printf "%-36s " "$u"
+              curl -sS -o /dev/null -m 25 -w "HTTP %{http_code}  ttfb %{time_starttransfer}s  total %{time_total}s\n" "$u" 2>&1 || echo "FAILED"
+            done
+            echo; echo "--- does PHP/WordPress answer at all (wp-cli) ---"
+            cd ~/websites/OPu0sKi4J/public_html && timeout 60 wp option get siteurl --allow-root 2>&1 | tail -1
+            echo; echo "--- last 25 lines of the PHP error log, if any ---"
+            for f in ~/websites/OPu0sKi4J/public_html/wp-content/debug.log ~/websites/OPu0sKi4J/logs/error_log ~/logs/error_log; do
+              [ -f "$f" ] && { echo "[$f]"; tail -25 "$f"; break; }
+            done
+            echo; echo "--- LiteSpeed 5xx in the last hour, if the access log is readable ---"
+            for f in ~/websites/OPu0sKi4J/logs/access_log ~/logs/access_log; do
+              [ -f "$f" ] && { grep -c " 50[0-9] " "$f" 2>/dev/null; break; }
+            done
+            echo; echo "=== done ==="
+          ' || echo "SSH FAILED — cannot reach the server at all"

@@ -2536,10 +2536,28 @@ body.post-type-archive-product ul.products li.product a.woocommerce-loop-product
    would swallow every click on Add to cart, wishlist and Quick view — trading
    a layout bug for a broken card. */
 body.tax-product_cat ul.products li.product .product-transition .group-action,
-body.post-type-archive-product ul.products li.product .product-transition .group-action,
+body.post-type-archive-product ul.products li.product .product-transition .group-action{
+  position:relative !important;z-index:3 !important;
+}
+/* The sale ribbon was in this rule too, and position:relative is what put the
+   empty band above every picture. A relatively-positioned element still holds
+   its place in normal flow, so the ribbon reserved 50px at the top of the box
+   and pushed the image down by exactly that much — measured at 50px on every
+   card, with the image then overflowing 50px past the bottom of a 300px box
+   that clips it. The top of every artwork was being cut off.
+
+   It only needed relative for the z-index that keeps it above the image, and
+   absolute positioning stacks just as well. The offsets it is drawn at —
+   top:15px, left:-46px, width:160px for the diagonal corner ribbon — come
+   from the earlier .onsale rule and are unchanged, and .product-transition is
+   already a containing block, so the ribbon lands where it always did.
+
+   .group-action above keeps relative deliberately: the comment on that rule
+   records that making it anything else swallowed every click on Add to cart,
+   wishlist and Quick view. */
 body.tax-product_cat ul.products li.product .product-transition .onsale,
 body.post-type-archive-product ul.products li.product .product-transition .onsale{
-  position:relative !important;z-index:3 !important;
+  position:absolute !important;z-index:3 !important;
 }
 body.tax-product_cat ul.products li.product .product-transition img,
 body.tax-product_cat ul.products li.product a.woocommerce-loop-product__link img,
@@ -2710,3 +2728,88 @@ h3.trending-title,
   margin:0 0 6px !important;
 }
 h3.trending-title a{display:inline !important;}
+
+/* =====================================================================
+   The CATEGORIES dropdown: icon and label alignment
+   Measured on the live menu, not guessed at:
+
+     gap between icon and label   0px on every single row
+     icon box widths              20.0, 20.0, 20.0, 20.0, 20.0, 15.0,
+                                  20.0, 22.5, 20.0, 20.0, 20.0
+     icon vs text vertical centre out by 1.4px
+
+   Two separate faults. The icons touch their labels because nothing ever
+   put a gap between them. And because the icon box sizes itself to the
+   glyph, three of the eleven rows are a different width, so their labels
+   start at three different x positions — that is the part that reads as
+   "not aligned" even though each row on its own looks fine.
+
+   The row is laid out as a flex line instead. A fixed 24px box makes every
+   label begin at the same place whatever the glyph is, centring handles the
+   1.4px, and the gap is stated once. The chevron on rows that have children
+   is pushed to the right edge with margin-left:auto, which is where it
+   already sits, so it works whether the theme draws it inside the link or
+   not.
+
+   Scoped to .primary-navigation, which is the desktop dropdown only. The
+   mobile menu is a different element and is untouched.
+   ===================================================================== */
+.primary-navigation ul.sub-menu > li.menu-item > a{
+  display:flex !important;
+  align-items:center !important;
+  gap:12px !important;
+  padding:6px 14px !important;
+}
+.primary-navigation ul.sub-menu > li.menu-item > a > i.menu-icon{
+  flex:0 0 24px !important;
+  width:24px !important;
+  margin:0 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  line-height:1 !important;
+  vertical-align:middle !important;
+}
+.primary-navigation ul.sub-menu > li.menu-item > a > span.menu-title{
+  flex:1 1 auto !important;
+  line-height:1.45 !important;
+}
+/* Rows with children draw a chevron. Whether it is a pseudo-element inside
+   the link or a real one, send it to the far edge rather than letting the
+   flex gap space it off the label. */
+.primary-navigation ul.sub-menu > li.menu-item > a::after,
+.primary-navigation ul.sub-menu > li.menu-item > a > .sub-arrow,
+.primary-navigation ul.sub-menu > li.menu-item > a > .menu-arrow{
+  margin-left:auto !important;
+  flex:0 0 auto !important;
+}
+
+/* =====================================================================
+   The corner ribbon on the "You may also like" rows
+   Everything else about these cards now matches a category card exactly.
+   The ribbon did not, and it is a specificity accident rather than a
+   missing rule.
+
+   Two rules describe .onsale. The diagonal gold corner ribbon is written
+   as "body.woocommerce-page ul.products li.product .onsale", which scores
+   four classes. A later rule pins a small badge at top:10px left:10px and
+   is written as "html body .woocommerce ul.products li.product
+   .product-transition .onsale", which scores five.
+
+   On an archive the second one never matches, because it needs an element
+   with class .woocommerce INSIDE body and there is none — body itself
+   carries that class, which "body .woocommerce" does not select. But this
+   row wraps itself in <section class="af-wl-related woocommerce">, so on
+   these pages that element exists, the five-class rule matches, and it
+   moves the ribbon to the wrong corner and drops its gradient offsets.
+
+   Matched at the same score and placed after it, so source order decides.
+   Only top and left are restated; the gradient, rotation, size and
+   typography all come from the diagonal rule, unchanged.
+   ===================================================================== */
+html body .af-wl-related ul.products li.product .product-transition .onsale,
+html body .af-xsell ul.products li.product .product-transition .onsale{
+  top:15px !important;
+  left:-46px !important;
+  right:auto !important;
+}

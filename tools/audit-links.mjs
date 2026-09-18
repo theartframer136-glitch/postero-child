@@ -45,6 +45,13 @@ function norm(href, base) {
 // Skip the endpoints that are not pages, and the ones that would act.
 const SKIP = /\.(jpe?g|png|gif|webp|avif|svg|ico|css|js|mp4|webm|pdf|zip|woff2?|ttf)(\?|$)|\/wp-admin|\/wp-json|\/wp-login|\/feed\/?$|add-to-cart=|\?add_to_cart|\/cart\/\?|remove_item|woosw|woosc|\/my-account\/customer-logout|\?orderby=|\?filter_|\?paged=|\?s=/i;
 
+// The host answers an unrecognised client with a "Checking your browser" page,
+// as a complete 200 document. A crawl that accepts those reports a clean site
+// because every selector legitimately matches nothing. Detect and retry.
+function isChallenge(body) {
+  return typeof body === 'string' && body.includes('Checking your browser');
+}
+
 async function fetchPage(url) {
   const t0 = Date.now();
   const chain = [];
@@ -75,6 +82,16 @@ async function fetchPage(url) {
 }
 
 function harvest(pageUrl, html) {
+  // The audit listed five "broken links" that were JavaScript templates —
+  // href="'+url+'", {{{data.url}}} — read out of <script> blocks as if they
+  // were anchors. A browser never renders those; a regex over raw HTML does.
+  // Strip the blocks a browser would not treat as markup before looking.
+  html = html
+    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+    .replace(/<template\b[\s\S]*?<\/template>/gi, '')
+    .replace(/<style\b[\s\S]*?<\/style>/gi, '')
+    .replace(/<noscript\b[\s\S]*?<\/noscript>/gi, '');
+
   // Links inside the header/footer navigation, named so they can be reported
   // separately from links buried in body copy.
   const navBlocks = [];
@@ -194,6 +211,22 @@ function harvest(pageUrl, html) {
 
   console.log(`\n--- SLOWEST PAGES (time to full response) ---`);
   for (const [u, r] of slow) console.log(`  ${String(r.ms).padStart(6)} ms  ${u}`);
+
+  // One compact line the report builder can parse out of the run log.
+  const payload = {
+    origin: ORIGIN,
+    crawled: rows.length,
+    broken: broken.map(([u, r]) => ({ url: u, status: r.status, err: r.err || '',
+      from: [...(linkedFrom.get(u) || [])].slice(0, 3) })),
+    redirects: chained.map(([u, r]) => ({ url: u, hops: r.chain.length,
+      chain: r.chain.map(h => ({ status: h.status, to: h.to })) })),
+    deadHrefs: [...grouped.entries()].map(([why, list]) => ({ why, count: list.length,
+      examples: list.slice(0, 5).map(b => ({ label: b.label, page: b.page, href: b.href })) })),
+    navBad: navBad.map(([label, u]) => ({ label, url: u, status: (seen.get(u) || {}).status })),
+    navChecked: navLinks.size,
+    slowest: slow.map(([u, r]) => ({ url: u, ms: r.ms })),
+  };
+  console.log('\n@@JSON@@' + JSON.stringify(payload) + '@@END@@');
 
   const ok = rows.filter(([, r]) => r.status === 200);
   const avg = ok.length ? Math.round(ok.reduce((a, [, r]) => a + r.ms, 0) / ok.length) : 0;

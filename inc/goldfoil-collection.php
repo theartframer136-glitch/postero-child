@@ -80,7 +80,15 @@ function af_goldfoil_collection_payload() {
     ));
     if (!is_wp_error($kids)) {
         foreach ($kids as $kid) {
-            if ((int) $kid->count === 0) continue;          // a circle that leads to an empty page is worse than no circle
+            // An empty sub-collection used to be dropped here, on the grounds
+            // that a circle leading to an empty page is worse than no circle.
+            // That held while the children were SUBJECTS and an empty one meant
+            // a gap in the catalogue. The children are now the three FINISHES
+            // the section is defined by — Gold Foil, UV, Mixed — and they are
+            // empty only because the artwork has not been uploaded yet. Hiding
+            // them makes the section look like it has no structure at all,
+            // which is what the owner saw on the homepage while the dropdown
+            // listed all three. So they are shown, and fill up as pieces land.
             $kurl = get_term_link($kid);
             if (is_wp_error($kurl)) continue;
             $circles[] = array(
@@ -92,8 +100,9 @@ function af_goldfoil_collection_payload() {
         }
     }
 
-    // Too few sub-collections to make a row: show the pieces themselves.
-    if (count($circles) < 2) {
+    // No sub-collections at all: show the pieces themselves, so the row is not
+    // simply blank. With children present they are the row, full or not.
+    if (!$circles) {
         $circles = array();
         $ids = get_posts(array(
             'post_type'      => 'product',
@@ -243,6 +252,17 @@ add_action('wp_footer', function () {
    thing worth saying is that a picture that failed to load must not leave a
    torn icon in a row of round photographs. */
 .af-gf-circle img { object-fit: cover !important; }
+/* A sub-collection whose artwork has not been uploaded yet keeps a real
+   <img>, so it takes whatever size and shape the theme gives its circles.
+   The disc is drawn INSIDE that image as an SVG data URI (see makeCircle), so
+   nothing here has to guess at the row's geometry — an earlier attempt styled
+   a wrapper and a figure element that this markup simply does not have. */
+.af-gf-circle--blank img { border-radius: 50% !important; object-fit: cover !important; }
+/* The grid while the section has nothing in it. */
+.af-gf-empty { padding: 28px 16px; text-align: center; }
+.af-gf-empty-title { margin: 0 0 6px; font-size: 17px; color: #8a6d1f; }
+.af-gf-empty-sub { margin: 0; font-size: 14px; color: #6b6b6b; }
+.af-gf-empty-sub a { color: #8a6d1f; text-decoration: underline; }
 </style>
 <script id="af-gf-collection-js">
 (function () {
@@ -356,13 +376,41 @@ add_action('wp_footer', function () {
     return strips[0] || null;
   }
 
+  // A round gold swatch with one letter in it, as a data URI. Inline SVG
+  // rather than a file: it costs no request, scales to whatever box the theme
+  // gives it, and there is no placeholder asset to deploy or lose.
+  function blankDisc(name) {
+    var ch = (name || '?').trim().charAt(0).toUpperCase().replace(/[<>&"']/g, '');
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">' +
+              '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+              '<stop offset="0" stop-color="#f6efdc"/><stop offset="1" stop-color="#e2cf9e"/>' +
+              '</linearGradient></defs>' +
+              '<circle cx="60" cy="60" r="60" fill="url(#g)"/>' +
+              '<text x="60" y="60" text-anchor="middle" dominant-baseline="central" ' +
+              'font-family="Georgia,serif" font-size="52" fill="#8a6d1f">' + ch + '</text></svg>';
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+
   function makeCircle(sample, c) {
     var el = sample.cloneNode(true);
     el.classList.remove('active');
     el.classList.add('af-gf-circle');
     var img = el.querySelector('img');
     if (img) {
-      if (c.i) { img.setAttribute('src', c.i); img.removeAttribute('srcset'); img.removeAttribute('data-src'); }
+      if (c.i) {
+        img.setAttribute('src', c.i); img.removeAttribute('srcset'); img.removeAttribute('data-src');
+        el.classList.remove('af-gf-circle--blank');
+      } else {
+        // This circle is a CLONE of one of the theme's own, so leaving its
+        // image alone would put another collection's photograph under this
+        // collection's name. A sub-collection with no thumbnail yet gets a
+        // plain gold disc carrying its initial — drawn as the image itself, so
+        // it inherits the row's own sizing instead of needing CSS that guesses
+        // at markup. It becomes a photograph the moment a thumbnail is set.
+        img.removeAttribute('srcset'); img.removeAttribute('data-src');
+        img.setAttribute('src', blankDisc(c.n));
+        el.classList.add('af-gf-circle--blank');
+      }
       img.setAttribute('alt', c.n);
       img.setAttribute('loading', 'lazy');
     }
@@ -372,6 +420,21 @@ add_action('wp_footer', function () {
       a.setAttribute('href', c.u);
       if (c.s) a.setAttribute('data-val', c.s); else a.removeAttribute('data-val');
       a.setAttribute('data-title', c.n);
+    }
+    // Read off the live page, because the markup is not what this code
+    // assumed: a circle in this row is <div class="sub-cat"
+    // data-subcat="radha-krishna"> with NO link inside it at all. The theme
+    // filters on that attribute. Setting only the href above therefore built
+    // circles that could not be clicked — they carried the slug of whichever
+    // circle they were cloned from, or none. The attribute is what matters, so
+    // it is set, and a circle standing for a piece rather than a
+    // sub-collection carries its destination instead.
+    if (c.s) {
+      el.setAttribute('data-subcat', c.s);
+      if (el.dataset) el.dataset.subcat = c.s;
+    } else {
+      el.removeAttribute('data-subcat');
+      el.setAttribute('data-af-gf-href', c.u);
     }
     // A circle standing for a PIECE, not a sub-collection, has to say so. The
     // circle handler in functions.php resolves an unlabelled circle by
@@ -428,6 +491,19 @@ add_action('wp_footer', function () {
     strip.removeAttribute('data-af-gf-open');
     var saved = strip.getAttribute('data-af-gf-saved');
     if (saved !== null) strip.innerHTML = saved;
+  }
+
+  // What the grid says while the section is still being filled. Deliberately
+  // plain: it names the section, it does not apologise, and it does not
+  // pretend there is something to buy.
+  function emptyNotice(grid) {
+    var box = document.createElement('div');
+    box.className = 'af-gf-empty';
+    box.innerHTML = '<p class="af-gf-empty-title">' + (GF.label || 'This collection') +
+                    ' is being added.</p><p class="af-gf-empty-sub">Browse the finishes below,' +
+                    ' or <a href="' + GF.url + '">open the collection</a>.</p>';
+    grid.innerHTML = '';
+    grid.appendChild(box);
   }
 
   /* ---- the products ----------------------------------------------------- */
@@ -494,7 +570,22 @@ add_action('wp_footer', function () {
     }).then(function (html) {
       busy = false;
       clearTimeout(unDim);
-      if (!hasCards(html)) { area.style.opacity = ''; window.location.href = GF.url; return; }
+      if (!hasCards(html)) {
+        area.style.opacity = '';
+        // Measured on the live site: this section holds no products yet, so
+        // neither endpoint can return a card and every visitor who picked the
+        // tab was sent straight off the homepage to an empty archive. That
+        // also meant the three sub-collections under the tab were never seen
+        // by anyone, which is exactly what was reported.
+        //
+        // A section with nothing in it yet is not an error to redirect away
+        // from. The visitor stays, the circles stay, and the grid says plainly
+        // what is going on. The moment a single piece is filed here the count
+        // is no longer zero and the old behaviour returns untouched.
+        if (!GF.count) { emptyNotice(grid); showCircles(); return; }
+        window.location.href = GF.url;
+        return;
+      }
       grid.innerHTML = html;
       if (area === grid) area.style.opacity = '';
       showCircles();
@@ -502,6 +593,10 @@ add_action('wp_footer', function () {
       if (window.jQuery) jQuery(document.body).trigger('wc_fragments_refreshed');
     }).catch(function () {
       busy = false; clearTimeout(unDim); area.style.opacity = '';
+      // Same reasoning as above: with nothing in the section there is nothing
+      // for a failed request to have lost, so the visitor is not thrown to an
+      // empty archive over it.
+      if (!GF.count) { emptyNotice(grid); showCircles(); return; }
       window.location.href = GF.url;
     });
   }
@@ -518,11 +613,19 @@ add_action('wp_footer', function () {
 
     var piece = e.target.closest('[data-af-gf-piece]');
     if (piece) {                                    // a circle that IS an artwork: open it
-      var link = piece.matches('a') ? piece : piece.querySelector('a[href]');
-      if (link && link.getAttribute('href')) {
+      // The destination is read from the attribute first: a circle in this row
+      // has no <a> inside it, so looking only for a link found nothing and the
+      // click fell through to the category filter — the exact thing the piece
+      // marker exists to prevent.
+      var href = piece.getAttribute('data-af-gf-href');
+      if (!href) {
+        var link = piece.matches('a') ? piece : piece.querySelector('a[href]');
+        if (link) href = link.getAttribute('href');
+      }
+      if (href) {
         e.preventDefault();                         // and keep the circle filter off it
         e.stopPropagation();
-        window.location.href = link.getAttribute('href');
+        window.location.href = href;
       }
       return;
     }

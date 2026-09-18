@@ -6086,6 +6086,48 @@ add_filter('body_class', function($classes) {
     if (af_is_qv_embed()) $classes[] = 'af-qv-embed';
     return $classes;
 });
+
+/**
+ * The "You may also like" rows print the same product-card markup the shop
+ * archives do, but they sit on the wishlist and cart pages, which are ordinary
+ * WordPress pages. Every card rule in this theme is scoped to
+ * body.tax-product_cat or body.woocommerce-page, and those pages carry
+ * neither — so the identical markup arrived with none of the design on it.
+ *
+ * Measured rather than assumed. Against a category card, those cards came out
+ * with an 18px normal-weight title instead of 13.5px semibold, a flat
+ * gradient-less ribbon at the wrong corner and the wrong size, a 275px square
+ * image box holding a 300px image so 25px of every picture was clipped, and a
+ * softer shadow.
+ *
+ * Rather than restate several hundred lines of card CSS under new selectors,
+ * where the two copies would drift apart, the page is given the class those
+ * rules already look for. That is also what WooCommerce itself adds to any
+ * page carrying its content.
+ *
+ * The blast radius was checked before doing it: every rule in the theme scoped
+ * to body.woocommerce-page — 29 in custom.css and 14 in this file — targets
+ * ul.products or li.product. None of them styles anything else on a page, so
+ * the class cannot reach past the cards it is meant to fix.
+ */
+add_filter('body_class', function ($classes) {
+    if (is_admin() || !function_exists('is_woocommerce')) return $classes;
+    if (in_array('woocommerce-page', $classes, true)) return $classes;
+    if (!is_page()) return $classes;
+
+    $post = get_post();
+    if (!$post) return $classes;
+
+    // The cart already gets the class from WooCommerce. This is for the pages
+    // that only borrow the card markup: the wishlist, and any page the
+    // cross-sell row is printed into.
+    $has_row = (function_exists('af_is_wishlist_page') && af_is_wishlist_page())
+            || strpos((string) $post->post_content, 'af-wl-related') !== false
+            || strpos((string) $post->post_content, 'af-xsell') !== false;
+
+    if ($has_row) $classes[] = 'woocommerce-page';
+    return $classes;
+});
 // Don't merely hide the admin bar in the modal — don't render it. It ships its
 // own stylesheet and markup, and it is site furniture, not product detail.
 add_filter('show_admin_bar', function($show) {
@@ -9267,6 +9309,107 @@ add_action('wp_head', function() {
       .elementor-element-bec7134 .elementor-icon-box-icon a{
         display: block !important; width: 100% !important;
         text-align: center !important;
+      }
+
+      /* And the crooked look in the phone screenshot, measured rather than
+         guessed at. Each icon link is 74px wide and already carries
+         text-align:center from the rule above — but the glyph inside it is a
+         block-level <i>, only as wide as the glyph, and text-align has no say
+         over a block child. So the icon sat hard against the left edge of its
+         tile at x=15 while the label below it was centred at x=52: the icon
+         landed 28px to the left of its own word.
+
+         Centring the link's contents instead of its text fixes every cell at
+         once, because it works on the block <i> of Shop and Account, the
+         inline <svg> of Wishlist, and the search widget's icon-and-word row
+         alike. Width stays 100% so the tap target the rule above widened is
+         untouched, and nothing outside this one bar is addressed. */
+      .elementor-element-bec7134 .elementor-icon-box-icon a,
+      .elementor-element-bec7134 .elementor-icon-box-icon .elementor-icon,
+      .elementor-element-bec7134 .site-header-search .button-search-popup{
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      /* The glyph itself: a block <i> of glyph width centres as a flex item
+         only if it is not stretched to the full tile first. */
+      .elementor-element-bec7134 .elementor-icon-box-icon i,
+      .elementor-element-bec7134 .elementor-icon-box-icon svg,
+      .elementor-element-bec7134 .site-header-search .button-search-popup i{
+        flex: 0 0 auto !important; margin-left: auto !important;
+        margin-right: auto !important;
+      }
+      /* Both halves of the tile share one centre line. */
+      .elementor-element-bec7134 .elementor-icon-box-wrapper,
+      .elementor-element-bec7134 .elementor-icon-box-content,
+      .elementor-element-bec7134 .elementor-icon-box-icon{
+        text-align: center !important;
+      }
+
+      /* ── AND THE FOUR ON ONE BASELINE ──────────────────────────────────
+         Measured at 420px: three of these cells are Elementor icon boxes and
+         the fourth, Search, is a different widget entirely - the theme's own
+         search control, with its own line boxes. Its icon started 5px above
+         the others and its label 5px above theirs, so the whole cell rode
+         high. That is the "one is a little down and another a little up" in
+         the screenshot, and no amount of centring the icon inside its cell
+         could fix it, because the cells themselves were laid out differently.
+
+         So the four are given one layout instead of two: each cell centres its
+         content as a column, the icon sits in a line box of a fixed height,
+         and the same gap separates icon from label everywhere. Four different
+         widgets then produce the same two rows at the same two heights. Sizes
+         and colours are left alone - only where things sit changes. */
+      .elementor-element-bec7134 > .e-con-inner > .elementor-widget{
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      /* And the wrapper that was actually holding Search up, found by walking
+         the chain from its icon: the search widget's .elementor-widget-container
+         is a BLOCK with 10px of padding. Its child therefore sat at the top of
+         the padding box, 660, while the icon boxes' contents were centred in
+         the 69px row at 666 - the six pixels, exactly. Centring the container's
+         contents puts all four on the same line; the padding goes, because the
+         cell is already the size it wants to be. */
+      .elementor-element-bec7134 .elementor-widget-container{
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 100% !important;
+        padding: 0 !important;
+      }
+      .elementor-element-bec7134 .elementor-icon-box-wrapper,
+      .elementor-element-bec7134 .site-header-search,
+      .elementor-element-bec7134 .site-header-search .button-search-popup{
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        margin: 0 !important;
+      }
+      /* The icon's line box, not the glyph: a fixed height here is what puts
+         every label on the same line, whatever the glyph inside measures. */
+      .elementor-element-bec7134 .elementor-icon-box-icon,
+      .elementor-element-bec7134 .site-header-search .button-search-popup > i{
+        height: 20px !important; line-height: 20px !important;
+        display: flex !important;
+        align-items: center !important; justify-content: center !important;
+        margin: 0 !important; padding: 0 !important;
+      }
+      .elementor-element-bec7134 .elementor-icon-box-icon i,
+      .elementor-element-bec7134 .elementor-icon-box-icon svg,
+      .elementor-element-bec7134 .site-header-search .button-search-popup > i{
+        font-size: 18px !important; width: 18px !important; height: 18px !important;
+        line-height: 18px !important;
+      }
+      .elementor-element-bec7134 .elementor-icon-box-title,
+      .elementor-element-bec7134 .site-header-search .content{
+        display: block !important; line-height: 15px !important;
+        margin: 0 !important; padding: 0 !important;
       }
     }
     </style>
@@ -16064,7 +16207,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'kit-options', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables') as $af_mod) {
+foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'kit-options', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }
@@ -19204,7 +19347,11 @@ function af_sidebar_cat_menu() {
         // yet, which does not matter: this widget is an allow-list with
         // hide_empty off, and several of the rows above are empty for the same
         // reason.
-        array('label' => 'Gold Foiled & UV',      'slugs' => array('gold-foiled-uv')),
+        // Renamed from "Gold Foiled & UV". The slug stays, because
+        // inc/gold-foil.php hardcodes it and styles the archive by it; only the
+        // wording moved. This widget keeps its own copy of the label, so it has
+        // to move with the category or the sidebar keeps saying the old name.
+        array('label' => 'Embossed Prints',       'slugs' => array('gold-foiled-uv')),
     );
 }
 
