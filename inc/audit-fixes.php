@@ -100,6 +100,86 @@ function af_audit_fix_front_html($html) {
     return $html;
 }
 
+/**
+ * ---- 2b. The Instagram reels are not in the server's HTML at all ----
+ *
+ * The output buffer above was the wrong instrument, and measurement said so:
+ * after it shipped, the front page still showed 20 of 38 videos covered and
+ * still pulled 25.1 MB from cdninstagram. A fetch of the raw HTML explains it
+ * — it contains zero references to cdninstagram. The feed plugin builds those
+ * <video> elements in the browser after the page has loaded, so no PHP filter
+ * can ever see them.
+ *
+ * They have to be caught where they appear. As each remote-sourced video is
+ * inserted, its sources are lifted off the element and parked in data
+ * attributes, which stops the browser fetching anything. An IntersectionObserver
+ * puts them back when the video comes within 300px of the viewport. Anything
+ * the visitor actually scrolls to still plays; the four reels far below the
+ * fold cost nothing until then.
+ *
+ * Local videos are left alone entirely — this only defers files coming from
+ * another company's CDN.
+ */
+add_action('wp_footer', function () {
+    if (is_admin() || !is_front_page()) return;
+    ?>
+<script>
+(function () {
+  var HOST = location.hostname;
+  function remote(v) {
+    var urls = [];
+    if (v.getAttribute('src')) urls.push(v.getAttribute('src'));
+    v.querySelectorAll('source[src]').forEach(function (s) { urls.push(s.getAttribute('src')); });
+    if (!urls.length) return false;
+    return urls.some(function (u) {
+      try { var h = new URL(u, location.href).hostname; return h && h !== HOST; } catch (e) { return false; }
+    });
+  }
+
+  var io = ('IntersectionObserver' in window) ? new IntersectionObserver(function (entries) {
+    entries.forEach(function (e) {
+      if (!e.isIntersecting) return;
+      var v = e.target;
+      io.unobserve(v);
+      if (v.dataset.afSrc) { v.setAttribute('src', v.dataset.afSrc); delete v.dataset.afSrc; }
+      v.querySelectorAll('source[data-af-src]').forEach(function (s) {
+        s.setAttribute('src', s.dataset.afSrc); delete s.dataset.afSrc;
+      });
+      try { v.load(); } catch (err) {}
+    });
+  }, { rootMargin: '300px' }) : null;
+
+  function hold(v) {
+    if (!io || v.dataset.afHeld || !remote(v)) return;
+    v.dataset.afHeld = '1';
+    v.setAttribute('preload', 'none');
+    if (v.getAttribute('src')) { v.dataset.afSrc = v.getAttribute('src'); v.removeAttribute('src'); }
+    v.querySelectorAll('source[src]').forEach(function (s) {
+      s.dataset.afSrc = s.getAttribute('src'); s.removeAttribute('src');
+    });
+    try { v.load(); } catch (e) {}   // cancel any fetch already begun
+    io.observe(v);
+  }
+
+  function sweep(root) {
+    (root && root.querySelectorAll ? root : document).querySelectorAll('video').forEach(hold);
+  }
+
+  sweep(document);
+  new MutationObserver(function (muts) {
+    muts.forEach(function (m) {
+      m.addedNodes && Array.prototype.forEach.call(m.addedNodes, function (n) {
+        if (n.nodeType !== 1) return;
+        if (n.tagName === 'VIDEO') hold(n);
+        else if (n.querySelectorAll) sweep(n);
+      });
+    });
+  }).observe(document.documentElement, { childList: true, subtree: true });
+})();
+</script>
+    <?php
+}, 99);
+
 add_action('template_redirect', function () {
     if (is_admin() || !is_front_page()) return;
     if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] !== 'GET') return;
