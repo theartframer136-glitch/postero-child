@@ -6086,6 +6086,48 @@ add_filter('body_class', function($classes) {
     if (af_is_qv_embed()) $classes[] = 'af-qv-embed';
     return $classes;
 });
+
+/**
+ * The "You may also like" rows print the same product-card markup the shop
+ * archives do, but they sit on the wishlist and cart pages, which are ordinary
+ * WordPress pages. Every card rule in this theme is scoped to
+ * body.tax-product_cat or body.woocommerce-page, and those pages carry
+ * neither — so the identical markup arrived with none of the design on it.
+ *
+ * Measured rather than assumed. Against a category card, those cards came out
+ * with an 18px normal-weight title instead of 13.5px semibold, a flat
+ * gradient-less ribbon at the wrong corner and the wrong size, a 275px square
+ * image box holding a 300px image so 25px of every picture was clipped, and a
+ * softer shadow.
+ *
+ * Rather than restate several hundred lines of card CSS under new selectors,
+ * where the two copies would drift apart, the page is given the class those
+ * rules already look for. That is also what WooCommerce itself adds to any
+ * page carrying its content.
+ *
+ * The blast radius was checked before doing it: every rule in the theme scoped
+ * to body.woocommerce-page — 29 in custom.css and 14 in this file — targets
+ * ul.products or li.product. None of them styles anything else on a page, so
+ * the class cannot reach past the cards it is meant to fix.
+ */
+add_filter('body_class', function ($classes) {
+    if (is_admin() || !function_exists('is_woocommerce')) return $classes;
+    if (in_array('woocommerce-page', $classes, true)) return $classes;
+    if (!is_page()) return $classes;
+
+    $post = get_post();
+    if (!$post) return $classes;
+
+    // The cart already gets the class from WooCommerce. This is for the pages
+    // that only borrow the card markup: the wishlist, and any page the
+    // cross-sell row is printed into.
+    $has_row = (function_exists('af_is_wishlist_page') && af_is_wishlist_page())
+            || strpos((string) $post->post_content, 'af-wl-related') !== false
+            || strpos((string) $post->post_content, 'af-xsell') !== false;
+
+    if ($has_row) $classes[] = 'woocommerce-page';
+    return $classes;
+});
 // Don't merely hide the admin bar in the modal — don't render it. It ships its
 // own stylesheet and markup, and it is site furniture, not product detail.
 add_filter('show_admin_bar', function($show) {
