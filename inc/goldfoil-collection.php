@@ -258,6 +258,11 @@ add_action('wp_footer', function () {
    nothing here has to guess at the row's geometry — an earlier attempt styled
    a wrapper and a figure element that this markup simply does not have. */
 .af-gf-circle--blank img { border-radius: 50% !important; object-fit: cover !important; }
+/* The grid while the section has nothing in it. */
+.af-gf-empty { padding: 28px 16px; text-align: center; }
+.af-gf-empty-title { margin: 0 0 6px; font-size: 17px; color: #8a6d1f; }
+.af-gf-empty-sub { margin: 0; font-size: 14px; color: #6b6b6b; }
+.af-gf-empty-sub a { color: #8a6d1f; text-decoration: underline; }
 </style>
 <script id="af-gf-collection-js">
 (function () {
@@ -488,6 +493,19 @@ add_action('wp_footer', function () {
     if (saved !== null) strip.innerHTML = saved;
   }
 
+  // What the grid says while the section is still being filled. Deliberately
+  // plain: it names the section, it does not apologise, and it does not
+  // pretend there is something to buy.
+  function emptyNotice(grid) {
+    var box = document.createElement('div');
+    box.className = 'af-gf-empty';
+    box.innerHTML = '<p class="af-gf-empty-title">' + (GF.label || 'This collection') +
+                    ' is being added.</p><p class="af-gf-empty-sub">Browse the finishes below,' +
+                    ' or <a href="' + GF.url + '">open the collection</a>.</p>';
+    grid.innerHTML = '';
+    grid.appendChild(box);
+  }
+
   /* ---- the products ----------------------------------------------------- */
   function gridFor(tab) {
     for (var n = tab; n && n !== document.body; n = n.parentElement) {
@@ -552,7 +570,22 @@ add_action('wp_footer', function () {
     }).then(function (html) {
       busy = false;
       clearTimeout(unDim);
-      if (!hasCards(html)) { area.style.opacity = ''; window.location.href = GF.url; return; }
+      if (!hasCards(html)) {
+        area.style.opacity = '';
+        // Measured on the live site: this section holds no products yet, so
+        // neither endpoint can return a card and every visitor who picked the
+        // tab was sent straight off the homepage to an empty archive. That
+        // also meant the three sub-collections under the tab were never seen
+        // by anyone, which is exactly what was reported.
+        //
+        // A section with nothing in it yet is not an error to redirect away
+        // from. The visitor stays, the circles stay, and the grid says plainly
+        // what is going on. The moment a single piece is filed here the count
+        // is no longer zero and the old behaviour returns untouched.
+        if (!GF.count) { emptyNotice(grid); showCircles(); return; }
+        window.location.href = GF.url;
+        return;
+      }
       grid.innerHTML = html;
       if (area === grid) area.style.opacity = '';
       showCircles();
@@ -560,6 +593,10 @@ add_action('wp_footer', function () {
       if (window.jQuery) jQuery(document.body).trigger('wc_fragments_refreshed');
     }).catch(function () {
       busy = false; clearTimeout(unDim); area.style.opacity = '';
+      // Same reasoning as above: with nothing in the section there is nothing
+      // for a failed request to have lost, so the visitor is not thrown to an
+      // empty archive over it.
+      if (!GF.count) { emptyNotice(grid); showCircles(); return; }
       window.location.href = GF.url;
     });
   }
