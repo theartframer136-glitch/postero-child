@@ -416,6 +416,21 @@ add_action('wp_footer', function () {
       if (c.s) a.setAttribute('data-val', c.s); else a.removeAttribute('data-val');
       a.setAttribute('data-title', c.n);
     }
+    // Read off the live page, because the markup is not what this code
+    // assumed: a circle in this row is <div class="sub-cat"
+    // data-subcat="radha-krishna"> with NO link inside it at all. The theme
+    // filters on that attribute. Setting only the href above therefore built
+    // circles that could not be clicked — they carried the slug of whichever
+    // circle they were cloned from, or none. The attribute is what matters, so
+    // it is set, and a circle standing for a piece rather than a
+    // sub-collection carries its destination instead.
+    if (c.s) {
+      el.setAttribute('data-subcat', c.s);
+      if (el.dataset) el.dataset.subcat = c.s;
+    } else {
+      el.removeAttribute('data-subcat');
+      el.setAttribute('data-af-gf-href', c.u);
+    }
     // A circle standing for a PIECE, not a sub-collection, has to say so. The
     // circle handler in functions.php resolves an unlabelled circle by
     // matching its caption against the category names, and a piece called
@@ -561,11 +576,19 @@ add_action('wp_footer', function () {
 
     var piece = e.target.closest('[data-af-gf-piece]');
     if (piece) {                                    // a circle that IS an artwork: open it
-      var link = piece.matches('a') ? piece : piece.querySelector('a[href]');
-      if (link && link.getAttribute('href')) {
+      // The destination is read from the attribute first: a circle in this row
+      // has no <a> inside it, so looking only for a link found nothing and the
+      // click fell through to the category filter — the exact thing the piece
+      // marker exists to prevent.
+      var href = piece.getAttribute('data-af-gf-href');
+      if (!href) {
+        var link = piece.matches('a') ? piece : piece.querySelector('a[href]');
+        if (link) href = link.getAttribute('href');
+      }
+      if (href) {
         e.preventDefault();                         // and keep the circle filter off it
         e.stopPropagation();
-        window.location.href = link.getAttribute('href');
+        window.location.href = href;
       }
       return;
     }
