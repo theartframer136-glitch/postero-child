@@ -7,7 +7,11 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 global $wpdb;
-$needle = 'localhost/wordpress/postero';
+// JSON storage (Slider Revolution, Elementor) escapes slashes, so the same
+// address is stored as localhost\/wordpress\/postero and a LIKE on the plain
+// form finds nothing. Search both spellings.
+$needles = array( 'localhost/wordpress/postero', 'localhost\\/wordpress\\/postero' );
+$needle = $needles[0];
 $tables = $wpdb->get_col( 'SHOW TABLES' );
 $hits = 0;
 echo "searching " . count( $tables ) . " tables for '{$needle}'\n\n";
@@ -17,12 +21,15 @@ foreach ( $tables as $t ) {
     foreach ( $cols as $c ) if ( $c->Key === 'PRI' ) { $pk = $c->Field; break; }
     foreach ( $cols as $c ) {
         if ( ! preg_match( '/char|text|blob|json/i', $c->Type ) ) continue;
-        $n = (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM `{$t}` WHERE `{$c->Field}` LIKE %s", '%' . $wpdb->esc_like( $needle ) . '%' ) );
+        $n = 0;
+        foreach ( $needles as $nd ) $n += (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM `{$t}` WHERE `{$c->Field}` LIKE %s", '%' . $wpdb->esc_like( $nd ) . '%' ) );
         if ( ! $n ) continue;
+        $needle = $needles[1];  // context extraction below: prefer the escaped form where it matched
+        foreach ( $needles as $nd ) if ( (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM `{$t}` WHERE `{$c->Field}` LIKE %s", '%' . $wpdb->esc_like( $nd ) . '%' ) ) ) { $needle = $nd; break; }
         $hits += $n;
         printf( "  %-40s %-28s %d row(s)\n", $t, $c->Field, $n );
         $sel = $pk ? "`{$pk}`, " : '';
-        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT {$sel}`{$c->Field}` AS v FROM `{$t}` WHERE `{$c->Field}` LIKE %s LIMIT 3", '%' . $wpdb->esc_like( $needle ) . '%' ), ARRAY_A );
+        $rows = $wpdb->get_results( $wpdb->prepare( "SELECT {$sel}`{$c->Field}` AS v FROM `{$t}` WHERE `{$c->Field}` LIKE %s OR `{$c->Field}` LIKE %s LIMIT 3", '%' . $wpdb->esc_like( $needles[0] ) . '%', '%' . $wpdb->esc_like( $needles[1] ) . '%' ), ARRAY_A );
         foreach ( $rows as $r ) {
             $v = (string) $r['v']; $pos = strpos( $v, $needle );
             $ctx = substr( $v, max( 0, $pos - 90 ), 220 );

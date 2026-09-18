@@ -7,6 +7,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Where it appears on the rendered homepage
+        run: node tools/diag-localhost-ctx.mjs || true
       - name: Setup SSH
         run: |
           set -euo pipefail
@@ -25,7 +27,7 @@ jobs:
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" '
             cd ~/websites/OPu0sKi4J/public_html
             echo "=== FILES containing localhost/wordpress/postero (themes + plugins) ==="
-            grep -rl "localhost/wordpress/postero" wp-content/themes wp-content/plugins 2>/dev/null | head -20 || echo "  none"
+            grep -rl "localhost.\?/wordpress.\?/postero" wp-content/themes wp-content/plugins wp-content/uploads/revslider 2>/dev/null | grep -v diag-localhost | head -20 || echo "  none"
             echo; echo "=== and the exact lines in the parent theme, if any ==="
             grep -rn "localhost/wordpress/postero" wp-content/themes/postero 2>/dev/null | head -10 | cut -c1-220
             echo; echo "=== DATABASE ==="
