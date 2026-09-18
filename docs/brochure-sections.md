@@ -5296,3 +5296,116 @@ and one dispatched deploy — the renumbering pass rewrites every code in
 canonical form on each deploy, so the catalogue would follow by itself. It has
 not been done here, because it changes what 424 products display and is a
 decision, not a correction.
+
+## The second look: matching the leftovers by picture
+
+Asked to verify the book again and put the final code on every product, the
+only codes still open were the 204 temporary ones. This is what that pass did,
+and what it refused.
+
+### Two hundred and four products, but not two hundred and four artworks
+
+Sorting them by what they actually are, before looking at a single page:
+
+| what they are | how many |
+|---|---|
+| frames, stretcher bars, stands, rolled canvas, banners, backdrops | 57 |
+| the corporate printing line — flyers, cards, tote bags, signage | 20 |
+| paintings, photographs and prints | ~126 |
+
+The first two groups are not missing from the book by accident. The 14 pages
+the brochure gained are exactly those pages: Who We Are, services and pricing,
+the accessories collection, banner samples. An accessory has no artwork page
+because it is not artwork, and giving it one would put a painting's code on a
+stretcher bar.
+
+### How the comparison was actually made
+
+The shop's pictures cannot be reached from where the book is readable — the
+site refuses the connection — so the deploy drew a picture of every
+temporary-code product and delivered them on the `art-sheets` branch, one file
+per code, which is a mapping that cannot drift. Those were stitched into sheets
+by subject; the book's 162 unclaimed pages were cut out of their room mockups
+and stitched the same way.
+
+Then two passes over the same ground:
+
+1. **By eye, section by section.** Every unclaimed page against every product
+   whose subject could plausibly belong to that section.
+2. **By colour, every pairing.** A shortlister scored all 126 artworks against
+   all 162 pages on hue-saturation-value distribution, and the top six pages per
+   product were read. It exists to catch what the eye skipped, not to decide
+   anything: measured against the matches the eye had already found, it put
+   three of five in its own top six. That is worth reading and worthless as a
+   verdict, and it is written down here so nobody later mistakes it for one.
+
+Every candidate that survived either pass was then drawn at full size — the
+shop's picture beside the book's page, scaled to the same height — and decided
+by looking.
+
+### Six products are in the book
+
+| product | page | code |
+|---|---|---|
+| #7820 Krishna Raas Leela Moonlight | 97 | RK - 010093 |
+| #11560 Divine Radha Krishna | 28 | RK - 010024 |
+| #17280 Radha Krishna Temple Scene | 30 | RK - 010026 |
+| #23252 Divine Hand with Mala | 52 | RK - 010048 |
+| #23558 Bal Krishna Classic Portrait | 95 | RK - 010091 |
+| #24653 Radha Krishna Painted Faces | 100 | RK - 010096 |
+
+Two of those pages, 97 and 100, are among the ones the book gained this round.
+They are reachable only because `af_artcode_book_code()` bounds a six-digit code
+at the section's `count` rather than its `legacy` — the widening recorded
+earlier in this file — and unreachable by any arithmetic from an old code,
+which is the property that widening was careful to keep.
+
+### What the pass mostly did was refuse
+
+This is the part worth keeping. Titles agreed on far more than pictures did:
+
+- **#8494 Sacred Kedarnath Temple** against TA-210002, the book's Kedarnath
+  page. The book's photograph has a crowd in front of the temple and a pink
+  sunset behind it; the product has an empty forecourt, a blue twilight, and
+  the roof outlined in individual bulbs rather than flood-lit. Different
+  photographs of the same building.
+- **#8424 Divine Varanasi Ganga Aarti** against TA-210001, the book's Varanasi
+  page. The book's is a painterly dusk, lilac sky, spires, one boat. The
+  product is a dense photograph of the aarti itself, crowds and lit parasols,
+  no sky at all.
+- **#28300 Ram Lalla in Garlands**, **#26267 Balaji Garland Darshan**,
+  **#31588 Kodanda Rama Utsavam**, **#14034 Lord Murugan**, **#14678 Golden
+  Krishna Temple Idol**, **#17212 Beautiful Lord Krishna Statue** — all the
+  right deity, all the wrong photograph: a different decoration, a different
+  shrine, a different day.
+
+Six matches out of roughly twenty that looked certain from their wording. The
+rule that a title proves nothing earned its place again here.
+
+### Applied, and checked against the live shop
+
+Deploy run 1277 wrote them. A fresh export taken straight afterwards reports
+exactly six products changed and nothing else:
+
+    #7820   TMP-1007 -> RK - 010093-3040
+    #11560  TMP-1219 -> RK - 010024-5030
+    #17280  TMP-1224 -> RK - 010026-5030
+    #23252  TMP-1234 -> RK - 010048-5040
+    #23558  TMP-1235 -> RK - 010091-5030
+    #24653  TMP-1240 -> RK - 010096-5030
+
+Each arrived carrying the aspect the book prints for that page, which the
+renumbering pass appended on its own — the codes were written as pages, not as
+whole codes, and the book supplied the rest. The catalogue now reads 424
+products, 223 on a book code, 198 temporary, three AL, none without a code, and
+the temporary ceiling is still TMP-1305: six numbers were vacated and no new
+one was issued, so the churn fix held through another deploy.
+
+### So what the remaining temporary codes mean
+
+198 products still carry one, and it is not an outstanding task. It means the
+book has no page holding that picture. Roughly three quarters of them are not
+artwork at all, and the rest have been held against every unclaimed page and
+matched none. A final code for any of them needs a new page in the brochure
+first, which is the owner's to add — and the moment one exists, the product can
+be pointed at it the same way these six were.
