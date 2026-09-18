@@ -24,12 +24,18 @@ p.on('pageerror', e => console.log('  PAGE ERROR: ' + e.message));
 p.on('request', r => { if (r.url().indexOf('admin-ajax') !== -1) console.log('  request: ' + r.method() + ' admin-ajax  ' + (r.postData() || '').slice(0, 90)); });
 
 const snap = () => p.evaluate(() => {
+  // This site's carousel lifts the cards OUT of #productGrid into its own
+  // shell, so counting them inside that grid reports zero even when the load
+  // worked. Look wherever they actually are.
   const grid = document.querySelector('#productGrid, .product-slider, .custom-product-track, ul.products');
-  const cards = grid ? [...grid.querySelectorAll('.product-card, li.product')] : [];
+  const shell = document.querySelector('.af-shell-track, .af-shell');
+  const cards = [...document.querySelectorAll('.product-card, li.product')];
   const strip = document.querySelector('#subcategorySlider, .subcategory-slider');
   const titles = cards.slice(0, 4).map(c => (c.innerText || '').trim().split('\n').find(x => x.length > 8) || '');
   return {
     cards: cards.length,
+    inGrid: grid ? grid.querySelectorAll('.product-card, li.product').length : 0,
+    inShell: shell ? shell.querySelectorAll('.product-card, li.product').length : 0,
     titles,
     circles: strip ? [...strip.children].map(x => (x.innerText || '').trim().split('\n')[0]).slice(0, 8) : 'NO ROW',
     ourCircles: strip ? strip.querySelectorAll('.af-cp-circle').length : 0,
