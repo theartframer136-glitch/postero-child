@@ -43,15 +43,49 @@ add_filter('wp_redirect', function ($location) {
 
 /* ---- 2. front page: videos wait to be played; feed images wait to be seen ---- */
 function af_audit_fix_front_html($html) {
-    if (!is_string($html) || $html === '' || stripos($html, '<video') === false && stripos($html, 'cdninstagram') === false) return $html;
+    if (!is_string($html) || $html === '') return $html;
+    if (stripos($html, '<video') === false && stripos($html, 'cdninstagram') === false) return $html;
 
-    // <video ...> that states no preload policy gets preload="none".
-    $html = preg_replace_callback('#<video\b([^>]*)>#i', function ($m) {
-        $attrs = $m[1];
-        if (stripos($attrs, 'preload=') !== false) return $m[0];
-        $attrs = rtrim($attrs);
-        if (substr($attrs, -1) === '/') $attrs = rtrim(substr($attrs, 0, -1));
-        return '<video' . $attrs . ' preload="none">';
+    // Whole <video>…</video> blocks, because the decision depends on the
+    // <source> inside: a video served from another company's CDN is the one
+    // worth holding back.
+    //
+    // The first version of this only touched videos that stated NO preload
+    // policy, and measurement showed why that was not enough. Of 38 videos on
+    // the front page it covered 20; the other 18 are Elementor video widgets
+    // that already declare preload="metadata", so it skipped them — and those
+    // are exactly the Instagram reels. Measured by host, the homepage pulls
+    // 25.1 MB from cdninstagram against 4.3 MB from this site. "metadata" is
+    // meant to fetch a few hundred kilobytes; these arrive at about 4.8 MB
+    // apiece, so whatever the attribute promises, the bytes come anyway.
+    //
+    // So: a video whose sources are all local keeps whatever policy it was
+    // given, and a video pulling from an outside host is pinned to "none".
+    // It still plays the moment anyone presses play.
+    $host = (string) wp_parse_url(home_url(), PHP_URL_HOST);
+    $html = preg_replace_callback('#<video\b([^>]*)>(.*?)</video>#is', function ($m) use ($host) {
+        list($all, $attrs, $inner) = array($m[0], $m[1], $m[2]);
+
+        $srcs = array();
+        if (preg_match('#\bsrc=(["\'])(.*?)\1#i', $attrs, $a)) $srcs[] = $a[2];
+        if (preg_match_all('#<source\b[^>]*\bsrc=(["\'])(.*?)\1#i', $inner, $b)) $srcs = array_merge($srcs, $b[2]);
+
+        $remote = false;
+        foreach ($srcs as $u) {
+            $h = (string) wp_parse_url($u, PHP_URL_HOST);
+            if ($h !== '' && $host !== '' && stripos($h, $host) === false) { $remote = true; break; }
+        }
+
+        $has = stripos($attrs, 'preload=') !== false;
+        if ($has && !$remote) return $all;          // local video, leave its own policy alone
+
+        $clean = rtrim($attrs);
+        if (substr($clean, -1) === '/') $clean = rtrim(substr($clean, 0, -1));
+        if ($has) {
+            $clean = preg_replace('#\s*\bpreload=(["\']).*?\1#i', '', $clean);
+            $clean = preg_replace('#\s*\bpreload=[^\s>]+#i', '', $clean);
+        }
+        return '<video' . $clean . ' preload="none">' . $inner . '</video>';
     }, $html);
 
     // Instagram feed images are far below the fold; let the browser defer them.
