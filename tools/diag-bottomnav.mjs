@@ -36,20 +36,26 @@ const out = await p.evaluate(() => {
   const box = el => { const r = el.getBoundingClientRect();
     return { l:+r.left.toFixed(1), t:+r.top.toFixed(1), w:+r.width.toFixed(1), h:+r.height.toFixed(1), cx:+(r.left+r.width/2).toFixed(1), cy:+(r.top+r.height/2).toFixed(1) }; };
 
-  const cells = [...bar.children].map(cell => {
+  // The bar's single child is a grid wrapper; the real cells are the four
+  // Elementor widgets inside it. Measure each widget's own icon against its
+  // own label - the previous pass compared every icon to the LAST label in
+  // the bar, which made the numbers meaningless.
+  const widgets = [...bar.querySelectorAll('.elementor-widget')];
+  const cells = widgets.map(cell => {
     const cs = getComputedStyle(cell);
     const icon = cell.querySelector('svg, i[class], img');
-    const textNode = [...cell.querySelectorAll('*')].filter(e => {
-      const t = (e.innerText||'').trim(); return LABELS.includes(t) && !e.querySelector('svg,i[class],img'); }).pop();
+    const textNode = [...cell.querySelectorAll('h3, span, a')].filter(e => {
+      const t = (e.innerText||'').trim();
+      return LABELS.includes(t) && !e.querySelector('svg,i[class],img'); }).pop();
     return {
       label: (cell.innerText||'').trim().split('\n')[0],
-      cls: String(cell.className).slice(0,70),
+      cls: String(cell.className).slice(0,60),
       cell: box(cell),
       icon: icon ? box(icon) : null,
-      iconTag: icon ? icon.tagName.toLowerCase()+'|'+String(icon.className.baseVal ?? icon.className).slice(0,40) : null,
-      iconWrap: icon && icon.parentElement !== cell ? { cls:String(icon.parentElement.className).slice(0,50), box:box(icon.parentElement), ta:getComputedStyle(icon.parentElement).textAlign, d:getComputedStyle(icon.parentElement).display, pad:getComputedStyle(icon.parentElement).padding, m:getComputedStyle(icon.parentElement).margin } : null,
-      text: textNode ? { cls:String(textNode.className).slice(0,40), box:box(textNode), ta:getComputedStyle(textNode).textAlign } : null,
-      cs: { d:cs.display, ai:cs.alignItems, jc:cs.justifyContent, ta:cs.textAlign, pad:cs.padding, m:cs.margin, fd:cs.flexDirection },
+      iconTag: icon ? icon.tagName.toLowerCase()+'|'+String(icon.className.baseVal ?? icon.className).slice(0,34) : null,
+      iconWrap: icon && icon.parentElement !== cell ? { cls:String(icon.parentElement.className).slice(0,40), box:box(icon.parentElement), ta:getComputedStyle(icon.parentElement).textAlign, d:getComputedStyle(icon.parentElement).display } : null,
+      text: textNode ? { cls:String(textNode.className).slice(0,34), box:box(textNode), ta:getComputedStyle(textNode).textAlign } : null,
+      cs: { d:cs.display, ai:cs.alignItems, jc:cs.justifyContent, ta:cs.textAlign, pad:cs.padding },
     };
   });
   return { found: true, barBox: box(bar), barCls: String(bar.className).slice(0,90),
@@ -70,6 +76,7 @@ else {
     if (c.icon && c.text) console.log('   >> iconCx-textCx = ' + (c.icon.cx - c.text.box.cx).toFixed(1) + '   iconCx-cellCx = ' + (c.icon.cx - c.cell.cx).toFixed(1) + '   textCx-cellCx = ' + (c.text.box.cx - c.cell.cx).toFixed(1));
     console.log('');
   }
-  console.log('---- HTML ----\n' + out.html);
+  const bad = out.cells.filter(c => c.icon && c.text && Math.abs(c.icon.cx - c.text.box.cx) > 1.5);
+  console.log(bad.length ? 'RESULT: ' + bad.length + ' cell(s) still off-centre' : 'RESULT: all cells centred (icon within 1.5px of its label)');
 }
 await b.close();
