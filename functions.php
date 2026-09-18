@@ -9310,6 +9310,42 @@ add_action('wp_head', function() {
         display: block !important; width: 100% !important;
         text-align: center !important;
       }
+
+      /* And the crooked look in the phone screenshot, measured rather than
+         guessed at. Each icon link is 74px wide and already carries
+         text-align:center from the rule above — but the glyph inside it is a
+         block-level <i>, only as wide as the glyph, and text-align has no say
+         over a block child. So the icon sat hard against the left edge of its
+         tile at x=15 while the label below it was centred at x=52: the icon
+         landed 28px to the left of its own word.
+
+         Centring the link's contents instead of its text fixes every cell at
+         once, because it works on the block <i> of Shop and Account, the
+         inline <svg> of Wishlist, and the search widget's icon-and-word row
+         alike. Width stays 100% so the tap target the rule above widened is
+         untouched, and nothing outside this one bar is addressed. */
+      .elementor-element-bec7134 .elementor-icon-box-icon a,
+      .elementor-element-bec7134 .elementor-icon-box-icon .elementor-icon,
+      .elementor-element-bec7134 .site-header-search .button-search-popup{
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      /* The glyph itself: a block <i> of glyph width centres as a flex item
+         only if it is not stretched to the full tile first. */
+      .elementor-element-bec7134 .elementor-icon-box-icon i,
+      .elementor-element-bec7134 .elementor-icon-box-icon svg,
+      .elementor-element-bec7134 .site-header-search .button-search-popup i{
+        flex: 0 0 auto !important; margin-left: auto !important;
+        margin-right: auto !important;
+      }
+      /* Both halves of the tile share one centre line. */
+      .elementor-element-bec7134 .elementor-icon-box-wrapper,
+      .elementor-element-bec7134 .elementor-icon-box-content,
+      .elementor-element-bec7134 .elementor-icon-box-icon{
+        text-align: center !important;
+      }
     }
     </style>
     <?php
