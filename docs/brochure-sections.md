@@ -5497,3 +5497,123 @@ their artwork, and they should not be counted as checked.
 none uncoded. The 156 unclaimed pages and the 198 temporary codes have now been
 held against each other three times, by four different methods, and the answer
 has not moved.
+
+## Reading all 217 claimed pages against their own captions
+
+The page-85 caption defect found by the third pass raised an obvious question:
+how many more are there? So every one of the 217 pages that a product already
+claims was read caption-against-picture. Seven pages carry a caption that
+describes something other than the artwork printed beside it.
+
+### How the captions were read
+
+`read-design` returns a page's text as a flat string, and the elements come back
+in creation order rather than reading order, so a caption can appear either
+before or after its own `Page:` label. The ordering is resolvable: each chunk's
+`Available Sizes` line matches the aspect in the code at the END of that chunk
+(`6 ft (H) * 3 ft (B)` under `RK-010055-6030`), which fixes the boundary. Every
+caption below was then confirmed against the rendered page, and every page
+against the shop's own title for the product holding that code — three
+independent sources, because the first pass of this audit learned the hard way
+that one is not enough.
+
+### The seven
+
+| page | code | product on that page | the caption says | the picture shows |
+|---|---|---|---|---|
+| 5 | `RK-010001-3050` | #8301 Radha Krishna Peacock | a vase with blossoming flowers | Radha and Krishna, blue and gold double portrait |
+| 59 | `RK-010055-6030` | #24033 Radha Krishna Melody Swirl | Ganga Aarti at Varanasi Ghat | Radha and Krishna playing the flute together |
+| 85 | `RK-010081-5030` | *(unclaimed page)* | Ganga Aarti at Varanasi Ghat | blue Krishna with flute, golden moon, peacock |
+| 210 | `SA-100001-3050` | #7815 Sacred Golden Temple Amritsar | a vase with blossoming flowers | the Golden Temple reflected in its sacred water |
+| 306 | `LI-190003-5030` | #148 Abstract Floral Sunrise | Garuda with the Sun | a cubist flower against a golden sun |
+| 311 | `LI-190008-5030` | #16762 Crucifixion Scene | divine union and cosmic harmony | Christ on the cross against a pink sun |
+| 317 | `LI-190014-3040` | #7805 Butterfly Tree | Floral Pichwai art | a bare tree whose canopy is gold and teal butterflies |
+
+### Every one of them is a caption that belongs somewhere else
+
+This is the useful part. None of the seven is nonsense text — each is a correct
+caption sitting on the wrong page, and in every case the right page is also in
+the book:
+
+- **the vase caption** is correct on page 304, `LI-190001-3050`, which really is
+  a stoneware vase of blossoming branches. It has been copied onto page 5 and
+  page 210.
+- **the Ganga Aarti caption** is correct on page 377, `TA-210004-5030`, held by
+  #29890 *Ganga Aarti Flame*, whose picture is exactly the priest lifting a
+  blazing lamp the words describe. It has been copied onto pages 59 and 85.
+- **the Garuda caption** is correct on page 258, `VA-160004-5030`, held by
+  #21381 *Sun Phoenix Vintage Art*, a sunburst bird. It has been copied onto
+  page 306.
+- **"divine union and cosmic harmony"** is correct on page 140, `TP-050003-3040`,
+  held by #18666 *Ram Sita Wedding*. It also sits on page 30, a Radha-Krishna
+  pair, where it is loose but defensible, and on page 311, a crucifixion, where
+  it is not.
+
+Page 317 is the exception: "Floral Pichwai art" describes no page in the book,
+and the shop's own title for the product is *Butterfly Tree*.
+
+### Why page 85 is still the dangerous one
+
+Pages 5, 210, 306, 311 and 317 are all already claimed, so a wrong caption there
+is an embarrassment in a customer-facing brochure but it cannot misroute a code.
+Page 85 is unclaimed, and the catalogue holds #8424 *Divine Varanasi Ganga
+Aarti* — a product the caption describes exactly. Anyone matching by caption
+would put #8424 on page 85, and the picture there is a Krishna. The genuine
+Ganga Aarti page is 377, and it is already taken by #29890, so #8424 has no page
+in this book at all. The third pass withheld that code by checking the picture;
+this pass explains why the temptation existed.
+
+### Twenty-nine pages have no caption at all
+
+Pages 14, 95, 97, 99, 100, 120, 121, 122, 135, 136, 137, 196, 212, 213, 221,
+278, 279, 280, 281, 301, 302, 303, 315, 349, 350, 351, 352, 353 and 354 print
+the frame options, the sizes and the contact details, and nothing else. Four of
+them — 95, 97, 99 and 100 — are among the recently added RK pages, which fits:
+they were laid out after the captioned run. This is not a defect in the same
+sense as a wrong caption, but it is a gap in the book worth closing.
+
+### Two smaller oddities, recorded but not defects
+
+`WL-170021`, `WL-170022` and `WL-170023` (pages 279, 280, 281) are still lifes —
+two stoneware vases and a cubist flower — filed in the Wildlife section. And the
+cubist flower on page 281 is the same artwork as page 306, `LI-190003`, so it
+appears twice in the book under two codes. Neither affects a product's code
+today; both would confuse the next person reading the book by section.
+
+### What this pass could not do
+
+The captions cannot be fixed from here. Canva refuses to open an editing
+transaction on this design — "Editing a Canva Design with a size of 391 pages is
+not currently supported" — and it refuses deterministically, not intermittently.
+The seven corrections have to be made by hand in Canva. Replacement text for
+each, written from the picture actually on the page:
+
+**Page 5, `RK-010001-3050`**
+> This image of Radha and Krishna together symbolises eternal love, harmony and
+> devotion; in Vastu, placing it in the bedroom or living room enhances peace,
+> bonding and positive energy in relationships.
+
+**Page 59, `RK-010055-6030`**
+> A graceful artwork of Radha and Krishna sharing the flute, their robes swirling
+> in teal, saffron and rose, symbolising the union of divine love and music.
+
+**Page 85, `RK-010081-5030`**
+> A serene artwork of Lord Krishna seated in meditation with his flute, framed by
+> a golden moon, lotus blooms and a peacock, radiating divine peace and harmony.
+
+**Page 210, `SA-100001-3050`**
+> A stunning artwork of the Golden Temple at Amritsar, its radiant golden sanctum
+> mirrored in the sacred waters of the Sarovar, glowing with serene, divine light.
+
+**Page 306, `LI-190003-5030`**
+> A vivid stained-glass style artwork of a blooming flower against a golden sun,
+> its petals set in jewelled panes of blue, violet and crimson, symbolising
+> growth, renewal and quiet joy.
+
+**Page 311, `LI-190008-5030`**
+> A striking artwork of the Crucifixion silhouetted against a rose-coloured sun,
+> birds rising above the treeline — a bold symbol of sacrifice, faith and hope.
+
+**Page 317, `LI-190014-3040`**
+> An elegant artwork of a tree whose canopy dissolves into a drift of gold and
+> teal butterflies, symbolising transformation, renewal and the beauty of change.
