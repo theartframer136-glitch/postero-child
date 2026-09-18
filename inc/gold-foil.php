@@ -40,7 +40,32 @@ if (!defined('ABSPATH')) exit;
 
 /** The category slug and display name this whole section hangs off. */
 function af_goldfoil_slug() { return 'gold-foiled-uv'; }
-function af_goldfoil_name() { return 'Gold Foiled & UV'; }
+
+/**
+ * The name follows the CATEGORY, it is not a constant.
+ *
+ * This used to return the literal 'Gold Foiled & UV'. When the section was
+ * renamed to "Embossed Prints" the term, the menu row and the shop sidebar all
+ * moved, but the homepage's Shop by Collection tab did not, because its label
+ * is built from this function and this function had not heard about it. One
+ * string in two places is one string too many, so the database is asked.
+ *
+ * The literal stays as a fallback for the two moments it is still needed: a
+ * call made before taxonomies are registered, and a first install where the
+ * category does not exist yet and is about to be created FROM this name.
+ */
+function af_goldfoil_name() {
+    static $name = null;
+    if ($name !== null) return $name;
+    $name = 'Gold Foiled & UV';
+    if (function_exists('taxonomy_exists') && taxonomy_exists('product_cat')) {
+        $term = af_goldfoil_term();
+        if ($term && $term->name !== '') {
+            $name = html_entity_decode($term->name, ENT_QUOTES, 'UTF-8');
+        }
+    }
+    return $name;
+}
 
 /**
  * What a gold-foil size costs relative to the same size on a normal print.
@@ -165,7 +190,9 @@ function af_goldfoil_scale($usd, $factor) {
  */
 
 function af_goldfoil_badge_html() {
-    return '<span class="af-gf-badge">Gold Foiled &amp; UV</span>';
+    // Same reason as af_goldfoil_name(): the badge names the section, so it
+    // reads the section's name rather than carrying its own copy of it.
+    return '<span class="af-gf-badge">' . esc_html(af_goldfoil_name()) . '</span>';
 }
 
 // after_shop_loop_item_title, not before_: measured on the live grid, this

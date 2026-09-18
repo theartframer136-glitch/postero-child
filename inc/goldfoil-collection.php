@@ -80,7 +80,15 @@ function af_goldfoil_collection_payload() {
     ));
     if (!is_wp_error($kids)) {
         foreach ($kids as $kid) {
-            if ((int) $kid->count === 0) continue;          // a circle that leads to an empty page is worse than no circle
+            // An empty sub-collection used to be dropped here, on the grounds
+            // that a circle leading to an empty page is worse than no circle.
+            // That held while the children were SUBJECTS and an empty one meant
+            // a gap in the catalogue. The children are now the three FINISHES
+            // the section is defined by — Gold Foil, UV, Mixed — and they are
+            // empty only because the artwork has not been uploaded yet. Hiding
+            // them makes the section look like it has no structure at all,
+            // which is what the owner saw on the homepage while the dropdown
+            // listed all three. So they are shown, and fill up as pieces land.
             $kurl = get_term_link($kid);
             if (is_wp_error($kurl)) continue;
             $circles[] = array(
@@ -92,8 +100,9 @@ function af_goldfoil_collection_payload() {
         }
     }
 
-    // Too few sub-collections to make a row: show the pieces themselves.
-    if (count($circles) < 2) {
+    // No sub-collections at all: show the pieces themselves, so the row is not
+    // simply blank. With children present they are the row, full or not.
+    if (!$circles) {
         $circles = array();
         $ids = get_posts(array(
             'post_type'      => 'product',
@@ -243,6 +252,28 @@ add_action('wp_footer', function () {
    thing worth saying is that a picture that failed to load must not leave a
    torn icon in a row of round photographs. */
 .af-gf-circle img { object-fit: cover !important; }
+/* A sub-collection whose artwork has not been uploaded yet. Its image is
+   hidden rather than borrowed from the tab it was cloned from, so the disc is
+   drawn here instead: the section's own gold, and the collection's initial.
+   It reads as "this exists, it is still being filled", which is true, and it
+   becomes a photograph on its own the moment a thumbnail is set. */
+.af-gf-circle--blank > a, .af-gf-circle--blank { position: relative; }
+.af-gf-circle--blank a > *:first-child,
+.af-gf-circle--blank .cat-item-img,
+.af-gf-circle--blank figure {
+  background: linear-gradient(135deg, #f6efdc, #e6d5a8) !important;
+  position: relative;
+}
+.af-gf-circle--blank[data-af-initial]::before {
+  content: attr(data-af-initial);
+  position: absolute; left: 0; right: 0; top: 0;
+  height: 100%; max-height: 110px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; font-weight: 600; color: #8a6d1f;
+  background: linear-gradient(135deg, #f6efdc, #e6d5a8);
+  border-radius: 50%; pointer-events: none; z-index: 1;
+  aspect-ratio: 1 / 1; margin: 0 auto;
+}
 </style>
 <script id="af-gf-collection-js">
 (function () {
@@ -362,7 +393,19 @@ add_action('wp_footer', function () {
     el.classList.add('af-gf-circle');
     var img = el.querySelector('img');
     if (img) {
-      if (c.i) { img.setAttribute('src', c.i); img.removeAttribute('srcset'); img.removeAttribute('data-src'); }
+      if (c.i) {
+        img.setAttribute('src', c.i); img.removeAttribute('srcset'); img.removeAttribute('data-src');
+        el.classList.remove('af-gf-circle--blank');
+      } else {
+        // This circle is a CLONE of one of the theme's own, so leaving its
+        // image alone would put another collection's photograph under this
+        // collection's name. A sub-collection with no thumbnail yet gets a
+        // plain lettered disc instead, which says "nothing here yet" honestly.
+        img.removeAttribute('src'); img.removeAttribute('srcset'); img.removeAttribute('data-src');
+        img.style.display = 'none';
+        el.classList.add('af-gf-circle--blank');
+        el.setAttribute('data-af-initial', (c.n || '?').trim().charAt(0).toUpperCase());
+      }
       img.setAttribute('alt', c.n);
       img.setAttribute('loading', 'lazy');
     }

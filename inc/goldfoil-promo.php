@@ -65,6 +65,23 @@ function af_gfp_caption($file) {
     return $n !== '' ? $n : 'Gold Foiled & UV';
 }
 
+/**
+ * The band's heading, named after the category rather than after itself.
+ *
+ * It used to spell out "Gold Foiled & UV" with the first two words in gold.
+ * The section has since been renamed, and a heading that disagrees with the
+ * menu, the sidebar and the collection tab is just another place to forget.
+ * The gold accent is kept by colouring the first word of whatever the section
+ * is currently called.
+ */
+function af_gfp_title_html() {
+    $name = function_exists('af_goldfoil_name') ? af_goldfoil_name() : 'Embossed Prints';
+    $parts = preg_split('/\s+/', trim($name), 2);
+    $head  = '<span style="color:#926921">' . esc_html($parts[0]) . '</span>';
+    if (!empty($parts[1])) $head .= ' ' . esc_html($parts[1]);
+    return $head;
+}
+
 function af_gfp_render() {
     $files = af_gfp_files();
     if (!$files) return '';                     // no pictures: print no band
@@ -95,7 +112,7 @@ function af_gfp_render() {
     return '<div class="af-gfs">'
          . '<div class="af-gfs-head">'
          . '<h2 class="elementor-heading-title af-gfs-title">'
-         . '<span style="color:#926921">Gold Foiled</span> &amp; UV</h2>'
+         . af_gfp_title_html() . '</h2>'
          . $link . '</div>'
          . '<p class="af-gfs-sub">Real gold foil detailing, sealed under a UV-cured coat.</p>'
          . '<div class="random-product-grid af-gfs-grid">' . $tiles . '</div>'
