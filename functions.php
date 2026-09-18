@@ -9366,6 +9366,21 @@ add_action('wp_head', function() {
         align-items: center !important;
         justify-content: center !important;
       }
+      /* And the wrapper that was actually holding Search up, found by walking
+         the chain from its icon: the search widget's .elementor-widget-container
+         is a BLOCK with 10px of padding. Its child therefore sat at the top of
+         the padding box, 660, while the icon boxes' contents were centred in
+         the 69px row at 666 - the six pixels, exactly. Centring the container's
+         contents puts all four on the same line; the padding goes, because the
+         cell is already the size it wants to be. */
+      .elementor-element-bec7134 .elementor-widget-container{
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 100% !important;
+        padding: 0 !important;
+      }
       .elementor-element-bec7134 .elementor-icon-box-wrapper,
       .elementor-element-bec7134 .site-header-search,
       .elementor-element-bec7134 .site-header-search .button-search-popup{
