@@ -123,9 +123,16 @@ await p.evaluate(() => {
 });
 await new Promise(r => setTimeout(r, 5000));
 
+const where = await p.evaluate(() => location.href);
+console.log('\nURL after the click: ' + where);
+
 const after = await p.evaluate(() => {
   const strip = document.querySelector('#subcategorySlider, .subcategory-slider');
-  if (!strip) return { err: 'the circle row vanished' };
+  // "vanished" was ambiguous: the row is gone either because the theme wiped
+  // it or because the browser left the homepage entirely. Say which.
+  if (!strip) return { err: /theartframer\.us\/?($|\?|#)/.test(location.href)
+      ? 'the row was removed while still on the homepage'
+      : 'the browser navigated to ' + location.href };
   return [...strip.children].map(el => {
     const img = el.querySelector('img');
     const r = el.getBoundingClientRect();
