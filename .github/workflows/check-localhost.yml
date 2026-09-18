@@ -1,0 +1,33 @@
+name: Check Localhost Links
+on:
+  workflow_dispatch:
+jobs:
+  find:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Send the script up
+        run: |
+          set -uo pipefail
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/diag-localhost.php "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-localhost.php" || echo "scp failed"
+      - name: Search files, then the database
+        run: |
+          set +e
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" '
+            cd ~/websites/OPu0sKi4J/public_html
+            echo "=== FILES containing localhost/wordpress/postero (themes + plugins) ==="
+            grep -rl "localhost/wordpress/postero" wp-content/themes wp-content/plugins 2>/dev/null | head -20 || echo "  none"
+            echo; echo "=== and the exact lines in the parent theme, if any ==="
+            grep -rn "localhost/wordpress/postero" wp-content/themes/postero 2>/dev/null | head -10 | cut -c1-220
+            echo; echo "=== DATABASE ==="
+            wp eval-file wp-content/themes/postero-child/tools/diag-localhost.php --allow-root 2>&1 | grep -v "_load_textdomain_just_in_time"
+          '

@@ -82,6 +82,16 @@ async function fetchPage(url) {
 }
 
 function harvest(pageUrl, html) {
+  // The audit listed five "broken links" that were JavaScript templates —
+  // href="'+url+'", {{{data.url}}} — read out of <script> blocks as if they
+  // were anchors. A browser never renders those; a regex over raw HTML does.
+  // Strip the blocks a browser would not treat as markup before looking.
+  html = html
+    .replace(/<script\b[\s\S]*?<\/script>/gi, '')
+    .replace(/<template\b[\s\S]*?<\/template>/gi, '')
+    .replace(/<style\b[\s\S]*?<\/style>/gi, '')
+    .replace(/<noscript\b[\s\S]*?<\/noscript>/gi, '');
+
   // Links inside the header/footer navigation, named so they can be reported
   // separately from links buried in body copy.
   const navBlocks = [];
