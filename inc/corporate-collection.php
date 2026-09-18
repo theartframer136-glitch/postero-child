@@ -117,10 +117,27 @@ add_action('wp_footer', function () {
     return null;
   }
 
-  function gridFor(tab) {
-    for (var n = tab; n && n !== document.body; n = n.parentElement) {
-      var g = n.querySelector(GRID_SEL);
-      if (g && !g.contains(tab)) return g;
+  // Find the container by what is IN it, not by a selector list.
+  //
+  // The first version reused the selectors from the module next door and
+  // measured 0 cards inside whatever they matched, before the click and after
+  // it - so it was writing the answer into the wrong element, where nobody
+  // would ever see it. This site wraps the collection grid in its own carousel
+  // shell, so the container that actually holds the cards is not the one those
+  // selectors name. The cards' own parent is, whatever it happens to be
+  // called, so that is what is asked for.
+  function gridFor() {
+    var cards = document.querySelectorAll('.product-card, li.product');
+    if (cards.length) {
+      // The parent shared by the first few cards: a card may sit in its own
+      // slide wrapper, in which case the row above it is the real container.
+      var p1 = cards[0].parentElement;
+      if (cards.length > 1 && cards[1].parentElement !== p1) {
+        // each card wrapped separately - go up one more
+        var up = p1 && p1.parentElement;
+        if (up && up.querySelectorAll('.product-card, li.product').length >= cards.length) return up;
+      }
+      if (p1) return p1;
     }
     return document.querySelector(GRID_SEL);
   }
@@ -223,7 +240,7 @@ add_action('wp_footer', function () {
     if (strip) strip.querySelectorAll('.active').forEach(function (x) { x.classList.remove('active'); });
     tab.classList.add('active');
 
-    var grid = gridFor(tab);
+    var grid = gridFor();
     try { console.log('[af-cp] grid = ' + (grid ? grid.tagName + '.' + grid.className : 'NULL')); } catch (x) {}
     document.documentElement.setAttribute('data-af-cp-grid', grid ? (grid.id || grid.className || grid.tagName) : 'NULL');
     if (grid) grid.style.opacity = '.45';
