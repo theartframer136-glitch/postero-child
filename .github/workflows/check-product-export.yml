@@ -2,12 +2,20 @@ name: Check Product Export
 # Every product as art code, category, sub-category and link. Read-only: it
 # writes nothing to the catalogue and does not deploy the theme — the script is
 # sent up on its own, the way the other check-* probes do it.
+#
+# The rows come back on the `product-export` branch as a plain TSV. They used to
+# be read out of this log by hand, 116 lines of base64 at a time, and the first
+# attempt at that failed its checksum with one row silently mangled: the row
+# count was right and the file still parsed, so nothing but the CRC caught it.
+# A git ref carries the bytes exactly, and gunzip checks the CRC on the way.
 on:
   workflow_dispatch:
 jobs:
   check:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Setup SSH
@@ -34,10 +42,93 @@ jobs:
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-product-export.php --allow-root 2>&1" \
             | tee /tmp/product-export.txt || true
+      - name: Rebuild the rows, and check them
+        id: rebuild
+        run: |
+          set -uo pipefail
+          # gunzip verifies the CRC32 the probe wrote, so a run that publishes has
+          # already proved the bytes are the ones the catalogue produced.
+          if ! awk '/^B64 /{printf "%s", $2}' /tmp/product-export.txt \
+               | base64 -d 2>/dev/null | gunzip > /tmp/products.tsv 2>/dev/null; then
+            echo "the rows did not survive the log — no B64 output, or the CRC failed"
+            echo "ok=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          # The probe joins its rows with \n and writes no trailing newline, so
+          # `wc -l` is one short. awk's NR counts the last line whether or not it
+          # is terminated. Give the file its newline back while we are here.
+          [ -n "$(tail -c1 /tmp/products.tsv)" ] && printf '\n' >> /tmp/products.tsv
+          rows=$(awk 'END{print NR-1}' /tmp/products.tsv)
+          cols=$(head -1 /tmp/products.tsv | awk -F'\t' '{print NF}')
+          ragged=$(awk -F'\t' -v c="$cols" 'NF!=c' /tmp/products.tsv | wc -l)
+          echo "products: ${rows}  |  columns: ${cols}  |  rows with the wrong column count: ${ragged}"
+          if [ "$rows" -lt 1 ] || [ "$ragged" -ne 0 ]; then
+            echo "the rows are not well formed — not publishing"
+            echo "ok=0" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "ok=1" >> "$GITHUB_OUTPUT"
+          echo "rows=${rows}" >> "$GITHUB_OUTPUT"
+      - name: Publish the rows to the product-export branch
+        if: steps.rebuild.outputs.ok == '1'
+        run: |
+          set -uo pipefail
+          # Its own branch, not art-sheets: the deploy force-pushes art-sheets as
+          # an orphan on every run, so anything else left there is wiped.
+          #
+          # A delivery channel, not history — force-pushed each run, holding only
+          # the newest rows.
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          rm -rf /tmp/af-exportwt
+          git worktree add --detach /tmp/af-exportwt >/dev/null
+          rc=0
+          (
+            cd /tmp/af-exportwt || exit 1
+            git checkout --orphan product-export >/dev/null 2>&1 || exit 1
+            git rm -rf --cached . >/dev/null 2>&1 || true
+            find . -maxdepth 1 -mindepth 1 ! -name '.git' -exec rm -rf {} + 2>/dev/null || true
+            cp /tmp/products.tsv products.tsv || exit 1
+            {
+              echo "# Product export"
+              echo
+              echo "\`products.tsv\` is every product in the live catalogue, tab separated,"
+              echo "one row per product in ascending product id, with a header row:"
+              echo
+              echo "    art_code  category  sub_category  link  product_id  title  status"
+              echo
+              echo "\`category\` holds the TOP-LEVEL product categories and \`sub_category\`"
+              echo "the child ones, each joined with \" | \" when a product sits in more"
+              echo "than one. WooCommerce has no real notion of a primary category, so"
+              echo "nothing is dropped by picking one."
+              echo
+              echo "Read it with:"
+              echo
+              echo "    git fetch origin product-export"
+              echo "    git show origin/product-export:products.tsv"
+              echo
+              echo "This branch is a delivery channel, not history. It is force-pushed by"
+              echo "every run of Check Product Export and holds only the newest rows."
+              echo
+              echo "${{ steps.rebuild.outputs.rows }} products, from run ${GITHUB_RUN_NUMBER}, commit ${GITHUB_SHA}."
+            } > README.md
+            git add -A
+            git commit -q -m "Product export from run ${GITHUB_RUN_NUMBER} (${{ steps.rebuild.outputs.rows }} products)" || exit 1
+            git push --force origin product-export
+          ) || rc=$?
+          git worktree remove --force /tmp/af-exportwt >/dev/null 2>&1 || true
+          if [ "$rc" -eq 0 ]; then
+            echo "published ${{ steps.rebuild.outputs.rows }} products to the product-export branch"
+          else
+            echo "could not publish the product-export branch (exit ${rc})"
+          fi
       - name: Keep the rows as an artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: product-export
-          path: /tmp/product-export.txt
+          path: |
+            /tmp/product-export.txt
+            /tmp/products.tsv
           retention-days: 7
+          if-no-files-found: warn

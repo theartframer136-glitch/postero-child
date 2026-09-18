@@ -17,6 +17,14 @@
  * joined with " | " when there is more than one, so nothing is silently dropped
  * by picking a "primary" that WooCommerce does not really have.
  *
+ * The workflow that runs this rebuilds those rows and publishes them to the
+ * `product-export` branch as a plain TSV, because reading them back out of the
+ * log by hand is how a mangled row once got through — the row count and the
+ * column count both still looked right, and only the gzip CRC caught it:
+ *
+ *     git fetch origin product-export
+ *     git show origin/product-export:products.tsv
+ *
  * Run: wp eval-file tools/diag-product-export.php --allow-root
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit( 1 ); }
