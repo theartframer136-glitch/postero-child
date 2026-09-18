@@ -1,0 +1,30 @@
+name: Check Two Fixes
+# Why the empty-href fix and the video preload fix did not show up live.
+on:
+  workflow_dispatch:
+jobs:
+  why:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Purge LiteSpeed, then read the Elementor data
+        run: |
+          set +e
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/diag-elementor-hrefs.php "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/"
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && wp litespeed-purge all --allow-root 2>&1 | tail -1; echo; wp eval-file wp-content/themes/postero-child/tools/diag-elementor-hrefs.php --allow-root 2>&1 | grep -v _load_textdomain"
+      - name: Instagram feed, server-sent or injected?
+        run: |
+          set -uo pipefail
+          sleep 15
+          npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afh/node_modules node tools/diag-insta.mjs || true
