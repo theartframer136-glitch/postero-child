@@ -1,0 +1,157 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.8/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.8/wp-includes/functions.php on line 6131
+=== ART CODES → THE BOOK'S NUMBERING ===
+mode: APPLYING
+products: 424
+  with an art code:     322
+  without one:          102
+  to renumber:          32
+  already in the book's numbering: 191
+  naming no page of the book:      99  (left alone)
+  codes landing on more than one product: 6, over 12 products (unchanged by this pass)
+
+--- renumbered ---
+  #223     RK - 010010  -> RK - 010010-5030 Krishna Moonlight Canvas Wall Art – 36 x 60 
+  #7676    LB - 090002  -> LB - 090002-3050 Abstract Buddha Lotus Meditation Canvas Wall
+  #7718    HD - 080002  -> HD - 080002-4040 Maa Durga Divine Canvas Wall Art 48×48 Inche
+  #7767    WL - 170001  -> WL - 170001-4030 Sacred Elephant Harmony Canvas Wall Art – 48
+  #7769    RK - 010076  -> RK - 010076-5030 Divine Shrinathji Canvas Wall Art – Stunning
+  #7802    RK - 010007  -> RK - 010007-3040 Radha Krishna Abstract Canvas Wall Art – 36 
+  #7811    RK - 010003  -> RK - 010003-3040 Radha Krishna Love Canvas Wall Art – 36×48 I
+  #7819    RK - 010008  -> RK - 010008-3040 Sleeping Baby Krishna Canvas Wall Art – 36 ×
+  #7820    RK - 010093  -> RK - 010093-3040 Krishna Raas Leela Moonlight Wall Art – 36 ×
+  #7822    RK - 010009  -> RK - 010009-3040 Lord Krishna Blessing Canvas Wall Art – 36 x
+  #8454    SN - 110001  -> SN - 110001-3040 Divine Swaminarayan Temple Golden Murti Wall
+  #11560   RK - 010024  -> RK - 010024-5030 Divine Radha Krishna Canvas Wall Art 60×36 I
+  #11577   RK - 010002  -> RK - 010002-3050 Radha Krishna Divine Love Canvas Art
+  #13239   SL - 150009  -> SL - 150009-5030 Vibrant Floral Still Life Canvas Wall Art 3×
+  #13355   RK - 010080  -> RK - 010080-5030 Krishna Standing Tall Canvas Wall Art 3×4 Fe
+  #15046   KR - 180012  -> KR - 180012-3050 Batman Comic Art Canvas Wall Art 3×4 Feet – 
+  #17280   RK - 010026  -> RK - 010026-5030 Radha Krishna Temple Scene Canvas Wall Art 3
+  #18039   RK - 010019  -> RK - 010019-5030 Radha Krishna Dance Canvas Wall Art 3×4 Feet
+  #18964   RK - 010004  -> RK - 010004-4040 Krishna with Radha Canvas Wall Art 3×4 Feet 
+  #19208   RK - 010020  -> RK - 010020-5030 Radha Krishna Floral Arch Canvas Wall Art 3×
+  #19636   SH - 040008  -> SH - 040008-3040 Seven Horses in the Clouds Canvas Wall Art 3
+  #20831   RK - 010012  -> RK - 010012-3060 Radha Krishna Peacock Elegance Canvas Wall A
+  #21197   RK - 010014  -> RK - 010014-3050 Baby Krishna Butter Delight Canvas Wall Art 
+  #21686   RK - 010013  -> RK - 010013-3050 Golden Radha Krishna Duet Canvas Wall Art 3×
+  #23252   RK - 010048  -> RK - 010048-5040 Divine Hand with Mala Canvas Wall Art 3×4 Fe
+  #23558   RK - 010091  -> RK - 010091-5030 Bal Krishna Classic Portrait Canvas Wall Art
+  #24653   RK - 010096  -> RK - 010096-5030 Radha Krishna Painted Faces Canvas Wall Art 
+  #27325   RK - 010087  -> RK - 010087-5030 Radha Krishna on the Branch Canvas Wall Art 
+  #28900   RK - 010083  -> RK - 010083-5030 Krishna Kadamba Melody Canvas Wall Art 3×4 F
+  #30653   RK - 010085  -> RK - 010085-5030 Krishna Peacock Serenade Canvas Wall Art 3×4
+  #31334   RK - 010086  -> RK - 010086-5030 Radha in Bridal Blooms Canvas Wall Art 3×4 F
+  #31772   RK - 010018  -> RK - 010018-3050 Radha Krishna Mosaic Art Canvas Wall Art 3×4
+
+--- left alone: these name no page of the book ---
+Each needs its picture put next to the book, which is the audit's work,
+not this pass's. Rows for them belong in tools/artcode-corrections.csv.
+  AL is not a section of the book — 3 product(s)
+     #23435   AL 06        Andal with Parrot Tanjore Canvas Wall Art 3×
+     #23496   AL 05        Mahayogi Tanjore Panel Canvas Wall Art 3×4 F
+     #26145   AL 01        Tanjore Murugan Panel Canvas Wall Art 3×4 Fe
+  not shaped like an art code — 96 product(s)
+     #115     TMP-1000     The Penguin Show Poster
+     #123     TMP-1001     IL Lemone Poster
+     #177     TMP-1002     Geometric Shapes poster
+     #199     TMP-1003     Balance Poster
+     #211     TMP-1004     Japanese Butterfly II Poster
+     #8276    TMP-1009     Premium Pine Wood Canvas Stretcher Bars Kit 
+     #8337    TMP-1010     Premium Wooden Stretcher Bars for Canvas – D
+     #8386    TMP-1011     Premium Canvas Stretcher Bars – Heavy – Duty
+     #8406    TMP-1012     DIY Canvas Stretcher Bar Kit – Ready-to-Asse
+     #8415    TMP-1013     Premium Pine Wood Stretcher Bars for Canvas 
+     #8427    TMP-1015     Professional Wooden Stretcher Bars For Canva
+     #8444    TMP-1017     Large Canvas Wall Frame – Floating Frame Can
+     #8515    TMP-1020     Vertical Canvas Wall Art 3×4 ft – Large Port
+     #8518    TMP-1021     DIY Floating Frame for Canvas Prints – Moder
+     #8521    TMP-1022     DIY Gold Floating Frame for Canvas Prints – 
+     #8526    TMP-1023     Luxury Gold Floating Frame for Canvas Prints
+     #8529    TMP-1024     DIY Floating Canvas Frame Kit – Modern Shado
+     #8571    TMP-1025     Premium Aluminium Floating Frame for Canvas 
+     #8576    TMP-1026     Premium Aluminium Canvas Frame Prints – Prem
+     #8579    TMP-1027     Premium Canvas Floating Frame Aluminium Prof
+     #8594    TMP-1032     Artist Cotton Canvas Roll for Painting & Pri
+     #8601    TMP-1034     Artist Cotton Canvas Fabric – Premium Textur
+     #8604    TMP-1035     Premium Quality Adjustable Metal Easel Stand
+     #8607    TMP-1036     Elite Premium Wooden Artist Easel Stand – Ad
+     #8610    TMP-1037     Professional Wooden Studio Easel – Adjustabl
+     #8613    TMP-1038     Premium Wood Canvas Frame – Stunning Gallery
+     #8616    TMP-1039     Premium Wooden Floating Frame for Canvas – L
+     #8619    TMP-1040     Premium Wooden Floating Frame for Canvas Art
+     #8643    TMP-1041     Best Premium Custom Backdrop Banner Printing
+     #8646    TMP-1042     Custom Premium Roll-Up Banner Stand Printing
+     #8649    TMP-1043     Premium Custom Fabric Banner | Professional 
+     #8653    TMP-1044     Top-Rated Custom Fence Banner Printing | Ult
+     #8656    TMP-1045     Premium Stunning Personalized Vinyl Banners 
+     #8669    TMP-1046     Premium Wooden Portrait Canvas Frame (60 × 2
+     #8846    TMP-1048     Premium Canvas Floating Frame Colors – Luxur
+     #8849    TMP-1049     Premium Floating Frame Collection – Stunning
+     #8856    TMP-1051     Premium Gold Floating Canvas Frame | Luxury 
+     #8859    TMP-1052     Premium Rose Gold Floating Frame for Canvas 
+     #8862    TMP-1053     Premium Silver Floating Frame For Canvas | L
+     #11491   TMP-1055     test
+     #11541   TMP-1056     Premium Radha Krishna Love Wall Art (36 x 60
+     #11617   TMP-1058     Radha-Krishna Canvas Wall Art 24×36 Inches –
+     #14600   TMP-1060     The Art Framer Gift Card
+     #22383   TMP-1071     Krishna Rainbow Splash Canvas Wall Art 3×4 F
+     #24592   TMP-1083     Veena Under Violet Moon Canvas Wall Art 3×4 
+     #25596   TMP-1093     Tanjore Golden Deity Canvas Wall Art 3×4 Fee
+     #26084   TMP-1099     Kerala Mural Celebration Canvas Wall Art 3×4
+     #28656   TMP-1124     Radha’s Mirror of Krishna Canvas Wall Art 3×
+     #29084   TMP-1130     Shiva of the Ghats Canvas Wall Art 3×4 Feet 
+     #29342   TMP-1134     Kashi Vishwanath Gold Spire Canvas Wall Art 
+     #30032   TMP-1142     Devotion in Color Mist Canvas Wall Art 3×4 F
+     #30409   TMP-1147     Krishna’s Temple Gardens Canvas Wall Art 3×4
+     #30714   TMP-1148     Krishna Sudama Friendship Canvas Wall Art 3×
+     #31027   TMP-1153     Radha Krishna Graphite Duet Canvas Wall Art 
+     #33278   TMP-1162     The Golden Sardar Canvas Wall Art 3×4 Feet
+     #33285   TMP-1163     Namaste Henna Hands Canvas Wall Art 3×5 Feet
+     #33291   TMP-1164     Rhythm In Orange Canvas Wall Art 3×4 Feet
+     #33292   TMP-1165     Classical Dance Duo Portrait Canvas Wall Art
+     #33294   TMP-1166     Dance Duet On Stage Canvas Wall Art 3×4 Feet
+     #33296   TMP-1167     Dance Portrait Showcase Canvas Wall Art 3×4 
+     #33298   TMP-1168     Dancer With Temple Lamp Canvas Wall Art 4×3 
+     #33300   TMP-1169     Dancers With Their Portrait Canvas Wall Art 
+     #33302   TMP-1170     Sunset Shore Dance Duet Canvas Wall Art 4×3 
+     #33420   TMP-1171     A5 Flyer Printing | Full-Colour Double-Sided
+     #33422   TMP-1172     Birthday Banner Standee with Stand | Persona
+     #33423   TMP-1173     Grand Opening Roll-Up Banner | Branded Pull-
+     #33424   TMP-1174     Waterproof Vinyl Stickers & Kiss-Cut Labels 
+     #33426   TMP-1175     Hanging Event Banners | Large-Format Ceiling
+     #33428   TMP-1176     Step-and-Repeat Media Wall | Branded Photo B
+     #33430   TMP-1177     Personalised Wedding Backdrop | Printed Fabr
+     #33432   TMP-1178     Acrylic QR & Wi-Fi Display Stand | Printed C
+     #33434   TMP-1179     Membership & Loyalty Cards | Premium Printed
+     #33436   TMP-1180     Presentation Folders & Envelopes | Branded C
+     #33437   TMP-1181     Bridal Shower Backdrop Tapestry | Printed Fa
+     #33439   TMP-1182     Ethnic Print Jute Tote Bag | Reusable Brande
+     #33440   TMP-1183     Gold Foil Business Cards | Heavyweight Cards
+     #33442   TMP-1184     Outdoor Pylon Business Sign | Freestanding P
+     #33443   TMP-1185     Exhibition Table Cover & Banner Set | Coordi
+     #33444   TMP-1186     Full-Colour Commercial Printing | Brochures,
+     #33445   TMP-1187     LED Light Box Sign | Illuminated Shopfront a
+     #33446   TMP-1188     Printed Table Cloths | Full-Colour Branded C
+     #33447   TMP-1189     Marketing Print Pack | Complete Business Col
+     #33448   TMP-1190     Personalised Logo Jute Tote Bag | Branded Co
+     #33449   TMP-1191     Foil-Stamped Training Certificates | Persona
+     #33450   TMP-1192     Raised Foil Loyalty Cards | Soft-Touch Black
+     #33451   TMP-1193     Roll-Up Banner Display Set | Multiple Coordi
+     #33452   TMP-1194     Line Art Canvas Tote Bags | Minimal Printed 
+     #33454   TMP-1195     Projecting Shop Sign | Double-Sided Bracket 
+     #33455   TMP-1196     Custom Vinyl Store Banner | Heavy-Duty Weath
+     #33456   TMP-1197     Exhibition Booth Table & Backdrop | Complete
+     #33458   TMP-1198     Wayfinding & Directional Signs | Interior an
+     #33459   TMP-1199     Weatherproof Outdoor Poster Stand | Lockable
+     #33461   TMP-1200     Personalised Welcome Standee | Printed Event
+     #33462   TMP-1201     Round Business Cards | Custom Die-Cut Circul
+     #33463   TMP-1202     Custom Certificate Printing | Foil and Embos
+     #33464   TMP-1203     Heat Transfer Jute Tote Bags | Named Favour 
+
+renumbered: 32  |  already correct: 191  |  left alone: 99  |  no code: 102
+
+Written. The SKU pass runs next and rebuilds each changed product's SKU
+from its new code; the code each product had before is kept in
+_af_code_before_renumber.
+=== DONE ===

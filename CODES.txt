@@ -1,0 +1,32 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.8/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.8/wp-includes/functions.php on line 6131
+=== ART CODES ON MORE THAN ONE PRODUCT ===
+products: 424
+  with an art code: 424  |  without: 0
+  distinct art codes: 418
+  codes used by more than one product: 6
+  products sharing a code with something else: 12
+
+--- how many products per shared code ---
+  2 products: 6 code(s)
+
+--- every shared code (first 200 groups) ---
+code | product id | current SKU | title
+  LB - 090001-3050 #220     LB-090001-3050A        Serene Buddha with Lotus Canvas Wall Art 4×3 Feet – Floating
+  LB - 090001-3050 #7839    LB-090001-3050B        Buddha Lotus Serenity Canvas Wall Art 36×60 Inches – Spiritu
+  TP - 050004-5030 #229     TP-050004-5030A        Lord Venkateswara Temple Canvas Wall Art 2×3 Feet – Floating
+  TP - 050004-5030 #8474    TP-050004-5030B        Divine Lord Balaji Temple Canvas Wall Art – 60 × 36 Inch Sac
+  HD - 080001-5030 #8398    HD-080001-5030A        Meditating Yogi Spiritual Wall Art – 60 × 24 Inches Peaceful
+  HD - 080001-5030 #26875   HD-080001-5030         Mahavatar Babaji Canvas Wall Art 3×4 Feet – Floating Frame –
+  RK - 010033-3050 #14617   RK-010033-3050A        Krishna Playing Flute Canvas Wall Art 3×4 Feet – Floating Fr
+  RK - 010033-3050 #31829   RK-010033-3050B        Krishna Flute Panorama Canvas Wall Art 3×4 Feet – Floating F
+  TP - 050013-5030 #15730   TP-050013-5030A        Vishnu Blue Form Canvas Wall Art 3×4 Feet – Floating Frame –
+  TP - 050013-5030 #31890   TP-050013-5030C        Lord Vishnu Golden Halo Canvas Wall Art 3×4 Feet – Floating 
+  LR - 070005-5030 #15913   LR-070005-5030A        Lord Vishnu Statue Canvas Wall Art 3×4 Feet – Floating Frame
+  LR - 070005-5030 #17543   LR-070005-5030B        Lord Balaji Idol Canvas Wall Art 3×4 Feet – Floating Frame –
+
+full table: https://theartframer.us/wp-content/uploads/taf-reports/artcode-duplicates.csv
+fill this in:  https://theartframer.us/wp-content/uploads/taf-reports/artcode-import-template.csv
+  put the correct code in new_art_code, save it as artcode-import.csv in
+  the same folder, and the next deploy applies it. Rows left blank are
+  skipped, so it can be done a few at a time.

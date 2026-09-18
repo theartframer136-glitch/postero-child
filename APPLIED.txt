@@ -1,0 +1,368 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.8/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.8/wp-includes/functions.php on line 6131
+=== ART CODE CORRECTIONS ===
+mode: APPLYING
+rows in the file: 245
+
+WARNING: more than one row for #11560, #17280, #23252, #23558, #24653 — the last row for each wins. Merge them into one row.
+
+--- what happens to each row ---
+  #16566   already LC - 140009 Whimsical Train Journey Canvas Wall Art 3×4 
+  #23374   already LI - 190033 Moonlit White Horse Canvas Wall Art 3×4 Feet
+  #27133   TMP-1257 -> (cleared)  Geometric Falls Sunrise Canvas Wall Art 3×4 
+            because: OVERTURNS the earlier row in this file, which read "book LC 01 is the flowing waterfall" and moved this product from LS 01 onto LC 01. It is not the waterfall. The picture is a geometric mountain landscape in flat panels of blue, orange, green and white with a small orange tree and a sun disc; LC 01 is a naturalistic green forest waterfall over mossy rocks. That row was written from the title and the page number, before any LC contact sheet existed. No page yet holds it: Abstract Art's geometric pages were checked (AA 05 two cubist faces, AA 07 a golden tree over grey blocks, AA 10 a tree against a split moon, AA 12 Japanese layered hills, AA 13 terracotta shapes), as were LC 10 and all four Vaastu pages
+  #13722   already LC - 140002 Stairway to the Moon Canvas Wall Art 3×4 Fee
+  #18897   already AA - 200009 Surreal Landscape Canvas Wall Art 3×4 Feet –
+  #23496   already AL 05    Mahayogi Tanjore Panel Canvas Wall Art 3×4 F
+  #23435   already AL 06    Andal with Parrot Tanjore Canvas Wall Art 3×
+  #26145   already AL 01    Tanjore Murugan Panel Canvas Wall Art 3×4 Fe
+  #7839    already LB - 090001 Buddha Lotus Serenity Canvas Wall Art 36×60 
+  #17472   already HD - 080010 Lord Mahavira Art Canvas Wall Art 3×4 Feet –
+  #16932   already LB - 090013 Buddha Enlightenment Scene Canvas Wall Art 3
+  #220     already LB - 090001 Serene Buddha with Lotus Canvas Wall Art 4×3
+  #25124   TMP-1245 -> (cleared)  Cosmic Buddha Nebula Canvas Wall Art 3×4 Fee
+            because: re-checked against all thirteen Buddha pages, which are now read in full. None places the Buddha in a star field among planets. Clear confirmed
+  #26875   already HD - 080001 Mahavatar Babaji Canvas Wall Art 3×4 Feet – 
+  #27449   TMP-1261 -> (cleared)  Buddha Offering Lotus Canvas Wall Art 3×4 Fe
+            because: blue Buddha with bowl — no LB page in the book shows it
+  #27510   TMP-1262 -> (cleared)  Cubist Buddha Visage Canvas Wall Art 3×4 Fee
+            because: cubist Buddha face — no LB page in the book shows it
+  #20087   already SH - 040015 Running White Horses Canvas Wall Art 3×4 Fee
+  #30093   TMP-1290 -> (cleared)  Horses of the Dust Plains Canvas Wall Art 3×
+            because: re-checked against every Seven Horses page from the nocode sheet, the three the section gained included: a sepia herd of brown, grey and white horses in dust on plain cream, matching none of them. Also NOT the same painting as #22016, which was cleared off AA 06 and looks like it at a glance: same series, but #22016 carries bright orange, red and blue splashes this one does not
+  #24352   already LS - 030016 Shiva Parvati on Kailash Canvas Wall Art 3×4
+  #8597    TMP-1215 -> (cleared)  Professional Cotton Canvas Roll for Artists 
+            because: a roll of blank canvas, not an artwork — it can never be a picture in the book
+  #8591    TMP-1214 -> (cleared)  Premium Canvas Roll For Printing– High-Quali
+            because: a roll of blank canvas, not an artwork — it can never be a picture in the book
+  #8582    TMP-1211 -> (cleared)  Framed White Canvas Wall Art – Premium Blank
+            because: a blank framed canvas, not an artwork — it can never be a picture in the book
+  #8447    TMP-1209 -> (cleared)  Large Square Canvas Wall Art 4×4 ft | Custom
+            because: a blank canvas, not an artwork — and LS 09 is the two faces with the lotus, which is #16257
+  #8853    TMP-1217 -> (cleared)  Luxury Premium Matte Black Floating Frame fo
+            because: an empty frame sold on its own, not an artwork — it can never be a picture in the book
+  #8869    TMP-1218 -> (cleared)  Modern Living Room Wall Decor Canvas Set – 3
+            because: a three-panel decor bundle, not a single artwork — and LS 08 is the cubist Shiva family with Nandi, which is #16993
+  #8711    TMP-1216 -> (cleared)  Stunning Personalized Family Photo Collage C
+            because: a made-to-order print of the customer's own photographs, not an artwork in the book
+  #28164   TMP-1270 -> (cleared)  Temple Bells and Cows Canvas Wall Art 3×4 Fe
+            because: brass temple bells above white cows on a red wall — none of the fifteen Tirupati pages shows it, and TP 03 is the Ram and Sita wedding, which is #18666
+  #20288   already LI - 190005 Holy Family Stained Glass Canvas Wall Art 3×
+  #16762   already LI - 190008 Crucifixion Scene Canvas Wall Art 3×4 Feet –
+  #21832   already LI - 190012 Divine Mercy Radiance Canvas Wall Art 3×4 Fe
+  #16035   already LI - 190009 Sacred Heart of Jesus Canvas Wall Art 3×4 Fe
+  #30531   already LS - 030017 Shiva Parivar with Lion Canvas Wall Art 3×4 
+  #19944   already LI - 190048 Green Leafy Plants Art Canvas Wall Art 3×4 F
+  #7825    already HD - 080012 Panchmukhi Hanuman Canvas Wall Art 60×36 Inc
+  #27750   TMP-1266 -> (cleared)  Krishna and the Monkeys Folk Canvas Wall Art
+            because: Krishna folk art with monkeys — none of the nine Lord Rama pages shows it
+  #23252   TMP-1234 -> (cleared)  Divine Hand with Mala Canvas Wall Art 3×4 Fe
+            because: a hand holding prayer beads — none of the fifteen Lord Shiva pages shows it, and LS 04 is the multicoloured Shiva face
+  #8424    TMP-1207 -> (cleared)  Divine Varanasi Ganga Aarti Canvas Wall Art 
+            because: overturning this audit's own row, which placed it here from the page's description without ever seeing the product's picture. TA 01 is portrait - 6 ft (H) * 3 ft (B), and both sizes the page offers are portrait - and shows a lilac twilight sky with four dark temple spires and a green-roofed pavilion above the ghat, with one boat of figures carrying no lamps. This picture is landscape, has no sky in it at all, covers the ghat with dozens of conical lamp-trees and stands two more in its own foreground boat, and adds a second crowded boat at the right. Each holds what the other has not, and a crop can remove content but never add it: two different Varanasi ghat artworks. TA 02 is Kedarnath, TA 03 is the stylised crimson-and-teal river, TA 04 is the single priest with the flame. No other page of the book is captioned Varanasi - the only two that are, RK 55 and RK 81, print that caption over Krishna
+  #3362    already HD - 080004 Divine Lord Ganesha Canvas Wall Art 60×36 In
+  #29517   TMP-1285 -> (cleared)  Lone Tree Between Worlds Canvas Wall Art 3×4
+            because: a single conifer on a split teal and orange field - LS 04 is the multicoloured Shiva face, so this is certainly wrong here. Cleared rather than left, because it is blocking a confirmed move: a known-wrong code that blocks a known-right one is worse than an empty one. Still needs its own page found
+  #18290   already LS - 030004 Shiva Meditation Art Canvas Wall Art 3×4 Fee
+  #8412    already LG - 020001 Lakshmi Ganesh Canvas Wall Art – 48×48 Inche
+  #29456   TMP-1284 -> (cleared)  Maratha Pride with Lion Canvas Wall Art 3×4 
+            because: two Maratha warriors with a lion; the Lakshmi-Ganesha section is three pages and all three are now matched to #8412, #29951 and #26753
+  #27981   TMP-1268 -> (cleared)  Crimson Veil Portrait Canvas Wall Art 3×4 Fe
+            because: a woman's face behind a crimson veil; the Lakshmi-Ganesha section is three pages and all three are now matched
+  #23558   TMP-1235 -> (cleared)  Bal Krishna Classic Portrait Canvas Wall Art
+            because: the Lakshmi-Ganesha section is three pages and all three are matched to #8412, #29951 and #26753, so no fourth product can hold an LG code whatever its picture shows
+  #148     already LI - 190003 Abstract Floral Sunrise Canvas Wall Art 5×3 
+  #7810    already LR - 070001 Premium Ram Darbar Divine Wall Art – 36 x 60
+  #11560   TMP-1219 -> (cleared)  Divine Radha Krishna Canvas Wall Art 60×36 I
+            because: Krishna with his flute and Radha in pastel — LR 03 is the Ram and Sita portrait, which is #21136
+  #25240   TMP-1246 -> (cleared)  Vaishnava Symbols Trio Canvas Wall Art 3×4 F
+            because: the chakra, tilak and shankha on black — none of the nine Lord Rama pages shows it
+  #22077   TMP-1230 -> (cleared)  Shiva in the Sea Canvas Wall Art 3×4 Feet – 
+            because: re-checked against all fifteen Lord Shiva pages, not the nine Lord Rama pages the first reason cited. No LS page shows Shiva rising from the sea under a full moon. Clear confirmed
+  #21893   already SH - 040014 Wild Horses Stampede Canvas Wall Art 3×4 Fee
+  #8588    TMP-1213 -> (cleared)  Best Premium Pre-Stretched Framed Canvas Boa
+            because: a blank artist canvas board sold for painting on, not an artwork — it can never be a picture in the book
+  #8440    TMP-1208 -> (cleared)  Large Landscape Canvas Print 3×4 ft | Custom
+            because: a made-to-order print of the customer's own photograph, like #8447 and #8711 — there is no book picture for it to match
+  #7662    already SH - 040002 Luxurious Majestic White Running Horses Canv
+  #232     already SH - 040001 Powerful Running White Horses Canvas Wall Ar
+  #17543   already LR - 070005 Lord Balaji Idol Canvas Wall Art 3×4 Feet – 
+  #19453   TMP-1227 -> (cleared)  Golden Krishna Flute Player Canvas Wall Art 
+            because: golden Krishna with his flute — LS 11 is the two faces with the white lamb, which is #21625
+  #21954   already LS - 030002 Shiva Family Cubist Art Canvas Wall Art 3×4 
+  #20169   already SH - 040013 Rainbow Horse Gallop Canvas Wall Art 3×4 Fee
+  #141     already LI - 190002 Minimalist Blossom Still Life Canvas Wall Ar
+  #14678   TMP-1221 -> (cleared)  Golden Krishna Temple Idol Canvas Wall Art 3
+            because: a golden Krishna idol with lamps — TP 01 is the dark green Vishnu in the forest with the waterfall
+  #14739   already LC - 140006 Moonlit Mountain Forest Canvas Wall Art 3×4 
+  #8585    TMP-1212 -> (cleared)  Elegant Large Framed White Canvas Wall Art w
+            because: its listing image is a room mockup of an EMPTY white framed canvas — the eleventh product that is not an artwork, confirmed by picture rather than by its title
+  #17672   already LI - 190010 Jesus Portrait Canvas Wall Art 3×4 Feet – Fl
+  #7688    already LI - 190013 Luxury Floral Birds Canvas Wall Art 36×60 In
+  #22444   already LI - 190007 Cross of Faith Canvas Wall Art 3×4 Feet – Fl
+  #13592   already LI - 190011 Jesus in Heavenly Glory Canvas Wall Art 3×4 
+  #16444   already LI - 190024 Running Brown Horse Canvas Wall Art 3×4 Feet
+  #13473   already LI - 190032 Joyful Man with Bouquet Canvas Wall Art 3×4 
+  #27920   already LI - 190035 Rainbow Wings and Butterflies Canvas Wall Ar
+  #24897   already LI - 190037 Crimson Horse Reverie Canvas Wall Art 3×4 Fe
+  #19697   already LI - 190029 Moonlit Sailing Adventure Canvas Wall Art 3×
+  #24169   already MG - 060001 Murugan Sanctum Darshan Canvas Wall Art 3×4 
+  #8474    already TP - 050004 Divine Lord Balaji Temple Canvas Wall Art – 
+  #23008   already LI - 190004 Teal City Mirage Canvas Wall Art 3×4 Feet – 
+  #23191   already SH - 040004 Seven Horses Cliff Dawn Canvas Wall Art 3×4 
+  #7765    already KR - 180001 Cute Cartoon Cat Wall Art 36×24 – Adorable K
+  #25185   already SL - 150022 Lotus Basket Still Life Canvas Wall Art 3×4 
+  #13414   already LS - 030006 Shiva and Parvati Canvas Wall Art 3×4 Feet –
+  #7781    TMP-1204 -> (cleared)  Luxurious Modern Floral Abstract Vase Wall A
+            because: every section of the Master Brochure has now been read, and this picture is on no page of it. a soft-focus spray of red, white, coral and yellow blooms on a ground split maroon and cream, no vase. SL 01 is the closest page in the book and has a brass vase and a dark green band; nothing else in SL, LI or AA is near it
+  #7800    already LC - 140001 Stunning Forest Waterfall Landscape Wall Art
+  #14034   TMP-1220 -> (cleared)  Lord Murugan Art Canvas Wall Art 3×4 Feet – 
+            because: every section of the Master Brochure has now been read, and this picture is on no page of it. a Tanjore panel of an acharya with a tridandi staff and two disciples in namaste on a plain green ground. Not Murugan, so no MG page; HD 22 is a single gold acharya with no disciples, a different panel
+  #19269   already LS - 030010 Shiva with Nandi Canvas Wall Art 3×4 Feet – 
+  #22199   already WL - 170020 Peacock Art Canvas Wall Art 3×4 Feet – Float
+  #23850   already KR - 180022 Melody Makers Illustration Canvas Wall Art 3
+  #24470   TMP-1239 -> (cleared)  Tanjore Devotion Panel Canvas Wall Art 3×4 F
+            because: every section of the Master Brochure has now been read, and this picture is on no page of it. a Tanjore panel of a standing crowned figure in namaste against black under a gold arch. Every TP page is photographic; no HD or LB page matches it either
+  #24836   TMP-1242 -> (cleared)  Divine Blessings Gathering Canvas Wall Art 3
+            because: every section of the Master Brochure has now been read, and this picture is on no page of it. not in HD, IC or RK, all now read in full
+  #25358   TMP-1248 -> (cleared)  Dancers in Ocean Light Canvas Wall Art 3×4 F
+            because: every section of the Master Brochure has now been read, and this picture is on no page of it. the three IC dancer pages are single dancers - IC 01 in a watercolour skirt, IC 02 Bharatanatyam, IC 03 in an orange sari. This is several dancers in blue-green ocean light
+  #25657   TMP-1249 -> (cleared)  Tanjore Acharya Panel Canvas Wall Art 3×4 Fe
+            because: every section of the Master Brochure has now been read, and this picture is on no page of it. a Tanjore panel of a figure beneath a five-headed serpent hood. No page in HD, LB or TP shows it
+  #28103   TMP-1269 -> (cleared)  Krishna Serene Face Canvas Wall Art 3×4 Feet
+            because: every section of the Master Brochure has now been read, and this picture is on no page of it. RK has seven Krishna portrait pages - RK 11, 17, 42, 59, 70, 75, 85 - and this is none of them. It is a frontal blue-green face, eyes closed, peacock feather top right, on a blocky abstract ground
+  #28839   TMP-1277 -> (cleared)  Savanna Sunset Silhouettes Canvas Wall Art 3
+            because: every section of the Master Brochure has now been read, and this picture is on no page of it. there is no savanna page anywhere in the book. WL is animals and birds, and LI has no African scene
+  #30775   TMP-1294 -> (cleared)  Marigold Dreams Portrait Canvas Wall Art 3×4
+            because: every section of the Master Brochure has now been read, and this picture is on no page of it. a grey face with orange flowers over the eyes. AA 18 is the collage face with botanical elements and is a different painting
+  #30905   TMP-1296 -> (cleared)  Balaji Heritage Collage Canvas Wall Art 3×4 
+            because: every section of the Master Brochure has now been read, and this picture is on no page of it. a collage of a blue profile with a Balaji face and pattern. Every TP page is a single photographic or painted Venkateswara, never a collage
+  #22947   already TP - 050002 Temple Sanctum Vishnu Canvas Wall Art 3×4 Fe
+  #29829   already TP - 050001 Forest Vishnu Murti Canvas Wall Art 3×4 Feet
+  #31713   already TA - 210003 Varanasi Teal Poster Canvas Wall Art 3×4 Fee
+  #27078   already SH - 040003 Seven Horses Sunset Beach Canvas Wall Art 3×
+  #28534   TMP-1274 -> (cleared)  Kirtan Celebration Canvas Wall Art 3×4 Feet 
+            because: Radha and Krishna in a daylight riverside grove among a crowd of gopis, one seated playing a veena. Deferred twice for the same reason — Radha Krishna's unclaimed pages had not been read. They have been now, all forty-one of them, and this is on none: RK 93 is a moonlit courtyard raas with six dancers under a full moon, RK 95 is Radha among gopis making garlands with no Krishna in it, and no caption among the other thirty-nine describes this scene. LB 06, which it held, is a peacock Buddha
+  #27811   TMP-1267 -> (cleared)  Buddha Among Pink Lotuses Canvas Wall Art 3×
+            because: a pale cream Buddha head with pink lotuses. Re-checked from the nocode sheet against all thirteen Buddha pages: still none. Buddha gained no pages this round, so the 2026-09-14 verdict stands rather than needing revisiting
+  #27572   TMP-1263 -> (cleared)  Two Horses Cubist Canvas Wall Art 3×4 Feet –
+            because: a close-up of large stylised horse heads and necks in cream, blue and gold — one composition, not a group of seven, so no Seven Horses page can be it; all fifteen were checked. Living Room's six single-horse pages were checked too (LI 22 a foal in blue and orange, LI 23 chestnut, LI 24 brown charging, LI 25 black on red, LI 26 white through waves, LI 33 white before a moon) and none is it
+  #19392   already RK - 010022 Radha Krishna with Peacocks Canvas Wall Art 
+  #11551   already RK - 010025 Stunning Radha Krishna Abstract Wall Art 60×
+  #15135   already RK - 010027 Radha Krishna Love Canvas Wall Art 3×4 Feet 
+  #20349   already RK - 010028 Radha Krishna Angel Embrace Canvas Wall Art 
+  #15974   already RK - 010029 Dancing Lady Portrait Canvas Wall Art 3×4 Fe
+  #19147   already RK - 010030 Krishna Flute Player Canvas Wall Art 3×4 Fee
+  #13916   already RK - 010031 Jagannath Art Canvas Wall Art 3×4 Feet – Flo
+  #18107   already RK - 010032 Krishna Flute Collage Art Canvas Wall Art 3×
+  #14617   already RK - 010033 Krishna Playing Flute Canvas Wall Art 3×4 Fe
+  #31829   already RK - 010033 Krishna Flute Panorama Canvas Wall Art 3×4 F
+  #21320   already RK - 010034 Krishna with White Cows Canvas Wall Art 3×4 
+  #16318   already RK - 010039 Krishna Art Canvas Wall Art 3×4 Feet – Float
+  #15546   already RK - 010041 Krishna Playing Flute Canvas Wall Art 3×4 Fe
+  #13662   already RK - 010042 Krishna Flute Serenade Canvas Wall Art 3×4 F
+  #16823   already RK - 010043 Golden Cosmic Krishna Canvas Wall Art 3×4 Fe
+  #18600   already RK - 010044 Lord Krishna Playing Flute Canvas Wall Art 3
+  #15217   already RK - 010045 Lord Krishna Cosmic Canvas Wall Art 3×4 Feet
+  #18788   already RK - 010046 Vishnu Divine Avatar Canvas Wall Art 3×4 Fee
+  #19822   already RK - 010047 Baby Krishna Hides Canvas Wall Art 3×4 Feet 
+  #18355   already RK - 010049 Mystical Govinda Poster Canvas Wall Art 3×4 
+  #30592   already RK - 010050 Krishna Floral Halo Canvas Wall Art 3×4 Feet
+  #26206   already RK - 010053 Krishna in Pearl Attire Canvas Wall Art 3×4 
+  #24230   already RK - 010054 Vishvarupa Gita Vision Canvas Wall Art 3×4 F
+  #24033   already RK - 010055 Radha Krishna Melody Swirl Canvas Wall Art 3
+  #26690   already RK - 010056 Mother and Little Krishna Canvas Wall Art 3×
+  #23972   already RK - 010057 Radha Krishna Petal Dance Canvas Wall Art 3×
+  #25901   already RK - 010058 Krishna Watercolor Gaze Canvas Wall Art 3×4 
+  #25419   already RK - 010060 Satyanarayan Katha Scene Canvas Wall Art 3×4
+  #30836   TMP-1295 -> (cleared)  Veena Player with Peacock Canvas Wall Art 3×
+            because: OVERTURNS the earlier row that moved this from RK 64 to RK 63. RK 63 is a woman playing a stringed instrument in a PINK moonlit haze with cherry blossoms, a lotus and a peacock, and Krishna's silhouette playing a flute looming behind her. This product is a sepia and cream woman with a veena and a peacock, no pink, no blossom, no Krishna. Same subject, different painting
+  #24653   TMP-1240 -> (cleared)  Radha Krishna Painted Faces Canvas Wall Art 
+            because: RK 1 is a bright rainbow painting on a cream ground with paint drips and a bird. This is a muted amber and olive oil with Radha's face large and Krishna's small in profile — a different painting. Which page it IS could not be settled: RK 6 and RK 16 are both two-face paintings in warm tones and the book thumbnails will not separate them. Cleared rather than left on a painting it is not, and it frees RK 1 for #8301 below
+  #8301    already RK - 010001 Radha Krishna Peacock Canvas Art 36 × 60 Inc
+  #22747   TMP-1233 -> (cleared)  Ganesh Pop Art Canvas Wall Art 3×4 Feet – Fl
+            because: HD 6 is an infant Ganesha among many elephant trunks on a red ground; this is a flat pop-art Ganesha face in magenta and green on blue. No page of Hindu Deities is this picture. Cleared rather than left on someone else's painting, and it frees HD 6 for #21564, which IS that page
+  #26328   TMP-1255 -> (cleared)  Sri Ramanuja Golden Murti Canvas Wall Art 3×
+            because: HD 20 is a deity seated on an elephant; this is a close photograph of a bronze Ramanuja murti with a flag-staff. Same artwork as #24094 below, one a tighter crop of the other. Neither matches any of Hindu Deities' thirty pages. Clearing frees HD 20 for #17917
+  #24094   TMP-1237 -> (cleared)  Sri Ramanuja Procession Canvas Wall Art 3×4 
+            because: HD 19 is the four goddesses together; this is the same bronze Ramanuja murti as #26328, photographed wider. Not a page of this section
+  #25021   TMP-1244 -> (cleared)  Tanjore Seated Goddess Canvas Wall Art 3×4 F
+            because: HD 14 is a multi-armed Hanuman standing over fallen demons; this is a Tanjore panel of a jewelled seated figure with hands folded on a dark ground. Not that page, and not one I could find in the section
+  #22321   already SA - 100004 Golden Guru Aura Canvas Wall Art 3×4 Feet – 
+  #8398    already HD - 080001 Meditating Yogi Spiritual Wall Art – 60 × 24
+  #24775   already HD - 080030 Bharat Mata with Lion Canvas Wall Art 3×4 Fe
+  #22825   already HD - 080029 Srila Prabhupada Portrait Canvas Wall Art 3×
+  #14985   already HD - 080028 Indian Spiritual Leader Canvas Wall Art 3×4 
+  #17090   already HD - 080027 Garlanded Guru Portrait Canvas Wall Art 3×4 
+  #14861   already HD - 080026 Sadhu in Contemplation Canvas Wall Art 3×4 F
+  #18477   already HD - 080025 ISKCON Leader Portrait Canvas Wall Art 3×4 F
+  #17605   already HD - 080024 Sai Baba Portrait Canvas Wall Art 3×4 Feet –
+  #15607   already HD - 080023 Hindu Saint Portrait Canvas Wall Art 3×4 Fee
+  #15278   already HD - 080022 Golden Idol Statue Canvas Wall Art 3×4 Feet 
+  #17917   already HD - 080020 Goddess Lakshmi on Elephant Canvas Wall Art 
+  #18538   already HD - 080017 Lakshmi with Elephants Canvas Wall Art 3×4 F
+  #30215   already HD - 080016 Devi in White on Lotus Canvas Wall Art 3×4 F
+  #21075   already HD - 080015 Saraswati with Swan Canvas Wall Art 3×4 Feet
+  #22260   already HD - 080013 Hanuman Ji Sitting Pretty Canvas Wall Art 3×
+  #17795   already HD - 080011 Lord Hanuman Statue Art Canvas Wall Art 3×4 
+  #21564   already HD - 080006 Ganesha with Elephants Canvas Wall Art 3×4 F
+  #7830    already HD - 080003 Modern Abstract Ganesha Canvas Wall Art 36×4
+  #31890   already TP - 050013 Lord Vishnu Golden Halo Canvas Wall Art 3×4 
+  #23911   TMP-1236 -> (cleared)  Kalki Avatar Tanjore Canvas Wall Art 3×4 Fee
+            because: TP 13 is a painterly blue Vishnu seated with a golden sunburst halo — that is #15730 and #31890, which are the same picture. This is a Tanjore panel of a standing figure with a sword and shield on a dark ornate ground. Not that page, and not any of Tirupati Balaji's fifteen
+  #229     already TP - 050004 Lord Venkateswara Temple Canvas Wall Art 2×3
+  #30966   TMP-1297 -> (cleared)  Vishnu on Shesha Canvas Wall Art 3×4 Feet – 
+            because: TP 6 is Venkateswara standing against a starry nebula — that is #13840. This is a pale watercolour of Vishnu seated on a coiled serpent. TP 12 is Vishnu on Shesha but over water in vivid cosmic purple, and that is #16701. Not any page of this section
+  #31456   TMP-1303 -> (cleared)  Balaji Abstract Gold Canvas Wall Art 3×4 Fee
+            because: TP 8 is a golden face emerging from cosmic dust on dark teal. This is a warm ochre collage — a blue profile, the Balaji face, temple bells, chakra and shankha. A different picture, and no page of this section is it
+  #29281   TMP-1282 -> (cleared)  Balaji Divine Collage Canvas Wall Art 3×4 Fe
+            because: TP 9 is Vishnu standing with pink and white garlands on pale grey. This is a bright collage of the same kind as #31456 — blue profile, Balaji face, bells, lotuses. Not that page
+  #31088   TMP-1298 -> (cleared)  Vaikuntha Celestial Court Canvas Wall Art 3×
+            because: TP 11 is Vishnu seated alone on a pink lotus among lotuses — that is #23069. This is a Vaikuntha court: Vishnu on a coiled serpent with two consorts, attendants, crowds of devotees and Garuda below. TP 14 pairs Venkateswara with Lakshmi but he stands and she sits on a lotus, which is not this. Not any page of this section
+  #22686   TMP-1232 -> (cleared)  Vishnu Bhootapuri Art Canvas Wall Art 3×4 Fe
+            because: TP 12 is Vishnu on Shesha over water — that is #16701. This is a postcard-style composite with the word BHOOTAPURI, a garlanded deity and a photograph of a temple gopuram. Not a painting in this section at all
+  #18727   already KR - 180015 Whimsy Friends Canvas Wall Art 3×4 Feet – Fl
+  #30276   TMP-1292 -> (cleared)  Red Sun Winter Tree Canvas Wall Art 3×4 Feet
+            because: LS 7 is a neon line-art Shiva face on black — that is #19883 below, which was stranded on an LS 21 code that resolves to nothing. This is a bare tree against a red sun, a landscape. Landscapes used to be LS and is now LC, which is how it got here. Clearing frees LS 7 for the picture that is actually on it
+  #22625   already KR - 180020 Whimsical Tower Scene Canvas Wall Art 3×4 Fe
+  #25474   already LI - 190050 Lantern Lake Starry Night Canvas Wall Art 3×
+  #26628   TMP-1256 -> (cleared)  Floral Arch Wall Art Canvas Wall Art 3×4 Fee
+            because: a botanical pattern of leaves and blossom. No page of Lord Shiva is this
+  #30154   TMP-1291 -> (cleared)  Ganesha Dawn Silhouette Canvas Wall Art 3×4 
+            because: a Ganesha silhouette at the end of a pier at sunrise. Ganesha, not Shiva — Hindu Deities is where this belongs, and it carries no code until someone can place it there
+  #7816    already LS - 030001 Divine Lord Shiva Canvas Wall Art (36×48 Inc
+  #19883   already LS - 030007 Shiva Neon Line Art Canvas Wall Art 3×4 Feet
+  #20770   already LS - 030018 Shiva Crescent Dream Canvas Wall Art 3×4 Fee
+  #26023   TMP-1253 -> (cleared)  Utsava Deity in Garlands Canvas Wall Art 3×4
+            because: LR 8 is an idol in red attire under an arch of orange marigold garlands against a cream carved wall. This is a Venkateswara utsava murti — tall kirita crown, white namam, red and pale-green garlands, a blurred pink temple behind. Not that page. All ten Lord Rama pages were held against it, and so were the three unclaimed Tirupati Venkateswara pages: TP 15 is a gold-jewelled Venkateswara on a plain gold ground, TP 14 pairs him with Lakshmi on a lotus, TP 2 is a dark bronze figure in an orange-lit arch. Four photographs of one deity, and the book prints three of them
+  #31588   TMP-1305 -> (cleared)  Kodanda Rama Utsavam Canvas Wall Art 3×4 Fee
+            because: LR 9 is a white-and-gold clad idol under an ornate white arch on a dark ground with brass lamps either side. This is a close-up of a heavily jewelled utsava murti against a wall of red and green garlands, with a gold bow and a blue drape. Not that page, not LR 6 (the other idol in gold attire, standing full-length in a dark arch), and not TP 2, 14 or 15
+  #28300   TMP-1272 -> (cleared)  Ram Lalla in Garlands Canvas Wall Art 3×4 Fe
+            because: the same idol, a different photograph. LR 7 is the Ayodhya Ram Lalla standing small in a cream carved shrine, dressed in green, marigold garlands down both sides. This is a close-up bust of that idol in quite different dress — layered gold necklaces, turquoise beads, a wall of purple, yellow and green flowers behind. The contact sheet fits each product's whole image into its tile and never crops, so these cannot be one picture at two zooms
+  #7805    already LI - 190014 Stunning Butterfly Tree Canvas Wall Art 36×4
+  #20026   already IC - 130005 Indian Classical Dancer Canvas Wall Art 3×4 
+  #25535   already LI - 190051 Jazz Man Blue Gold Canvas Wall Art 3×4 Feet 
+  #29639   TMP-1287 -> (cleared)  Mahavira Golden Shrine Canvas Wall Art 3×4 F
+            because: a golden Tirthankara seated before a radiant sunburst between carved pillars. LB 13 is the book's only Mahavira page and it is a different picture — a painting of his enlightenment, seated on a golden throne beneath a tree with attendants around him and a devotee kneeling below. LI 22, where old LR 21 would land, is an abstract blue-and-orange horse
+  #16191   TMP-1222 -> (cleared)  Serene Buddha Statue Canvas Wall Art 3×4 Fee
+            because: very nearly LB 09, and not it. LB 09 is a Buddha facing forward on a square plinth in still pale-blue water below one tall waterfall, lotuses at the lower right. This is darker and greener: the Buddha in three-quarter view on a rocky mound, cascades falling from the mound itself, pink lotuses across the whole bottom edge. Two paintings of one idea. No other Buddha page is closer
+  #27264   TMP-1259 -> (cleared)  Nataraja Bronze Glory Canvas Wall Art 3×4 Fe
+            because: a gold Nataraja bronze in its ring of flames on black. Nataraja is Shiva, so Lord Shiva's eighteen pages are where this would live: LS 12 comes closest and it is a black-and-white ink dance, not a photographed bronze. Hindu Deities has no Nataraja page either
+  #7803    TMP-1205 -> (cleared)  Vaishnav Tilak Shankh Chakra Wall Art 84×24 
+            because: a panel of Vaishnav tilak marks with shankha, chakra and kneeling figures, 84×24 inches. Nothing in Living Room is it, nor Vaastu Art, whose four pages are a peacock, a Garuda, sacred cows and Garuda with the sun, nor Pichwai Art, whose one page is Krishna with cows
+  #24714   TMP-1241 -> (cleared)  Namaste Henna Hands Canvas Wall Art 3×4 Feet
+            because: henna-covered hands pressed together in namaste on a dark ground. Indian Culture has five pages and all five have been read — three dancers, a woman with a basket in a landscape, and the watercolour dancer that is #20026 — and none of them is this. LI 33, where old LR 32 would land, is the moonlit white horse, which is #23374
+  #28778   TMP-1276 -> (cleared)  Dancer on Stage Canvas Wall Art 3×4 Feet – F
+            because: a photograph of a dancer on a red-lit stage. Every Indian Culture page is a painting, and LI 40, where old LR 39 would land, is an abstract floral in beige and charcoal
+  #25840   TMP-1251 -> (cleared)  Dancers in Duet Canvas Wall Art 3×4 Feet – F
+            because: a photograph of two dancers in blue and green costumes on a black ground. IC 01 is the rainbow watercolour dancer, which is #7838. All five Indian Culture pages have now been held against their products: IC 02 is #13781, IC 03 is #7700, IC 04 is a woman with a basket in a landscape, IC 05 is #20026. No page of this section shows two dancers, and none of Living Room's fifty-one does either
+  #7838    already IC - 130001 Indian Classical Dance Canvas Wall Art – 36 
+  #19025   TMP-1226 -> (cleared)  Seven Horses Ocean Run Canvas Wall Art 3×4 F
+            because: SH 04 is the version with the sunburst at the upper right, and that is #23191, whose row is corrected in place above. This is the near-twin with snow-capped brown mountains there instead — same left cliff, same peach cloud bank, same poses, different sky. Held against all fifteen pages: SH 02 is a gold burst over flat water with no cliffs, SH 03 is peach surf with no cliffs, and nothing else in the section puts horses between cliffs. A pixel RMS cannot decide a “tighter crop” claim, since a different framing moves every pixel; what decides it is an element present in one picture and absent from the other
+  #25718   already LI - 190046 Franklin Graffiti Pop Art Canvas Wall Art 3×
+  #26389   already LI - 190047 Pirate Captain Sketch Canvas Wall Art 3×4 Fe
+  #24409   TMP-1238 -> (cleared)  Tropical Leaves Mural Canvas Wall Art 3×4 Fe
+            because: a wide mural of green and teal tropical foliage. KR 02 is a cat asleep on a patchwork of colour blocks and flowers. The two modern botanicals in Living Room were checked and are neither: LI 41 is large overlapping leaves in beige, charcoal and terracotta, LI 42 is fan-shaped leaves in beige and white
+  #16640   already TP - 050009 Vishnu Ji Statue Art Canvas Wall Art 3×4 Fee
+  #17402   already LI - 190022 Vibrant Horse Art Canvas Wall Art 3×4 Feet –
+  #21771   TMP-1228 -> (cleared)  Guru Watercolor Splash Canvas Wall Art 3×4 F
+            because: a watercolour portrait of Guru Nanak. KR 07 is the volcano erupting flowers. Sikh Art is the section this belongs to by subject; its five pages have not been drawn against their products yet, so this clears rather than moves
+  #27388   TMP-1260 -> (cleared)  Krishna Minimal Splash Canvas Wall Art 3×4 F
+            because: a cubist Krishna profile in blue, orange and purple. KR 07 is the volcano erupting flowers. The third of three products on one page, and the third that is not it
+  #27633   TMP-1264 -> (cleared)  Flight Path Reverie Canvas Wall Art 3×4 Feet
+            because: a murmuration of birds swirling above a lone figure on a burnt-orange ground. KR 16 is the row of abstract modernist birds, and that is #18168, which matches it exactly. KR 21, the new watercolour jungle page, is not this either
+  #28225   TMP-1271 -> (cleared)  Nandi and the Jyotirlingas Canvas Wall Art 3
+            because: a Nandi bull among temple bells and a wall of deity faces. KR 18 is two children under a red umbrella in the rain, paper-craft style. Nothing in Kids Room is a temple subject
+  #23313   already KR - 180021 Safari Friends Nursery Canvas Wall Art 3×4 F
+  #29159   TMP-1280 -> (cleared)  Horse Studies Collage Canvas Wall Art 3×4 Fe
+            because: a sepia collage of pencil horse studies, dozens of heads and one chestnut horse painted in front. WL 02 is a black elephant silhouette against red and gold sun discs. All fifteen Seven Horses pages were looked at and every one is a painted group of running horses, not a sketchbook. Living Room's horse pages were ruled out on their captions only, which each describe ONE painted horse (LI 23-26, LI 33, LI 37) — weaker evidence, but enough not to move it onto one of them
+  #26267   TMP-1254 -> (cleared)  Balaji Garland Darshan Canvas Wall Art 3×4 F
+            because: a photograph of the Tirupati idol taken in the sanctum — red, white and green garlands, a strip light and a temple sign overhead. WL 06 is two peacocks in a white blossom garden. Tirupati Balaji's three garlanded-idol pages were checked against it (TP 04, TP 05, TP 15) and all three are paintings of a differently dressed idol; the rest of that section is Vishnu, Narasimha and cosmic scenes. Also checked against RK 67, a FOURTH garlanded Balaji photograph found among Radha Krishna's unclaimed pages: that idol wears orange marigold garlands against a stone wall, this one red, white and green garlands between gold panels under a strip light. Not the same photograph
+  #29690   TMP-1288 -> (cleared)  Folk Cows Abstract Canvas Wall Art 3×4 Feet 
+            because: a tall narrow panel, three folk cows in yellow, red and blue with bells, on a dark maroon and black wash. WL 08 is a cluster of folk DEER on yellow under a Madhubani tree. No page read so far is this: Radha Krishna's cow pages are Krishna among many white cows, and the Pichwai page is a Shrinathji the book has struck out
+  #27194   TMP-1258 -> (cleared)  Murmuration at Dusk Canvas Wall Art 3×4 Feet
+            because: a dense flock of birds filling the sky above a lone figure in grass, burnt orange. WL 09 is a zebra with branch-antlers on red. Not the same painting as #27633 'Flight Path Reverie', which was cleared off KR 16 for looking like this one: that flock is a single curling ribbon, this one is a scattered swarm. Abstract Art's bird pages (AA 11, AA 16) are neither
+  #27695   TMP-1265 -> (cleared)  Savanna Evening Dance Canvas Wall Art 3×4 Fe
+            because: an African savanna at sunset — acacias, a small white sun, mountains, and five figures with spears along the bottom. WL 15 is a cheetah on a curved ledge between red floral panels. LC 04, the nearest thing in Landscapes, is a grey and orange pine forest under a huge orange moon with no figures in it
+  #31395   TMP-1302 -> (cleared)  Shiva Smoke and Trident Canvas Wall Art 3×4 
+            because: a Shiva head in profile, eyes closed, in grey-blue smoke, with a small dancing Nataraja painted across it. WL 16 is a peacock before a red palace doorway. All eight unclaimed Lord Shiva pages were checked: LS 01 is a smoky head but front-on and orange, LS 18 is the serene purple head, and none of them carries the dancer
+  #7833    already WL - 170021 Minimalist Blossom Vase Canvas Wall Art 36 ×
+  #7834    already WL - 170022 Rustic Blossom Vase Canvas Wall Art 36×60 In
+  #22564   TMP-1231 -> (cleared)  Decorated Lord Murugan Canvas Wall Art 3×4 F
+            because: a photograph of a garlanded Murugan idol in a temple, taken in the sanctum. SL 02 is three yellow calla lilies. It shared SL 02 with #7833, and neither of them was it: #7833 is WL 21 and this is a deity photograph with no page in Still Life at all
+  #24958   TMP-1243 -> (cleared)  Ganesha Fire Abstract Canvas Wall Art 3×4 Fe
+            because: a vivid Ganesha in pink, orange and purple smoke. SL 16 is abstract blue and white marbled water with a tiny rower. It shared SL 16 with #28473 and neither is that page
+  #28473   TMP-1273 -> (cleared)  Quiet Harbor Minimal Canvas Wall Art 3×4 Fee
+            because: a flat minimalist graphic — a white house on a deep blue island with a red tree, a tiny boat and a cream sky. SL 16 is marbled blue and white ink with a lone rower; the rower is the only thing the two share. The minimalist landscape pages were checked and are neither: LC 07 is hills with a red tree and an orange sun, LC 08 watercolour pines, LC 10 circles over tree silhouettes, AA 12 Japanese layered hills
+  #8494    TMP-1210 -> (cleared)  Sacred Kedarnath Temple with Lord Shiva Wall
+            because: a photograph of Kedarnath temple lit with strings of lamps, seen close and from the front-left, dark blue sky. SL 18 is colourful trees reflected in water. TA 02 is also Kedarnath and is NOT this: it is a portrait composition with a purple sunset sky and a large crowd in front, neither of which appears here, while the red-lit side building here appears nowhere in it. Two different photographs of the same temple, and a crop cannot add a sky
+  #7837    already WL - 170023 Stunning Statement Geometric Floral Wall Art
+  #31273   TMP-1301 -> (cleared)  Palace in the Grove Canvas Wall Art 3×4 Feet
+            because: a detailed miniature-style painting of a temple palace among dense trees with cows and figures in the foreground. AA 14 is a woman's profile blended with a soaring blue bird. It shared AA 14 with #7837 and neither was it: #7837 is WL 23 and this has no page yet. PA 01, the one Pichwai page, is a pink Shrinathji with cows and is not this
+  #25779   TMP-1250 -> (cleared)  Dancers by the Lamp Canvas Wall Art 3×4 Feet
+            because: a PHOTOGRAPH of two child Bharatanatyam dancers posed between brass lamps on a black ground. AA 08 is five elongated painted figures walking. All five Indian Culture pages were checked and every one is a painted or watercolour dancer, not a photograph
+  #22016   TMP-1229 -> (cleared)  Horses in Color Field Canvas Wall Art 3×4 Fe
+            because: a herd of seven horses in chestnut, blue-grey, tan and white on a plain cream ground with red-orange splashes. AA 06 is a red and teal abstract with a bare tree and a seated figure — that is #19575, which matches it. All fifteen Seven Horses pages were held against this one, including the three the section gained (SH 13 is red, gold and blue with dark horses; SH 14 all-white horses on teal and orange; SH 15 white horses under a golden sun) and none is it
+  #21503   already HD - 080021 Vaishnava Saints Kirtan Canvas Wall Art 3×4 
+  #22138   already RK - 010095 Krishna’s Gopis Gathering Canvas Wall Art 3×
+  #30470   already RK - 010088 Moonlit Lotus Radha Canvas Wall Art 3×4 Feet
+  #25962   TMP-1252 -> (cleared)  Radha Krishna Grove Mural Canvas Wall Art 3×
+            because: a GREEN Kerala mural of Krishna and Radha among cows under a tree. RK 15 is a pair seated in an orange and red forest grove with tall trunks, mural style but a different picture and a different palette. Flagged by the 2026-09-14 pass in its own findings and never resolved; the page was fetched and held against it today. RK 34, the other cows page, is Krishna among many WHITE cows and is #21320, which matches it
+  #17280   TMP-1224 -> (cleared)  Radha Krishna Temple Scene Canvas Wall Art 3
+            because: two dark deity idols dressed and garlanded in a shrine. RK 21 is ONE blue deity seated with a flute on a lotus inside an ornate mandala border — a painting, not a photograph of idols
+  #31212   TMP-1300 -> (cleared)  Radha Krishna Jeweled Duet Canvas Wall Art 3
+            because: Radha and Krishna together, Krishna on the flute, heavy gold jewellery and flower garlands. RK 77 is Bal Krishna alone on a glowing lotus leaf against a cosmic teal night sky
+  #17212   TMP-1223 -> (cleared)  Beautiful Lord Krishna Statue Canvas Wall Ar
+            because: a black stone idol in pink and gold garlands in a pale shrine niche. RK 78 is an EMERALD-GREEN Krishna idol standing before a fan of peacock feathers in a carved arch
+  #7824    TMP-1206 -> (cleared)  Bal Krishna Flute Canvas Wall Art – 60 x 36 
+            because: a Krishna portrait in cream and white with a peacock-feather crown, holding a flute up. RK 79 is a Krishna portrait in teal and gold resting his head on his hand inside an ornate gold frame, framed by lotuses. Same subject, different painting
+  #7703    already VA - 160002 Divine Garuda Sacred Symbol Canvas Wall Art–
+  #29751   TMP-1289 -> (cleared)  Sacred Cow Relief Art Canvas Wall Art 3×4 Fe
+            because: a cream and gold RELIEF of Radha and Krishna — two faces, a flute, a peacock feather, lotuses and ornate jewellery. There are no cows in it. VA 03 is two stylised bulls in blue and ochre on a teal ground with glyph patterns, which is #15340 and matches it exactly. The title says cows and the picture does not: a title caught lying about its own product, not just its page
+  #7815    already SA - 100001 Sacred Golden Temple Amritsar Canvas Wall Ar
+  #26814   already SA - 100003 Golden Temple at Dusk Canvas Wall Art 3×4 Fe
+  #8504    already SA - 100005 Sacred Guru Nanak Dev Ji Canvas Wall Art – 4
+  #25297   TMP-1247 -> (cleared)  Tanjore Deity with Devotees Canvas Wall Art 
+            because: not Sikh art. A Tanjore panel - a deity enthroned under an ornate gold arch on a deep green ground with two attendants kneeling either side. SA 01 is a photograph of the Golden Temple. Nothing in the five Sikh Art pages is this, so it is cleared rather than left on someone else's page
+  #28717   TMP-1275 -> (cleared)  Vishnu in Golden Garlands Canvas Wall Art 3×
+            because: not Sikh art. Vishnu standing with a mace and a lotus, heavy flower garlands, an oil lamp at his feet, on a gold ground. SA 01 is a photograph of the Golden Temple, and none of the five Sikh Art pages is a Vaishnava figure
+  #29220   TMP-1281 -> (cleared)  Vishnu Cosmic Lotus Canvas Wall Art 3×4 Feet
+            because: not Sikh art. Vishnu seated on a white lotus against a starfield with galaxies behind him. SA 01 is a photograph of the Golden Temple. Cleared for the same reason as the other two that were stacked on that code
+  #17856   TMP-1225 -> (cleared)  Shiva The Destroyer Canvas Wall Art 3×4 Feet
+            because: Shiva standing alone with a trident, dark against a ring of orange and red splashes on cream. Held against all six Lord Shiva pages no product claimed - LS 02 the cubist fusion, LS 13 the watercolour faces, LS 14 and LS 15 the two cosmic dances, LS 16 the pair on the snowy peak, LS 17 the family - and it is none of them. It was left alone by an earlier pass because its code resolved to nothing and so harmed nobody; that is no longer true, because LS 16 is now #24352's page and this product holds the literal string 'LS 16'
+  #30338   TMP-1293 -> (cleared)  Shiva Parivar in Clouds Canvas Wall Art 3×4 
+            because: the family standing among green-blue clouds with a temple behind and Nandi at the lower right, in landscape. LS 17, the only family page, is a different composition entirely - seated, with the lion, the peacock and the bells - and is #30531's. Checked against the other five unclaimed pages too. Cleared rather than left: it holds the literal string 'LS 18', and LS 18 is #20770's page
+  #29023   TMP-1279 -> (cleared)  Shiva Parivar Blessing Canvas Wall Art 3×4 F
+            because: Shiva and Parvati seated on a tiger skin under a yellow radiance, Ganesha on her lap, Kartikeya below beside a lingam - a calendar print. An earlier pass called this the closest of the three family scenes to LS 17 and declined to write it down, which was right: LS 17 is #30531's, and this is not it. 'LS 19' names no page of the book at all
+  #31150   TMP-1299 -> (cleared)  Shiva Family Harmony Canvas Wall Art 3×4 Fee
+            because: a tight mural-style close-up of the four faces against grey-blue rock, with a peacock feather at the right. Not LS 17, which is the full seated group with the animals, the bells and the mountains, and is #30531's. 'LS 20' names no page of the book at all
+  #29578   TMP-1286 -> (cleared)  Twin Faces of Serenity Canvas Wall Art 3×4 F
+            because: not Lord Shiva. Two large serene faces, the right one plainly a Buddha with the ushnisha, eyes closed, among lotuses and small white cows on a green and yellow ground. LS 09 is the pair of profile faces with the sun and the lotus, which is #16257 and has been re-confirmed twice. The one unclaimed Buddha page, LB 12, is a golden watercolour head merging with a bodhi leaf, and is not this. Clearing it also leaves #16257 alone on LS 09
+  #28962   TMP-1278 -> (cleared)  Savanna Golden Hour Canvas Wall Art 3×4 Feet
+            because: not Pichwai and not PA 01. Tall bare trees against an orange sunset over mountains, with silhouetted figures walking between them - an African savanna scene. PA 01 is a traditional Pichwai: Shrinathji with a black face and gold halo, one arm raised, inside a crimson lotus mandorla, white cows either side at the base, pink blossom scattered on cream. All six of the page's mockup renders show the same thing. It was sharing PA 01 with #31527 and neither of them is it
+  #31527   TMP-1304 -> (cleared)  Krishna Cowherd Modern Art Canvas Wall Art 3
+            because: a modern, near-cubist Krishna in blue playing the flute beside a large stylised cow's head, with cows tiled flat across an ochre and olive ground. PA 01 is a traditional Pichwai of Shrinathji in a crimson lotus with white cows below - a different painting in a different idiom. Sharing a subject is not sharing a picture. Its home may be among Hindu Deities' six unclaimed pages, which this pass did not check; it is cleared rather than left on a page that is not its own
+  #29395   TMP-1283 -> (cleared)  Pichwai Ganesha Fountains Canvas Wall Art 3×
+            because: PA 02 names no page: Pichwai has exactly one page in the book. The picture is a Pichwai Ganesha - a multi-armed elephant-headed figure in saffron against pale teal arches with small attendant figures - and PA 01, the section's only page, is Shrinathji in a crimson lotus. Cleared rather than left, because unlike AL the PA prefix is real: if the book ever gains a second Pichwai page, PA 02 would start resolving to someone else's painting, which is the hazard that forced the Lord Shiva clears
+  #26450   already LI - 190049 Starry City Nights Canvas Wall Art 3×4 Feet 
+  #19086   already HD - 080008 Surya in Chariot Canvas Wall Art 3×4 Feet – 
+  #18229   already LR - 070006 Lord Krishna Statue Canvas Wall Art 3×4 Feet
+  #8144    already AA - 200001 Red Floral Face Wall Art 48×36 – Minimalist 
+  #7820    TMP-1007 -> RK - 010093 Krishna Raas Leela Moonlight Wall Art – 36 ×
+            because: found by the Radha Krishna unclaimed-pages pass, from fresh contact sheets of every temporary-code product. RK 93 is this painting, not merely this subject: the same full moon between the same two palace domes, the same six gopis in pink, yellow and green lehengas turning around Krishna, the same long white-and-red garland reaching his knees, the same peacock-feather crown and the same doves over the arcade. Page 97 of the book
+  #11560   (none)   -> RK - 010024 Divine Radha Krishna Canvas Wall Art 60×36 I
+            because: found by the Radha Krishna unclaimed-pages pass. RK 24 is this painting: the same pale green misty ground, the same pink petals falling across it, the same two grey doves, Radha at Krishna's right in lilac and pink under a gold crown, and Krishna's pink scarf lifting behind the flute. Page 28 of the book
+  #17280   (none)   -> RK - 010026 Radha Krishna Temple Scene Canvas Wall Art 3
+            because: found by the Radha Krishna unclaimed-pages pass. RK 26 is this photograph, not merely these idols: the same black Krishna at the flute in a jewelled multicoloured crown, the same magenta and green garlands over both figures, Radha in the same deep red lehenga, the same gold arch and chandelier behind them, the same pink lotus pedestal with its offerings and the same oil lamps at the left edge. Page 30 of the book
+  #23252   (none)   -> RK - 010048 Divine Hand with Mala Canvas Wall Art 3×4 Fe
+            because: found by the Radha Krishna unclaimed-pages pass, and confirmed at full size. RK 48 is this painting: the same dark hand with gold-lit fingers closing over another, the same jewelled ring set with a turquoise stone, the same gold bangle at the wrist, the same red and gold form at the top left, the same golden mist along the lower edge and the same single star speck in the deep teal ground. Page 52 of the book
+  #23558   (none)   -> RK - 010091 Bal Krishna Classic Portrait Canvas Wall Art
+            because: found by the Radha Krishna unclaimed-pages pass. RK 91 is this painting: the blue child Krishna resting his cheek on his right hand, the same curls under a peacock feather and gold ornament, the same two pearl strands, the same gold armlet and bangles, the same saffron dhoti and red drape against the same dark ground. Page 95 of the book
+  #24653   (none)   -> RK - 010096 Radha Krishna Painted Faces Canvas Wall Art 
+            because: found by the Radha Krishna unclaimed-pages pass. RK 96 is this painting: Krishna's blue face in profile at the left and Radha's in orange and red at the right, the same gold and green field broken by leaf forms, the same drop earring below Krishna's jaw and the same block brushwork down the right-hand side. Page 100 of the book
+
+to change: 6  |  codes cleared: 102  |  already correct: 137  |  refused as a clash: 0  |  missing: 0
+
+Written. The SKU pass picks these up on its next run, and the previous
+code of every product touched is kept in _af_code_before_fix.
+=== DONE ===

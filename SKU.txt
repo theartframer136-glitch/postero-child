@@ -1,0 +1,46 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.8/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.8/wp-includes/functions.php on line 6131
+=== SKU → ART CODE ===
+target: artcode-sku-v4-unique  |  budget: 200s or 800 products per run
+products: 424
+  with an art code:    424
+  WITHOUT an art code: 0  (a SKU this tool minted is undone below)
+  art codes shared by more than one product: 6
+  products given a letter so their SKU is unique: 12
+  uniqueness: OK — 424 products, 424 distinct SKUs
+
+changed 6  |  already correct 418  |  clashes left alone 0  |  failed 0  |  0s
+every product with an art code now carries it as its SKU.
+
+what changed (first 6):
+  #7820  TMP-1007  →  RK-010093-3040   [RK - 010093-3040]
+  #11560  TMP-1057  →  RK-010024-5030   [RK - 010024-5030]
+  #17280  TAF-RADHA-KRISHNA-TEMPLE-060-567641  →  RK-010026-5030   [RK - 010026-5030]
+  #23252  TMP-1076  →  RK-010048-5040   [RK - 010048-5040]
+  #23558  TMP-1077  →  RK-010091-5030   [RK - 010091-5030]
+  #24653  TAF-RADHA-KRISHNA-PAINTE-175-7095432  →  RK-010096-5030   [RK - 010096-5030]
+
+--- ART CODES ON MORE THAN ONE PRODUCT ---
+These 6 codes are each on several products, so each product
+gets a letter to make its SKU unique. The art code itself is untouched —
+the letter belongs to the SKU alone. A letter, once issued, never moves.
+These are still codes that want correcting; the letters keep the shop
+working in the meantime.
+  LB-090001-3050 (2 products)
+     LB-090001-3050A #220     Serene Buddha with Lotus Canvas Wall Art 4×3 Feet – Fl
+     LB-090001-3050B #7839    Buddha Lotus Serenity Canvas Wall Art 36×60 Inches – S
+  TP-050004-5030 (2 products)
+     TP-050004-5030A #229     Lord Venkateswara Temple Canvas Wall Art 2×3 Feet – Fl
+     TP-050004-5030B #8474    Divine Lord Balaji Temple Canvas Wall Art – 60 × 36 In
+  HD-080001-5030 (2 products)
+     HD-080001-5030A #8398    Meditating Yogi Spiritual Wall Art – 60 × 24 Inches Pe
+     HD-080001-5030B #26875   Mahavatar Babaji Canvas Wall Art 3×4 Feet – Floating F
+  RK-010033-3050 (2 products)
+     RK-010033-3050A #14617   Krishna Playing Flute Canvas Wall Art 3×4 Feet – Float
+     RK-010033-3050B #31829   Krishna Flute Panorama Canvas Wall Art 3×4 Feet – Floa
+  TP-050013-5030 (2 products)
+     TP-050013-5030A #15730   Vishnu Blue Form Canvas Wall Art 3×4 Feet – Floating F
+     TP-050013-5030C #31890   Lord Vishnu Golden Halo Canvas Wall Art 3×4 Feet – Flo
+  LR-070005-5030 (2 products)
+     LR-070005-5030A #15913   Lord Vishnu Statue Canvas Wall Art 3×4 Feet – Floating
+     LR-070005-5030B #17543   Lord Balaji Idol Canvas Wall Art 3×4 Feet – Floating F

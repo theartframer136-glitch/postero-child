@@ -1,0 +1,40 @@
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-quick-view</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.8/wp-includes/functions.php on line 6131
+Notice: Function _load_textdomain_just_in_time was called <strong>incorrectly</strong>. Translation loading for the <code>woo-smart-wishlist</code> domain was triggered too early. This is usually an indicator for some code in the plugin or theme running too early. Translations should be loaded at the <code>init</code> action or later. Please see <a href="https://developer.wordpress.org/advanced-administration/debug/debug-wordpress/">Debugging in WordPress</a> for more information. (This message was added in version 6.7.0.) in /opt/h5g/flavors/wp-6.9.8/wp-includes/functions.php on line 6131
+=== ART CODES FROM IMAGE FILENAMES ===
+
+--- A) calibration: products whose code is already their own ---
+checked: 412  (no image: 0)
+  filename contains that product's own code: 0
+  it does not:                               412
+  --> filenames carry the code 0% of the time.
+      TOO LOW to trust. Treat section B as a hint only.
+  [ no  ] #115  code TMP-1000  placeholder-1.jpeg | placeholder-1.jpeg
+  [ no  ] #123  code TMP-1001  placeholder-1.jpeg | placeholder-1.jpeg
+  [ no  ] #141  code LI - 190002-3050  ChatGPT-Image-Jan-30-2026-03_27_15-PM.png | ChatGPT-Image-Jan-30-2026-03_27_15-PM.png
+  [ no  ] #148  code LI - 190003-5030  ChatGPT-Image-Feb-2-2026-12_17_17-PM.png | ChatGPT-Image-Feb-2-2026-12_17_17-PM.png
+  [ no  ] #177  code TMP-1002  placeholder-1.jpeg | placeholder-1.jpeg
+  [ no  ] #199  code TMP-1003  placeholder-1.jpeg | placeholder-1.jpeg
+
+--- B) the products under a shared code ---
+  LB - 090001-3050 #220     JAN 14                 Serene Buddha with Lotus Canvas Wall Art 4×3 Feet – 
+  LB - 090001-3050 #7839    JAN 14                 Buddha Lotus Serenity Canvas Wall Art 36×60 Inches –
+  TP - 050004-5030 #229     —                    Lord Venkateswara Temple Canvas Wall Art 2×3 Feet – 
+  TP - 050004-5030 #8474    —                    Divine Lord Balaji Temple Canvas Wall Art – 60 × 36 
+  HD - 080001-5030 #8398    JAN 16                 Meditating Yogi Spiritual Wall Art – 60 × 24 Inches 
+  HD - 080001-5030 #26875   PCS 01                 Mahavatar Babaji Canvas Wall Art 3×4 Feet – Floating
+  RK - 010033-3050 #14617   —                    Krishna Playing Flute Canvas Wall Art 3×4 Feet – Flo
+  RK - 010033-3050 #31829   —                    Krishna Flute Panorama Canvas Wall Art 3×4 Feet – Fl
+  TP - 050013-5030 #15730   —                    Vishnu Blue Form Canvas Wall Art 3×4 Feet – Floating
+  TP - 050013-5030 #31890   —                    Lord Vishnu Golden Halo Canvas Wall Art 3×4 Feet – F
+  LR - 070005-5030 #15913   LR 05                  Lord Vishnu Statue Canvas Wall Art 3×4 Feet – Floati
+  LR - 070005-5030 #17543   —                    Lord Balaji Idol Canvas Wall Art 3×4 Feet – Floating
+
+of 12 products under a shared code:
+  one clear candidate from the filename: 5
+  filename only repeats the shared code: 0
+  no code-shaped text in the filename:   7
+  (the rest had several candidates and need a person to choose)
+
+candidates: https://theartframer.us/wp-content/uploads/taf-reports/artcode-candidates.csv
+  Nothing here has been applied. Check each row against the picture, fix
+  what is wrong, then save it as artcode-import.csv to apply it.
