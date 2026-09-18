@@ -1,0 +1,55 @@
+name: Add Corporate Printing Tab
+# Puts a Corporate Printing button into the Shop by Collection strip, which is
+# a hand-written Elementor HTML widget on the front page.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Report what would change, write nothing'
+        type: boolean
+        default: true
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Send the script up
+        run: |
+          set -uo pipefail
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/add-corporate-tab.php \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/add-corporate-tab.php" \
+            || echo "  scp failed"
+      # Two steps, not one shell test. A guard written inside the quoted ssh
+      # command expands on the REMOTE host, where the variable does not exist -
+      # that is how a "dry run" wrote to this site once before.
+      - name: Dry run
+        if: ${{ inputs.dry_run }}
+        timeout-minutes: 12
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             DRY=1 wp eval-file wp-content/themes/postero-child/tools/add-corporate-tab.php --allow-root 2>&1" \
+            || true
+      - name: Apply
+        if: ${{ !inputs.dry_run }}
+        timeout-minutes: 12
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/add-corporate-tab.php --allow-root 2>&1" \
+            || true
