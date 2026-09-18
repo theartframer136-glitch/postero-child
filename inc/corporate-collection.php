@@ -257,10 +257,24 @@ add_action('wp_footer', function () {
       if (grid) grid.style.opacity = '';
       if (!hasCards(html)) { window.location.href = CP.url; return; }
       if (!grid) { window.location.href = CP.url; return; }
-      grid.innerHTML = html;
-      showCircles();
-      document.dispatchEvent(new Event('af_products_appended'));
-      if (window.jQuery) jQuery(document.body).trigger('wc_fragments_refreshed');
+      // Everything from here on is wrapped, because a throw inside a promise
+      // becomes an unhandled rejection - silent in the page and invisible to a
+      // probe watching for page errors. The last run stopped somewhere in this
+      // block and left no trace of where.
+      try {
+        grid.innerHTML = html;
+        document.documentElement.setAttribute('data-af-cp-wrote',
+          String(grid.querySelectorAll('.product-card, li.product').length));
+        showCircles();
+        document.documentElement.setAttribute('data-af-cp-circles',
+          String(document.querySelectorAll('.af-cp-circle').length));
+        document.dispatchEvent(new Event('af_products_appended'));
+        if (window.jQuery) jQuery(document.body).trigger('wc_fragments_refreshed');
+        document.documentElement.setAttribute('data-af-cp-done', 'yes');
+      } catch (err) {
+        document.documentElement.setAttribute('data-af-cp-error', String(err && err.message || err));
+        try { console.log('[af-cp] ERROR ' + err); } catch (x) {}
+      }
     }).catch(function () {
       busy = false;
       if (grid) grid.style.opacity = '';

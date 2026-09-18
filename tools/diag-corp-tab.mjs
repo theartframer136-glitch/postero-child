@@ -43,6 +43,10 @@ const snap = () => p.evaluate(() => {
     handlerRan: document.documentElement.getAttribute('data-af-cp') || 'no',
     gridSeen: document.documentElement.getAttribute('data-af-cp-grid') || '-',
     answerBytes: document.documentElement.getAttribute('data-af-cp-bytes') || '-',
+    wroteIntoGrid: document.documentElement.getAttribute('data-af-cp-wrote') || '-',
+    builtCircles: document.documentElement.getAttribute('data-af-cp-circles') || '-',
+    finished: document.documentElement.getAttribute('data-af-cp-done') || 'no',
+    error: document.documentElement.getAttribute('data-af-cp-error') || '-',
   };
 });
 
