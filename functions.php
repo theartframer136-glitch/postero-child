@@ -19204,7 +19204,11 @@ function af_sidebar_cat_menu() {
         // yet, which does not matter: this widget is an allow-list with
         // hide_empty off, and several of the rows above are empty for the same
         // reason.
-        array('label' => 'Gold Foiled & UV',      'slugs' => array('gold-foiled-uv')),
+        // Renamed from "Gold Foiled & UV". The slug stays, because
+        // inc/gold-foil.php hardcodes it and styles the archive by it; only the
+        // wording moved. This widget keeps its own copy of the label, so it has
+        // to move with the category or the sidebar keeps saying the old name.
+        array('label' => 'Embossed Prints',       'slugs' => array('gold-foiled-uv')),
     );
 }
 
