@@ -2783,3 +2783,33 @@ h3.trending-title a{display:inline !important;}
   margin-left:auto !important;
   flex:0 0 auto !important;
 }
+
+/* =====================================================================
+   The corner ribbon on the "You may also like" rows
+   Everything else about these cards now matches a category card exactly.
+   The ribbon did not, and it is a specificity accident rather than a
+   missing rule.
+
+   Two rules describe .onsale. The diagonal gold corner ribbon is written
+   as "body.woocommerce-page ul.products li.product .onsale", which scores
+   four classes. A later rule pins a small badge at top:10px left:10px and
+   is written as "html body .woocommerce ul.products li.product
+   .product-transition .onsale", which scores five.
+
+   On an archive the second one never matches, because it needs an element
+   with class .woocommerce INSIDE body and there is none — body itself
+   carries that class, which "body .woocommerce" does not select. But this
+   row wraps itself in <section class="af-wl-related woocommerce">, so on
+   these pages that element exists, the five-class rule matches, and it
+   moves the ribbon to the wrong corner and drops its gradient offsets.
+
+   Matched at the same score and placed after it, so source order decides.
+   Only top and left are restated; the gradient, rotation, size and
+   typography all come from the diagonal rule, unchanged.
+   ===================================================================== */
+html body .af-wl-related ul.products li.product .product-transition .onsale,
+html body .af-xsell ul.products li.product .product-transition .onsale{
+  top:15px !important;
+  left:-46px !important;
+  right:auto !important;
+}
