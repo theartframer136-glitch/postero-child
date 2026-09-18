@@ -1,8 +1,16 @@
 /**
- * Read the homepage's Shop by Collection strip as a visitor gets it: the tab
- * labels, and what the circle row holds once the embossed tab is selected.
- * The label and the circles were fixed from two different places, so both are
- * checked here rather than inferred from the PHP.
+ * Read the homepage's Shop by Collection strip WITHOUT clicking anything.
+ *
+ * The first version clicked the embossed tab and then found neither the tab
+ * strip nor the circle row, because the tab is an ordinary link and the click
+ * navigated the browser off the homepage. Everything needed is on the page
+ * already:
+ *   - the tab labels, to confirm the rename reached the strip;
+ *   - the GF payload the module ships, to confirm the three sub-collections
+ *     are now in it;
+ *   - whether the module's own circle-strip selectors match anything at all,
+ *     which is the question that decides whether the row can ever be replaced;
+ *   - and the row as it really is, located by its contents.
  */
 import { createRequire } from 'module';
 const puppeteer = createRequire(import.meta.url)('puppeteer-core');
@@ -21,30 +29,31 @@ if (await p.evaluate(() => document.body.innerText.includes('Checking your brows
 }
 await new Promise(r => setTimeout(r, 4000));
 
-const tabs = await p.evaluate(() => [...document.querySelectorAll('#topCatSlider .top-cat-btn, .top-category-slider .top-cat-btn')]
-  .map(a => ({ t: (a.innerText||'').trim(), gf: a.hasAttribute('data-af-gf'), val: a.getAttribute('data-val') || '' })));
-console.log('TABS (' + tabs.length + '):');
-tabs.forEach(t => console.log('   ' + (t.gf ? '* ' : '  ') + JSON.stringify(t.t) + '  slug=' + t.val));
+const out = await p.evaluate(() => {
+  const res = {};
+  res.tabs = [...document.querySelectorAll('#topCatSlider .top-cat-btn, .top-category-slider .top-cat-btn')]
+    .map(a => ({ t: (a.innerText||'').trim(), gf: a.hasAttribute('data-af-gf'), val: a.getAttribute('data-val') || '' }));
 
-const stale = tabs.filter(t => /gold\s*foil/i.test(t.t));
-console.log(stale.length ? 'FAIL: a tab still reads Gold Foil' : 'OK: no tab reads Gold Foil');
-const emb = tabs.find(t => /emboss/i.test(t.t));
-console.log(emb ? 'OK: a tab reads ' + JSON.stringify(emb.t) : 'FAIL: no Embossed tab found');
+  // The payload the module ships, read out of its own inline script.
+  const sc = document.getElementById('af-gf-collection-js');
+  if (sc) {
+    const m = sc.textContent.match(/var GF = (\{[\s\S]*?\});/);
+    if (m) { try { res.gf = JSON.parse(m[1]); } catch (e) { res.gfErr = String(e); } }
+  } else res.gfErr = 'no af-gf-collection-js on the page';
 
-if (emb) {
-  await p.evaluate(() => {
-    const a = [...document.querySelectorAll('#topCatSlider .top-cat-btn, .top-category-slider .top-cat-btn')]
-      .find(x => /emboss/i.test(x.innerText || ''));
-    if (a) a.click();
+  // Do the module's own selectors match anything?
+  res.sel = {};
+  ['#subcategorySlider', '.subcategory-slider', 'ul.postero-scroll-content'].forEach(s => {
+    res.sel[s] = document.querySelectorAll(s).length;
   });
-  await new Promise(r => setTimeout(r, 4500));
-  const circles = await p.evaluate(() => {
-    // Find the circle row by its CONTENT rather than by a guessed selector:
-    // the smallest element holding several short captions, sitting between the
-    // tab strip and the product grid. The previous selector list matched
-    // nothing, which is the whole reason the row was never replaced.
-    const tabStrip = document.querySelector('#topCatSlider, .top-category-slider');
-    if (!tabStrip) return { err: 'no tab strip' };
+  res.selItem = {};
+  ['li.cat-item', '.sub-cat'].forEach(s => { res.selItem[s] = document.querySelectorAll(s).length; });
+
+  // The row as it really is: the smallest element under the tab strip that
+  // holds several short captions.
+  const tabStrip = document.querySelector('#topCatSlider, .top-category-slider');
+  res.tabStripFound = !!tabStrip;
+  if (tabStrip) {
     const tabBottom = tabStrip.getBoundingClientRect().bottom;
     let best = null;
     for (const el of document.querySelectorAll('ul, div, nav')) {
@@ -53,46 +62,51 @@ if (emb) {
       if (r.height < 30 || r.height > 220 || r.width < 300) continue;
       const kids = [...el.children];
       if (kids.length < 3) continue;
-      const captions = kids.filter(k => { const t = (k.innerText||'').trim(); return t && t.length < 40; });
-      if (captions.length < 3) continue;
-      if (!best || el.querySelectorAll('*').length < best.n) best = { el, n: el.querySelectorAll('*').length };
+      if (kids.filter(k => { const t = (k.innerText||'').trim(); return t && t.length < 40; }).length < 3) continue;
+      const n = el.querySelectorAll('*').length;
+      if (!best || n < best.n) best = { el, n };
     }
-    if (!best) return { err: 'no row found by content either' };
-    const el = best.el;
-    const kid = el.children[0];
-    return {
-      rowTag: el.tagName.toLowerCase(),
-      rowId: el.id || '(none)',
-      rowCls: String(el.className).slice(0, 90),
-      itemTag: kid ? kid.tagName.toLowerCase() : '-',
-      itemCls: kid ? String(kid.className).slice(0, 90) : '-',
-      itemHtml: kid ? kid.outerHTML.slice(0, 500) : '-',
-      items: [...el.children].map(li => {
-        const img = li.querySelector('img');
-        const r = li.getBoundingClientRect();
-        return { t: (li.innerText||'').trim().split('\n')[0],
-                 blank: li.classList.contains('af-gf-circle--blank'),
-                 gf: li.classList.contains('af-gf-circle'),
-                 initial: li.getAttribute('data-af-initial') || '',
-                 img: img ? (img.getAttribute('src') || '(none)') : '(no img el)',
-                 imgShown: img ? getComputedStyle(img).display : '-',
-                 box: Math.round(r.width) + 'x' + Math.round(r.height) };
-      }),
-    };
-  });
-  if (!circles || circles.err) console.log('\nFAIL: ' + ((circles && circles.err) || 'no circle strip on the page'));
-  else {
-    console.log('\nROW: <' + circles.rowTag + ' id=' + circles.rowId + ' class="' + circles.rowCls + '">');
-    console.log('ITEM: <' + circles.itemTag + ' class="' + circles.itemCls + '">');
-    console.log('ITEM HTML: ' + circles.itemHtml.replace(/\s+/g, ' '));
-    console.log('\nCIRCLES under that tab (' + circles.items.length + '):');
-    circles.items.forEach(c => console.log('   ' + JSON.stringify(c.t).padEnd(24) + ' gf=' + c.gf + ' blank=' + c.blank +
-      ' initial=' + JSON.stringify(c.initial) + ' box=' + c.box + ' imgDisplay=' + c.imgShown +
-      ' src=' + String(c.img).slice(-40)));
-    const names = circles.items.map(c => c.t.toLowerCase());
-    const want = ['gold foil prints', 'uv prints', 'mixed prints'];
-    const missing = want.filter(w => !names.some(n => n.includes(w)));
-    console.log(missing.length ? 'FAIL: missing ' + missing.join(', ') : 'OK: all three sub-collections present');
+    if (best) {
+      const el = best.el, kid = el.children[0];
+      res.row = {
+        tag: el.tagName.toLowerCase(), id: el.id || '(none)', cls: String(el.className).slice(0,100),
+        itemTag: kid ? kid.tagName.toLowerCase() : '-', itemCls: kid ? String(kid.className).slice(0,100) : '-',
+        itemHtml: kid ? kid.outerHTML.slice(0,420) : '-',
+        captions: [...el.children].map(k => (k.innerText||'').trim().split('\n')[0]).slice(0,16),
+      };
+    }
   }
+  return res;
+});
+
+console.log('TABS (' + out.tabs.length + '):');
+out.tabs.forEach(t => console.log('   ' + (t.gf ? '* ' : '  ') + JSON.stringify(t.t) + '  slug=' + t.val));
+console.log(out.tabs.some(t => /gold\s*foil/i.test(t.t)) ? 'FAIL: a tab still reads Gold Foil' : 'OK: no tab reads Gold Foil');
+console.log(out.tabs.some(t => /emboss/i.test(t.t)) ? 'OK: a tab reads Embossed' : 'FAIL: no Embossed tab');
+
+console.log('\nGF PAYLOAD:');
+if (!out.gf) console.log('   unreadable: ' + (out.gfErr || '?'));
+else {
+  console.log('   label   : ' + JSON.stringify(out.gf.label));
+  console.log('   circles : ' + (out.gf.circles || []).length);
+  (out.gf.circles || []).forEach(c => console.log('       ' + JSON.stringify(c.n) + ' slug=' + c.s + ' img=' + (c.i ? 'yes' : 'NONE')));
+  const names = (out.gf.circles || []).map(c => (c.n||'').toLowerCase());
+  const missing = ['gold foil prints','uv prints','mixed prints'].filter(w => !names.some(n => n.includes(w)));
+  console.log(missing.length ? '   FAIL: payload missing ' + missing.join(', ') : '   OK: all three sub-collections in the payload');
+}
+
+console.log("\nDOES THE MODULE'S STRIP SELECTOR MATCH ANYTHING?");
+Object.entries(out.sel).forEach(([k,v]) => console.log('   ' + k.padEnd(28) + v + ' match(es)'));
+Object.entries(out.selItem).forEach(([k,v]) => console.log('   ' + k.padEnd(28) + v + ' match(es)'));
+const anyStrip = Object.values(out.sel).some(v => v > 0);
+console.log(anyStrip ? '   OK: the module can find the row' : '   FAIL: none of the module\'s selectors match - the row can never be replaced');
+
+console.log('\nTHE ROW AS IT REALLY IS:');
+if (!out.row) console.log('   not found (tabStripFound=' + out.tabStripFound + ')');
+else {
+  console.log('   <' + out.row.tag + ' id=' + out.row.id + ' class="' + out.row.cls + '">');
+  console.log('   item: <' + out.row.itemTag + ' class="' + out.row.itemCls + '">');
+  console.log('   itemHtml: ' + out.row.itemHtml.replace(/\s+/g,' '));
+  console.log('   captions: ' + JSON.stringify(out.row.captions));
 }
 await b.close();
