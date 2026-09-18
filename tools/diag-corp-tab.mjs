@@ -53,6 +53,18 @@ const snap = () => p.evaluate(() => {
 console.log('module on page:', (await snap()).moduleLoaded);
 console.log('\nBEFORE  ', JSON.stringify(await snap(), null, 0));
 
+// Wait until the module has attached AND the tab exists. The previous run
+// clicked before either was true and then reported that the handler never
+// ran, which said nothing about the site.
+let ready = false;
+for (let i = 0; i < 30; i++) {
+  ready = await p.evaluate(() => !!document.getElementById('af-cp-collection-js') &&
+    ![...document.querySelectorAll('.top-cat-btn')].every(x => (x.getAttribute('data-cat') || '') !== 'corporate-printing'));
+  if (ready) break;
+  await new Promise(r => setTimeout(r, 1000));
+}
+console.log('module attached and tab present:', ready);
+
 // Click via the real tab. Our handler prevents the default itself.
 const clicked = await p.evaluate(() => {
   const a = [...document.querySelectorAll('.top-cat-btn')].find(x => (x.getAttribute('data-cat') || '') === 'corporate-printing');
@@ -60,7 +72,15 @@ const clicked = await p.evaluate(() => {
   return !!a;
 });
 console.log('clicked the Corporate Printing tab:', clicked);
-await new Promise(r => setTimeout(r, 8000));
+// Wait for the handler to finish rather than for a fixed interval.
+for (let i = 0; i < 25; i++) {
+  const done = await p.evaluate(() => document.documentElement.getAttribute('data-af-cp-done')
+    || document.documentElement.getAttribute('data-af-cp-error'));
+  if (done) break;
+  await new Promise(r => setTimeout(r, 800));
+}
+// and then for the carousel to rebuild from it
+await new Promise(r => setTimeout(r, 4000));
 
 const after = await snap();
 console.log('\nAFTER   ', JSON.stringify(after, null, 0));
