@@ -1,9 +1,9 @@
 /**
- * The mobile bottom bar: Shop / Account / Search / Wishlist.
- * For each cell, where is the icon's centre against the label's centre, and
- * against the cell's own centre? Three different faults look identical on a
- * phone screenshot: the icon off-centre in its cell, the label off-centre, or
- * the pair centred as a unit but padded unevenly. Measure all three.
+ * Mobile bottom bar: Shop / Account / Search / Wishlist.
+ * The previous pass resolved each "cell" by walking up from the label, which
+ * landed on a text-only wrapper that excludes the icon — so every icon read as
+ * missing. Measure the bar's own direct children instead (they are the real
+ * cells) and dump the markup so the structure is not guessed at.
  */
 import { createRequire } from 'module';
 const puppeteer = createRequire(import.meta.url)('puppeteer-core');
@@ -17,75 +17,59 @@ for (let i = 0; i < 8; i++) {
   await new Promise(r => setTimeout(r, 2500));
   try { await p.reload({ waitUntil: 'networkidle2', timeout: 45000 }); } catch {}
 }
+if (await p.evaluate(() => document.body.innerText.includes('Checking your browser'))) {
+  console.log('BLOCKED by bot check - no measurement'); await b.close(); process.exit(0);
+}
 await new Promise(r => setTimeout(r, 2500));
 
 const out = await p.evaluate(() => {
   const LABELS = ['Shop', 'Account', 'Search', 'Wishlist'];
-  // the bar is the element that contains all four labels and is pinned to the bottom
-  const all = [...document.querySelectorAll('div,nav,section')];
-  const bar = all.filter(el => {
+  const bar = [...document.querySelectorAll('div,nav,section')].filter(el => {
     const t = (el.innerText || '').trim();
     if (!LABELS.every(l => t.includes(l))) return false;
-    const cs = getComputedStyle(el);
-    if (cs.position !== 'fixed') return false;
+    if (getComputedStyle(el).position !== 'fixed') return false;
     const r = el.getBoundingClientRect();
     return r.height > 30 && r.height < 160 && r.bottom > window.innerHeight - 20;
   }).sort((a, c) => a.getBoundingClientRect().height - c.getBoundingClientRect().height)[0];
   if (!bar) return { found: false };
 
-  const br = bar.getBoundingClientRect();
-  const cells = LABELS.map(label => {
-    // the smallest element that holds exactly this label
-    const cand = [...bar.querySelectorAll('*')].filter(el => (el.innerText || '').trim() === label);
-    const cell = cand.length ? cand[cand.length - 1].closest('[class*="icon-box"],[class*="elementor-element"],li,a,div') : null;
-    if (!cell) return { label, missing: true };
-    const icon = cell.querySelector('svg, i, img, [class*="icon"]:not([class*="icon-box"])');
-    const text = [...cell.querySelectorAll('*')].filter(e => (e.innerText||'').trim() === label).pop() || cell;
-    const cr = cell.getBoundingClientRect(), ir = icon ? icon.getBoundingClientRect() : null, tr = text.getBoundingClientRect();
+  const box = el => { const r = el.getBoundingClientRect();
+    return { l:+r.left.toFixed(1), t:+r.top.toFixed(1), w:+r.width.toFixed(1), h:+r.height.toFixed(1), cx:+(r.left+r.width/2).toFixed(1), cy:+(r.top+r.height/2).toFixed(1) }; };
+
+  const cells = [...bar.children].map(cell => {
     const cs = getComputedStyle(cell);
-    const iw = icon ? getComputedStyle(icon) : null;
+    const icon = cell.querySelector('svg, i[class], img');
+    const textNode = [...cell.querySelectorAll('*')].filter(e => {
+      const t = (e.innerText||'').trim(); return LABELS.includes(t) && !e.querySelector('svg,i[class],img'); }).pop();
     return {
-      label,
-      cellBox: `${Math.round(cr.width)}x${Math.round(cr.height)}`,
-      cellCentre: +(cr.left + cr.width / 2).toFixed(1),
-      iconCentre: ir ? +(ir.left + ir.width / 2).toFixed(1) : null,
-      textCentre: +(tr.left + tr.width / 2).toFixed(1),
-      iconVsText: ir ? +((ir.left + ir.width/2) - (tr.left + tr.width/2)).toFixed(1) : null,
-      iconVsCell: ir ? +((ir.left + ir.width/2) - (cr.left + cr.width/2)).toFixed(1) : null,
-      textVsCell: +((tr.left + tr.width/2) - (cr.left + cr.width/2)).toFixed(1),
-      iconBox: ir ? `${Math.round(ir.width)}x${Math.round(ir.height)}` : null,
-      iconTag: icon ? icon.tagName.toLowerCase() + '.' + String(icon.className.baseVal ?? icon.className).split(/\s+/)[0] : null,
-      cellDisplay: cs.display, cellAlign: cs.alignItems, cellJustify: cs.justifyContent,
-      cellTextAlign: cs.textAlign, cellPadding: cs.padding,
-      iconDisplay: iw ? iw.display : null, iconMargin: iw ? iw.margin : null,
-      iconParentTag: icon && icon.parentElement ? icon.parentElement.tagName.toLowerCase() + '.' + String(icon.parentElement.className).split(/\s+/).slice(0,2).join('.') : null,
-      iconParentBox: icon && icon.parentElement ? (() => { const r = icon.parentElement.getBoundingClientRect(); return `${Math.round(r.width)}x${Math.round(r.height)}`; })() : null,
-      iconParentCentre: icon && icon.parentElement ? +(() => { const r = icon.parentElement.getBoundingClientRect(); return r.left + r.width/2; })().toFixed(1) : null,
-      iconParentTextAlign: icon && icon.parentElement ? getComputedStyle(icon.parentElement).textAlign : null,
+      label: (cell.innerText||'').trim().split('\n')[0],
+      cls: String(cell.className).slice(0,70),
+      cell: box(cell),
+      icon: icon ? box(icon) : null,
+      iconTag: icon ? icon.tagName.toLowerCase()+'|'+String(icon.className.baseVal ?? icon.className).slice(0,40) : null,
+      iconWrap: icon && icon.parentElement !== cell ? { cls:String(icon.parentElement.className).slice(0,50), box:box(icon.parentElement), ta:getComputedStyle(icon.parentElement).textAlign, d:getComputedStyle(icon.parentElement).display, pad:getComputedStyle(icon.parentElement).padding, m:getComputedStyle(icon.parentElement).margin } : null,
+      text: textNode ? { cls:String(textNode.className).slice(0,40), box:box(textNode), ta:getComputedStyle(textNode).textAlign } : null,
+      cs: { d:cs.display, ai:cs.alignItems, jc:cs.justifyContent, ta:cs.textAlign, pad:cs.padding, m:cs.margin, fd:cs.flexDirection },
     };
   });
-  return { found: true, barBox: `${Math.round(br.width)}x${Math.round(br.height)}`, barClass: String(bar.className).slice(0,80), cells };
+  return { found: true, barBox: box(bar), barCls: String(bar.className).slice(0,90),
+           barCs: (c=>({d:c.display,gtc:c.gridTemplateColumns,ai:c.alignItems,jc:c.justifyContent,gap:c.gap,pad:c.padding}))(getComputedStyle(bar)),
+           html: bar.outerHTML.slice(0, 6000), cells };
 });
 
-if (!out.found) { console.log('bottom bar not found'); await b.close(); }
+if (!out.found) { console.log('bottom bar not found'); }
 else {
-  console.log(`bar ${out.barBox}   class="${out.barClass}"\n`);
-  console.log('LABEL      CELL       ICON vs TEXT   ICON vs CELL   TEXT vs CELL   ICONBOX');
-  console.log('-'.repeat(82));
+  console.log('BAR', JSON.stringify(out.barBox), out.barCls);
+  console.log('BARCS', JSON.stringify(out.barCs), '\n');
   for (const c of out.cells) {
-    if (c.missing) { console.log(`${c.label.padEnd(10)} (not found)`); continue; }
-    console.log(
-      c.label.padEnd(10) + c.cellBox.padEnd(11) +
-      String(c.iconVsText).padStart(10) + 'px' +
-      String(c.iconVsCell).padStart(13) + 'px' +
-      String(c.textVsCell).padStart(13) + 'px   ' + (c.iconBox || '-'));
+    console.log('== ' + c.label + '  [' + c.cls + ']');
+    console.log('   cell ', JSON.stringify(c.cell), JSON.stringify(c.cs));
+    console.log('   icon ', c.iconTag, JSON.stringify(c.icon));
+    console.log('   wrap ', JSON.stringify(c.iconWrap));
+    console.log('   text ', JSON.stringify(c.text));
+    if (c.icon && c.text) console.log('   >> iconCx-textCx = ' + (c.icon.cx - c.text.box.cx).toFixed(1) + '   iconCx-cellCx = ' + (c.icon.cx - c.cell.cx).toFixed(1) + '   textCx-cellCx = ' + (c.text.box.cx - c.cell.cx).toFixed(1));
+    console.log('');
   }
-  const f = out.cells.find(c => !c.missing);
-  if (f) {
-    console.log('\n--- first cell in detail ---');
-    console.log(`  cell   : display=${f.cellDisplay} align-items=${f.cellAlign} justify=${f.cellJustify} text-align=${f.cellTextAlign} padding=${f.cellPadding}`);
-    console.log(`  icon   : ${f.iconTag}  display=${f.iconDisplay}  margin=${f.iconMargin}`);
-    console.log(`  icon's parent: ${f.iconParentTag}  box=${f.iconParentBox}  text-align=${f.iconParentTextAlign}  centre=${f.iconParentCentre}`);
-  }
-  await b.close();
+  console.log('---- HTML ----\n' + out.html);
 }
+await b.close();
