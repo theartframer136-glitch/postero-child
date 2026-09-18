@@ -252,28 +252,12 @@ add_action('wp_footer', function () {
    thing worth saying is that a picture that failed to load must not leave a
    torn icon in a row of round photographs. */
 .af-gf-circle img { object-fit: cover !important; }
-/* A sub-collection whose artwork has not been uploaded yet. Its image is
-   hidden rather than borrowed from the tab it was cloned from, so the disc is
-   drawn here instead: the section's own gold, and the collection's initial.
-   It reads as "this exists, it is still being filled", which is true, and it
-   becomes a photograph on its own the moment a thumbnail is set. */
-.af-gf-circle--blank > a, .af-gf-circle--blank { position: relative; }
-.af-gf-circle--blank a > *:first-child,
-.af-gf-circle--blank .cat-item-img,
-.af-gf-circle--blank figure {
-  background: linear-gradient(135deg, #f6efdc, #e6d5a8) !important;
-  position: relative;
-}
-.af-gf-circle--blank[data-af-initial]::before {
-  content: attr(data-af-initial);
-  position: absolute; left: 0; right: 0; top: 0;
-  height: 100%; max-height: 110px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 26px; font-weight: 600; color: #8a6d1f;
-  background: linear-gradient(135deg, #f6efdc, #e6d5a8);
-  border-radius: 50%; pointer-events: none; z-index: 1;
-  aspect-ratio: 1 / 1; margin: 0 auto;
-}
+/* A sub-collection whose artwork has not been uploaded yet keeps a real
+   <img>, so it takes whatever size and shape the theme gives its circles.
+   The disc is drawn INSIDE that image as an SVG data URI (see makeCircle), so
+   nothing here has to guess at the row's geometry — an earlier attempt styled
+   a wrapper and a figure element that this markup simply does not have. */
+.af-gf-circle--blank img { border-radius: 50% !important; object-fit: cover !important; }
 </style>
 <script id="af-gf-collection-js">
 (function () {
@@ -387,6 +371,21 @@ add_action('wp_footer', function () {
     return strips[0] || null;
   }
 
+  // A round gold swatch with one letter in it, as a data URI. Inline SVG
+  // rather than a file: it costs no request, scales to whatever box the theme
+  // gives it, and there is no placeholder asset to deploy or lose.
+  function blankDisc(name) {
+    var ch = (name || '?').trim().charAt(0).toUpperCase().replace(/[<>&"']/g, '');
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">' +
+              '<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1">' +
+              '<stop offset="0" stop-color="#f6efdc"/><stop offset="1" stop-color="#e2cf9e"/>' +
+              '</linearGradient></defs>' +
+              '<circle cx="60" cy="60" r="60" fill="url(#g)"/>' +
+              '<text x="60" y="60" text-anchor="middle" dominant-baseline="central" ' +
+              'font-family="Georgia,serif" font-size="52" fill="#8a6d1f">' + ch + '</text></svg>';
+    return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+
   function makeCircle(sample, c) {
     var el = sample.cloneNode(true);
     el.classList.remove('active');
@@ -400,11 +399,12 @@ add_action('wp_footer', function () {
         // This circle is a CLONE of one of the theme's own, so leaving its
         // image alone would put another collection's photograph under this
         // collection's name. A sub-collection with no thumbnail yet gets a
-        // plain lettered disc instead, which says "nothing here yet" honestly.
-        img.removeAttribute('src'); img.removeAttribute('srcset'); img.removeAttribute('data-src');
-        img.style.display = 'none';
+        // plain gold disc carrying its initial — drawn as the image itself, so
+        // it inherits the row's own sizing instead of needing CSS that guesses
+        // at markup. It becomes a photograph the moment a thumbnail is set.
+        img.removeAttribute('srcset'); img.removeAttribute('data-src');
+        img.setAttribute('src', blankDisc(c.n));
         el.classList.add('af-gf-circle--blank');
-        el.setAttribute('data-af-initial', (c.n || '?').trim().charAt(0).toUpperCase());
       }
       img.setAttribute('alt', c.n);
       img.setAttribute('loading', 'lazy');
