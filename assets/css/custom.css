@@ -2536,10 +2536,28 @@ body.post-type-archive-product ul.products li.product a.woocommerce-loop-product
    would swallow every click on Add to cart, wishlist and Quick view — trading
    a layout bug for a broken card. */
 body.tax-product_cat ul.products li.product .product-transition .group-action,
-body.post-type-archive-product ul.products li.product .product-transition .group-action,
+body.post-type-archive-product ul.products li.product .product-transition .group-action{
+  position:relative !important;z-index:3 !important;
+}
+/* The sale ribbon was in this rule too, and position:relative is what put the
+   empty band above every picture. A relatively-positioned element still holds
+   its place in normal flow, so the ribbon reserved 50px at the top of the box
+   and pushed the image down by exactly that much — measured at 50px on every
+   card, with the image then overflowing 50px past the bottom of a 300px box
+   that clips it. The top of every artwork was being cut off.
+
+   It only needed relative for the z-index that keeps it above the image, and
+   absolute positioning stacks just as well. The offsets it is drawn at —
+   top:15px, left:-46px, width:160px for the diagonal corner ribbon — come
+   from the earlier .onsale rule and are unchanged, and .product-transition is
+   already a containing block, so the ribbon lands where it always did.
+
+   .group-action above keeps relative deliberately: the comment on that rule
+   records that making it anything else swallowed every click on Add to cart,
+   wishlist and Quick view. */
 body.tax-product_cat ul.products li.product .product-transition .onsale,
 body.post-type-archive-product ul.products li.product .product-transition .onsale{
-  position:relative !important;z-index:3 !important;
+  position:absolute !important;z-index:3 !important;
 }
 body.tax-product_cat ul.products li.product .product-transition img,
 body.tax-product_cat ul.products li.product a.woocommerce-loop-product__link img,
