@@ -5617,3 +5617,178 @@ each, written from the picture actually on the page:
 **Page 317, `LI-190014-3040`**
 > An elegant artwork of a tree whose canopy dissolves into a drift of gold and
 > teal butterflies, symbolising transformation, renewal and the beauty of change.
+
+## Captions for the 29 pages that have none
+
+The previous section found 29 claimed pages printing the frame options, the
+sizes and the contact details and nothing else. Each one was read against its
+picture and against the shop's own title for the product holding that code, and
+a caption written from what is actually on the page. They are below, ready to
+paste in.
+
+Style follows the book's own two habits: a Vastu line for the devotional and
+traditional subjects, where the neighbouring pages use one, and a descriptive
+line for the decorative and modern ones.
+
+### Radha Krishna
+
+**Page 14, `RK-010010-5030`** — #223 Krishna Moonlight
+> A luminous artwork of Lord Krishna playing his flute before a golden full
+> moon, his blue form draped in flowing gold, radiating serenity, devotion and
+> divine music.
+
+**Page 95, `RK-010091-5030`** — #23558 Bal Krishna Classic Portrait
+> A tender portrait of Bal Krishna resting his cheek on his hand, adorned with
+> pearls, gold and a peacock feather, radiating innocence, charm and divine love.
+
+**Page 97, `RK-010093-3040`** — #7820 Krishna Raas Leela Moonlight
+> A joyous artwork of the Raas Leela, Lord Krishna dancing with the gopis
+> beneath a full moon before temple arches, celebrating divine love, music and
+> bliss.
+
+**Page 99, `RK-010095-3040`** — #22138 Krishna's Gopis Gathering
+> A richly painted gathering of the gopis in jewelled silks beside a lake at
+> sunset, stringing garlands and sharing quiet devotion, radiating grace and
+> companionship.
+
+**Page 100, `RK-010096-5030`** — #24653 Radha Krishna Painted Faces
+> A contemporary artwork of Radha and Krishna in profile, their faces formed
+> from strokes of gold, teal and amber, where devotion meets modern abstraction.
+
+### Lord Shiva
+
+**Page 120, `LS-030016-5030`** — #24352 Shiva Parvati on Kailash
+> A serene artwork of Lord Shiva and Goddess Parvati seated on the snows of
+> Kailash beneath a full moon, with Nandi at their side — an image of balance,
+> devotion and eternal union.
+
+**Page 121, `LS-030017-4030`** — #30531 Shiva Parivar with Lion
+> A vibrant depiction of the Shiva Parivar — Shiva, Parvati, Ganesha and
+> Kartikeya — attended by Nandi, the lion and the peacock, symbolising family
+> harmony, protection and divine blessing.
+
+**Page 122, `LS-030018-5030`** — #20770 Shiva Crescent Dream
+> A meditative artwork of Lord Shiva in serene repose, the crescent moon in his
+> hair and a cosmos of violet and blue behind him, radiating stillness and
+> spiritual strength.
+
+### Seven Horses
+
+**Page 135, `SH-040013-3050`** — #20169 Rainbow Horse Gallop
+> Seven horses in bold red, black, white and amber galloping across water; in
+> Vastu the seven horses symbolise success, speed and financial growth, best
+> placed in the living room or office.
+
+**Page 136, `SH-040014-3040`** — #21893 Wild Horses Stampede
+> Seven white horses in full stampede against strokes of teal and amber; in
+> Vastu they symbolise progress and prosperity, and placing them on the east or
+> north wall attracts growth.
+
+**Page 137, `SH-040015-3040`** — #20087 Running White Horses
+> Seven white horses running beneath a golden sun and rolling clouds; in Vastu
+> this image attracts success, positive energy and steady financial progress.
+
+### Hindu Deities
+
+**Page 196, `HD-080030-3040`** — #24775 Bharat Mata with Lion
+> A majestic depiction of Bharat Mata bearing the saffron flag with a lion at
+> her side, the map of the nation glowing behind her — an emblem of courage,
+> unity and patriotic pride.
+
+### Sikh Art
+
+**Page 212, `SA-100003-3050`** — #26814 Golden Temple at Dusk
+> A breathtaking artwork of the Golden Temple at dusk, its lit sanctum and
+> marble colonnades mirrored in the still waters of the Sarovar beneath a
+> burning sunset sky.
+
+**Page 213, `SA-100004-3040`** — #22321 Golden Guru Aura
+> A textured portrait of a Sikh elder crowned in saffron, a golden aura behind
+> him and strokes of teal and crimson around — radiating wisdom, faith and quiet
+> dignity.
+
+### Indian Culture
+
+**Page 221, `IC-130005-4030`** — #20026 Indian Classical Dancer
+> A delicate watercolour of an Indian classical dancer mid-pose amid soft
+> blossoms and clay vessels; in Vastu the dancer represents creativity, joy and
+> the flow of positive energy.
+
+### Wildlife
+
+**Page 278, `WL-170020-3050`** — #22199 Peacock Art
+> A resplendent peacock with its tail unfurled in teal and gold; in Vastu the
+> peacock symbolises beauty, grace and prosperity, attracting good fortune and
+> positive energy.
+
+**Page 279, `WL-170021-3050`** — #7833 Minimalist Blossom Vase
+> White blossom branches in a pale stoneware vase against a soft green wall — a
+> quiet still life of freshness, renewal and understated elegance.
+
+**Page 280, `WL-170022-3050`** — #7834 Rustic Blossom Vase
+> A single blossoming branch in a round stone vase on a weathered ledge — a
+> rustic still life of simplicity, patience and natural grace.
+
+**Page 281, `WL-170023-5030`** — #7837 Geometric Floral
+> Bold tulips rendered in faceted panes of blue, violet and crimson against a
+> golden sun — a striking stained-glass vision of growth and renewal.
+
+### Kids' Room
+
+**Page 301, `KR-180020-6030`** — #22625 Whimsical Tower Scene
+> A whimsical tower of stacked houses, balloons and tiny adventurers — a playful
+> flight of imagination for a child's room or nursery.
+
+**Page 302, `KR-180021-3050`** — #23313 Safari Friends Nursery
+> A gentle watercolour safari of elephants, giraffes, flamingos and monkeys
+> among tropical leaves — bringing warmth, wonder and friendship to a nursery
+> wall.
+
+**Page 303, `KR-180022-4030`** — #23850 Melody Makers Illustration
+> Two cheerful musicians with cello and double bass among drifting leaves and
+> notes — a charming celebration of music, friendship and creativity.
+
+### Living / Interiors
+
+**Page 315, `LI-190012-5030`** — #21832 Divine Mercy Radiance
+> The Divine Mercy image of Christ, one hand raised in blessing and rays of red
+> and white streaming from his heart — a symbol of mercy, healing and trust.
+
+**Page 349, `LI-190046-4030`** — #25718 Franklin Graffiti Pop Art
+> A bold pop-art portrait set against layers of graffiti and colour, bringing
+> wit, energy and contemporary edge to a study or office wall.
+
+**Page 350, `LI-190047-5030`** — #26389 Pirate Captain Sketch
+> A finely drawn pirate captain raising his tankard, sketched in graphite over
+> compass roses and ship schematics — an adventurer's study in ink and
+> imagination.
+
+**Page 351, `LI-190048-5030`** — #19944 Green Leafy Plants Art
+> Layered jungle foliage in muted greens and cream beneath a pale sun — a calm,
+> graphic botanical that brings freshness and balance to a room.
+
+**Page 352, `LI-190049-3050`** — #26450 Starry City Nights
+> A swirling night city under a luminous moon, its lights scattered across a
+> rain-slicked street — an expressionist vision of movement and quiet wonder.
+
+**Page 353, `LI-190050-3050`** — #25474 Lantern Lake Starry Night
+> A small red boat drifting beneath a sky of swirling stars and golden lanterns,
+> their light rippling across the water — an artwork of calm, hope and journey.
+
+**Page 354, `LI-190051-3050`** — #25535 Jazz Man Blue Gold
+> A saxophonist silhouetted against swirling currents of gold and deep blue —
+> where music becomes motion, and rhythm becomes colour.
+
+### One thing to decide before pasting
+
+Page 350 draws a recognisable film character, and page 293 — which already has a
+caption — names "the legendary Dark Knight". The captions above describe page
+350 generically for that reason. Whether either belongs in a commercial
+catalogue at all is a call for the shop, not for this audit, but it should be a
+deliberate one.
+
+### Still not applicable from here
+
+As with the seven wrong captions, these cannot be written into the design from
+this session. Canva refuses to open an editing transaction on a 391-page design,
+deterministically. Every caption above has to be pasted in by hand.
