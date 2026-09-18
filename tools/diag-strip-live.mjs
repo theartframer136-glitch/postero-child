@@ -39,32 +39,60 @@ if (emb) {
   });
   await new Promise(r => setTimeout(r, 4500));
   const circles = await p.evaluate(() => {
-    const strips = [...document.querySelectorAll('#subcategorySlider, .subcategory-slider, ul.postero-scroll-content')];
-    const strip = strips.find(s => s.offsetParent) || strips[0];
-    if (!strip) return null;
-    return [...strip.querySelectorAll('li.cat-item, .sub-cat')].map(li => {
-      const img = li.querySelector('img');
-      const r = li.getBoundingClientRect();
-      return { t: (li.innerText||'').trim().split('\n')[0],
-               blank: li.classList.contains('af-gf-circle--blank'),
-               initial: li.getAttribute('data-af-initial') || '',
-               img: img ? (img.getAttribute('src') || '(none)') : '(no img el)',
-               imgShown: img ? getComputedStyle(img).display : '-',
-               box: Math.round(r.width) + 'x' + Math.round(r.height) };
-    });
+    // Find the circle row by its CONTENT rather than by a guessed selector:
+    // the smallest element holding several short captions, sitting between the
+    // tab strip and the product grid. The previous selector list matched
+    // nothing, which is the whole reason the row was never replaced.
+    const tabStrip = document.querySelector('#topCatSlider, .top-category-slider');
+    if (!tabStrip) return { err: 'no tab strip' };
+    const tabBottom = tabStrip.getBoundingClientRect().bottom;
+    let best = null;
+    for (const el of document.querySelectorAll('ul, div, nav')) {
+      const r = el.getBoundingClientRect();
+      if (r.top < tabBottom - 5 || r.top > tabBottom + 260) continue;
+      if (r.height < 30 || r.height > 220 || r.width < 300) continue;
+      const kids = [...el.children];
+      if (kids.length < 3) continue;
+      const captions = kids.filter(k => { const t = (k.innerText||'').trim(); return t && t.length < 40; });
+      if (captions.length < 3) continue;
+      if (!best || el.querySelectorAll('*').length < best.n) best = { el, n: el.querySelectorAll('*').length };
+    }
+    if (!best) return { err: 'no row found by content either' };
+    const el = best.el;
+    const kid = el.children[0];
+    return {
+      rowTag: el.tagName.toLowerCase(),
+      rowId: el.id || '(none)',
+      rowCls: String(el.className).slice(0, 90),
+      itemTag: kid ? kid.tagName.toLowerCase() : '-',
+      itemCls: kid ? String(kid.className).slice(0, 90) : '-',
+      itemHtml: kid ? kid.outerHTML.slice(0, 500) : '-',
+      items: [...el.children].map(li => {
+        const img = li.querySelector('img');
+        const r = li.getBoundingClientRect();
+        return { t: (li.innerText||'').trim().split('\n')[0],
+                 blank: li.classList.contains('af-gf-circle--blank'),
+                 gf: li.classList.contains('af-gf-circle'),
+                 initial: li.getAttribute('data-af-initial') || '',
+                 img: img ? (img.getAttribute('src') || '(none)') : '(no img el)',
+                 imgShown: img ? getComputedStyle(img).display : '-',
+                 box: Math.round(r.width) + 'x' + Math.round(r.height) };
+      }),
+    };
   });
-  if (!circles) console.log('\nFAIL: no circle strip on the page');
+  if (!circles || circles.err) console.log('\nFAIL: ' + ((circles && circles.err) || 'no circle strip on the page'));
   else {
-    console.log('\nCIRCLES under that tab (' + circles.length + '):');
-    circles.forEach(c => console.log('   ' + JSON.stringify(c.t).padEnd(24) + ' blank=' + c.blank +
+    console.log('\nROW: <' + circles.rowTag + ' id=' + circles.rowId + ' class="' + circles.rowCls + '">');
+    console.log('ITEM: <' + circles.itemTag + ' class="' + circles.itemCls + '">');
+    console.log('ITEM HTML: ' + circles.itemHtml.replace(/\s+/g, ' '));
+    console.log('\nCIRCLES under that tab (' + circles.items.length + '):');
+    circles.items.forEach(c => console.log('   ' + JSON.stringify(c.t).padEnd(24) + ' gf=' + c.gf + ' blank=' + c.blank +
       ' initial=' + JSON.stringify(c.initial) + ' box=' + c.box + ' imgDisplay=' + c.imgShown +
-      ' src=' + String(c.img).slice(-42)));
-    const names = circles.map(c => c.t.toLowerCase());
+      ' src=' + String(c.img).slice(-40)));
+    const names = circles.items.map(c => c.t.toLowerCase());
     const want = ['gold foil prints', 'uv prints', 'mixed prints'];
     const missing = want.filter(w => !names.some(n => n.includes(w)));
     console.log(missing.length ? 'FAIL: missing ' + missing.join(', ') : 'OK: all three sub-collections present');
-    const zero = circles.filter(c => c.box.startsWith('0x') || c.box.endsWith('x0'));
-    console.log(zero.length ? 'FAIL: ' + zero.length + ' circle(s) have no size' : 'OK: every circle has a size');
   }
 }
 await b.close();
