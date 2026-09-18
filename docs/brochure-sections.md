@@ -5497,3 +5497,298 @@ their artwork, and they should not be counted as checked.
 none uncoded. The 156 unclaimed pages and the 198 temporary codes have now been
 held against each other three times, by four different methods, and the answer
 has not moved.
+
+## Reading all 217 claimed pages against their own captions
+
+The page-85 caption defect found by the third pass raised an obvious question:
+how many more are there? So every one of the 217 pages that a product already
+claims was read caption-against-picture. Seven pages carry a caption that
+describes something other than the artwork printed beside it.
+
+### How the captions were read
+
+`read-design` returns a page's text as a flat string, and the elements come back
+in creation order rather than reading order, so a caption can appear either
+before or after its own `Page:` label. The ordering is resolvable: each chunk's
+`Available Sizes` line matches the aspect in the code at the END of that chunk
+(`6 ft (H) * 3 ft (B)` under `RK-010055-6030`), which fixes the boundary. Every
+caption below was then confirmed against the rendered page, and every page
+against the shop's own title for the product holding that code — three
+independent sources, because the first pass of this audit learned the hard way
+that one is not enough.
+
+### The seven
+
+| page | code | product on that page | the caption says | the picture shows |
+|---|---|---|---|---|
+| 5 | `RK-010001-3050` | #8301 Radha Krishna Peacock | a vase with blossoming flowers | Radha and Krishna, blue and gold double portrait |
+| 59 | `RK-010055-6030` | #24033 Radha Krishna Melody Swirl | Ganga Aarti at Varanasi Ghat | Radha and Krishna playing the flute together |
+| 85 | `RK-010081-5030` | *(unclaimed page)* | Ganga Aarti at Varanasi Ghat | blue Krishna with flute, golden moon, peacock |
+| 210 | `SA-100001-3050` | #7815 Sacred Golden Temple Amritsar | a vase with blossoming flowers | the Golden Temple reflected in its sacred water |
+| 306 | `LI-190003-5030` | #148 Abstract Floral Sunrise | Garuda with the Sun | a cubist flower against a golden sun |
+| 311 | `LI-190008-5030` | #16762 Crucifixion Scene | divine union and cosmic harmony | Christ on the cross against a pink sun |
+| 317 | `LI-190014-3040` | #7805 Butterfly Tree | Floral Pichwai art | a bare tree whose canopy is gold and teal butterflies |
+
+### Every one of them is a caption that belongs somewhere else
+
+This is the useful part. None of the seven is nonsense text — each is a correct
+caption sitting on the wrong page, and in every case the right page is also in
+the book:
+
+- **the vase caption** is correct on page 304, `LI-190001-3050`, which really is
+  a stoneware vase of blossoming branches. It has been copied onto page 5 and
+  page 210.
+- **the Ganga Aarti caption** is correct on page 377, `TA-210004-5030`, held by
+  #29890 *Ganga Aarti Flame*, whose picture is exactly the priest lifting a
+  blazing lamp the words describe. It has been copied onto pages 59 and 85.
+- **the Garuda caption** is correct on page 258, `VA-160004-5030`, held by
+  #21381 *Sun Phoenix Vintage Art*, a sunburst bird. It has been copied onto
+  page 306.
+- **"divine union and cosmic harmony"** is correct on page 140, `TP-050003-3040`,
+  held by #18666 *Ram Sita Wedding*. It also sits on page 30, a Radha-Krishna
+  pair, where it is loose but defensible, and on page 311, a crucifixion, where
+  it is not.
+
+Page 317 is the exception: "Floral Pichwai art" describes no page in the book,
+and the shop's own title for the product is *Butterfly Tree*.
+
+### Why page 85 is still the dangerous one
+
+Pages 5, 210, 306, 311 and 317 are all already claimed, so a wrong caption there
+is an embarrassment in a customer-facing brochure but it cannot misroute a code.
+Page 85 is unclaimed, and the catalogue holds #8424 *Divine Varanasi Ganga
+Aarti* — a product the caption describes exactly. Anyone matching by caption
+would put #8424 on page 85, and the picture there is a Krishna. The genuine
+Ganga Aarti page is 377, and it is already taken by #29890, so #8424 has no page
+in this book at all. The third pass withheld that code by checking the picture;
+this pass explains why the temptation existed.
+
+### Twenty-nine pages have no caption at all
+
+Pages 14, 95, 97, 99, 100, 120, 121, 122, 135, 136, 137, 196, 212, 213, 221,
+278, 279, 280, 281, 301, 302, 303, 315, 349, 350, 351, 352, 353 and 354 print
+the frame options, the sizes and the contact details, and nothing else. Four of
+them — 95, 97, 99 and 100 — are among the recently added RK pages, which fits:
+they were laid out after the captioned run. This is not a defect in the same
+sense as a wrong caption, but it is a gap in the book worth closing.
+
+### Two smaller oddities, recorded but not defects
+
+`WL-170021`, `WL-170022` and `WL-170023` (pages 279, 280, 281) are still lifes —
+two stoneware vases and a cubist flower — filed in the Wildlife section. And the
+cubist flower on page 281 is the same artwork as page 306, `LI-190003`, so it
+appears twice in the book under two codes. Neither affects a product's code
+today; both would confuse the next person reading the book by section.
+
+### What this pass could not do
+
+The captions cannot be fixed from here. Canva refuses to open an editing
+transaction on this design — "Editing a Canva Design with a size of 391 pages is
+not currently supported" — and it refuses deterministically, not intermittently.
+The seven corrections have to be made by hand in Canva. Replacement text for
+each, written from the picture actually on the page:
+
+**Page 5, `RK-010001-3050`**
+> This image of Radha and Krishna together symbolises eternal love, harmony and
+> devotion; in Vastu, placing it in the bedroom or living room enhances peace,
+> bonding and positive energy in relationships.
+
+**Page 59, `RK-010055-6030`**
+> A graceful artwork of Radha and Krishna sharing the flute, their robes swirling
+> in teal, saffron and rose, symbolising the union of divine love and music.
+
+**Page 85, `RK-010081-5030`**
+> A serene artwork of Lord Krishna seated in meditation with his flute, framed by
+> a golden moon, lotus blooms and a peacock, radiating divine peace and harmony.
+
+**Page 210, `SA-100001-3050`**
+> A stunning artwork of the Golden Temple at Amritsar, its radiant golden sanctum
+> mirrored in the sacred waters of the Sarovar, glowing with serene, divine light.
+
+**Page 306, `LI-190003-5030`**
+> A vivid stained-glass style artwork of a blooming flower against a golden sun,
+> its petals set in jewelled panes of blue, violet and crimson, symbolising
+> growth, renewal and quiet joy.
+
+**Page 311, `LI-190008-5030`**
+> A striking artwork of the Crucifixion silhouetted against a rose-coloured sun,
+> birds rising above the treeline — a bold symbol of sacrifice, faith and hope.
+
+**Page 317, `LI-190014-3040`**
+> An elegant artwork of a tree whose canopy dissolves into a drift of gold and
+> teal butterflies, symbolising transformation, renewal and the beauty of change.
+
+## Captions for the 29 pages that have none
+
+The previous section found 29 claimed pages printing the frame options, the
+sizes and the contact details and nothing else. Each one was read against its
+picture and against the shop's own title for the product holding that code, and
+a caption written from what is actually on the page. They are below, ready to
+paste in.
+
+Style follows the book's own two habits: a Vastu line for the devotional and
+traditional subjects, where the neighbouring pages use one, and a descriptive
+line for the decorative and modern ones.
+
+### Radha Krishna
+
+**Page 14, `RK-010010-5030`** — #223 Krishna Moonlight
+> A luminous artwork of Lord Krishna playing his flute before a golden full
+> moon, his blue form draped in flowing gold, radiating serenity, devotion and
+> divine music.
+
+**Page 95, `RK-010091-5030`** — #23558 Bal Krishna Classic Portrait
+> A tender portrait of Bal Krishna resting his cheek on his hand, adorned with
+> pearls, gold and a peacock feather, radiating innocence, charm and divine love.
+
+**Page 97, `RK-010093-3040`** — #7820 Krishna Raas Leela Moonlight
+> A joyous artwork of the Raas Leela, Lord Krishna dancing with the gopis
+> beneath a full moon before temple arches, celebrating divine love, music and
+> bliss.
+
+**Page 99, `RK-010095-3040`** — #22138 Krishna's Gopis Gathering
+> A richly painted gathering of the gopis in jewelled silks beside a lake at
+> sunset, stringing garlands and sharing quiet devotion, radiating grace and
+> companionship.
+
+**Page 100, `RK-010096-5030`** — #24653 Radha Krishna Painted Faces
+> A contemporary artwork of Radha and Krishna in profile, their faces formed
+> from strokes of gold, teal and amber, where devotion meets modern abstraction.
+
+### Lord Shiva
+
+**Page 120, `LS-030016-5030`** — #24352 Shiva Parvati on Kailash
+> A serene artwork of Lord Shiva and Goddess Parvati seated on the snows of
+> Kailash beneath a full moon, with Nandi at their side — an image of balance,
+> devotion and eternal union.
+
+**Page 121, `LS-030017-4030`** — #30531 Shiva Parivar with Lion
+> A vibrant depiction of the Shiva Parivar — Shiva, Parvati, Ganesha and
+> Kartikeya — attended by Nandi, the lion and the peacock, symbolising family
+> harmony, protection and divine blessing.
+
+**Page 122, `LS-030018-5030`** — #20770 Shiva Crescent Dream
+> A meditative artwork of Lord Shiva in serene repose, the crescent moon in his
+> hair and a cosmos of violet and blue behind him, radiating stillness and
+> spiritual strength.
+
+### Seven Horses
+
+**Page 135, `SH-040013-3050`** — #20169 Rainbow Horse Gallop
+> Seven horses in bold red, black, white and amber galloping across water; in
+> Vastu the seven horses symbolise success, speed and financial growth, best
+> placed in the living room or office.
+
+**Page 136, `SH-040014-3040`** — #21893 Wild Horses Stampede
+> Seven white horses in full stampede against strokes of teal and amber; in
+> Vastu they symbolise progress and prosperity, and placing them on the east or
+> north wall attracts growth.
+
+**Page 137, `SH-040015-3040`** — #20087 Running White Horses
+> Seven white horses running beneath a golden sun and rolling clouds; in Vastu
+> this image attracts success, positive energy and steady financial progress.
+
+### Hindu Deities
+
+**Page 196, `HD-080030-3040`** — #24775 Bharat Mata with Lion
+> A majestic depiction of Bharat Mata bearing the saffron flag with a lion at
+> her side, the map of the nation glowing behind her — an emblem of courage,
+> unity and patriotic pride.
+
+### Sikh Art
+
+**Page 212, `SA-100003-3050`** — #26814 Golden Temple at Dusk
+> A breathtaking artwork of the Golden Temple at dusk, its lit sanctum and
+> marble colonnades mirrored in the still waters of the Sarovar beneath a
+> burning sunset sky.
+
+**Page 213, `SA-100004-3040`** — #22321 Golden Guru Aura
+> A textured portrait of a Sikh elder crowned in saffron, a golden aura behind
+> him and strokes of teal and crimson around — radiating wisdom, faith and quiet
+> dignity.
+
+### Indian Culture
+
+**Page 221, `IC-130005-4030`** — #20026 Indian Classical Dancer
+> A delicate watercolour of an Indian classical dancer mid-pose amid soft
+> blossoms and clay vessels; in Vastu the dancer represents creativity, joy and
+> the flow of positive energy.
+
+### Wildlife
+
+**Page 278, `WL-170020-3050`** — #22199 Peacock Art
+> A resplendent peacock with its tail unfurled in teal and gold; in Vastu the
+> peacock symbolises beauty, grace and prosperity, attracting good fortune and
+> positive energy.
+
+**Page 279, `WL-170021-3050`** — #7833 Minimalist Blossom Vase
+> White blossom branches in a pale stoneware vase against a soft green wall — a
+> quiet still life of freshness, renewal and understated elegance.
+
+**Page 280, `WL-170022-3050`** — #7834 Rustic Blossom Vase
+> A single blossoming branch in a round stone vase on a weathered ledge — a
+> rustic still life of simplicity, patience and natural grace.
+
+**Page 281, `WL-170023-5030`** — #7837 Geometric Floral
+> Bold tulips rendered in faceted panes of blue, violet and crimson against a
+> golden sun — a striking stained-glass vision of growth and renewal.
+
+### Kids' Room
+
+**Page 301, `KR-180020-6030`** — #22625 Whimsical Tower Scene
+> A whimsical tower of stacked houses, balloons and tiny adventurers — a playful
+> flight of imagination for a child's room or nursery.
+
+**Page 302, `KR-180021-3050`** — #23313 Safari Friends Nursery
+> A gentle watercolour safari of elephants, giraffes, flamingos and monkeys
+> among tropical leaves — bringing warmth, wonder and friendship to a nursery
+> wall.
+
+**Page 303, `KR-180022-4030`** — #23850 Melody Makers Illustration
+> Two cheerful musicians with cello and double bass among drifting leaves and
+> notes — a charming celebration of music, friendship and creativity.
+
+### Living / Interiors
+
+**Page 315, `LI-190012-5030`** — #21832 Divine Mercy Radiance
+> The Divine Mercy image of Christ, one hand raised in blessing and rays of red
+> and white streaming from his heart — a symbol of mercy, healing and trust.
+
+**Page 349, `LI-190046-4030`** — #25718 Franklin Graffiti Pop Art
+> A bold pop-art portrait set against layers of graffiti and colour, bringing
+> wit, energy and contemporary edge to a study or office wall.
+
+**Page 350, `LI-190047-5030`** — #26389 Pirate Captain Sketch
+> A finely drawn pirate captain raising his tankard, sketched in graphite over
+> compass roses and ship schematics — an adventurer's study in ink and
+> imagination.
+
+**Page 351, `LI-190048-5030`** — #19944 Green Leafy Plants Art
+> Layered jungle foliage in muted greens and cream beneath a pale sun — a calm,
+> graphic botanical that brings freshness and balance to a room.
+
+**Page 352, `LI-190049-3050`** — #26450 Starry City Nights
+> A swirling night city under a luminous moon, its lights scattered across a
+> rain-slicked street — an expressionist vision of movement and quiet wonder.
+
+**Page 353, `LI-190050-3050`** — #25474 Lantern Lake Starry Night
+> A small red boat drifting beneath a sky of swirling stars and golden lanterns,
+> their light rippling across the water — an artwork of calm, hope and journey.
+
+**Page 354, `LI-190051-3050`** — #25535 Jazz Man Blue Gold
+> A saxophonist silhouetted against swirling currents of gold and deep blue —
+> where music becomes motion, and rhythm becomes colour.
+
+### One thing to decide before pasting
+
+Page 350 draws a recognisable film character, and page 293 — which already has a
+caption — names "the legendary Dark Knight". The captions above describe page
+350 generically for that reason. Whether either belongs in a commercial
+catalogue at all is a call for the shop, not for this audit, but it should be a
+deliberate one.
+
+### Still not applicable from here
+
+As with the seven wrong captions, these cannot be written into the design from
+this session. Canva refuses to open an editing transaction on a 391-page design,
+deterministically. Every caption above has to be pasted in by hand.
