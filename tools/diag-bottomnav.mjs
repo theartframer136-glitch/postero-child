@@ -79,7 +79,31 @@ const out = await p.evaluate(() => {
       cs: { d:cs.display, ai:cs.alignItems, jc:cs.justifyContent, ta:cs.textAlign, pad:cs.padding },
     };
   });
-  return { found: true, barBox: box(bar), barCls: String(bar.className).slice(0,90),
+  // The Search cell's content sits 6px above where the other three sit, and a
+  // wrapper is doing it. Walk from that icon up to the cell and print every
+  // box on the way, with each container's OTHER children - a hidden sibling
+  // with height would centre the visible part off-centre, and that cannot be
+  // seen from the icon alone.
+  const chain = [];
+  const searchIcon = bar.querySelector('.site-header-search i, .button-search-popup i');
+  for (let n = searchIcon; n && n !== bar; n = n.parentElement) {
+    const cs = getComputedStyle(n);
+    chain.push({
+      tag: n.tagName.toLowerCase(),
+      cls: String(n.className.baseVal ?? n.className).slice(0, 46),
+      box: box(n),
+      d: cs.display, ai: cs.alignItems, jc: cs.justifyContent, fd: cs.flexDirection,
+      pad: cs.padding, mar: cs.margin, h: cs.height, pos: cs.position,
+      kids: [...n.children].map(k => {
+        const r = k.getBoundingClientRect(), ks = getComputedStyle(k);
+        return k.tagName.toLowerCase() + '.' + String(k.className.baseVal ?? k.className).split(/\s+/)[0].slice(0,22) +
+               ' ' + Math.round(r.width) + 'x' + Math.round(r.height) + '@' + Math.round(r.top) +
+               ' ' + ks.display + (ks.position !== 'static' ? ' ' + ks.position : '');
+      }),
+    });
+  }
+
+  return { chain, found: true, barBox: box(bar), barCls: String(bar.className).slice(0,90),
            barCs: (c=>({d:c.display,gtc:c.gridTemplateColumns,ai:c.alignItems,jc:c.justifyContent,gap:c.gap,pad:c.padding}))(getComputedStyle(bar)),
            html: bar.outerHTML.slice(0, 6000), cells };
 });
@@ -97,6 +121,16 @@ else {
     if (c.icon && c.text) console.log('   >> iconCx-textCx = ' + (c.icon.cx - c.text.box.cx).toFixed(1) + '   iconCx-cellCx = ' + (c.icon.cx - c.cell.cx).toFixed(1) + '   textCx-cellCx = ' + (c.text.box.cx - c.cell.cx).toFixed(1));
     console.log('');
   }
+  if (out.chain && out.chain.length) {
+    console.log('\nTHE SEARCH CELL, FROM THE ICON UPWARDS');
+    out.chain.forEach((n, i) => {
+      console.log('  ' + '  '.repeat(i) + '<' + n.tag + ' class="' + n.cls + '">  ' +
+        JSON.stringify(n.box) + '  ' + n.d + '/' + n.fd + ' ai=' + n.ai + ' jc=' + n.jc +
+        ' h=' + n.h + ' pad=' + n.pad + ' mar=' + n.mar + ' pos=' + n.pos);
+      n.kids.forEach(k => console.log('  ' + '  '.repeat(i) + '   child: ' + k));
+    });
+  }
+
   // VERTICAL: the fault in the screenshot is that the four do not share a
   // baseline - one sits a little low, another a little high. Compare each
   // icon's top and each label's top against the others.
