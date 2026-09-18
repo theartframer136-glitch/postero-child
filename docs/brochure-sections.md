@@ -5409,3 +5409,91 @@ artwork at all, and the rest have been held against every unclaimed page and
 matched none. A final code for any of them needs a new page in the brochure
 first, which is the owner's to add — and the moment one exists, the product can
 be pointed at it the same way these six were.
+
+## The third pass over the leftovers, and why it found nothing
+
+Asked to check the remaining 198 again. It found no new matches, and the useful
+part is what it ruled out and what it measured on the way.
+
+### The gap the second pass actually had
+
+Not the one you would guess. The second pass sorted all 204 temporary-code
+products into subject sheets and then only *looked at* the artwork sheets —
+horses, Buddha, wildlife, culture, landscapes, Krishna, abstract and the three
+deity sheets, 118 products. The other 86, sorted into "frames and banners",
+"corporate printing" and "still life", were scored by the colour shortlister but
+never seen. That is where a missed artwork could have been hiding, so this pass
+opened all six of those sheets.
+
+They hold what their titles say: stretcher bars, easels, canvas rolls, floating
+frames in five finishes, roll-up banners, backdrops, tablecloths, flyers,
+business cards, tote bags, certificates and shopfront signs. The only real
+artworks among them are a Sikh portrait, a pair of henna hands and six
+photographs of dancers, and the book has no page for any of them — Sikh Art's
+five pages are all claimed, and the dance photographs are event photography
+rather than catalogue artwork. Every one of the 198 pictures has now been
+looked at.
+
+### Two matchers, both measured, both worse than looking
+
+Worth writing down so nobody runs them again believing they work. The six
+matches found by eye are the test set.
+
+| method | result |
+|---|---|
+| colour histogram, best window per page | 3 of 5 in its own top six |
+| template matching, NCC on gradients | 0 of 6 at rank 1, 1 of 6 in the top five |
+
+The second was built specifically to beat the first, on the sound reasoning
+that a brochure page does not merely resemble the artwork, it *contains* it. It
+still lost, and the reasons are worth keeping: a page reproduces the artwork
+five or six times at 60 to 250 pixels across, photographed on walls at slight
+angles with drop shadows and heavy JPEG, so rigid correlation has little to lock
+onto; and scoring a page by the maximum over hundreds of thousands of positions
+and scales makes every page score high on noise. Normalising each page against
+its own scores for other products helped and did not rescue it.
+
+Neither is useless as a net — the colour one did surface pairs worth a look —
+but neither can be trusted to rule anything out, and this file should be read
+as saying so.
+
+### The one signal that was new: the book's own captions
+
+Every page carries a written description, which `read-design` returns as page
+content. That is independent of both colour and of what the pictures look like,
+so it was pulled for all 156 unclaimed pages and read against the 198 titles.
+
+It surfaced four candidates. All four lost on their pictures: the Balaji idol on
+page 71 wears orange marigold where the product wears red and white in a gold
+doorway; the deity on page 74 is a black-faced Shrinathji with pink lotus
+garlands, not the golden Krishna the product shows; and the two Seven Horses
+pages are a cubist herd in deep red and a white herd on a golden plain, where
+the products are a painterly herd on pale ground and seven white horses in blue
+water.
+
+### A defect in the brochure, worth fixing
+
+Page 85 is labelled `RK-010081-5030` and its caption reads: "A stunning artwork
+of Ganga Aarti at Varanasi Ghat, depicting a devoted priest lifting a blazing
+ceremonial lamp toward the night sky." **The picture on that page is a blue
+Krishna seated playing the flute against a golden moon, with lotuses and a
+peacock.** The caption belongs to a different artwork.
+
+This is how the pass nearly went wrong: the catalogue holds #8424, "Divine
+Varanasi Ganga Aarti", and that caption is an exact description of it. The code
+was only withheld because the picture was checked. If the caption is left as it
+is, the next person to read the book will make the match the pictures refuse.
+
+### Five products that can never be matched this way
+
+The shop holds a blank placeholder rather than a picture for #115 The Penguin
+Show, #123 IL Lemone, #177 Geometric Shapes, #199 Balance and #211 Japanese
+Butterfly II. They cannot be compared against anything until someone uploads
+their artwork, and they should not be counted as checked.
+
+### Where that leaves it
+
+223 products on a brochure code, 198 on a temporary one, three on an AL code,
+none uncoded. The 156 unclaimed pages and the 198 temporary codes have now been
+held against each other three times, by four different methods, and the answer
+has not moved.
