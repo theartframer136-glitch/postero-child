@@ -5152,3 +5152,260 @@ second run over *its own output* assigns nothing — which was true, and useless
 because **the real second run does not see its own output.** Another pass edits
 the catalogue in between. A test of an idempotent pass has to model what runs
 between the runs.
+
+## The churn is over — proved from the live catalogue
+
+The fix in the previous section shipped on deploy run 1258 and had to be proved,
+not assumed. Two read-only exports of the whole catalogue, taken either side of
+deploy run 1259, settle it.
+
+### The evidence
+
+| | 14:06, before run 1259 wrote anything | 14:28, after run 1259 finished |
+|---|---|---|
+| products | 424 | 424 |
+| carrying a temporary code | 199 | **204** |
+| carrying no code at all | 5 | **0** |
+| highest temporary number | **TMP-1305** | **TMP-1305** |
+
+The five products holding no code were `#22505`, `#23789`, `#27017`, `#28422`
+and `#28595`. Run 1259 gave them **TMP-1072, TMP-1078, TMP-1103, TMP-1120 and
+TMP-1123** — the numbers they had held before, out of the gaps in the sequence.
+Not TMP-1306 through TMP-1310, which is what the old behaviour would have issued.
+
+**The ceiling did not move.** That is the whole proof: a deploy ran, codes were
+cleared and rewritten, and not one new number was spent. Before the fix, every
+deploy spent 102 of them.
+
+### What else the two exports show
+
+24 products gained an aspect suffix during that same deploy — `RK - 010010`
+became `RK - 010010-5030`, and so on for 23 more. That is the corrections file
+doing its job and is unrelated. Everything else in the catalogue was byte for
+byte identical across the two exports: the same 424 product ids, the same
+permalinks, the same titles, the same categories. **Only art codes changed, which
+is the only thing this chain is allowed to change.**
+
+### The final shape of the catalogue
+
+424 products, every one carrying a code:
+
+- **217** real codes naming a page of the book
+- **204** temporary `TMP-` codes, TMP-1000 … TMP-1305, none repeated
+- **3** `AL` flags, left alone on purpose — they record that the piece came from
+  the Alwars set and has no home yet, which a TMP code would erase
+
+### A note on reading a report through a log
+
+The export comes back gzipped and base64'd because this log truncates from the
+front. Reading it back meant copying 116 lines of base64 by hand, and the first
+attempt failed its CRC — one row had been mangled. The size still matched and
+424 rows still parsed, so nothing about the row count or the structure would
+have caught it. **The checksum caught it, and only the checksum.**
+
+The damaged row was repaired from the earlier export, whose CRC did verify, and
+the result was checked against it field by field before anything was built from
+it. If this export is wanted regularly, the right fix is to publish the rows to
+the `art-sheets` branch the way the contact sheets are published, so the data
+arrives by git rather than by hand.
+
+### The other invariants, checked at the same time
+
+- `#26145`, `#23496`, `#23435` still read **AL 01, AL 05, AL 06**. The temporary
+  pass touches only an empty code, and those three are not empty.
+- 424 products, **418 distinct codes**, 6 codes on more than one product, over 12
+  products. The SKU pass gives those 12 a letter so no two SKUs collide:
+  *uniqueness: OK — 424 products, 424 distinct SKUs*, and *WITHOUT an art code: 0*.
+
+### The trap that nearly hid all of this: `paths-ignore`
+
+The fix merged and **did not reach the server.** `deploy.yml` now carries
+`tools/**` and `docs/**` in its `paths-ignore`, so a pull request touching only
+those triggers no deploy at all.
+
+That is right for the `check-*.yml` probes — each one scp's its own script up, so
+nothing in `tools/` has ever needed a deploy to reach the server, and a read-only
+question should not cost a four to six minute deploy queued in front of the
+owner's. But **`deploy.yml` itself runs `wp eval-file` against the *rsynced*
+theme.** So a fix to any tool the deploy runs — `apply-artcode-corrections.php`,
+`renumber-artcodes.php`, `assign-temp-artcodes.php`, `sku-to-artcode.php` — will
+merge green and leave the server running the old version.
+
+It was shipped by `workflow_dispatch`, which is **not** subject to `paths-ignore`.
+Anyone changing one of those four tools has to dispatch a deploy by hand, or the
+merge is theatre. The list itself belongs to another session and has been left
+alone; this is a note, not a change.
+
+## The brochure was edited — checked page by page before touching a code
+
+The owner sent the brochure link again with the ask to put the final code on
+every product, and to verify it properly. The design had been edited the day
+before: **391 pages, up from 377.** A code names a page, so before anything was
+updated the question was whether any artwork had moved, or been swapped on its
+page while keeping its label.
+
+### What changed in the book
+
+Nothing that a code points at. The 373 artwork labels are still on pages 5–377
+in the same order — `RK-010001-3050` on page 5, `TA-210004-5030` on page 377 —
+so every entry in `inc/artcode-book.php` still lands on the right page. The 14
+new pages are all **after** the last artwork: Who We Are, services and pricing,
+the accessories pages, banner samples and the Thank You page. Their thumbnails
+carry old render versions with other page numbers (page 378 is a render of what
+was once page 345), so they were moved to the back, not drawn new.
+
+### Whether any picture changed under its label
+
+Every artwork page's thumbnail was fetched — all 373 — through the pre-signed
+fallback links, each one checked arithmetically before download (signing time
+plus lifetime must land on its batch's expiry second) so a slip in copying a
+link fails loudly instead of fetching the wrong page. Of those, 145 had been
+cached during the audit, spread across every section. **All 145 are
+pixel-identical to today's render** (largest difference 0.51 on a 0–255 scale,
+which is anti-aliasing). The other 228 have no cached copy to compare against;
+for them the evidence is the label check above.
+
+### The product side, checked against the book and against itself
+
+A third live export was taken (run 35320275288, 07:37 UTC on the 18th, after
+deploys 1260, 1261 and 1262 had each run the whole art-code chain). Its gzip
+CRC verified on the first read, and against the export taken after run 1259 it
+differs in **zero cells**: 424 products, 217 book codes, 204 temporary codes
+with the ceiling still at TMP-1305, three AL codes, none uncoded, 418 distinct.
+Three more deploys, no churn.
+
+Each of the 217 book codes was then looked up in the brochure by its label: all
+217 are found, each on exactly the page the section table predicts from its
+section and sequence digits, and the two section digits agree with the
+section's ordinal in every case. 211 of the book's 373 artworks have at least
+one product; 162 have none.
+
+So there is nothing to update: **every product already carries the brochure's
+final code**, and the brochure has not changed under it. The 204 temporary
+codes are the products the brochure does not contain; a final code for them
+means a page in the book, which is the owner's to add.
+
+### One thing the owner's example raises
+
+The example given was `RL-010001-3050`. The site prints the stored form,
+`Art Code: RK - 010001-3050`; the brochure prints `RK-010001-3050`, and so does
+the SKU. The parser accepts both, so making the stored form match the book is
+three formatter lines in `inc/artcode-book.php` (the two `sprintf`s and the
+join in `af_artcode_full_code`), the tests that spell out the expected strings,
+and one dispatched deploy — the renumbering pass rewrites every code in
+canonical form on each deploy, so the catalogue would follow by itself. It has
+not been done here, because it changes what 424 products display and is a
+decision, not a correction.
+
+## The second look: matching the leftovers by picture
+
+Asked to verify the book again and put the final code on every product, the
+only codes still open were the 204 temporary ones. This is what that pass did,
+and what it refused.
+
+### Two hundred and four products, but not two hundred and four artworks
+
+Sorting them by what they actually are, before looking at a single page:
+
+| what they are | how many |
+|---|---|
+| frames, stretcher bars, stands, rolled canvas, banners, backdrops | 57 |
+| the corporate printing line — flyers, cards, tote bags, signage | 20 |
+| paintings, photographs and prints | ~126 |
+
+The first two groups are not missing from the book by accident. The 14 pages
+the brochure gained are exactly those pages: Who We Are, services and pricing,
+the accessories collection, banner samples. An accessory has no artwork page
+because it is not artwork, and giving it one would put a painting's code on a
+stretcher bar.
+
+### How the comparison was actually made
+
+The shop's pictures cannot be reached from where the book is readable — the
+site refuses the connection — so the deploy drew a picture of every
+temporary-code product and delivered them on the `art-sheets` branch, one file
+per code, which is a mapping that cannot drift. Those were stitched into sheets
+by subject; the book's 162 unclaimed pages were cut out of their room mockups
+and stitched the same way.
+
+Then two passes over the same ground:
+
+1. **By eye, section by section.** Every unclaimed page against every product
+   whose subject could plausibly belong to that section.
+2. **By colour, every pairing.** A shortlister scored all 126 artworks against
+   all 162 pages on hue-saturation-value distribution, and the top six pages per
+   product were read. It exists to catch what the eye skipped, not to decide
+   anything: measured against the matches the eye had already found, it put
+   three of five in its own top six. That is worth reading and worthless as a
+   verdict, and it is written down here so nobody later mistakes it for one.
+
+Every candidate that survived either pass was then drawn at full size — the
+shop's picture beside the book's page, scaled to the same height — and decided
+by looking.
+
+### Six products are in the book
+
+| product | page | code |
+|---|---|---|
+| #7820 Krishna Raas Leela Moonlight | 97 | RK - 010093 |
+| #11560 Divine Radha Krishna | 28 | RK - 010024 |
+| #17280 Radha Krishna Temple Scene | 30 | RK - 010026 |
+| #23252 Divine Hand with Mala | 52 | RK - 010048 |
+| #23558 Bal Krishna Classic Portrait | 95 | RK - 010091 |
+| #24653 Radha Krishna Painted Faces | 100 | RK - 010096 |
+
+Two of those pages, 97 and 100, are among the ones the book gained this round.
+They are reachable only because `af_artcode_book_code()` bounds a six-digit code
+at the section's `count` rather than its `legacy` — the widening recorded
+earlier in this file — and unreachable by any arithmetic from an old code,
+which is the property that widening was careful to keep.
+
+### What the pass mostly did was refuse
+
+This is the part worth keeping. Titles agreed on far more than pictures did:
+
+- **#8494 Sacred Kedarnath Temple** against TA-210002, the book's Kedarnath
+  page. The book's photograph has a crowd in front of the temple and a pink
+  sunset behind it; the product has an empty forecourt, a blue twilight, and
+  the roof outlined in individual bulbs rather than flood-lit. Different
+  photographs of the same building.
+- **#8424 Divine Varanasi Ganga Aarti** against TA-210001, the book's Varanasi
+  page. The book's is a painterly dusk, lilac sky, spires, one boat. The
+  product is a dense photograph of the aarti itself, crowds and lit parasols,
+  no sky at all.
+- **#28300 Ram Lalla in Garlands**, **#26267 Balaji Garland Darshan**,
+  **#31588 Kodanda Rama Utsavam**, **#14034 Lord Murugan**, **#14678 Golden
+  Krishna Temple Idol**, **#17212 Beautiful Lord Krishna Statue** — all the
+  right deity, all the wrong photograph: a different decoration, a different
+  shrine, a different day.
+
+Six matches out of roughly twenty that looked certain from their wording. The
+rule that a title proves nothing earned its place again here.
+
+### Applied, and checked against the live shop
+
+Deploy run 1277 wrote them. A fresh export taken straight afterwards reports
+exactly six products changed and nothing else:
+
+    #7820   TMP-1007 -> RK - 010093-3040
+    #11560  TMP-1219 -> RK - 010024-5030
+    #17280  TMP-1224 -> RK - 010026-5030
+    #23252  TMP-1234 -> RK - 010048-5040
+    #23558  TMP-1235 -> RK - 010091-5030
+    #24653  TMP-1240 -> RK - 010096-5030
+
+Each arrived carrying the aspect the book prints for that page, which the
+renumbering pass appended on its own — the codes were written as pages, not as
+whole codes, and the book supplied the rest. The catalogue now reads 424
+products, 223 on a book code, 198 temporary, three AL, none without a code, and
+the temporary ceiling is still TMP-1305: six numbers were vacated and no new
+one was issued, so the churn fix held through another deploy.
+
+### So what the remaining temporary codes mean
+
+198 products still carry one, and it is not an outstanding task. It means the
+book has no page holding that picture. Roughly three quarters of them are not
+artwork at all, and the rest have been held against every unclaimed page and
+matched none. A final code for any of them needs a new page in the brochure
+first, which is the owner's to add — and the moment one exists, the product can
+be pointed at it the same way these six were.
