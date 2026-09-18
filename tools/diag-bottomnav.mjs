@@ -17,6 +17,11 @@ let loaded = false;
 for (let attempt = 1; attempt <= 3 && !loaded; attempt++) {
   try {
     await p.goto('https://theartframer.us/', { waitUntil: 'domcontentloaded', timeout: 90000 });
+    // domcontentloaded can return while the page is still navigating - the
+    // host's bot check reloads - and evaluating into a context that is about
+    // to be destroyed throws. Settle first, then treat the page as loaded.
+    await new Promise(r => setTimeout(r, 6000));
+    await p.evaluate(() => document.readyState);
     loaded = true;
   } catch (e) {
     console.log('load attempt ' + attempt + ' failed: ' + e.message);
@@ -26,13 +31,16 @@ for (let attempt = 1; attempt <= 3 && !loaded; attempt++) {
 if (!loaded) { console.log('could not load the page - no measurement'); await b.close(); process.exit(0); }
 await new Promise(r => setTimeout(r, 4000));
 for (let i = 0; i < 8; i++) {
-  if (!(await p.evaluate(() => document.body.innerText.includes('Checking your browser')))) break;
+  let blocked = false;
+  try { blocked = await p.evaluate(() => document.body.innerText.includes('Checking your browser')); }
+  catch { await new Promise(r => setTimeout(r, 3000)); continue; }
+  if (!blocked) break;
   await new Promise(r => setTimeout(r, 2500));
   try { await p.reload({ waitUntil: 'networkidle2', timeout: 45000 }); } catch {}
 }
-if (await p.evaluate(() => document.body.innerText.includes('Checking your browser'))) {
-  console.log('BLOCKED by bot check - no measurement'); await b.close(); process.exit(0);
-}
+let stillBlocked = false;
+try { stillBlocked = await p.evaluate(() => document.body.innerText.includes('Checking your browser')); } catch {}
+if (stillBlocked) { console.log('BLOCKED by bot check - no measurement'); await b.close(); process.exit(0); }
 await new Promise(r => setTimeout(r, 2500));
 
 const out = await p.evaluate(() => {
