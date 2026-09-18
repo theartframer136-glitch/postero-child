@@ -5235,3 +5235,64 @@ It was shipped by `workflow_dispatch`, which is **not** subject to `paths-ignore
 Anyone changing one of those four tools has to dispatch a deploy by hand, or the
 merge is theatre. The list itself belongs to another session and has been left
 alone; this is a note, not a change.
+
+## The brochure was edited — checked page by page before touching a code
+
+The owner sent the brochure link again with the ask to put the final code on
+every product, and to verify it properly. The design had been edited the day
+before: **391 pages, up from 377.** A code names a page, so before anything was
+updated the question was whether any artwork had moved, or been swapped on its
+page while keeping its label.
+
+### What changed in the book
+
+Nothing that a code points at. The 373 artwork labels are still on pages 5–377
+in the same order — `RK-010001-3050` on page 5, `TA-210004-5030` on page 377 —
+so every entry in `inc/artcode-book.php` still lands on the right page. The 14
+new pages are all **after** the last artwork: Who We Are, services and pricing,
+the accessories pages, banner samples and the Thank You page. Their thumbnails
+carry old render versions with other page numbers (page 378 is a render of what
+was once page 345), so they were moved to the back, not drawn new.
+
+### Whether any picture changed under its label
+
+Every artwork page's thumbnail was fetched — all 373 — through the pre-signed
+fallback links, each one checked arithmetically before download (signing time
+plus lifetime must land on its batch's expiry second) so a slip in copying a
+link fails loudly instead of fetching the wrong page. Of those, 145 had been
+cached during the audit, spread across every section. **All 145 are
+pixel-identical to today's render** (largest difference 0.51 on a 0–255 scale,
+which is anti-aliasing). The other 228 have no cached copy to compare against;
+for them the evidence is the label check above.
+
+### The product side, checked against the book and against itself
+
+A third live export was taken (run 35320275288, 07:37 UTC on the 18th, after
+deploys 1260, 1261 and 1262 had each run the whole art-code chain). Its gzip
+CRC verified on the first read, and against the export taken after run 1259 it
+differs in **zero cells**: 424 products, 217 book codes, 204 temporary codes
+with the ceiling still at TMP-1305, three AL codes, none uncoded, 418 distinct.
+Three more deploys, no churn.
+
+Each of the 217 book codes was then looked up in the brochure by its label: all
+217 are found, each on exactly the page the section table predicts from its
+section and sequence digits, and the two section digits agree with the
+section's ordinal in every case. 211 of the book's 373 artworks have at least
+one product; 162 have none.
+
+So there is nothing to update: **every product already carries the brochure's
+final code**, and the brochure has not changed under it. The 204 temporary
+codes are the products the brochure does not contain; a final code for them
+means a page in the book, which is the owner's to add.
+
+### One thing the owner's example raises
+
+The example given was `RL-010001-3050`. The site prints the stored form,
+`Art Code: RK - 010001-3050`; the brochure prints `RK-010001-3050`, and so does
+the SKU. The parser accepts both, so making the stored form match the book is
+three formatter lines in `inc/artcode-book.php` (the two `sprintf`s and the
+join in `af_artcode_full_code`), the tests that spell out the expected strings,
+and one dispatched deploy — the renumbering pass rewrites every code in
+canonical form on each deploy, so the catalogue would follow by itself. It has
+not been done here, because it changes what 424 products display and is a
+decision, not a correction.
