@@ -11,4 +11,3 @@ jobs:
           set -uo pipefail
           npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
           NODE_PATH=/tmp/afh/node_modules node tools/diag-card-diff.js || true
-        with:
