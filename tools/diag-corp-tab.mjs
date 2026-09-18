@@ -19,6 +19,10 @@ for (let i = 1; i <= 3 && !ok; i++) {
 if (!ok) { console.log('could not load'); await b.close(); process.exit(0); }
 await new Promise(r => setTimeout(r, 6000));
 
+p.on('console', m => { const t = m.text(); if (t.indexOf('[af-cp]') === 0 || /error/i.test(t)) console.log('  console: ' + t); });
+p.on('pageerror', e => console.log('  PAGE ERROR: ' + e.message));
+p.on('request', r => { if (r.url().indexOf('admin-ajax') !== -1) console.log('  request: ' + r.method() + ' admin-ajax  ' + (r.postData() || '').slice(0, 90)); });
+
 const snap = () => p.evaluate(() => {
   const grid = document.querySelector('#productGrid, .product-slider, .custom-product-track, ul.products');
   const cards = grid ? [...grid.querySelectorAll('.product-card, li.product')] : [];
@@ -30,6 +34,9 @@ const snap = () => p.evaluate(() => {
     circles: strip ? [...strip.children].map(x => (x.innerText || '').trim().split('\n')[0]).slice(0, 8) : 'NO ROW',
     ourCircles: strip ? strip.querySelectorAll('.af-cp-circle').length : 0,
     moduleLoaded: !!document.getElementById('af-cp-collection-js'),
+    handlerRan: document.documentElement.getAttribute('data-af-cp') || 'no',
+    gridSeen: document.documentElement.getAttribute('data-af-cp-grid') || '-',
+    answerBytes: document.documentElement.getAttribute('data-af-cp-bytes') || '-',
   };
 });
 
