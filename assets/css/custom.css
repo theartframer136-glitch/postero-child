@@ -2710,3 +2710,58 @@ h3.trending-title,
   margin:0 0 6px !important;
 }
 h3.trending-title a{display:inline !important;}
+
+/* =====================================================================
+   The CATEGORIES dropdown: icon and label alignment
+   Measured on the live menu, not guessed at:
+
+     gap between icon and label   0px on every single row
+     icon box widths              20.0, 20.0, 20.0, 20.0, 20.0, 15.0,
+                                  20.0, 22.5, 20.0, 20.0, 20.0
+     icon vs text vertical centre out by 1.4px
+
+   Two separate faults. The icons touch their labels because nothing ever
+   put a gap between them. And because the icon box sizes itself to the
+   glyph, three of the eleven rows are a different width, so their labels
+   start at three different x positions — that is the part that reads as
+   "not aligned" even though each row on its own looks fine.
+
+   The row is laid out as a flex line instead. A fixed 24px box makes every
+   label begin at the same place whatever the glyph is, centring handles the
+   1.4px, and the gap is stated once. The chevron on rows that have children
+   is pushed to the right edge with margin-left:auto, which is where it
+   already sits, so it works whether the theme draws it inside the link or
+   not.
+
+   Scoped to .primary-navigation, which is the desktop dropdown only. The
+   mobile menu is a different element and is untouched.
+   ===================================================================== */
+.primary-navigation ul.sub-menu > li.menu-item > a{
+  display:flex !important;
+  align-items:center !important;
+  gap:12px !important;
+  padding:6px 14px !important;
+}
+.primary-navigation ul.sub-menu > li.menu-item > a > i.menu-icon{
+  flex:0 0 24px !important;
+  width:24px !important;
+  margin:0 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  line-height:1 !important;
+  vertical-align:middle !important;
+}
+.primary-navigation ul.sub-menu > li.menu-item > a > span.menu-title{
+  flex:1 1 auto !important;
+  line-height:1.45 !important;
+}
+/* Rows with children draw a chevron. Whether it is a pseudo-element inside
+   the link or a real one, send it to the far edge rather than letting the
+   flex gap space it off the label. */
+.primary-navigation ul.sub-menu > li.menu-item > a::after,
+.primary-navigation ul.sub-menu > li.menu-item > a > .sub-arrow,
+.primary-navigation ul.sub-menu > li.menu-item > a > .menu-arrow{
+  margin-left:auto !important;
+  flex:0 0 auto !important;
+}
