@@ -216,11 +216,43 @@ add_action('wp_footer', function () {
     strip.scrollLeft = 0;
   }
 
+  /* ---- holding the grid ------------------------------------------------- */
+  var ours = null;        // the markup this module put in the grid
+  var holdMo = null;      // the observer keeping it there
+  var holdUntil = 0;
+
+  function ourCardsIn(grid) {
+    // Cheap identity check: one of this category's own product links.
+    var a = grid.querySelector('.product-card a[href], li.product a[href]');
+    return !!a && ours && ours.indexOf(a.getAttribute('href')) !== -1;
+  }
+
+  function releaseGrid() {
+    if (holdMo) { holdMo.disconnect(); holdMo = null; }
+    ours = null;
+  }
+
+  function holdGrid(grid) {
+    if (holdMo) holdMo.disconnect();
+    holdUntil = Date.now() + 12000;     // long enough for a slow late answer
+    holdMo = new MutationObserver(function () {
+      if (!ours || Date.now() > holdUntil) { releaseGrid(); return; }
+      if (ourCardsIn(grid)) return;                     // still ours, leave it
+      if (!grid.querySelector('.product-card, li.product')) return;  // mid-write
+      holdMo.disconnect();
+      grid.innerHTML = ours;                            // put ours back
+      holdMo.observe(grid, { childList: true, subtree: true });
+      document.documentElement.setAttribute('data-af-cp-held', 'yes');
+    });
+    holdMo.observe(grid, { childList: true, subtree: true });
+  }
+
   /* ---- the click -------------------------------------------------------- */
   document.addEventListener('click', function (e) {
     if (!e.target || !e.target.closest) return;
     var tab = e.target.closest(TAB_ITEM);
-    if (!tab || (tab.getAttribute('data-cat') || '') !== CP.slug) return;
+    if (!tab) return;
+    if ((tab.getAttribute('data-cat') || '') !== CP.slug) { releaseGrid(); return; }
     // Leaves a trail a probe can read, so "nothing happened" can be told apart
     // from "the handler never ran".
     try { console.log('[af-cp] tab clicked'); } catch (x) {}
@@ -258,7 +290,22 @@ add_action('wp_footer', function () {
       // probe watching for page errors. The last run stopped somewhere in this
       // block and left no trace of where.
       try {
+        // Hold the grid against whatever lands next.
+        //
+        // Measured: the cards go in - 33 of them - and the handler finishes
+        // clean, and a moment later the grid is empty and the carousel still
+        // shows the previous category. The theme fires its own load_products
+        // for the default circle when the page opens, and on a slow response
+        // that answer arrives AFTER this one and overwrites the grid. The
+        // carousel then rebuilds from the theme's cards, not ours.
+        //
+        // So the write is not a one-off. While this tab is the active one, the
+        // grid is watched, and if its cards stop being the ones put here they
+        // are put back. The watch is dropped as soon as another tab is picked,
+        // so nothing of ours lingers over a tab the theme owns.
+        ours = html;
         grid.innerHTML = html;
+        holdGrid(grid);
         document.documentElement.setAttribute('data-af-cp-wrote',
           String(grid.querySelectorAll('.product-card, li.product').length));
         showCircles();
