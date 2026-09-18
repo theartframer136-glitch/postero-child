@@ -109,4 +109,48 @@ else {
   console.log('   itemHtml: ' + out.row.itemHtml.replace(/\s+/g,' '));
   console.log('   captions: ' + JSON.stringify(out.row.captions));
 }
+
+// ---- and now the click, without letting the browser leave the page --------
+// The tab is an ordinary link, so an earlier run navigated away and could
+// measure nothing. Suppressing only the DEFAULT action leaves every handler
+// the theme and the module registered free to run, which is exactly what is
+// being tested here.
+await p.evaluate(() => { document.addEventListener('click', e => e.preventDefault(), true); });
+await p.evaluate(() => {
+  const a = [...document.querySelectorAll('#topCatSlider .top-cat-btn, .top-category-slider .top-cat-btn')]
+    .find(x => /emboss/i.test(x.innerText || ''));
+  if (a) a.click();
+});
+await new Promise(r => setTimeout(r, 5000));
+
+const after = await p.evaluate(() => {
+  const strip = document.querySelector('#subcategorySlider, .subcategory-slider');
+  if (!strip) return { err: 'the circle row vanished' };
+  return [...strip.children].map(el => {
+    const img = el.querySelector('img');
+    const r = el.getBoundingClientRect();
+    const src = img ? (img.getAttribute('src') || '') : '';
+    return { t: (el.innerText||'').trim().split('\n')[0],
+             gf: el.classList.contains('af-gf-circle'),
+             blank: el.classList.contains('af-gf-circle--blank'),
+             subcat: el.getAttribute('data-subcat') || '(none)',
+             img: src.startsWith('data:') ? '(drawn placeholder)' : (src ? 'photo' : 'NONE'),
+             box: Math.round(r.width) + 'x' + Math.round(r.height) };
+  });
+});
+
+console.log('\nAFTER CLICKING THE EMBOSSED TAB:');
+if (after.err) console.log('   FAIL: ' + after.err);
+else {
+  after.forEach(c => console.log('   ' + JSON.stringify(c.t).padEnd(22) + ' gf=' + c.gf + ' blank=' + c.blank +
+    ' subcat=' + c.subcat.padEnd(18) + ' img=' + c.img.padEnd(22) + ' box=' + c.box));
+  const names = after.map(c => c.t.toLowerCase());
+  const missing = ['gold foil prints','uv prints','mixed prints'].filter(w => !names.some(n => n.includes(w)));
+  console.log(missing.length ? '   FAIL: row missing ' + missing.join(', ') : '   OK: the row shows all three sub-collections');
+  const dead = after.filter(c => c.gf && c.subcat === '(none)');
+  console.log(dead.length ? '   FAIL: ' + dead.length + ' circle(s) carry no data-subcat' : '   OK: every circle carries its slug');
+  const flat = after.filter(c => c.box.startsWith('0x') || c.box.endsWith('x0'));
+  console.log(flat.length ? '   FAIL: ' + flat.length + ' circle(s) have collapsed to no size' : '   OK: every circle has a size');
+}
+
 await b.close();
