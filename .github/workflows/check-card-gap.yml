@@ -11,3 +11,9 @@ jobs:
           set -uo pipefail
           npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
           NODE_PATH=/tmp/afh/node_modules node tools/diag-card-gap.js || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: card
+          path: card.png
+          if-no-files-found: ignore

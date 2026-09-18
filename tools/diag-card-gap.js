@@ -73,5 +73,17 @@ const URL = process.argv[2] || 'https://theartframer.us/product-category/digital
     if (!f.above.length) console.log('      nothing — so the gap is padding, margin or leading, not an element');
     for (const a of f.above) console.log('      ' + a);
   }
+  // A number can say the gap is gone while the ribbon has slid somewhere silly,
+  // so look at it as well.
+  try {
+    await p.evaluate(() => {
+      const c = document.querySelectorAll('li.product')[0];
+      if (c) c.scrollIntoView({ block: 'center' });
+    });
+    await new Promise(r => setTimeout(r, 1200));
+    const card = await p.$('li.product');
+    if (card) { await card.screenshot({ path: 'card.png' }); console.log('\n  screenshot of the first card written to card.png'); }
+  } catch (e) { console.log('  screenshot failed: ' + e.message); }
+
   await b.close();
 })();
