@@ -6010,3 +6010,261 @@ advertised size, height then breadth, in feet x10" to 39 of 39 among the rows
 that ship, and 44 of 44 counting the five held-back pages, which agree too
 (290, 291, 294 and 295 all read `3050` and all advertise 3 ft (H) x 5 ft (B) —
 the landscape ones, which is a good test of the height-first reading).
+
+## Living / Interiors: 26 unsold pages, and a gap the tool had (2026-09-19)
+
+The biggest batch so far — 51 pages in the book, 25 products, 26 unsold —
+though proportionally the healthiest of the four sections done. No licensed
+characters this time; the Kids' Room problem did not repeat.
+
+| Page | Art code | Artwork | Size | Price |
+|---|---|---|---|---|
+| 304 | LI-190001-3050 | Blossom Branches in a Green Vase | 3x5 ft (36x60 in) | $100 |
+| 309 | LI-190006-5030 | Our Lady in Bloom | 3x5 ft (36x60 in) | $100 |
+| 318 | LI-190015-4030 | Lotus Pond in Gold Leaf | 3x4 ft (36x48 in) | $80 |
+| 319 | LI-190016-5030 | Ballerina in White | 3x5 ft (36x60 in) | $100 |
+| 320 | LI-190017-4030 | Dancer in Amber Light | 3x4 ft (36x48 in) | $80 |
+| 321 | LI-190018-4030 | Woman in the Yellow Gown | 3x4 ft (36x48 in) | $80 |
+| 322 | LI-190019-4030 | Lotus Reverie | 3x4 ft (36x48 in) | $80 |
+| 323 | LI-190020-6030 | The Cellist | 3x5 ft (36x60 in) | $100 |
+| 324 | LI-190021-4030 | Song of the Deer | 3x4 ft (36x48 in) | $80 |
+| 326 | LI-190023-5030 | Chestnut Horse in Motion | 3x5 ft (36x60 in) | $100 |
+| 328 | LI-190025-5030 | Black Stallion on Red | 3x5 ft (36x60 in) | $100 |
+| 329 | LI-190026-5030 | White Horse at Sunset | 3x5 ft (36x60 in) | $100 |
+| 330 | LI-190027-5030 | Whimsical Cats in Colour | 3x5 ft (36x60 in) | $100 |
+| 331 | LI-190028-4030 | The Archer in the War Bonnet | 3x4 ft (36x48 in) | $80 |
+| 333 | LI-190030-5030 | Tall Ship in Sepia | 3x5 ft (36x60 in) | $100 |
+| 334 | LI-190031-4030 | Festive Street at Dusk | 3x4 ft (36x48 in) | $80 |
+| 337 | LI-190034-5030 | Bougainvillea at the Shuttered Window | 3x5 ft (36x60 in) | $100 |
+| 339 | LI-190036-4040 | Pastel Arch with Palms and Tigers | 2.5x3 ft (30x36 in) | $65 |
+| 341 | LI-190038-5030 | White Bird and Glass Vase | 3x5 ft (36x60 in) | $100 |
+| 342 | LI-190039-5030 | Bodhi Leaf Village | 3x5 ft (36x60 in) | $100 |
+| 343 | LI-190040-5030 | Translucent Petals in Blush | 3x5 ft (36x60 in) | $100 |
+| 344 | LI-190041-5030 | Overlapping Tropical Leaves | 3x5 ft (36x60 in) | $100 |
+| 345 | LI-190042-5030 | Fan Leaves in Beige and White | 3x5 ft (36x60 in) | $100 |
+| 346 | LI-190043-5030 | Deer with Tree Antlers | 3x5 ft (36x60 in) | $100 |
+| 347 | LI-190044-4030 | Cubist Woman in Orange | 3x4 ft (36x48 in) | $80 |
+| 348 | LI-190045-5030 | Cubist Woman in Earth Tones | 3x5 ft (36x60 in) | $100 |
+
+Three horses (326, 328, 329) are filed under Seven Horses, following the
+neighbouring codes `LI - 190022-5030` and `LI - 190024-5030` which the shop
+already files that way; page 309 goes under Christian Art alongside the six
+existing LI products that are.
+
+### On the rate card is not the same as on sale
+
+Page 339 found a gap this tool had carried since the first section.
+`af_pricing_config()` prices **15** sizes; `af_sizes_offered()` sells **5**.
+The tool validated a CSV's `size_label` against the rate card alone, so a size
+that is priced but not sold would have sailed through — and that is exactly the
+fault this whole exercise began with:
+
+> a product titled "4x4 Feet" would carry the card's $110, while
+> `af_size_default()`, finding 4x4 not among the sizes on sale, fell back to
+> the first size that is and opened the selector at $60.
+
+Card says one thing, selector says another — the Digital Downloads bug in a new
+costume. Page 339 is a 4x4 and would have walked straight into it.
+
+The tool now requires the size to be in `af_sizes_offered()`, not merely on the
+card, and refuses with the offered list printed when it is not. Checked across
+all four CSVs: every one of the 65 rows uses a size the shop actually sells.
+
+Page 339 itself is titled 2.5x3 ft. The book advertises 4x4 ft and 3x3 ft and
+the shop sells neither; of the five it does sell, 2.5x3 (30x36 in) is the
+closest to square, and a square artwork forced into 3x5 would have to be
+cropped or letterboxed. Both notes fire on that row so the choice is visible
+rather than silent.
+
+### The code-size rule stands at 65 of 65
+
+Twenty-six more confirmations, including `LI-190001-3050` — a **landscape**
+3 ft (H) x 5 ft (B), which reads correctly height-first, and `LI-190036-4040`
+at 4 x 4 ft.
+
+## Radha Krishna: the 42 unsold pages (2026-09-19)
+
+The largest batch, out of the book's largest section — 97 pages, 55 products,
+42 unsold. Proportionally the healthiest of the five sections done.
+
+| Page | Art code | Artwork | Size | Price |
+|---|---|---|---|---|
+| 9 | RK-010005-3050 | Radha Krishna with Peacocks | 3x5 ft (36x60 in) | $100 |
+| 10 | RK-010006-3040 | Radha and Krishna in Bloom | 3x4 ft (36x48 in) | $80 |
+| 15 | RK-010011-5030 | Krishna's Flute in Watercolour | 3x5 ft (36x60 in) | $100 |
+| 19 | RK-010015-3050 | Radha Krishna in the Painted Forest | 3x5 ft (36x60 in) | $100 |
+| 20 | RK-010016-3040 | Radha and Krishna in Gold Relief | 3x4 ft (36x48 in) | $80 |
+| 21 | RK-010017-5030 | Krishna in Black and Marigold | 3x5 ft (36x60 in) | $100 |
+| 25 | RK-010021-4030 | Vishnu Resting on Sheshnag | 3x4 ft (36x48 in) | $80 |
+| 27 | RK-010023-3050 | Krishna in Blue and Gold | 3x5 ft (36x60 in) | $100 |
+| 39 | RK-010035-4030 | Bal Krishna the Makhan Chor | 3x4 ft (36x48 in) | $80 |
+| 40 | RK-010036-3060 | Blue Krishna with His Flute | 3x5 ft (36x60 in) | $100 |
+| 41 | RK-010037-5030 | Krishna in the Lotus Mandala | 3x5 ft (36x60 in) | $100 |
+| 42 | RK-010038-3060 | Krishna with Cows and Elephants | 3x5 ft (36x60 in) | $100 |
+| 44 | RK-010040-5030 | Krishna Among the Temple Lamps | 3x5 ft (36x60 in) | $100 |
+| 55 | RK-010051-5030 | Krishna Garlanded in the Golden Temple | 3x5 ft (36x60 in) | $100 |
+| 56 | RK-010052-5030 | Lord Vitthal with the Sacred Cow | 3x5 ft (36x60 in) | $100 |
+| 63 | RK-010059-5030 | Krishna in Floral Garlands | 3x5 ft (36x60 in) | $100 |
+| 65 | RK-010061-3050 | Radha and Krishna, a Quiet Moment | 3x5 ft (36x60 in) | $100 |
+| 66 | RK-010062-5030 | Kaliya Mardan | 3x5 ft (36x60 in) | $100 |
+| 67 | RK-010063-4030 | Flute and Veena in the Pink Moonlight | 3x4 ft (36x48 in) | $80 |
+| 68 | RK-010064-5030 | Sree Krishna in Pink and Gold | 3x5 ft (36x60 in) | $100 |
+| 69 | RK-010065-6030 | Krishna in the Saffron Turban | 3x5 ft (36x60 in) | $100 |
+| 70 | RK-010066-4030 | Krishna in White and Gold | 3x4 ft (36x48 in) | $80 |
+| 71 | RK-010067-5030 | Venkateswara in Marigold Garlands | 3x5 ft (36x60 in) | $100 |
+| 72 | RK-010068-5030 | Krishna Among the Blossoms | 3x5 ft (36x60 in) | $100 |
+| 73 | RK-010069-5030 | Radha and Krishna in the Lamplit Temple | 3x5 ft (36x60 in) | $100 |
+| 74 | RK-010070-4030 | Deity Idol in Marigold and Lamplight | 3x4 ft (36x48 in) | $80 |
+| 75 | RK-010071-6030 | Krishna in the Ornate Shrine | 3x5 ft (36x60 in) | $100 |
+| 76 | RK-010072-5030 | Kaliya Mardan in Watercolour | 3x5 ft (36x60 in) | $100 |
+| 77 | RK-010073-4030 | Krishna in Terracotta and Gold | 3x4 ft (36x48 in) | $80 |
+| 78 | RK-010074-5030 | Shrinathji Among the Lotuses | 3x5 ft (36x60 in) | $100 |
+| 79 | RK-010075-5030 | Krishna Adorned in Flowers and Gold | 3x5 ft (36x60 in) | $100 |
+| 81 | RK-010077-6030 | Bal Krishna on the Lotus Leaf | 3x5 ft (36x60 in) | $100 |
+| 82 | RK-010078-6030 | Shrinathji in Emerald Green | 3x5 ft (36x60 in) | $100 |
+| 83 | RK-010079-5030 | Krishna in Teal and Lotus | 3x5 ft (36x60 in) | $100 |
+| 85 | RK-010081-5030 | Krishna Beneath the Golden Moon | 3x5 ft (36x60 in) | $100 |
+| 86 | RK-010082-4030 | Krishna Dancing on Kaliya | 3x4 ft (36x48 in) | $80 |
+| 88 | RK-010084-5030 | Radha in Pink and Gold | 3x5 ft (36x60 in) | $100 |
+| 93 | RK-010089-5030 | Radha Krishna in the Flower Garden | 3x5 ft (36x60 in) | $100 |
+| 94 | RK-010090-5030 | Krishna in the Carved Wooden Shrine | 3x5 ft (36x60 in) | $100 |
+| 96 | RK-010092-3050 | Krishna the Charioteer at Kurukshetra | 3x5 ft (36x60 in) | $100 |
+| 98 | RK-010094-4030 | Krishna in the Golden Sanctum | 3x4 ft (36x48 in) | $80 |
+| 101 | RK-010097-3020 | Shrinathji in Blue and Lotus | 3x2 ft (36x24 in) | $60 |
+
+### Five captions are not the brochure's
+
+Four pages — 94, 96, 98 and 101 — print no caption at all, so the short
+description was written from the picture. Page 101 is Shrinathji with the hand
+raised in the Govardhan gesture; page 96 is Krishna as Arjuna's charioteer at
+Kurukshetra, which is the opening of the Bhagavad Gita and not something a
+generic "divine artwork" line would have conveyed.
+
+**Page 85 is the fifth, and it is the one the caption audit found.** The page
+prints "A stunning artwork of Ganga Aarti at Varanasi Ghat, depicting a devoted
+priest lifting a blazing ceremonial lamp toward the night sky." The picture is
+a blue Krishna seated with his flute before a golden moon. The row therefore
+carries the replacement caption recorded earlier in this document, not what the
+page says. Building the product off the printed caption would have put a
+Varanasi description on a Krishna — the exact confusion that nearly mis-assigned
+product #8424 to this page during the third pass.
+
+### Six pages advertise a 6 ft side
+
+Pages 40, 42, 69, 75, 81 and 82 all advertise a 6 ft dimension — `3060` and
+`6030` codes — and `af_sizes_offered()` stops at 5 ft. All six are titled 3x5,
+the largest the shop sells, and each one prints both notes so the gap is
+visible. That is six of the 42; the other 36 use a size the page actually
+advertises.
+
+### Subcategories
+
+Twenty-five go to Radha Krishna and twelve to Hindu Deities, following the
+section's existing split (27 and 28 among products that already exist). The
+three Shrinathji pieces and the Krishna-with-cows panorama go to Pichwai Art,
+and page 71 is Venkateswara, so it goes to Tirupati Balaji with Hindu Deities
+alongside.
+
+### The code-size rule stands at 107 of 107
+
+Forty-two more confirmations, including `RK-010097-3020` at 3 x 2 ft — the
+smallest yet — and four landscape `3050`/`3060` pages that read correctly
+height-first.
+
+## The remaining 44: twelve sections at once (2026-09-19)
+
+Everything the other five passes did not cover — a handful of pages each across
+twelve sections. With this the 156 unclaimed pages are accounted for, bar the
+five Kids' Room ones held on copyright.
+
+| Section | Pages here |
+|---|---|
+| Abstract Art | 12 |
+| Landscapes | 6 |
+| Lord Rama | 5 |
+| Tirupati / Vishnu | 4 |
+| Hindu Deities | 4 |
+| Lord Shiva | 3 |
+| Seven Horses | 3 |
+| Murugan | 2 |
+| Travel Art | 2 |
+| Lord Buddha | 1 |
+| Pichwai Art | 1 |
+| Indian Culture | 1 |
+
+| Page | Art code | Artwork | Size | Price |
+|---|---|---|---|---|
+| 117 | LS-030013-5030 | Shiva and Parvati in Watercolour | 3x5 ft (36x60 in) | $100 |
+| 118 | LS-030014-5030 | The Cosmic Dance in Flame | 3x5 ft (36x60 in) | $100 |
+| 119 | LS-030015-5030 | Tandava Among the Planets | 3x5 ft (36x60 in) | $100 |
+| 132 | SH-040010-4030 | Galloping Herd in Red and Amber | 3x4 ft (36x48 in) | $80 |
+| 133 | SH-040011-3060 | Seven White Horses at Sunrise | 3x5 ft (36x60 in) | $100 |
+| 134 | SH-040012-5030 | White Horses with Flame Manes | 3x5 ft (36x60 in) | $100 |
+| 144 | TP-050007-3050 | Vishnu Reclining in the Temple | 3x5 ft (36x60 in) | $100 |
+| 145 | TP-050008-5030 | Venkateswara in Golden Light | 3x5 ft (36x60 in) | $100 |
+| 151 | TP-050014-6030 | Venkateswara with Goddess Lakshmi | 3x5 ft (36x60 in) | $100 |
+| 152 | TP-050015-6030 | Venkateswara Garlanded in the Shrine | 3x5 ft (36x60 in) | $100 |
+| 155 | MG-060003-5030 | Murugan Beside His Peacock | 3x5 ft (36x60 in) | $100 |
+| 156 | MG-060004-5030 | Shanmukha, Murugan of Six Faces | 3x5 ft (36x60 in) | $100 |
+| 160 | LR-070004-5030 | Lord Rama Garlanded in Flowers | 3x5 ft (36x60 in) | $100 |
+| 163 | LR-070007-5030 | Ram Lala in the Carved Shrine | 3x5 ft (36x60 in) | $100 |
+| 164 | LR-070008-5030 | Lord Rama in Red and Gold | 3x5 ft (36x60 in) | $100 |
+| 165 | LR-070009-5030 | Lord Rama Beneath the Temple Arch | 3x5 ft (36x60 in) | $100 |
+| 166 | LR-070010-3050 | Ram Darbar | 3x5 ft (36x60 in) | $100 |
+| 175 | HD-080009-5030 | Surya on the Seven-Horse Chariot | 3x5 ft (36x60 in) | $100 |
+| 180 | HD-080014-5030 | Veer Hanuman Triumphant | 3x5 ft (36x60 in) | $100 |
+| 184 | HD-080018-5030 | Lakshmi on the Lotus | 3x5 ft (36x60 in) | $100 |
+| 185 | HD-080019-5030 | Durga, Lakshmi, Kali and Saraswati | 3x5 ft (36x60 in) | $100 |
+| 208 | LB-090012-6030 | Buddha in Golden Watercolour | 3x5 ft (36x60 in) | $100 |
+| 216 | PA-120001-4030 | Krishna with Cows in Pichwai | 3x4 ft (36x48 in) | $80 |
+| 220 | IC-130004-3040 | Woman by the River | 3x4 ft (36x48 in) | $80 |
+| 224 | LC-140003-4030 | Misty Cliffs and a Radiant Sun | 3x4 ft (36x48 in) | $80 |
+| 225 | LC-140004-4030 | Fiery Twilight Over the Forest | 3x4 ft (36x48 in) | $80 |
+| 226 | LC-140005-5030 | Egrets Under a Pink Moon | 3x5 ft (36x60 in) | $100 |
+| 228 | LC-140007-4030 | Sunrise in Minimal Tones | 3x4 ft (36x48 in) | $80 |
+| 229 | LC-140008-3020 | Pines Beneath a Golden Sun | 3x2 ft (36x24 in) | $60 |
+| 231 | LC-140010-5030 | Circles and Tree Silhouettes | 3x5 ft (36x60 in) | $100 |
+| 357 | AA-200003-4030 | Geometric Face in Earthy Tones | 3x4 ft (36x48 in) | $80 |
+| 358 | AA-200004-4030 | The Figure in Shadow and Light | 3x4 ft (36x48 in) | $80 |
+| 359 | AA-200005-4040 | Two Faces in Geometry | 2.5x3 ft (30x36 in) | $65 |
+| 361 | AA-200007-4030 | Golden Tree in Abstract | 3x4 ft (36x48 in) | $80 |
+| 362 | AA-200008-4030 | Figures in Colour | 3x4 ft (36x48 in) | $80 |
+| 366 | AA-200012-5030 | Layered Hills and Golden Suns | 3x5 ft (36x60 in) | $100 |
+| 367 | AA-200013-4030 | Terracotta Geometry | 3x4 ft (36x48 in) | $80 |
+| 368 | AA-200014-5030 | Woman and the Blue Bird | 3x5 ft (36x60 in) | $100 |
+| 369 | AA-200015-4040 | Gold and Black with a Metal Vase | 2.5x3 ft (30x36 in) | $65 |
+| 371 | AA-200017-5030 | Earthy Circles and Botanicals | 3x5 ft (36x60 in) | $100 |
+| 372 | AA-200018-5030 | Serene Face with Botanicals | 3x5 ft (36x60 in) | $100 |
+| 373 | AA-200019-5030 | Three Women Carrying Fruit | 3x5 ft (36x60 in) | $100 |
+| 374 | TA-210001-6030 | The Ghats of Varanasi | 3x5 ft (36x60 in) | $100 |
+| 375 | TA-210002-6030 | Kedarnath in Lamplight | 3x5 ft (36x60 in) | $100 |
+
+### Three pages print no caption, and two needed a closer look
+
+Pages 166, 175 and 180 carry no caption, so the description came from the
+picture — and at page-render size two of them were about to be named wrong.
+
+**Page 180** reads at a glance as a radiant many-armed deity standing over a
+fallen demon, which is the composition of Durga slaying Mahishasura. Enlarged,
+the face is unmistakably simian: it is **Hanuman**, in his many-armed Veer form,
+mace at his side. Naming a deity wrongly on a devotional product is not a small
+error, and the thumbnail would have produced one.
+
+**Page 175** is **Surya**, lotus in each hand, drawn by the seven horses of his
+chariot with Aruna at the reins. **Page 166** is the **Ram Darbar** — Rama and
+Sita enthroned, Lakshmana and Bharata with chowries, Hanuman kneeling.
+
+### Six rows note a size the shop does not make
+
+Pages 133, 151, 152 and 208 advertise a 6 ft side; 359 and 369 are 4 x 4 ft
+squares. The first four are titled 3x5, the largest on sale; the two squares are
+titled 2.5x3, the offered size closest to square, on the same reasoning as page
+339 in Living / Interiors. Page 374 and 375 also carry `6030` codes but
+advertise 5 ft (H) x 3 ft (B) as a second size, which the shop does sell, so
+they pass silently.
+
+### The code-size rule is now 151 of 151
+
+That is every unclaimed page in the book except the five held back — 17 Still
+Life, 14 Wildlife, 8 Kids' Room, 26 Living / Interiors, 42 Radha Krishna and
+these 44. Not one disagreement in the whole catalogue.
