@@ -57,9 +57,20 @@ const out = await p.evaluate(() => {
   };
 });
 console.log(JSON.stringify(out, null, 1));
-const black = out && /rgba?\(\s*(?:26|0)\s*,\s*(?:26|0)\s*,\s*(?:26|0)/.test(out.stripBg || '');
-console.log('\nstrip has its own background: ' + (out && out.stripBg !== 'rgba(0, 0, 0, 0)' ? 'YES -> ' + out.stripBg : 'no (transparent)'));
-console.log('still a black panel: ' + (black ? 'FAIL' : 'PASS'));
+// Transparent is reported as rgba(0, 0, 0, 0). An earlier version of this
+// check tested the string for black and matched that, so it printed FAIL for
+// a strip that had no background at all. Parse the alpha instead of the words.
+function paints(css){
+  if (!css) return false;
+  const m = css.match(/rgba?\(([^)]+)\)/);
+  if (!m) return css !== 'transparent';
+  const p = m[1].split(',').map(x => parseFloat(x.trim()));
+  return !(p.length > 3 && p[3] === 0);
+}
+const bg = out && out.stripBg;
+const hasPanel = paints(bg);
+console.log('\nstrip background: ' + bg + '  -> ' + (hasPanel ? 'it paints one' : 'transparent, nothing painted'));
+console.log('black panel gone: ' + (hasPanel ? 'FAIL - ' + bg : 'PASS'));
 
 // a picture of the strip plus the video under it
 const shot = await p.evaluate(() => {
