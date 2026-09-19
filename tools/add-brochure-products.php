@@ -131,6 +131,73 @@ function af_abp_description( $name, $caption, $sizes, $page ) {
          . " lasting. Ships in protective packaging.</p>";
 }
 
+/**
+ * PROBE=1 — answer "is the artwork missing, or is the lookup wrong?"
+ *
+ * The first dry run refused all 17 rows for want of an image. All of them
+ * failing the same way is as likely to mean this tool looks for the wrong
+ * string as it is to mean nobody uploaded the files, and those two conclusions
+ * lead opposite ways. So before anyone is told to upload 17 files, this prints
+ * what the naming convention on this site actually is:
+ *
+ *   - the filename of the featured image on every product that already carries
+ *     a code from the same section, which IS the convention, whatever it is
+ *   - for each wanted code, how far a match gets: the whole code, then the code
+ *     without its trailing size group, then just the section and serial
+ *   - the nearest filenames, so a near miss is visible rather than inferred
+ *
+ * Reads only. Creates nothing.
+ */
+function af_abp_probe( $rows ) {
+    global $wpdb;
+    $atts = $wpdb->get_results(
+        "SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file'" );
+    $files = array();
+    foreach ( $atts as $a ) {
+        $base = pathinfo( (string) $a->meta_value, PATHINFO_FILENAME );
+        $files[] = array( (int) $a->post_id, $base, af_abp_key( $base ) );
+    }
+    echo "=== PROBE — reads only, creates nothing ===\n";
+    echo "  attachments with a file: " . count( $files ) . "\n\n";
+
+    // What do the products that DO carry a code from this section look like?
+    $prefix = strtoupper( substr( trim( $rows[0]['art_code'] ), 0, 2 ) );
+    echo "=== HOW {$prefix} PRODUCTS THAT ALREADY EXIST NAME THEIR IMAGE ===\n";
+    $seen = 0;
+    foreach ( get_posts( array( 'post_type' => 'product', 'post_status' => 'any',
+        'posts_per_page' => -1, 'fields' => 'ids' ) ) as $pid ) {
+        $code = trim( (string) get_post_meta( $pid, '_taf_art_code', true ) );
+        if ( $code === '' || stripos( $code, $prefix ) !== 0 ) continue;
+        $thumb = (int) get_post_thumbnail_id( $pid );
+        $f = $thumb ? pathinfo( (string) get_post_meta( $thumb, '_wp_attached_file', true ), PATHINFO_FILENAME ) : '(no featured image)';
+        printf( "  #%-7d %-22s %s\n", $pid, $code, $f );
+        $seen++;
+    }
+    if ( ! $seen ) echo "  (no product carries a {$prefix} code at all)\n";
+
+    echo "\n=== HOW CLOSE DOES EACH WANTED CODE GET ===\n";
+    foreach ( $rows as $row ) {
+        $code = trim( $row['art_code'] );
+        $full = af_abp_key( $code );                                  // SL1500024030
+        $noqty = preg_match( '/^([A-Za-z]+)-(\d{4,6})/', $code, $m )   // SL150002
+            ? af_abp_key( $m[1] . $m[2] ) : $full;
+        $stem = substr( $noqty, 0, strlen( $noqty ) - 2 );            // SL1500
+        printf( "  %-16s (p%s)\n", $code, $row['page'] );
+        foreach ( array( 'whole code' => $full, 'without size' => $noqty, 'section+serial' => $stem ) as $what => $needle ) {
+            $hits = array();
+            foreach ( $files as $f ) {
+                if ( $needle !== '' && strpos( $f[2], $needle ) !== false ) { $hits[] = $f; }
+                if ( count( $hits ) >= 4 ) break;
+            }
+            printf( "      %-15s %-14s %s\n", $what, $needle,
+                $hits ? '' : '(nothing)' );
+            foreach ( $hits as $h ) printf( "          #%-7d %s\n", $h[0], $h[1] );
+            if ( $hits ) break;   // the tightest match that finds anything is the answer
+        }
+    }
+    echo "=== DONE ===\n";
+}
+
 // ── Read the CSV ────────────────────────────────────────────────────────────
 $fh   = fopen( $csv, 'r' );
 $head = fgetcsv( $fh );
@@ -140,6 +207,8 @@ while ( ( $r = fgetcsv( $fh ) ) !== false ) {
     $rows[] = array_combine( $head, array_pad( array_slice( $r, 0, count( $head ) ), count( $head ), '' ) );
 }
 fclose( $fh );
+
+if ( getenv( 'PROBE' ) === '1' ) { af_abp_probe( $rows ); return; }
 
 echo $apply ? "=== ADDING BROCHURE PRODUCTS ===\n" : "=== DRY RUN — nothing is created ===\n";
 echo "  source : {$csv}\n";

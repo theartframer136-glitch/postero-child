@@ -34,6 +34,10 @@ on:
         description: Which CSV to read (blank = the Still Life one)
         type: string
         default: ''
+      probe:
+        description: Only ask how the artwork files are named, create nothing
+        type: boolean
+        default: false
 
 jobs:
   add-products:
@@ -66,6 +70,7 @@ jobs:
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
+             PROBE=${{ inputs.probe == true && '1' || '0' }} \
              APPLY=${{ inputs.apply == true && '1' || '0' }} \
              STATUS=${{ inputs.publish == true && 'publish' || 'draft' }} \
              CSV='${{ inputs.csv }}' \
