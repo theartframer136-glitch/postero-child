@@ -15169,11 +15169,43 @@ function af_grwp_state($state, $files) {
 // Value lives in product meta `_taf_art_code` (set by tools/product-importer/
 // apply_art_codes.py). Products without a code simply show nothing.
 // ---------------------------------------------------------------------------
+/**
+ * Is this a placeholder rather than a real art code?
+ *
+ * TMP-1210 and its 197 siblings are the audit's bookkeeping: they mark a piece
+ * that has no page in the printed collection book yet. They are a note to
+ * ourselves, not a catalogue number, and "ART CODE: TMP-1210" on a product card
+ * tells a customer nothing except that something is unfinished.
+ *
+ * AL codes are deliberately NOT included. They are a real line, not a
+ * placeholder, and only three products carry them.
+ */
+function af_art_code_is_temporary($code) {
+  $code = trim((string) $code);
+  return (bool) apply_filters('af_art_code_is_temporary',
+    $code !== '' && preg_match('/^TMP[\s\-_]*\d+$/i', $code) === 1, $code);
+}
+
+/**
+ * The art code as the SHOP should print it — empty when there is nothing
+ * publishable to print.
+ *
+ * Suppressed here rather than at each of the five places that display it: the
+ * card, the product summary, the description (twice) and the card-variations
+ * endpoint all call this, so one gate covers them and a sixth display added
+ * later inherits it.
+ *
+ * The meta is untouched. tools/ and inc/search-all.php read _taf_art_code
+ * directly, so a TMP code still finds its product in an internal search and
+ * still shows in every audit — it just stops being shown to customers.
+ */
 function af_get_art_code($product = null) {
   if (!($product instanceof WC_Product)) { $product = af_wc_product($product); }
   if (!$product) return '';
   $code = get_post_meta($product->get_id(), '_taf_art_code', true);
-  return is_string($code) ? trim($code) : '';
+  $code = is_string($code) ? trim($code) : '';
+  if (af_art_code_is_temporary($code)) return '';
+  return $code;
 }
 
 // Shop/archive card: small code line under the title. Always output the span
