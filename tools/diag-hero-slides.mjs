@@ -64,6 +64,26 @@ const map = await (async () => {
     const rows = []; for (let ry = 0; ry < 8; ry++) { let row = ''; for (let cx = 0; cx < 12; cx++) { const d = g.getImageData(Math.floor(cx * c.width / 12), Math.floor(ry * c.height / 8), 1, 1).data; const l = (d[0] + d[1] + d[2]) / 3; row += l > 245 ? '.' : l > 180 ? '-' : l > 100 ? '+' : '#'; } rows.push(row); } return rows.join('\n'); }, b64);
 })();
 console.log('LUMA MAP (. white, - light, + mid, # dark)\n' + map);
+// Style facts the earlier dumps did not ask for, then experiments: change
+// one thing in the page, re-measure the pixels, put it back.
+console.log('FACTS ' + await p.evaluate(() => {
+  const h = document.querySelector('.elementor-element-0971963');
+  const a = h.querySelector('.swiper-slide-active'), bg = a.querySelector('.swiper-slide-bg'), wr = h.querySelector('.swiper-wrapper'), sw = h.querySelector('.swiper');
+  const f = (e, ps) => ps.map(p => p + '=' + getComputedStyle(e)[p]).join(' ');
+  return '\n  bg:     ' + f(bg, ['backgroundAttachment','backgroundClip','backgroundOrigin','backgroundBlendMode','pointerEvents','animationName','animationDuration','clipPath','maskImage','webkitMaskImage','isolation','filter','backfaceVisibility','transformStyle','visibility','display','zIndex','height','width'])
+    + '\n  slide:  ' + f(a, ['pointerEvents','visibility','opacity','overflow','clipPath','backfaceVisibility','transform','height','width','display'])
+    + '\n  wrap:   ' + f(wr, ['pointerEvents','visibility','opacity','overflow','height','width','display','transform','transitionDuration'])
+    + '\n  swiper: ' + f(sw, ['pointerEvents','visibility','opacity','overflow','height','width','display','clipPath'])
+    + '\n  inner:  ' + f(a.querySelector('.swiper-slide-inner'), ['backgroundColor','backgroundImage','height','width','pointerEvents'])
+    + '\n  bg inline: ' + bg.getAttribute('style');
+}));
+const exp = async (label, fn) => { const undo = await p.evaluate(fn); await new Promise(r => setTimeout(r, 700)); const w = await pixels(); console.log('EXPERIMENT ' + label + ' -> white ' + w + '% ' + (w > 92 ? 'still blank' : 'PAINTS')); if (undo) await p.evaluate(undo); };
+await exp('background-attachment: scroll on bg', () => { const bg = document.querySelector('.elementor-element-0971963 .swiper-slide-active .swiper-slide-bg'); bg.style.setProperty('background-attachment', 'scroll', 'important'); return null; });
+await exp('bg: background-size cover', () => { const bg = document.querySelector('.elementor-element-0971963 .swiper-slide-active .swiper-slide-bg'); bg.style.setProperty('background-size', 'cover', 'important'); return null; });
+await exp('bg: set background-image inline to same url', () => { const bg = document.querySelector('.elementor-element-0971963 .swiper-slide-active .swiper-slide-bg'); bg.style.setProperty('background-image', getComputedStyle(bg).backgroundImage, 'important'); return null; });
+await exp('bg: strip ken-burns class + animation none', () => { const bg = document.querySelector('.elementor-element-0971963 .swiper-slide-active .swiper-slide-bg'); bg.classList.remove('elementor-ken-burns--active','elementor-ken-burns--out','elementor-ken-burns--in'); bg.style.setProperty('animation', 'none', 'important'); return null; });
+await exp('wrapper: transform none', () => { const wr = document.querySelector('.elementor-element-0971963 .swiper-wrapper'); wr.style.setProperty('transform', 'none', 'important'); return null; });
+await exp('bg: replace with an <img> of the same url', () => { const bg = document.querySelector('.elementor-element-0971963 .swiper-slide-active .swiper-slide-bg'); const u = (getComputedStyle(bg).backgroundImage.match(/url\("?([^")]+)/) || [])[1]; const im = document.createElement('img'); im.src = u; im.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:5'; bg.parentElement.appendChild(im); return null; });
 for (let i = 0; i < 3; i++) {
   const a = await active(); const w = await pixels();
   console.log('slide #' + a.idx + '  ' + a.file + '  bg ' + a.bgBox + ' kb=' + a.kb + ' tf=' + a.bgTransform + ' op=' + a.bgOpacity + '  slide ' + a.slideBox + '  wrap ' + a.wrapT + '  innerBg=' + a.innerBg + ' overlay=' + a.overlay + '  -> white ' + w + '% ' + (w > 92 ? 'BLANK' : 'ok'));
