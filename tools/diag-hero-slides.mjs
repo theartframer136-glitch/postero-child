@@ -21,8 +21,8 @@ await p.evaluate(() => { for (const s of ['#afOverlay', '#af-consent']) document
 
 const host = () => document.querySelector('.elementor-element-0971963');
 const pixels = async () => {
-  const box = await p.evaluate(() => { const h = document.querySelector('.elementor-element-0971963'); h.scrollIntoView({ block: 'center' }); const r = h.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; });
-  const b64 = await p.screenshot({ clip: { x: Math.max(0, box.x), y: Math.max(0, box.y), width: box.w, height: box.h }, encoding: 'base64' });
+  const box = await p.evaluate(() => { const h = document.querySelector('.elementor-element-0971963'); h.scrollIntoView({ block: 'start' }); const r = h.getBoundingClientRect(); const y = Math.max(0, r.top); return { x: Math.max(0, r.left), y, w: r.width, h: Math.min(r.bottom, window.innerHeight) - y }; });
+  const b64 = await p.screenshot({ clip: { x: box.x, y: box.y, width: box.w, height: box.h }, captureBeyondViewport: false, encoding: 'base64' });
   return p.evaluate(async (b64) => {
     const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode();
     const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
@@ -58,7 +58,7 @@ console.log('STACK\n' + stack);
 // full-page shot of the hero region, as the eye sees it (base64 length only + a coarse 12x8 luminance map)
 const map = await (async () => {
   const box = await p.evaluate(() => { const h = document.querySelector('.elementor-element-0971963'); h.scrollIntoView({ block: 'start' }); const r = h.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: Math.min(r.height, window.innerHeight - r.top) }; });
-  const b64 = await p.screenshot({ clip: { x: box.x, y: Math.max(0, box.y), width: box.w, height: box.h }, encoding: 'base64' });
+  const b64 = await p.screenshot({ clip: { x: box.x, y: Math.max(0, box.y), width: box.w, height: box.h }, captureBeyondViewport: false, encoding: 'base64' });
   return p.evaluate(async (b64) => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode();
     const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d'); g.drawImage(im, 0, 0);
     const rows = []; for (let ry = 0; ry < 8; ry++) { let row = ''; for (let cx = 0; cx < 12; cx++) { const d = g.getImageData(Math.floor(cx * c.width / 12), Math.floor(ry * c.height / 8), 1, 1).data; const l = (d[0] + d[1] + d[2]) / 3; row += l > 245 ? '.' : l > 180 ? '-' : l > 100 ? '+' : '#'; } rows.push(row); } return rows.join('\n'); }, b64);
@@ -77,13 +77,6 @@ console.log('FACTS ' + await p.evaluate(() => {
     + '\n  inner:  ' + f(a.querySelector('.swiper-slide-inner'), ['backgroundColor','backgroundImage','height','width','pointerEvents'])
     + '\n  bg inline: ' + bg.getAttribute('style');
 }));
-const exp = async (label, fn) => { const undo = await p.evaluate(fn); await new Promise(r => setTimeout(r, 700)); const w = await pixels(); console.log('EXPERIMENT ' + label + ' -> white ' + w + '% ' + (w > 92 ? 'still blank' : 'PAINTS')); if (undo) await p.evaluate(undo); };
-await exp('background-attachment: scroll on bg', () => { const bg = document.querySelector('.elementor-element-0971963 .swiper-slide-active .swiper-slide-bg'); bg.style.setProperty('background-attachment', 'scroll', 'important'); return null; });
-await exp('bg: background-size cover', () => { const bg = document.querySelector('.elementor-element-0971963 .swiper-slide-active .swiper-slide-bg'); bg.style.setProperty('background-size', 'cover', 'important'); return null; });
-await exp('bg: set background-image inline to same url', () => { const bg = document.querySelector('.elementor-element-0971963 .swiper-slide-active .swiper-slide-bg'); bg.style.setProperty('background-image', getComputedStyle(bg).backgroundImage, 'important'); return null; });
-await exp('bg: strip ken-burns class + animation none', () => { const bg = document.querySelector('.elementor-element-0971963 .swiper-slide-active .swiper-slide-bg'); bg.classList.remove('elementor-ken-burns--active','elementor-ken-burns--out','elementor-ken-burns--in'); bg.style.setProperty('animation', 'none', 'important'); return null; });
-await exp('wrapper: transform none', () => { const wr = document.querySelector('.elementor-element-0971963 .swiper-wrapper'); wr.style.setProperty('transform', 'none', 'important'); return null; });
-await exp('bg: replace with an <img> of the same url', () => { const bg = document.querySelector('.elementor-element-0971963 .swiper-slide-active .swiper-slide-bg'); const u = (getComputedStyle(bg).backgroundImage.match(/url\("?([^")]+)/) || [])[1]; const im = document.createElement('img'); im.src = u; im.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:contain;z-index:5'; bg.parentElement.appendChild(im); return null; });
 for (let i = 0; i < 3; i++) {
   const a = await active(); const w = await pixels();
   console.log('slide #' + a.idx + '  ' + a.file + '  bg ' + a.bgBox + ' kb=' + a.kb + ' tf=' + a.bgTransform + ' op=' + a.bgOpacity + '  slide ' + a.slideBox + '  wrap ' + a.wrapT + '  innerBg=' + a.innerBg + ' overlay=' + a.overlay + '  -> white ' + w + '% ' + (w > 92 ? 'BLANK' : 'ok'));
