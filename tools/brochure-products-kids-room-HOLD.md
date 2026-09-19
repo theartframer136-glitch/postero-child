@@ -56,3 +56,41 @@ sizes and prices are already worked out and recorded here:
 | 291 | 3×5 ft (36×60 in) | $100 |
 | 294 | 3×5 ft (36×60 in) | $100 |
 | 295 | 3×5 ft (36×60 in) | $100 |
+
+## Fixing them in the brochure: blocked on Canva's side
+
+Asked to fix these five pages in Canva directly. The API refuses:
+
+```
+Could not open an editing transaction: Editing a Canva Design with a size of
+391 pages is not currently supported. Design ID: DAGzVCQ8PBs
+```
+
+Tested whole-design and scoped to a single page index; the refusal is identical
+and deterministic, and it is the same one that blocks the page 59 and page 85
+caption corrections. Nothing about these five pages can be changed
+programmatically while the design is 391 pages.
+
+So the fix is manual, and it is short — five pages, one artwork each:
+
+| Page | Art code | Replace | Keep |
+|---|---|---|---|
+| 289 | KR-180008-4030 | the Superman artwork | caption, sizes (4x3, 3x2 ft), layout |
+| 290 | KR-180009-3050 | the Captain America artwork | caption, sizes (3x5, 2x3 ft), layout |
+| 291 | KR-180010-3050 | the Hulkbuster artwork | caption, sizes (3x5, 2x3 ft), layout |
+| 294 | KR-180013-3050 | the Kung Fu Panda artwork | caption, sizes (3x5, 2x3 ft), layout |
+| 295 | KR-180014-3050 | the Demon Slayer artwork | caption, sizes (3x5, 2x3 ft), layout |
+
+The captions are already generic — "Unleash unstoppable strength — power,
+courage, and heroism redefined" describes no particular character — so they
+survive a swap untouched. Only the picture has to change.
+
+Whatever replaces them has to be more than a redraw. A blue-and-red figure with
+a star shield is still Captain America however it is painted; what is protected
+is the character, not one rendering of it. A caped figure with no insignia, a
+warrior panda that is not Po, a lightning swordsman that is not Zenitsu — those
+are ordinary stock subjects and sell without exposure.
+
+Once a page carries new artwork, its row goes into
+`tools/brochure-products-kids-room.csv` like any other, with the size and price
+already worked out above.
