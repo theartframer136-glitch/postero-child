@@ -7529,6 +7529,7 @@ add_action('template_redirect', function(){
                  leave the instruction on screen after it stopped being true. -->
             <div id="tow-camhead" class="af-tow-camhead" style="display:none">
               <span class="af-tow-camhead-msg"></span>
+              <button type="button" class="af-tow-camhead-ft" style="display:none">10 ft</button>
               <button type="button" class="af-tow-camhead-recal" style="display:none">📐 Recalibrate</button>
               <button type="button" class="af-tow-camhead-x" aria-label="Stop camera">✕</button>
             </div>
@@ -8738,6 +8739,30 @@ add_action('template_redirect', function(){
         // drifted, so it is mirrored here like the other two.
         var recal = document.getElementById('tow-recal');
         var hRe   = head.querySelector('.af-tow-camhead-recal');
+        // Wall height, back within reach - but as one chip, not the row of
+        // three that used to lie across the video.
+        //
+        // It is measured that the three buttons DO work: pressing 8, 9 and 10
+        // on the panel row moves the drawn artwork 47, 41 and 37px high. What
+        // they deliberately do not move is the red rectangle, which stayed
+        // 163px throughout - it is the target the ceiling and floor are lined
+        // up to, not a picture of the wall, and shrinking it for an 8ft wall
+        // would give a smaller target to aim at for no gain in accuracy.
+        //
+        // The problem is only that on a phone the row is now in the panel,
+        // scrolled away while the phone is held up at the wall: the height the
+        // preview is being measured against is neither visible nor reachable.
+        // So the chip shows the current value and cycles 8 -> 9 -> 10 on tap,
+        // by pressing the real panel button - af_tow_set_wall_ft stays the one
+        // place wall height changes.
+        var wallRow = document.getElementById('tow-wallh');
+        var hFt     = head.querySelector('.af-tow-camhead-ft');
+        var FT      = ['8','9','10'];
+        function currentFt(){
+          if(!wallRow) return '10';
+          var on = wallRow.querySelector('button[data-ft].on');
+          return on ? on.getAttribute('data-ft') : '10';
+        }
         // One literal, used by the stylesheet and by this script. The file
         // already has four different phone widths in play (600, 781, 900 and
         // 480); the two elements this strip replaces have always been treated
@@ -8758,11 +8783,31 @@ add_action('template_redirect', function(){
           hMsg.style.display = wantMsg ? 'block' : 'none';
           hX.style.display   = wantX   ? 'block' : 'none';
           if(hRe) hRe.style.display = wantRe ? 'block' : 'none';
+          if(hFt){
+            hFt.style.display = wantX ? 'block' : 'none';   // for the whole camera session
+            var ft = currentFt();
+            if(hFt.getAttribute('data-ft') !== ft){
+              hFt.setAttribute('data-ft', ft);
+              hFt.textContent = ft + ' ft';
+              hFt.setAttribute('aria-label', 'Wall height ' + ft + ' feet, tap to change');
+            }
+          }
           head.style.display = (wantMsg || wantX || wantRe) ? 'flex' : 'none';
         }
 
         hX.addEventListener('click', function(){ stop.click(); });
         if(hRe && recal) hRe.addEventListener('click', function(){ recal.click(); });
+        if(hFt && wallRow){
+          hFt.addEventListener('click', function(){
+            var next = FT[(FT.indexOf(currentFt()) + 1) % FT.length];
+            var btn = wallRow.querySelector('button[data-ft="' + next + '"]');
+            if(btn) btn.click();      // the panel's own button, so one code path
+            sync();
+          });
+          // The panel row can also be pressed directly; keep the chip in step.
+          new MutationObserver(sync).observe(wallRow, {
+            attributes:true, attributeFilter:['class'], subtree:true });
+        }
 
         var mo = new MutationObserver(sync);
         mo.observe(cal,  { attributes:true, attributeFilter:['style'],
@@ -8969,6 +9014,18 @@ add_action('template_redirect', function(){
         background:#2fae52; color:#fff; font-size:11px; font-weight:700;
         line-height:1.2; cursor:pointer;
       }
+      /* Wall height, one chip instead of the row of three that used to lie
+         across the video. It reads the current value and cycles on tap. */
+      .af-tow-camhead-ft{
+        flex:0 0 auto; padding:6px 10px; border:1px solid #6f6a5e;
+        border-radius:999px; background:transparent; color:#fff;
+        font-size:11px; font-weight:700; line-height:1.2; white-space:nowrap;
+        cursor:pointer;
+      }
+      .af-tow-camhead-ft:hover{ background:rgba(255,255,255,.12); }
+      /* The message yields first when the row runs out of room - it is the one
+         thing here that can wrap, and the strip's min-height absorbs it. */
+      .af-tow-camhead-msg{ min-width:0; }
     }
     /* wall calibration: red rectangle → amber when the lines are close → green
        at the lock; the huge shadow dims everything outside the rectangle */
