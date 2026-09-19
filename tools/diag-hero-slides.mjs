@@ -47,7 +47,24 @@ const active = () => p.evaluate(() => {
 });
 // stop autoplay so the walk is deterministic
 await p.evaluate(() => { const h = document.querySelector('.elementor-element-0971963'); const sw = h.querySelector('.swiper'); try { sw.swiper.autoplay.stop(); } catch (e) {} });
-for (let i = 0; i < 9; i++) {
+// What is actually stacked at the middle of the hero, top to bottom?
+const stack = await p.evaluate(() => {
+  const h = document.querySelector('.elementor-element-0971963'); h.scrollIntoView({ block: 'center' });
+  const r = h.getBoundingClientRect(); const pts = [[r.left + r.width / 2, r.top + r.height / 2], [r.left + 40, r.top + 40], [r.left + r.width / 2, r.top + 20]];
+  return pts.map(([x, y]) => 'at ' + Math.round(x) + ',' + Math.round(y) + ':\n' + document.elementsFromPoint(x, y).slice(0, 14).map(e => { const c = getComputedStyle(e); const q = e.getBoundingClientRect();
+    return '    ' + e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + '.' + String(e.className).split(/\s+/).slice(0, 4).join('.') + ' ' + Math.round(q.width) + 'x' + Math.round(q.height) + ' bg=' + c.backgroundColor + (c.backgroundImage !== 'none' ? ' bgi=yes' : '') + ' op=' + c.opacity + ' z=' + c.zIndex + ' pos=' + c.position + ' mix=' + c.mixBlendMode + ' filt=' + c.filter + ' cv=' + c.contentVisibility; }).join('\n')).join('\n');
+});
+console.log('STACK\n' + stack);
+// full-page shot of the hero region, as the eye sees it (base64 length only + a coarse 12x8 luminance map)
+const map = await (async () => {
+  const box = await p.evaluate(() => { const h = document.querySelector('.elementor-element-0971963'); h.scrollIntoView({ block: 'start' }); const r = h.getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: Math.min(r.height, window.innerHeight - r.top) }; });
+  const b64 = await p.screenshot({ clip: { x: box.x, y: Math.max(0, box.y), width: box.w, height: box.h }, encoding: 'base64' });
+  return p.evaluate(async (b64) => { const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode();
+    const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+    const rows = []; for (let ry = 0; ry < 8; ry++) { let row = ''; for (let cx = 0; cx < 12; cx++) { const d = g.getImageData(Math.floor(cx * c.width / 12), Math.floor(ry * c.height / 8), 1, 1).data; const l = (d[0] + d[1] + d[2]) / 3; row += l > 245 ? '.' : l > 180 ? '-' : l > 100 ? '+' : '#'; } rows.push(row); } return rows.join('\n'); }, b64);
+})();
+console.log('LUMA MAP (. white, - light, + mid, # dark)\n' + map);
+for (let i = 0; i < 3; i++) {
   const a = await active(); const w = await pixels();
   console.log('slide #' + a.idx + '  ' + a.file + '  bg ' + a.bgBox + ' kb=' + a.kb + ' tf=' + a.bgTransform + ' op=' + a.bgOpacity + '  slide ' + a.slideBox + '  wrap ' + a.wrapT + '  innerBg=' + a.innerBg + ' overlay=' + a.overlay + '  -> white ' + w + '% ' + (w > 92 ? 'BLANK' : 'ok'));
   await p.evaluate(() => { const h = document.querySelector('.elementor-element-0971963'); const n = h.querySelector('.elementor-swiper-button-next'); if (n) n.click(); });
