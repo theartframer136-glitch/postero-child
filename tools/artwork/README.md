@@ -81,6 +81,33 @@ p94-RK-010090-5030.jpg         p96-RK-010092-3050.jpg
 p98-RK-010094-4030.jpg         p101-RK-010097-3020.jpg
 ```
 
+`tools/brochure-products-remaining.csv` expects:
+
+```
+p117-LS-030013-5030.jpg        p118-LS-030014-5030.jpg
+p119-LS-030015-5030.jpg        p132-SH-040010-4030.jpg
+p133-SH-040011-3060.jpg        p134-SH-040012-5030.jpg
+p144-TP-050007-3050.jpg        p145-TP-050008-5030.jpg
+p151-TP-050014-6030.jpg        p152-TP-050015-6030.jpg
+p155-MG-060003-5030.jpg        p156-MG-060004-5030.jpg
+p160-LR-070004-5030.jpg        p163-LR-070007-5030.jpg
+p164-LR-070008-5030.jpg        p165-LR-070009-5030.jpg
+p166-LR-070010-3050.jpg        p175-HD-080009-5030.jpg
+p180-HD-080014-5030.jpg        p184-HD-080018-5030.jpg
+p185-HD-080019-5030.jpg        p208-LB-090012-6030.jpg
+p216-PA-120001-4030.jpg        p220-IC-130004-3040.jpg
+p224-LC-140003-4030.jpg        p225-LC-140004-4030.jpg
+p226-LC-140005-5030.jpg        p228-LC-140007-4030.jpg
+p229-LC-140008-3020.jpg        p231-LC-140010-5030.jpg
+p357-AA-200003-4030.jpg        p358-AA-200004-4030.jpg
+p359-AA-200005-4040.jpg        p361-AA-200007-4030.jpg
+p362-AA-200008-4030.jpg        p366-AA-200012-5030.jpg
+p367-AA-200013-4030.jpg        p368-AA-200014-5030.jpg
+p369-AA-200015-4040.jpg        p371-AA-200017-5030.jpg
+p372-AA-200018-5030.jpg        p373-AA-200019-5030.jpg
+p374-TA-210001-6030.jpg        p375-TA-210002-6030.jpg
+```
+
 These files travel to the server in the workflow checkout, so they live in the
 repository. That puts a ceiling on them: **web-ready, not print masters.** The
 listing image only ever renders a few hundred pixels wide on a card and around

@@ -6170,3 +6170,101 @@ alongside.
 Forty-two more confirmations, including `RK-010097-3020` at 3 x 2 ft — the
 smallest yet — and four landscape `3050`/`3060` pages that read correctly
 height-first.
+
+## The remaining 44: twelve sections at once (2026-09-19)
+
+Everything the other five passes did not cover — a handful of pages each across
+twelve sections. With this the 156 unclaimed pages are accounted for, bar the
+five Kids' Room ones held on copyright.
+
+| Section | Pages here |
+|---|---|
+| Abstract Art | 12 |
+| Landscapes | 6 |
+| Lord Rama | 5 |
+| Tirupati / Vishnu | 4 |
+| Hindu Deities | 4 |
+| Lord Shiva | 3 |
+| Seven Horses | 3 |
+| Murugan | 2 |
+| Travel Art | 2 |
+| Lord Buddha | 1 |
+| Pichwai Art | 1 |
+| Indian Culture | 1 |
+
+| Page | Art code | Artwork | Size | Price |
+|---|---|---|---|---|
+| 117 | LS-030013-5030 | Shiva and Parvati in Watercolour | 3x5 ft (36x60 in) | $100 |
+| 118 | LS-030014-5030 | The Cosmic Dance in Flame | 3x5 ft (36x60 in) | $100 |
+| 119 | LS-030015-5030 | Tandava Among the Planets | 3x5 ft (36x60 in) | $100 |
+| 132 | SH-040010-4030 | Galloping Herd in Red and Amber | 3x4 ft (36x48 in) | $80 |
+| 133 | SH-040011-3060 | Seven White Horses at Sunrise | 3x5 ft (36x60 in) | $100 |
+| 134 | SH-040012-5030 | White Horses with Flame Manes | 3x5 ft (36x60 in) | $100 |
+| 144 | TP-050007-3050 | Vishnu Reclining in the Temple | 3x5 ft (36x60 in) | $100 |
+| 145 | TP-050008-5030 | Venkateswara in Golden Light | 3x5 ft (36x60 in) | $100 |
+| 151 | TP-050014-6030 | Venkateswara with Goddess Lakshmi | 3x5 ft (36x60 in) | $100 |
+| 152 | TP-050015-6030 | Venkateswara Garlanded in the Shrine | 3x5 ft (36x60 in) | $100 |
+| 155 | MG-060003-5030 | Murugan Beside His Peacock | 3x5 ft (36x60 in) | $100 |
+| 156 | MG-060004-5030 | Shanmukha, Murugan of Six Faces | 3x5 ft (36x60 in) | $100 |
+| 160 | LR-070004-5030 | Lord Rama Garlanded in Flowers | 3x5 ft (36x60 in) | $100 |
+| 163 | LR-070007-5030 | Ram Lala in the Carved Shrine | 3x5 ft (36x60 in) | $100 |
+| 164 | LR-070008-5030 | Lord Rama in Red and Gold | 3x5 ft (36x60 in) | $100 |
+| 165 | LR-070009-5030 | Lord Rama Beneath the Temple Arch | 3x5 ft (36x60 in) | $100 |
+| 166 | LR-070010-3050 | Ram Darbar | 3x5 ft (36x60 in) | $100 |
+| 175 | HD-080009-5030 | Surya on the Seven-Horse Chariot | 3x5 ft (36x60 in) | $100 |
+| 180 | HD-080014-5030 | Veer Hanuman Triumphant | 3x5 ft (36x60 in) | $100 |
+| 184 | HD-080018-5030 | Lakshmi on the Lotus | 3x5 ft (36x60 in) | $100 |
+| 185 | HD-080019-5030 | Durga, Lakshmi, Kali and Saraswati | 3x5 ft (36x60 in) | $100 |
+| 208 | LB-090012-6030 | Buddha in Golden Watercolour | 3x5 ft (36x60 in) | $100 |
+| 216 | PA-120001-4030 | Krishna with Cows in Pichwai | 3x4 ft (36x48 in) | $80 |
+| 220 | IC-130004-3040 | Woman by the River | 3x4 ft (36x48 in) | $80 |
+| 224 | LC-140003-4030 | Misty Cliffs and a Radiant Sun | 3x4 ft (36x48 in) | $80 |
+| 225 | LC-140004-4030 | Fiery Twilight Over the Forest | 3x4 ft (36x48 in) | $80 |
+| 226 | LC-140005-5030 | Egrets Under a Pink Moon | 3x5 ft (36x60 in) | $100 |
+| 228 | LC-140007-4030 | Sunrise in Minimal Tones | 3x4 ft (36x48 in) | $80 |
+| 229 | LC-140008-3020 | Pines Beneath a Golden Sun | 3x2 ft (36x24 in) | $60 |
+| 231 | LC-140010-5030 | Circles and Tree Silhouettes | 3x5 ft (36x60 in) | $100 |
+| 357 | AA-200003-4030 | Geometric Face in Earthy Tones | 3x4 ft (36x48 in) | $80 |
+| 358 | AA-200004-4030 | The Figure in Shadow and Light | 3x4 ft (36x48 in) | $80 |
+| 359 | AA-200005-4040 | Two Faces in Geometry | 2.5x3 ft (30x36 in) | $65 |
+| 361 | AA-200007-4030 | Golden Tree in Abstract | 3x4 ft (36x48 in) | $80 |
+| 362 | AA-200008-4030 | Figures in Colour | 3x4 ft (36x48 in) | $80 |
+| 366 | AA-200012-5030 | Layered Hills and Golden Suns | 3x5 ft (36x60 in) | $100 |
+| 367 | AA-200013-4030 | Terracotta Geometry | 3x4 ft (36x48 in) | $80 |
+| 368 | AA-200014-5030 | Woman and the Blue Bird | 3x5 ft (36x60 in) | $100 |
+| 369 | AA-200015-4040 | Gold and Black with a Metal Vase | 2.5x3 ft (30x36 in) | $65 |
+| 371 | AA-200017-5030 | Earthy Circles and Botanicals | 3x5 ft (36x60 in) | $100 |
+| 372 | AA-200018-5030 | Serene Face with Botanicals | 3x5 ft (36x60 in) | $100 |
+| 373 | AA-200019-5030 | Three Women Carrying Fruit | 3x5 ft (36x60 in) | $100 |
+| 374 | TA-210001-6030 | The Ghats of Varanasi | 3x5 ft (36x60 in) | $100 |
+| 375 | TA-210002-6030 | Kedarnath in Lamplight | 3x5 ft (36x60 in) | $100 |
+
+### Three pages print no caption, and two needed a closer look
+
+Pages 166, 175 and 180 carry no caption, so the description came from the
+picture — and at page-render size two of them were about to be named wrong.
+
+**Page 180** reads at a glance as a radiant many-armed deity standing over a
+fallen demon, which is the composition of Durga slaying Mahishasura. Enlarged,
+the face is unmistakably simian: it is **Hanuman**, in his many-armed Veer form,
+mace at his side. Naming a deity wrongly on a devotional product is not a small
+error, and the thumbnail would have produced one.
+
+**Page 175** is **Surya**, lotus in each hand, drawn by the seven horses of his
+chariot with Aruna at the reins. **Page 166** is the **Ram Darbar** — Rama and
+Sita enthroned, Lakshmana and Bharata with chowries, Hanuman kneeling.
+
+### Six rows note a size the shop does not make
+
+Pages 133, 151, 152 and 208 advertise a 6 ft side; 359 and 369 are 4 x 4 ft
+squares. The first four are titled 3x5, the largest on sale; the two squares are
+titled 2.5x3, the offered size closest to square, on the same reasoning as page
+339 in Living / Interiors. Page 374 and 375 also carry `6030` codes but
+advertise 5 ft (H) x 3 ft (B) as a second size, which the shop does sell, so
+they pass silently.
+
+### The code-size rule is now 151 of 151
+
+That is every unclaimed page in the book except the five held back — 17 Still
+Life, 14 Wildlife, 8 Kids' Room, 26 Living / Interiors, 42 Radha Krishna and
+these 44. Not one disagreement in the whole catalogue.
