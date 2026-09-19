@@ -5903,3 +5903,59 @@ be among them. Nothing here establishes that it is.
 
 Until the artwork for a row can be identified, the tool's behaviour is correct:
 it refuses, and creates nothing. What it must not do is claim the reason.
+
+## Wildlife: the 14 pages the shop prints and does not sell (2026-09-19)
+
+Second worst section after Still Life: 23 pages in the book, 9 products, 14
+unsold. `tools/brochure-products-wildlife.csv` is those 14, built the same way
+— the artwork named from the page render rather than the caption, because
+again several captions name nothing ("Rooted in nature, crafted with creativity
+— where art meets life" is a giraffe under a palm tree).
+
+| Page | Art code | Artwork | Size | Price |
+|---|---|---|---|---|
+| 260 | WL-170002-5030 | Elephant Beneath the Red Sun | 3x5 ft (36x60 in) | $100 |
+| 262 | WL-170004-5030 | Leopard Between Crimson Pillars | 3x5 ft (36x60 in) | $100 |
+| 263 | WL-170005-5030 | Giraffes Beneath the Palm | 3x5 ft (36x60 in) | $100 |
+| 264 | WL-170006-5030 | Peacocks in the Blossom Garden | 3x5 ft (36x60 in) | $100 |
+| 266 | WL-170008-3020 | Folk Art Deer Beneath the Tree | 3x2 ft (36x24 in) | $60 |
+| 267 | WL-170009-4030 | Zebra Tree of Life | 3x4 ft (36x48 in) | $80 |
+| 268 | WL-170010-5030 | Ornamental Peacock in Teal and Terracotta | 3x5 ft (36x60 in) | $100 |
+| 270 | WL-170012-5030 | Red-Crowned Cranes on Gold | 3x5 ft (36x60 in) | $100 |
+| 272 | WL-170014-5030 | Geometric Leopard Portrait | 3x5 ft (36x60 in) | $100 |
+| 273 | WL-170015-4030 | Cheetah on the Arched Ledge | 3x4 ft (36x48 in) | $80 |
+| 274 | WL-170016-5030 | Peacock at the Palace Doorway | 3x5 ft (36x60 in) | $100 |
+| 275 | WL-170017-5030 | Golden Tiger in Motion | 3x5 ft (36x60 in) | $100 |
+| 276 | WL-170018-5030 | White Lion Among Wildflowers | 3x5 ft (36x60 in) | $100 |
+| 277 | WL-170019-6030 | Deer by the Misty Forest Stream | 3x5 ft (36x60 in) | $100 |
+
+Two rows carry an extra category, following the shop's own precedent: the
+geometric leopard (272) and the zebra (267) are also filed under Abstract Art,
+as `WL - 170003-5030` "Geometric Elephant" already is; the Madhubani-style deer
+(266) is also filed under Indian Culture.
+
+Page 277 is this section's page 246 — it advertises 6 ft (H) x 3 ft (B) and
+4 ft (H) x 2 ft (B), and `af_sizes_offered()` sells neither. It is priced and
+titled as 3x5 ft, the nearest size the shop makes, and the run prints a note.
+
+### The art code states the size, and now the tool checks it
+
+Reading the "Available Sizes:" block off 31 pages turned up something the code
+itself had been saying all along: **the last four digits of an art code are the
+largest size the page advertises, height then breadth, in feet x10.**
+
+```
+SL-150015-4035   code says 4x3.5 ft   page says 4 ft (H) * 3.5 ft (B)
+WL-170008-3020   code says 3x2   ft   page says 3 ft (H) * 2 ft (B)
+WL-170019-6030   code says 6x3   ft   page says 6 ft (H) * 3 ft (B)
+```
+
+Tested against every page whose size block has actually been read — 17 Still
+Life and 14 Wildlife — it agrees on **31 of 31**, half-foot case included.
+
+So `af_abp_size_from_code()` now cross-checks the `size_label` typed into a CSV
+against what the code says, on the same 0.26 ft tolerance and in either
+orientation that `af_size_label_for_product()` uses. A disagreement prints a
+note rather than blocking, because the rate card genuinely does not sell every
+size the book advertises — but a transcription slip in a future section will
+now announce itself instead of quietly shipping a mispriced product.

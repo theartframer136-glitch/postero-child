@@ -3,9 +3,13 @@ name: Add Brochure Products
 # Create shop products for brochure pages that nothing sells.
 #
 # The caption audit counted 156 of the 373 artwork pages with no product behind
-# them. Still Life is the worst section: 17 of its 23 pages are printed in the
-# book and cannot be bought. This creates those 17 from
-# tools/brochure-products-still-life.csv.
+# them. Two sections are covered so far, and the "csv" box picks which:
+#
+#   blank (default)  tools/brochure-products-still-life.csv   17 pages
+#   wildlife         tools/brochure-products-wildlife.csv     14 pages
+#
+# Still Life is the worst section in the book at 17 of 23 pages unsold;
+# Wildlife is next at 14 of 23.
 #
 # The tool refuses rather than guesses. No price is invented — it comes from the
 # theme's own rate card for the size the product is titled as. No product is
@@ -31,8 +35,11 @@ on:
         type: boolean
         default: false
       csv:
-        description: Which CSV to read (blank = the Still Life one)
-        type: string
+        description: Which section to create (blank = Still Life)
+        type: choice
+        options:
+          - ''
+          - wildlife
         default: ''
       probe:
         description: Only ask how the artwork files are named, create nothing
@@ -58,7 +65,7 @@ jobs:
           set -uo pipefail
           scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
-              tools/add-brochure-products.php tools/brochure-products-still-life.csv \
+              tools/add-brochure-products.php tools/brochure-products-*.csv \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/" \
             || echo "  scp failed — falling back to whatever the last deploy left there"
 
@@ -89,6 +96,6 @@ jobs:
              PROBE=${{ inputs.probe == true && '1' || '0' }} \
              APPLY=${{ inputs.apply == true && '1' || '0' }} \
              STATUS=${{ inputs.publish == true && 'publish' || 'draft' }} \
-             CSV='${{ inputs.csv }}' \
+             CSV='${{ inputs.csv != '' && format('wp-content/themes/postero-child/tools/brochure-products-{0}.csv', inputs.csv) || '' }}' \
              wp eval-file wp-content/themes/postero-child/tools/add-brochure-products.php --allow-root 2>&1" \
             || true

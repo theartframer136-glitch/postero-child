@@ -15,6 +15,18 @@ p243-SL-150012-5030.jpg      p254-SL-150023-5030.jpg
 p245-SL-150014-5030.jpg
 ```
 
+`tools/brochure-products-wildlife.csv` expects:
+
+```
+p260-WL-170002-5030.jpg      p262-WL-170004-5030.jpg
+p263-WL-170005-5030.jpg      p264-WL-170006-5030.jpg
+p266-WL-170008-3020.jpg      p267-WL-170009-4030.jpg
+p268-WL-170010-5030.jpg      p270-WL-170012-5030.jpg
+p272-WL-170014-5030.jpg      p273-WL-170015-4030.jpg
+p274-WL-170016-5030.jpg      p275-WL-170017-5030.jpg
+p276-WL-170018-5030.jpg      p277-WL-170019-6030.jpg
+```
+
 These files travel to the server in the workflow checkout, so they live in the
 repository. That puts a ceiling on them: **web-ready, not print masters.** The
 listing image only ever renders a few hundred pixels wide on a card and around

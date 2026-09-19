@@ -183,6 +183,24 @@ function af_abp_terms( $names, &$missing ) {
     return array_values( array_unique( $ids ) );
 }
 
+/**
+ * The size an art code claims: the last four digits are the largest size the
+ * brochure page advertises, height then breadth, in feet x10. SL-150015-4035
+ * is 4 ft (H) x 3.5 ft (B), and the page says exactly that.
+ *
+ * Checked against every page whose "Available Sizes:" block has been read off
+ * the brochure — 17 Still Life and 14 Wildlife — and it agrees on all 31,
+ * including the half-foot case. So a size typed into the CSV is checkable
+ * rather than merely trusted, which is what af_abp_size_from_code() is for.
+ *
+ * Returns array(height, breadth) in feet, or an empty array if the code does
+ * not end in four digits.
+ */
+function af_abp_size_from_code( $code ) {
+    return preg_match( '/-(\d{2})(\d{2})$/', trim( (string) $code ), $m )
+        ? array( $m[1] / 10, $m[2] / 10 ) : array();
+}
+
 /** The product description, in the same shape the shop's other canvas prints use. */
 function af_abp_description( $name, $caption, $sizes, $page ) {
     $n = esc_html( $name );
@@ -342,6 +360,20 @@ foreach ( $rows as $row ) {
     }
     $price = (float) $card[ $size ];
     $tsize = af_abp_title_size( $size );
+
+    // The code already states the size; say so when the CSV disagrees. Same
+    // 0.26 ft tolerance and either orientation, because the rate card lists
+    // one label per area and a 5x3 portrait shares it with a 3x5 landscape.
+    $csz = af_abp_size_from_code( $code );
+    if ( $csz && preg_match( '/^(\d+(?:\.\d+)?)×(\d+(?:\.\d+)?)/u', $tsize, $tm ) ) {
+        $u = (float) $tm[1]; $v = (float) $tm[2];
+        $same = ( abs( $csz[0] - $u ) < 0.26 && abs( $csz[1] - $v ) < 0.26 )
+             || ( abs( $csz[1] - $u ) < 0.26 && abs( $csz[0] - $v ) < 0.26 );
+        if ( ! $same ) {
+            printf( "      note: the code reads %sx%s ft; this row is titled %s\n",
+                $csz[0], $csz[1], $tsize );
+        }
+    }
     $title = $name . ' Canvas Wall Art ' . $tsize
            . ' – Floating Frame – Premium Digital Canvas Print – Living Room & Home Décor';
 
