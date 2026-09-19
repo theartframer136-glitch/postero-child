@@ -23,6 +23,15 @@ for (const W of [423, 390, 768]) {
   }
   if (!ok) { console.log(W + 'px: could not load'); await p.close(); continue; }
   await new Promise(r => setTimeout(r, 7000));
+  // The host's bot check can still be on screen; wait it out rather than
+  // reporting nulls as though they described the page.
+  for (let i = 0; i < 6; i++) {
+    let blocked = false;
+    try { blocked = await p.evaluate(() => document.body.innerText.includes('Checking your browser')); } catch {}
+    const has = await p.evaluate(() => !!document.querySelector('#tow-stage, .af-tow-stage')).catch(() => false);
+    if (!blocked && has) break;
+    await new Promise(r => setTimeout(r, 3000));
+  }
 
   const out = await p.evaluate(() => {
     const stage = document.querySelector('#tow-stage, .af-tow-stage');
@@ -49,8 +58,16 @@ for (const W of [423, 390, 768]) {
   console.log('  img    box=' + JSON.stringify(out.imgBox) + '  natural=' + out.natural);
   console.log('         ' + JSON.stringify(out.imgCs));
   console.log('  src    ...' + out.imgSrc);
+  if (out.stageBox === null) { console.log('  NOT MEASURED - the stage was not on the page'); await p.close(); continue; }
   console.log('  the image covers ' + out.coverage + '% of the stage height'
     + (out.coverage !== null && out.coverage < 98 ? '   <-- the rest is bare background' : ''));
+  // The check that caught a fix being worse than the fault: a box wider than
+  // the screen. A 4:3 ratio against a height that is still pinned derives the
+  // width from the height, and the stage grew past the viewport.
+  const over = out.stageBox.w > W + 1;
+  console.log('  stage ' + out.stageBox.w + 'px wide in a ' + W + 'px screen'
+    + (over ? '   <-- WIDER THAN THE SCREEN' : '  ok'));
+  console.log('  ' + ((out.coverage >= 98 && !over) ? 'PASS' : 'FAIL') + ' at ' + W + 'px');
   await p.close();
 }
 await b.close();
