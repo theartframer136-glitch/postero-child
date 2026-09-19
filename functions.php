@@ -2692,8 +2692,31 @@ add_action('wp_footer', function() { ?>
 add_action('wp_footer', function() { ?>
 <script>
 (function() {
-  if (window.innerWidth > 768) return;
-  function sp(el, p, v) { el.style.setProperty(p, v, 'important'); }
+  // This used to be `if (window.innerWidth > 768) return;` - one decision,
+  // taken at load, and then the whole block, its resize listener included,
+  // did not exist. Measured on the live homepage: a phone that LOADS at
+  // 423px gets its hero (the mobile widget lays out at 423x190); a window
+  // that loads wide and is then narrowed - a tablet turned sideways, a
+  // split screen, the owner's DevTools recording - gets nothing at all. The
+  // mobile widget's Swiper had initialised while its container was
+  // display:none, its slide widths were meaningless, and the one thing that
+  // would have called swiper.update() had declined to load.
+  //
+  // So the width is asked every time the fix runs, and the fix is
+  // symmetrical: below the breakpoint it applies, above it every inline
+  // property it wrote is taken back and Swiper is told to re-measure, so a
+  // window that comes back up does not keep 100vw slides in a desktop hero.
+  var MOBILE = 768;
+  function isPhone() { return window.innerWidth <= MOBILE; }
+  // Every inline write goes through here and is remembered on the element,
+  // so undo can remove exactly what was set and nothing else.
+  var touched = [];
+  function sp(el, p, v) {
+    el.style.setProperty(p, v, 'important');
+    if (!el.__afHeroProps) el.__afHeroProps = {};
+    el.__afHeroProps[p] = 1;
+    if (touched.indexOf(el) === -1) touched.push(el);
+  }
 
   // How tall is a slide? The shape of the picture in it — never a number
   // picked in advance.
@@ -2824,18 +2847,40 @@ add_action('wp_footer', function() { ?>
     });
   }
 
+  var applied = false;
+  function undoFix() {
+    if (!applied) return;
+    applied = false;
+    touched.forEach(function(el) {
+      var props = el.__afHeroProps || {};
+      Object.keys(props).forEach(function(p) { el.style.removeProperty(p); });
+      el.__afHeroProps = null;
+    });
+    touched = [];
+    // Swiper re-measures against the desktop layout it now has back.
+    fixSwiperAPI();
+  }
+
   function fullFix() {
+    if (!isPhone()) { undoFix(); return; }
     // Measure first: every rule below writes the height inline, so it has to
     // know the picture's shape before it writes anything.
     withSlideRatio(function () {
+      if (!isPhone()) { undoFix(); return; }   // width changed while the image loaded
       fixContainers();
       fixSwiperAPI();
       fixSlideInlineWidths();
+      applied = true;
     });
   }
 
   [300, 900, 2000].forEach(function(d) { setTimeout(fullFix, d); });
-  window.addEventListener('resize', fullFix);
+  // Resizes come in bursts; the last one is the one that matters.
+  var resizeT = null;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeT);
+    resizeT = setTimeout(fullFix, 150);
+  });
 
   // MutationObserver: lock slide width to 100vw regardless of when Swiper rewrites it
   // Swiper uses setProperty('width', Xpx, 'important') which beats stylesheet !important,
@@ -2844,6 +2889,12 @@ add_action('wp_footer', function() { ?>
     var slides = [];
     var mo = new MutationObserver(function(muts) {
       mo.disconnect();
+      // Above the breakpoint this lock has no business forcing 100vw onto a
+      // desktop hero; keep watching, change nothing.
+      if (!isPhone()) {
+        slides.forEach(function(s) { mo.observe(s, { attributes: true, attributeFilter: ['style'] }); });
+        return;
+      }
       var changed = false;
       muts.forEach(function(m) {
         var s = m.target;

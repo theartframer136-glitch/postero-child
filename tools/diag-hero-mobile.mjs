@@ -36,7 +36,12 @@ async function load(p) {
 
 const measure = (p) => p.evaluate(() => {
   const vw = window.innerWidth;
-  const host = document.querySelector('.elementor-widget-slides, .elementor-slides-wrapper, .elementor-slides');
+  // There are two hero widgets and the site hides one per breakpoint. The
+  // first version of this measured the first one in the DOM - the desktop
+  // hero, display:none on a phone - and reported the phone hero blank when it
+  // was not. Measure the one that is laid out.
+  const all = [...document.querySelectorAll('.elementor-widget-slides')];
+  const host = all.find(w => w.getBoundingClientRect().width > 0) || all[0];
   if (!host) return { err: 'no slides widget on the page' };
   const wrap = host.querySelector('.swiper-wrapper');
   const slides = [...host.querySelectorAll('.swiper-slide')];
@@ -47,6 +52,7 @@ const measure = (p) => p.evaluate(() => {
   const inView = el => { const q = r(el); return q.right > 0 && q.left < vw && q.width > 0 && q.height > 0; };
   return {
     viewport: vw,
+    measured: host.getAttribute('data-id') || '?',
     host: { w: Math.round(hb.width), h: Math.round(hb.height), top: Math.round(hb.top) },
     wrapperTransform: wrap ? getComputedStyle(wrap).transform : null,
     slideCount: slides.length,
@@ -63,7 +69,7 @@ const measure = (p) => p.evaluate(() => {
 const report = (label, m) => {
   console.log('\n=== ' + label + ' ===');
   if (m.err) { console.log('  ' + m.err); return; }
-  console.log('  viewport            : ' + m.viewport);
+  console.log('  viewport            : ' + m.viewport + '   widget measured: ' + m.measured);
   console.log('  hero box            : ' + JSON.stringify(m.host));
   console.log('  wrapper transform   : ' + m.wrapperTransform);
   console.log('  slides              : ' + m.slideCount + '  inline widths ' + JSON.stringify(m.inlineWidths));
