@@ -60,14 +60,20 @@ jobs:
           printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
+      # The sibling workflows shrug a failed scp off and run whatever the last
+      # deploy left on the server. Not here: this tool creates products, and a
+      # silently stale copy of it acting on a fresh CSV — or on a CSV that is
+      # not there at all — is worse than a run that does not happen.
       - name: Send the tool and the data up
         run: |
           set -uo pipefail
-          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
-              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
-              tools/add-brochure-products.php tools/brochure-products-*.csv \
-              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/" \
-            || echo "  scp failed — falling back to whatever the last deploy left there"
+          if ! scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+                   -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+                   tools/add-brochure-products.php tools/brochure-products-*.csv \
+                   "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/"; then
+            echo "::error::Could not send the tool to the server. Nothing ran, and the copy already up there was NOT used."
+            exit 1
+          fi
 
       # The pictures, when there are any. A row whose file is absent is refused
       # by name rather than created without one, so an empty folder is a safe
@@ -89,6 +95,7 @@ jobs:
         timeout-minutes: 22
         run: |
           set -uo pipefail
+          rc=0
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
@@ -98,4 +105,13 @@ jobs:
              STATUS=${{ inputs.publish == true && 'publish' || 'draft' }} \
              CSV='${{ inputs.csv != '' && format('wp-content/themes/postero-child/tools/brochure-products-{0}.csv', inputs.csv) || '' }}' \
              wp eval-file wp-content/themes/postero-child/tools/add-brochure-products.php --allow-root 2>&1" \
-            || true
+            || rc=$?
+          # 255 is ssh's own failure — refused, timed out, auth. The run did not
+          # happen, and a green tick saying otherwise is how a dead connection
+          # gets read as a clean dry run. Anything else is the tool's own exit
+          # and stays tolerated, because "refused 17 rows" is a real answer.
+          if [ "$rc" -eq 255 ]; then
+            echo "::error::SSH could not reach the host (exit 255) — nothing ran. The host rate-limits repeated logins; leave a few minutes between runs."
+            exit 1
+          fi
+          exit 0
