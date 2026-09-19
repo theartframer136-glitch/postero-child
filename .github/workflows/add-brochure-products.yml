@@ -1,0 +1,73 @@
+name: Add Brochure Products
+
+# Create shop products for brochure pages that nothing sells.
+#
+# The caption audit counted 156 of the 373 artwork pages with no product behind
+# them. Still Life is the worst section: 17 of its 23 pages are printed in the
+# book and cannot be bought. This creates those 17 from
+# tools/brochure-products-still-life.csv.
+#
+# The tool refuses rather than guesses. No price is invented — it comes from the
+# theme's own rate card for the size the product is titled as. No product is
+# created without artwork, without an existing category, or on top of an art
+# code some product already carries.
+#
+# Leave both boxes unticked first. The run prints every product it would create,
+# its price, the image it found and the SKU, and writes nothing.
+#
+# Tick "apply" and the products are created as DRAFTS — invisible to customers
+# until someone publishes them from Products -> Drafts. Tick "publish" as well
+# only when they should go live immediately.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Create the products (leave off to preview the plan only)
+        type: boolean
+        default: false
+      publish:
+        description: Publish immediately instead of creating drafts
+        type: boolean
+        default: false
+      csv:
+        description: Which CSV to read (blank = the Still Life one)
+        type: string
+        default: ''
+
+jobs:
+  add-products:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Send the tool and the data up
+        run: |
+          set -uo pipefail
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/add-brochure-products.php tools/brochure-products-still-life.csv \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/" \
+            || echo "  scp failed — falling back to whatever the last deploy left there"
+
+      - name: Create the products
+        timeout-minutes: 22
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             APPLY=${{ inputs.apply == true && '1' || '0' }} \
+             STATUS=${{ inputs.publish == true && 'publish' || 'draft' }} \
+             CSV='${{ inputs.csv }}' \
+             wp eval-file wp-content/themes/postero-child/tools/add-brochure-products.php --allow-root 2>&1" \
+            || true

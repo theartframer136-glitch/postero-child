@@ -5792,3 +5792,69 @@ deliberate one.
 As with the seven wrong captions, these cannot be written into the design from
 this session. Canva refuses to open an editing transaction on a 391-page design,
 deterministically. Every caption above has to be pasted in by hand.
+
+## Still Life: the 17 pages the shop prints and does not sell (2026-09-19)
+
+Sorting the 156 unclaimed pages by section put the question in one line: Still
+Life has 23 pages in the book and 6 products. 17 pieces are photographed,
+captioned, sized and printed in the catalogue, and a customer who asks for one
+cannot buy it. Proportionally it is the worst section in the book — Wildlife is
+61% unclaimed, Kids' Room 59%, Still Life 74%.
+
+`tools/brochure-products-still-life.csv` is those 17, read off the pages
+themselves. Every field comes from the page, not from a guess:
+
+- **name** — what the artwork actually shows, read from the page render, not
+  from the caption. Several captions are pure marketing ("Where elegance blooms
+  — art that speaks the language of nature") and name nothing at all.
+- **size_label** — the largest size the page advertises under "Available
+  Sizes:", resolved to the label the shop sells under. The rate card lists one
+  entry per area, so a 5 ft (H) x 3 ft (B) portrait and a 3x5 landscape share
+  the entry `3x5 ft (36x60 in)`.
+- **caption** — the page's own caption, which becomes the short description.
+- **subcategory** — by subject. The section is called Still Life but it holds a
+  sailboat, a rainy street and a forest, so those are filed under Abstract Art
+  and Landscapes as the shop's existing products in this section already are.
+
+`tools/add-brochure-products.php` creates them. It refuses rather than guesses,
+in four ways that each prevent a specific kind of damage:
+
+| Refusal | What it prevents |
+|---|---|
+| No price invented — read from `af_pricing_config()['sizes']` | A wrong price reaching an invoice |
+| No product without artwork found by its art code | Another imageless product for `draft-imageless.php` to clean up |
+| No taxonomy term created | A duplicate category appearing on a live shop |
+| No product where the art code is already carried | A second listing of a piece that already sells |
+
+Products are created as **drafts**. `STATUS=publish` overrides that.
+
+| Page | Art code | Artwork | Size | Price |
+|---|---|---|---|---|
+| 233 | SL-150002-4030 | Yellow Calla Blooms in Glass Vases | 3x4 ft (36x48 in) | $80 |
+| 234 | SL-150003-4030 | Modern Glass Reflections | 3x4 ft (36x48 in) | $80 |
+| 235 | SL-150004-5030 | Translucent Tulips Trio | 3x5 ft (36x60 in) | $100 |
+| 236 | SL-150005-5030 | Boho Botanical Leaves and Pampas | 3x5 ft (36x60 in) | $100 |
+| 238 | SL-150007-5030 | Golden Brass Vases with White Blossoms | 3x5 ft (36x60 in) | $100 |
+| 241 | SL-150010-5030 | Potted Olive Tree on a Tuscan Wall | 3x5 ft (36x60 in) | $100 |
+| 242 | SL-150011-5030 | Boho Vase with Dried Terracotta Stems | 3x5 ft (36x60 in) | $100 |
+| 243 | SL-150012-5030 | Minimalist Vases with Dried Botanicals | 3x5 ft (36x60 in) | $100 |
+| 245 | SL-150014-5030 | Butterflies in Flight | 3x5 ft (36x60 in) | $100 |
+| 246 | SL-150015-4035 | Red Poppies in a Weathered Boat | 3x4 ft (36x48 in) | $80 |
+| 247 | SL-150016-4030 | Lone Boatman on a Marbled Sea | 3x4 ft (36x48 in) | $80 |
+| 248 | SL-150017-5030 | Sailboat in Bold Colour | 3x5 ft (36x60 in) | $100 |
+| 249 | SL-150018-4030 | Forest of Colour Reflected | 3x4 ft (36x48 in) | $80 |
+| 250 | SL-150019-5030 | Yellow Umbrella in the Rain | 3x5 ft (36x60 in) | $100 |
+| 251 | SL-150020-5030 | Green Canopy Over the Old Facade | 3x5 ft (36x60 in) | $100 |
+| 252 | SL-150021-5030 | Faces in the Golden Forest | 3x5 ft (36x60 in) | $100 |
+| 254 | SL-150023-5030 | Stylized Blossoms and Butterflies | 3x5 ft (36x60 in) | $100 |
+
+Page 246 is the one exception the tool calls out on its own: the page
+advertises 4 ft (H) x 3.5 ft (B) and 3 ft (H) x 2.5 ft (B), and the shop makes
+neither. It is priced and titled as 3x4 ft, the nearest size on the rate card,
+and the run prints a note saying so.
+
+Twelve of the 17 come to $100 and five to $80, all straight from the card. The
+titles round-trip: `af_size_label_for_product()` reads each generated title back
+to the same rate-card entry the price came from, so the card price and the
+opening price of the size selector agree. That is the check that was missing
+when the Digital Downloads cards said $80.00 over a modal selling $9.43.
