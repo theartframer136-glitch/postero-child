@@ -1,0 +1,53 @@
+name: Check Digital Downloads
+
+# Answer the two things about /product-category/digital-downloads-2/ that the
+# repo cannot answer by itself, because both depend on the live database:
+#
+#   1. Does the card now quote the same price as the modal? It printed $80.00
+#      against the modal's $9.43 before the fix, so the tool prints ok or
+#      MISMATCH per product rather than leaving it to be eyeballed.
+#
+#   2. Why was the preview pane blank? That depends on which intermediate image
+#      sizes this particular site generated, and on whether GD can build the
+#      watermarked preview at all. The tool prints, per product, the first
+#      branch of the preview endpoint that answers, and why the ones before it
+#      declined.
+#
+# Read-only. It prints; it changes nothing.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Send the script up
+        run: |
+          set -uo pipefail
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/diag-digital-downloads.php \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-digital-downloads.php" \
+            || echo "  scp failed — falling back to whatever the last deploy left there"
+
+      - name: Ask the database
+        timeout-minutes: 12
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-digital-downloads.php --allow-root 2>&1" \
+            || true
