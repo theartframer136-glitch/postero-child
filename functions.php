@@ -5460,10 +5460,29 @@ add_action('woocommerce_before_shop_loop', function() {
         'orderby'=>'count','order'=>'DESC','number'=>12,
     ));
 
-    // Filterable global attributes
-    $sizes  = get_terms(array('taxonomy'=>'pa_size','hide_empty'=>true,'number'=>30));
-    $colors = get_terms(array('taxonomy'=>'pa_colors','hide_empty'=>true,'number'=>12));
-    $frames = get_terms(array('taxonomy'=>'pa_frame','hide_empty'=>true,'number'=>12));
+    // Filterable global attributes.
+    //
+    // These are canvas attributes and they were fetched on every archive,
+    // including Digital Downloads — where the recording showed a sidebar
+    // offering "2.5×3 Ft (30×36 In)" and frame colours for a JPG. A file has
+    // none of the three, so on those archives the groups are not narrowed, they
+    // are dropped: an empty filter group is noise, and a populated one that
+    // cannot apply is worse.
+    $digital_archive = false;
+    if (is_product_category()) {
+        $obj = get_queried_object();
+        if ($obj && !empty($obj->slug)) {
+            $chain = array($obj->slug);
+            foreach (get_ancestors($obj->term_id, 'product_cat') as $aid) {
+                $anc = get_term($aid, 'product_cat');
+                if ($anc && !is_wp_error($anc)) $chain[] = $anc->slug;
+            }
+            $digital_archive = (bool) array_intersect($chain, af_digital_cat_slugs());
+        }
+    }
+    $sizes  = $digital_archive ? array() : get_terms(array('taxonomy'=>'pa_size','hide_empty'=>true,'number'=>30));
+    $colors = $digital_archive ? array() : get_terms(array('taxonomy'=>'pa_colors','hide_empty'=>true,'number'=>12));
+    $frames = $digital_archive ? array() : get_terms(array('taxonomy'=>'pa_frame','hide_empty'=>true,'number'=>12));
     $tags   = get_terms(array('taxonomy'=>'product_tag','hide_empty'=>true,'orderby'=>'count','order'=>'DESC','number'=>25));
 
     $base_url = strtok($_SERVER['REQUEST_URI'] ?? '', '?');
@@ -5878,7 +5897,10 @@ af_section(function() {
     if (!$product) return;
     $ids = wc_get_products(array(
         'status'=>'publish','limit'=>12,'return'=>'ids',
-        'category'=>array('digital-downloads','instant-downloads','printable-art'),
+        // The canonical list, not a third private copy: this one was also
+        // missing digital-downloads-2, so on a site where that is the live term
+        // the query returned nothing and the whole section silently vanished.
+        'category'=>af_digital_cat_slugs(),
         'exclude'=>array($product->get_id()),
     ));
     $ids = af_ids_with_image($ids, 4);
@@ -6331,12 +6353,59 @@ add_action('wp_footer', function() {
     $GLOBALS['product'] = ($p instanceof WC_Product) ? $p : null;
 }, 0);
 
+/**
+ * The categories that hold products sold AS FILES rather than as framed prints.
+ *
+ * One list, because two places used to keep their own and they had already
+ * drifted: the watermark gate listed three slugs and missed digital-downloads-2,
+ * which is the term the live category page actually runs on
+ * (/product-category/digital-downloads-2/). The site carries near-duplicate
+ * terms — af_sidebar_cat_menu() documents the same pair — so every slug that
+ * may be the live one belongs here, and nowhere else.
+ */
+function af_digital_cat_slugs() {
+    return apply_filters('af_digital_cat_slugs', array(
+        'digital-downloads', 'digital-downloads-2', 'instant-downloads', 'printable-art',
+    ));
+}
+
+/**
+ * Is this product sold as a downloadable file?
+ *
+ * NOT is_downloadable(): tools/enable-digital-downloads.php flags every
+ * published product downloadable so the add-on option can exist on any piece,
+ * so that method answers "yes" for the entire catalogue of physical canvases.
+ * The category is the honest signal, children included.
+ */
+function af_is_digital_download($product) {
+    if (!($product instanceof WC_Product)) return false;
+    static $ids = null;
+    if ($ids === null) {
+        $ids = array();
+        foreach (af_digital_cat_slugs() as $slug) {
+            $t = get_term_by('slug', $slug, 'product_cat');
+            if (!$t) continue;
+            $ids[] = (int) $t->term_id;
+            $kids = get_term_children($t->term_id, 'product_cat');
+            if (!is_wp_error($kids)) $ids = array_merge($ids, array_map('intval', $kids));
+        }
+        $ids = array_values(array_unique($ids));
+    }
+    if (!$ids) return false;
+    return has_term($ids, 'product_cat', $product->get_id());
+}
+
 function af_pricing_applies($product) {
     if (!($product instanceof WC_Product)) return false;
     if (!$product->is_type('simple') && !$product->is_type('variable')) return false;
     if (function_exists('af_gc_product_id') && (int) $product->get_id() === af_gc_product_id()) return false;
     if (get_post_meta($product->get_id(), '_af_is_gift_card', true) === 'yes') return false;
     if ($product->get_slug() === 'the-art-framer-gift-card') return false;
+    // A file has no size, no frame, no colour and nothing to ship. Leaving the
+    // canvas engine switched on for these is what put "5 sizes · 2 frames" and
+    // "From $80.00" on the Digital Downloads cards, under a modal selling the
+    // same piece for $9.43.
+    if (af_is_digital_download($product)) return false;
     $excluded = array('art-accessories', 'banners-signage');
     $terms = get_the_terms($product->get_id(), 'product_cat');
     if ($terms && !is_wp_error($terms)) {
@@ -9734,15 +9803,38 @@ function af_dd_preview_handler() {
     // Watermarking unavailable (GD can choke on the very large masters).
     // Fall back to a genuinely small size — and never the master: WordPress
     // returns the ORIGINAL file for any size an image never generated, which
-    // is exactly the leak this endpoint exists to close. No small size, no image.
+    // is exactly the leak this endpoint exists to close.
+    //
+    // This used to guess at three size NAMES and compare URLs. That is the
+    // blank preview pane in the recording: a site whose masters never produced
+    // 'medium', 'woocommerce_thumbnail' or 'thumbnail' — or produced them under
+    // other names — failed all three tests and the modal opened empty, with Add
+    // to Cart still live, selling a file nobody could see.
+    //
+    // Ask the attachment what it ACTUALLY generated instead. The metadata's
+    // 'sizes' map lists only real files sitting beside the master, whatever
+    // they are called, so there is no guessing and still no way to serve the
+    // original. Largest first: this is a preview pane, not a thumbnail.
     $master = wp_get_attachment_url($thumb);
-    foreach (array('medium', 'woocommerce_thumbnail', 'thumbnail') as $size) {
-        $small = wp_get_attachment_image_src($thumb, $size);
-        if ($small && !empty($small[0]) && $small[0] !== $master) {
-            wp_send_json_success(array('url' => $small[0], 'wm' => 0, 'price_html' => $price));
+    $meta   = wp_get_attachment_metadata($thumb);
+    if (!empty($meta['sizes']) && is_array($meta['sizes'])) {
+        $cands = array();
+        foreach ($meta['sizes'] as $name => $s) {
+            if (empty($s['file'])) continue;
+            $cands[$name] = (int) (isset($s['width']) ? $s['width'] : 0);
+        }
+        arsort($cands);
+        foreach (array_keys($cands) as $name) {
+            $src = wp_get_attachment_image_src($thumb, $name);
+            if ($src && !empty($src[0]) && $src[0] !== $master) {
+                wp_send_json_success(array('url' => $src[0], 'wm' => 0, 'price_html' => $price));
+            }
         }
     }
-    wp_send_json_error();
+    // Nothing beside the master. Rather than open blank, say so in the payload
+    // and let the modal explain itself — the price is still worth sending, so
+    // the visitor sees what the piece costs instead of a stale default.
+    wp_send_json_success(array('url' => '', 'wm' => 0, 'price_html' => $price, 'nopreview' => 1));
 }
 add_action('wp_ajax_af_dd_preview',        'af_dd_preview_handler');
 add_action('wp_ajax_nopriv_af_dd_preview', 'af_dd_preview_handler');
@@ -9868,6 +9960,7 @@ add_action('wp_footer', function() {
       // preview (the raw file was one right-click away in the old modal)
       function loadPreview(pid, seq){
         clearImg();
+        msgEl.textContent = '';   // a note left over from the last piece is not about this one
         fetch(AJAX + '?action=af_dd_preview&pid=' + encodeURIComponent(pid), {credentials:'same-origin'})
           .then(function(r){ return r.json(); })
           .then(function(j){
@@ -9876,8 +9969,20 @@ add_action('wp_footer', function() {
             showImg(d&&d.url ? d.url : '');
             var priceEl = document.getElementById('af-dd-price');
             if(priceEl && d && d.price_html) priceEl.innerHTML = d.price_html;
+            // An empty pane with a live Add to Cart is what the recording
+            // caught. If the server could not produce a preview, say so rather
+            // than leave the visitor looking at nothing and guessing.
+            if(d && !d.url){
+              msgEl.style.color = '';
+              msgEl.textContent = 'Preview image unavailable — the full-resolution file is unaffected.';
+            }
           })
-          .catch(function(){ if(seq!==reqSeq) return; clearImg(); });
+          .catch(function(){
+            if(seq!==reqSeq) return;
+            clearImg();
+            msgEl.style.color = '';
+            msgEl.textContent = 'Preview could not be loaded. Please try again.';
+          });
       }
 
       // Detect a "Digital Download" trigger inside a product card.
@@ -12011,17 +12116,10 @@ function af_wm_enabled() {
  * their children are the honest signal.
  */
 function af_wm_applies($product) {
-    if (!($product instanceof WC_Product)) return false;
-    $ids = array();
-    foreach (array('digital-downloads', 'instant-downloads', 'printable-art') as $slug) {
-        $t = get_term_by('slug', $slug, 'product_cat');
-        if (!$t) continue;
-        $ids[] = (int) $t->term_id;
-        $kids = get_term_children($t->term_id, 'product_cat');
-        if (!is_wp_error($kids)) $ids = array_merge($ids, array_map('intval', $kids));
-    }
-    if (!$ids) return false;
-    return has_term($ids, 'product_cat', $product->get_id());
+    // Was its own copy of the slug list, and that copy had gone stale: it never
+    // included digital-downloads-2, so on the one category page that sells
+    // files the watermark gate answered "no" for every product on it.
+    return af_is_digital_download($product);
 }
 
 // Swap gallery images for watermarked previews on downloadable products
