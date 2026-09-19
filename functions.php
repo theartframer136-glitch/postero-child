@@ -2744,7 +2744,17 @@ add_action('wp_footer', function() { ?>
     // measured nothing, kept the 420px default, and the owner quite correctly
     // said it was still not fixed.
     var bg = null, url = '';
+    // There are TWO hero widgets, one per breakpoint, and they hold different
+    // pictures: the desktop one 2.23:1 landscape banners, the phone one
+    // 414x896 portrait banners. This used to take the first background in
+    // the DOM - the hidden desktop widget's - so the phone's portrait
+    // banners were fitted into a 190px landscape box and painted as an 88px
+    // sliver: 97% of the hero was white. Measure the widget that is laid out.
     var all = document.querySelectorAll('.elementor-slides .swiper-slide-bg, .elementor-widget-slides .swiper-slide-bg');
+    all = Array.prototype.filter.call(all, function (el) {
+      var w = el.closest('.elementor-widget-slides, .elementor-slides-wrapper');
+      return !w || w.getBoundingClientRect().width > 0;
+    });
     for (var i = 0; i < all.length && !url; i++) {
       var cand = getComputedStyle(all[i]).backgroundImage
         || (all[i].getAttribute('style') || '');
