@@ -55,5 +55,5 @@ const out = await p.evaluate(() => {
     lines.push('DARK-IN-VIEW ' + desc(e)); });
   return lines.join('\n');
 });
-console.log(out);
+console.log(out.split('\n').filter(l => /elementor-button|DARK-IN-VIEW|Deals|nav roots/.test(l)).join('\n'));
 await b.close();
