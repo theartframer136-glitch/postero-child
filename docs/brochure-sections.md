@@ -5858,3 +5858,48 @@ titles round-trip: `af_size_label_for_product()` reads each generated title back
 to the same rate-card entry the price came from, so the card price and the
 opening price of the size selector agree. That is the check that was missing
 when the Digital Downloads cards said $80.00 over a modal selling $9.43.
+
+### Correction: the art-code image lookup was built on a false premise
+
+The tool above finds a product's artwork by looking for its art code in the
+Media Library filename, on the strength of a claim in
+`tools/diag-artcode-from-filenames.php` that "the source artwork was renamed
+with its art code before upload". The first live dry run refused all 17 rows
+for want of an image, and 17 of 17 failing identically is as likely to mean the
+lookup is wrong as it is to mean the files are missing.
+
+`PROBE=1` asked the site. The six Still Life products that already exist name
+their featured images:
+
+```
+#25185   SL - 150022-5030       Final_8-1-1
+#24291   SL - 150013-5030       3x4_New4@300x-100-1
+#15852   SL - 150006-4030       3X4-F-1
+#14093   SL - 150008-4040       3x4_New24@300x-100-1
+#13239   SL - 150009-5030       3x5-A-2-1
+#8805    SL - 150001-4030       Cafe-Decor
+```
+
+**Not one contains an art code.** They are design-tool export names. The claim
+does not hold for this section, so the lookup would refuse even the six
+products that exist and do have images. The refusal is therefore not evidence
+that the 17 artworks are missing — it is evidence that a filename cannot
+identify artwork on this site.
+
+Searching progressively looser — the whole code, the code without its size
+group, section and serial alone — found nothing at any level for any of the 17.
+
+The pool that would have to be searched some other way:
+
+| | |
+|---|---|
+| attachments in all | 5,610 |
+| used by some product | 2,059 |
+| used by no product | 3,551 |
+
+The unused 3,551 are mostly site furniture — `woocommerce-placeholder`,
+`store_banner1-1`, `revslider_1`, `payment-1` — so the artwork may or may not
+be among them. Nothing here establishes that it is.
+
+Until the artwork for a row can be identified, the tool's behaviour is correct:
+it refuses, and creates nothing. What it must not do is claim the reason.
