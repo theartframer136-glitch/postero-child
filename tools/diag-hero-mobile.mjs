@@ -86,11 +86,41 @@ const report = (label, m) => {
   console.log('  ' + (m.anySlideInView && m.activeBg && m.activeBg.hasImage && m.activeBg.h > 60 ? 'PASS - a banner is on screen' : 'FAIL - hero is blank'));
 };
 
+// Does the banner actually PAINT? A computed background-image url is not a
+// picture on screen: the file could 404, or a white layer could sit on top.
+// Screenshot the hero box and count near-white pixels.
+async function paint(p, label) {
+  try {
+    const box = await p.evaluate(() => {
+      const all = [...document.querySelectorAll('.elementor-widget-slides')];
+      const host = all.find(w => w.getBoundingClientRect().width > 0); if (!host) return null;
+      host.scrollIntoView({ block: 'center' });
+      const r = host.getBoundingClientRect(); return { x: Math.max(0, r.left), y: Math.max(0, r.top), w: r.width, h: r.height };
+    });
+    if (!box || box.w < 10 || box.h < 10) { console.log('  paint check: no hero box'); return; }
+    await new Promise(r => setTimeout(r, 1500));
+    const b64 = await p.screenshot({ clip: { x: box.x, y: box.y, width: box.w, height: box.h }, encoding: 'base64' });
+    const stats = await p.evaluate(async (b64) => {
+      const im = new Image(); im.src = 'data:image/png;base64,' + b64; await im.decode();
+      const c = document.createElement('canvas'); c.width = im.width; c.height = im.height;
+      const g = c.getContext('2d'); g.drawImage(im, 0, 0);
+      const d = g.getImageData(0, 0, c.width, c.height).data; let white = 0, n = 0;
+      for (let i = 0; i < d.length; i += 16) { n++; if (d[i] > 245 && d[i+1] > 245 && d[i+2] > 245) white++; }
+      return { w: im.width, h: im.height, whitePct: Math.round(100 * white / n) };
+    }, b64);
+    console.log('  paint check (' + label + '): hero pixels ' + stats.w + 'x' + stats.h + ', near-white ' + stats.whitePct + '%  -> ' + (stats.whitePct > 90 ? 'BLANK' : 'picture painted'));
+    // and the image files themselves
+    const urls = await p.evaluate(() => [...new Set([...document.querySelectorAll('.elementor-widget-slides .swiper-slide-bg')].map(e => (getComputedStyle(e).backgroundImage.match(/url\("?([^")]+)/) || [])[1]).filter(Boolean))]);
+    const codes = await p.evaluate(async (urls) => { const out = []; for (const u of urls.slice(0, 8)) { try { const r = await fetch(u, { cache: 'no-store' }); out.push(r.status + ' ' + (r.headers.get('content-type') || '') + ' ' + u.split('/').pop()); } catch (e) { out.push('ERR ' + u.split('/').pop()); } } return out; }, urls);
+    codes.forEach(c => console.log('    img: ' + c));
+  } catch (e) { console.log('  paint check failed: ' + e.message); }
+}
+
 // A. fresh at phone width
 {
   const p = await b.newPage();
   await p.setViewport({ width: 423, height: 820, isMobile: true, hasTouch: true });
-  if (await load(p)) report('A: loaded at 423px (a real phone)', await measure(p));
+  if (await load(p)) { report('A: loaded at 423px (a real phone)', await measure(p)); await paint(p, 'A'); }
   else console.log('A: could not load');
   await p.close();
 }
@@ -98,7 +128,7 @@ const report = (label, m) => {
 {
   const p = await b.newPage();
   await p.setViewport({ width: 423, height: 642, isMobile: true, hasTouch: true });
-  if (await load(p)) report('C: loaded at 423x642 (the screenshot)', await measure(p));
+  if (await load(p)) { report('C: loaded at 423x642 (the screenshot)', await measure(p)); await paint(p, 'C'); }
   await p.close();
 }
 // B. desktop, then resized down - the recording
@@ -109,7 +139,7 @@ const report = (label, m) => {
     report('B0: desktop before resize', await measure(p));
     await p.setViewport({ width: 423, height: 820, isMobile: true, hasTouch: true });
     await new Promise(r => setTimeout(r, 5000));
-    report('B: resized 1280 -> 423 (the recording)', await measure(p));
+    report('B: resized 1280 -> 423 (the recording)', await measure(p)); await paint(p, 'B');
     // and back, since a fix must not wreck the desktop it returns to
     await p.setViewport({ width: 1280, height: 900 });
     await new Promise(r => setTimeout(r, 5000));
