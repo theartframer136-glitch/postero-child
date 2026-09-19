@@ -195,6 +195,32 @@ function af_abp_probe( $rows ) {
             if ( $hits ) break;   // the tightest match that finds anything is the answer
         }
     }
+    // If no filename carries a code, the only other way to find the right
+    // picture is to look at the pictures. That is only tractable if the pool
+    // is small, so size it: images no product uses at all.
+    $used = array();
+    foreach ( get_posts( array( 'post_type' => 'product', 'post_status' => 'any',
+        'posts_per_page' => -1, 'fields' => 'ids' ) ) as $pid ) {
+        $t = (int) get_post_thumbnail_id( $pid );
+        if ( $t ) { $used[ $t ] = 1; }
+        $gal = (string) get_post_meta( $pid, '_product_image_gallery', true );
+        foreach ( array_filter( array_map( 'intval', explode( ',', $gal ) ) ) as $g ) { $used[ $g ] = 1; }
+    }
+    $free = array();
+    foreach ( $files as $f ) { if ( empty( $used[ $f[0] ] ) ) { $free[] = $f; } }
+
+    echo "\n=== HOW BIG IS THE POOL TO MATCH BY EYE ===\n";
+    printf( "  attachments in all      : %d\n", count( $files ) );
+    printf( "  used by some product    : %d\n", count( $used ) );
+    printf( "  used by no product      : %d\n", count( $free ) );
+    echo "\n  a sample of the unused ones:\n";
+    $n = 0;
+    foreach ( $free as $f ) {
+        $m = wp_get_attachment_metadata( $f[0] );
+        printf( "    #%-7d %-44s %s\n", $f[0], substr( $f[1], 0, 44 ),
+            ! empty( $m['width'] ) ? "{$m['width']}x{$m['height']}" : '?' );
+        if ( ++$n >= 25 ) break;
+    }
     echo "=== DONE ===\n";
 }
 
