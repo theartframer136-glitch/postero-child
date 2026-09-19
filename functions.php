@@ -9028,6 +9028,47 @@ add_action('wp_head', function() {
         gap: 4px !important;
         flex-wrap: nowrap !important;
       }
+
+      /* ── THE ROOM PHOTO ON "SEE IT ON YOUR WALL" ───────────────────────
+         Third time the blanket rule above has caught something, and the same
+         way each time: `height: auto !important` on every image cancels a
+         layout built the other way round, on a box of a fixed height with
+         object-fit: cover filling it.
+
+         Measured on the live page at 390px: the stage is 420px tall and the
+         room photograph computed to 159.6px - which is exactly its own
+         1376x768 proportions applied to the 286px it had to work with. With
+         the image pinned to top, left and right, the remaining 260px showed
+         the stage's bare cream background, and the room looked cut in half.
+         768px had the same fault at 88%, less obvious but no more correct.
+
+         The wall preview is the one place on the site where the picture MUST
+         fill its frame: the artwork is positioned over it in percentages of
+         that frame, so a photograph covering only part of it puts the piece
+         on the wrong part of the wall. The camera feed beside it is the same
+         geometry and is given the same treatment. Both are named exactly, so
+         the blanket rule keeps protecting every other image on the page. */
+      .af-tow-stage .af-tow-wallimg,
+      .af-tow-stage .af-tow-cam{
+        width: 100% !important;
+        height: 100% !important;
+        max-width: none !important;
+        object-fit: cover !important;
+      }
+      /* And the box itself gets the shape of a photograph.
+         Filling a 286x420 portrait box with a 16:9 room crops it to about a
+         third of its width - a narrow vertical slice, which trades one wrong
+         picture for another. Rendered both at 390px before choosing: a 4:3
+         box comes out 286x215 and keeps 74% of the room.
+         It is not less preview than before, it is more. What the owner's
+         recording shows today is about 190px of room sitting above 230px of
+         bare background; this is 215px of room and no background at all. */
+      .af-tow-stage{
+        height: auto !important;
+        aspect-ratio: 4 / 3 !important;
+        min-height: 0 !important;
+        max-height: none !important;
+      }
       video, iframe{ max-width: 100% !important; }
       /* Long words / URLs wrap instead of forcing width */
       p, h1, h2, h3, h4, h5, h6, a, span, li, td, th{ overflow-wrap: break-word; word-wrap: break-word; }
