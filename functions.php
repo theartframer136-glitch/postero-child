@@ -8986,10 +8986,15 @@ add_action('template_redirect', function(){
          shipped check, tools/verify-ar-layouts.php, greps the served HTML for
          id="tow-calh" and id="tow-camstop". */
 
+      /* No panel behind it. The strip sits on the card itself, so it takes
+         the card's own colours - #6b6250 is the same body grey as the page's
+         sub-heading - instead of a black box floating on cream. Everything in
+         here had to change colour with it: white text and a white-on-white X
+         would simply have disappeared. */
       .af-tow-camhead{
         display:flex; align-items:center; justify-content:space-between;
-        gap:8px; margin:0 0 8px; padding:8px 10px; min-height:48px;
-        border-radius:10px; background:#1a1a1a; color:#fff;
+        gap:8px; margin:0 0 6px; padding:2px 2px; min-height:40px;
+        background:none; color:#6b6250;
       }
       /* min-height is not decoration. The strip's text changes during a
          session - the instruction, then the lock confirmation - and outside
@@ -8997,18 +9002,21 @@ add_action('template_redirect', function(){
          moves the stage down and back and re-fires the ResizeObserver
          watching it. A floor under the height keeps the picture still. */
       .af-tow-camhead-msg{
-        flex:1 1 auto; font-size:11px; line-height:1.35; text-align:left;
+        flex:1 1 auto; font-size:11.5px; line-height:1.4; text-align:left;
+        color:#6b6250;
       }
-      .af-tow-camhead-msg strong{ color:#efd48d; }
+      /* The page's own gold, the one the badge uses, rather than the pale
+         #efd48d that was picked to read against black. */
+      .af-tow-camhead-msg strong{ color:#a8801f; }
       /* The strip reuses the message's own markup, so the phone wording rule
          further down (.af-tow-calmsg-long/-short) applies to it unchanged. */
       .af-tow-camhead-x{
         flex:0 0 auto; width:32px; height:32px; padding:0;
-        border:none; border-radius:999px; background:rgba(255,255,255,.16);
-        color:#fff; font-size:15px; line-height:32px; text-align:center;
+        border:1px solid #e6d7ad; border-radius:999px; background:#f3ead2;
+        color:#8a6d1f; font-size:15px; line-height:30px; text-align:center;
         cursor:pointer;
       }
-      .af-tow-camhead-x:hover{ background:rgba(255,255,255,.26); }
+      .af-tow-camhead-x:hover{ background:#e9dcbb; }
       .af-tow-camhead-recal{
         flex:0 0 auto; padding:6px 10px; border:none; border-radius:999px;
         background:#2fae52; color:#fff; font-size:11px; font-weight:700;
@@ -9017,12 +9025,12 @@ add_action('template_redirect', function(){
       /* Wall height, one chip instead of the row of three that used to lie
          across the video. It reads the current value and cycles on tap. */
       .af-tow-camhead-ft{
-        flex:0 0 auto; padding:6px 10px; border:1px solid #6f6a5e;
-        border-radius:999px; background:transparent; color:#fff;
+        flex:0 0 auto; padding:6px 10px; border:1px solid #e6d7ad;
+        border-radius:999px; background:#f3ead2; color:#8a6d1f;
         font-size:11px; font-weight:700; line-height:1.2; white-space:nowrap;
         cursor:pointer;
       }
-      .af-tow-camhead-ft:hover{ background:rgba(255,255,255,.12); }
+      .af-tow-camhead-ft:hover{ background:#e9dcbb; }
       /* The message yields first when the row runs out of room - it is the one
          thing here that can wrap, and the strip's min-height absorbs it. */
       .af-tow-camhead-msg{ min-width:0; }
