@@ -1,0 +1,78 @@
+name: Fix Truncated Product Slugs
+
+# Repair product URLs that the importer cut off mid-word:
+#
+#   /product/...-72-24-inches-divine-h/     ("Divine Himalayan")
+#   /product/...-36-48-inches-sacred-r/     ("Sacred & Radiant")
+#
+# 49 products carry a slug of exactly 70 characters; 35 of those land inside a
+# word. Only those 35 are touched — a slug that stops on a word boundary is
+# untidy, not broken, and is left alone.
+#
+# The old URL keeps working: the tool records the previous slug in
+# _wp_old_slug, which WordPress core's own wp_old_slug_redirect() reads to 301
+# the old address to the new one.
+#
+# Leave "apply" unticked first. The run prints every rename it would make and
+# writes nothing; tick it once the plan reads right.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Write the new slugs (leave off to preview the plan only)
+        type: boolean
+        default: false
+      slug_max:
+        description: Longest slug in characters, cut at a word boundary (blank = 80)
+        type: string
+        default: ''
+
+jobs:
+  fix-slugs:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Send the script up
+        run: |
+          set -uo pipefail
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/fix-truncated-slugs.php \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/fix-truncated-slugs.php" \
+            || echo "  scp failed — falling back to whatever the last deploy left there"
+
+      - name: Rewrite the slugs
+        timeout-minutes: 18
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             APPLY=${{ inputs.apply == true && '1' || '0' }} \
+             SLUG_MAX='${{ inputs.slug_max }}' \
+             wp eval-file wp-content/themes/postero-child/tools/fix-truncated-slugs.php --allow-root 2>&1" \
+            || true
+
+      # Permalinks are rewrite rules; a changed post_name is picked up without a
+      # flush, but flushing costs nothing here and removes the one thing that
+      # could make a fresh URL look broken while the old one still answers.
+      - name: Flush permalinks
+        if: inputs.apply
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && wp rewrite flush --allow-root 2>&1" \
+            || true
