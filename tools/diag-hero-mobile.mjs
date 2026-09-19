@@ -63,6 +63,10 @@ const measure = (p) => p.evaluate(() => {
     activeInView: !!active && inView(active),
     activeBg: abg ? { hasImage: /url\(/.test(getComputedStyle(abg).backgroundImage), h: Math.round(r(abg).height), size: getComputedStyle(abg).backgroundSize } : null,
     ourFixRan: slides.some(s => (s.style.width || '') === '100vw'),
+    bgChain: abg ? (() => { const out = []; let n = abg; while (n && n !== host.parentElement && out.length < 10) { const c = getComputedStyle(n), q = r(n);
+        out.push(n.tagName.toLowerCase() + '.' + String(n.className).split(/\s+/).slice(0,3).join('.') + ' ' + Math.round(q.width) + 'x' + Math.round(q.height) + ' d=' + c.display + ' op=' + c.opacity + ' vis=' + c.visibility + ' pos=' + c.position + ' ov=' + c.overflow + (c.transform !== 'none' ? ' tf=' + c.transform : '') + (n === abg ? ' bgi=' + c.backgroundImage.slice(0, 90) + ' bgsz=' + c.backgroundSize + ' bgpos=' + c.backgroundPosition + ' attrs=' + [...n.attributes].map(a => a.name + '=' + a.value.slice(0, 40)).join(' ') : ''));
+        n = n.parentElement; } return out; })() : null,
+    hostClasses: host.className,
   };
 });
 
@@ -77,6 +81,8 @@ const report = (label, m) => {
   console.log('  active slide        : #' + m.activeIndex + '  in view=' + m.activeInView + '  bg=' + JSON.stringify(m.activeBg));
   console.log('  any slide in view   : ' + m.anySlideInView);
   console.log('  our mobile fix ran  : ' + m.ourFixRan);
+  console.log('  host classes        : ' + m.hostClasses);
+  (m.bgChain || []).forEach(l => console.log('    ' + l));
   console.log('  ' + (m.anySlideInView && m.activeBg && m.activeBg.hasImage && m.activeBg.h > 60 ? 'PASS - a banner is on screen' : 'FAIL - hero is blank'));
 };
 
@@ -86,6 +92,13 @@ const report = (label, m) => {
   await p.setViewport({ width: 423, height: 820, isMobile: true, hasTouch: true });
   if (await load(p)) report('A: loaded at 423px (a real phone)', await measure(p));
   else console.log('A: could not load');
+  await p.close();
+}
+// C. the owner's DevTools frame: 423x642
+{
+  const p = await b.newPage();
+  await p.setViewport({ width: 423, height: 642, isMobile: true, hasTouch: true });
+  if (await load(p)) report('C: loaded at 423x642 (the screenshot)', await measure(p));
   await p.close();
 }
 // B. desktop, then resized down - the recording
