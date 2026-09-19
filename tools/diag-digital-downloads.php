@@ -59,9 +59,22 @@ foreach ( $ids as $pid ) {
     $file = function_exists( 'af_digital_price' ) ? wc_price( af_digital_price( $pid ) ) : '?';
     printf( "  #%-6d %-40s digital=%-3s canvas=%-3s wm=%-3s\n", $pid,
         substr( wp_strip_all_tags( $p->get_name() ), 0, 40 ), $dig, $can, $wm );
-    printf( "          card\$ %-28s file\$ %-10s  code %s\n",
-        substr( $card, 0, 28 ), wp_strip_all_tags( $file ),
-        get_post_meta( $pid, '_taf_art_code', true ) ?: '(none)' );
+    // The card and the modal quoting different numbers for the same piece is
+    // the fault the recording caught: $80.00 on the card, $9.43 in the modal.
+    // They should now read the same, so say plainly when they do not.
+    // Parsed, not stripped. wc_price() writes the symbol as the entity &#36;
+    // so there may be no literal '$' left after wp_strip_all_tags(), and a
+    // sale string ends "(29% off)" whose digits would otherwise join the
+    // amount. Decode, take every number that looks like a price, keep the
+    // LAST one — in "was / now" markup the now-price is the one being charged.
+    $plain  = html_entity_decode( $card, ENT_QUOTES, 'UTF-8' );
+    $card_n = preg_match_all( '/(\d[\d,]*\.\d{2})/', $plain, $mm )
+        ? (float) str_replace( ',', '', end( $mm[1] ) ) : 0.0;
+    $file_n = function_exists( 'af_digital_price' ) ? (float) af_digital_price( $pid ) : 0.0;
+    $agree  = ( $file_n > 0 && abs( $card_n - $file_n ) < 0.01 ) ? 'ok' : 'MISMATCH';
+    printf( "          card\$ %-28s file\$ %-10s  %s\n",
+        substr( $card, 0, 28 ), wp_strip_all_tags( $file ), $agree );
+    printf( "          code %s\n", get_post_meta( $pid, '_taf_art_code', true ) ?: '(none)' );
 }
 
 echo "\n=== WHAT THE PREVIEW ENDPOINT WOULD RETURN ===\n";
