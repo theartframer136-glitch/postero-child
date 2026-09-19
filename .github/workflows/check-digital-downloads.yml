@@ -13,7 +13,11 @@ name: Check Digital Downloads
 #      branch of the preview endpoint that answers, and why the ones before it
 #      declined.
 #
-# Read-only. It prints; it changes nothing.
+# It changes no product, option or term. It is not purely read-only though:
+# asking the preview endpoint what it would return generates the watermarked
+# preview and caches it under uploads/af-wm/ when one is missing, so a first
+# run can leave files behind — and can make a blank pane start working simply
+# by warming that cache.
 
 on:
   workflow_dispatch:
