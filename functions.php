@@ -1551,11 +1551,23 @@ html body .swiper-slide-bg {
   }
   /* Slide containers — strip any fixed width */
   html body .elementor-slides-wrapper,
-  html body .elementor-slides,
   html body [class*="elementor-widget"] .elementor-slides-wrapper {
     width: 100vw !important;
     max-width: 100vw !important;
     overflow: hidden !important;
+  }
+  /* .elementor-slides is the Swiper TRACK (the same element as .swiper-wrapper),
+     the flex row of every slide that Swiper moves with translateX. It was in
+     the rule above: overflow:hidden on a 100vw track clips it to its own box,
+     and the track's box is translated off screen (-2538px at slide 7) - so
+     the slide brought on screen was cut away and the hero painted white on
+     every phone. Measured: the desktop track is overflow:visible and paints;
+     the phone track was hidden and did not. Only the container clips. */
+  html body .elementor-slides,
+  html body .elementor-widget-slides .swiper-wrapper {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow: visible !important;
   }
   /* Background image — absolutely fill the slide */
   html body .elementor-slides .swiper-slide-bg,
@@ -2812,6 +2824,12 @@ add_action('wp_footer', function() { ?>
       '.elementor-widget-slides .swiper-container'
     ).forEach(function(c) {
       sp(c, 'width', '100vw'); sp(c, 'max-width', '100vw'); sp(c, 'overflow', 'hidden');
+    });
+    // The track must NOT clip: it is translated off screen to bring a slide
+    // on, so overflow:hidden on it hides the very slide being shown (see the
+    // stylesheet note). Said inline so no rule can put it back.
+    document.querySelectorAll('.elementor-widget-slides .swiper-wrapper').forEach(function(t) {
+      sp(t, 'overflow', 'visible');
     });
   }
 
