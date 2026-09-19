@@ -7519,6 +7519,19 @@ add_action('template_redirect', function(){
           </div>
 
           <div class="af-tow-stagewrap">
+            <!-- Phones only. The camera's two controls used to sit ON the video:
+                 the instruction box across the top of it and the ✕ in its top
+                 right corner, both over the very wall the visitor is lining up.
+                 They are drawn here instead, in a strip above the picture, and
+                 the copies inside the stage are hidden at this width. This is a
+                 strip, not a move: #tow-calmsg is hidden by its PARENT #tow-cal
+                 when the wall locks, so lifting that node out of the stage would
+                 leave the instruction on screen after it stopped being true. -->
+            <div id="tow-camhead" class="af-tow-camhead" style="display:none">
+              <span class="af-tow-camhead-msg"></span>
+              <button type="button" class="af-tow-camhead-recal" style="display:none">📐 Recalibrate</button>
+              <button type="button" class="af-tow-camhead-x" aria-label="Stop camera">✕</button>
+            </div>
             <div id="tow-stage" class="af-tow-stage">
               <img id="tow-wallimg" class="af-tow-wallimg" alt="">
               <video id="tow-cam" class="af-tow-cam" autoplay playsinline muted></video>
@@ -8696,6 +8709,69 @@ add_action('template_redirect', function(){
         refresh();
         var el=document.querySelector('.af-tow-wrap'); if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
       })();
+
+      /* ── THE CAMERA STRIP, PHONES ONLY ───────────────────────────────────
+         Nothing here changes the calibration. The rectangle, the stage and the
+         maths that turn it into a measured price all stay exactly as they were
+         - CAL.base is ((CAL_BOT-CAL_TOP) * stage height) / wallFt, so anything
+         that shrank the video inside the stage would quietly corrupt the one
+         number this feature exists to get right.
+
+         So the strip above the video only MIRRORS the two controls, and reads
+         their state from the inline display the existing code already sets:
+         #tow-cal for the instruction (its parent - which is why the node itself
+         is not moved) and #tow-camstop for whether the camera is running. The ✕
+         forwards its click to the real button, so stopping the camera still
+         runs exactly one code path. A hidden button still answers .click(). */
+      (function(){
+        var head = document.getElementById('tow-camhead');
+        var cal  = document.getElementById('tow-cal');
+        var msg  = document.getElementById('tow-calmsg');
+        var stop = document.getElementById('tow-camstop');
+        if(!head || !cal || !msg || !stop) return;
+        var hMsg = head.querySelector('.af-tow-camhead-msg');
+        var hX   = head.querySelector('.af-tow-camhead-x');
+        // The third thing that sits on the video, and the one nobody asked
+        // about because it only appears 1.1 seconds after the wall locks:
+        // #tow-recal, the "tap to recalibrate" pill in the top LEFT corner.
+        // Hiding it without a replacement would strand anyone whose lock
+        // drifted, so it is mirrored here like the other two.
+        var recal = document.getElementById('tow-recal');
+        var hRe   = head.querySelector('.af-tow-camhead-recal');
+        // One literal, used by the stylesheet and by this script. The file
+        // already has four different phone widths in play (600, 781, 900 and
+        // 480); the two elements this strip replaces have always been treated
+        // at 600, so that is the number, and it must not drift from the @media
+        // rule or a rotation lands the controls back on the video.
+        var mq   = window.matchMedia('(max-width:600px)');
+
+        // Read the INLINE display, not the computed one: at this width the CSS
+        // hides both originals, so computed style says 'none' for each of them
+        // whatever the camera is doing. The inline value is the state.
+        function on(el){ return el.style.display !== 'none' && el.style.display !== ''; }
+
+        function sync(){
+          if(!mq.matches){ head.style.display='none'; return; }
+          var wantMsg = on(cal), wantX = on(stop), wantRe = !!recal && on(recal);
+          if(wantMsg && hMsg.innerHTML !== msg.innerHTML) hMsg.innerHTML = msg.innerHTML;
+          if(!wantMsg) hMsg.innerHTML = '';
+          hMsg.style.display = wantMsg ? 'block' : 'none';
+          hX.style.display   = wantX   ? 'block' : 'none';
+          if(hRe) hRe.style.display = wantRe ? 'block' : 'none';
+          head.style.display = (wantMsg || wantX || wantRe) ? 'flex' : 'none';
+        }
+
+        hX.addEventListener('click', function(){ stop.click(); });
+        if(hRe && recal) hRe.addEventListener('click', function(){ recal.click(); });
+
+        var mo = new MutationObserver(sync);
+        mo.observe(cal,  { attributes:true, attributeFilter:['style'],
+                           childList:true, subtree:true, characterData:true });
+        mo.observe(stop, { attributes:true, attributeFilter:['style'] });
+        if(recal) mo.observe(recal, { attributes:true, attributeFilter:['style'] });
+        if(mq.addEventListener) mq.addEventListener('change', sync); else mq.addListener(sync);
+        sync();
+      })();
     })();
     </script>
 
@@ -8813,6 +8889,8 @@ add_action('template_redirect', function(){
       text-transform:none;letter-spacing:0;transition:background .2s;}
     .af-tow-cambtn:hover{background:#000;}
     .af-tow-cambtn em{font-style:normal;font-weight:500;font-size:10.5px;color:#cbc2ac;}
+    /* Off everywhere by default; only the phone query below switches it on. */
+    .af-tow-camhead{display:none;}
     .af-tow-camstop{position:absolute;top:12px;right:12px;z-index:8;background:rgba(20,20,20,.85);color:#fff;border:none;
       border-radius:999px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;}
     /* This button and the calibration message have always shared the top of
@@ -8832,7 +8910,65 @@ add_action('template_redirect', function(){
       /* 40px square: a corner control still wants a thumb-sized target. */
       .af-tow-camstop{padding:0;width:40px;height:40px;line-height:40px;text-align:center;font-size:16px;}
       .af-tow-camstop-t{display:none;}
+      /* Inert since the block below took the message off the video entirely -
+         it now styles a hidden element. Left in place because it is the record
+         of why 56px was the number, and because deleting it would change
+         nothing except make the history harder to follow. */
       .af-tow-calmsg{left:8px;right:56px;transform:none;max-width:none;}
+
+      /* ── AND ON A PHONE, NOTHING SITS ON THE VIDEO AT ALL ──────────────
+         The paragraph above kept the instruction and the ✕ from colliding
+         with each other, but both still lay across the picture - over the
+         ceiling line the visitor is being asked to line up. On a phone the
+         stage is only ~215px tall, so anything on it is in the way.
+
+         All three overlays come off the video here. The instruction and the
+         ✕ are drawn again in .af-tow-camhead, the strip above the stage; the
+         wall-height pill is simply dropped, because the same three buttons
+         are in the panel below as #tow-wallh, where they are on screen for
+         room photos too rather than only while the camera is aligning.
+         The rectangle itself stays exactly where it was: it IS the
+         measurement. Everything here is inside this query, so a desktop sees
+         none of it. ─────────────────────────────────────────────────── */
+      .af-tow-stage .af-tow-calmsg,
+      .af-tow-stage .af-tow-camstop,
+      .af-tow-stage .af-tow-recal,
+      .af-tow-calh{ display:none !important; }
+      /* display:none, not visibility or opacity. The wall-height pill is the
+         one thing in that click-through overlay with pointer-events:auto, so
+         an invisible-but-present copy would go on swallowing taps meant for
+         the artwork underneath it. The node itself stays in the page - a
+         shipped check, tools/verify-ar-layouts.php, greps the served HTML for
+         id="tow-calh" and id="tow-camstop". */
+
+      .af-tow-camhead{
+        display:flex; align-items:center; justify-content:space-between;
+        gap:8px; margin:0 0 8px; padding:8px 10px; min-height:48px;
+        border-radius:10px; background:#1a1a1a; color:#fff;
+      }
+      /* min-height is not decoration. The strip's text changes during a
+         session - the instruction, then the lock confirmation - and outside
+         the stage's overflow:hidden it is free to grow and shrink, which
+         moves the stage down and back and re-fires the ResizeObserver
+         watching it. A floor under the height keeps the picture still. */
+      .af-tow-camhead-msg{
+        flex:1 1 auto; font-size:11px; line-height:1.35; text-align:left;
+      }
+      .af-tow-camhead-msg strong{ color:#efd48d; }
+      /* The strip reuses the message's own markup, so the phone wording rule
+         further down (.af-tow-calmsg-long/-short) applies to it unchanged. */
+      .af-tow-camhead-x{
+        flex:0 0 auto; width:32px; height:32px; padding:0;
+        border:none; border-radius:999px; background:rgba(255,255,255,.16);
+        color:#fff; font-size:15px; line-height:32px; text-align:center;
+        cursor:pointer;
+      }
+      .af-tow-camhead-x:hover{ background:rgba(255,255,255,.26); }
+      .af-tow-camhead-recal{
+        flex:0 0 auto; padding:6px 10px; border:none; border-radius:999px;
+        background:#2fae52; color:#fff; font-size:11px; font-weight:700;
+        line-height:1.2; cursor:pointer;
+      }
     }
     /* wall calibration: red rectangle → amber when the lines are close → green
        at the lock; the huge shadow dims everything outside the rectangle */
