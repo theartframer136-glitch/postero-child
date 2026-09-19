@@ -9666,6 +9666,19 @@ add_action('wp_head', function() {
         display: flex !important; align-items: center !important; gap: 10px !important; }
       .af-ck-main p a{ display: inline-block !important; padding: 8px 0 !important; }
 
+      /* ── OFF-CANVAS MENU: the "Blog" item ─────────────────────────────
+         The header menu marks Blog as an Elementor "button" item. On the
+         desktop bar that is a black pill with white text; inside the phone's
+         slide-out panel HFE recolours every link black, so the pill came out
+         black-on-black — a solid bar under Deals & Discounts with nothing
+         readable in it. Phones only: draw it like the rows above it. */
+      .hfe-nav-menu li.menu-item > a.hfe-menu-item.elementor-button{
+        background: transparent !important; background-color: transparent !important;
+        background-image: none !important; color: #000 !important;
+        border-radius: 0 !important; border: 0 !important; box-shadow: none !important;
+        justify-content: flex-start !important; text-align: left !important;
+      }
+
       /* ── HANDS OFF ANYTHING PINNED TO THE SCREEN ───────────────────────
          This must come last, and here is why. The bottom navigation bar is
          built out of Elementor icon boxes — the same widget as the footer
