@@ -83,6 +83,49 @@ for (const ft of ['10', '8', '9', '10']) {
   console.log('   price              : ' + s.price.trim());
 }
 
+// ---- the chip in the strip: is it there, does it read right, does it work ----
+const chip = [];
+for (let i = 0; i < 4; i++) {
+  const before = await p.evaluate(() => {
+    const c = document.querySelector('.af-tow-camhead-ft');
+    const fb = document.getElementById('tow-framebox');
+    const row = document.getElementById('tow-wallh');
+    const on = row && row.querySelector('button[data-ft].on');
+    return {
+      label: c ? c.textContent.trim() : null,
+      visible: !!c && getComputedStyle(c).display !== 'none',
+      panelSays: on ? on.getAttribute('data-ft') : null,
+      art: fb ? Math.round(fb.getBoundingClientRect().height) : null,
+    };
+  });
+  await p.evaluate(() => { const c = document.querySelector('.af-tow-camhead-ft'); if (c) c.click(); });
+  await new Promise(r => setTimeout(r, 2000));
+  const after = await p.evaluate(() => {
+    const c = document.querySelector('.af-tow-camhead-ft');
+    const fb = document.getElementById('tow-framebox');
+    const row = document.getElementById('tow-wallh');
+    const on = row && row.querySelector('button[data-ft].on');
+    return {
+      label: c ? c.textContent.trim() : null,
+      panelSays: on ? on.getAttribute('data-ft') : null,
+      art: fb ? Math.round(fb.getBoundingClientRect().height) : null,
+    };
+  });
+  chip.push({ before, after });
+  console.log('\nchip tap ' + (i + 1) + ': "' + before.label + '" -> "' + after.label + '"'
+    + '   panel ' + before.panelSays + ' -> ' + after.panelSays
+    + '   artwork ' + before.art + ' -> ' + after.art);
+}
+const chipVisible = chip[0].before.visible;
+const agrees = chip.every(c => c.after.label === (c.after.panelSays + ' ft'));
+const cycles  = chip.some(c => c.before.label !== c.after.label);
+const movesArt = chip.some(c => c.before.art !== c.after.art);
+console.log('\n--- the chip ---');
+console.log('  visible while the camera runs : ' + (chipVisible ? 'PASS' : 'FAIL'));
+console.log('  label matches the panel row   : ' + (agrees ? 'PASS' : 'FAIL'));
+console.log('  tapping it cycles the value   : ' + (cycles ? 'PASS' : 'FAIL'));
+console.log('  tapping it resizes the artwork: ' + (movesArt ? 'PASS' : 'FAIL'));
+
 const art = rows.map(x => x.artwork && x.artwork.h).filter(x => x != null);
 const box = rows.map(x => x.redBox && x.redBox.h).filter(x => x != null);
 const varies = a => a.length > 1 && Math.max(...a) - Math.min(...a) > 1;
@@ -90,4 +133,25 @@ console.log('\n--- what the buttons actually move ---');
 console.log('  artwork heights   : ' + JSON.stringify(art) + '  -> ' + (varies(art) ? 'CHANGES with wall height (buttons are live)' : 'DOES NOT CHANGE (buttons are dead)'));
 console.log('  red box heights   : ' + JSON.stringify(box) + '  -> ' + (varies(box) ? 'changes' : 'fixed'));
 console.log('  .on tracked correctly: ' + (rows.every(x => x.onInPanel.length === 1 && x.onInPanel[0] === x.ft) ? 'yes' : 'NO'));
+
+// desktop must not gain a chip
+const dp = await b.newPage();
+await dp.setViewport({ width: 1280, height: 900 });
+try { await dp.goto('https://theartframer.us/try-on-wall/', { waitUntil: 'domcontentloaded', timeout: 90000 }); } catch {}
+await new Promise(r => setTimeout(r, 8000));
+await dp.evaluate(() => { const b = document.getElementById('tow-cambtn'); if (b) b.click(); });
+await new Promise(r => setTimeout(r, 5000));
+const deskChip = await dp.evaluate(() => {
+  const c = document.querySelector('.af-tow-camhead-ft');
+  const h = document.getElementById('tow-camhead');
+  return { chip: !!c && getComputedStyle(c).display !== 'none',
+           strip: !!h && getComputedStyle(h).display !== 'none',
+           calhOnVideo: (function(){ const x = document.getElementById('tow-calh');
+             return !!x && getComputedStyle(x).display !== 'none'; })() };
+});
+console.log('\n--- desktop 1280px ---');
+console.log('  strip hidden            : ' + (deskChip.strip ? 'FAIL' : 'PASS'));
+console.log('  chip hidden             : ' + (deskChip.chip ? 'FAIL' : 'PASS'));
+console.log('  original row still there: ' + (deskChip.calhOnVideo ? 'PASS' : 'FAIL'));
+await dp.close();
 await b.close();
