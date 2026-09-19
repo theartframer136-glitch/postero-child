@@ -3,9 +3,20 @@ name: Add Brochure Products
 # Create shop products for brochure pages that nothing sells.
 #
 # The caption audit counted 156 of the 373 artwork pages with no product behind
-# them. Still Life is the worst section: 17 of its 23 pages are printed in the
-# book and cannot be bought. This creates those 17 from
-# tools/brochure-products-still-life.csv.
+# them. Two sections are covered so far, and the "csv" box picks which:
+#
+#   blank (default)  tools/brochure-products-still-life.csv   17 pages
+#   wildlife         tools/brochure-products-wildlife.csv     14 pages
+#   kids-room        tools/brochure-products-kids-room.csv     8 pages
+#
+# Still Life is the worst section in the book at 17 of 23 pages unsold;
+# Wildlife is next at 14 of 23, then Kids' Room at 13 of 22.
+#
+# Kids' Room ships 8 rows, not 13. The other five depict characters somebody
+# else owns — Superman, Captain America, the Hulkbuster, Po, Zenitsu — and are
+# held out of the CSV entirely so no run can create them. The reasoning, and
+# the sizes and prices already worked out for them, are in
+# tools/brochure-products-kids-room-HOLD.md.
 #
 # The tool refuses rather than guesses. No price is invented — it comes from the
 # theme's own rate card for the size the product is titled as. No product is
@@ -31,8 +42,12 @@ on:
         type: boolean
         default: false
       csv:
-        description: Which CSV to read (blank = the Still Life one)
-        type: string
+        description: Which section to create (blank = Still Life)
+        type: choice
+        options:
+          - ''
+          - wildlife
+          - kids-room
         default: ''
       probe:
         description: Only ask how the artwork files are named, create nothing
@@ -53,14 +68,20 @@ jobs:
           printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
 
+      # The sibling workflows shrug a failed scp off and run whatever the last
+      # deploy left on the server. Not here: this tool creates products, and a
+      # silently stale copy of it acting on a fresh CSV — or on a CSV that is
+      # not there at all — is worse than a run that does not happen.
       - name: Send the tool and the data up
         run: |
           set -uo pipefail
-          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
-              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
-              tools/add-brochure-products.php tools/brochure-products-still-life.csv \
-              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/" \
-            || echo "  scp failed — falling back to whatever the last deploy left there"
+          if ! scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+                   -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+                   tools/add-brochure-products.php tools/brochure-products-*.csv \
+                   "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/"; then
+            echo "::error::Could not send the tool to the server. Nothing ran, and the copy already up there was NOT used."
+            exit 1
+          fi
 
       # The pictures, when there are any. A row whose file is absent is refused
       # by name rather than created without one, so an empty folder is a safe
@@ -82,6 +103,7 @@ jobs:
         timeout-minutes: 22
         run: |
           set -uo pipefail
+          rc=0
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
@@ -89,6 +111,15 @@ jobs:
              PROBE=${{ inputs.probe == true && '1' || '0' }} \
              APPLY=${{ inputs.apply == true && '1' || '0' }} \
              STATUS=${{ inputs.publish == true && 'publish' || 'draft' }} \
-             CSV='${{ inputs.csv }}' \
+             CSV='${{ inputs.csv != '' && format('wp-content/themes/postero-child/tools/brochure-products-{0}.csv', inputs.csv) || '' }}' \
              wp eval-file wp-content/themes/postero-child/tools/add-brochure-products.php --allow-root 2>&1" \
-            || true
+            || rc=$?
+          # 255 is ssh's own failure — refused, timed out, auth. The run did not
+          # happen, and a green tick saying otherwise is how a dead connection
+          # gets read as a clean dry run. Anything else is the tool's own exit
+          # and stays tolerated, because "refused 17 rows" is a real answer.
+          if [ "$rc" -eq 255 ]; then
+            echo "::error::SSH could not reach the host (exit 255) — nothing ran. The host rate-limits repeated logins; leave a few minutes between runs."
+            exit 1
+          fi
+          exit 0
