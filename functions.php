@@ -9055,20 +9055,6 @@ add_action('wp_head', function() {
         max-width: none !important;
         object-fit: cover !important;
       }
-      /* And the box itself gets the shape of a photograph.
-         Filling a 286x420 portrait box with a 16:9 room crops it to about a
-         third of its width - a narrow vertical slice, which trades one wrong
-         picture for another. Rendered both at 390px before choosing: a 4:3
-         box comes out 286x215 and keeps 74% of the room.
-         It is not less preview than before, it is more. What the owner's
-         recording shows today is about 190px of room sitting above 230px of
-         bare background; this is 215px of room and no background at all. */
-      .af-tow-stage{
-        height: auto !important;
-        aspect-ratio: 4 / 3 !important;
-        min-height: 0 !important;
-        max-height: none !important;
-      }
       video, iframe{ max-width: 100% !important; }
       /* Long words / URLs wrap instead of forcing width */
       p, h1, h2, h3, h4, h5, h6, a, span, li, td, th{ overflow-wrap: break-word; word-wrap: break-word; }
@@ -9082,7 +9068,25 @@ add_action('wp_head', function() {
       .af-rv-row, .af-blog-row{ grid-template-columns: 1fr !important; }
       .af-trust-inner{ flex-wrap: wrap !important; }
       .af-tow-grid{ grid-template-columns: 1fr !important; }
-      .af-tow-stage{ height: 420px !important; }
+      /* The wall preview's box gets the shape of a photograph rather than a
+         fixed height, and it is written HERE rather than beside the image
+         rule above, because this line used to read `height: 420px !important`
+         and sits later in the same block - written above, `height:auto` lost
+         to it. The check caught that: with the height still pinned at 420 and
+         a 4:3 ratio in force, the ratio derived the WIDTH from the height and
+         the stage came out 560px wide inside a 390px screen.
+
+         Height from width, then: a phone gets 286x215, the photograph fills
+         it, and 74% of the room survives. Filling the old 286x420 box instead
+         would have cropped the room to about a third of its width, which is
+         why both were rendered and compared before choosing. */
+      .af-tow-stage{
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 4 / 3 !important;
+        min-height: 0 !important;
+        max-height: none !important;
+      }
       .af-footer-inner{ grid-template-columns: 1fr 1fr !important; }
       .af-listing-toolbar .af-lt-controls{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
       /* Hide our floating quick-access panel on mobile — it overlaps content
