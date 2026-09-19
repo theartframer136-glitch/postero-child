@@ -48,27 +48,37 @@ for (const sel of TOGGLES) {
 }
 console.log('menu opened via: ' + (used || 'NOTHING WORKED'));
 
-const out = await p.evaluate(() => {
-  const lum = css => { const m = (css||'').match(/\d+(\.\d+)?/g); if (!m || m.length < 3) return null;
-    const a = m[3] !== undefined ? parseFloat(m[3]) : 1; if (a === 0) return null;
-    return 0.2126*+m[0] + 0.7152*+m[1] + 0.0722*+m[2]; };
-  const chain = el => { const out = []; let n = el.parentElement;
-    while (n && n !== document.body && out.length < 6) { out.push(n.tagName.toLowerCase() + (n.id ? '#' + n.id : '') + '.' + String(n.className).split(/\s+/).slice(0,2).join('.')); n = n.parentElement; }
-    return out.join(' < '); };
-  return [...document.querySelectorAll('*')].map(e => {
-    const c = getComputedStyle(e), r = e.getBoundingClientRect();
-    if (c.display === 'none' || c.visibility === 'hidden' || r.width < 150 || r.height < 30) return null;
-    const bgL = lum(c.backgroundColor);
-    if (bgL === null || bgL > 60) return null;
-    const rad = parseFloat(c.borderTopLeftRadius) || 0;
-    return { tag: e.tagName.toLowerCase(), id: e.id, cls: String(e.className).slice(0, 70),
-             txt: (e.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 50),
-             box: Math.round(r.left)+','+Math.round(r.top)+' '+Math.round(r.width)+'x'+Math.round(r.height),
-             bg: c.backgroundColor, color: c.color, radius: c.borderTopLeftRadius, pos: c.position, z: c.zIndex,
-             rounded: rad >= 16, chain: chain(e) };
-  }).filter(Boolean);
-});
 
-console.log('\ndark elements >=150px wide on the page (' + out.length + '):');
-out.forEach(i => console.log((i.rounded ? '### ROUNDED ' : '    ') + i.tag + (i.id ? '#' + i.id : '') + ' [' + i.cls + '] "' + i.txt + '"  ' + i.box + '  bg=' + i.bg + ' color=' + i.color + ' r=' + i.radius + ' pos=' + i.pos + ' z=' + i.z + '\n        in: ' + i.chain));
+const out = await p.evaluate(() => {
+  const vw = window.innerWidth;
+  const panel = [...document.querySelectorAll('*')].find(e => {
+    const c = getComputedStyle(e), r = e.getBoundingClientRect();
+    return (c.position === 'fixed' || c.position === 'absolute') && c.display !== 'none' && c.visibility !== 'hidden'
+      && r.height > 400 && r.width > 200 && r.width < vw && r.left >= -2 && r.left < 40 && c.opacity !== '0';
+  });
+  if (!panel) return 'no panel';
+  const lines = [];
+  const desc = (e, pseudo) => { const c = getComputedStyle(e, pseudo || null); const r = e.getBoundingClientRect();
+    return (pseudo || '') + e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + '.' + String(e.className).split(/\s+/).slice(0,4).join('.') +
+      ' ' + Math.round(r.left)+','+Math.round(r.top)+' '+Math.round(r.width)+'x'+Math.round(r.height) +
+      ' d=' + c.display + ' bg=' + c.backgroundColor + (c.backgroundImage !== 'none' ? ' bgi=' + c.backgroundImage.slice(0,60) : '') +
+      ' col=' + c.color + ' r=' + c.borderTopLeftRadius + ' bd=' + c.borderTopWidth + ' ' + c.borderTopColor + ' h=' + c.height + ' p=' + c.padding +
+      (pseudo ? ' content=' + c.content : ' txt="' + (e.childNodes.length ? [...e.childNodes].filter(n=>n.nodeType===3).map(n=>n.textContent.trim()).join('|').slice(0,40) : '') + '"'); };
+  lines.push('PANEL ' + desc(panel));
+  lines.push('panel outerHTML head: ' + panel.outerHTML.slice(0, 300));
+  const walk = (e, depth) => {
+    if (depth > 12) return;
+    for (const ch of e.children) {
+      const r = ch.getBoundingClientRect(); const c = getComputedStyle(ch);
+      if (c.display === 'none') continue;
+      if (r.top > 900) continue;
+      lines.push('  '.repeat(depth) + desc(ch));
+      for (const ps of ['::before', '::after']) { const pc = getComputedStyle(ch, ps); if (pc.content !== 'none' && pc.content !== 'normal' && pc.display !== 'none') lines.push('  '.repeat(depth) + '  ' + desc(ch, ps)); }
+      walk(ch, depth + 1);
+    }
+  };
+  walk(panel, 1);
+  return lines.join('\n');
+});
+console.log(out);
 await b.close();
