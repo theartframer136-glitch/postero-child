@@ -9816,14 +9816,46 @@ function af_digital_price_html($pid = 0) {
          . ($pct > 0 ? ' <span class="af-pct-off">(' . $pct . '% off)</span>' : '');
 }
 
+/**
+ * Is this line a digital download?
+ *
+ * Two ways to be one. The modal posts af_digital, which is how ANY canvas can
+ * be bought as a file alongside its print. And a product that lives in a
+ * digital-download category is only ever a file — there is no print to sell —
+ * so it is digital however it reached the cart.
+ *
+ * That second case is what was missing. The shop showed such a product at its
+ * WooCommerce price of $80.00 on the card while the modal sold the very same
+ * piece for $9.43, and a plain Add to Cart charged the $80.00: the canvas price
+ * for a JPG with no canvas behind it.
+ */
+function af_sells_as_digital($pid) {
+    if (!empty($_REQUEST['af_digital'])) return true;
+    $p = wc_get_product($pid);
+    return $p ? af_is_digital_download($p) : false;
+}
+
 // Mark the cart item as a digital download with its own price/label
 add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
-    if (!empty($_REQUEST['af_digital'])) {
+    if (af_sells_as_digital($pid)) {
         $data['af_digital'] = '1';
         $data['af_price']   = af_digital_price($pid);
         $data['af_unique']  = md5('digital|' . $pid . '|' . microtime());
     }
     return $data;
+}, 20, 2);
+
+/**
+ * A digital-only product prices as the file it is, everywhere the shop quotes
+ * it — card, product page, related strips, quick view.
+ *
+ * Front end only. The admin list and any feed keep WooCommerce's own figure, so
+ * what is stored on the product is never hidden from whoever maintains it.
+ */
+add_filter('woocommerce_get_price_html', function($html, $product) {
+    if (is_admin() && !defined('DOING_AJAX')) return $html;
+    if (!($product instanceof WC_Product) || !af_is_digital_download($product)) return $html;
+    return af_digital_price_html($product->get_id());
 }, 20, 2);
 
 // Show "Digital Download" in cart; hide size/frame for digital lines
@@ -15169,11 +15201,43 @@ function af_grwp_state($state, $files) {
 // Value lives in product meta `_taf_art_code` (set by tools/product-importer/
 // apply_art_codes.py). Products without a code simply show nothing.
 // ---------------------------------------------------------------------------
+/**
+ * Is this a placeholder rather than a real art code?
+ *
+ * TMP-1210 and its 197 siblings are the audit's bookkeeping: they mark a piece
+ * that has no page in the printed collection book yet. They are a note to
+ * ourselves, not a catalogue number, and "ART CODE: TMP-1210" on a product card
+ * tells a customer nothing except that something is unfinished.
+ *
+ * AL codes are deliberately NOT included. They are a real line, not a
+ * placeholder, and only three products carry them.
+ */
+function af_art_code_is_temporary($code) {
+  $code = trim((string) $code);
+  return (bool) apply_filters('af_art_code_is_temporary',
+    $code !== '' && preg_match('/^TMP[\s\-_]*\d+$/i', $code) === 1, $code);
+}
+
+/**
+ * The art code as the SHOP should print it — empty when there is nothing
+ * publishable to print.
+ *
+ * Suppressed here rather than at each of the five places that display it: the
+ * card, the product summary, the description (twice) and the card-variations
+ * endpoint all call this, so one gate covers them and a sixth display added
+ * later inherits it.
+ *
+ * The meta is untouched. tools/ and inc/search-all.php read _taf_art_code
+ * directly, so a TMP code still finds its product in an internal search and
+ * still shows in every audit — it just stops being shown to customers.
+ */
 function af_get_art_code($product = null) {
   if (!($product instanceof WC_Product)) { $product = af_wc_product($product); }
   if (!$product) return '';
   $code = get_post_meta($product->get_id(), '_taf_art_code', true);
-  return is_string($code) ? trim($code) : '';
+  $code = is_string($code) ? trim($code) : '';
+  if (af_art_code_is_temporary($code)) return '';
+  return $code;
 }
 
 // Shop/archive card: small code line under the title. Always output the span
