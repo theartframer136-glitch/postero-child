@@ -30,7 +30,7 @@ const opened = await p.evaluate(() => {
   return String(cands[0].className).slice(0, 80);
 });
 console.log('opened via: ' + opened);
-await new Promise(r => setTimeout(r, 2500));
+await new Promise(r => setTimeout(r, 5000));   // let the panel finish sliding in
 
 const out = await p.evaluate(() => {
   const vw = window.innerWidth;
@@ -45,21 +45,26 @@ const out = await p.evaluate(() => {
   const lum = css => { const m = (css||'').match(/\d+(\.\d+)?/g); if (!m || m.length < 3) return null;
     const a = m[3] !== undefined ? parseFloat(m[3]) : 1; if (a === 0) return null;
     return (0.2126*+m[0] + 0.7152*+m[1] + 0.0722*+m[2]); };
-  const items = [...panel.querySelectorAll('li, a, button, .menu-item, [class*="btn"], [class*="button"]')]
-    .filter(e => { const r = e.getBoundingClientRect(); return r.height > 24 && r.width > 60 && r.top >= 0 && r.top < 900; })
+  // Everything inside the panel that has a painted background or text - no
+  // position filter this time, the panel was caught mid-slide last run.
+  const items = [...panel.querySelectorAll('*')]
+    .filter(e => { const r = e.getBoundingClientRect(); return r.height > 20 && r.width > 40; })
     .map(e => {
       const c = getComputedStyle(e), r = e.getBoundingClientRect();
+      const own = [...e.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent.trim()).join(' ').slice(0, 40);
       const txt = (e.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 40);
       const bgL = lum(c.backgroundColor), fgL = lum(c.color);
-      return { tag: e.tagName.toLowerCase(), cls: String(e.className).slice(0, 70), txt,
+      return { tag: e.tagName.toLowerCase(), id: e.id, cls: String(e.className).slice(0, 60), txt, own,
                box: Math.round(r.left)+','+Math.round(r.top)+' '+Math.round(r.width)+'x'+Math.round(r.height),
-               bg: c.backgroundColor, color: c.color, radius: c.borderRadius, display: c.display,
-               dark: bgL !== null && bgL < 60, invisibleText: bgL !== null && fgL !== null && Math.abs(bgL - fgL) < 40 && bgL < 60 };
-    });
+               bg: c.backgroundColor, color: c.color, radius: c.borderRadius,
+               dark: bgL !== null && bgL < 60,
+               invisibleText: bgL !== null && fgL !== null && Math.abs(bgL - fgL) < 40 && bgL < 60 };
+    })
+    .filter(i => i.dark || i.txt);
   return { panelCls: String(panel.className).slice(0, 80), panelBox: Math.round(panel.getBoundingClientRect().width)+'x'+Math.round(panel.getBoundingClientRect().height), items };
 });
 
 if (out.err) { console.log(out.err); await b.close(); process.exit(0); }
 console.log('panel: ' + out.panelCls + '  ' + out.panelBox + '\n');
-out.items.forEach(i => console.log((i.dark ? '### DARK ' : '    ') + i.tag + ' [' + i.cls + '] "' + i.txt + '"  ' + i.box + '  bg=' + i.bg + ' color=' + i.color + ' radius=' + i.radius + (i.invisibleText ? '   <-- TEXT INVISIBLE ON ITS BACKGROUND' : '') + (!i.txt ? '   <-- NO TEXT' : '')));
+out.items.forEach(i => console.log((i.dark ? '### DARK ' : '    ') + i.tag + (i.id ? '#' + i.id : '') + ' [' + i.cls + '] "' + i.txt + '"' + (i.own && i.own !== i.txt ? ' own="' + i.own + '"' : '') + '  ' + i.box + '  bg=' + i.bg + ' color=' + i.color + ' radius=' + i.radius + (i.invisibleText ? '   <-- TEXT INVISIBLE ON ITS BACKGROUND' : '') + (!i.txt ? '   <-- NO TEXT' : '')));
 await b.close();
