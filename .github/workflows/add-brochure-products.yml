@@ -62,6 +62,22 @@ jobs:
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/" \
             || echo "  scp failed — falling back to whatever the last deploy left there"
 
+      # The pictures, when there are any. A row whose file is absent is refused
+      # by name rather than created without one, so an empty folder is a safe
+      # state and not a reason to stop.
+      - name: Send the artwork up
+        run: |
+          set -uo pipefail
+          count=$(find tools/artwork -type f ! -name 'README.md' 2>/dev/null | wc -l)
+          echo "  artwork files in this checkout: ${count}"
+          if [ "${count}" -gt 0 ]; then
+            scp -r -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+                -o UserKnownHostsFile=/dev/null -o ConnectTimeout=60 -i ~/.ssh/id_ed25519 \
+                tools/artwork \
+                "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/" \
+              || echo "  scp failed — rows whose picture did not arrive will be refused by name"
+          fi
+
       - name: Create the products
         timeout-minutes: 22
         run: |

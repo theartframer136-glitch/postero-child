@@ -70,14 +70,85 @@ function af_abp_title_size( $label ) {
 }
 
 /**
- * The Media Library attachment holding this artwork, or 0.
+ * The Media Library attachment holding this artwork, or 0, with the reason.
  *
- * The source files were renamed with their art code before upload, so the code
- * is in the filename — in whatever punctuation the person used that day
- * ("SL-150002-4030", "SL_150002_4030", "SL 150002 4030"). Comparing on letters
- * and digits alone makes all of those the same string.
+ * The first version of this looked the art code up in the filename, on the
+ * strength of a claim in tools/diag-artcode-from-filenames.php that the source
+ * artwork was renamed with its code before upload. PROBE=1 disproved that for
+ * Still Life: all six existing products name their featured image with a
+ * design-tool export name — Final_8-1-1, 3x4_New4@300x-100-1, Cafe-Decor — and
+ * not one carries a code. The lookup would have refused those six too.
+ *
+ * So the CSV now says which picture, and this tries, in order:
+ *
+ *   1. "#1234"      — an attachment id, said outright
+ *   2. "poppies.jpg"— a file shipped beside this tool in tools/artwork/,
+ *                     side-loaded into the Media Library on first use and
+ *                     reused by id afterwards
+ *   3. "https://…"  — a URL already on this site
+ *   4. the art code in a filename — kept as a last resort, because it does
+ *                     hold for some sections, but no longer the whole story
+ *
+ * $why comes back saying what was tried, so a refusal names the real reason.
  */
-function af_abp_find_image( $code ) {
+function af_abp_find_image( $code, $want, &$why, $may_write = true ) {
+    $want = trim( (string) $want );
+    $why  = '';
+
+    // 1. an attachment id
+    if ( preg_match( '/^#?(\d+)$/', $want, $m ) ) {
+        $id = (int) $m[1];
+        if ( get_post_type( $id ) === 'attachment' ) return $id;
+        $why = "#{$id} is not an attachment";
+        return 0;
+    }
+
+    // 3. a URL on this site (checked before the file, so an already-uploaded
+    //    picture is never side-loaded a second time)
+    if ( $want !== '' && preg_match( '#^https?://#i', $want ) ) {
+        $id = attachment_url_to_postid( strtok( $want, '?' ) );
+        if ( $id ) return (int) $id;
+        $why = "no attachment has the URL {$want}";
+        return 0;
+    }
+
+    // 2. a file shipped beside this tool
+    if ( $want !== '' ) {
+        $path = dirname( __FILE__ ) . '/artwork/' . basename( $want );
+        if ( ! file_exists( $path ) ) {
+            $why = "tools/artwork/" . basename( $want ) . " was not uploaded with this run";
+            return 0;
+        }
+        // Already side-loaded by an earlier run? Match on the sanitised name
+        // WordPress would have given it, so a re-run reuses rather than dupes.
+        $stem = sanitize_file_name( pathinfo( $path, PATHINFO_FILENAME ) );
+        $found = get_posts( array( 'post_type' => 'attachment', 'posts_per_page' => 1,
+            'fields' => 'ids', 'post_status' => 'inherit', 'name' => sanitize_title( $stem ) ) );
+        if ( $found ) return (int) $found[0];
+
+        // A dry run reports; it does not upload. Saying "the file is here and
+        // would be uploaded" is the whole answer the plan needs, and a preview
+        // that quietly fills the Media Library is not a preview.
+        if ( ! $may_write ) { $why = 'ready'; return -1; }
+
+        require_once ABSPATH . 'wp-admin/includes/media.php';
+        require_once ABSPATH . 'wp-admin/includes/file.php';
+        require_once ABSPATH . 'wp-admin/includes/image.php';
+        // Copied, not moved: media_handle_sideload() consumes the file it is
+        // given, and the one in tools/artwork/ belongs to the deploy.
+        $tmp = wp_tempnam( basename( $path ) );
+        if ( ! $tmp || ! @copy( $path, $tmp ) ) { $why = "could not stage {$path}"; return 0; }
+        $id = media_handle_sideload(
+            array( 'name' => basename( $path ), 'tmp_name' => $tmp ), 0, null );
+        if ( is_wp_error( $id ) ) {
+            @unlink( $tmp );
+            $why = 'upload failed: ' . $id->get_error_message();
+            return 0;
+        }
+        return (int) $id;
+    }
+
+    // 4. last resort: the art code in a filename
     global $wpdb;
     static $files = null;
     if ( $files === null ) {
@@ -85,15 +156,16 @@ function af_abp_find_image( $code ) {
         $rows = $wpdb->get_results(
             "SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file'" );
         foreach ( $rows as $r ) {
-            $base = pathinfo( (string) $r->meta_value, PATHINFO_FILENAME );
-            $files[] = array( (int) $r->post_id, af_abp_key( $base ) );
+            $files[] = array( (int) $r->post_id,
+                af_abp_key( pathinfo( (string) $r->meta_value, PATHINFO_FILENAME ) ) );
         }
     }
-    $want = af_abp_key( $code );
-    if ( $want === '' ) return 0;
-    foreach ( $files as $f ) {
-        if ( strpos( $f[1], $want ) !== false ) return $f[0];
+    $key = af_abp_key( $code );
+    if ( $key !== '' ) {
+        foreach ( $files as $f ) { if ( strpos( $f[1], $key ) !== false ) return $f[0]; }
     }
+    $why = "the CSV names no image, and no filename carries {$code}"
+         . " (on this site filenames do not carry art codes — see PROBE=1)";
     return 0;
 }
 
@@ -303,21 +375,25 @@ foreach ( $rows as $row ) {
         $refused++; continue;
     }
 
-    $img = af_abp_find_image( $code );
+    $img = af_abp_find_image( $code, isset( $row['image'] ) ? $row['image'] : '', $why_img, $apply );
     if ( ! $img ) {
-        echo "      REFUSED — no image in the Media Library whose filename carries {$code}\n\n";
+        echo "      REFUSED — no artwork: {$why_img}\n\n";
         $refused++; continue;
     }
-    $m = wp_get_attachment_metadata( $img );
-    $dim = ( ! empty( $m['width'] ) ) ? "{$m['width']}x{$m['height']}" : 'size unknown';
+    if ( $img === -1 ) {
+        $dim = 'would be uploaded from tools/artwork/' . basename( $row['image'] );
+    } else {
+        $m = wp_get_attachment_metadata( $img );
+        $dim = ( ! empty( $m['width'] ) ) ? "{$m['width']}x{$m['height']}" : 'size unknown';
+    }
 
     $sku = function_exists( 'af_sku_code_part' ) ? af_sku_code_part( $code ) : strtoupper( $code );
     if ( $sku !== '' && wc_get_product_id_by_sku( $sku ) ) {
         echo "      REFUSED — SKU {$sku} is already in use\n\n"; $refused++; continue;
     }
 
-    printf( "      price \$%s (%s, from the rate card)   image #%d %s   sku %s\n",
-        number_format( $price, 2 ), $size, $img, $dim, $sku );
+    printf( "      price \$%s (%s, from the rate card)   image %s %s   sku %s\n",
+        number_format( $price, 2 ), $size, $img > 0 ? "#{$img}" : 'new', $dim, $sku );
     echo "      title {$title}\n";
 
     if ( ! $apply ) { echo "\n"; continue; }
