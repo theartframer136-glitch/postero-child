@@ -358,6 +358,19 @@ foreach ( $rows as $row ) {
         echo "      REFUSED — '{$size}' is not on the rate card, so there is no price to use\n\n";
         $refused++; continue;
     }
+    // On the card is not the same as on sale. af_pricing_config() prices 15
+    // sizes; af_sizes_offered() sells 5. Pricing a product from a card entry
+    // the selector cannot open on is precisely the card-says-one-thing,
+    // modal-says-another fault this whole exercise started from: the title
+    // would read "4×4 Feet" at $110 while af_size_default() fell back to the
+    // first size we do sell and quoted $60. Page 339 of the brochure is a 4×4
+    // and would have walked straight into it.
+    if ( function_exists( 'af_sizes_available' ) && ! in_array( $size, af_sizes_available(), true ) ) {
+        echo "      REFUSED — '{$size}' is on the rate card but not in af_sizes_offered(),\n";
+        echo "                so the card price and the selector's opening price would disagree.\n";
+        echo "                Offered: " . implode( ' | ', af_sizes_available() ) . "\n\n";
+        $refused++; continue;
+    }
     $price = (float) $card[ $size ];
     $tsize = af_abp_title_size( $size );
 

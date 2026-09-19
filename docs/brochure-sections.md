@@ -6010,3 +6010,74 @@ advertised size, height then breadth, in feet x10" to 39 of 39 among the rows
 that ship, and 44 of 44 counting the five held-back pages, which agree too
 (290, 291, 294 and 295 all read `3050` and all advertise 3 ft (H) x 5 ft (B) —
 the landscape ones, which is a good test of the height-first reading).
+
+## Living / Interiors: 26 unsold pages, and a gap the tool had (2026-09-19)
+
+The biggest batch so far — 51 pages in the book, 25 products, 26 unsold —
+though proportionally the healthiest of the four sections done. No licensed
+characters this time; the Kids' Room problem did not repeat.
+
+| Page | Art code | Artwork | Size | Price |
+|---|---|---|---|---|
+| 304 | LI-190001-3050 | Blossom Branches in a Green Vase | 3x5 ft (36x60 in) | $100 |
+| 309 | LI-190006-5030 | Our Lady in Bloom | 3x5 ft (36x60 in) | $100 |
+| 318 | LI-190015-4030 | Lotus Pond in Gold Leaf | 3x4 ft (36x48 in) | $80 |
+| 319 | LI-190016-5030 | Ballerina in White | 3x5 ft (36x60 in) | $100 |
+| 320 | LI-190017-4030 | Dancer in Amber Light | 3x4 ft (36x48 in) | $80 |
+| 321 | LI-190018-4030 | Woman in the Yellow Gown | 3x4 ft (36x48 in) | $80 |
+| 322 | LI-190019-4030 | Lotus Reverie | 3x4 ft (36x48 in) | $80 |
+| 323 | LI-190020-6030 | The Cellist | 3x5 ft (36x60 in) | $100 |
+| 324 | LI-190021-4030 | Song of the Deer | 3x4 ft (36x48 in) | $80 |
+| 326 | LI-190023-5030 | Chestnut Horse in Motion | 3x5 ft (36x60 in) | $100 |
+| 328 | LI-190025-5030 | Black Stallion on Red | 3x5 ft (36x60 in) | $100 |
+| 329 | LI-190026-5030 | White Horse at Sunset | 3x5 ft (36x60 in) | $100 |
+| 330 | LI-190027-5030 | Whimsical Cats in Colour | 3x5 ft (36x60 in) | $100 |
+| 331 | LI-190028-4030 | The Archer in the War Bonnet | 3x4 ft (36x48 in) | $80 |
+| 333 | LI-190030-5030 | Tall Ship in Sepia | 3x5 ft (36x60 in) | $100 |
+| 334 | LI-190031-4030 | Festive Street at Dusk | 3x4 ft (36x48 in) | $80 |
+| 337 | LI-190034-5030 | Bougainvillea at the Shuttered Window | 3x5 ft (36x60 in) | $100 |
+| 339 | LI-190036-4040 | Pastel Arch with Palms and Tigers | 2.5x3 ft (30x36 in) | $65 |
+| 341 | LI-190038-5030 | White Bird and Glass Vase | 3x5 ft (36x60 in) | $100 |
+| 342 | LI-190039-5030 | Bodhi Leaf Village | 3x5 ft (36x60 in) | $100 |
+| 343 | LI-190040-5030 | Translucent Petals in Blush | 3x5 ft (36x60 in) | $100 |
+| 344 | LI-190041-5030 | Overlapping Tropical Leaves | 3x5 ft (36x60 in) | $100 |
+| 345 | LI-190042-5030 | Fan Leaves in Beige and White | 3x5 ft (36x60 in) | $100 |
+| 346 | LI-190043-5030 | Deer with Tree Antlers | 3x5 ft (36x60 in) | $100 |
+| 347 | LI-190044-4030 | Cubist Woman in Orange | 3x4 ft (36x48 in) | $80 |
+| 348 | LI-190045-5030 | Cubist Woman in Earth Tones | 3x5 ft (36x60 in) | $100 |
+
+Three horses (326, 328, 329) are filed under Seven Horses, following the
+neighbouring codes `LI - 190022-5030` and `LI - 190024-5030` which the shop
+already files that way; page 309 goes under Christian Art alongside the six
+existing LI products that are.
+
+### On the rate card is not the same as on sale
+
+Page 339 found a gap this tool had carried since the first section.
+`af_pricing_config()` prices **15** sizes; `af_sizes_offered()` sells **5**.
+The tool validated a CSV's `size_label` against the rate card alone, so a size
+that is priced but not sold would have sailed through — and that is exactly the
+fault this whole exercise began with:
+
+> a product titled "4x4 Feet" would carry the card's $110, while
+> `af_size_default()`, finding 4x4 not among the sizes on sale, fell back to
+> the first size that is and opened the selector at $60.
+
+Card says one thing, selector says another — the Digital Downloads bug in a new
+costume. Page 339 is a 4x4 and would have walked straight into it.
+
+The tool now requires the size to be in `af_sizes_offered()`, not merely on the
+card, and refuses with the offered list printed when it is not. Checked across
+all four CSVs: every one of the 65 rows uses a size the shop actually sells.
+
+Page 339 itself is titled 2.5x3 ft. The book advertises 4x4 ft and 3x3 ft and
+the shop sells neither; of the five it does sell, 2.5x3 (30x36 in) is the
+closest to square, and a square artwork forced into 3x5 would have to be
+cropped or letterboxed. Both notes fire on that row so the choice is visible
+rather than silent.
+
+### The code-size rule stands at 65 of 65
+
+Twenty-six more confirmations, including `LI-190001-3050` — a **landscape**
+3 ft (H) x 5 ft (B), which reads correctly height-first, and `LI-190036-4040`
+at 4 x 4 ft.
