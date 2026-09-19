@@ -6269,10 +6269,27 @@ add_action('wp_footer', function() {
         if(own.indexOf('/product/')>-1) return own;
         var d=btn.getAttribute('data-product-url')||btn.getAttribute('data-url')||'';
         if(d.indexOf('/product/')>-1) return d;
+        // Walk up for the card's own product link — but only while the answer
+        // is unambiguous.
+        //
+        // This used to take the FIRST product link in each ancestor's subtree,
+        // ten levels up. A button sitting inside a real card finds its own link
+        // in a level or two, so that worked. Anything else kept climbing until
+        // it reached a container holding the whole listing, where the "first
+        // product link" is simply the first card on the page — which is how
+        // clicking the header logo opened a product that had nothing to do
+        // with it.
+        //
+        // A card holds exactly one product link. More than one means we have
+        // climbed past the card into the grid, and there is no longer anything
+        // here that identifies what was clicked, so stop rather than guess.
         var n=btn;
         for(var i=0;i<10 && n && n!==document.body;i++){
-          var a=n.querySelector ? n.querySelector('a[href*="/product/"]') : null;
-          if(a && a.href) return a.href;
+          if(n.querySelectorAll){
+            var links=n.querySelectorAll('a[href*="/product/"]');
+            if(links.length>1) return '';        // ambiguous: not one card
+            if(links.length===1 && links[0].href) return links[0].href;
+          }
           n=n.parentElement;
         }
         return '';
@@ -6324,9 +6341,20 @@ add_action('wp_footer', function() {
       // depending on which section rendered the card.
       var SEL='[class*="quick-view"],[class*="quickview"],[class*="quick_view"],'
              +'[class*="eael-product-quick"],[data-quick-view],.view-btn,a[class*="quick"]';
+      // The header is never a quick-view trigger. SEL is deliberately broad —
+      // it ends in a[class*="quick"], which matches any anchor with "quick"
+      // anywhere in any class — and the site logo lives inside markup this
+      // theme does not control. Clicking it must go home, so the masthead and
+      // the branding are excluded outright rather than relying on the selector
+      // never matching there.
+      var NOT_QV='header,.site-header,[class*="site-header"],[class*="header-"],'
+                +'.elementor-widget-site-logo,.hfe-site-logo,.site-logo,'
+                +'[class*="site-logo"],[class*="site-branding"],.custom-logo-link,'
+                +'nav,.main-navigation,[role="banner"],[role="navigation"]';
       function grab(e){
         var b=e.target.closest(SEL);
         if(!b || wrap.contains(b)) return;
+        if(b.closest(NOT_QV)) return;          // header/logo/nav: let the link do its job
         var url=productURL(b);
         if(!url) return;                       // unknown card: leave the plugin to it
         e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation();
