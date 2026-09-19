@@ -7,9 +7,16 @@ name: Add Brochure Products
 #
 #   blank (default)  tools/brochure-products-still-life.csv   17 pages
 #   wildlife         tools/brochure-products-wildlife.csv     14 pages
+#   kids-room        tools/brochure-products-kids-room.csv     8 pages
 #
 # Still Life is the worst section in the book at 17 of 23 pages unsold;
-# Wildlife is next at 14 of 23.
+# Wildlife is next at 14 of 23, then Kids' Room at 13 of 22.
+#
+# Kids' Room ships 8 rows, not 13. The other five depict characters somebody
+# else owns — Superman, Captain America, the Hulkbuster, Po, Zenitsu — and are
+# held out of the CSV entirely so no run can create them. The reasoning, and
+# the sizes and prices already worked out for them, are in
+# tools/brochure-products-kids-room-HOLD.md.
 #
 # The tool refuses rather than guesses. No price is invented — it comes from the
 # theme's own rate card for the size the product is titled as. No product is
@@ -40,6 +47,7 @@ on:
         options:
           - ''
           - wildlife
+          - kids-room
         default: ''
       probe:
         description: Only ask how the artwork files are named, create nothing

@@ -5959,3 +5959,54 @@ orientation that `af_size_label_for_product()` uses. A disagreement prints a
 note rather than blocking, because the rate card genuinely does not sell every
 size the book advertises — but a transcription slip in a future section will
 now announce itself instead of quietly shipping a mispriced product.
+
+## Kids' Room: 8 of the 13 unsold pages, and why five are held back (2026-09-19)
+
+Third section. 22 pages in the book, 9 products, 13 unsold — and this one did
+not go the way the other two did.
+
+| Page | Art code | Artwork | Size | Price |
+|---|---|---|---|---|
+| 283 | KR-180002-4030 | Patchwork Cat in Bloom | 3x4 ft (36x48 in) | $80 |
+| 285 | KR-180004-4030 | Little Bee with a Parasol | 3x4 ft (36x48 in) | $80 |
+| 286 | KR-180005-5030 | The Boy Who Reads by the Window | 3x5 ft (36x60 in) | $100 |
+| 287 | KR-180006-4030 | Balloons Full of Fishes | 3x4 ft (36x48 in) | $80 |
+| 288 | KR-180007-4030 | Volcano in Bloom | 3x4 ft (36x48 in) | $80 |
+| 298 | KR-180017-5030 | Mother and Child Among the Flowers | 3x5 ft (36x60 in) | $100 |
+| 299 | KR-180018-5030 | Two Children Under a Red Umbrella | 3x5 ft (36x60 in) | $100 |
+| 300 | KR-180019-6030 | Two Stylized Giraffes | 3x5 ft (36x60 in) | $100 |
+
+### The five that are not in the CSV
+
+Reading the pages rather than the captions is what caught this. Five of the 13
+depict characters somebody else owns:
+
+| Page | Art code | What it shows | Rights holder |
+|---|---|---|---|
+| 289 | KR-180008-4030 | Superman | DC Comics / Warner Bros. |
+| 290 | KR-180009-3050 | Captain America with Mjolnir | Marvel / Disney |
+| 291 | KR-180010-3050 | The Hulkbuster armour | Marvel / Disney |
+| 294 | KR-180013-3050 | Po, *Kung Fu Panda* | DreamWorks / Universal |
+| 295 | KR-180014-3050 | Zenitsu Agatsuma, *Demon Slayer* | Shueisha / Aniplex |
+
+Their captions are entirely generic — "Unleash unstoppable strength — power,
+courage, and heroism redefined" — which is why the caption audit never flagged
+them. The pictures are not generic at all: page 290 has the star shield, the
+scale mail and Mjolnir.
+
+They are held out of the CSV rather than flagged inside it, so that no run can
+create them, including an `APPLY=1` one. The full reasoning, and the sizes and
+prices already worked out in case a licence exists, are in
+`tools/brochure-products-kids-room-HOLD.md`.
+
+Worth a separate thought: the brochure is a sales document that goes to
+customers, and it currently shows five pieces the shop probably should not
+sell.
+
+### The code-size rule now stands at 44 of 44
+
+Adding Kids' Room takes the tally for "the last four digits are the largest
+advertised size, height then breadth, in feet x10" to 39 of 39 among the rows
+that ship, and 44 of 44 counting the five held-back pages, which agree too
+(290, 291, 294 and 295 all read `3050` and all advertise 3 ft (H) x 5 ft (B) —
+the landscape ones, which is a good test of the height-first reading).
