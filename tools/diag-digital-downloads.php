@@ -14,7 +14,17 @@
  * For every product in the digital-download categories it prints what the
  * preview endpoint would actually return, and why.
  *
- * Read-only. Prints; changes nothing.
+ * Changes no product, option or term — but it is NOT purely read-only, and the
+ * first version of this header wrongly said it was. Asking the preview endpoint
+ * what it would return means calling af_wm_preview_url(), which GENERATES the
+ * watermarked preview and caches it under uploads/af-wm/ when one does not
+ * exist yet. So a first run can leave files behind, and can make a pane that
+ * was blank start working simply by warming that cache.
+ *
+ * That matters when reading the output: "watermarked 1536x1024" on every row
+ * means every product CAN produce a preview now, not necessarily that it could
+ * before this ran.
+ *
  * Run: wp eval-file tools/diag-digital-downloads.php --allow-root
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
