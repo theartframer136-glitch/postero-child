@@ -55,6 +55,32 @@ p288-KR-180007-4030.jpg        p298-KR-180017-5030.jpg
 p299-KR-180018-5030.jpg        p300-KR-180019-6030.jpg
 ```
 
+`tools/brochure-products-radha-krishna.csv` expects:
+
+```
+p9-RK-010005-3050.jpg          p10-RK-010006-3040.jpg
+p15-RK-010011-5030.jpg         p19-RK-010015-3050.jpg
+p20-RK-010016-3040.jpg         p21-RK-010017-5030.jpg
+p25-RK-010021-4030.jpg         p27-RK-010023-3050.jpg
+p39-RK-010035-4030.jpg         p40-RK-010036-3060.jpg
+p41-RK-010037-5030.jpg         p42-RK-010038-3060.jpg
+p44-RK-010040-5030.jpg         p55-RK-010051-5030.jpg
+p56-RK-010052-5030.jpg         p63-RK-010059-5030.jpg
+p65-RK-010061-3050.jpg         p66-RK-010062-5030.jpg
+p67-RK-010063-4030.jpg         p68-RK-010064-5030.jpg
+p69-RK-010065-6030.jpg         p70-RK-010066-4030.jpg
+p71-RK-010067-5030.jpg         p72-RK-010068-5030.jpg
+p73-RK-010069-5030.jpg         p74-RK-010070-4030.jpg
+p75-RK-010071-6030.jpg         p76-RK-010072-5030.jpg
+p77-RK-010073-4030.jpg         p78-RK-010074-5030.jpg
+p79-RK-010075-5030.jpg         p81-RK-010077-6030.jpg
+p82-RK-010078-6030.jpg         p83-RK-010079-5030.jpg
+p85-RK-010081-5030.jpg         p86-RK-010082-4030.jpg
+p88-RK-010084-5030.jpg         p93-RK-010089-5030.jpg
+p94-RK-010090-5030.jpg         p96-RK-010092-3050.jpg
+p98-RK-010094-4030.jpg         p101-RK-010097-3020.jpg
+```
+
 These files travel to the server in the workflow checkout, so they live in the
 repository. That puts a ceiling on them: **web-ready, not print masters.** The
 listing image only ever renders a few hundred pixels wide on a card and around

@@ -9,11 +9,13 @@ name: Add Brochure Products
 #   wildlife         tools/brochure-products-wildlife.csv     14 pages
 #   kids-room        tools/brochure-products-kids-room.csv     8 pages
 #   living-interiors tools/brochure-products-living-interiors.csv  26 pages
+#   radha-krishna    tools/brochure-products-radha-krishna.csv     42 pages
 #
 # Still Life is the worst section in the book at 17 of 23 pages unsold;
 # Wildlife is next at 14 of 23, then Kids' Room at 13 of 22. Living /
 # Interiors is the biggest batch at 26 unsold, though it is also the biggest
-# section — 51 pages — so proportionally it is the healthiest of the four.
+# section — 51 pages — so proportionally it is the healthiest. Radha Krishna is
+# the largest batch of all at 42, out of the book's largest section at 97.
 #
 # Kids' Room ships 8 rows, not 13. The other five depict characters somebody
 # else owns — Superman, Captain America, the Hulkbuster, Po, Zenitsu — and are
@@ -52,6 +54,7 @@ on:
           - wildlife
           - kids-room
           - living-interiors
+          - radha-krishna
         default: ''
       probe:
         description: Only ask how the artwork files are named, create nothing

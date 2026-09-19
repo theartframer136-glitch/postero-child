@@ -6081,3 +6081,92 @@ rather than silent.
 Twenty-six more confirmations, including `LI-190001-3050` — a **landscape**
 3 ft (H) x 5 ft (B), which reads correctly height-first, and `LI-190036-4040`
 at 4 x 4 ft.
+
+## Radha Krishna: the 42 unsold pages (2026-09-19)
+
+The largest batch, out of the book's largest section — 97 pages, 55 products,
+42 unsold. Proportionally the healthiest of the five sections done.
+
+| Page | Art code | Artwork | Size | Price |
+|---|---|---|---|---|
+| 9 | RK-010005-3050 | Radha Krishna with Peacocks | 3x5 ft (36x60 in) | $100 |
+| 10 | RK-010006-3040 | Radha and Krishna in Bloom | 3x4 ft (36x48 in) | $80 |
+| 15 | RK-010011-5030 | Krishna's Flute in Watercolour | 3x5 ft (36x60 in) | $100 |
+| 19 | RK-010015-3050 | Radha Krishna in the Painted Forest | 3x5 ft (36x60 in) | $100 |
+| 20 | RK-010016-3040 | Radha and Krishna in Gold Relief | 3x4 ft (36x48 in) | $80 |
+| 21 | RK-010017-5030 | Krishna in Black and Marigold | 3x5 ft (36x60 in) | $100 |
+| 25 | RK-010021-4030 | Vishnu Resting on Sheshnag | 3x4 ft (36x48 in) | $80 |
+| 27 | RK-010023-3050 | Krishna in Blue and Gold | 3x5 ft (36x60 in) | $100 |
+| 39 | RK-010035-4030 | Bal Krishna the Makhan Chor | 3x4 ft (36x48 in) | $80 |
+| 40 | RK-010036-3060 | Blue Krishna with His Flute | 3x5 ft (36x60 in) | $100 |
+| 41 | RK-010037-5030 | Krishna in the Lotus Mandala | 3x5 ft (36x60 in) | $100 |
+| 42 | RK-010038-3060 | Krishna with Cows and Elephants | 3x5 ft (36x60 in) | $100 |
+| 44 | RK-010040-5030 | Krishna Among the Temple Lamps | 3x5 ft (36x60 in) | $100 |
+| 55 | RK-010051-5030 | Krishna Garlanded in the Golden Temple | 3x5 ft (36x60 in) | $100 |
+| 56 | RK-010052-5030 | Lord Vitthal with the Sacred Cow | 3x5 ft (36x60 in) | $100 |
+| 63 | RK-010059-5030 | Krishna in Floral Garlands | 3x5 ft (36x60 in) | $100 |
+| 65 | RK-010061-3050 | Radha and Krishna, a Quiet Moment | 3x5 ft (36x60 in) | $100 |
+| 66 | RK-010062-5030 | Kaliya Mardan | 3x5 ft (36x60 in) | $100 |
+| 67 | RK-010063-4030 | Flute and Veena in the Pink Moonlight | 3x4 ft (36x48 in) | $80 |
+| 68 | RK-010064-5030 | Sree Krishna in Pink and Gold | 3x5 ft (36x60 in) | $100 |
+| 69 | RK-010065-6030 | Krishna in the Saffron Turban | 3x5 ft (36x60 in) | $100 |
+| 70 | RK-010066-4030 | Krishna in White and Gold | 3x4 ft (36x48 in) | $80 |
+| 71 | RK-010067-5030 | Venkateswara in Marigold Garlands | 3x5 ft (36x60 in) | $100 |
+| 72 | RK-010068-5030 | Krishna Among the Blossoms | 3x5 ft (36x60 in) | $100 |
+| 73 | RK-010069-5030 | Radha and Krishna in the Lamplit Temple | 3x5 ft (36x60 in) | $100 |
+| 74 | RK-010070-4030 | Deity Idol in Marigold and Lamplight | 3x4 ft (36x48 in) | $80 |
+| 75 | RK-010071-6030 | Krishna in the Ornate Shrine | 3x5 ft (36x60 in) | $100 |
+| 76 | RK-010072-5030 | Kaliya Mardan in Watercolour | 3x5 ft (36x60 in) | $100 |
+| 77 | RK-010073-4030 | Krishna in Terracotta and Gold | 3x4 ft (36x48 in) | $80 |
+| 78 | RK-010074-5030 | Shrinathji Among the Lotuses | 3x5 ft (36x60 in) | $100 |
+| 79 | RK-010075-5030 | Krishna Adorned in Flowers and Gold | 3x5 ft (36x60 in) | $100 |
+| 81 | RK-010077-6030 | Bal Krishna on the Lotus Leaf | 3x5 ft (36x60 in) | $100 |
+| 82 | RK-010078-6030 | Shrinathji in Emerald Green | 3x5 ft (36x60 in) | $100 |
+| 83 | RK-010079-5030 | Krishna in Teal and Lotus | 3x5 ft (36x60 in) | $100 |
+| 85 | RK-010081-5030 | Krishna Beneath the Golden Moon | 3x5 ft (36x60 in) | $100 |
+| 86 | RK-010082-4030 | Krishna Dancing on Kaliya | 3x4 ft (36x48 in) | $80 |
+| 88 | RK-010084-5030 | Radha in Pink and Gold | 3x5 ft (36x60 in) | $100 |
+| 93 | RK-010089-5030 | Radha Krishna in the Flower Garden | 3x5 ft (36x60 in) | $100 |
+| 94 | RK-010090-5030 | Krishna in the Carved Wooden Shrine | 3x5 ft (36x60 in) | $100 |
+| 96 | RK-010092-3050 | Krishna the Charioteer at Kurukshetra | 3x5 ft (36x60 in) | $100 |
+| 98 | RK-010094-4030 | Krishna in the Golden Sanctum | 3x4 ft (36x48 in) | $80 |
+| 101 | RK-010097-3020 | Shrinathji in Blue and Lotus | 3x2 ft (36x24 in) | $60 |
+
+### Five captions are not the brochure's
+
+Four pages — 94, 96, 98 and 101 — print no caption at all, so the short
+description was written from the picture. Page 101 is Shrinathji with the hand
+raised in the Govardhan gesture; page 96 is Krishna as Arjuna's charioteer at
+Kurukshetra, which is the opening of the Bhagavad Gita and not something a
+generic "divine artwork" line would have conveyed.
+
+**Page 85 is the fifth, and it is the one the caption audit found.** The page
+prints "A stunning artwork of Ganga Aarti at Varanasi Ghat, depicting a devoted
+priest lifting a blazing ceremonial lamp toward the night sky." The picture is
+a blue Krishna seated with his flute before a golden moon. The row therefore
+carries the replacement caption recorded earlier in this document, not what the
+page says. Building the product off the printed caption would have put a
+Varanasi description on a Krishna — the exact confusion that nearly mis-assigned
+product #8424 to this page during the third pass.
+
+### Six pages advertise a 6 ft side
+
+Pages 40, 42, 69, 75, 81 and 82 all advertise a 6 ft dimension — `3060` and
+`6030` codes — and `af_sizes_offered()` stops at 5 ft. All six are titled 3x5,
+the largest the shop sells, and each one prints both notes so the gap is
+visible. That is six of the 42; the other 36 use a size the page actually
+advertises.
+
+### Subcategories
+
+Twenty-five go to Radha Krishna and twelve to Hindu Deities, following the
+section's existing split (27 and 28 among products that already exist). The
+three Shrinathji pieces and the Krishna-with-cows panorama go to Pichwai Art,
+and page 71 is Venkateswara, so it goes to Tirupati Balaji with Hindu Deities
+alongside.
+
+### The code-size rule stands at 107 of 107
+
+Forty-two more confirmations, including `RK-010097-3020` at 3 x 2 ft — the
+smallest yet — and four landscape `3050`/`3060` pages that read correctly
+height-first.
