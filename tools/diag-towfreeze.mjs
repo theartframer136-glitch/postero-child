@@ -11,26 +11,30 @@
  * of the frame - the rectangle's own edges.
  */
 import { createRequire } from 'module';
-import { execSync } from 'node:child_process';
 import fs from 'node:fs';
 const require = createRequire(import.meta.url);
 const puppeteer = require('puppeteer-core');
 
-// ── build the wall clip ─────────────────────────────────────────────────────
+// ── build the wall clip, by hand ────────────────────────────────────────────
+// A y4m is a header, then "FRAME\n" and three raw planes per frame. Writing it
+// directly means the probe needs nothing installed on the runner - the first
+// version shelled out to ffmpeg, which is not on the image.
 const W = 640, H = 480, TOP = Math.round(H * 0.16), BOT = Math.round(H * 0.84);
-const ppm = ['P6', `${W} ${H}`, '255'].join('\n') + '\n';
-const px = Buffer.alloc(W * H * 3);
+const Y = Buffer.alloc(W * H);
 for (let y = 0; y < H; y++) {
+  const near = (Math.abs(y - TOP) <= 3 || Math.abs(y - BOT) <= 3);
   for (let x = 0; x < W; x++) {
-    const i = (y * W + x) * 3;
-    const near = (Math.abs(y - TOP) <= 3 || Math.abs(y - BOT) <= 3);
-    const v = near ? 18 : 205 + ((x * 7 + y * 3) % 9);   // flat wall + faint texture
-    px[i] = v; px[i + 1] = v - 2; px[i + 2] = v - 6;
+    Y[y * W + x] = near ? 16 : 200 + ((x * 7 + y * 3) % 9);   // flat wall, two hard lines
   }
 }
-fs.writeFileSync('/tmp/wall.ppm', Buffer.concat([Buffer.from(ppm, 'ascii'), px]));
-execSync('ffmpeg -v error -y -loop 1 -i /tmp/wall.ppm -t 3 -r 15 -pix_fmt yuv420p -f yuv4mpegpipe /tmp/wall.y4m');
-console.log('wall clip: /tmp/wall.y4m  lines at rows ' + TOP + ' and ' + BOT + ' of ' + H);
+const U = Buffer.alloc((W / 2) * (H / 2), 128);
+const V = Buffer.alloc((W / 2) * (H / 2), 128);
+const head = Buffer.from(`YUV4MPEG2 W${W} H${H} F15:1 Ip A1:1 C420jpeg\n`, 'ascii');
+const frame = Buffer.concat([Buffer.from('FRAME\n', 'ascii'), Y, U, V]);
+const frames = [];
+for (let i = 0; i < 45; i++) frames.push(frame);              // 3 seconds at 15fps
+fs.writeFileSync('/tmp/wall.y4m', Buffer.concat([head, ...frames]));
+console.log('wall clip: /tmp/wall.y4m  ' + W + 'x' + H + ', lines at rows ' + TOP + ' and ' + BOT);
 
 const b = await puppeteer.launch({
   channel: 'chrome', headless: 'new',
