@@ -6957,8 +6957,8 @@ add_action('woocommerce_before_add_to_cart_button', function() {
       <div class="af-opt-group">
         <label class="af-opt-label">Frame Color</label>
         <div class="af-chips af-color-chips">
-          <?php $swatch=array('Black'=>'#1a1a1a','Silver'=>'#c0c0c0','Gold'=>'#d4af37','Rose Gold'=>'#b76e79'); foreach ($colors as $i => $c): ?>
-            <button type="button" class="af-swatch<?php echo $i===0?' active':''; ?>" data-type="color" data-val="<?php echo esc_attr($c); ?>" title="<?php echo esc_attr($c); ?>"><span style="background:<?php echo esc_attr($swatch[$c]??'#ccc'); ?>"></span><?php echo esc_html($c); ?></button>
+          <?php $swatch=array('Black'=>'#1a1a1a','Silver'=>'#c0c0c0','Gold'=>'#d4af37','Rose Gold'=>'#b76e79'); foreach ($colors as $i => $c): $cfee = isset($cfg['colors'][$c]) ? (float) $cfg['colors'][$c] : 0; ?>
+            <button type="button" class="af-swatch<?php echo $i===0?' active':''; ?>" data-type="color" data-val="<?php echo esc_attr($c); ?>" title="<?php echo esc_attr($c); ?>"><span style="background:<?php echo esc_attr($swatch[$c]??'#ccc'); ?>"></span><?php echo esc_html($c); ?><?php if($cfee>0) echo ' <em class="af-swatch-fee">+'.get_woocommerce_currency_symbol().$cfee.'</em>'; ?></button>
           <?php endforeach; ?>
         </div>
       </div>
@@ -7054,6 +7054,12 @@ add_action('wp_head', function() {
       text-transform:uppercase;text-decoration:none;vertical-align:1px;}
     .af-swatch{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid #ddd;border-radius:8px;padding:6px 12px 6px 8px;font-size:12.5px;font-weight:600;color:#333;cursor:pointer;transition:all .15s;}
     .af-swatch span{width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.15);display:inline-block;}
+    .af-swatch em.af-swatch-fee{font-style:normal;color:#a8872e;font-weight:700;}
+    /* The finish fee pays for the moulding, so af_calc_price does not charge it
+       on an unframed print — and the label must not claim it either. The
+       default frame is "Without Frame" (af_frame_default returns the first one
+       in stock), so this is the state a product page opens in. */
+    .af-opts.af-color-free em.af-swatch-fee{display:none;}
     .af-swatch:hover{border-color:#c9a84c;}
     .af-swatch.active{border-color:#1a1a1a;}
     /* Size is a dropdown rather than a chip grid — fourteen chips was a wall,
@@ -7119,7 +7125,18 @@ add_action('wp_head', function() {
         var price = Math.round((sizePrice + fee)*100)/100;
         var el = wrap.querySelector('#af-live-price');
         if(el) el.innerHTML = '<span class="amount">'+money(sym,price)+'</span>';
+        syncColorFee(wrap);
       }
+
+      // The +$10 on Gold and Rose Gold is charged only when there is a frame to
+      // finish — af_calc_price gates it the same way, and so does the fee line
+      // above. A page opens on "Without Frame", so without this the swatch
+      // would advertise a surcharge the cart would not take, which is the same
+      // class of fault as advertising one it does take silently.
+      function syncColorFee(wrap){
+        wrap.classList.toggle('af-color-free', chosen(wrap, 'frame') === 'Without Frame');
+      }
+      document.querySelectorAll('.af-opts').forEach(syncColorFee);
 
       // Arriving from Try On Wall? Pre-select what the visitor configured there,
       // so the price they were shown is the price they land on.
