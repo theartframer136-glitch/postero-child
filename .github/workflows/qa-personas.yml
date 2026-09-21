@@ -28,6 +28,10 @@ on:
         description: 'Run only these personas, e.g. 4,9 (blank = all ten)'
         type: string
         default: ''
+      script:
+        description: 'Script to run (blank = the ten personas; tools/verify-audit.mjs re-checks a handed-in audit)'
+        type: string
+        default: ''
 
 concurrency:
   group: qa-live
@@ -54,7 +58,8 @@ jobs:
         env:
           AF_QA_URL: ${{ inputs.url }}
           AF_QA_ONLY: ${{ inputs.only }}
-        run: node tools/qa-personas.mjs "${AF_QA_URL:-https://theartframer.us}"
+          AF_QA_SCRIPT: ${{ inputs.script }}
+        run: node "${AF_QA_SCRIPT:-tools/qa-personas.mjs}" "${AF_QA_URL:-https://theartframer.us}"
 
       - name: Keep what each of them saw
         if: always()
