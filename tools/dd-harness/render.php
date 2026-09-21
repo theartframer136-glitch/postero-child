@@ -52,6 +52,8 @@ $html = <<<HTML
 <li class="product post-8424 digital-download-card" style="position:fixed;inset:0;width:auto;z-index:1">
   <a href="/product/divine-varanasi/"><img src="/preview.png" alt="art" width="40" height="40"></a>
   <h3 class="product-title"><a href="/product/divine-varanasi/">Divine Varanasi Ganga Aarti</a></h3>
+  <!-- the card's eye. It is the QUICK VIEW, not a Digital Download trigger:
+       this modal must leave it alone or two modals open on top of each other. -->
   <button class="woosq-btn quick-view-btn" data-product-id="8424">eye</button>
   <span class="digital-download">Digital Download</span>
 </li>

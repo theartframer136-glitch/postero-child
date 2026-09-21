@@ -37,6 +37,7 @@ event type) worked. Run with `notrap` to see the same page without it.
 | the backdrop closes it | |
 | Escape closes it | it always did; it must go on doing so |
 | the logo still goes home | the archive body carries `term-digital-downloads-2`, which `[class*="digital-download"]` matches — so `<body>` was being treated as the trigger *and* as the card |
+| the eye stays the quick view | the card's eye is the theme's quick view; with this modal answering the same click, both opened and the quick view's iframe landed on top of this one's × |
 | no console errors | |
 
 The server answers the first preview request slowly on purpose (`DD_SLOW_MS`,

@@ -180,6 +180,23 @@ P((await st()).bodyOverflow === '(none)', 'and the page can scroll again');
   await sleep(400);
 }
 
+// 3d. The eye is the quick view, not this modal. Two modals opening on one
+// click put the quick view's iframe over this one's ×.
+{
+  await page.evaluate(() => { document.getElementById('af-dd-overlay').classList.remove('open'); });
+  await sleep(150);
+  const eye = await page.evaluate(() => {
+    const b = document.querySelector('.woosq-btn');
+    const ev = new MouseEvent('click', { bubbles: true, cancelable: true });
+    b.dispatchEvent(ev);
+    return { prevented: ev.defaultPrevented,
+      ddOpen: document.getElementById('af-dd-overlay').classList.contains('open') };
+  });
+  console.log('  eye click: ' + JSON.stringify(eye));
+  P(!eye.ddOpen, 'the quick-view eye does not open the Digital Download modal');
+  P(!eye.prevented, 'and the quick view it belongs to is left to handle its own click');
+}
+
 // 4. the backdrop
 await openIt(); await sleep(150);
 await page.evaluate(() => {

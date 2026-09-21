@@ -10579,7 +10579,17 @@ add_action('wp_footer', function() {
       // below happen to match: the page's own chrome.
       var DD_NEVER = 'header,.site-header,[class*="site-header"],[class*="site-branding"],'
                    + '.custom-logo-link,[class*="site-logo"],.elementor-widget-site-logo,.hfe-site-logo,'
-                   + 'nav,.main-navigation,[role="banner"],[role="navigation"],footer,#colophon';
+                   + 'nav,.main-navigation,[role="banner"],[role="navigation"],footer,#colophon,'
+                   // The card's eye is the QUICK VIEW, and the site already
+                   // has one modal for it - inc/card-actions.php deliberately
+                   // routes that button to the theme's, "one modal
+                   // everywhere". With this modal answering the same click,
+                   // both opened and the quick view's iframe landed on top of
+                   // this one's × (measured: topAtX was iframe.af-qv-frame,
+                   // so the close button could not even be reached). A
+                   // Digital Download trigger is its own control on the card.
+                   + '[class*="quick-view"],[class*="quickview"],[class*="quick_view"],'
+                   + '[class*="woosq"],[data-quick-view],.view-btn';
       document.addEventListener('click', function(e){
         /* A click INSIDE the modal is never a card trigger. This listener and
            the one that closes the modal both sit on document in the capture
