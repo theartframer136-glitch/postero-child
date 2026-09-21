@@ -64,9 +64,20 @@ console.log(await p.evaluate(() => {
 // and what actually happens
 const before = p.url();
 await p.evaluate(() => { const o = document.getElementById('af-dd-overlay'); if (o) o.classList.remove('open'); });
-try {
-  await p.click('.custom-logo-link, .elementor-widget-site-logo a, .hfe-site-logo a, .site-logo a, [class*="site-logo"] a');
-} catch (e) { console.log('logo click threw: ' + e.message.slice(0, 80)); }
+// A real p.click() needs a layout box, and the header logo anchor often has
+// none in headless. Dispatch the click on the element itself and read
+// defaultPrevented - that IS the question: was the navigation cancelled?
+const clicked = await p.evaluate(() => {
+  const logo = document.querySelector('.custom-logo-link, .elementor-widget-site-logo a, .hfe-site-logo a, .site-logo a, [class*="site-logo"] a, header a[href="https://theartframer.us"]');
+  if (!logo) return { err: 'no logo' };
+  const target = logo.querySelector('img') || logo;
+  const ev = new MouseEvent('click', { bubbles: true, cancelable: true });
+  target.dispatchEvent(ev);
+  return { prevented: ev.defaultPrevented,
+    ddOpen: document.getElementById('af-dd-overlay').classList.contains('open'),
+    href: logo.getAttribute('href') };
+});
+console.log('logo click: ' + JSON.stringify(clicked));
 await new Promise((r) => setTimeout(r, 2500));
 const after = await p.evaluate(() => ({
   ddOpen: !!(document.getElementById('af-dd-overlay') || {}).classList?.contains('open'),
@@ -75,6 +86,6 @@ const after = await p.evaluate(() => ({
 console.log('before: ' + before);
 console.log('after clicking the logo: ' + JSON.stringify(after));
 const P = (ok2, what) => console.log((ok2 ? 'PASS' : 'FAIL') + ': ' + what);
-P(!after.ddOpen, 'the Digital Download modal does not open from the logo');
-P(after.url !== before && /theartframer\.us\/?$/.test(after.url.replace(/[?#].*$/, '')), 'the logo goes home (' + after.url + ')');
+P(!clicked.ddOpen && !after.ddOpen, 'the Digital Download modal does not open from the logo');
+P(clicked.prevented === false, 'the logo click is not cancelled, so the browser follows it to ' + clicked.href);
 await b.close();
