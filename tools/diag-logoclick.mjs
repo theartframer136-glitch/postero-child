@@ -78,14 +78,24 @@ const clicked = await p.evaluate(() => {
     href: logo.getAttribute('href') };
 });
 console.log('logo click: ' + JSON.stringify(clicked));
-await new Promise((r) => setTimeout(r, 2500));
-const after = await p.evaluate(() => ({
-  ddOpen: !!(document.getElementById('af-dd-overlay') || {}).classList?.contains('open'),
-  url: location.href,
-}));
+// A working logo really navigates, which destroys the execution context - so
+// wait for that rather than letting the next evaluate throw. The navigation IS
+// the result: it means nothing cancelled the click.
+let navigated = false;
+try { await p.waitForNavigation({ timeout: 8000, waitUntil: 'domcontentloaded' }); navigated = true; }
+catch { /* no navigation: the assertions below say whether that is a fault */ }
+await new Promise((r) => setTimeout(r, 1200));
+let after = { ddOpen: false, url: p.url() };
+try {
+  after = await p.evaluate(() => ({
+    ddOpen: !!(document.getElementById('af-dd-overlay') || {}).classList?.contains('open'),
+    url: location.href,
+  }));
+} catch { /* navigated away mid-read; p.url() above is the answer */ }
 console.log('before: ' + before);
 console.log('after clicking the logo: ' + JSON.stringify(after));
 const P = (ok2, what) => console.log((ok2 ? 'PASS' : 'FAIL') + ': ' + what);
 P(!clicked.ddOpen && !after.ddOpen, 'the Digital Download modal does not open from the logo');
-P(clicked.prevented === false, 'the logo click is not cancelled, so the browser follows it to ' + clicked.href);
+P(clicked.prevented === false, 'the logo click is not cancelled');
+P(navigated || after.url !== before, 'and the browser actually went there: ' + after.url);
 await b.close();
