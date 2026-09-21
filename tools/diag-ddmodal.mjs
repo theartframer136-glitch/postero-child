@@ -106,80 +106,11 @@ const reopen = async () => {
   await new Promise((r) => setTimeout(r, 2500));
 };
 
-// Is the page even serving the current code? LiteSpeed caches category pages,
-// so a failing assertion can just mean yesterday's HTML.
-const shipped = await p.evaluate(() => ({
-  wantsClose: document.documentElement.outerHTML.indexOf('wantsClose') > -1,
-  loadingCls: document.documentElement.outerHTML.indexOf('af-dd-imgwrap.loading') > -1,
-  preparing:  document.documentElement.outerHTML.indexOf('Preparing preview') > -1,
-}));
-console.log('code served: ' + JSON.stringify(shipped));
-
-// If the x did not work, say WHY again - the capture chain, one line.
-const chain = await p.evaluate(() => {
-  const x = document.querySelector('#af-dd-overlay .af-dd-x');
-  if (!x) return '(no x)';
-  const seen = []; const offs = [];
-  let n = x; const path = [];
-  while (n) { path.push(n); n = n.parentNode; }
-  path.reverse().forEach((node) => {
-    const cap = () => seen.push('CAP ' + (node.nodeType === 9 ? 'document' : node.tagName.toLowerCase()));
-    node.addEventListener('click', cap, true);
-    offs.push(() => node.removeEventListener('click', cap, true));
-  });
-  const before = document.getElementById('af-dd-overlay').classList.contains('open');
-  x.click();
-  offs.forEach((f) => f());
-  return JSON.stringify({ before, after: document.getElementById('af-dd-overlay').classList.contains('open'), seen });
-});
-console.log('capture chain on x: ' + chain);
-
-// Which listener POSITIONS survive the trap? window-capture runs before
-// document-capture, so if the trap sits on document a window listener beats it.
-console.log('listener survival: ' + await p.evaluate(() => {
-  const x = document.querySelector('#af-dd-overlay .af-dd-x');
-  const hit = [];
-  const mk = (node, name, phase) => {
-    const f = () => hit.push(name);
-    node.addEventListener('click', f, phase);
-    return () => node.removeEventListener('click', f, phase);
-  };
-  const offs = [
-    mk(window, 'window-capture', true),
-    mk(document, 'document-capture', true),
-    mk(document.documentElement, 'html-capture', true),
-    mk(document.body, 'body-capture', true),
-    mk(x, 'button-bubble', false),
-  ];
-  const offPd = (() => { const f = () => hit.push('window-pointerdown'); window.addEventListener('pointerdown', f, true); return () => window.removeEventListener('pointerdown', f, true); })();
-  x.click();                                   // click only - no pointerdown
-  const afterClick = hit.slice();
-  hit.length = 0;
-  x.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
-  const afterPd = hit.slice();
-  offs.forEach((f) => f()); offPd();
-  return JSON.stringify({ onClick: afterClick, onPointerdown: afterPd });
-}));
-
-// Our handler DOES run (document-capture fires). So wantsClose() must be
-// returning false - evaluate its conditions one by one on the real element.
-console.log('predicate: ' + await p.evaluate(() => {
-  const o = document.getElementById('af-dd-overlay');
-  const x = o.querySelector('.af-dd-x');
-  const hit = x.closest('[data-dd-close]');
-  return JSON.stringify({
-    overlayOpen: o.classList.contains('open'),
-    xIsOverlay: x === o,
-    overlayContainsX: o.contains(x),
-    xHasAttr: x.hasAttribute('data-dd-close'),
-    closestFound: !!hit,
-    closestIsOverlay: hit === o,
-    closestTag: hit ? hit.tagName.toLowerCase() + '.' + String(hit.className).split(/\s+/)[0] : '(none)',
-    wouldClose: o.classList.contains('open') && o.contains(x) && !!hit && hit !== o,
-    // and does the page's own close path work when driven directly?
-    bodyOverflow: document.body.style.overflow || '(none)',
-  });
-}));
+// Served code marker only - no diagnostic clicking. Earlier versions probed the
+// event chain here, and those probe clicks closed the very modal the report
+// then asserted on, which made the report say the opposite of the truth.
+const shipped = await p.evaluate(() => document.documentElement.outerHTML.indexOf('wantsClose') > -1);
+console.log('current code served: ' + shipped);
 
 console.log('\n===== LIVE REPORT =====');
 P(afterOpen.ddOpen, 'the quick view opens');
