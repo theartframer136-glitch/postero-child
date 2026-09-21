@@ -174,10 +174,13 @@ add_action('woocommerce_shipping_init', function () {
             $per_lb = isset($band['per_lb']) ? (float) $band['per_lb'] : 1.5;
             $cost   = round($base + $per_lb * $lbs, 2);
 
+            // The distance and the origin town are how this method works, not
+            // something the customer ordered. "Delivery (~85 mi from Hockessin,
+            // DE)" reads like a leaked internal field on the one line where a
+            // shopper is deciding whether the number beside it is fair, and it
+            // publishes the studio's location on every cart in the country.
+            // The rate is unchanged; only the label stops explaining itself.
             $label = $this->title;
-            if ($miles !== null) {
-                $label .= sprintf(' (~%d mi from Hockessin, DE)', (int) round($miles));
-            }
 
             $this->add_rate(array(
                 'id'      => $this->get_rate_id(),

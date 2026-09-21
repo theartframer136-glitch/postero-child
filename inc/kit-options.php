@@ -200,7 +200,16 @@ add_action('woocommerce_before_add_to_cart_button', function () {
     <?php endforeach; ?>
   </div>
   <?php if (!af_kit_priced()) : ?>
-    <p class="af-kit-note">Parts are included at no extra charge while we finalise pricing.</p>
+    <?php /* This note appears only while af_kit_prices() is all zeroes, which is
+             the truth right now: the parts cost the customer nothing. It used to
+             say so by explaining our side of it — "while we finalise pricing" —
+             and that sentence sat directly above Add to Cart on every product
+             page, where it reads as "this shop is not open yet" at the exact
+             moment someone is deciding to commit. The fact is the same either
+             way; only one version of it is the customer's business. The parts
+             named are the ones af_kit_options() actually ships: bar, hooks,
+             screws, driver, hanging. */ ?>
+    <p class="af-kit-note">Stretcher bars, hooks, screws, screwdriver and hanging strip are included at no extra charge.</p>
   <?php endif; ?>
 </div>
 <style>

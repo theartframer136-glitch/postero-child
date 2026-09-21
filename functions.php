@@ -6957,8 +6957,8 @@ add_action('woocommerce_before_add_to_cart_button', function() {
       <div class="af-opt-group">
         <label class="af-opt-label">Frame Color</label>
         <div class="af-chips af-color-chips">
-          <?php $swatch=array('Black'=>'#1a1a1a','Silver'=>'#c0c0c0','Gold'=>'#d4af37','Rose Gold'=>'#b76e79'); foreach ($colors as $i => $c): ?>
-            <button type="button" class="af-swatch<?php echo $i===0?' active':''; ?>" data-type="color" data-val="<?php echo esc_attr($c); ?>" title="<?php echo esc_attr($c); ?>"><span style="background:<?php echo esc_attr($swatch[$c]??'#ccc'); ?>"></span><?php echo esc_html($c); ?></button>
+          <?php $swatch=array('Black'=>'#1a1a1a','Silver'=>'#c0c0c0','Gold'=>'#d4af37','Rose Gold'=>'#b76e79'); foreach ($colors as $i => $c): $cfee = isset($cfg['colors'][$c]) ? (float) $cfg['colors'][$c] : 0; ?>
+            <button type="button" class="af-swatch<?php echo $i===0?' active':''; ?>" data-type="color" data-val="<?php echo esc_attr($c); ?>" title="<?php echo esc_attr($c); ?>"><span style="background:<?php echo esc_attr($swatch[$c]??'#ccc'); ?>"></span><?php echo esc_html($c); ?><?php if($cfee>0) echo ' <em class="af-swatch-fee">+'.get_woocommerce_currency_symbol().$cfee.'</em>'; ?></button>
           <?php endforeach; ?>
         </div>
       </div>
@@ -7016,7 +7016,14 @@ add_action('woocommerce_before_calculate_totals', function($cart) {
 // 8d. Show selected options in cart/checkout
 add_filter('woocommerce_get_item_data', function($data, $item) {
     foreach (array('af_size'=>'Size','af_frame'=>'Frame Type','af_color'=>'Frame Color') as $k=>$label) {
-        if (!empty($item[$k])) $data[] = array('name'=>$label, 'value'=>$item[$k]);
+        if (empty($item[$k])) continue;
+        // A gallery-wrapped print has no moulding, so it has no finish. The
+        // colour is still stored — af_calc_price reads it, and it is what the
+        // shopper would return to if they added a frame — but printing "Frame
+        // Color: Black" beside "Frame Type: Without Frame" describes a thing
+        // that is not in the box.
+        if ($k === 'af_color' && isset($item['af_frame']) && $item['af_frame'] === 'Without Frame') continue;
+        $data[] = array('name'=>$label, 'value'=>$item[$k]);
     }
     return $data;
 }, 10, 2);
@@ -7024,7 +7031,11 @@ add_filter('woocommerce_get_item_data', function($data, $item) {
 // 8e. Persist selected options to the order line items
 add_action('woocommerce_checkout_create_order_line_item', function($item, $key, $values) {
     foreach (array('af_size'=>'Size','af_frame'=>'Frame Type','af_color'=>'Frame Color') as $k=>$label) {
-        if (!empty($values[$k])) $item->add_meta_data($label, $values[$k]);
+        if (empty($values[$k])) continue;
+        // Same gate as the cart, so the order, the invoice and the packing
+        // list describe the same object the shopper was shown.
+        if ($k === 'af_color' && isset($values['af_frame']) && $values['af_frame'] === 'Without Frame') continue;
+        $item->add_meta_data($label, $values[$k]);
     }
 }, 10, 3);
 
@@ -7054,6 +7065,12 @@ add_action('wp_head', function() {
       text-transform:uppercase;text-decoration:none;vertical-align:1px;}
     .af-swatch{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid #ddd;border-radius:8px;padding:6px 12px 6px 8px;font-size:12.5px;font-weight:600;color:#333;cursor:pointer;transition:all .15s;}
     .af-swatch span{width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.15);display:inline-block;}
+    .af-swatch em.af-swatch-fee{font-style:normal;color:#a8872e;font-weight:700;}
+    /* The finish fee pays for the moulding, so af_calc_price does not charge it
+       on an unframed print — and the label must not claim it either. The
+       default frame is "Without Frame" (af_frame_default returns the first one
+       in stock), so this is the state a product page opens in. */
+    .af-opts.af-color-free em.af-swatch-fee{display:none;}
     .af-swatch:hover{border-color:#c9a84c;}
     .af-swatch.active{border-color:#1a1a1a;}
     /* Size is a dropdown rather than a chip grid — fourteen chips was a wall,
@@ -7119,7 +7136,18 @@ add_action('wp_head', function() {
         var price = Math.round((sizePrice + fee)*100)/100;
         var el = wrap.querySelector('#af-live-price');
         if(el) el.innerHTML = '<span class="amount">'+money(sym,price)+'</span>';
+        syncColorFee(wrap);
       }
+
+      // The +$10 on Gold and Rose Gold is charged only when there is a frame to
+      // finish — af_calc_price gates it the same way, and so does the fee line
+      // above. A page opens on "Without Frame", so without this the swatch
+      // would advertise a surcharge the cart would not take, which is the same
+      // class of fault as advertising one it does take silently.
+      function syncColorFee(wrap){
+        wrap.classList.toggle('af-color-free', chosen(wrap, 'frame') === 'Without Frame');
+      }
+      document.querySelectorAll('.af-opts').forEach(syncColorFee);
 
       // Arriving from Try On Wall? Pre-select what the visitor configured there,
       // so the price they were shown is the price they land on.
@@ -15225,6 +15253,39 @@ add_action('wp_footer', function() {
         if (disc) {
           var pct = Math.round((mrpVal - num) / mrpVal * 100);
           disc.textContent = pct > 0 ? '(' + pct + '% OFF)' : '';
+        }
+
+        // The price beside the title follows the panel.
+        //
+        // It did not, and the two sat on screen together: choosing 3×5 ft
+        // moved the panel to $100.00 while the heading still read $80.00.
+        // The cart charged the panel price, so the heading was the wrong one —
+        // but a shopper cannot know that, and the one they are most likely to
+        // read is the big one at the top.
+        //
+        // Everything needed is already computed here for the panel's own
+        // strike-through, so the heading is written from the same two numbers
+        // rather than from a second derivation that could drift from it. The
+        // screen-reader sentences WooCommerce pairs with del/ins are rewritten
+        // too: stale assistive text is the same bug, only quieter.
+        var head = document.querySelector('.summary .price, .entry-summary .price, p.price');
+        if (head) {
+          var sym2 = symM ? symM[0] : '$';
+          var fmt  = function(v){ return sym2 + v.toFixed(2); };
+          var del  = head.querySelector('del'), ins = head.querySelector('ins');
+          var cur  = (ins || head).querySelector('.woocommerce-Price-amount, .amount');
+          if (cur) cur.innerHTML = fmt(num);
+          var was = del ? del.querySelector('.woocommerce-Price-amount, .amount') : null;
+          if (was) was.innerHTML = fmt(mrpVal);
+          head.querySelectorAll('.screen-reader-text').forEach(function(sr){
+            if (/original price/i.test(sr.textContent)) sr.textContent = 'Original price was: ' + fmt(mrpVal) + '.';
+            else if (/current price/i.test(sr.textContent)) sr.textContent = 'Current price is: ' + fmt(num) + '.';
+          });
+          var pctEl = head.querySelector('.af-pct-off');
+          if (pctEl) {
+            var pct2 = Math.round((mrpVal - num) / mrpVal * 100);
+            pctEl.textContent = pct2 > 0 ? '(' + pct2 + '% off)' : '';
+          }
         }
       }
     }
