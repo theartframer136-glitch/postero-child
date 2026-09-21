@@ -129,12 +129,29 @@ P((await state()).ddOpen, 'Add to Cart does not close it');
 await p.evaluate(() => {
   window.__ddTrace = [];
   const o = document.getElementById('af-dd-overlay');
+  const t0 = Date.now();
   new MutationObserver(() => window.__ddTrace.push(
-    (o.classList.contains('open') ? 'OPEN' : 'closed'))).observe(o, { attributes: true, attributeFilter: ['class'] });
+    (o.classList.contains('open') ? 'OPEN' : 'closed') + '@' + (Date.now() - t0) + 'ms')).observe(o, { attributes: true, attributeFilter: ['class'] });
+  // Who re-adds it? Wrap the two mutators and keep the stack.
+  window.__ddWho = [];
+  const add = DOMTokenList.prototype.add, rem = DOMTokenList.prototype.remove;
+  DOMTokenList.prototype.add = function (...a) {
+    if (this === o.classList && a.indexOf('open') > -1) {
+      window.__ddWho.push('ADD @' + (Date.now() - t0) + 'ms\n' + String(new Error().stack).split('\n').slice(1, 6).join('\n'));
+    }
+    return add.apply(this, a);
+  };
+  DOMTokenList.prototype.remove = function (...a) {
+    if (this === o.classList && a.indexOf('open') > -1) {
+      window.__ddWho.push('REMOVE @' + (Date.now() - t0) + 'ms\n' + String(new Error().stack).split('\n').slice(1, 4).join('\n'));
+    }
+    return rem.apply(this, a);
+  };
 });
 try { await p.click('#af-dd-overlay .af-dd-x'); } catch (e) { console.log('x click threw: ' + e.message.slice(0, 60)); }
 await new Promise((r) => setTimeout(r, 900));
 console.log('class changes after the x: ' + JSON.stringify(await p.evaluate(() => window.__ddTrace)));
+console.log('who touched it:\n' + (await p.evaluate(() => (window.__ddWho || []).join('\n---\n'))));
 P(!(await state()).ddOpen, 'the x closes it');
 
 await reopen();
