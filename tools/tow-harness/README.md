@@ -139,3 +139,26 @@ Notes that cost time to learn:
   lives in a different `wp_head` hook. Without it the stage has no
   `aspect-ratio:4/3` and a phone run silently measures desktop geometry.
 * Pass `TOW_PORT` (9100–9900) so parallel runs cannot collide.
+
+## The four single-claim probes
+
+Each of these came out of the review as an attempt to break one specific
+guarantee, and each stayed because it is the cheapest way to notice that
+guarantee going again. They print facts and a short verdict; none of them
+needs an argument.
+
+| probe | the guarantee it guards |
+|-------|-------------------------|
+| `run-repeat.mjs` | the automatic account save is capped per visit (3), the manual button is not |
+| `run-savedurl.mjs` | an automatic save never arms WhatsApp / Email / Copy with the room photo |
+| `run-toastshare.mjs` | the "add it to your Photos" offer does not outlive its toast and leave it swallowing taps |
+| `run-wallready.mjs` | the auto-save waits for the frozen wall to decode, so no half-drawn wall is baked in |
+
+Run them the same way as the others, each with its own `TOW_PORT`:
+
+    php tools/tow-harness/render.php
+    TOW_PORT=9310 NODE_PATH=/opt/node22/lib/node_modules node tools/tow-harness/run-repeat.mjs
+
+Expected on the current code, in order: `POSTs=4 downloads=6` (three
+automatic, one manual); `NO LEAK: share still points at the product/page
+link`; `pe=none` once the toast has gone; `opaqueFrac 1` with one save.
