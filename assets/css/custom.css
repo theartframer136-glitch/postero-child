@@ -2816,3 +2816,38 @@ html body .af-xsell ul.products li.product .product-transition .onsale{
   left:-46px !important;
   right:auto !important;
 }
+
+/* ── Where the keyboard is ─────────────────────────────────────────────────
+   Measured on the live home page, 21 Sep 2026: of the first 29 tab stops,
+   ZERO changed any visual property when focused — not an outline, not a
+   shadow, not a border, not a text decoration. Anyone navigating by keyboard,
+   by switch, or with a screen magnifier was moving blind through a shop.
+
+   An audit handed to us read the computed "outline: rgb(138,109,31) none 3px"
+   on a focused element as a gold ring that had been defined and then switched
+   off, and proposed flipping outline-style to solid. That value is the browser
+   default — medium computes to 3px, currentcolor to the element's own text
+   colour, and #8a6d1f is a gold this theme does use for text. Nothing had been
+   switched off. There was no rule at all, which is why there was nothing to
+   flip and why this is an addition rather than an edit.
+
+   :focus-visible rather than :focus, so a mouse click does not leave a ring
+   behind. The colour is the brand gold already used for the chosen category
+   circle, so a keyboard user sees the same gold a mouse user does.
+
+   Deliberately not !important: the handful of rules in this theme that set
+   outline:none on a focused control — .taf-form inputs, .af-size-select, the
+   Try-On-Wall selects — all pair it with a border colour change and a
+   box-shadow, so those controls already show focus and do not need this. This
+   is for everything else, which is almost everything. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid #c9a84c;
+  outline-offset: 2px;
+}
