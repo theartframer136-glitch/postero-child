@@ -106,6 +106,34 @@ const reopen = async () => {
   await new Promise((r) => setTimeout(r, 2500));
 };
 
+// Is the page even serving the current code? LiteSpeed caches category pages,
+// so a failing assertion can just mean yesterday's HTML.
+const shipped = await p.evaluate(() => ({
+  wantsClose: document.documentElement.outerHTML.indexOf('wantsClose') > -1,
+  loadingCls: document.documentElement.outerHTML.indexOf('af-dd-imgwrap.loading') > -1,
+  preparing:  document.documentElement.outerHTML.indexOf('Preparing preview') > -1,
+}));
+console.log('code served: ' + JSON.stringify(shipped));
+
+// If the x did not work, say WHY again - the capture chain, one line.
+const chain = await p.evaluate(() => {
+  const x = document.querySelector('#af-dd-overlay .af-dd-x');
+  if (!x) return '(no x)';
+  const seen = []; const offs = [];
+  let n = x; const path = [];
+  while (n) { path.push(n); n = n.parentNode; }
+  path.reverse().forEach((node) => {
+    const cap = () => seen.push('CAP ' + (node.nodeType === 9 ? 'document' : node.tagName.toLowerCase()));
+    node.addEventListener('click', cap, true);
+    offs.push(() => node.removeEventListener('click', cap, true));
+  });
+  const before = document.getElementById('af-dd-overlay').classList.contains('open');
+  x.click();
+  offs.forEach((f) => f());
+  return JSON.stringify({ before, after: document.getElementById('af-dd-overlay').classList.contains('open'), seen });
+});
+console.log('capture chain on x: ' + chain);
+
 console.log('\n===== LIVE REPORT =====');
 P(afterOpen.ddOpen, 'the quick view opens');
 P(afterOpen.img && afterOpen.img.nw > 0, 'the preview pane has a picture in it (' + (afterOpen.img && afterOpen.img.nw) + 'x' + (afterOpen.img && afterOpen.img.nh) + ')');
