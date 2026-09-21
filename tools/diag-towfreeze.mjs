@@ -106,9 +106,31 @@ const state = () => p.evaluate(() => {
 });
 
 // a real click, so the stage is scrolled into view and the video renders
+// Is the camera reachable at all in this browser, on this page? A silent
+// failure here looks exactly like a broken lock, so ask directly first.
+const camProbe = await p.evaluate(async () => {
+  if (!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia)) return 'no mediaDevices';
+  try {
+    const st = await navigator.mediaDevices.getUserMedia({ video: true });
+    const t = st.getVideoTracks()[0];
+    const s = t ? t.getSettings() : {};
+    st.getTracks().forEach((x) => x.stop());
+    return 'ok ' + (s.width || '?') + 'x' + (s.height || '?');
+  } catch (e) { return 'FAILED ' + e.name + ': ' + e.message; }
+});
+console.log('getUserMedia: ' + camProbe);
+
 await p.evaluate(() => document.getElementById('tow-cambtn').scrollIntoView({ block: 'center' }));
-await new Promise((r) => setTimeout(r, 400));
+await new Promise((r) => setTimeout(r, 600));
 await p.click('#tow-cambtn');
+await new Promise((r) => setTimeout(r, 1200));
+console.log('after click: ' + JSON.stringify(await p.evaluate(() => {
+  const v = document.getElementById('tow-cam');
+  return { camBtn: (document.getElementById('tow-cambtn').textContent || '').replace(/\s+/g, ' ').trim().slice(0, 40),
+    camDisplay: getComputedStyle(v).display, srcObject: !!v.srcObject, vw: v.videoWidth, rs: v.readyState,
+    calDisplay: document.getElementById('tow-cal').style.display,
+    toast: (document.getElementById('tow-toast') || {}).textContent || '' };
+})));
 let atLock = null;
 for (let i = 0; i < 70 && !atLock; i++) {
   await new Promise((r) => setTimeout(r, 250));
