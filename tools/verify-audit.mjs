@@ -116,7 +116,10 @@ try {
 
   // H-05 — the pop-up
   const pop = await page.evaluate(() => {
+    const isCookie = el => /cookie|privacy|consent|gdpr/i.test((el.className || '') + ' ' + (el.id || '')) ||
+                            /we value your privacy|we use cookies/i.test((el.innerText || '').slice(0, 120));
     const cands = [...document.querySelectorAll('div,section,aside,dialog')].filter(el => {
+      if (isCookie(el)) return false;
       const s = getComputedStyle(el);
       if (!['fixed', 'absolute'].includes(s.position)) return false;
       if (s.display === 'none' || s.visibility === 'hidden' || parseFloat(s.opacity || '1') === 0) return false;
@@ -290,12 +293,26 @@ try {
       'sorting by price opens with 35 of 48 unpriced items, ~3 pages before a real price',
       `page 1 of ?orderby=price: ${sorted.por} of ${sorted.total} are "Price on request" · first six: ${sorted.first}`);
 
-  productUrl = await page.evaluate(() => {
-    const a = [...document.querySelectorAll('li.product a[href*="/product/"]')].find(x => !/price on request/i.test(x.closest('li').innerText));
-    return a ? a.href : (document.querySelector('li.product a[href*="/product/"]') || {}).href || null;
-  });
-  if (!productUrl) { say('PROD', NA, 'a purchasable product page', 'no product link found on the shop page'); }
+  // A canvas, not an accessory. The first run took its product from
+  // ?orderby=price, whose entire first page is "Price on request" — so it
+  // landed on a quote-only item with no frames, no swatches and no Add to
+  // Cart, then reported the absent controls as CONTRADICTED and left the
+  // cart empty, voiding every cart and checkout check below it. The product
+  // has to be one a shopper could buy, and the run has to say so.
+  await go(page, '/shop/', 2500);
+  const picks = await page.evaluate(() => [...document.querySelectorAll('li.product, .product.type-product')]
+    .filter(c => !/price on request/i.test(c.innerText) && /\$[\d,.]+/.test(c.innerText))
+    .map(c => { const a = c.querySelector('a[href*="/product/"]'); return a ? a.href : null; })
+    .filter(Boolean).slice(0, 4));
+  for (const cand of picks) {
+    await go(page, cand, 2500);
+    const buyable = await page.evaluate(() =>
+      !!document.querySelector('.single_add_to_cart_button, button[name="add-to-cart"]'));
+    if (buyable) { productUrl = cand; break; }
+  }
+  if (!productUrl) { say('PROD', NA, 'a purchasable product page', `none of the ${picks.length} priced cards on /shop/ had an Add to Cart button`); }
   else {
+    say('PROD', NA, 'the product the rest of this section was measured on', productUrl);
     await go(page, productUrl, 2500);
     const p = await page.evaluate(() => {
       const t = document.body.innerText;
@@ -315,15 +332,17 @@ try {
       };
     });
     say('H-03', p.kitNote ? YES : NO, '"Parts are included at no extra charge while we finalise pricing" is live on product pages',
-        p.kitNote ? 'the string is on the product page' : 'the string is not on this product page');
-    say('H-02', /OUT OF STOCK/.test(p.chips.join(' ')) ? YES : NO, 'Floating and Fibre frames are out of stock store-wide; only Aluminium can be bought',
-        p.chips.length ? p.chips.join(' · ') : 'no frame chips found on this product');
+        p.kitNote ? 'the string is on the product page' : `the string is not on ${productUrl}`);
+    say('H-02', !p.chips.length ? NA : (/OUT OF STOCK/.test(p.chips.join(' ')) ? YES : NO),
+        'Floating and Fibre frames are out of stock store-wide; only Aluminium can be bought',
+        p.chips.length ? p.chips.join(' · ') : 'no frame chips on this product — nothing measured');
     say('M-10', p.viewers !== 'none' ? YES : NO, '"11 people are viewing this product right now" under every title', p.viewers);
     say('C-05a', p.delivery !== 'none' ? YES : NO, 'the product page prints a hard-coded delivery date range', p.delivery);
     say('M-04a', PART, 'the spec table lists 4×5 / 4×6 ft and White / Wooden that the selector does not offer',
         `selector sizes: ${p.sizes.join(', ') || 'none found'} || spec table: ${p.attrs.filter(a => /size|colou?r|frame/i.test(a)).join(' ~ ') || 'no attribute table'}`);
-    say('M-04b', /no fee shown/.test(p.colors.join(' ')) ? YES : NO, 'Gold and Rose Gold cost +$10 but the product page shows no surcharge',
-        p.colors.join(' · ') || 'no colour swatches found');
+    say('M-04b', !p.colors.length ? NA : (/no fee shown/.test(p.colors.join(' ')) ? YES : NO),
+        'Gold and Rose Gold cost +$10 but the product page shows no surcharge',
+        p.colors.join(' · ') || 'no colour swatches on this product — nothing measured');
     brochureUrl = /\.pdf/i.test(p.brochure) ? p.brochure : null;
     say('M-06a', brochureUrl ? YES : NO, 'every product links the same brochure PDF', p.brochure.split('/').pop());
 
@@ -390,13 +409,14 @@ try {
     };
   });
   say('CART', added && !cart.empty ? YES : NA, 'a test item is in the cart', cart.empty ? 'cart is empty — the cart/checkout claims below could not be measured' : 'one item added for measurement');
-  say('C-04', /rajasthan|india/i.test(cart.dest + cart.country + cart.state) ? YES : NO,
+  const cartHas = added && !cart.empty;
+  say('C-04', !cartHas ? NA : (/rajasthan|india/i.test(cart.dest + cart.country + cart.state) ? YES : NO),
       'the default shipping destination is Rajasthan, India (calc_shipping_country=IN, state=RJ)',
       `cart says "${cart.dest}" · country field ${cart.country} · state field ${cart.state}`);
   say('C-02b', /\$/.test(cart.ship) ? YES : NA, 'delivery is charged, not free', `${cart.ship}`);
-  say('M-05', cart.recs.length ? PART : NO, 'the cart recommends jute tote bags, business cards, an exhibition booth',
+  say('M-05', !cartHas ? NA : (cart.recs.length ? PART : NO), 'the cart recommends jute tote bags, business cards, an exhibition booth',
       cart.recs.length ? cart.recs.join(' · ') : 'no cross-sell or related products rendered on the cart');
-  say('H-09b', cart.payClaim ? YES : NO, 'the cart page claims "cards, PayPal & more" while PayPal is not offered',
+  say('H-09b', !cartHas ? NA : (cart.payClaim ? YES : NO), 'the cart page claims "cards, PayPal & more" while PayPal is not offered',
       cart.payClaim ? 'the claim is on the cart page' : 'the phrase is not on the cart page');
 
   // H-01 — a coupon that does not exist: does anything at all appear?
@@ -453,7 +473,7 @@ try {
     ul.remove();
     return out;
   `));
-  say('C-03', err.strongR < 2 ? YES : NO, 'the field name in a checkout error is white on pink at 1.09:1',
+  say('C-03', !cartHas ? NA : (err.strongR < 2 ? YES : NO), 'the field name in a checkout error is white on pink at 1.09:1',
       `.woocommerce-error strong ${err.strongColor} on ${err.bg} = ${err.strongR}:1 · rest of the line ${err.restColor} = ${err.restR}:1`);
 
   // H-08, H-09 — gift cards and payment methods
@@ -463,7 +483,7 @@ try {
     methods: [...document.querySelectorAll('.wc_payment_method label, li.wc_payment_method')].map(l => l.innerText.replace(/\s+/g, ' ').trim().slice(0, 40)).filter(Boolean).slice(0, 8),
     terms: document.querySelectorAll('input[name="terms"], .woocommerce-terms-and-conditions-wrapper').length,
   }));
-  say('H-08', pay.gift.length > 1 || (pay.gift.length && pay.square) ? YES : NO, 'two gift-card fields in the same checkout summary',
+  say('H-08', !cartHas ? NA : (pay.gift.length > 1 || (pay.gift.length && pay.square) ? YES : NO), 'two gift-card fields in the same checkout summary',
       `gift inputs: ${pay.gift.join(' | ') || 'none'} · "Square Gift Card" text present: ${pay.square}`);
   say('H-09a', pay.methods.length ? PART : NA, 'payment options are Zelle, Square card, cash on delivery; no wallets; no terms checkbox',
       `offered: ${pay.methods.join(' · ') || 'none rendered'} · terms checkbox: ${pay.terms}`);
