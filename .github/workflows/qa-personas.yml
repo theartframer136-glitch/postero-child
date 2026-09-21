@@ -1,0 +1,65 @@
+name: QA — ten people, ages 5 to 65
+
+# kid-mode and veteran cover the extremes: one flails at the site, the other
+# works a release checklist. This is the middle, where a shop quietly loses
+# people — the student on a throttled phone, the keyboard-only designer, the
+# 58-year-old at 200% zoom, the 65-year-old looking for a phone number.
+#
+# Ten personas, each on its own pages, each with its own device and its own
+# definition of "this worked". A finding names who hit it and what they were
+# trying to do, because "tap target under 44px" is an argument and "a child
+# cannot hit your menu button" is a decision.
+#
+# Manual only, like qa.yml, and for the same reason: it drives a real browser
+# over the production shop, and that host does not want the traffic.
+#
+# It cannot order or email. Every request that would reach a person or a ledger
+# is intercepted at the wire and answered locally — the same NEVER_SEND list
+# qa-veteran.mjs uses.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'Site to test (blank = the live shop)'
+        type: string
+        default: ''
+      only:
+        description: 'Run only these personas, e.g. 4,9 (blank = all ten)'
+        type: string
+        default: ''
+
+concurrency:
+  group: qa-live
+  cancel-in-progress: true
+
+jobs:
+  personas:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Playwright Chromium
+        run: |
+          npm init -y >/dev/null
+          npm i playwright@1.56 >/dev/null
+          npx playwright install --with-deps chromium
+
+      - name: Walk the site as ten different people
+        env:
+          AF_QA_URL: ${{ inputs.url }}
+          AF_QA_ONLY: ${{ inputs.only }}
+        run: node tools/qa-personas.mjs "${AF_QA_URL:-https://theartframer.us}"
+
+      - name: Keep what each of them saw
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: persona-screenshots
+          path: persona-*.png
+          if-no-files-found: ignore
