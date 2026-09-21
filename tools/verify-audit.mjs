@@ -348,14 +348,30 @@ try {
 
     // M-01 — two prices at once, after changing the size
     const before = { header: p.headerPrice.replace(/\s+/g, ' ').trim(), live: p.livePrice.trim() };
+    // The size control is a <select> on this theme, not a chip. Clicking a
+    // <select> opens it and changes nothing, which is why run 4 reported the
+    // panel and header both unmoved and decided nothing: set the value and
+    // fire the change event the theme's handler listens for.
     const switched = await page.evaluate(() => {
-      const want = [...document.querySelectorAll('[data-type="size"]')].find(e => /3×5|3x5/.test(e.dataset.val || e.textContent));
+      const sel = document.querySelector('select[data-type="size"]');
+      if (sel) {
+        const opt = [...sel.options].find(o => /3×5|3x5/.test(o.value + ' ' + o.textContent));
+        if (!opt) return false;
+        sel.value = opt.value;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        return opt.value.trim() || opt.textContent.trim();
+      }
+      const want = [...document.querySelectorAll('[data-type="size"]')]
+        .filter(e => e.tagName !== 'SELECT')
+        .find(e => /3×5|3x5/.test(e.dataset.val || e.textContent));
       if (!want) return false;
       want.click(); return (want.dataset.val || want.textContent).trim();
     });
     await page.waitForTimeout(1200);
     const after = await page.evaluate(() => ({
-      header: ((document.querySelector('.summary .price, .entry-summary .price, p.price') || {}).innerText || '').replace(/\s+/g, ' ').trim(),
+      header: (((document.querySelector('.summary .price, .entry-summary .price, p.price') || {}).innerText || '')
+                 .match(/Current price is: (\$[\d,.]+)/) || [])[1] ||
+              ((document.querySelector('.summary .price, .entry-summary .price, p.price') || {}).innerText || '').replace(/\s+/g, ' ').trim(),
       live: ((document.querySelector('#af-live-price') || {}).innerText || '').trim(),
     }));
     say('M-01', switched && after.live && after.header && after.live.replace(/\s/g, '') !== after.header.replace(/\s/g, '') ? YES : (switched ? NO : NA),
