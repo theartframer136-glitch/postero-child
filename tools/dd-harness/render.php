@@ -35,7 +35,11 @@ $html = <<<HTML
 .woosq-btn{padding:8px 12px}</style>
 </head><body>
 <h1>Digital Download modal — offline</h1>
-<li class="product post-8424">
+<!-- Spread the card across the viewport, BEHIND the modal. On the live
+     category page the modal covers a grid of cards, so a stray click that
+     lands after the modal has gone hits a card and reopens the quick view -
+     which is exactly the reopen this harness has to be able to catch. -->
+<li class="product post-8424 digital-download-card" style="position:fixed;inset:0;width:auto;z-index:1">
   <a href="/product/divine-varanasi/"><img src="/preview.png" alt="art" width="40" height="40"></a>
   <h3 class="product-title"><a href="/product/divine-varanasi/">Divine Varanasi Ganga Aarti</a></h3>
   <button class="woosq-btn quick-view-btn" data-product-id="8424">eye</button>

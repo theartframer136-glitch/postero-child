@@ -112,10 +112,22 @@ await page.evaluate(() => document.getElementById('af-dd-title').click());
 await sleep(200);
 P((await st()).open, 'clicking the title does not close it either');
 
-// 3. the ×
+// 3. the ×. Watched, not just sampled: closing on pointerdown would take the
+// modal out from under the cursor and let the trailing click land on the card
+// behind it and reopen the quick view - measured on the live page as the class
+// sequence ["closed","OPEN"]. The assertion is the END state, and the trace is
+// printed so a reopen is never mistaken for a failure to close.
+await page.evaluate(() => {
+  window.__trace = [];
+  const o = document.getElementById('af-dd-overlay');
+  new MutationObserver(() => window.__trace.push(o.classList.contains('open') ? 'OPEN' : 'closed'))
+    .observe(o, { attributes: true, attributeFilter: ['class'] });
+});
 await page.click('#af-dd-overlay .af-dd-x');
-await sleep(250);
+await sleep(400);
+console.log('  class changes after the ×: ' + JSON.stringify(await page.evaluate(() => window.__trace)));
 P(!(await st()).open, 'the × closes it' + (mode === 'trap' ? ' even with the click trap installed' : ''));
+P(!(await page.evaluate(() => window.__trace.join(','))).includes('closed,OPEN'), 'and nothing reopens it');
 P((await st()).bodyOverflow === '(none)', 'and the page can scroll again');
 
 // 4. the backdrop

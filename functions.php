@@ -10445,10 +10445,17 @@ add_action('wp_footer', function() {
          listener added there during the same test did fire). Kept as a target
          test rather than a bound element, since the event never descends.
 
-         pointerdown as well, for the stricter case: a trap that called
-         stopImmediatePropagation() would beat even this, and pointerdown is a
-         separate event type that such a click trap does not see. Either route
-         closes once; close() is idempotent. */
+         CLICK ONLY, and that matters. A pointerdown listener was here too,
+         for the stricter case of a trap using stopImmediatePropagation() - and
+         it made things worse in a way only the live page showed. Closing on
+         pointerdown takes the modal out from under the pointer before the
+         click is dispatched, so the click's target is computed against
+         whatever the modal had been covering: a product card, whose own quick
+         view then opens. Measured on the category page as the class sequence
+         ["closed","OPEN"] - it closed and something immediately reopened it,
+         which from the shopper's chair is indistinguishable from the × being
+         dead. On click the modal is still under the pointer when the target is
+         chosen, so there is no second dispatch to go astray. */
       function wantsClose(e){
         var t = e.target;
         if(!t || !t.closest) return false;
@@ -10464,9 +10471,6 @@ add_action('wp_footer', function() {
         return !!(hit && hit !== overlay);
       }
       document.addEventListener('click', function(e){
-        if(wantsClose(e)){ e.preventDefault(); close(); }
-      }, true);
-      document.addEventListener('pointerdown', function(e){
         if(wantsClose(e)){ e.preventDefault(); close(); }
       }, true);
       document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
