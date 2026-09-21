@@ -27,6 +27,52 @@ add_action('wp_enqueue_scripts', function() {
     }
 }, 20);
 
+/**
+ * The mtime versioning above assumes the browser is asked for our file. It is
+ * not.
+ *
+ * Measured on the live home page, 21 Sep 2026: 91 stylesheets, and not one of
+ * them is ours. What is served is
+ *
+ *     /wp-content/litespeed/css/814e966d8b82a0bc599e087d4c…
+ *     /wp-content/litespeed/css/31a0ace210f48c2c5c5d466168…
+ *
+ * — LiteSpeed's combined bundles. Our filename and its ?ver never reach the
+ * browser, so the comment above is true of a request nobody makes.
+ *
+ * What that cost: the checkout error colour measured 8.39:1 at 12:31 and
+ * 1.09:1 at 12:36 on the same deployed code, because the two page loads were
+ * served different cached bundles. Not slow to arrive — intermittent. Some
+ * visitors get the fix and some do not, which is worse than either, and it
+ * made a deployed, correct change look like a failed one.
+ *
+ * So the bundles are purged when, and only when, our CSS actually changes.
+ * The stamp is written BEFORE the purge fires: if a purge throws, or these
+ * hooks do not exist because LiteSpeed is gone, this must not retry on every
+ * request forever. An unknown hook name is a no-op in WordPress, so naming
+ * three costs nothing and covers LiteSpeed's separate CSS/JS, critical-CSS
+ * and unused-CSS stores.
+ *
+ * Deliberately not litespeed_purge_all: that takes the page cache with it and
+ * leaves the whole shop cold on every deploy. If a verification run still
+ * reads a stale bundle after this, the page cache is the next thing to try —
+ * measured, not assumed.
+ */
+add_action('wp_loaded', function () {
+    if (wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) return;
+    $dir = get_stylesheet_directory();
+    $stamp = md5(
+        (int) @filemtime($dir . '/assets/css/custom.css') . '|' .
+        (int) @filemtime($dir . '/assets/css/checkout.css') . '|' .
+        (int) @filemtime($dir . '/style.css')
+    );
+    if (get_option('af_css_stamp') === $stamp) return;
+    update_option('af_css_stamp', $stamp);
+    do_action('litespeed_purge_all_cssjs');
+    do_action('litespeed_purge_all_ccss');
+    do_action('litespeed_purge_all_ucss');
+}, 20);
+
 // 1b. Tag Sign Up / Login / user-icon nav items with CSS classes (server-side, reliable)
 add_filter('nav_menu_css_class', function($classes, $item) {
     if (is_user_logged_in()) return $classes;
