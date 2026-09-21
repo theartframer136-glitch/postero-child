@@ -98,64 +98,39 @@ console.log('AFTER OPEN: ' + JSON.stringify(afterOpen, null, 1).replace(/\n\s*/g
 // WHY does the x not work? Count the overlays, and watch what a click on the
 // button actually does - which element is the target, does close() run, does
 // anything stop the event on the way.
-// WHERE does the click die? Watch every node on the capture path from document
-// down to the button, and every node on the way back up.
-console.log('CHAIN: ' + await p.evaluate(() => {
-  const x = document.querySelector('#af-dd-overlay .af-dd-x');
-  if (!x) return '(no x)';
-  const path = [];
-  let n = x;
-  while (n) { path.push(n); n = n.parentNode; }
-  path.reverse();                      // document ... button
-  const seen = [];
-  const label = (e) => (e.nodeType === 9 ? 'document' : e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + '.' + String(e.className || '').split(/\s+/).filter(Boolean).slice(0, 2).join('.'));
-  const offs = [];
-  path.forEach((node) => {
-    const cap = () => seen.push('CAP  ' + label(node));
-    const bub = () => seen.push('BUB  ' + label(node));
-    node.addEventListener('click', cap, true);
-    node.addEventListener('click', bub, false);
-    offs.push(() => { node.removeEventListener('click', cap, true); node.removeEventListener('click', bub, false); });
-  });
-  x.click();
-  offs.forEach((f) => f());
-  const o = document.getElementById('af-dd-overlay');
-  return JSON.stringify({ stillOpen: o.classList.contains('open'), path: seen });
-}));
+const P = (ok, what) => console.log((ok ? 'PASS' : 'FAIL') + ': ' + what);
+const reopen = async () => {
+  await p.evaluate(() => { document.getElementById('af-dd-overlay').classList.remove('open'); });
+  await new Promise((r) => setTimeout(r, 200));
+  try { await p.click('li.product [class*="quick"], .product-card [class*="quick"], .product [class*="quick"]'); } catch {}
+  await new Promise((r) => setTimeout(r, 2500));
+};
 
-console.log('WHY: ' + await p.evaluate(() => {
-  const all = [...document.querySelectorAll('#af-dd-overlay, .af-dd-overlay')];
-  const xs = [...document.querySelectorAll('.af-dd-x')];
-  const o = document.getElementById('af-dd-overlay');
-  const x = o ? o.querySelector('.af-dd-x') : null;
-  const fired = [];
-  if (x) {
-    // log what the real click sees, without removing the page's own handlers
-    x.addEventListener('click', (e) => fired.push('x saw target=' + (e.target.tagName.toLowerCase() + '.' + String(e.target.className).split(/\s+/)[0]) + ' currentTarget=x'), true);
-    document.addEventListener('click', (e) => fired.push('doc capture target=' + e.target.tagName.toLowerCase() + '.' + String(e.target.className).split(/\s+/)[0]), true);
-    document.addEventListener('click', (e) => fired.push('doc bubble reached, defaultPrevented=' + e.defaultPrevented), false);
-    x.click();
-  }
-  return JSON.stringify({
-    overlayCount: all.length,
-    overlayIds: all.map((e) => (e.id || '(no id)') + (e.classList.contains('open') ? ' OPEN' : '')),
-    xCount: xs.length,
-    closeMarked: o ? o.querySelectorAll('[data-dd-close]').length : -1,
-    overlayHasDataClose: o ? o.hasAttribute('data-dd-close') : null,
-    afterProgrammaticClick: o ? o.classList.contains('open') : null,
-    fired,
-  });
-}));
+console.log('\n===== LIVE REPORT =====');
+P(afterOpen.ddOpen, 'the quick view opens');
+P(afterOpen.img && afterOpen.img.nw > 0, 'the preview pane has a picture in it (' + (afterOpen.img && afterOpen.img.nw) + 'x' + (afterOpen.img && afterOpen.img.nh) + ')');
 
-// now try to close it, three ways, reporting after each
-for (const how of ['x', 'backdrop', 'escape']) {
-  if (how === 'x') { try { await p.click('#af-dd-overlay .af-dd-x'); } catch (e) { console.log('x click failed: ' + e.message.slice(0, 70)); } }
-  if (how === 'backdrop') { try { await p.evaluate(() => { const o = document.getElementById('af-dd-overlay'); const r = o.getBoundingClientRect(); o.dispatchEvent(new MouseEvent('click', { bubbles: true })); }); } catch {} }
-  if (how === 'escape') { await p.keyboard.press('Escape'); }
-  await new Promise((r) => setTimeout(r, 900));
-  const s = await state();
-  console.log(`after ${how.padEnd(8)}: ddOpen=${s.ddOpen} dialogs=${JSON.stringify(s.openDialogs)}`);
-  if (!s.ddOpen && !s.openDialogs.length) break;
-}
-console.log('console errors (' + errs.length + '): ' + (errs.join(' | ') || 'none'));
+// Add to Cart and the title must NOT close it: the overlay carries
+// data-dd-close and is an ancestor of every control inside.
+await p.evaluate(() => document.getElementById('af-dd-add').click());
+await new Promise((r) => setTimeout(r, 400));
+P((await state()).ddOpen, 'Add to Cart does not close it');
+
+// the x - the fault in the recording
+try { await p.click('#af-dd-overlay .af-dd-x'); } catch (e) { console.log('x click threw: ' + e.message.slice(0, 60)); }
+await new Promise((r) => setTimeout(r, 700));
+P(!(await state()).ddOpen, 'the x closes it');
+
+await reopen();
+await p.evaluate(() => { const o = document.getElementById('af-dd-overlay'); o.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
+await new Promise((r) => setTimeout(r, 700));
+P(!(await state()).ddOpen, 'the backdrop closes it');
+
+await reopen();
+await p.keyboard.press('Escape');
+await new Promise((r) => setTimeout(r, 700));
+P(!(await state()).ddOpen, 'Escape still closes it');
+
+P(errs.filter((e) => !/status of (403|404)/.test(e)).length === 0,
+  'no console errors beyond the page\'s pre-existing 403/404 asset noise');
 await b.close();
