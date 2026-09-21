@@ -98,6 +98,31 @@ console.log('AFTER OPEN: ' + JSON.stringify(afterOpen, null, 1).replace(/\n\s*/g
 // WHY does the x not work? Count the overlays, and watch what a click on the
 // button actually does - which element is the target, does close() run, does
 // anything stop the event on the way.
+// WHERE does the click die? Watch every node on the capture path from document
+// down to the button, and every node on the way back up.
+console.log('CHAIN: ' + await p.evaluate(() => {
+  const x = document.querySelector('#af-dd-overlay .af-dd-x');
+  if (!x) return '(no x)';
+  const path = [];
+  let n = x;
+  while (n) { path.push(n); n = n.parentNode; }
+  path.reverse();                      // document ... button
+  const seen = [];
+  const label = (e) => (e.nodeType === 9 ? 'document' : e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + '.' + String(e.className || '').split(/\s+/).filter(Boolean).slice(0, 2).join('.'));
+  const offs = [];
+  path.forEach((node) => {
+    const cap = () => seen.push('CAP  ' + label(node));
+    const bub = () => seen.push('BUB  ' + label(node));
+    node.addEventListener('click', cap, true);
+    node.addEventListener('click', bub, false);
+    offs.push(() => { node.removeEventListener('click', cap, true); node.removeEventListener('click', bub, false); });
+  });
+  x.click();
+  offs.forEach((f) => f());
+  const o = document.getElementById('af-dd-overlay');
+  return JSON.stringify({ stillOpen: o.classList.contains('open'), path: seen });
+}));
+
 console.log('WHY: ' + await p.evaluate(() => {
   const all = [...document.querySelectorAll('#af-dd-overlay, .af-dd-overlay')];
   const xs = [...document.querySelectorAll('.af-dd-x')];
