@@ -95,6 +95,33 @@ await new Promise((r) => setTimeout(r, 3500));
 const afterOpen = await state();
 console.log('AFTER OPEN: ' + JSON.stringify(afterOpen, null, 1).replace(/\n\s*/g, ' '));
 
+// WHY does the x not work? Count the overlays, and watch what a click on the
+// button actually does - which element is the target, does close() run, does
+// anything stop the event on the way.
+console.log('WHY: ' + await p.evaluate(() => {
+  const all = [...document.querySelectorAll('#af-dd-overlay, .af-dd-overlay')];
+  const xs = [...document.querySelectorAll('.af-dd-x')];
+  const o = document.getElementById('af-dd-overlay');
+  const x = o ? o.querySelector('.af-dd-x') : null;
+  const fired = [];
+  if (x) {
+    // log what the real click sees, without removing the page's own handlers
+    x.addEventListener('click', (e) => fired.push('x saw target=' + (e.target.tagName.toLowerCase() + '.' + String(e.target.className).split(/\s+/)[0]) + ' currentTarget=x'), true);
+    document.addEventListener('click', (e) => fired.push('doc capture target=' + e.target.tagName.toLowerCase() + '.' + String(e.target.className).split(/\s+/)[0]), true);
+    document.addEventListener('click', (e) => fired.push('doc bubble reached, defaultPrevented=' + e.defaultPrevented), false);
+    x.click();
+  }
+  return JSON.stringify({
+    overlayCount: all.length,
+    overlayIds: all.map((e) => (e.id || '(no id)') + (e.classList.contains('open') ? ' OPEN' : '')),
+    xCount: xs.length,
+    closeMarked: o ? o.querySelectorAll('[data-dd-close]').length : -1,
+    overlayHasDataClose: o ? o.hasAttribute('data-dd-close') : null,
+    afterProgrammaticClick: o ? o.classList.contains('open') : null,
+    fired,
+  });
+}));
+
 // now try to close it, three ways, reporting after each
 for (const how of ['x', 'backdrop', 'escape']) {
   if (how === 'x') { try { await p.click('#af-dd-overlay .af-dd-x'); } catch (e) { console.log('x click failed: ' + e.message.slice(0, 70)); } }
