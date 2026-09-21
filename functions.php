@@ -58,6 +58,46 @@ add_action('wp_enqueue_scripts', function() {
  * reads a stale bundle after this, the page cache is the next thing to try —
  * measured, not assumed.
  */
+/**
+ * Keep our two stylesheets out of the combiner entirely.
+ *
+ * The purge below was the first answer and it did not work: the bundle hashes
+ * measured byte-identical across three runs either side of it
+ * (814e966d…, 31a0ace2…, 75dc67bb…), and H-04 and M-07 stayed exactly as they
+ * were. The reason is that purging the CSS store does not touch the cached
+ * HTML, and the cached HTML is what names the bundle. New bundles, nobody
+ * pointed at them.
+ *
+ * Purging the page cache too would work and would empty it on every deploy,
+ * leaving the first visitor to each page on a shop that measures seven to
+ * eight seconds uncached. That is a permanent cost for an occasional problem.
+ *
+ * Excluded, our files are served under their own names with the filemtime
+ * ?ver at the top of this file — which is what that versioning was written
+ * for and has never once been able to do. Two extra requests per page, on a
+ * home page that currently makes 404 of them and wastes 14 on missing videos.
+ *
+ * Both markers and both option names are set on purpose: LiteSpeed reads
+ * data-no-optimize, Autoptimize reads data-noptimize, and the option id has
+ * moved between LiteSpeed versions. A filter nothing listens to is a no-op,
+ * so covering the variants costs nothing and the verification run reports
+ * which one landed — DEPLOY-CSS says whether our files are linked at all.
+ */
+add_filter('style_loader_tag', function ($tag, $handle) {
+    if (!in_array($handle, array('postero-child-custom', 'postero-child-checkout'), true)) return $tag;
+    if (strpos($tag, 'data-no-optimize') !== false) return $tag;
+    return str_replace('<link ', '<link data-no-optimize="1" data-noptimize="1" ', $tag);
+}, 10, 2);
+
+foreach (array('litespeed_conf_optm-css_exc', 'litespeed_option_optm-css_exc', 'litespeed_optm_css_exc') as $af_exc_filter) {
+    add_filter($af_exc_filter, function ($val) {
+        $ours = array('assets/css/custom.css', 'assets/css/checkout.css');
+        if (is_array($val))  return array_values(array_unique(array_merge($val, $ours)));
+        if (is_string($val)) return trim($val . "\n" . implode("\n", $ours));
+        return $val;
+    });
+}
+
 add_action('wp_loaded', function () {
     if (wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) return;
     $dir = get_stylesheet_directory();
