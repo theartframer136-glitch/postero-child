@@ -143,6 +143,13 @@ console.log('on top of the camera button: ' + await p.evaluate(() => {
   return top ? (top.tagName.toLowerCase() + (top.id ? '#' + top.id : '') + '.' + String(top.className).split(/\s+/).slice(0, 3).join('.')) : '(nothing)';
 }));
 await p.click('#tow-cambtn');
+// And put the WALL on screen, not the button that started it. The camera
+// button lives in the room panel below the stage, so scrolling to it pushes
+// the stage off the top - and headless Chromium does not render video frames
+// for an element that is off screen, so drawImage() reads back solid black
+// and the edge detector can never fire. The same trap as the offline rig.
+await new Promise((r) => setTimeout(r, 700));
+await p.evaluate(() => document.getElementById('tow-stage').scrollIntoView({ block: 'center' }));
 await new Promise((r) => setTimeout(r, 1200));
 console.log('after click: ' + JSON.stringify(await p.evaluate(() => {
   const v = document.getElementById('tow-cam');
@@ -155,7 +162,29 @@ let atLock = null;
 for (let i = 0; i < 70 && !atLock; i++) {
   await new Promise((r) => setTimeout(r, 250));
   const s = await state();
-  if (i % 8 === 0) console.log(`  t+${(i * 0.25).toFixed(1)}s streak=${s.streak} calbox="${s.calbox}" cam=${s.cam} frozen=${s.frozen}`);
+  if (i % 8 === 0) {
+    const look = await p.evaluate(() => {
+      const v = document.getElementById('tow-cam');
+      const st = document.getElementById('tow-stage').getBoundingClientRect();
+      if (!(v.videoWidth > 0)) return 'no video';
+      const W = 120, H = 90;
+      const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+      const cx = cv.getContext('2d', { willReadFrequently: true });
+      cx.drawImage(v, 0, 0, W, H);
+      let d; try { d = cx.getImageData(0, 0, W, H).data; } catch (e) { return 'tainted'; }
+      let black = true;
+      for (let i2 = 0; i2 < d.length; i2 += 4) if (d[i2] > 12) { black = false; break; }
+      const lum = (x, y) => { const i3 = (y * W + x) * 4; return d[i3] * 0.299 + d[i3 + 1] * 0.587 + d[i3 + 2] * 0.114; };
+      const rows = []; for (let y = 1; y < H - 1; y++) { let a = 0; for (let x = 18; x < 102; x++) a += Math.abs(lum(x, y + 1) - lum(x, y - 1)); rows[y] = a; }
+      const sorted = rows.filter((z) => z != null).sort((a, b2) => a - b2), med = sorted[Math.floor(sorted.length / 2)] || 1;
+      const pick = (a, b2) => { let best = -1, by = 0; for (let y = Math.max(1, Math.round(a)); y < Math.min(H - 1, Math.round(b2)); y++) if (rows[y] > best) { best = rows[y]; by = y; } return by + '(x' + (best / med).toFixed(1) + ')'; };
+      const sc = Math.max(st.width / v.videoWidth, st.height / v.videoHeight);
+      const cropY = (v.videoHeight - st.height / sc) / 2;
+      const toRow = (f) => ((cropY + (f * st.height) / sc) / v.videoHeight * H).toFixed(1);
+      return (black ? 'ALL BLACK; ' : '') + 'want ' + toRow(0.16) + '/' + toRow(0.84) + ' got ' + pick(H * 0.03, H * 0.48) + '/' + pick(H * 0.52, H * 0.97);
+    });
+    console.log(`  t+${(i * 0.25).toFixed(1)}s streak=${s.streak} calbox="${s.calbox}" cam=${s.cam} frozen=${s.frozen} | ${look}`);
+  }
   if (s.frozen) atLock = s;
 }
 if (!atLock) { console.log('FAIL — never locked'); console.log(JSON.stringify(await state())); await b.close(); process.exit(0); }
