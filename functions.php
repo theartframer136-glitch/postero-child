@@ -10416,18 +10416,59 @@ add_action('wp_footer', function() {
       var overlay=document.getElementById('af-dd-overlay');
       var imgEl=document.getElementById('af-dd-img'), titleEl=document.getElementById('af-dd-title');
       var viewEl=document.getElementById('af-dd-view'), addEl=document.getElementById('af-dd-add'), msgEl=document.getElementById('af-dd-msg');
+      var wrapEl=document.querySelector('#af-dd-overlay .af-dd-imgwrap');
+      // Guarded: a throw in here would leave the modal half-built, and the
+      // shimmer is decoration - never a reason to lose the preview.
+      function loading(on){ if(wrapEl) wrapEl.classList.toggle('loading', !!on); }
       var curPid='';
       var AJAX = <?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>;
       // Bumped on every open, so a lookup that comes back after the visitor has
       // moved on to another card cannot repaint the modal behind their back.
       var reqSeq = 0;
       function open(){ overlay.classList.add('open'); document.body.style.overflow='hidden'; }
-      function close(){ overlay.classList.remove('open'); document.body.style.overflow=''; msgEl.textContent=''; }
-      // The overlay carries data-dd-close itself, and querySelectorAll never
-      // returns the element it is called on — so the backdrop, the biggest
-      // click target in the modal, did nothing. Bind it alongside the ×.
-      [overlay].concat(Array.prototype.slice.call(overlay.querySelectorAll('[data-dd-close]')))
-        .forEach(function(el){ el.addEventListener('click', function(e){ if(e.target===el) close(); }); });
+      function close(){ overlay.classList.remove('open'); document.body.style.overflow=''; msgEl.textContent=''; loading(false); }
+      /* ── CLOSING IT ──────────────────────────────────────────────────
+         This used to bind click on the × and on the backdrop, and neither
+         worked: the quick view that opens this modal leaves a listener on
+         DOCUMENT, in the CAPTURE phase, that calls stopPropagation() on every
+         click. Capture runs document -> html -> body -> ... -> target, so the
+         event was stopped at the very first step and never reached anything
+         inside the modal at all. Measured on the live page: the capture chain
+         recorded exactly one entry, "document", and then nothing; pressing ×
+         twenty times did nothing, and only Escape - a different event type,
+         which that listener does not touch - ever closed it. That is the
+         recording: the shopper hitting × over and over on a modal that will
+         not go away.
+
+         So close from DOCUMENT CAPTURE too. stopPropagation() does not stop
+         other listeners on the same node, so this one still runs (proven: a
+         listener added there during the same test did fire). Kept as a target
+         test rather than a bound element, since the event never descends.
+
+         pointerdown as well, for the stricter case: a trap that called
+         stopImmediatePropagation() would beat even this, and pointerdown is a
+         separate event type that such a click trap does not see. Either route
+         closes once; close() is idempotent. */
+      function wantsClose(e){
+        var t = e.target;
+        if(!t || !t.closest) return false;
+        if(!overlay.classList.contains('open')) return false;
+        if(t === overlay) return true;                       // the backdrop itself
+        if(!overlay.contains(t)) return false;               // not our modal at all
+        // The OVERLAY carries data-dd-close as well, and it is an ancestor of
+        // everything in here - so a bare closest('[data-dd-close]') matches a
+        // click on Add to Cart just as readily as one on the ×, and would shut
+        // the modal on the one action it exists to offer. Only a marked
+        // element that is not the overlay counts.
+        var hit = t.closest('[data-dd-close]');
+        return !!(hit && hit !== overlay);
+      }
+      document.addEventListener('click', function(e){
+        if(wantsClose(e)){ e.preventDefault(); close(); }
+      }, true);
+      document.addEventListener('pointerdown', function(e){
+        if(wantsClose(e)){ e.preventDefault(); close(); }
+      }, true);
       document.addEventListener('keydown', function(e){ if(e.key==='Escape') close(); });
 
       // "View Product" is the one action that has to survive every branch of
@@ -10478,6 +10519,7 @@ add_action('wp_footer', function() {
       }
       function unavailable(seq){
         if(seq !== undefined && seq !== reqSeq) return;
+        loading(false);
         clearImg();
         titleEl.textContent = 'Not available for instant download';
         if(addEl){ addEl.style.display = 'none'; addEl.disabled = false; }
@@ -10489,13 +10531,22 @@ add_action('wp_footer', function() {
       // preview (the raw file was one right-click away in the old modal)
       function loadPreview(pid, seq){
         clearImg();
-        msgEl.textContent = '';   // a note left over from the last piece is not about this one
+        // Not silence. The first visitor to open a given piece waits while the
+        // server renders its watermarked preview from the master - seconds, on
+        // a large file - and until now that wait was an empty white pane with
+        // no explanation, which is what the recording shows. Say what is
+        // happening; the answer below replaces this line either way.
+        msgEl.style.color = '';
+        msgEl.textContent = 'Preparing preview…';
+        loading(true);
         fetch(AJAX + '?action=af_dd_preview&pid=' + encodeURIComponent(pid), {credentials:'same-origin'})
           .then(function(r){ return r.json(); })
           .then(function(j){
             if(seq!==reqSeq) return;
+            loading(false);
             var d = j&&j.success&&j.data ? j.data : null;
             showImg(d&&d.url ? d.url : '');
+            msgEl.textContent = '';
             var priceEl = document.getElementById('af-dd-price');
             if(priceEl && d && d.price_html) priceEl.innerHTML = d.price_html;
             // An empty pane with a live Add to Cart is what the recording
@@ -10508,6 +10559,7 @@ add_action('wp_footer', function() {
           })
           .catch(function(){
             if(seq!==reqSeq) return;
+            loading(false);
             clearImg();
             msgEl.style.color = '';
             msgEl.textContent = 'Preview could not be loaded. Please try again.';
@@ -10649,9 +10701,12 @@ add_action('wp_footer', function() {
         if(!curPid || !im || !name){ unavailable(seq); return; }
 
         if(addEl){ addEl.style.display = ''; addEl.disabled = false; }
-        loadPreview(curPid, seq);
-        titleEl.textContent = name + ' — Digital Download';
+        // Clear the previous piece's note FIRST. loadPreview() replaces it with
+        // "Preparing preview…", and this line used to run after that call and
+        // wipe it again - so the wait went back to being a silent blank pane.
         msgEl.textContent = '';
+        titleEl.textContent = name + ' — Digital Download';
+        loadPreview(curPid, seq);
         open();
       }, true);
 
@@ -10677,6 +10732,15 @@ add_action('wp_footer', function() {
     .af-dd-overlay{position:fixed;inset:0;z-index:100000;display:none;background:rgba(15,15,15,.82);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px;}
     .af-dd-overlay.open{display:flex;}
     .af-dd-modal{background:#fff;border-radius:16px;max-width:720px;width:100%;position:relative;box-shadow:0 24px 70px rgba(0,0,0,.5);overflow:hidden;}
+    /* A preview being rendered on the server is work, not a blank wall: the
+       pane shimmers while the fetch is out, so the first visitor to open a
+       given piece can see that something is coming. Removed the moment the
+       answer lands, whichever way it lands. */
+    .af-dd-imgwrap.loading{position:relative;overflow:hidden;}
+    .af-dd-imgwrap.loading::after{content:'';position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(100deg,rgba(255,255,255,0) 20%,rgba(255,255,255,.65) 50%,rgba(255,255,255,0) 80%);
+      background-size:220% 100%;animation:af-dd-shimmer 1.15s linear infinite;}
+    @keyframes af-dd-shimmer{from{background-position:180% 0;}to{background-position:-80% 0;}}
     /* Stated in full, on every state, because the theme's generic button:hover
        otherwise lands on it: that rule carries a dark fill and its own padding,
        which turned the small grey cross into a black pill wider than the modal
