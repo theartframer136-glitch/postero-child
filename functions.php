@@ -100,11 +100,24 @@ foreach (array('litespeed_conf_optm-css_exc', 'litespeed_option_optm-css_exc', '
 
 add_action('wp_loaded', function () {
     if (wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) return;
+    // functions.php is in the stamp, and it is the reason this is being
+    // rewritten. The CSS exclusion shipped in a commit that changed only PHP,
+    // so the three CSS mtimes were identical, the stamp did not move, and no
+    // purge fired. LiteSpeed went on serving its minified copy of custom.css
+    // from before the focus ring existed — measured at 122,417 bytes against
+    // the 129,901 on disk, with the rule absent from the served file and
+    // present in the deployed one.
+    //
+    // Any deploy can change what the optimiser ought to re-read, because a
+    // PHP change can alter which stylesheets are enqueued or how. Stamping
+    // the whole set costs one more stat call and removes a class of failure
+    // that took four rounds to see.
     $dir = get_stylesheet_directory();
     $stamp = md5(
         (int) @filemtime($dir . '/assets/css/custom.css') . '|' .
         (int) @filemtime($dir . '/assets/css/checkout.css') . '|' .
-        (int) @filemtime($dir . '/style.css')
+        (int) @filemtime($dir . '/style.css') . '|' .
+        (int) @filemtime($dir . '/functions.php')
     );
     if (get_option('af_css_stamp') === $stamp) return;
     update_option('af_css_stamp', $stamp);
