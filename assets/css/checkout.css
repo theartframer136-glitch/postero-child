@@ -212,6 +212,25 @@
   font-size: 14px;
 }
 .woocommerce-checkout .woocommerce-error li { margin: 4px 0; }
+/* The field name, which WooCommerce wraps in <strong>, was being painted
+   white on this panel. Measured on the live checkout, 21 Sep 2026:
+
+     .woocommerce-error strong   #FFFFFF on #FDF3F2   1.09:1
+     rest of the line            #7C2F2A on #FDF3F2   8.39:1
+
+   So a shopper who leaves two fields blank reads "______ is a required
+   field" twice and cannot tell which two. The rest of the sentence being
+   perfectly legible is what makes it worse: the eye reports missing words,
+   not missing contrast.
+
+   The white comes from outside this repository — the parent theme or a
+   plugin — so its specificity and whether it carries !important cannot be
+   read here. A fix that silently loses that battle would leave the
+   checkout exactly as broken while looking fixed, which is why this one
+   is emphatic. inherit takes the 8.39:1 red the rest of the line already
+   uses. */
+.woocommerce-checkout .woocommerce-error strong,
+.woocommerce-checkout .woocommerce-error li strong { color: inherit !important; }
 
 /* ── Checkboxes (review invite, license, terms, ship-to) ──── */
 /* label.…-for-checkbox keeps this at the same specificity as the
