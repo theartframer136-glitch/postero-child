@@ -2840,16 +2840,29 @@ html body .af-xsell ul.products li.product .product-transition .onsale{
    Try-On-Wall selects — all pair it with a border colour change and a
    box-shadow, so those controls already show focus and do not need this. This
    is for everything else, which is almost everything. */
-a:focus-visible,
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-summary:focus-visible,
-[role="button"]:focus-visible,
-[tabindex]:focus-visible {
-  outline: 3px solid #c9a84c;
-  outline-offset: 2px;
+/* UPDATE, after the CSS was confirmed delivered and this still measured
+   0 of 29. The note above says this is "deliberately not !important",
+   reasoning that the rules setting outline:none pair it with a box-shadow so
+   those controls already show focus. That reasoning was wrong. With the file
+   verified as served — DEPLOY-CSS confirms the ring is in the CSS the browser
+   receives — nothing changed on focus, so the rule is losing the cascade to
+   something more specific or already emphatic. Plugins declare four :focus
+   outlines of their own on this page, which is the company it is keeping.
+
+   Raised on both axes: body prefix for specificity, !important for the rest.
+   A control that draws its own focus style still draws it; this adds a ring
+   on top rather than replacing it, which is the correct failure mode for the
+   one thing a keyboard user cannot do without. */
+body a:focus-visible,
+body button:focus-visible,
+body input:focus-visible,
+body select:focus-visible,
+body textarea:focus-visible,
+body summary:focus-visible,
+body [role="button"]:focus-visible,
+body [tabindex]:focus-visible {
+  outline: 3px solid #c9a84c !important;
+  outline-offset: 2px !important;
 }
 
 /* ── The words someone reads before spending money ─────────────────────────
@@ -2872,9 +2885,17 @@ summary:focus-visible,
    gold-on-cream text (breadcrumbs at 2.85:1, "(29% off)" at 2.81:1, "OUT OF
    STOCK" at 2.92:1) is a separate token and a separate decision, and
    guessing at it blind would be worse than leaving it measured and named. */
-.woocommerce .single_add_to_cart_button,
-.woocommerce button.single_add_to_cart_button,
-.woocommerce .af-buynow,
-.single_add_to_cart_button {
+/* UPDATE. Measured after deploy, with the stylesheet confirmed served:
+   "ADD TO CART" rgb(255,255,255) on rgb(202,146,54) = 2.74:1, unchanged. The
+   !important was already here, so what lost was specificity — an Elementor
+   button rule carrying its own !important outranks a bare class. The body
+   prefix and the element qualifier answer that without reaching for anything
+   more drastic. */
+body .woocommerce .single_add_to_cart_button,
+body .woocommerce button.single_add_to_cart_button,
+body button.single_add_to_cart_button,
+body .woocommerce .af-buynow,
+body a.af-buynow,
+body .single_add_to_cart_button {
   color: #1a1206 !important;
 }
