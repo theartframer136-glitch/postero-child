@@ -161,6 +161,26 @@ console.log('listener survival: ' + await p.evaluate(() => {
   return JSON.stringify({ onClick: afterClick, onPointerdown: afterPd });
 }));
 
+// Our handler DOES run (document-capture fires). So wantsClose() must be
+// returning false - evaluate its conditions one by one on the real element.
+console.log('predicate: ' + await p.evaluate(() => {
+  const o = document.getElementById('af-dd-overlay');
+  const x = o.querySelector('.af-dd-x');
+  const hit = x.closest('[data-dd-close]');
+  return JSON.stringify({
+    overlayOpen: o.classList.contains('open'),
+    xIsOverlay: x === o,
+    overlayContainsX: o.contains(x),
+    xHasAttr: x.hasAttribute('data-dd-close'),
+    closestFound: !!hit,
+    closestIsOverlay: hit === o,
+    closestTag: hit ? hit.tagName.toLowerCase() + '.' + String(hit.className).split(/\s+/)[0] : '(none)',
+    wouldClose: o.classList.contains('open') && o.contains(x) && !!hit && hit !== o,
+    // and does the page's own close path work when driven directly?
+    bodyOverflow: document.body.style.overflow || '(none)',
+  });
+}));
+
 console.log('\n===== LIVE REPORT =====');
 P(afterOpen.ddOpen, 'the quick view opens');
 P(afterOpen.img && afterOpen.img.nw > 0, 'the preview pane has a picture in it (' + (afterOpen.img && afterOpen.img.nw) + 'x' + (afterOpen.img && afterOpen.img.nh) + ')');
