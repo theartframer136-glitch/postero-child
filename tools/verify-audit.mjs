@@ -77,6 +77,31 @@ const go = async (page, path, wait = 1500) => {
   return r ? r.status() : 0;
 };
 
+// Put the shop back the way we found it.
+//
+// Clicking a.remove is what run 5 did, and at 375px it does not land — the
+// remove control is laid out differently on a phone, so the click missed and
+// the run finished saying "remove it by hand". WooCommerce puts the whole
+// removal in the link's href, nonce and all, so following it is the same
+// action without depending on where the theme drew the X. Three attempts,
+// and the answer is whatever /cart/ says at the end rather than whether a
+// click was dispatched.
+async function emptyCart(page) {
+  for (let i = 0; i < 3; i++) {
+    await go(page, '/cart/', 2000);
+    if (await page.evaluate(() => /your cart is currently empty/i.test(document.body.innerText))) return true;
+    const href = await page.evaluate(() => {
+      const a = document.querySelector('a[href*="remove_item"], a.remove, .product-remove a');
+      return a ? a.href : null;
+    });
+    if (href && /remove_item/.test(href)) { await go(page, href, 2000); continue; }
+    await page.click('a.remove, .product-remove a', { force: true, timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(2000);
+  }
+  await go(page, '/cart/', 2000);
+  return page.evaluate(() => /your cart is currently empty/i.test(document.body.innerText));
+}
+
 // contrast, computed the way the report says it computed contrast. Defined as
 // a string and re-declared inside each page.evaluate rather than eval()'d: a
 // shop with a Content-Security-Policy would refuse eval and the measurement
@@ -348,14 +373,30 @@ try {
 
     // M-01 — two prices at once, after changing the size
     const before = { header: p.headerPrice.replace(/\s+/g, ' ').trim(), live: p.livePrice.trim() };
+    // The size control is a <select> on this theme, not a chip. Clicking a
+    // <select> opens it and changes nothing, which is why run 4 reported the
+    // panel and header both unmoved and decided nothing: set the value and
+    // fire the change event the theme's handler listens for.
     const switched = await page.evaluate(() => {
-      const want = [...document.querySelectorAll('[data-type="size"]')].find(e => /3×5|3x5/.test(e.dataset.val || e.textContent));
+      const sel = document.querySelector('select[data-type="size"]');
+      if (sel) {
+        const opt = [...sel.options].find(o => /3×5|3x5/.test(o.value + ' ' + o.textContent));
+        if (!opt) return false;
+        sel.value = opt.value;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+        return opt.value.trim() || opt.textContent.trim();
+      }
+      const want = [...document.querySelectorAll('[data-type="size"]')]
+        .filter(e => e.tagName !== 'SELECT')
+        .find(e => /3×5|3x5/.test(e.dataset.val || e.textContent));
       if (!want) return false;
       want.click(); return (want.dataset.val || want.textContent).trim();
     });
     await page.waitForTimeout(1200);
     const after = await page.evaluate(() => ({
-      header: ((document.querySelector('.summary .price, .entry-summary .price, p.price') || {}).innerText || '').replace(/\s+/g, ' ').trim(),
+      header: (((document.querySelector('.summary .price, .entry-summary .price, p.price') || {}).innerText || '')
+                 .match(/Current price is: (\$[\d,.]+)/) || [])[1] ||
+              ((document.querySelector('.summary .price, .entry-summary .price, p.price') || {}).innerText || '').replace(/\s+/g, ' ').trim(),
       live: ((document.querySelector('#af-live-price') || {}).innerText || '').trim(),
     }));
     say('M-01', switched && after.live && after.header && after.live.replace(/\s/g, '') !== after.header.replace(/\s/g, '') ? YES : (switched ? NO : NA),
@@ -489,11 +530,9 @@ try {
       `offered: ${pay.methods.join(' · ') || 'none rendered'} · terms checkbox: ${pay.terms}`);
 
   // put the shop back the way we found it
-  await go(page, '/cart/', 2000);
-  await page.click('a.remove, .product-remove a').catch(() => {});
-  await page.waitForTimeout(2500);
-  const left = await page.evaluate(() => /your cart is currently empty/i.test(document.body.innerText));
-  say('CLEANUP', left ? YES : NO, 'the test item was removed again', left ? 'cart is empty' : 'cart still holds an item — remove it by hand');
+  const left = await emptyCart(page);
+  say('CLEANUP', left ? YES : NO, 'the test item was removed again',
+      left ? 'cart is empty' : 'cart still holds an item — remove it by hand');
   await ctx.close();
 } catch (e) { say('CRASH', NA, 'this section stopped before it finished', String(e.message).slice(0, 160)); }
 
@@ -549,9 +588,9 @@ try {
     else say('C-01@796', (clip.past > 0 || clip.scroll > clip.col + 2) ? YES : NO, 'at 796px the total sits 11px past the viewport edge',
              `table ${clip.table}px (scrollWidth ${clip.scroll}) in a ${clip.col}px column · total cell ends ${clip.past}px past the viewport · reads "${clip.shown}"`);
     await page.setViewportSize({ width: 1440, height: 900 });
-    await go(page, '/cart/', 2000);
-    await page.click('a.remove, .product-remove a').catch(() => {});
-    await page.waitForTimeout(2000);
+    const left796 = await emptyCart(page);
+    say('CLEANUP@796', left796 ? YES : NO, 'the second test item was removed again',
+        left796 ? 'cart is empty' : 'cart still holds an item — remove it by hand');
   }
 
   // M-06 — how big is that brochure, really
