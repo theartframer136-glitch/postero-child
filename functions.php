@@ -7016,7 +7016,14 @@ add_action('woocommerce_before_calculate_totals', function($cart) {
 // 8d. Show selected options in cart/checkout
 add_filter('woocommerce_get_item_data', function($data, $item) {
     foreach (array('af_size'=>'Size','af_frame'=>'Frame Type','af_color'=>'Frame Color') as $k=>$label) {
-        if (!empty($item[$k])) $data[] = array('name'=>$label, 'value'=>$item[$k]);
+        if (empty($item[$k])) continue;
+        // A gallery-wrapped print has no moulding, so it has no finish. The
+        // colour is still stored — af_calc_price reads it, and it is what the
+        // shopper would return to if they added a frame — but printing "Frame
+        // Color: Black" beside "Frame Type: Without Frame" describes a thing
+        // that is not in the box.
+        if ($k === 'af_color' && isset($item['af_frame']) && $item['af_frame'] === 'Without Frame') continue;
+        $data[] = array('name'=>$label, 'value'=>$item[$k]);
     }
     return $data;
 }, 10, 2);
@@ -7024,7 +7031,11 @@ add_filter('woocommerce_get_item_data', function($data, $item) {
 // 8e. Persist selected options to the order line items
 add_action('woocommerce_checkout_create_order_line_item', function($item, $key, $values) {
     foreach (array('af_size'=>'Size','af_frame'=>'Frame Type','af_color'=>'Frame Color') as $k=>$label) {
-        if (!empty($values[$k])) $item->add_meta_data($label, $values[$k]);
+        if (empty($values[$k])) continue;
+        // Same gate as the cart, so the order, the invoice and the packing
+        // list describe the same object the shopper was shown.
+        if ($k === 'af_color' && isset($values['af_frame']) && $values['af_frame'] === 'Without Frame') continue;
+        $item->add_meta_data($label, $values[$k]);
     }
 }, 10, 3);
 
