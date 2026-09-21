@@ -488,6 +488,11 @@ try {
       state: ((document.querySelector('#calc_shipping_state') || {}).value) || 'not on page',
       ship: (t.match(/(Delivery|Shipping)[^\n]{0,70}\$[\d,.]+/i) || [])[0] || 'none',
       notices: document.querySelectorAll('.woocommerce-notices-wrapper').length,
+      // Applying a coupon is an AJAX round trip and WooCommerce writes the
+      // response's notices into .woocommerce-notices-wrapper. No wrapper,
+      // nowhere to write — so whether it exists decides H-01 before any
+      // coupon is tried, and the marker says which hook produced it.
+      marker: (document.documentElement.innerHTML.match(/<!-- af-notices via ([a-z_]+) -->/) || [])[1] || 'none',
       coupon: document.querySelectorAll('#coupon_code, input[name="coupon_code"]').length,
       recs: [...document.querySelectorAll('.cross-sells li.product, .related li.product, .up-sells li.product')].map(l => l.innerText.split('\n')[0].trim().slice(0, 30)).slice(0, 8),
       payClaim: /cards, PayPal/i.test(t),
@@ -515,7 +520,8 @@ try {
       return n.slice(0, 2);
     });
     say('H-01', notice.length ? NO : YES, 'a bad coupon fails silently — the cart template never renders the notice area',
-        notice.length ? `a notice did render: "${notice.join(' | ').slice(0, 120)}"` : 'nothing rendered after applying a coupon that does not exist');
+        (notice.length ? `a notice did render: "${notice.join(' | ').slice(0, 120)}"` : 'nothing rendered after applying a coupon that does not exist')
+        + ` · notices wrapper on the page: ${cart.notices} · printed by hook: ${cart.marker}`);
   } else say('H-01', NA, 'coupon failures are silent', 'no coupon field on the cart page');
 
   // C-01 — the clipped total, at each width the report names
