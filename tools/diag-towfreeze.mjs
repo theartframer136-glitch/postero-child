@@ -83,6 +83,21 @@ try {
   await cdp.send('Browser.setDownloadBehavior', { behavior: 'allow', downloadPath: '/tmp/dl' });
 } catch {}
 
+// The consent card and the offer popup sit over the page on a first visit and
+// swallow a synthetic click aimed at the camera button - which reads exactly
+// like a dead button. Accept the one, dismiss the other, then work.
+const cleared = await p.evaluate(() => {
+  const out = [];
+  const acc = document.getElementById('af-ck-accept');
+  if (acc) { acc.click(); out.push('accepted cookies'); }
+  ['#afOverlay', '#af-consent', '.af-overlay'].forEach((sel) => {
+    document.querySelectorAll(sel).forEach((e) => { e.remove(); out.push('removed ' + sel); });
+  });
+  return out.join(', ') || 'nothing in the way';
+});
+console.log('overlays: ' + cleared);
+await new Promise((r) => setTimeout(r, 800));
+
 const picked = await p.evaluate(() => {
   const s = document.getElementById('tow-prod');
   if (!s || s.options.length < 2) return '(no products)';
@@ -122,6 +137,11 @@ console.log('getUserMedia: ' + camProbe);
 
 await p.evaluate(() => document.getElementById('tow-cambtn').scrollIntoView({ block: 'center' }));
 await new Promise((r) => setTimeout(r, 600));
+console.log('on top of the camera button: ' + await p.evaluate(() => {
+  const b = document.getElementById('tow-cambtn').getBoundingClientRect();
+  const top = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+  return top ? (top.tagName.toLowerCase() + (top.id ? '#' + top.id : '') + '.' + String(top.className).split(/\s+/).slice(0, 3).join('.')) : '(nothing)';
+}));
 await p.click('#tow-cambtn');
 await new Promise((r) => setTimeout(r, 1200));
 console.log('after click: ' + JSON.stringify(await p.evaluate(() => {
