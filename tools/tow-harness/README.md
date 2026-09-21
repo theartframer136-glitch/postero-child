@@ -153,6 +153,7 @@ needs an argument.
 | `run-savedurl.mjs` | an automatic save never arms WhatsApp / Email / Copy with the room photo |
 | `run-toastshare.mjs` | the "add it to your Photos" offer does not outlive its toast and leave it swallowing taps |
 | `run-wallready.mjs` | the auto-save waits for the frozen wall to decode, so no half-drawn wall is baked in |
+| `run-rotate.mjs` | the stage pin taken at the lock is released when the window changes, at any geometry |
 
 Run them the same way as the others, each with its own `TOW_PORT`:
 
@@ -162,3 +163,17 @@ Run them the same way as the others, each with its own `TOW_PORT`:
 Expected on the current code, in order: `POSTs=4 downloads=6` (three
 automatic, one manual); `NO LEAK: share still points at the product/page
 link`; `pe=none` once the toast has gone; `opaqueFrac 1` with one save.
+
+`run-rotate.mjs` is the one that takes arguments — a portrait geometry, a
+landscape one and a device-scale ratio — because the landscape claim had to be
+settled at 390x844 dpr 3, which `run-recover.mjs rotate` (fixed at 423x820)
+could not reach:
+
+    TOW_PORT=9240 NODE_PATH=/opt/node22/lib/node_modules \
+      node tools/tow-harness/run-rotate.mjs 390x844 844x390 3 mobile
+
+It compares the landscape stage against a CONTROL — the box the stylesheet
+alone would give at that width — so "the pin was released" is measured, not
+assumed. Not every geometry locks in the time allowed (a stage the rig only
+part-scrolls into view feeds the detector black frames); the report says NOT
+LOCKED loudly rather than passing quietly. 390x844 and 423x820 both lock.
