@@ -130,6 +130,30 @@ P(!(await st()).open, 'the × closes it' + (mode === 'trap' ? ' even with the cl
 P(!(await page.evaluate(() => window.__trace.join(','))).includes('closed,OPEN'), 'and nothing reopens it');
 P((await st()).bodyOverflow === '(none)', 'and the page can scroll again');
 
+// 3b. A late answer must not resurrect a modal the visitor has dismissed.
+// unavailable() calls open(), and its guard only compares seq !== reqSeq -
+// which close() never changed - so a fetch still in flight when the × was
+// pressed could reopen the modal a moment later. Measured on the live page as
+// the class sequence ["closed","OPEN"].
+{
+  await page.evaluate(() => { window.__late = []; const o = document.getElementById('af-dd-overlay');
+    new MutationObserver(() => window.__late.push(o.classList.contains('open') ? 'OPEN' : 'closed'))
+      .observe(o, { attributes: true, attributeFilter: ['class'] }); });
+  await page.route('**/admin-ajax.php', async (route) => {     // make THIS open fail, slowly
+    await new Promise((r) => setTimeout(r, 1200));
+    await route.fulfill({ status: 500, contentType: 'application/json', body: '{"success":false}' });
+  });
+  await openIt();
+  await sleep(300);
+  await page.click('#af-dd-overlay .af-dd-x');                 // dismiss while it is still out
+  await sleep(2000);                                           // let the failure land
+  const trace = await page.evaluate(() => window.__late.join(','));
+  console.log('  class changes, dismissed mid-flight: [' + trace + ']');
+  P(!(await st()).open, 'a failed preview does not reopen a dismissed modal');
+  P(!trace.includes('closed,OPEN'), 'and the class never goes back to open');
+  await page.unroute('**/admin-ajax.php');
+}
+
 // 4. the backdrop
 await openIt(); await sleep(150);
 await page.evaluate(() => {
