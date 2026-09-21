@@ -512,8 +512,22 @@ try {
   // H-01 — a coupon that does not exist: does anything at all appear?
   if (cart.coupon) {
     await page.fill('#coupon_code, input[name="coupon_code"]', 'af-qa-no-such-code').catch(() => {});
-    await page.click('button[name="apply_coupon"], .coupon button').catch(() => {});
-    await page.waitForTimeout(3500);
+    // 3500ms was not a measurement, it was a hope. This shop takes 7-8s to
+    // return a page, and the coupon may go as a form POST or over AJAX, so a
+    // fixed wait shorter than a page load reads the page before the answer
+    // arrives and reports silence either way. Wait for whichever actually
+    // happens — a notice appearing, or the navigation completing — and only
+    // then decide. 20s is longer than this site's slowest measured load.
+    await Promise.race([
+      page.click('button[name="apply_coupon"], .coupon button').catch(() => {}),
+      page.waitForTimeout(2000),
+    ]);
+    await Promise.race([
+      page.waitForSelector('.woocommerce-error, .woocommerce-message, .woocommerce-info, .wc-block-components-notice-banner',
+        { state: 'visible', timeout: 20000 }).catch(() => null),
+      page.waitForLoadState('load', { timeout: 20000 }).catch(() => null),
+    ]);
+    await page.waitForTimeout(2500);
     const notice = await page.evaluate(() => {
       const n = [...document.querySelectorAll('.woocommerce-error,.woocommerce-message,.woocommerce-info,.wc-block-components-notice-banner')]
         .map(e => e.innerText.replace(/\s+/g, ' ').trim()).filter(Boolean);
