@@ -181,12 +181,22 @@ const PERSONAS = [
       let reached = 0, invisible = 0;
       for (let i = 0; i < 25; i++) {
         await page.keyboard.press('Tab');
+        // A ring is a CHANGE on focus, not the presence of a border. The first
+        // version of this asked whether borderColor differed from
+        // backgroundColor, which is true of almost every element on any page
+        // — so it passed 25 of 25 and meant nothing. Measure the element
+        // focused, blur it, measure again, and compare.
         const st = await page.evaluate(() => {
           const el = document.activeElement;
           if (!el || el === document.body) return null;
-          const s = getComputedStyle(el);
-          const ring = (s.outlineStyle !== 'none' && parseFloat(s.outlineWidth) > 0) ||
-                       s.boxShadow !== 'none' || s.borderColor !== s.backgroundColor;
+          const read = e => { const s = getComputedStyle(e);
+            return { o: s.outlineStyle, w: s.outlineWidth, c: s.outlineColor,
+                     sh: s.boxShadow, b: s.border, bg: s.backgroundColor, td: s.textDecorationLine }; };
+          const on = read(el);
+          el.blur();
+          const off = read(el);
+          el.focus();
+          const ring = Object.keys(on).some(k => on[k] !== off[k]);
           return { tag: el.tagName, txt: (el.innerText || '').trim().slice(0, 30), ring };
         });
         if (!st) continue;
