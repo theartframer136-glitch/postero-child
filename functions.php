@@ -10576,6 +10576,17 @@ add_action('wp_footer', function() {
       // few levels so clicking the icon or its link still opens the modal.
       var CARD_SEL = '.product-card, li.product, .product, .product-block, [class*="product-block"]';
       document.addEventListener('click', function(e){
+        /* A click INSIDE the modal is never a card trigger. This listener and
+           the one that closes the modal both sit on document in the capture
+           phase, so both run for the same click, in the order they were bound
+           - close first, this one second. Pressing × therefore closed the
+           modal and then re-opened it, 2ms apart, within one click: stack
+           traces from the live page name both sides, "at close(...)" then
+           "at open(...)" from this handler. From the shopper's chair that is
+           a × that does nothing, which is what the owner recorded. The
+           overlay is not a product card and never was; say so before anything
+           else is considered. */
+        if(overlay.contains(e.target)) return;
         var trg = e.target.closest('.digital-download, .digital-download-btn, [class*="digital-download"], [data-digital-download]');
         if(!trg){
           var node = e.target;
