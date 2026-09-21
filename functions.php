@@ -15254,6 +15254,39 @@ add_action('wp_footer', function() {
           var pct = Math.round((mrpVal - num) / mrpVal * 100);
           disc.textContent = pct > 0 ? '(' + pct + '% OFF)' : '';
         }
+
+        // The price beside the title follows the panel.
+        //
+        // It did not, and the two sat on screen together: choosing 3×5 ft
+        // moved the panel to $100.00 while the heading still read $80.00.
+        // The cart charged the panel price, so the heading was the wrong one —
+        // but a shopper cannot know that, and the one they are most likely to
+        // read is the big one at the top.
+        //
+        // Everything needed is already computed here for the panel's own
+        // strike-through, so the heading is written from the same two numbers
+        // rather than from a second derivation that could drift from it. The
+        // screen-reader sentences WooCommerce pairs with del/ins are rewritten
+        // too: stale assistive text is the same bug, only quieter.
+        var head = document.querySelector('.summary .price, .entry-summary .price, p.price');
+        if (head) {
+          var sym2 = symM ? symM[0] : '$';
+          var fmt  = function(v){ return sym2 + v.toFixed(2); };
+          var del  = head.querySelector('del'), ins = head.querySelector('ins');
+          var cur  = (ins || head).querySelector('.woocommerce-Price-amount, .amount');
+          if (cur) cur.innerHTML = fmt(num);
+          var was = del ? del.querySelector('.woocommerce-Price-amount, .amount') : null;
+          if (was) was.innerHTML = fmt(mrpVal);
+          head.querySelectorAll('.screen-reader-text').forEach(function(sr){
+            if (/original price/i.test(sr.textContent)) sr.textContent = 'Original price was: ' + fmt(mrpVal) + '.';
+            else if (/current price/i.test(sr.textContent)) sr.textContent = 'Current price is: ' + fmt(num) + '.';
+          });
+          var pctEl = head.querySelector('.af-pct-off');
+          if (pctEl) {
+            var pct2 = Math.round((mrpVal - num) / mrpVal * 100);
+            pctEl.textContent = pct2 > 0 ? '(' + pct2 + '% off)' : '';
+          }
+        }
       }
     }
   }
