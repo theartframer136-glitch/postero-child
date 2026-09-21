@@ -122,9 +122,19 @@ await p.evaluate(() => document.getElementById('af-dd-add').click());
 await new Promise((r) => setTimeout(r, 400));
 P((await state()).ddOpen, 'Add to Cart does not close it');
 
-// the x - the fault in the recording
+// the x - the fault in the recording. Sampled, because "still open at +700ms"
+// cannot tell "never closed" from "closed and something reopened it": our
+// pointerdown handler closes on press, and the trailing click then lands on
+// whatever the vanished modal was covering.
+await p.evaluate(() => {
+  window.__ddTrace = [];
+  const o = document.getElementById('af-dd-overlay');
+  new MutationObserver(() => window.__ddTrace.push(
+    (o.classList.contains('open') ? 'OPEN' : 'closed'))).observe(o, { attributes: true, attributeFilter: ['class'] });
+});
 try { await p.click('#af-dd-overlay .af-dd-x'); } catch (e) { console.log('x click threw: ' + e.message.slice(0, 60)); }
-await new Promise((r) => setTimeout(r, 700));
+await new Promise((r) => setTimeout(r, 900));
+console.log('class changes after the x: ' + JSON.stringify(await p.evaluate(() => window.__ddTrace)));
 P(!(await state()).ddOpen, 'the x closes it');
 
 await reopen();
