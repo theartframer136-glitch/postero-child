@@ -11368,6 +11368,28 @@ add_action('woocommerce_single_product_summary', function(){
     }
 }, 31);
 
+// The cart never said anything back.
+//
+// Measured on the live cart, 21 Sep 2026: applied a coupon that does not
+// exist, waited, and counted the notices rendered on the page. Zero. The
+// server answers properly — WooCommerce returns "Coupon does not exist" —
+// and nothing on the page is listening, because the cart template in use
+// never calls woocommerce_output_all_notices().
+//
+// So a shopper with a code that has expired, or a typo in a good one, clicks
+// APPLY COUPON and watches nothing happen. Nothing happening is how a broken
+// site behaves, so that is what they conclude.
+//
+// Hooked rather than templated on purpose. Fixing this by copying the
+// parent's cart.php into the child theme would freeze a WooCommerce template
+// at today's version and quietly inherit every upstream change it later
+// misses — a large, permanent cost for one missing call. woocommerce_before_cart
+// fires from that same template, so one line gets the notices back without
+// owning the file. If the parent has replaced the template so completely that
+// the hook never fires, nothing renders and nothing breaks, and the check
+// below says so rather than this pretending.
+add_action('woocommerce_before_cart', 'woocommerce_output_all_notices', 5);
+
 // A shopper who sorts by price is telling you price is what they care about.
 //
 // Measured on the live shop, 21 Sep 2026: page 1 of /shop/?orderby=price was
