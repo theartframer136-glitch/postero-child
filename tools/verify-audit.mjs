@@ -273,6 +273,47 @@ try {
   await ctx.close();
 } catch (e) { say('CRASH', NA, 'this section stopped before it finished', String(e.message).slice(0, 160)); }
 
+// ── 1b. Is the CSS the browser gets the CSS this repository shipped? ───────
+//
+// Three fixes landed on main and deployed, and all three measured unchanged:
+// the focus ring, the checkout error colour and the Add to Cart label. What
+// they have in common is that they are the only CSS among them — the PHP and
+// JS in the same deploy took immediately. That is a delivery question, not a
+// correctness one, and guessing at it (optimiser? bundle cache? filemtime?)
+// would be guessing. So: list the stylesheets the page actually loads, fetch
+// each one the browser is pointed at, and look for the rules by hand.
+try {
+  console.log('\n— is the shipped CSS the served CSS —');
+  const ctx = await ctxFor({ viewport: { width: 1440, height: 900 } });
+  const page = await ctx.newPage();
+  await go(page, '/', 3000);
+  const css = await page.evaluate(async () => {
+    const links = [...document.querySelectorAll('link[rel="stylesheet"]')].map(l => l.href);
+    const ours  = links.filter(h => /postero|child|custom\.css|checkout\.css/i.test(h));
+    const rows  = [];
+    for (const href of ours.slice(0, 8)) {
+      try {
+        const r = await fetch(href, { cache: 'reload' });
+        const t = (await r.text()).replace(/\s+/g, ' ');
+        rows.push(href.split('/').slice(-1)[0].slice(0, 46) + ' → HTTP ' + r.status + ' ' + t.length + 'b'
+          + ' focusRing=' + /:focus-visible *\{ *outline: *3px solid #c9a84c/i.test(t)
+          + ' errStrong=' + /woocommerce-error strong/i.test(t));
+      } catch (e) { rows.push(href.split('/').slice(-1)[0].slice(0, 46) + ' → fetch failed'); }
+    }
+    // an optimiser often drops the file and inlines or bundles it instead
+    const inline = [...document.querySelectorAll('style')].map(s => s.textContent).join(' ').replace(/\s+/g, ' ');
+    return {
+      sheets: links.length, ours: ours.length, rows,
+      inlineFocusRing: /:focus-visible *\{ *outline: *3px solid #c9a84c/i.test(inline),
+      names: ours.slice(0, 8).map(h => h.split('/').slice(-1)[0].slice(0, 40)),
+    };
+  });
+  say('DEPLOY-CSS', css.rows.some(r => /focusRing=true/.test(r)) || css.inlineFocusRing ? YES : NO,
+      'the CSS this repository shipped is the CSS the browser is served',
+      `${css.sheets} stylesheets, ${css.ours} ours${css.ours ? ': ' + css.rows.join(' | ') : ' — none of our files is linked at all; names seen: ' + css.names.join(', ')} · inlined focus ring: ${css.inlineFocusRing}`);
+  await ctx.close();
+} catch (e) { say('DEPLOY-CSS', NA, 'CSS delivery check', String(e.message).slice(0, 140)); }
+
 // ── 2. Search: the claim that settles which code the site is running ───────
 try {
   console.log('\n— search —');
