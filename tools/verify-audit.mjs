@@ -295,8 +295,14 @@ try {
       try {
         const r = await fetch(href, { cache: 'reload' });
         const t = (await r.text()).replace(/\s+/g, ' ');
+        // "focusRing=false" alone cannot tell a stale copy from a bad regex,
+        // and that ambiguity cost a round. Report whether the selector is
+        // there at all, and whether comments survive — minified content and
+        // stale content look the same on size alone.
         rows.push(href.split('/').slice(-1)[0].slice(0, 46) + ' → HTTP ' + r.status + ' ' + t.length + 'b'
           + ' focusRing=' + /:focus-visible *\{ *outline: *3px solid #c9a84c/i.test(t)
+          + ' anyFocusVisible=' + /focus-visible/i.test(t)
+          + ' minified=' + !/\/\*/.test(t)
           + ' errStrong=' + /woocommerce-error strong/i.test(t));
       } catch (e) { rows.push(href.split('/').slice(-1)[0].slice(0, 46) + ' → fetch failed'); }
     }
