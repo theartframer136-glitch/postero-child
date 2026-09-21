@@ -4434,7 +4434,11 @@ add_action('wp_footer', function() { ?>
       label: 'Secure Payment',
       icon: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V6c0-1.11-.89-2-2-2zm0 14H4v-6h16v6zm0-10H4V6h16v2z"/></svg>',
       title: '🔒 Secure Payment',
-      body: '<p>Your payment information is always safe with our encrypted checkout.</p><h4>✅ We Accept:</h4><ul><li>Visa, MasterCard, AMEX</li><li>PayPal</li><li>Google Pay &amp; Apple Pay</li><li>Bank Transfer</li></ul><h4>🔐 Security:</h4><ul><li>256-bit SSL encryption</li><li>PCI DSS compliant</li><li>No card data stored</li></ul>'
+      body: '<p>Your payment information is always safe with our encrypted checkout.</p><h4>✅ We Accept:</h4><ul>'
+            + <?php echo wp_json_encode( implode( '', array_map( function ( $m ) {
+                  return '<li>' . esc_html( $m ) . '</li>';
+              }, af_payment_methods() ) ) ); ?>
+            + '</ul><h4>🔐 Security:</h4><ul><li>256-bit SSL encryption</li><li>PCI DSS compliant</li><li>No card data stored</li></ul>'
     }
   ];
 
@@ -6553,6 +6557,48 @@ function af_studio_contact() {
     $c['tel']   = 'tel:+' . $digits;
     $c['wa']    = $digits;
     return $c;
+}
+
+/**
+ * How the site talks about payment — one source, for exactly the reason
+ * af_shipping_copy() below has one.
+ *
+ * Measured on the live checkout, 21 Sep 2026, the gateways offered were:
+ *
+ *     Pay via Zelle · Credit Card (Square) · Cash on delivery
+ *
+ * And four places told the customer otherwise. The cart page footer said
+ * "cards, PayPal & more"; the trust popup listed PayPal, Google Pay, Apple
+ * Pay and Bank Transfer; the chatbot answered "major cards and PayPal"; the
+ * About page promised "Card, PayPal and wallet payments". None of those is
+ * on offer. A shopper who picks the store because it takes PayPal reaches
+ * the last screen of the purchase and finds Zelle and cash on delivery.
+ *
+ * So the list is read from the gateways that are actually enabled, and the
+ * copy is built from it. Enable PayPal and every one of those four places
+ * starts saying PayPal on its own; disable one and they stop. The fallback
+ * is deliberately vague rather than a second hardcoded list that could go
+ * stale the same way.
+ */
+function af_payment_methods() {
+    $names = array();
+    if (function_exists('WC') && WC() && WC()->payment_gateways) {
+        foreach (WC()->payment_gateways->payment_gateways() as $gw) {
+            if (!isset($gw->enabled) || $gw->enabled !== 'yes') continue;
+            $t = trim(wp_strip_all_tags((string) $gw->get_title()));
+            if ($t !== '') $names[] = $t;
+        }
+    }
+    return apply_filters('af_payment_methods', array_values(array_unique($names)));
+}
+
+/** "Credit Card, Pay via Zelle & Cash on delivery" — or a safe vague phrase. */
+function af_payment_copy() {
+    $m = af_payment_methods();
+    if (!$m) return apply_filters('af_payment_copy', 'secure checkout');
+    if (count($m) === 1) return apply_filters('af_payment_copy', $m[0]);
+    $last = array_pop($m);
+    return apply_filters('af_payment_copy', implode(', ', $m) . ' & ' . $last);
 }
 
 /**
@@ -20291,7 +20337,7 @@ add_action('woocommerce_after_cart_totals', function () {
   </div>
   <div class="af-ct-row">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-    <span>Secure SSL checkout &mdash; cards, PayPal &amp; more</span>
+    <span>Secure SSL checkout &mdash; <?php echo esc_html(af_payment_copy()); ?></span>
   </div>
   <div class="af-ct-row">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
