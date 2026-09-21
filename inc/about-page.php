@@ -93,9 +93,16 @@ add_action('template_redirect', function() {
       <section class="af-about-promise">
         <h2 class="af-about-sub">Our promise</h2>
         <div class="af-about-vals">
-          <div><span>🚚</span><strong>Free US shipping</strong><small>Rolled in tubes or flat in corner-protected crates — sized to survive the journey.</small></div>
+          <?php /* Both of these were claims the shop does not honour. "Free US
+                   shipping" against af_shipping_copy(), which exists because
+                   the owner ruled on 2026-09-10 that "we do not ship free for
+                   any place" — and the live cart quoted $27.51 on 21 Sep. And
+                   "Card, PayPal and wallet payments" against a checkout that
+                   offers Zelle, a Square card form and cash on delivery. Both
+                   now read from the one function that knows. */ ?>
+          <div><span>🚚</span><strong><?php echo esc_html(function_exists('af_shipping_copy') ? af_shipping_copy()['label'] : 'Shipping Throughout the USA'); ?></strong><small>Rolled in tubes or flat in corner-protected crates — sized to survive the journey.</small></div>
           <div><span>🎯</span><strong>Archival quality</strong><small>Fade-resistant pigment inks and gallery-grade canvas on every piece.</small></div>
-          <div><span>🔒</span><strong>Secure checkout</strong><small>Card, PayPal and wallet payments with fraud screening on every order.</small></div>
+          <div><span>🔒</span><strong>Secure checkout</strong><small><?php echo esc_html(ucfirst(function_exists('af_payment_copy') ? af_payment_copy() : 'secure checkout')); ?>, with fraud screening on every order.</small></div>
           <div><span>💬</span><strong>Real support</strong><small>Phone, email and WhatsApp — a person answers, usually within the hour.</small></div>
         </div>
       </section>

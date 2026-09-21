@@ -2851,3 +2851,30 @@ summary:focus-visible,
   outline: 3px solid #c9a84c;
   outline-offset: 2px;
 }
+
+/* ── The words someone reads before spending money ─────────────────────────
+   Measured on the live product page, 21 Sep 2026:
+
+     "ADD TO CART"   #FFFFFF on #CA9236   2.74:1   (AA needs 4.5:1)
+
+   The fill is not declared in this repository — parent theme or Elementor —
+   and two ways out of that exist. Darken the gold until white passes, which
+   changes the brand colour on the shop's most important control. Or darken
+   the LABEL, which leaves #CA9236 exactly as it is and takes the ratio to
+   6.85:1, comfortably past AA.
+
+   The second, because the brand colour is not the defect and this theme
+   already does it elsewhere: .afd-btn-outline:hover is #1a1206 on #c9a84c.
+   Same ink, same gold, already shipped.
+
+   Scoped to the buying buttons measured, not to every gold thing on the
+   site. The audit counted 69 elements below AA on one product page — the
+   gold-on-cream text (breadcrumbs at 2.85:1, "(29% off)" at 2.81:1, "OUT OF
+   STOCK" at 2.92:1) is a separate token and a separate decision, and
+   guessing at it blind would be worse than leaving it measured and named. */
+.woocommerce .single_add_to_cart_button,
+.woocommerce button.single_add_to_cart_button,
+.woocommerce .af-buynow,
+.single_add_to_cart_button {
+  color: #1a1206 !important;
+}

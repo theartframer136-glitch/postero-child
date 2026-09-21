@@ -309,8 +309,25 @@
 }
 
 /* ── Order review ("Your order") ──────────────────────────── */
+/* Measured on the live checkout, 21 Sep 2026, on a $107.51 order:
+
+     375px   table 273px, content 311px in a 273px column   overflows by 38
+     796px   table 311px in a 250px column, the total cell ending 10px PAST
+             the right edge of the window
+
+   width:100% was already here and is not enough on its own: an auto-layout
+   table cannot go below its own min-content width, and .product-total is
+   white-space:nowrap, so the price column sets a floor the column cannot
+   meet and the overflow lands on the one number the shopper is being asked
+   to agree to.
+
+   table-layout:fixed drops that floor — the columns take the width they are
+   given instead of the width their content wants. The total is allowed to
+   wrap as a last resort rather than spill: a price on two lines is legible,
+   a price off the edge of the screen is not. */
 .woocommerce-checkout .woocommerce-checkout-review-order-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: collapse;
 }
 /* product names wrap at word boundaries — never "Wall Ar / t" */
@@ -326,7 +343,8 @@
 .woocommerce-checkout .woocommerce-checkout-review-order-table .product-total {
   vertical-align: top;
   text-align: right;
-  white-space: nowrap;
+  /* was white-space:nowrap — see the note on the table above */
+  overflow-wrap: break-word;
   font-weight: 600;
   padding: 14px 0;
 }

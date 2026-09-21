@@ -134,7 +134,12 @@ function af_bot_intents() {
         ),
         'payment' => array(
             'k' => array('pay', 'payment', 'card', 'paypal', 'visa', 'mastercard', 'secure', 'checkout', 'currency', 'installment'),
-            'a' => "Checkout takes major cards and PayPal, over a secure encrypted connection — we never see or store your card details. Prices are shown in USD and CAD.\n\nGift cards can be redeemed at checkout too.",
+            // Built from the gateways actually enabled — see af_payment_copy().
+            // This answered "major cards and PayPal" while the checkout offered
+            // Zelle, a Square card form and cash on delivery.
+            'a' => "Checkout takes " . (function_exists('af_payment_copy') ? af_payment_copy() : 'card payment')
+                 . ", over a secure encrypted connection — we never see or store your card details. "
+                 . "Prices are shown in USD and CAD.\n\nGift cards can be redeemed at checkout too.",
             'c' => array('Gift cards' => home_url('/gift-cards/'), 'Browse art' => home_url('/shop/')),
         ),
         'care' => array(
