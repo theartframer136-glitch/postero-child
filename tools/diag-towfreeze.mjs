@@ -202,6 +202,13 @@ P(atLock.wall.startsWith('data:'), 'the matched wall was captured as a still (' 
 P(atLock.framebox === later.framebox, 'the artwork did not move afterwards (' + atLock.framebox + ' -> ' + later.framebox + ')');
 P(/measured against your own wall/.test(later.note), 'the scale is the measured one: "' + later.note.trim() + '"');
 P(downloads.length > 0, 'the shot was downloaded (' + (downloads.join(', ') || 'none') + ')');
-P(posts.some((x) => x.action === 'af_save_preview' && x.source === 'try-on-wall'), 'the shot was posted to the account (' + JSON.stringify(posts) + ')');
+// This probe is a signed-out visitor, and AFPreview.save answers signed-out
+// callers straight away with the sign-in prompt instead of posting - which is
+// the designed behaviour, so the right assertion is "one or the other", not
+// "it posted". The posting path itself is proven logged-in by the offline rig
+// (tools/tow-harness), which renders the page with is_user_logged_in() true.
+const loggedIn = await p.evaluate(() => !!(window.AFPreview && window.AFPreview.cfg && window.AFPreview.cfg.logged));
+if (loggedIn) P(posts.some((x) => x.action === 'af_save_preview' && x.source === 'try-on-wall'), 'the shot was posted to the account (' + JSON.stringify(posts) + ')');
+else P(/sign in to keep it in your account/.test(later.toast), 'signed out: the shot was kept and the account offered');
 console.log('toast: "' + later.toast.trim() + '"');
 await b.close();
