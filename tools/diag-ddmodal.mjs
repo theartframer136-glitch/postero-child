@@ -134,6 +134,33 @@ const chain = await p.evaluate(() => {
 });
 console.log('capture chain on x: ' + chain);
 
+// Which listener POSITIONS survive the trap? window-capture runs before
+// document-capture, so if the trap sits on document a window listener beats it.
+console.log('listener survival: ' + await p.evaluate(() => {
+  const x = document.querySelector('#af-dd-overlay .af-dd-x');
+  const hit = [];
+  const mk = (node, name, phase) => {
+    const f = () => hit.push(name);
+    node.addEventListener('click', f, phase);
+    return () => node.removeEventListener('click', f, phase);
+  };
+  const offs = [
+    mk(window, 'window-capture', true),
+    mk(document, 'document-capture', true),
+    mk(document.documentElement, 'html-capture', true),
+    mk(document.body, 'body-capture', true),
+    mk(x, 'button-bubble', false),
+  ];
+  const offPd = (() => { const f = () => hit.push('window-pointerdown'); window.addEventListener('pointerdown', f, true); return () => window.removeEventListener('pointerdown', f, true); })();
+  x.click();                                   // click only - no pointerdown
+  const afterClick = hit.slice();
+  hit.length = 0;
+  x.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, cancelable: true }));
+  const afterPd = hit.slice();
+  offs.forEach((f) => f()); offPd();
+  return JSON.stringify({ onClick: afterClick, onPointerdown: afterPd });
+}));
+
 console.log('\n===== LIVE REPORT =====');
 P(afterOpen.ddOpen, 'the quick view opens');
 P(afterOpen.img && afterOpen.img.nw > 0, 'the preview pane has a picture in it (' + (afterOpen.img && afterOpen.img.nw) + 'x' + (afterOpen.img && afterOpen.img.nh) + ')');
