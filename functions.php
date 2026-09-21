@@ -7754,6 +7754,7 @@ add_action('template_redirect', function(){
                 </div>
                 <div class="af-tow-roomcol">
                   <button type="button" id="tow-cambtn" class="af-tow-cambtn">🎥 Use live camera <em>point it at your wall</em></button>
+                  <p class="af-tow-camnote">When the guide turns green the wall is matched: the picture is held still, and saved to your device and to your account.</p>
                   <p class="af-tow-scalenote" id="tow-scalenote">📏 Shown true to scale on a 10&nbsp;ft wall</p>
                   <label>Adjust Size <span id="tow-scaleval">100%</span></label>
                   <input type="range" id="tow-scale" min="40" max="160" value="100">
@@ -8167,6 +8168,11 @@ add_action('template_redirect', function(){
             // The visitor moved on while the permission prompt was open —
             // throw the stream away instead of hijacking the stage back.
             if(seq!==camSeq){ stream.getTracks().forEach(function(t){ t.stop(); }); return; }
+            // Only now is the kept picture replaced. Throwing it away at the
+            // top of this function meant a browser without a camera, or a
+            // visitor who declined the permission prompt, lost a good capture
+            // and got the old room photo back for nothing.
+            unfreeze();
             camStream=stream; camOn=true;
             // if the track dies on its own (call, app switch, revoked permission)
             // fall back to the room photo instead of freezing on a dead frame
@@ -8196,6 +8202,7 @@ add_action('template_redirect', function(){
           });
       }
       function stopCam(){
+        unfreeze();                               // room photo / upload / leaving: drop the still
         camSeq++; camStarting=false;              // cancels any start still in flight
         if(camStream){ camStream.getTracks().forEach(function(t){ t.stop(); }); camStream=null; }
         camOn=false;
@@ -8240,7 +8247,9 @@ add_action('template_redirect', function(){
       // button marked "on" and the picture on screen agree before anything is
       // touched. Both must move together if this default ever changes.
       var CAL = { locked:false, wallFt:10, base:0, pxPerFt:0, factor:1,
-                  streak:0, spanLock:0, timer:null };
+                  streak:0, spanLock:0, timer:null,
+                  // frozen: the lock has been kept as a still picture (below)
+                  frozen:false, autoSaved:false, preFreeze:null };
       window.AFCal = CAL;   // read-only view for the harness and live verifier
       var CAL_TOP=0.16, CAL_BOT=0.84;   // rectangle edges as fractions of stage height
       var calCv=document.createElement('canvas');
@@ -8285,7 +8294,7 @@ add_action('template_redirect', function(){
       }
 
       function calTick(){
-        if(!camOn) return;
+        if(!camOn || CAL.frozen) return;
         var s=calSample(); if(!s) return;
         if(!CAL.locked){
           var r=calRows(); if(!r) return;
@@ -8313,17 +8322,273 @@ add_action('template_redirect', function(){
         CAL.factor=1; CAL.pxPerFt=CAL.base;
         CAL.spanLock=s.bot.y-s.top.y;
         CAL.locked=true; CAL.streak=0;
+        $('tow-calbox').classList.remove('near');
         $('tow-calbox').classList.add('locked');
-        $('tow-calmsg').textContent='✓ Wall locked — the frame is now shown at its real size';
+        // Take the matched wall as a picture, right now, while the lines are
+        // on the edges - then the tracker below is not needed. See freezeWall.
+        var frozen=freezeWall();
+        $('tow-calmsg').textContent = frozen
+          ? '✓ Wall locked — picture captured. The frame is now shown at its real size'
+          : '✓ Wall locked — the frame is now shown at its real size';
         if(navigator.vibrate) try{ navigator.vibrate(60); }catch(e){}
         setTimeout(function(){
           if(CAL.locked){ $('tow-cal').style.display='none'; $('tow-recal').style.display='block'; }
         }, 1100);
+        var re=$('tow-recal');
+        if(re) re.textContent = frozen
+          ? '📷 Wall captured · tap to scan again'
+          : '📐 True scale locked · tap to recalibrate';
         applyScale();
+        if(frozen) autoSaveLocked();
+      }
+
+      /* ── THE LOCK IS A PHOTOGRAPH ─────────────────────────────────────
+         Until now the lock only started a second job: the detector went on
+         following the ceiling and floor lines, and the artwork grew and
+         shrank as the phone moved - a 26% swing at arm's length, and one
+         the owner watched happen. What was wanted is the opposite. The
+         moment the rectangle turns green the wall is MATCHED; that view is
+         the one to keep. So the frame the camera is showing at that instant
+         is drawn onto a canvas with the stage's own cover-crop (the same
+         maths composePreview uses, so what is kept is exactly what was on
+         screen), that still becomes the wall picture, the camera is stopped
+         and the tracker with it. From here the page behaves as it does with
+         an uploaded wall photo - drag, resize, save - except that the scale
+         is the MEASURED one: CAL.base was taken from the stage height at the
+         lock and the still fills that same stage, so pixels-per-foot is
+         unchanged. Moving the phone afterwards changes nothing, because
+         nothing is looking through it any more. Recalibrate, a room scene,
+         an upload or the camera button all leave this state (unfreeze).
+         Returns false, leaving the old live tracking in place, only if the
+         frame could not be read. */
+      function freezeWall(){
+        var v=$('tow-cam'); if(!(v.videoWidth>0 && v.videoHeight>0)) return false;
+        var st=$('tow-stage').getBoundingClientRect();
+        if(!(st.width>0 && st.height>0)) return false;
+        // up to 2x the CSS size so the still is as sharp as the feed was
+        var dpr=Math.min(2, window.devicePixelRatio||1);
+        var cw=Math.round(st.width*dpr), ch=Math.round(st.height*dpr);
+        var cv=document.createElement('canvas'); cv.width=cw; cv.height=ch;
+        var cx=cv.getContext('2d'), url='';
+        var sc=Math.max(cw/v.videoWidth, ch/v.videoHeight), dw=v.videoWidth*sc, dh=v.videoHeight*sc;
+        try{
+          cx.drawImage(v, (cw-dw)/2, (ch-dh)/2, dw, dh);
+          url=cv.toDataURL('image/jpeg', 0.92);
+        }catch(e){ return false; }
+        if(!url || url.length<64) return false;
+        var im=$('tow-wallimg');
+        // remember the wall that was underneath, for unfreeze
+        CAL.preFreeze={ src: im.getAttribute('src')||'', pos: im.style.objectPosition||'' };
+        im.src=url; im.style.objectPosition='50% 50%'; im.style.display='block';
+        // The still IS the wall from here, and it is drawn object-fit:cover.
+        // Turn the phone and the stage changes shape, cover rescales the
+        // picture, and the wall in it grows or shrinks by exactly that factor
+        // - so the measurement has to follow it. Remember the box it was
+        // captured against; frozenScale() below turns the two into a factor.
+        CAL.lockW=st.width; CAL.lockH=st.height;
+        // And hold the box itself still. On desktop the stage stretches to
+        // match the control rail, so anything that makes the rail taller -
+        // the "View saved previews" link this very lock is about to reveal -
+        // grew the stage 728 -> 760px, cover scaled the still with it, and the
+        // artwork jumped 4.4% a moment after the capture: measured, and the
+        // exact flicker being fixed. Written WITHOUT !important on purpose, so
+        // the phone rule (.af-tow-stage{height:auto!important;aspect-ratio:4/3}
+        // at <=781px) still wins there and a rotation re-derives the box -
+        // which frozenScale() then accounts for. flex:0 0 auto so grow cannot
+        // put the height back. unfreeze() removes both.
+        var stg=$('tow-stage');
+        stg.style.height=st.height+'px';
+        stg.style.flex='0 0 auto';
+        CAL.frozen=true; CAL.autoSaved=false;
+        // The pin is for the reflow that happens in the next few hundred
+        // milliseconds, not for the rest of the session. The moment the window
+        // itself changes - a phone turned on its side is 820px wide, past the
+        // 781px breakpoint whose height:auto was going to release it - the pin
+        // is dropped and the stylesheet decides the box again. frozenScale()
+        // then accounts for however the still is covered into it, so the
+        // measurement stays right either way.
+        if(CAL.timer){ clearInterval(CAL.timer); CAL.timer=null; }
+        // the still is the wall now: the stream can stop (no camera light,
+        // no battery), and any start still in flight is cancelled
+        camSeq++; camStarting=false;
+        var stream=camStream; camStream=null; camOn=false;
+        if(stream){ stream.getTracks().forEach(function(t){ try{ t.stop(); }catch(e){} }); }
+        v.srcObject=null; v.style.display='none';
+        $('tow-camstop').style.display='none';
+        camLabel();
+        return true;
+      }
+      // how much object-fit:cover is scaling the frozen still right now
+      function frozenScale(){
+        if(!(CAL.frozen && CAL.lockW>0 && CAL.lockH>0)) return 1;
+        var st=$('tow-stage').getBoundingClientRect();
+        if(!(st.width>0 && st.height>0)) return 1;
+        return Math.max(st.width/CAL.lockW, st.height/CAL.lockH);
+      }
+      function unpinStage(){
+        var stg=$('tow-stage');
+        stg.style.removeProperty('height'); stg.style.removeProperty('flex');
+      }
+      function unfreeze(){
+        if(!CAL.frozen) return;
+        CAL.frozen=false; CAL.locked=false; CAL.autoSaved=false;
+        if(autoTimer){ clearInterval(autoTimer); autoTimer=null; }
+        var im=$('tow-wallimg'), pf=CAL.preFreeze||{};
+        if(pf.src){ im.src=pf.src; im.style.objectPosition=pf.pos||'50% 50%'; }
+        else { im.removeAttribute('src'); im.style.display='none'; }
+        CAL.preFreeze=null;
+        unpinStage();
+        $('tow-cal').style.display='none';
+        $('tow-recal').style.display='none';
+        $('tow-calbox').classList.remove('locked','near');
+        // Redraw. stopCam() reaches applyScale() through calStop(), but
+        // startCam() whose getUserMedia then FAILS does not - and without this
+        // the room photo underneath keeps the measured size and the note keeps
+        // saying "measured against your own wall", permanently.
+        applyScale();
+      }
+
+      /* ── AND IT IS KEPT, TWICE ───────────────────────────────────────
+         The owner asked for the matched wall to land in the visitor's own
+         photo gallery and in their account on the site, without another
+         tap. So once per lock, as soon as the framed artwork can be drawn
+         (it may still be downloading; or no product may be chosen yet, in
+         which case this waits for the pick - see the change handler), the
+         same picture the Save buttons make is downloaded (Photos / Downloads
+         on a phone) and posted to the account through AFPreview.save, which
+         is the one place saving happens. Not signed in: the download still
+         happens and the toast offers the sign-in link. */
+      var autoTimer=null, lastAutoSig='', autoAcctSaves=0;
+      /* The account is not a bottomless drawer: the server takes twelve saves
+         in ten minutes and keeps sixty per person. A visit that matches a wall
+         two or three times is the normal case and is worth a save each; past
+         that, someone is sweeping the room and every extra shot is both a
+         wasted slot and a step closer to the manual Save to my account button
+         failing for them. So the first three matches of a visit go to the
+         account, and after that the shot still lands in the gallery and the
+         visitor is told which button keeps it. */
+      var AUTO_ACCT_MAX=3;
+      function p2(){ var q=current(); return q?q.id:0; }
+      function autoSaveLocked(){
+        if(autoTimer){ clearInterval(autoTimer); autoTimer=null; }
+        if(!CAL.frozen || CAL.autoSaved) return;
+        if(!current()){ toast('✓ Wall captured — choose an artwork and it will be saved for you'); return; }
+        var tries=0;
+        autoTimer=setInterval(function(){
+          if(!CAL.frozen || CAL.autoSaved){ clearInterval(autoTimer); autoTimer=null; return; }
+          var out=composePreview(true);
+          if(!out){
+            if(++tries>20){    // 8s: the artwork is not going to arrive
+              clearInterval(autoTimer); autoTimer=null;
+              toast('✓ Wall captured — tap Save Preview to keep this shot');
+            }
+            return;
+          }
+          clearInterval(autoTimer); autoTimer=null;
+          CAL.autoSaved=true;
+          // A re-scan that produces the very same picture should not spend
+          // another of the twelve saves the server allows in ten minutes.
+          // This only catches an IDENTICAL composite - a real camera moves and
+          // its noise alone changes the bytes - so it is a floor, not a dedupe:
+          // it stops a still scene being saved over and over.
+          var sig=[p2(), $('tow-size').value, $('tow-frame').value, $('tow-color').value, LAYOUT, out.url.length].join('|');
+          if(sig===lastAutoSig){ toast('✓ Already saved — the same shot is in your account'); return; }
+          lastAutoSig=sig;
+          keepPreview(out);
+        }, 400);
+      }
+      function keepPreview(out){
+        var file=downloadPreview(out);
+        var p=current();
+        if(autoAcctSaves>=AUTO_ACCT_MAX){
+          offerPhotos(file, ' — tap “Save to my account” to keep this one too');
+          return;
+        }
+        // A visitor who is not signed in cannot spend an account slot, so do
+        // not count one against them: the save below answers straight away
+        // with the sign-in prompt.
+        if(AFPreview.cfg.logged) autoAcctSaves++;
+        AFPreview.save(out.url, {
+          product: p?p.id:0, source:'try-on-wall',
+          size: $('tow-size').value, frame: $('tow-frame').value,
+          color: $('tow-color').value, layout: LAYOUT
+        }, function(ok, msg, url, fallback){
+          var link=$('tow-acctlink');
+          if(ok){
+            // NOT savedURL. That variable is what the WhatsApp / Email / Copy
+            // buttons hand out, and this save was automatic - the visitor
+            // asked for a wall preview, not to publish a photograph of their
+            // room. Sharing stays on the product link until they press "Save
+            // to my account" themselves, which is the tap that means "this
+            // picture is mine to send".
+            offerPhotos(file, ' — and saved to your account');
+            if(link && fallback){ link.href=fallback; link.style.display='inline'; }
+          }else if(!AFPreview.cfg.logged){
+            offerPhotos(file, ' — sign in to keep it in your account');
+            if(link && fallback){ link.href=AFPreview.withRedirect(fallback); link.textContent='Sign in →'; link.style.display='inline'; }
+          }else{
+            offerPhotos(file, ' · '+msg);
+          }
+        });
+      }
+      // A file, not a data: link: Safari on iOS opens a data: URL as a page
+      // instead of saving it, and a Blob is what its Save Image sheet wants.
+      // Returns the File for offerPhotos(), or null if the bytes would not
+      // decode - the download itself still happens either way.
+      function downloadPreview(out){
+        var a=document.createElement('a'); a.download=out.name; a.rel='noopener';
+        var file=null, href='';
+        try{
+          var bin=atob(out.url.split(',')[1]), n=bin.length, u8=new Uint8Array(n);
+          for(var i=0;i<n;i++) u8[i]=bin.charCodeAt(i);
+          var blob=new Blob([u8], {type:'image/png'});
+          href=URL.createObjectURL(blob); a.href=href;
+          try{ file=new File([blob], out.name, {type:'image/png'}); }catch(e){}
+          setTimeout(function(){ URL.revokeObjectURL(href); }, 60000);
+        }catch(e){ a.href=out.url; }
+        document.body.appendChild(a); a.click(); a.remove();
+        return file;
+      }
+
+      /* Where the picture actually goes, said honestly.
+         The download lands in Downloads (Android) or Files (iOS) - never the
+         camera roll, and on iOS Safari a programmatic download from a timer
+         (which this is: the lock is not a tap) may not happen at all. The
+         camera roll is one step further and the browser will only take it from
+         a gesture, because navigator.share() throws NotAllowedError without
+         one. So where a file can be shared the toast says "tap to add to
+         Photos" and IS that tap, and it does not claim a gallery save it
+         cannot guarantee; where it cannot, the download is all there is and
+         the toast says downloads. Seven seconds - long enough to read the line
+         and hit it, short enough that a box that catches taps is not sitting
+         across the bottom of the wall while the visitor is dragging. */
+      function offerPhotos(file, kept){
+        var t=$('tow-toast');
+        var can=false;
+        try{ can = !!(file && navigator.canShare && navigator.canShare({files:[file]}) && navigator.share); }catch(e){ can=false; }
+        if(!(can && t)){ toast('✓ Saved to your downloads' + kept); return; }
+        toast('✓ Tap here to add it to your Photos' + kept, 7000);
+        t.style.pointerEvents='auto'; t.style.cursor='pointer';
+        var timer=null;
+        var done=function(){
+          if(timer){ clearTimeout(timer); timer=null; }
+          if(clearShareOffer===done) clearShareOffer=null;
+          t.style.pointerEvents=''; t.style.cursor='';
+          t.removeEventListener('click', go);
+        };
+        var go=function(){
+          done();
+          navigator.share({ files:[file], title:'My wall preview' }).catch(function(){});
+        };
+        t.addEventListener('click', go);
+        clearShareOffer=done;
+        timer=setTimeout(done, 6800);    // inside the toast's own life
       }
 
       function calStart(){
         CAL.locked=false; CAL.streak=0; CAL.factor=1;
+        var re0=$('tow-recal');
+        if(re0) re0.textContent='📐 True scale locked · tap to recalibrate';
         $('tow-cal').style.display='block';
         $('tow-recal').style.display='none';
         $('tow-calbox').classList.remove('locked','near');
@@ -8337,7 +8602,10 @@ add_action('template_redirect', function(){
         $('tow-recal').style.display='none';
         applyScale();                       // back to the room-photo scale
       }
-      $('tow-recal').addEventListener('click', calStart);
+      $('tow-recal').addEventListener('click', function(){
+        if(CAL.frozen){ startCam(); return; }     // unfreezes, then calStart on the stream
+        calStart();
+      });
 
       /**
        * The one place the wall height changes. Two rows offer it — the panel's
@@ -8364,8 +8632,17 @@ add_action('template_redirect', function(){
           });
         });
         if(CAL.locked){                     // re-derive the measurement, keep tracking
-          var st=$('tow-stage').getBoundingClientRect();
-          CAL.base=((CAL_BOT-CAL_TOP)*st.height)/CAL.wallFt;
+          // Which height the wall was measured against. While a still is held
+          // it is the box that still was CAPTURED in (CAL.lockH): applyScale()
+          // already multiplies by frozenScale() for however the picture is
+          // being covered into today's stage, so reading today's stage here
+          // too would apply the same factor twice - a phone rotated from a
+          // 360px stage to a 520px one drew the artwork 44% oversize while
+          // still claiming true scale.
+          var ruler = CAL.frozen && CAL.lockH > 0
+            ? CAL.lockH
+            : $('tow-stage').getBoundingClientRect().height;
+          CAL.base=((CAL_BOT-CAL_TOP)*ruler)/CAL.wallFt;
           CAL.pxPerFt=CAL.base*CAL.factor;
         }
         applyScale();
@@ -8608,9 +8885,9 @@ add_action('template_redirect', function(){
           // Calibrated live camera: the scale is measured against the visitor's
           // actual wall and tracks them as they move. Otherwise: the room photo,
           // read as a wall of the height the visitor picked.
-          var measured = ( camOn && CAL.locked && CAL.pxPerFt > 0 );
+          var measured = ( (camOn || CAL.frozen) && CAL.locked && CAL.pxPerFt > 0 );
           var pxPerFt = measured
-            ? CAL.pxPerFt
+            ? CAL.pxPerFt * (CAL.frozen ? frozenScale() : 1)
             : (sh * WALL_FRAC) / (CAL.wallFt || WALL_FT);
           var targetH = ft.h * pxPerFt * slider;         // true height on the wall
           var targetW = ft.w * pxPerFt * slider;         // true width  on the wall
@@ -8631,7 +8908,9 @@ add_action('template_redirect', function(){
           var note = $('tow-scalenote');
           if ( note ) {
             note.textContent = measured
-              ? '📏 True to scale — measured against your own wall.'
+              ? ( CAL.frozen
+                  ? '📏 True to scale — measured against your own wall. Picture locked at the match.'
+                  : '📏 True to scale — measured against your own wall.' )
               : ( camOn
                   ? '📐 Not to scale yet — drawn against ' + af_tow_wall_phrase()
                     + '. Fit the rectangle to your wall to measure it.'
@@ -8714,23 +8993,33 @@ add_action('template_redirect', function(){
 
       // Save preview
       var toastTimer;
-      function toast(msg){
+      // One element shows every message, so a message arriving on top of the
+      // Photos offer must take the offer down with it: otherwise the toast
+      // stays tappable over the wall with a handler holding the PREVIOUS
+      // picture, and a tap meant for the artwork shares a shot the visitor has
+      // moved on from. clearShareOffer is set by offerPhotos while an offer is
+      // live and nulled here.
+      var clearShareOffer=null;
+      function toast(msg, ms){
         var t=$('tow-toast'); if(!t) return;
+        if(clearShareOffer){ var c=clearShareOffer; clearShareOffer=null; c(); }
         t.textContent=msg; t.classList.add('show');
-        clearTimeout(toastTimer); toastTimer=setTimeout(function(){ t.classList.remove('show'); }, 3200);
+        clearTimeout(toastTimer);
+        toastTimer=setTimeout(function(){ t.classList.remove('show'); }, ms || 3200);
       }
       // Compose the wall + framed artwork onto a canvas. Returns {url,name} or
       // null (having explained why). Shared by download, save-to-account and share.
-      function composePreview(){
+      function composePreview(quiet){
+        var say = quiet ? function(){} : toast;   // the auto-save polls this; it must not nag
         var wall=$('tow-wallimg');
-        if(!current()){ toast('Please choose a product first'); return null; }
+        if(!current()){ say('Please choose a product first'); return null; }
         var haveWall = camOn || (wall.src && wall.style.display!=='none');
-        if(!haveWall){ toast('Please pick a room, use the camera, or upload a wall photo'); return null; }
+        if(!haveWall){ say('Please pick a room, use the camera, or upload a wall photo'); return null; }
         var panels=$('tow-framebox').querySelectorAll('.af-tow-wpanel');
-        if(!panels.length){ toast('Still preparing the preview — try again in a moment'); return null; }
+        if(!panels.length){ say('Still preparing the preview — try again in a moment'); return null; }
         // draw from the same cropped image the panels display, so the file matches
         var artSrc=(cropImg && cropImg.complete && cropImg.naturalWidth>0) ? cropImg : artImg;
-        if(!(artSrc && artSrc.naturalWidth>0)){ toast('Artwork is still loading — try again in a moment'); return null; }
+        if(!(artSrc && artSrc.naturalWidth>0)){ say('Artwork is still loading — try again in a moment'); return null; }
         try{
           var stage=$('tow-stage'), r=stage.getBoundingClientRect();
           var cv=document.createElement('canvas'); cv.width=Math.round(r.width); cv.height=Math.round(r.height); var ctx=cv.getContext('2d');
@@ -8793,7 +9082,7 @@ add_action('template_redirect', function(){
           });
           var p=current(); var fname=((p&&p.name)?p.name.replace(/[^a-z0-9]+/gi,'-').replace(/^-+|-+$/g,'').toLowerCase():'my')+'-on-wall.png';
           return { url: cv.toDataURL('image/png'), name: fname };
-        }catch(err){ toast('Couldn’t build the preview — right-click the wall to save it'); return null; }
+        }catch(err){ say('Couldn’t build the preview — right-click the wall to save it'); return null; }
       }
 
       $('tow-save').addEventListener('click', function(){
@@ -8808,7 +9097,11 @@ add_action('template_redirect', function(){
       // image of a preview the visitor has already moved on from.
       var savedURL='';
       ['tow-prod','tow-frame','tow-size','tow-color','tow-scale'].forEach(function(id){
-        $(id).addEventListener('change', function(){ savedURL=''; });
+        $(id).addEventListener('change', function(){
+          savedURL='';
+          // the wall was captured before an artwork was chosen: keep it now
+          if(id==='tow-prod' && CAL.frozen && !CAL.autoSaved) autoSaveLocked();
+        });
       });
       $('tow-layouts').addEventListener('click', function(){ savedURL=''; });
       function shareTarget(){
@@ -8858,7 +9151,10 @@ add_action('template_redirect', function(){
         });
       });
 
-      window.addEventListener('resize', applyScale);
+      window.addEventListener('resize', function(){
+        if(CAL.frozen) unpinStage();   // before the measurement reads the box
+        applyScale();
+      });
 
       // The stage now stretches to match the control rail, so its height can
       // change without the window changing size. pixels-per-foot is derived
@@ -8915,6 +9211,11 @@ add_action('template_redirect', function(){
         // drifted, so it is mirrored here like the other two.
         var recal = document.getElementById('tow-recal');
         var hRe   = head.querySelector('.af-tow-camhead-recal');
+        // After the lock the camera is off and its picture is held, so the
+        // pill's old words ("tap to recalibrate") describe the wrong thing:
+        // what that tap now does is look again. The full-size button keeps
+        // its own label; this is the phone strip's shorter one.
+        if(hRe) hRe.textContent = '📐 Scan again';
         // Wall height, back within reach - but as one chip, not the row of
         // three that used to lie across the video.
         //
@@ -8960,7 +9261,10 @@ add_action('template_redirect', function(){
           hX.style.display   = wantX   ? 'block' : 'none';
           if(hRe) hRe.style.display = wantRe ? 'block' : 'none';
           if(hFt){
-            hFt.style.display = wantX ? 'block' : 'none';   // for the whole camera session
+            // For the whole camera session - and on past the lock, because the
+            // still the lock keeps is still being measured against a wall of
+            // this height and the panel row is scrolled away on a phone.
+            hFt.style.display = (wantX || wantRe) ? 'block' : 'none';
             var ft = currentFt();
             if(hFt.getAttribute('data-ft') !== ft){
               hFt.setAttribute('data-ft', ft);
@@ -9037,7 +9341,11 @@ add_action('template_redirect', function(){
     .af-tow-btn.ghost:hover{background:#e9e0cc;}
     .af-tow-btn.solid{background:#c9a84c;color:#fff;box-shadow:0 6px 16px rgba(201,168,76,.35);}
     .af-tow-btn.solid:hover{background:#b8973c;}
-    .af-tow-toast{position:absolute;left:50%;bottom:18px;transform:translateX(-50%) translateY(12px);background:#1a1a1a;color:#fff;font-size:13px;font-weight:600;padding:11px 18px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:20;white-space:nowrap;}
+    /* white-space:nowrap inside a stage with overflow:hidden cut every long
+       message off at the edge of the wall - on a 349px phone stage that is
+       most of them, including the one offering to put the shot in Photos. It
+       wraps and stays inside the stage now; short messages are unchanged. */
+    .af-tow-toast{position:absolute;left:50%;bottom:18px;transform:translateX(-50%) translateY(12px);background:#1a1a1a;color:#fff;font-size:13px;font-weight:600;padding:11px 18px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:20;white-space:normal;max-width:calc(100% - 28px);width:max-content;box-sizing:border-box;text-align:center;line-height:1.45;}
     .af-tow-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
     /* The preview column stretches to whatever height the control rail needs
        and the wall itself swallows the difference, so neither column can end
@@ -9057,6 +9365,10 @@ add_action('template_redirect', function(){
     .af-tow-ph{position:relative;z-index:2;color:#8a8170;font-size:14.5px;text-align:center;max-width:360px;line-height:1.65;padding:24px;display:flex;flex-direction:column;align-items:center;gap:12px;background:rgba(255,255,255,.78);border-radius:14px;backdrop-filter:blur(2px);}
     .af-tow-ph-ic{font-size:34px;}
     .af-tow-scalenote{margin:10px 0 0;font-size:11.5px;color:#8a6d1f;font-weight:600;}
+    /* Said before the camera is switched on, not after the upload has already
+       happened: the match is saved to the visitor's device and to their
+       account without another tap, and that is a photograph of their room. */
+    .af-tow-camnote{margin:8px 0 0;font-size:11px;line-height:1.5;color:#8a8170;}
     .af-tow-framebox{position:absolute;top:42%;left:50%;transform:translate(-50%,-50%);cursor:grab;touch-action:none;z-index:5;}
     .af-tow-framebox.dragging{cursor:grabbing;}
     .af-tow-framebox:hover .af-tow-hint{opacity:1;}
