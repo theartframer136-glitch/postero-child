@@ -52,9 +52,27 @@ async function ctxFor(opts) {
   return ctx;
 }
 
+// Does the shop answer this runner at all? The first run spent 25 minutes
+// timing out on every page and then printed verdicts, one of which was wrong
+// because of it. A run that cannot reach the site must say so and stop, not
+// grind through 33 checks converting timeouts into findings.
+async function reachable() {
+  const ctx = await ctxFor({ viewport: { width: 1280, height: 800 } });
+  const page = await ctx.newPage();
+  const tries = [];
+  for (let i = 0; i < 3; i++) {
+    const r = await page.goto(SITE + '/', { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(e => ({ err: String(e.message).slice(0, 80) }));
+    if (r && r.status && r.status() < 400) { tries.push(`HTTP ${r.status()}`); await ctx.close(); return { ok: true, tries }; }
+    tries.push(r && r.err ? r.err : (r && r.status ? `HTTP ${r.status()}` : 'no response'));
+    await page.waitForTimeout(5000);
+  }
+  await ctx.close();
+  return { ok: false, tries };
+}
+
 const go = async (page, path, wait = 1500) => {
   const url = path.startsWith('http') ? path : SITE + path;
-  const r = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 60000 }).catch(() => null);
+  const r = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30000 }).catch(() => null);
   if (r) await page.waitForTimeout(wait);
   return r ? r.status() : 0;
 };
@@ -72,6 +90,15 @@ const RATIO = `
 `;
 
 // ── 1. The home page: pop-up, focus, weight, leftovers ─────────────────────
+const reach = await reachable();
+if (!reach.ok) {
+  console.log('\nThe shop did not answer this runner: ' + reach.tries.join(' | '));
+  console.log('Nothing was measured. Every live claim stays unverified — a timeout is not a finding.');
+  await browser.close();
+  process.exit(0);
+}
+console.log(`\nthe shop answers (${reach.tries.join(' | ')})`);
+
 try {
   console.log('\n— home page, desktop 1440 —');
   const ctx = await ctxFor({ viewport: { width: 1440, height: 900 } });
@@ -461,7 +488,10 @@ try {
     const s = await go(page, p, 400);
     dup.push(`${p} → ${s}`);
   }
-  say('L-07a', dup.filter(d => / → 200/.test(d)).length > 1 ? YES : NO, 'duplicate and internal pages are reachable and indexable', dup.join(' · '));
+  const answered = dup.filter(d => !/ → 0$/.test(d)).length;
+  say('L-07a', answered === 0 ? NA : (dup.filter(d => / → 200/.test(d)).length > 1 ? YES : NO),
+      'duplicate and internal pages are reachable and indexable',
+      answered === 0 ? 'none of the five URLs answered at all — nothing measured' : dup.join(' · '));
 
   if (await go(page, '/artists/', 1200) === 200) {
     const admin = await page.evaluate(() => /This list updates automatically[^\n]{0,120}/i.exec(document.body.innerText));
