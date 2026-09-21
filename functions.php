@@ -11426,15 +11426,48 @@ add_action('woocommerce_single_product_summary', function(){
 // APPLY COUPON and watches nothing happen. Nothing happening is how a broken
 // site behaves, so that is what they conclude.
 //
-// Hooked rather than templated on purpose. Fixing this by copying the
-// parent's cart.php into the child theme would freeze a WooCommerce template
-// at today's version and quietly inherit every upstream change it later
-// misses — a large, permanent cost for one missing call. woocommerce_before_cart
-// fires from that same template, so one line gets the notices back without
-// owning the file. If the parent has replaced the template so completely that
-// the hook never fires, nothing renders and nothing breaks, and the check
-// below says so rather than this pretending.
-add_action('woocommerce_before_cart', 'woocommerce_output_all_notices', 5);
+// Hooked rather than templated on purpose. Copying the parent's cart.php into
+// the child theme would freeze a WooCommerce template at today's version and
+// quietly inherit every upstream change it later misses — a large, permanent
+// cost for one missing call.
+//
+// The first attempt hooked woocommerce_before_cart alone, and a run after it
+// deployed measured the same zero notices. That hook does not fire here, so
+// the parent's cart page is not WooCommerce's cart.php — most likely an
+// Elementor widget rendering the cart.
+//
+// What actually has to reach the page is the wrapper. Applying a coupon is an
+// AJAX round trip, and WooCommerce's own script writes the response's notices
+// into .woocommerce-notices-wrapper — which is the markup
+// woocommerce_output_all_notices() emits. No wrapper, nowhere to write, and
+// the notice is discarded after the server has correctly produced it. That is
+// why nothing appeared despite the response being right.
+//
+// So several hooks are tried rather than one, printing at most once and only
+// on the cart. A hook that never fires costs nothing; the first that does
+// wins. Each prints a marker naming itself, so the next verification run says
+// WHICH hook carried it — or, if the wrapper is still missing, confirms that
+// none of them fires and the template override is the only route left. Either
+// way the answer is measured instead of guessed at twice.
+add_action('init', function () {
+    if (!function_exists('woocommerce_output_all_notices')) return;
+    $printed = false;
+    $print = function () use (&$printed) {
+        if ($printed || !function_exists('is_cart') || !is_cart()) return;
+        $printed = true;
+        echo '<!-- af-notices via ' . esc_html(current_filter()) . ' -->';
+        woocommerce_output_all_notices();
+    };
+    foreach (array(
+        'woocommerce_before_cart',
+        'woocommerce_before_cart_table',
+        'woocommerce_before_cart_contents',
+        'woocommerce_cart_is_empty',
+        'woocommerce_before_main_content',
+    ) as $af_hook) {
+        add_action($af_hook, $print, 5);
+    }
+});
 
 // A shopper who sorts by price is telling you price is what they care about.
 //
