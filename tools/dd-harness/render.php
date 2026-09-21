@@ -33,7 +33,17 @@ $html = <<<HTML
 <style>body{font-family:system-ui;margin:0;padding:24px}
 .product{border:1px solid #ddd;padding:12px;width:260px}
 .woosq-btn{padding:8px 12px}</style>
-</head><body>
+</head>
+<!-- The live category archive carries the term slug on the body:
+     class="... term-digital-downloads-2 ...". That substring is what the
+     trigger selector [class*="digital-download"] matched, turning every click
+     on the page into a Digital Download trigger. Reproduced exactly. -->
+<body class="archive tax-product_cat term-digital-downloads-2 woocommerce">
+<header id="masthead" role="banner">
+  <!-- points back at this page, so a working logo reloads the harness rather
+       than navigating it somewhere that does not exist -->
+  <a class="custom-logo-link" href="/index.html"><img src="/preview.png" alt="The Art Framer" width="60" height="30"></a>
+</header>
 <h1>Digital Download modal — offline</h1>
 <!-- Spread the card across the viewport, BEHIND the modal. On the live
      category page the modal covers a grid of cards, so a stray click that

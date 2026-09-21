@@ -154,6 +154,32 @@ P((await st()).bodyOverflow === '(none)', 'and the page can scroll again');
   await page.unroute('**/admin-ajax.php');
 }
 
+// 3c. The page chrome is not a product card. On the live archive the body
+// carries term-digital-downloads-2, which [class*="digital-download"] matches,
+// so every click resolved to trg = <body> - body satisfies CARD_SEL too - and
+// the handler called preventDefault() and opened the modal. Clicking the logo
+// stopped going home. Measured: selectorMatch and cardFromLogo were both
+// "body.archive.tax-product_cat.term-digital-downloads-2".
+{
+  await page.evaluate(() => { const o = document.getElementById('af-dd-overlay'); o.classList.remove('open'); });
+  await sleep(150);
+  const res = await page.evaluate(() => {
+    const logo = document.querySelector('.custom-logo-link');
+    const ev = new MouseEvent('click', { bubbles: true, cancelable: true });
+    logo.dispatchEvent(ev);
+    return { prevented: ev.defaultPrevented,
+      ddOpen: document.getElementById('af-dd-overlay').classList.contains('open') };
+  });
+  console.log('  logo click: ' + JSON.stringify(res));
+  P(!res.ddOpen, 'clicking the logo does not open the modal, even on an archive whose body says digital-downloads');
+  P(!res.prevented, 'and its navigation is not cancelled');
+  // A working logo really does navigate, which tears down the page - wait for
+  // it and carry on, rather than letting the rest of the run die on a
+  // destroyed execution context.
+  await page.waitForLoadState ? await page.waitForLoadState('load') : await sleep(800);
+  await sleep(400);
+}
+
 // 4. the backdrop
 await openIt(); await sleep(150);
 await page.evaluate(() => {

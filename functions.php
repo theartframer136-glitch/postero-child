@@ -10575,6 +10575,11 @@ add_action('wp_footer', function() {
       // exactly ("⊕ Digital Download", "Digital Download", etc.), walking up a
       // few levels so clicking the icon or its link still opens the modal.
       var CARD_SEL = '.product-card, li.product, .product, .product-block, [class*="product-block"]';
+      // Where a Digital Download trigger can never be, whatever the selectors
+      // below happen to match: the page's own chrome.
+      var DD_NEVER = 'header,.site-header,[class*="site-header"],[class*="site-branding"],'
+                   + '.custom-logo-link,[class*="site-logo"],.elementor-widget-site-logo,.hfe-site-logo,'
+                   + 'nav,.main-navigation,[role="banner"],[role="navigation"],footer,#colophon';
       document.addEventListener('click', function(e){
         /* A click INSIDE the modal is never a card trigger. This listener and
            the one that closes the modal both sit on document in the capture
@@ -10587,7 +10592,23 @@ add_action('wp_footer', function() {
            overlay is not a product card and never was; say so before anything
            else is considered. */
         if(overlay.contains(e.target)) return;
+        /* Nor is the chrome around the page. A Digital Download trigger is a
+           control on a product card; the header, the logo, the nav and the
+           footer are none of those, and a click there has somewhere of its
+           own to go. The sibling quick-view interceptor already excludes the
+           same places, for the same reason. */
+        if(e.target.closest(DD_NEVER)) return;
         var trg = e.target.closest('.digital-download, .digital-download-btn, [class*="digital-download"], [data-digital-download]');
+        /* And <body> is not a trigger, however it is dressed.
+           WordPress puts the term slug on the body of a category archive, so
+           on /product-category/digital-downloads-2/ the body carries
+           class="... term-digital-downloads-2 ..." - which the substring
+           selector above matches. Measured on the live page: every click
+           anywhere on that archive resolved to trg = <body>, and body also
+           satisfies CARD_SEL, so the handler called preventDefault() and
+           opened the modal. Clicking the logo stopped going home. Only a real
+           element inside a card can be a trigger. */
+        if(trg && (trg === document.body || trg === document.documentElement)) trg = null;
         if(!trg){
           var node = e.target;
           for(var i=0;i<4 && node && node!==document.body;i++){
@@ -10598,6 +10619,8 @@ add_action('wp_footer', function() {
         }
         if(!trg) return;
         var card = trg.closest(CARD_SEL); if(!card) return;
+        // Same trap one level down: the archive body answers CARD_SEL too.
+        if(card === document.body || card === document.documentElement) return;
         e.preventDefault(); e.stopPropagation();
 
         // CARD_SEL matches a row wrapper as readily as a card, and closest()

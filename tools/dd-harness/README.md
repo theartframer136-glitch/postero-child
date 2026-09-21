@@ -36,9 +36,28 @@ event type) worked. Run with `notrap` to see the same page without it.
 | × closes it | **with the click trap installed** |
 | the backdrop closes it | |
 | Escape closes it | it always did; it must go on doing so |
+| the logo still goes home | the archive body carries `term-digital-downloads-2`, which `[class*="digital-download"]` matches — so `<body>` was being treated as the trigger *and* as the card |
 | no console errors | |
 
 The server answers the first preview request slowly on purpose (`DD_SLOW_MS`,
 default 1500ms) — that wait is real on the live site, where the first visitor
 to open a given piece waits while GD renders its watermarked preview from the
 master, and it was that wait the owner filmed as an empty white panel.
+
+## The body-class trap
+
+WordPress puts the term slug on the body of a category archive, so
+`/product-category/digital-downloads-2/` serves
+`<body class="... term-digital-downloads-2 ...">`. The trigger's substring
+selector `[class*="digital-download"]` matched that, and `<body>` also answers
+`CARD_SEL` (`.product` among others), so on that one archive **every** click
+resolved to a Digital Download trigger, called `preventDefault()` and opened
+the modal — the logo included. Measured live:
+
+    "selectorMatch": "body.archive.tax-product_cat.term-digital-downloads-2"
+    "cardFromLogo":  "body.archive.tax-product_cat.term-digital-downloads-2"
+
+`render.php` now gives the harness page that exact body class plus a header and
+logo, so the trap is reproduced rather than described. A working logo really
+navigates, which tears the page down; the runner waits for that load instead of
+dying on a destroyed context.
