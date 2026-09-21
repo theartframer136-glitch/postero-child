@@ -305,12 +305,15 @@ try {
     return {
       sheets: links.length, ours: ours.length, rows,
       inlineFocusRing: /:focus-visible *\{ *outline: *3px solid #c9a84c/i.test(inline),
-      names: ours.slice(0, 8).map(h => h.split('/').slice(-1)[0].slice(0, 40)),
+      // When none of ours matched, the useful thing is what IS there — the
+      // first run of this printed an empty list and so could not name the
+      // optimiser it had just proved was in the way.
+      names: links.slice(0, 10).map(h => h.replace(/^https?:\/\/[^/]+/, '').slice(0, 52)),
     };
   });
   say('DEPLOY-CSS', css.rows.some(r => /focusRing=true/.test(r)) || css.inlineFocusRing ? YES : NO,
       'the CSS this repository shipped is the CSS the browser is served',
-      `${css.sheets} stylesheets, ${css.ours} ours${css.ours ? ': ' + css.rows.join(' | ') : ' — none of our files is linked at all; names seen: ' + css.names.join(', ')} · inlined focus ring: ${css.inlineFocusRing}`);
+      `${css.sheets} stylesheets, ${css.ours} ours${css.ours ? ': ' + css.rows.join(' | ') : ' — none of our files is linked; the page is served: ' + css.names.join(' | ')} · inlined focus ring: ${css.inlineFocusRing}`);
   await ctx.close();
 } catch (e) { say('DEPLOY-CSS', NA, 'CSS delivery check', String(e.message).slice(0, 140)); }
 
