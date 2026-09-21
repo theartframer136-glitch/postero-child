@@ -11322,6 +11322,29 @@ add_action('woocommerce_single_product_summary', function(){
     }
 }, 31);
 
+// A shopper who sorts by price is telling you price is what they care about.
+//
+// Measured on the live shop, 21 Sep 2026: page 1 of /shop/?orderby=price was
+// 12 of 12 "Price on request". Nothing above has a price, so ascending order
+// puts every one of them first — the shopper most focused on price sees the
+// least of it, and the items they are shown cannot be bought at all because
+// woocommerce_is_purchasable above refuses them.
+//
+// They are excluded from the price sort only. They stay in the catalogue, in
+// their categories, in search and in every other ordering, because they are
+// real products someone may want to enquire about. They simply have no price
+// to be sorted by, so they have no place in a list ordered by one.
+add_action('woocommerce_product_query', function($q) {
+    if (is_admin()) return;
+    $orderby = isset($_GET['orderby']) ? sanitize_key(wp_unslash($_GET['orderby'])) : '';
+    if ($orderby !== 'price' && $orderby !== 'price-desc') return;
+    $mq = (array) $q->get('meta_query');
+    // A product with no _price row at all is excluded by the key not existing,
+    // which is the same answer for the same reason.
+    $mq[] = array('key' => '_price', 'value' => 0, 'compare' => '>', 'type' => 'NUMERIC');
+    $q->set('meta_query', $mq);
+});
+
 // Minimal styling for the label + enquire buttons
 add_action('wp_head', function(){
     ?>
