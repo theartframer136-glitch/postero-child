@@ -106,13 +106,27 @@ function af_asset_src($rel, $fallback_ver) {
         $name = pathinfo($rel, PATHINFO_FILENAME) . '.' . $mtime . '.' . $ext;
         $dest = $dir . '/' . $name;
 
-        if (file_exists($dest) || (wp_mkdir_p($dir) && @copy($src, $dest))) {
+        // Copy to a temporary name and rename into place. rename() is atomic
+        // within a filesystem, so a request that arrives mid-copy either sees
+        // no file and falls back, or sees the whole file — never half of a
+        // stylesheet, which on a 130KB custom.css would be visible damage.
+        $ok = file_exists($dest);
+        if (!$ok && wp_mkdir_p($dir)) {
+            $tmp = $dest . '.' . getmypid() . '.tmp';
+            if (@copy($src, $tmp)) {
+                $ok = @rename($tmp, $dest);
+                if (!$ok) @unlink($tmp);
+            }
+        }
+        if ($ok) {
             $result = $url . '/' . $name;
             // The copies from previous deploys are dead the moment nothing
             // links them, and they are the only thing in this directory.
             foreach ((array) glob($dir . '/' . pathinfo($rel, PATHINFO_FILENAME) . '.*.' . $ext) as $old) {
                 if ($old !== $dest) @unlink($old);
             }
+            // .tmp files are another process's work in progress, and the glob
+            // above cannot match them, which is why the suffix goes last.
         }
     }
 
