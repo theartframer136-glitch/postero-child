@@ -157,6 +157,26 @@ try {
       console.log('    could not read any priced size chips — the range is UNMEASURED,');
       console.log('    so do not write a highPrice from this run.');
     }
+
+    // ── DEF-08: is Product.name the product, or the SEO title? ──────────
+    const nm = (p.name || '').trim();
+    const ttl = (d.title || '').trim();
+    const sepRe = /\s[|\u2013\u2014-]\s/;
+    if (!nm) {
+      console.log('    → DEF-08 NO DATA — the Product node carries no name.');
+    } else if (nm === ttl) {
+      console.log('    → DEF-08 CONFIRMED — the schema name IS the page <title>, verbatim.');
+    } else if (sepRe.test(nm) && ttl.indexOf(nm) === 0) {
+      console.log('    → DEF-08 CONFIRMED — the schema name carries the site suffix.');
+    } else if (sepRe.test(nm)) {
+      console.log('    → DEF-08 LIKELY — the schema name contains a separator. Check whether');
+      console.log('      what follows it is part of the piece\'s title or the shop\'s name.');
+    } else if (ttl.indexOf(nm) === 0 && ttl.length > nm.length) {
+      console.log('    → DEF-08 FIXED — the schema name is the product title; only the');
+      console.log('      <title> carries the suffix, which is where it belongs.');
+    } else {
+      console.log('    → DEF-08 — name and <title> differ, and the name carries no separator.');
+    }
     console.log('');
   }
 } catch (e) {

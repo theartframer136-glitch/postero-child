@@ -1,6 +1,9 @@
 <?php
 /**
- * The price a search engine is told, against the prices a shopper can choose.
+ * Corrections to the Product node in the structured data.
+ *
+ * Two findings, one node, one filter: what Google is told this product is
+ * called (DEF-08) and what it is told the price is (DEF-07).
  *
  * DEF-07. The Product JSON-LD publishes a single offers.price of "80.00" while
  * the product page offers a range. Google then shows $80 on a listing whose
@@ -121,6 +124,36 @@ function af_offer_with_price_range($offer, $product) {
     }
 }
 
+/**
+ * What this product is called, for the Product node's name.
+ *
+ * DEF-08. Rank Math fills Product.name from the SEO title, so the node reads
+ *
+ *     "Indian Spiritual Leader Canvas Wall Art | The Art Framer"
+ *
+ * and the brand lands twice in any rich result — once in the product name and
+ * again in the site name beside it. The SEO title is written for a browser tab
+ * and a SERP heading, where the suffix earns its place. Product.name is a
+ * field about the product, and the shop is not part of what the product is
+ * called.
+ *
+ * The product title is used rather than the suffix being stripped. Stripping
+ * would mean guessing at a separator and a site name, and would quietly fail
+ * the day either changes; the title is simply the right value, and is what
+ * the cart, the order and the invoice already call this piece.
+ */
+function af_product_schema_name($product) {
+    try {
+        if (!($product instanceof WC_Product)) return '';
+        $name = wp_strip_all_tags((string) $product->get_name());
+        $name = html_entity_decode($name, ENT_QUOTES, 'UTF-8');
+        $name = trim(preg_replace('/\s+/u', ' ', $name));
+        return $name;
+    } catch (\Throwable $e) {
+        return '';
+    }
+}
+
 /** The product whose page is being rendered, or null. */
 function af_schema_current_product() {
     try {
@@ -150,6 +183,13 @@ add_filter('rank_math/json_ld', function ($data, $jsonld) {
             if (!is_array($node)) continue;
             $types = isset($node['@type']) ? (array) $node['@type'] : array();
             if (!in_array('Product', $types, true)) continue;
+
+            // DEF-08, before the offers check: a product with no offers node
+            // still has a name, and skipping it here would leave exactly the
+            // products least likely to be noticed still carrying the suffix.
+            $name = af_product_schema_name($product);
+            if ($name !== '') $data[$k]['name'] = $name;
+
             if (empty($node['offers'])) continue;
 
             $offers = $node['offers'];
@@ -174,7 +214,12 @@ add_filter('rank_math/json_ld', function ($data, $jsonld) {
     }
 }, 30, 2);
 
-/** WooCommerce's own pipeline, covered too in case its JSON-LD is active. */
+/**
+ * WooCommerce's own pipeline, covered too in case its JSON-LD is active.
+ *
+ * Price only. WooCommerce already sets name from get_name(), so DEF-08 does
+ * not exist on this path and there is nothing here to correct.
+ */
 add_filter('woocommerce_structured_data_product', function ($markup, $product) {
     try {
         if (!is_array($markup) || empty($markup['offers'])) return $markup;
