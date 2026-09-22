@@ -96,7 +96,8 @@ try {
         return m ? Number(m[1].replace(/,/g, '')) : null;
       };
       const cand = [...document.querySelectorAll(
-        '[data-size], .af-size, .af-size-chip, .af-opt-size li, .af-opts [data-opt="size"] *, label')]
+        '#af-size-select option, select.af-size-select option, [data-type="size"] option,'
+        + ' [data-size], .af-size, .af-size-chip, .af-opt-size li, label')]
         .filter(el => /\d\s*[×x]\s*\d/.test(((el.innerText || '') + '')));
       const seen = {};
       cand.forEach(el => {
@@ -161,21 +162,27 @@ try {
     // ── DEF-08: is Product.name the product, or the SEO title? ──────────
     const nm = (p.name || '').trim();
     const ttl = (d.title || '').trim();
-    const sepRe = /\s[|\u2013\u2014-]\s/;
+    // Judge on the SITE SUFFIX, taken from the <title>, not on any separator.
+    // A live run reported LIKELY because the product's own title contains
+    // en-dashes — "… 3x4 Feet – Floating Frame – Premium …" — which says
+    // nothing about the shop's name being appended.
+    const sufM = ttl.match(/\s[|\u2013\u2014-]\s(.+)$/);
+    const suffix = sufM ? sufM[1].trim() : '';
     if (!nm) {
       console.log('    → DEF-08 NO DATA — the Product node carries no name.');
     } else if (nm === ttl) {
       console.log('    → DEF-08 CONFIRMED — the schema name IS the page <title>, verbatim.');
-    } else if (sepRe.test(nm) && ttl.indexOf(nm) === 0) {
-      console.log('    → DEF-08 CONFIRMED — the schema name carries the site suffix.');
-    } else if (sepRe.test(nm)) {
-      console.log('    → DEF-08 LIKELY — the schema name contains a separator. Check whether');
-      console.log('      what follows it is part of the piece\'s title or the shop\'s name.');
-    } else if (ttl.indexOf(nm) === 0 && ttl.length > nm.length) {
-      console.log('    → DEF-08 FIXED — the schema name is the product title; only the');
-      console.log('      <title> carries the suffix, which is where it belongs.');
+    } else if (suffix && nm.endsWith(suffix)) {
+      console.log('    → DEF-08 CONFIRMED — the schema name ends with the site suffix "'
+        + suffix + '".');
+    } else if (!suffix) {
+      console.log('    → DEF-08 NO DATA — the <title> carries no suffix to compare against.');
     } else {
-      console.log('    → DEF-08 — name and <title> differ, and the name carries no separator.');
+      console.log('    → DEF-08 FIXED — the schema name does not carry the site suffix "'
+        + suffix + '".');
+    }
+    if (/&(amp|quot|#0?39|lt|gt);/i.test(nm)) {
+      console.log('      note: the name still contains an HTML entity — it will print literally.');
     }
     console.log('');
   }
