@@ -41,9 +41,26 @@ jobs:
             done
             echo; echo "--- does PHP/WordPress answer at all (wp-cli) ---"
             cd ~/websites/OPu0sKi4J/public_html && timeout 60 wp option get siteurl --allow-root 2>&1 | tail -1
-            echo; echo "--- last 25 lines of the PHP error log, if any ---"
+            echo; echo "--- the PHP error log ---"
+            # tail -25 was useless the one time it mattered: two plugins emit a
+            # _load_textdomain_just_in_time notice on every request, so the tail
+            # is always the last twelve seconds of that and a fatal half an hour
+            # back has long rolled off. Search instead of tailing.
             for f in ~/websites/OPu0sKi4J/public_html/wp-content/debug.log ~/websites/OPu0sKi4J/logs/error_log ~/logs/error_log; do
-              [ -f "$f" ] && { echo "[$f]"; tail -25 "$f"; break; }
+              [ -f "$f" ] || continue
+              echo "[$f]  $(wc -l < "$f") lines, $(du -h "$f" | cut -f1)"
+              echo
+              echo "  -- fatals, parse errors and uncaught throwables (last 40) --"
+              grep -E "PHP (Fatal|Parse|Recoverable)|Uncaught|Allowed memory size" "$f" 2>/dev/null | tail -40 \
+                || echo "  (none in this file)"
+              echo
+              echo "  -- anything that is not a Notice, last 40 --"
+              grep -v "PHP Notice" "$f" 2>/dev/null | grep -E "^\[" | tail -40 \
+                || echo "  (nothing but notices)"
+              echo
+              echo "  -- how much of the log is that notice spam --"
+              printf "  %s of %s lines\n" "$(grep -c "_load_textdomain_just_in_time" "$f" 2>/dev/null)" "$(wc -l < "$f")"
+              break
             done
             echo; echo "--- LiteSpeed 5xx in the last hour, if the access log is readable ---"
             for f in ~/websites/OPu0sKi4J/logs/access_log ~/logs/access_log; do
