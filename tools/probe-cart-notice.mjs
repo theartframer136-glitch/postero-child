@@ -189,7 +189,14 @@ try {
     const fd = new FormData(form);
     fd.set('coupon_code', coupon);
     fd.set('apply_coupon', 'Apply coupon');
-    const res = await fetch(form.action || location.href, { method: 'POST', body: fd, redirect: 'follow', credentials: 'same-origin' });
+    // No timeout here is how the first attempt at this hung for seventeen
+    // minutes and had to be cancelled: a page that takes seven seconds to
+    // answer a GET can take longer than forever to answer a POST, and fetch
+    // will wait for all of it.
+    const res = await fetch(form.action || location.href, {
+      method: 'POST', body: fd, redirect: 'follow', credentials: 'same-origin',
+      signal: AbortSignal.timeout(45000),
+    });
     const t = await res.text();
     const m = t.match(/<ul class="woocommerce-error"[\s\S]{0,400}?<\/ul>/i)
            || t.match(/class="woocommerce-(?:error|message|info)"[\s\S]{0,300}/i);
@@ -251,6 +258,10 @@ try {
 } catch (e) {
   console.log('\n  the probe stopped early: ' + String(e.message).slice(0, 200));
 }
+
+// A hung page keeps the browser alive and the job with it. Nothing below this
+// line matters more than the log getting written.
+setTimeout(() => process.exit(0), 5000).unref();
 
 await browser.close();
 console.log('\ndone ' + new Date().toISOString());
