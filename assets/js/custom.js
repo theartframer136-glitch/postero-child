@@ -310,6 +310,157 @@ jQuery(document).ready(function($) {
     if (form) form.insertAdjacentHTML('beforebegin', saved.html);
   })();
 
+  // ---- DEF-01: wire up the pop-up's email capture ----
+  //
+  // Measured on the live home page, 22 Sep 2026:
+  //
+  //   div#afOverlay.af-overlay.active
+  //     div.af-popup > div.af-popup-right > div.af-input-group
+  //       <input type="email" placeholder="Enter your email">   name=null
+  //       <button> "SAVE MORE MONEY*"                            no type
+  //
+  //   POST requests after pressing the button : 0
+  //   input value after the click             : unchanged
+  //   overlay still visible                   : true
+  //
+  // No form, no name, no handler, nothing sent. Every address typed into the
+  // site's most prominent call to action was discarded.
+  //
+  // The overlay belongs to a plugin — none of that markup is in this theme,
+  // so it cannot be fixed at the source from here. What can be done is to
+  // teach it to speak to the subscribe endpoint this theme already has:
+  // af_nl_subscribe (functions.php), which the footer form uses, with a
+  // nonce, a honeypot, rate limiting, validation and dedupe already in place.
+  // Nothing new is invented; the field is simply connected to the thing that
+  // was always there.
+  //
+  // Delegated from document on purpose. The overlay is injected about nine
+  // seconds after load, so a handler bound at ready() to an element that does
+  // not exist yet would bind to nothing — which is exactly how the H-01 fix
+  // earlier today managed to be deployed and do nothing at all.
+  (function () {
+    var SENT = 'afNlWired';
+
+    function group(el) { return el && el.closest ? el.closest('.af-input-group') : null; }
+
+    function emailIn(g) {
+      return g ? g.querySelector('input[type="email"], input[placeholder*="mail" i]') : null;
+    }
+
+    function tell(g, text, ok) {
+      var msg = g.querySelector('.af-nl-msg');
+      if (!msg) {
+        msg = document.createElement('p');
+        msg.className = 'af-nl-msg';
+        msg.setAttribute('role', 'status');
+        msg.setAttribute('aria-live', 'polite');
+        msg.style.cssText = 'margin:8px 0 0;font-size:12.5px;line-height:1.4;';
+        g.parentNode.insertBefore(msg, g.nextSibling);
+      }
+      msg.style.color = ok ? '#1a7f46' : '#b3261e';
+      msg.textContent = text;
+    }
+
+    function submit(g) {
+      var input = emailIn(g);
+      if (!input) return;
+      var email = (input.value || '').trim();
+
+      // Validate here as well as on the server, so the common mistake is
+      // answered instantly instead of costing a round trip on a site that
+      // takes seven seconds to answer one.
+      if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) {
+        tell(g, 'Please enter a valid email address.', false);
+        input.focus();
+        return;
+      }
+      if (g.dataset[SENT] === 'busy') return;   // no double submits
+      g.dataset[SENT] = 'busy';
+
+      var btn = g.querySelector('button, [role="button"]');
+      var label = btn ? btn.textContent : '';
+      if (btn) { btn.disabled = true; btn.textContent = '…'; }
+
+      var cfg = window.af_ajax || {};
+      var fd = new FormData();
+      fd.append('action', 'af_nl_subscribe');
+      fd.append('af_nl_email', email);
+      fd.append('af_nl_hp', '');                 // honeypot stays empty
+      fd.append('nonce', cfg.nl_nonce || '');
+
+      fetch(cfg.url || '/wp-admin/admin-ajax.php', {
+        method: 'POST', credentials: 'same-origin', body: fd,
+      })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+          var m = (res && res.data && res.data.message) ? res.data.message : null;
+          if (res && res.success) {
+            tell(g, m || 'Thanks — you are subscribed!', true);
+            input.value = '';
+          } else {
+            tell(g, m || 'Something went wrong — please try again.', false);
+          }
+        })
+        .catch(function () {
+          // A stale nonce answers "-1" rather than JSON and lands here. The
+          // page is cached and WordPress nonces expire in a day, so this is a
+          // real case, not a theoretical one — say something a person can act
+          // on instead of failing silently, which is the bug being fixed.
+          tell(g, 'Could not reach the server — please refresh and try again.', false);
+        })
+        .then(function () {
+          g.dataset[SENT] = '';
+          if (btn) { btn.disabled = false; btn.textContent = label; }
+        });
+    }
+
+    // The input carries no name and no required flag. Both can be set from
+    // here, which makes it a real form control for autofill and for anything
+    // that inspects it, without touching the plugin's markup or layout.
+    function adopt(g) {
+      var input = emailIn(g);
+      if (!input || g.dataset.afNlAdopted) return;
+      g.dataset.afNlAdopted = '1';
+      if (!input.getAttribute('name')) input.setAttribute('name', 'af_nl_email');
+      if (!input.hasAttribute('required')) input.setAttribute('required', '');
+      if (!input.getAttribute('aria-label')) input.setAttribute('aria-label', 'Email address');
+      var btn = g.querySelector('button');
+      if (btn && !btn.getAttribute('type')) btn.setAttribute('type', 'button');
+    }
+
+    document.addEventListener('click', function (e) {
+      try {
+        var g = group(e.target);
+        if (!g || !emailIn(g)) return;
+        var btn = e.target.closest('button, [role="button"]');
+        if (!btn || !g.contains(btn)) return;
+        e.preventDefault();
+        adopt(g);
+        submit(g);
+      } catch (err) {}
+    }, false);
+
+    document.addEventListener('keydown', function (e) {
+      try {
+        if (e.key !== 'Enter') return;
+        var t = e.target;
+        if (!t || t.tagName !== 'INPUT') return;
+        var g = group(t);
+        if (!g || emailIn(g) !== t) return;
+        e.preventDefault();
+        adopt(g);
+        submit(g);
+      } catch (err) {}
+    }, false);
+
+    // Adopt whatever is already on the page, and whatever arrives later.
+    function sweep() {
+      try { document.querySelectorAll('.af-input-group').forEach(adopt); } catch (e) {}
+    }
+    sweep();
+    try { new MutationObserver(sweep).observe(document.body, { childList: true, subtree: true }); } catch (e) {}
+  })();
+
   // ---- Suppress 404 errors from missing video files ----
   window.addEventListener('error', function(e) {
     if (e.target && (e.target.tagName === 'VIDEO' || e.target.tagName === 'SOURCE')) {
