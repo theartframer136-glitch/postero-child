@@ -60,7 +60,19 @@ jobs:
               echo
               echo "  -- how much of the log is that notice spam --"
               printf "  %s of %s lines\n" "$(grep -c "_load_textdomain_just_in_time" "$f" 2>/dev/null)" "$(wc -l < "$f")"
-              break
+            done
+            # No break: WordPress writes its own fatals to debug.log, but an
+            # lsphp crash, an OOM kill or a hosting resource limit never
+            # reaches PHP and lands in the server log instead. Stopping at the
+            # first readable file is how an outage can leave no trace anywhere
+            # you looked. Check every one of them.
+            echo; echo "--- server-level logs, where PHP never gets a say ---"
+            for f in ~/websites/OPu0sKi4J/logs/error_log ~/logs/error_log \
+                     ~/websites/OPu0sKi4J/logs/*error* ~/domains/*/logs/*error*; do
+              [ -f "$f" ] || continue
+              echo "[$f]  $(wc -l < "$f") lines"
+              tail -30 "$f" 2>/dev/null | cut -c1-300
+              echo
             done
             echo; echo "--- LiteSpeed 5xx in the last hour, if the access log is readable ---"
             for f in ~/websites/OPu0sKi4J/logs/access_log ~/logs/access_log; do
