@@ -118,8 +118,12 @@ const show = (label, st) => {
   }
 };
 
+// A cart page pulls in 150 scripts, images and fonts, and printing all of
+// them is how the first run buried its own answer. The question here is only
+// about documents and redirects.
+const STATIC = /\.(?:js|css|png|jpe?g|gif|svg|webp|ico|woff2?|ttf|eot|mp4|webm)(?:\?|$)/i;
 const chain = from => {
-  const seg = wire.slice(from);
+  const seg = wire.slice(from).filter(w => !STATIC.test(w.url) && !/get_refreshed_fragments/.test(w.url));
   for (const w of seg) console.log('    ' + String(w.status).padEnd(5) + 'ls-cache=' + String(w.ls).padEnd(9)
     + w.url.slice(0, 90) + (w.loc ? '  → ' + w.loc.replace(SITE, '') : ''));
   return seg;
