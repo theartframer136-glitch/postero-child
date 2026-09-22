@@ -109,21 +109,27 @@ try {
   if (!added) console.log('\n  cart: NOTHING ADDED — a checkout with an empty cart shows no payment methods at all, so read the rest with that in mind');
 
   // ── the same checkout in each currency ──────────────────────────────────
-  const seen = {};
+  // Two separate maps. The first version used one object for both "have I
+  // seen this currency already" and "here is what it returned", so seen.USD
+  // was the boolean true by the time its .methods was read, and the run died
+  // one line short of the answer it existed to produce.
+  const results = {};
+  const visited = {};
   for (const cur of ['USD', 'CAD', 'USD']) {
     const status = await go('/checkout/?currency=' + cur, 4000);
     const st = await readCheckout();
-    const key = cur + (seen[cur] ? '(again)' : '');
-    seen[cur] = true;
+    const key = visited[cur] ? cur + '(again)' : cur;
+    visited[cur] = true;
     console.log('\n— /checkout/?currency=' + cur + '  (HTTP ' + status + ') —');
     console.log('    is a checkout page : ' + st.isCheckout);
     console.log('    order total        : ' + st.total + (st.firstPrice ? '   first price on page: ' + st.firstPrice : ''));
     console.log('    payment methods    : ' + st.count);
     for (const m of st.methods) console.log('        [' + m.id + ']  ' + m.label);
-    seen[key] = st;
+    results[key] = st;
   }
 
-  const usd = seen['USD'], cad = seen['CAD'];
+  const usd = results['USD'], cad = results['CAD'], back = results['USD(again)'];
+  if (back) console.log('\n    (USD on the second visit: ' + back.methods.map(m => m.id).join(', ') + ')');
   if (!usd || !cad) {
     console.log('\n  → NO DATA — could not read both checkouts');
   } else {
