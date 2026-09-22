@@ -28,6 +28,54 @@ add_action('wp_enqueue_scripts', function() {
 }, 20);
 
 /**
+ * Two plugins are writing 105,000 lines of the same notice into the error log.
+ *
+ * Measured on the server, 22 Sep 2026:
+ *
+ *     105,043 of 105,280 lines
+ *
+ * — 99.8% of wp-content/debug.log is _load_textdomain_just_in_time, twice per
+ * request, one each for woo-smart-wishlist and woo-smart-quick-view. Both load
+ * their translations before init, which WordPress has warned about since 6.7.
+ *
+ * That is not a cosmetic problem. It is two disk writes on every single page
+ * view, on a box measuring a load average of 27 to 36, and it is the reason
+ * the log was useless this morning: the shop returned HTTP 500 on every
+ * uncached render for half an hour and the last twenty-five lines of the log
+ * were all this, from the previous twelve seconds. Whatever the outage wrote,
+ * if it wrote anything, was buried under a notice about translation timing.
+ *
+ * WordPress asks before it writes: _doing_it_wrong() passes the decision
+ * through this filter first. Returning false for these two domains stops the
+ * write without touching WP_DEBUG, so a real error still reaches the log.
+ *
+ * Deliberately named, not blanket-suppressed. This notice is a genuine warning
+ * and another plugin making the same mistake should still show up; these two
+ * are silenced because they are known, constant, and drowning everything else.
+ * If either plugin fixes its loading order, this quietly becomes a no-op.
+ *
+ * What it does NOT do is fix the plugins. They still load translations too
+ * early; that is theirs to fix, and this only stops them writing about it.
+ *
+ * One caveat, stated because it is not yet measured: a child theme loads after
+ * the plugin files and after plugins_loaded. If either plugin triggers its
+ * first translation call before that, this filter is registered too late to
+ * catch it and the count will keep climbing. The health-check workflow prints
+ * that count, so the next run says plainly whether this worked rather than
+ * leaving it to be assumed.
+ */
+add_filter('doing_it_wrong_trigger_error', function ($trigger, $function_name, $message, $version) {
+    if ($function_name !== '_load_textdomain_just_in_time') return $trigger;
+    foreach (array('woo-smart-wishlist', 'woo-smart-quick-view') as $af_noisy_domain) {
+        // The domain arrives wrapped in <code> tags; match the tag boundaries
+        // rather than the bare name, so a domain that merely contains one of
+        // these as a substring is not silenced with it.
+        if (strpos($message, '>' . $af_noisy_domain . '<') !== false) return false;
+    }
+    return $trigger;
+}, 10, 4);
+
+/**
  * The mtime versioning above assumes the browser is asked for our file. It is
  * not.
  *
