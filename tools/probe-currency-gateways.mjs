@@ -59,7 +59,7 @@ const readCheckout = () => page.evaluate(() => {
     return { id: i.value, label: lab ? (lab.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 48) : '(no label)' };
   });
   const totalEl = document.querySelector('.order-total .amount, tr.order-total td');
-  const cur = (document.body.innerText.match(/(CA\$|US\$|\$)\s?[\d,]+\.\d{2}/) || [''])[0];
+  const cur = (((document.body && document.body.innerText) || '').match(/(CA\$|US\$|\$)\s?[\d,]+\.\d{2}/) || [''])[0];
   return {
     methods,
     count: methods.length,
@@ -74,9 +74,28 @@ console.log('probe-currency-gateways: ' + SITE + '   ' + new Date().toISOString(
 try {
   // ── a product that can actually be bought ────────────────────────────────
   await go('/shop/', 2500);
-  const picks = await page.evaluate(() => [...document.querySelectorAll('li.product, .product.type-product')]
-    .filter(c => !/price on request/i.test(c.innerText) && /\$[\d,.]+/.test(c.innerText))
-    .map(c => (c.querySelector('a[href]') || {}).href).filter(Boolean).slice(0, 6));
+  // innerText came back null here on the first run and took the whole probe
+  // down with it. Every read off the DOM is coerced now: a probe that dies on
+  // its own null is worth nothing, and this is the third time today one of
+  // these harnesses has reported a fault of mine as a fact about the site.
+  let picks = [];
+  try {
+    picks = await page.evaluate(() => [...document.querySelectorAll('li.product, .product.type-product, .product')]
+      .map(c => ({ t: (c.innerText || '') + '', href: ((c.querySelector('a[href]') || {}).href) || '' }))
+      .filter(x => x.href && !/price on request/i.test(x.t) && /\$\s?[\d,.]+/.test(x.t))
+      .map(x => x.href).slice(0, 8));
+  } catch (e) {
+    console.log('  could not read /shop/: ' + String(e.message).slice(0, 120));
+  }
+  if (!picks.length) {
+    // Fall back to any product link at all, priced or not — the checkout test
+    // only needs something in the cart.
+    try {
+      picks = await page.evaluate(() => [...document.querySelectorAll('a[href*="/product/"]')]
+        .map(a => a.href).filter((v, i, arr) => arr.indexOf(v) === i).slice(0, 8));
+    } catch (e) {}
+    console.log('  priced-card pick found nothing; falling back to ' + picks.length + ' product links');
+  }
   let added = false;
   for (const url of picks) {
     await go(url, 2000);
@@ -84,7 +103,7 @@ try {
     if (!buyable) continue;
     await page.click('.single_add_to_cart_button, button[name="add-to-cart"]').catch(() => {});
     await page.waitForTimeout(4000);
-    const ok = await page.evaluate(() => /added to your cart|view cart|\b1\s*item/i.test(document.body.innerText));
+    const ok = await page.evaluate(() => /added to your cart|view cart|\b1\s*item/i.test((document.body && document.body.innerText) || ''));
     if (ok) { added = true; console.log('\n  cart: added from ' + url.replace(SITE, '')); break; }
   }
   if (!added) console.log('\n  cart: NOTHING ADDED — a checkout with an empty cart shows no payment methods at all, so read the rest with that in mind');
@@ -132,7 +151,7 @@ try {
     if (!href) break;
     await go(href, 1800);
   }
-  const empty = await page.evaluate(() => /your cart is currently empty/i.test(document.body.innerText));
+  const empty = await page.evaluate(() => /your cart is currently empty/i.test((document.body && document.body.innerText) || ''));
   console.log('\n  cleanup: cart empty = ' + empty);
 } catch (e) {
   console.log('\n  probe stopped early: ' + String(e.message).slice(0, 200));
