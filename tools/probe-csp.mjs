@@ -184,17 +184,29 @@ try {
   // ── verdict ───────────────────────────────────────────────────────────
   console.log('\n— verdict —');
   const co = seen['checkout'] || {};
+  // "A CSP is present" is not the question. Checkout already sends
+  // frame-ancestors 'self', which is clickjacking protection and says nothing
+  // about where scripts may come from. Judge on script control specifically,
+  // or this reports success for a header that does not address the finding.
+  const controls = v => /script-src|default-src/i.test(v || '');
   if (!co.csp && !co.cspro) {
-    console.log('  → DEF-06 CONFIRMED on checkout — neither Content-Security-Policy nor');
-    console.log('    Content-Security-Policy-Report-Only is sent. Checkout is uncached');
-    console.log('    (ls-cache=' + (co.cache || '?') + '), so PHP does run there and a header set in PHP');
-    console.log('    will reach it.');
-  } else if (co.cspro && !co.csp) {
-    console.log('  → Report-Only is present on checkout: ' + co.cspro.slice(0, 110));
-    console.log('    Nothing is blocked by it. This is the collect-then-enforce stage.');
+    console.log("  → DEF-06 CONFIRMED on checkout — no CSP of any kind.");
+  } else if (!controls(co.csp) && !controls(co.cspro)) {
+    console.log("  → DEF-06 CONFIRMED on checkout — a CSP is present but it does not");
+    console.log('    constrain scripts: "' + (co.csp || co.cspro).slice(0, 80) + '".');
+    console.log("    frame-ancestors is anti-clickjacking. It does nothing about a skimmer");
+    console.log("    already loaded into the page, which is what 6.4.3 is about.");
+    console.log("    NOTE: the report said checkout sends nothing and only /my-account/");
+    console.log("    sends frame-ancestors. Both send it. The finding stands; that detail");
+    console.log("    of the report does not.");
+  } else if (controls(co.cspro) && !controls(co.csp)) {
+    console.log("  → Report-Only is live on checkout and constrains scripts.");
+    console.log("    Nothing is being blocked. This is the collect-then-enforce stage:");
+    console.log("    reports land in WooCommerce → Checkout Script Policy.");
   } else {
-    console.log('  → An enforcing CSP is present on checkout: ' + co.csp.slice(0, 110));
+    console.log("  → An enforcing script policy is live on checkout.");
   }
+
   const cachedMissing = ['home', 'shop', 'product']
     .filter(k => seen[k] && !seen[k].csp && !seen[k].cspro && /hit/i.test(seen[k].cache || ''));
   if (cachedMissing.length) {
