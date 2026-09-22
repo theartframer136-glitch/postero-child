@@ -8,24 +8,125 @@
 add_action('wp_enqueue_scripts', function() {
     wp_enqueue_style('postero-parent', get_template_directory_uri() . '/style.css');
     wp_enqueue_style('postero-child', get_stylesheet_uri(), array('postero-parent'), '1.0.0');
-    // Version by file mtime: every deploy rewrites the files, so the URL
-    // changes and no browser or edge cache can keep serving a stale copy.
-    // (The hand-bumped strings before this were forgotten on deploy — the
-    // Aug-13 drag-guard fix shipped server-side while every visitor's
-    // browser kept the old custom.js?ver=1.3.6 for days.)
-    $af_css_ver = @filemtime(get_stylesheet_directory() . '/assets/css/custom.css') ?: '3.4.13';
-    $af_js_ver  = @filemtime(get_stylesheet_directory() . '/assets/js/custom.js') ?: '1.4.0';
-    wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), $af_css_ver);
-    wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), $af_js_ver, true);
+    // Version by file mtime, in the path rather than the query string — see
+    // af_asset_src() below for why the ?ver that used to be here never
+    // survived the trip to the browser. (The hand-bumped strings before that
+    // were forgotten on deploy — the Aug-13 drag-guard fix shipped
+    // server-side while every visitor's browser kept the old
+    // custom.js?ver=1.3.6 for days. Same failure, three mechanisms deep.)
+    list($af_css_url, $af_css_ver) = af_asset_src('assets/css/custom.css', '3.4.13');
+    list($af_js_url,  $af_js_ver)  = af_asset_src('assets/js/custom.js',   '1.4.0');
+    wp_enqueue_style('postero-child-custom', $af_css_url, array('postero-child'), $af_css_ver);
+    wp_enqueue_script('postero-child-custom-js', $af_js_url, array('jquery'), $af_js_ver, true);
     wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
 
     // Checkout-only form styling — kept out of custom.css so the other
     // pages don't carry it.
     if (function_exists('is_checkout') && is_checkout()) {
-        $af_co_ver = @filemtime(get_stylesheet_directory() . '/assets/css/checkout.css') ?: '1.0.0';
-        wp_enqueue_style('postero-child-checkout', get_stylesheet_directory_uri() . '/assets/css/checkout.css', array('postero-child-custom'), $af_co_ver);
+        list($af_co_url, $af_co_ver) = af_asset_src('assets/css/checkout.css', '1.0.0');
+        wp_enqueue_style('postero-child-checkout', $af_co_url, array('postero-child-custom'), $af_co_ver);
     }
 }, 20);
+
+/**
+ * Put the version in the path, because the query string is deleted in transit.
+ *
+ * Measured on the live home page, 22 Sep 2026. The link the browser is given is
+ *
+ *     /wp-content/themes/postero-child/assets/css/custom.css
+ *
+ * with no ?ver at all, and it comes back with
+ *
+ *     cache-control: max-age=31536000
+ *
+ * Those two facts together are the whole of the intermittency that cost four
+ * rounds of this audit. LiteSpeed strips query strings from static resources,
+ * so the filemtime versioning three lines up is removed before the HTML is
+ * sent; and the file is then declared immutable for a year at a URL that never
+ * changes for as long as the theme exists. Every cache between the disk and
+ * the eye — the Hostinger CDN in front of the origin, and every returning
+ * visitor's browser — is entitled to keep the copy it already has until
+ * September 2027.
+ *
+ * That is exactly what was seen: at 14:23 the focus ring measured on 29 of 29
+ * elements and at 14:28, on the same deployed code, on 0 of 29, because one
+ * request was answered from the origin and the other from an edge still
+ * holding the 122,417-byte copy from before the change. I read that as two web
+ * servers out of sync and said so. It was not. Twenty-four requests across
+ * both origin addresses now return the same 130,797 bytes with the same ETag,
+ * so the origins agree; what disagreed was a cache in front of them, and it
+ * disagreed because nothing in the URL ever told it not to.
+ *
+ * A file whose URL never changes cannot be versioned by any header. So the
+ * stamp moves into the filename, where nothing can strip it: custom.css is
+ * copied once per deploy to
+ *
+ *     /wp-content/uploads/af-assets/custom.1758463931.css
+ *
+ * and that is what gets enqueued. A changed file is a new URL, which no cache
+ * anywhere has ever seen, so the year-long max-age becomes correct instead of
+ * dangerous — which is what immutable versioned assets are for.
+ *
+ * Every failure path falls back to the theme URL and the old ?ver, so if
+ * uploads is not writable the site behaves exactly as it does today. The
+ * result of each attempt is remembered against the file's mtime, so a
+ * permanent failure is attempted once per deploy rather than once per request.
+ *
+ * @param string $rel          Path under the child theme, e.g. assets/css/custom.css
+ * @param string $fallback_ver Version to use if the file cannot be read at all.
+ * @return array               array( url, version|null )
+ */
+function af_asset_src($rel, $fallback_ver) {
+    static $memo = array();
+    if (isset($memo[$rel])) return $memo[$rel];
+
+    $theme_url = get_stylesheet_directory_uri() . '/' . $rel;
+    $src       = get_stylesheet_directory() . '/' . $rel;
+    $mtime     = (int) @filemtime($src);
+    if (!$mtime) return $memo[$rel] = array($theme_url, $fallback_ver);
+
+    $map = get_option('af_asset_map');
+    if (!is_array($map)) $map = array();
+    $key = $rel . '|' . $mtime;
+
+    // Already decided for this exact file. false means we tried at this mtime
+    // and could not write; do not try again until the file changes.
+    if (array_key_exists($key, $map)) {
+        return $memo[$rel] = ($map[$key] === false)
+            ? array($theme_url, $mtime)
+            : array($map[$key], null);
+    }
+
+    $result = false;
+    $up     = wp_get_upload_dir();
+    if (empty($up['error']) && !empty($up['basedir'])) {
+        $dir  = trailingslashit($up['basedir']) . 'af-assets';
+        $url  = trailingslashit($up['baseurl']) . 'af-assets';
+        $ext  = pathinfo($rel, PATHINFO_EXTENSION);
+        $name = pathinfo($rel, PATHINFO_FILENAME) . '.' . $mtime . '.' . $ext;
+        $dest = $dir . '/' . $name;
+
+        if (file_exists($dest) || (wp_mkdir_p($dir) && @copy($src, $dest))) {
+            $result = $url . '/' . $name;
+            // The copies from previous deploys are dead the moment nothing
+            // links them, and they are the only thing in this directory.
+            foreach ((array) glob($dir . '/' . pathinfo($rel, PATHINFO_FILENAME) . '.*.' . $ext) as $old) {
+                if ($old !== $dest) @unlink($old);
+            }
+        }
+    }
+
+    // One entry per file: drop this file's previous mtimes, keep other files'.
+    foreach (array_keys($map) as $k) {
+        if (strpos($k, $rel . '|') === 0) unset($map[$k]);
+    }
+    $map[$key] = $result;
+    update_option('af_asset_map', $map, false);
+
+    return $memo[$rel] = ($result === false)
+        ? array($theme_url, $mtime)
+        : array($result, null);
+}
 
 /**
  * The mtime versioning above assumes the browser is asked for our file. It is
@@ -91,7 +192,10 @@ add_filter('style_loader_tag', function ($tag, $handle) {
 
 foreach (array('litespeed_conf_optm-css_exc', 'litespeed_option_optm-css_exc', 'litespeed_optm_css_exc') as $af_exc_filter) {
     add_filter($af_exc_filter, function ($val) {
-        $ours = array('assets/css/custom.css', 'assets/css/checkout.css');
+        // af-assets/ is where af_asset_src() writes the stamped copies, and it
+        // is the path the browser is actually given; without it the exclusion
+        // stops matching the moment the versioned URL is used.
+        $ours = array('assets/css/custom.css', 'assets/css/checkout.css', 'af-assets/');
         if (is_array($val))  return array_values(array_unique(array_merge($val, $ours)));
         if (is_string($val)) return trim($val . "\n" . implode("\n", $ours));
         return $val;
