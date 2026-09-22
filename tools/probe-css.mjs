@@ -156,4 +156,41 @@ for (let i = 0; i < 4; i++) {
   for (const h of ours) console.log('        ' + h.replace(SITE, ''));
 }
 
+// ── the front page again, but rendered fresh ────────────────────────────────
+//
+// Four cache hits in a row, byte-identical either side of a manual LiteSpeed
+// purge, is not a page the origin just built — it is a copy held in front of
+// it. That makes the stylesheet link in it evidence about the cache and not
+// about the code, and the question here is about the code: did af_asset_src()
+// write its stamped copy and enqueue it, or did it fall back?
+//
+// A query string nothing has ever requested cannot be a cache hit anywhere, so
+// whatever this returns is what the server builds today.
+console.log('\n— front page · unique query string, so nothing can answer from cache —');
+for (let i = 0; i < 3; i++) {
+  const r = await get('/?afprobe=' + Date.now() + '-' + i);
+  const links = [...r.body.matchAll(/<link[^>]+href=["']([^"']+\.css[^"']*)["']/gi)].map(m => m[1]);
+  const stamped = links.filter(h => /af-assets\//i.test(h));
+  const theme   = links.filter(h => /themes\/postero-child\/assets\/css\//i.test(h));
+  console.log('  ' + pad(i + 1, 3) + pad('HTTP ' + r.status, 10) + pad(r.body.length + 'b', 10) + pad(r.ip, 18)
+    + 'ls-cache=' + pad(r.headers['x-litespeed-cache'] || '-', 8)
+    + ' age=' + pad(r.headers.age || '-', 5)
+    + ' stamped=' + stamped.length + ' theme-path=' + theme.length);
+  for (const h of stamped.concat(theme)) console.log('        ' + h.replace(SITE, ''));
+  if (i === 0) {
+    console.log('     → ' + (stamped.length
+      ? 'af_asset_src() IS enqueueing its stamped copy. Anything still serving the old path is a cache in front of the origin.'
+      : 'af_asset_src() fell back to the theme URL — the copy into uploads did not happen. That is code, not cache.'));
+  }
+}
+
+// If it did fall back, say whether the stamped file is even there to link.
+console.log('\n— is a stamped copy on disk at all —');
+for (const name of ['custom', 'checkout']) {
+  const r = await get('/wp-content/uploads/af-assets/');
+  console.log('  ' + pad('uploads/af-assets/', 22) + 'HTTP ' + r.status
+    + (r.status === 200 ? ' — listing: ' + r.body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').slice(0, 200) : ' (no listing; that is normal)'));
+  break;
+}
+
 console.log('\ndone ' + new Date().toISOString());
