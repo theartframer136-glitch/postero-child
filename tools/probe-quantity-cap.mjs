@@ -77,13 +77,27 @@ const readCart = () => page.evaluate(() => {
     const hit = rows.find(r => re.test(((r.innerText || '') + '')));
     return hit ? ((hit.innerText || '') + '') : '';
   };
+  // The row selector missed the totals on the first run and printed "$?".
+  // Cart totals are not always a <tr>, and the label and the amount are often
+  // on separate lines, so fall back to reading the rendered text around the
+  // label. A measurement that cannot read its own numbers is not a
+  // measurement.
+  const lineFor = re => {
+    const lines = ((document.body && document.body.innerText) || '').split('\n');
+    for (let i = 0; i < lines.length; i++) {
+      if (!re.test(lines[i])) continue;
+      const chunk = lines.slice(i, i + 3).join(' ');
+      if (/\$\s?[\d,]+\.\d{2}/.test(chunk)) return chunk;
+    }
+    return '';
+  };
   const q = document.querySelector('input[name^="cart"][name$="[qty]"], input.qty');
   const body = ((document.body && document.body.innerText) || '');
   return {
     qty:      q ? Number(q.value || 0) : null,
     qtyMax:   q ? (q.getAttribute('max') || '(none)') : '(no input)',
-    subtotal: money(rowFor(/subtotal/i)),
-    total:    money(rowFor(/^\s*total/im)) ?? money(rowFor(/total/i)),
+    subtotal: money(rowFor(/subtotal/i)) ?? money(lineFor(/subtotal/i)),
+    total:    money(rowFor(/^\s*total/im)) ?? money(rowFor(/total/i)) ?? money(lineFor(/total/i)),
     lines:    document.querySelectorAll('.woocommerce-cart-form__cart-item, tr.cart_item').length,
     empty:    /your cart is currently empty/i.test(body),
     notice:   (body.match(/[^\n]*(?:cannot|can't|maximum|max(?:imum)?\s|too many|limit)[^\n]*/i) || [''])[0].trim().slice(0, 120),

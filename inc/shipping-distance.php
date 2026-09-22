@@ -188,7 +188,17 @@ function af_distance_package_weight($package) {
         $cap    = af_ship_parcel_capacity($method);
         $unit   = max(1.0, (float) $pkg['weight']);
 
+        // DEF-05. This loop runs once per parcel, so its length is the
+        // quantity ordered divided by what a parcel holds — and until the
+        // cap in inc/quantity-limits.php there was no ceiling on that
+        // quantity at all. 99999 rolled prints meant 20000 turns of this
+        // loop on every cart render. The cap is the fix; this is the belt,
+        // so a quantity that ever gets past it cannot spin the calculator.
+        // The remainder bills at real weight, which is the conservative
+        // direction: it never under-charges.
+        $parcels = 0;
         while ($left > 0) {
+            if (++$parcels > 200) { $lbs += $unit * $left; break; }
             $n     = min($cap, $left);
             $left -= $n;
             $l = (float) $pkg['l'];
