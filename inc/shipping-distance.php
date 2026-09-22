@@ -97,9 +97,57 @@ function af_distance_band($miles) {
  * Digital downloads travel by email: they add nothing here, so a download-only
  * order is never charged delivery — that was the $65 on an $80 download.
  */
+/**
+ * How many pieces share one parcel. A tube holds several rolled prints; a
+ * flat crate takes a few pieces stacked, which grows its depth and nothing
+ * else. Filterable because these are physical limits the studio knows better
+ * than this file does.
+ */
+function af_ship_parcel_capacity($method) {
+    $caps = array('tube' => 5, 'crate' => 4, 'other' => 1);
+    $cap  = isset($caps[$method]) ? $caps[$method] : 1;
+    return max(1, (int) apply_filters('af_ship_parcel_capacity', $cap, $method));
+}
+
+/**
+ * What actually leaves the studio, as parcels rather than as pieces.
+ *
+ * DEF-03. The old version summed each piece's billable weight and multiplied
+ * by quantity, which for a 36×48 in rolled print meant:
+ *
+ *     tube        l = 52, w = 6, h = 6
+ *     real        max(2.0, (36×48)/720 + 1.5)  =  3.90 lb
+ *     dimensional (52 × 6 × 6) / 139           = 13.47 lb   <- billable
+ *
+ * and then charged 13.47 lb for every copy. Measured at checkout: $49.02 for
+ * one, then +$35.01 per piece, uncapped — $189.08 to deliver five prints on a
+ * $400 order, 47% of the order value.
+ *
+ * The error is what dimensional weight means. 13.47 lb is the volume of THE
+ * TUBE, not of the print inside it. Five prints go in one tube — the site's
+ * own product copy says so — so charging five tubes' worth of air is billing
+ * for parcels that do not exist.
+ *
+ * So pieces are grouped into parcels first. A tube's volume counts once and
+ * the prints' real weights add up; a crate's depth grows with what is stacked
+ * in it, which is what actually happens to its dimensions. Five prints then
+ * bill as one tube: real 5 × 3.90 = 19.50 lb against dimensional 13.47, so
+ * 19.50 lb and $64.70 instead of $189.08.
+ *
+ * Deliberately conservative in two places. Each piece keeps the tube
+ * allowance in its own weight, so a shared tube is counted slightly heavy
+ * rather than slightly light; and the handling base stays charged once per
+ * order rather than once per parcel, which is how it behaves today. Changing
+ * the rate model and the base at the same time would make the next
+ * measurement unreadable.
+ *
+ * @return array [ billable pounds, count of physical lines ]
+ */
 function af_distance_package_weight($package) {
-    $lbs = 0.0;
     $physical = 0;
+    $groups   = array();
+    $loose    = 0.0;
+
     foreach ((array) $package['contents'] as $item) {
         $product = isset($item['data']) ? $item['data'] : null;
         if (!$product) continue;
@@ -111,20 +159,50 @@ function af_distance_package_weight($package) {
         }
         if (method_exists($product, 'needs_shipping') && !$product->needs_shipping()) continue;
         $physical++;
-        $qty = isset($item['quantity']) ? (int) $item['quantity'] : 1;
+        $qty = isset($item['quantity']) ? max(1, (int) $item['quantity']) : 1;
 
-        $w = null;
+        $pkg = null;
         if (!empty($item['af_size']) && function_exists('af_ship_package')) {
             $pkg = af_ship_package($item['af_size'], isset($item['af_frame']) ? $item['af_frame'] : '');
-            if ($pkg && function_exists('af_ship_billable_weight')) {
-                $w = (float) af_ship_billable_weight($pkg);
-            }
         }
-        if ($w === null) {
+        if (!$pkg || empty($pkg['method'])) {
+            // No dimensions to reason about, so no consolidation is claimed:
+            // this behaves exactly as it did before.
             $w = (float) ($product->get_weight() ? $product->get_weight() : 5);
+            $loose += max(1.0, $w) * $qty;
+            continue;
         }
-        $lbs += max(1.0, $w) * max(1, $qty);
+
+        // Same shape and same packing method travel together.
+        $key = $pkg['method'] . '|' . round((float) $pkg['l'], 1)
+             . '|' . round((float) $pkg['w'], 1) . '|' . round((float) $pkg['h'], 1);
+        if (!isset($groups[$key])) $groups[$key] = array('pkg' => $pkg, 'qty' => 0);
+        $groups[$key]['qty'] += $qty;
     }
+
+    $lbs = $loose;
+    foreach ($groups as $g) {
+        $pkg    = $g['pkg'];
+        $left   = (int) $g['qty'];
+        $method = $pkg['method'];
+        $cap    = af_ship_parcel_capacity($method);
+        $unit   = max(1.0, (float) $pkg['weight']);
+
+        while ($left > 0) {
+            $n     = min($cap, $left);
+            $left -= $n;
+            $l = (float) $pkg['l'];
+            $w = (float) $pkg['w'];
+            // A tube holds more without getting bigger. A crate gets deeper.
+            $h = ($method === 'crate') ? ((float) $pkg['h'] * $n) : (float) $pkg['h'];
+            $real = $unit * $n;
+            $dim  = ($l > 0 && $w > 0 && $h > 0 && function_exists('af_ship_dim_weight'))
+                  ? (float) af_ship_dim_weight($l, $w, $h)
+                  : 0.0;
+            $lbs += max(1.0, max($real, $dim));
+        }
+    }
+
     return array($lbs, $physical);
 }
 
