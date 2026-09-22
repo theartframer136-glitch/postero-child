@@ -60,6 +60,15 @@ jobs:
               echo
               echo "  -- how much of the log is that notice spam --"
               printf "  %s of %s lines\n" "$(grep -c "_load_textdomain_just_in_time" "$f" 2>/dev/null)" "$(wc -l < "$f")"
+              echo
+              # The count alone cannot say whether the filter works: any two
+              # readings that straddle a deploy mix before and after. The
+              # timestamp of the newest one can. Plenty of traffic reaches this
+              # site between runs, so if the last notice is older than the last
+              # deploy, nothing has written one since — and that is the answer.
+              echo "  -- newest notice, and the time now --"
+              printf "     newest: %s\n" "$(grep "_load_textdomain_just_in_time" "$f" 2>/dev/null | tail -1 | cut -c1-30)"
+              printf "     now   : [%s]\n" "$(date -u "+%d-%b-%Y %H:%M:%S UTC")"
             done
             # No break: WordPress writes its own fatals to debug.log, but an
             # lsphp crash, an OOM kill or a hosting resource limit never
