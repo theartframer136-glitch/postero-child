@@ -64,6 +64,16 @@ const readCheckout = () => page.evaluate(() => {
     methods,
     count: methods.length,
     total: totalEl ? (totalEl.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 30) : '(none)',
+    // The DEF-02 fix cannot restore a gateway only Square can enable, so the
+    // method list looks identical before and after it. What it changes is
+    // whether the absence is explained, and that is what has to be measured.
+    notice: (() => {
+      const n = document.querySelector('.af-currency-gateway-notice');
+      if (!n) return '(none)';
+      const link = n.querySelector('a[href*="currency=USD"]');
+      return ((n.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 110))
+        + '   [link back to USD: ' + !!link + ']';
+    })(),
     firstPrice: cur,
     isCheckout: !!document.querySelector('form.checkout, .woocommerce-checkout'),
   };
@@ -124,6 +134,7 @@ try {
     console.log('    is a checkout page : ' + st.isCheckout);
     console.log('    order total        : ' + st.total + (st.firstPrice ? '   first price on page: ' + st.firstPrice : ''));
     console.log('    payment methods    : ' + st.count);
+    console.log('    DEF-02 notice      : ' + st.notice);
     for (const m of st.methods) console.log('        [' + m.id + ']  ' + m.label);
     results[key] = st;
   }
@@ -143,6 +154,14 @@ try {
     console.log('    lost in CAD: ' + (missing.join(', ') || '(nothing)'));
     console.log('    gained     : ' + (gained.join(', ') || '(nothing)'));
     const cardish = id => /square|stripe|card|paypal/i.test(id);
+    console.log('\n— is the absence explained —');
+    console.log('    notice on the USD checkout : ' + usd.notice);
+    console.log('    notice on the CAD checkout : ' + cad.notice);
+    if (missing.length) {
+      console.log('    → ' + (cad.notice !== '(none)'
+        ? 'The CAD checkout explains what is missing and offers the way back. That is the fix working; the gateway itself only Square can restore.'
+        : 'The CAD checkout still says nothing. The fix is not reaching this page.'));
+    }
     console.log('\n  → ' + (missing.length
       ? (missing.some(cardish)
           ? 'DEF-02 CONFIRMED — switching to CAD removes ' + missing.join(', ') + ', which is the card gateway.'

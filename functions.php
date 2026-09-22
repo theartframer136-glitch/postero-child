@@ -6821,10 +6821,13 @@ add_action('woocommerce_before_checkout_form', function () {
     $back = esc_url(add_query_arg('currency', 'USD'));
     $cur  = function_exists('af_currency_name_for') ? af_currency_name_for($active) : $active;
 
+    // Live measurement, 22 Sep: CAD loses three gateways, not one — Credit
+    // Card, Cash App Pay and Square Gift Card. "X, Y and Z is not available"
+    // was what a shopper actually read.
     echo '<div class="woocommerce-info af-currency-gateway-notice" role="status">'
        . esc_html(sprintf(
             /* translators: 1: payment method names, 2: currency name */
-            '%1$s is not available in %2$s.',
+            count($missing) === 1 ? '%1$s is not available in %2$s.' : '%1$s are not available in %2$s.',
             $names, $cur
          ))
        . ' <a href="' . $back . '">'
