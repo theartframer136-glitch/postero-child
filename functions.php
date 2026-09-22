@@ -17,7 +17,18 @@ add_action('wp_enqueue_scripts', function() {
     $af_js_ver  = @filemtime(get_stylesheet_directory() . '/assets/js/custom.js') ?: '1.4.0';
     wp_enqueue_style('postero-child-custom', get_stylesheet_directory_uri() . '/assets/css/custom.css', array('postero-child'), $af_css_ver);
     wp_enqueue_script('postero-child-custom-js', get_stylesheet_directory_uri() . '/assets/js/custom.js', array('jquery'), $af_js_ver, true);
-    wp_localize_script('postero-child-custom-js', 'af_ajax', array('url' => admin_url('admin-ajax.php')));
+    // nl_nonce is for the home-page pop-up's email field, which belongs to a
+    // plugin and shipped with no form, no name and no handler — DEF-01, and
+    // measured: pressing its button sent nothing at all. custom.js now posts
+    // it to af_nl_subscribe(), the same endpoint the footer form uses, and
+    // that endpoint checks this nonce. Baked into the page like the footer
+    // form's own data-nonce, with the same known limit: the page is cached
+    // and a nonce lasts a day, so a copy older than that fails the check.
+    // The handler says so to the visitor rather than failing silently.
+    wp_localize_script('postero-child-custom-js', 'af_ajax', array(
+        'url'      => admin_url('admin-ajax.php'),
+        'nl_nonce' => wp_create_nonce('af_nl_subscribe'),
+    ));
 
     // Checkout-only form styling — kept out of custom.css so the other
     // pages don't carry it.
