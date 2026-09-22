@@ -146,10 +146,13 @@ console.log('\n— front page · which stylesheets it names —');
 for (let i = 0; i < 4; i++) {
   const r = await get('/');
   const links = [...r.body.matchAll(/<link[^>]+href=["']([^"']+\.css[^"']*)["']/gi)].map(m => m[1]);
-  const ours = links.filter(h => /custom\.css|checkout\.css|litespeed/i.test(h));
+  // 87 hashed LiteSpeed bundles is not something to print 87 times; count them
+  // and name only the files this repository owns.
+  const bundles = links.filter(h => /\/litespeed\/css\//i.test(h));
+  const ours = links.filter(h => /postero-child|custom\.css|checkout\.css/i.test(h));
   console.log('  ' + pad(i + 1, 3) + pad('HTTP ' + r.status, 10) + pad(r.body.length + 'b', 10) + pad(r.ip, 18)
     + 'ls-cache=' + pad(r.headers['x-litespeed-cache'] || '-', 8)
-    + ' css links=' + links.length);
+    + ' css links=' + links.length + ' (litespeed bundles=' + bundles.length + ', ours=' + ours.length + ')');
   for (const h of ours) console.log('        ' + h.replace(SITE, ''));
 }
 
