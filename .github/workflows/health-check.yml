@@ -39,7 +39,18 @@ jobs:
               printf "%-36s " "$u"
               curl -sS -o /dev/null -m 25 -w "HTTP %{http_code}  ttfb %{time_starttransfer}s  total %{time_total}s\n" "$u" 2>&1 || echo "FAILED"
             done
-            echo; echo "--- does PHP/WordPress answer at all (wp-cli) ---"
+            echo; echo "--- security headers on /checkout/, from the server itself ---"
+            # Neither other vantage point can read these. The plain-HTTP user
+            # agent is 403d by the host bot protection, and the headless probe
+            # timed out on all six pages under load 49 and then reported "no
+            # CSP" from having measured nothing at all. A request from the
+            # server to itself is neither blocked nor slow, and checkout is
+            # no-store so PHP always runs for it.
+            curl -sSI -m 25 "https://theartframer.us/checkout/" 2>&1 \
+              | grep -iE "^HTTP/|^content-security|^reporting-endpoints|^x-frame-options|^x-litespeed-cache" \
+              | cut -c1-240 || echo "  (no headers read)"
+
+          echo; echo "--- does PHP/WordPress answer at all (wp-cli) ---"
             cd ~/websites/OPu0sKi4J/public_html && timeout 60 wp option get siteurl --allow-root 2>&1 | tail -1
             echo; echo "--- the PHP error log ---"
             # tail -25 was useless the one time it mattered: two plugins emit a

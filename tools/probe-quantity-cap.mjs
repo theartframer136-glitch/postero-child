@@ -180,16 +180,39 @@ try {
     try {
       await page.evaluate(() => {
         const q = document.querySelector('input[name^="cart"][name$="[qty]"], input.qty');
-        if (q) { q.value = '99999'; q.dispatchEvent(new Event('change', { bubbles: true })); }
+        if (q) {
+          // Strip max first. The point of DEF-05 is that an attribute is
+          // advice to a browser and the server has to hold on its own; with
+          // max="25" in place the browser refuses the submit and the server
+          // guard is never reached, which the previous run mistook for a
+          // failure to refuse.
+          q.removeAttribute('max');
+          q.value = '99999';
+          q.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        const f = document.querySelector('form.woocommerce-cart-form');
+        if (f) f.setAttribute('novalidate', 'novalidate');
         const b = document.querySelector('button[name="update_cart"], input[name="update_cart"]');
         if (b) { b.disabled = false; b.removeAttribute('disabled'); b.click(); }
       });
       await page.waitForTimeout(6000);
+      // Re-load before reading. The input keeps whatever was typed into it
+      // when a submit does not happen, so reading it in place reports the
+      // typed number as though it were the cart's. Only a fresh page carries
+      // the server's answer.
+      await go('/cart/', 3000);
       updated = await readCart();
-      console.log('    set 99999 then Update cart → qty ' + (updated.qty ?? '?')
+      console.log('    set 99999 (max stripped) then Update cart → qty '
+        + (updated.qty ?? '(cart empty)')
         + '   subtotal $' + (updated.subtotal ?? '?')
         + (updated.notice ? '   notice: ' + updated.notice : '   notice: —'));
       console.log('    cart input max attribute   : ' + updated.qtyMax);
+      if (updated.qty !== null) {
+        console.log('    → update path ' + (updated.qty >= 99999
+          ? 'NOT HELD — the cart took 99999 through its own form.'
+          : 'HELD — the cart stayed at ' + updated.qty + ' after a 99999 submit'
+            + ' the browser was told not to block.'));
+      }
     } catch (e) {
       console.log('    update step failed: ' + String(e.message).slice(0, 90));
     }
@@ -202,7 +225,11 @@ try {
     const heldBig = big && (big.empty || (big.qty !== null && big.qty < 99999));
     const heldMid = mid && (mid.empty || (mid.qty !== null && mid.qty < 500));
     const okPasses = ok && !ok.empty && ok.qty === 25;
-    if (!big || big.qty === null) {
+    // big.qty is null when the cart is empty, because an empty cart has no
+    // quantity input to read — and an empty cart is exactly what a refused
+    // add-to-cart looks like. Reading that as "could not measure" reported
+    // NO DATA on the run that proved the fix works.
+    if (!big || (big.qty === null && !big.empty)) {
       console.log('\n  → NO DATA — the cart could not be read after the 99999 attempt.');
     } else if (!heldBig && !heldMid) {
       console.log('\n  → DEF-05 CONFIRMED — the server accepts ' + big.qty + ' units'
