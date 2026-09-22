@@ -253,6 +253,63 @@ jQuery(document).ready(function($) {
     document.cookie = 'chosen_currency=USD' + opts;
   })();
 
+  // ---- Carry the coupon notice across the cart reload (H-01) ----
+  //
+  // Measured on the live cart, 22 Sep 2026. Applying a coupon produces:
+  //
+  //     200  /?wc-ajax=apply_coupon
+  //     200  /cart/                   <- a full page load, immediately after
+  //
+  // and the cart that comes back has two empty notice wrappers and nothing
+  // in them. The server is not at fault — POSTing the same form without the
+  // AJAX returns the error in the bytes, verbatim:
+  //
+  //     <ul class="woocommerce-error" role="alert"><li> Coupon "..." cannot
+  //     be applied because it does not exist. </li></ul>
+  //
+  // WooCommerce's apply_coupon AJAX handler ends with wc_print_notices(),
+  // which prints AND clears. Core cart.js inserts that HTML into the page,
+  // and then something in the parent theme reloads /cart/ and throws it
+  // away. By the time the reloaded page is built the queue is empty, so no
+  // server-side hook can put it back — which is why five of them on
+  // woocommerce_before_cart fired perfectly and rendered nothing. The
+  // reload lives in postero's page-cart.min.js, which is not in this
+  // repository, so this catches the notice on its way past instead of
+  // arguing with whatever triggers the reload.
+  (function() {
+    var KEY = 'af_cart_notice';
+    var store;
+    try { store = window.sessionStorage; store.getItem(KEY); } catch (e) { return; }
+
+    // On its way past: keep whatever the coupon call answered with.
+    $(document).ajaxSuccess(function(e, xhr, settings) {
+      var url = (settings && settings.url) || '';
+      if (url.indexOf('apply_coupon') === -1 && url.indexOf('remove_coupon') === -1) return;
+      var html = (xhr && xhr.responseText) || '';
+      if (!/woocommerce-(error|message|info)/.test(html)) return;
+      try { store.setItem(KEY, JSON.stringify({ at: Date.now(), html: html })); } catch (err) {}
+    });
+
+    // After the reload: put it back, but only if this page has none of its
+    // own, and only if it is seconds old. A stash that outlives its reload
+    // would otherwise greet the next visit to the cart with a stale error.
+    var raw;
+    try { raw = store.getItem(KEY); store.removeItem(KEY); } catch (err) { return; }
+    if (!raw) return;
+    var saved;
+    try { saved = JSON.parse(raw); } catch (err) { return; }
+    if (!saved || !saved.html || Date.now() - saved.at > 15000) return;
+    // .cart-empty is "Your cart is currently empty", which is the page, not
+    // a notice, and must not count as one already being shown.
+    if (document.querySelector('.woocommerce-error, .woocommerce-message, .woocommerce-info:not(.cart-empty)')) return;
+    var wrap = document.querySelector('.woocommerce-notices-wrapper');
+    if (wrap) { wrap.innerHTML = saved.html; return; }
+    // Both wrappers on this cart measured empty while a real notice rendered
+    // somewhere else entirely, so do not assume one is there to fill.
+    var form = document.querySelector('.woocommerce-cart-form, .woocommerce');
+    if (form) form.insertAdjacentHTML('beforebegin', saved.html);
+  })();
+
   // ---- Suppress 404 errors from missing video files ----
   window.addEventListener('error', function(e) {
     if (e.target && (e.target.tagName === 'VIDEO' || e.target.tagName === 'SOURCE')) {
