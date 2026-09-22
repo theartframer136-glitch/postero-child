@@ -6760,6 +6760,80 @@ function af_payment_copy() {
 }
 
 /**
+ * DEF-02: a gateway that is switched on but cannot take the currency in use.
+ *
+ * Measured on the live checkout: in USD it offers zelle, square_credit_card
+ * and cod. The report says CAD loses square_credit_card, leaving a shopper who
+ * used the currency switcher in this site's own header with Zelle and cash on
+ * delivery and no way to pay by card — and no explanation.
+ *
+ * The report proposes removing CAD from the switcher. That is not a decision
+ * this file should make: af_allowed_currencies() returns USD and CAD under the
+ * comment "spec: USD + CAD", and tools/switch-currency-cad.php exists to have
+ * added it. Enabling CAD on the Square account is the real resolution and it
+ * is not in this repository either.
+ *
+ * What is wrong here, and fixable here, is the silence. WooCommerce renders
+ * checkout from get_available_payment_gateways(), which applies each gateway's
+ * is_available() — that is where Square refuses a currency it does not
+ * support. af_payment_methods() above reads the enabled list instead, so the
+ * trust badge, the chatbot and the about page all keep promising a method the
+ * checkout will not offer.
+ *
+ * So: compare the two lists on the checkout, and when a gateway is enabled and
+ * unavailable, say so and offer the way back. If nothing is missing this
+ * renders nothing at all — the notice is a report on a live condition, not an
+ * assumption that the condition holds.
+ *
+ * @return array Titles of gateways switched on but not offered right now.
+ */
+function af_unavailable_gateways() {
+    $missing = array();
+    if (!function_exists('WC') || !WC() || !WC()->payment_gateways) return $missing;
+    try {
+        $available = WC()->payment_gateways->get_available_payment_gateways();
+        if (!is_array($available)) return $missing;
+        foreach (WC()->payment_gateways->payment_gateways() as $id => $gw) {
+            if (!isset($gw->enabled) || $gw->enabled !== 'yes') continue;
+            if (isset($available[$id])) continue;
+            $t = trim(wp_strip_all_tags((string) $gw->get_title()));
+            if ($t !== '') $missing[$t] = $t;
+        }
+    } catch (\Throwable $e) {
+        // Nothing this function does is worth a broken checkout. An empty list
+        // means the notice does not render, which is exactly today's behaviour.
+        return array();
+    }
+    return array_values($missing);
+}
+
+add_action('woocommerce_before_checkout_form', function () {
+    if (!function_exists('is_checkout') || !is_checkout()) return;
+    $active = function_exists('af_active_currency') ? af_active_currency() : '';
+    if ($active === '' || $active === 'USD') return;          // USD is the base; nothing to explain
+    $missing = af_unavailable_gateways();
+    if (!$missing) return;                                     // nothing is missing — say nothing
+
+    $names = count($missing) === 1
+        ? $missing[0]
+        : implode(', ', array_slice($missing, 0, -1)) . ' and ' . end($missing);
+
+    $back = esc_url(add_query_arg('currency', 'USD'));
+    $cur  = function_exists('af_currency_name_for') ? af_currency_name_for($active) : $active;
+
+    echo '<div class="woocommerce-info af-currency-gateway-notice" role="status">'
+       . esc_html(sprintf(
+            /* translators: 1: payment method names, 2: currency name */
+            '%1$s is not available in %2$s.',
+            $names, $cur
+         ))
+       . ' <a href="' . $back . '">'
+       . esc_html__('Switch back to US Dollars to pay by card', 'postero-child')
+       . '</a></div>';
+}, 5);
+
+
+/**
  * How the site talks about shipping — one source, so the trust badge, its
  * popup, the announcement bar and the chatbot can never contradict each other.
  *
