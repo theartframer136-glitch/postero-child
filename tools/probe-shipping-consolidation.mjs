@@ -77,6 +77,60 @@ const readTotals = () => page.evaluate(() => {
   };
 });
 
+// Give the cart a destination, and prove it took.
+//
+// The first version of this dispatched native DOM events. WooCommerce's
+// shipping calculator is jQuery all the way down — selectWoo on the state
+// field, a jQuery submit handler on the form — and native events do not reach
+// any of it. So the destination silently never applied, the cart fell back to
+// the store default, and the run reported real-looking numbers for the wrong
+// place. They were not wrong so much as about a different customer.
+//
+// Now it drives the form through jQuery and then READS BACK what the cart
+// says it is shipping to. Numbers are only worth printing once that agrees.
+async function setDestination() {
+  try {
+    // The calculator is collapsed until its toggle is clicked.
+    await page.evaluate(() => {
+      const t = document.querySelector('.shipping-calculator-button');
+      if (t) t.click();
+    });
+    await page.waitForTimeout(1200);
+
+    await page.evaluate(({ zip, state }) => {
+      const $ = window.jQuery;
+      if (!$) return;
+      const setSel = (sel, val) => {
+        const el = $(sel);
+        if (el.length) { el.val(val).trigger('change'); }
+      };
+      setSel('#calc_shipping_country', 'US');
+      setSel('#calc_shipping_state', state);
+      const z = $('#calc_shipping_postcode');
+      if (z.length) z.val(zip).trigger('change');
+      // the calculator submits through jQuery, not through the button's
+      // default action
+      const form = $('form.woocommerce-shipping-calculator');
+      if (form.length) form.trigger('submit');
+      else $('button[name="calc_shipping"]').trigger('click');
+    }, { zip: ZIP, state: STATE });
+
+    // WooCommerce recalculates over AJAX; wait for it to settle.
+    await page.waitForTimeout(9000);
+
+    return await page.evaluate(() => {
+      const body = ((document.body && document.body.innerText) || '');
+      const line = (body.match(/Shipping to[^\n]{0,60}/i) || [''])[0].trim();
+      const ctry = (document.querySelector('#calc_shipping_country') || {}).value || '';
+      const st   = (document.querySelector('#calc_shipping_state') || {}).value || '';
+      const zip  = (document.querySelector('#calc_shipping_postcode') || {}).value || '';
+      return { line, fields: [ctry, st, zip].filter(Boolean).join(' / ') };
+    });
+  } catch (e) {
+    return { line: '(destination step failed: ' + String(e.message).slice(0, 60) + ')', fields: '' };
+  }
+}
+
 console.log('probe-shipping-consolidation: ' + SITE + '   ' + new Date().toISOString());
 console.log('destination ' + STATE + ' ' + ZIP + '\n');
 
@@ -110,6 +164,7 @@ try {
 
     let prevShip = null;
     const seen = [];
+    const destSeen = [];
     for (const qty of [1, 2, 3, 5]) {
       // Rebuild the cart from empty each time, so a stale line cannot carry over.
       for (let i = 0; i < 4; i++) {
@@ -129,19 +184,12 @@ try {
       await page.waitForTimeout(4500);
 
       await go('/cart/', 3500);
-      // give the shipping calculator the destination
-      await page.evaluate(({ zip, state }) => {
-        const z = document.querySelector('#calc_shipping_postcode, input[name="calc_shipping_postcode"]');
-        if (z) { z.value = zip; z.dispatchEvent(new Event('change', { bubbles: true })); }
-        const st = document.querySelector('#calc_shipping_state, select[name="calc_shipping_state"]');
-        if (st) { st.value = state; st.dispatchEvent(new Event('change', { bubbles: true })); }
-        const btn = document.querySelector('button[name="calc_shipping"], .shipping-calculator-form button');
-        if (btn) btn.click();
-      }, { zip: ZIP, state: STATE }).catch(() => {});
-      await page.waitForTimeout(6000);
-
+      const dest = await setDestination();
       const t = await readTotals();
       const d = (prevShip !== null && t.shipping !== null) ? (t.shipping - prevShip) : null;
+      destSeen.push(dest);
+      console.log('       dest: ' + (dest.line || '(no "Shipping to" line)')
+        + (dest.fields ? '   fields: ' + dest.fields : ''));
       console.log('  ' + String(qty).padEnd(6)
         + ('$' + (t.subtotal ?? '?')).padEnd(13)
         + ('$' + (t.shipping ?? '?')).padEnd(13)
@@ -153,7 +201,10 @@ try {
 
     // ── verdict ───────────────────────────────────────────────────────────
     const s = Object.fromEntries(seen.map(x => [x.qty, x.ship]));
+    const destOK = destSeen.every(d => d && (new RegExp(STATE + '|' + ZIP).test(d.line + ' ' + d.fields)));
     console.log('\n— verdict —');
+    console.log('    destination applied on every reading : ' + destOK
+      + (destOK ? '' : '   ← the numbers below are NOT for ' + STATE + ' ' + ZIP));
     console.log('    before the fix : 1=$49.02  2=$84.03  3=$119.05  5=$189.08   (+$35.01/piece)');
     console.log('    expected after : 1=$49.02  2=$49.02  3=$49.02   5=$64.70');
     console.log('    measured now   : '
