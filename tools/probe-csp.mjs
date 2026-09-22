@@ -60,7 +60,7 @@ const page = await ctx.newPage();
 
 const visit = async (path, wait = 2200) => {
   const r = await page.goto(path.startsWith('http') ? path : SITE + path,
-    { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => null);
+    { waitUntil: 'domcontentloaded', timeout: 20000 }).catch(() => null);
   if (r) await page.waitForTimeout(wait);
   return r;
 };
@@ -130,7 +130,9 @@ try {
       const v = get(k);
       console.log('      ' + k.padEnd(38) + (v ? v.slice(0, 90) : '— absent'));
     }
-    seen[label] = { csp: get('content-security-policy'), cspro: get('content-security-policy-report-only'), cache };
+    seen[label] = { ok: r.status() > 0 && r.status() < 400,
+                    csp: get('content-security-policy'),
+                    cspro: get('content-security-policy-report-only'), cache };
     console.log('');
   }
 
@@ -184,6 +186,14 @@ try {
   // ── verdict ───────────────────────────────────────────────────────────
   console.log('\n— verdict —');
   const co = seen['checkout'] || {};
+  const answered = Object.keys(seen).filter(k => seen[k] && seen[k].ok).length;
+  if (!co.ok) {
+    console.log('  → NO DATA — checkout did not answer, so nothing here is a');
+    console.log('    statement about its headers. ' + answered + ' of ' + Object.keys(seen).length
+      + ' pages answered at all.');
+    console.log('    An unreachable site and a site with no CSP look identical to a');
+    console.log('    probe that does not check. This run checked.');
+  } else {
   // "A CSP is present" is not the question. Checkout already sends
   // frame-ancestors 'self', which is clickjacking protection and says nothing
   // about where scripts may come from. Judge on script control specifically,
@@ -205,6 +215,7 @@ try {
     console.log("    reports land in WooCommerce → Checkout Script Policy.");
   } else {
     console.log("  → An enforcing script policy is live on checkout.");
+  }
   }
 
   const cachedMissing = ['home', 'shop', 'product']
