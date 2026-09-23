@@ -179,6 +179,23 @@ add_filter('rank_math/frontend/description', function ($desc) {
     }
 }, 20);
 
+// The share preview too. Measured: /blog/'s og:description was one article's
+// text ("Best Online Canvas Printing Service Near Delaware: …"), so a link
+// to the hub previewed as that post. Rank Math's Open Graph description
+// comes through its own filter, not the one above. Only while the hub is
+// rendering. Unlike the description, this cannot tell an og:description the
+// owner wrote from the first article's text Rank Math falls back to, so on the
+// hub it always uses the hub's own.
+add_filter('rank_math/opengraph/facebook/og_description', function ($desc) {
+    try {
+        if (empty($GLOBALS['af_blog_hub'])) return $desc;
+        $ours = af_blog_hub_description();
+        return $ours !== '' ? $ours : $desc;
+    } catch (\Throwable $e) {
+        return $desc;
+    }
+}, 20);
+
 // Without Rank Math there is no description tag at all; print the one.
 add_action('wp_head', function () {
     if (defined('RANK_MATH_VERSION')) return;
