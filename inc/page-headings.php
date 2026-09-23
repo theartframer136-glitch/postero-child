@@ -128,10 +128,21 @@ add_action('woocommerce_archive_description', function () {
  * so this only acts on the content of the page being viewed, and only once.
  * Elementor replaces content on this same filter at priority 9; running at 20
  * means the heading goes in front of whatever Elementor rendered.
+ *
+ * NOT IN <head>, AND NOT FOR AN EXCERPT. The first deploy gave the empty cart
+ * no H1, and its og:description read "Your Cart". The cart page has no text
+ * of its own, so Rank Math builds a description from the excerpt in <head>,
+ * and wp_trim_excerpt runs the_content. This filter took that call for the
+ * real one: it spent the once-only flag on the heading, Rank Math stripped the
+ * heading's tags into a description, and the page body got nothing. The body
+ * is rendered after wp_head has finished, so any call before that, or inside
+ * an excerpt, is left alone.
  */
 add_filter('the_content', function ($content) {
     try {
         if (af_heading_printed()) return $content;
+        if (!did_action('wp_head') || doing_action('wp_head')) return $content;
+        if (doing_filter('get_the_excerpt')) return $content;
         if (!is_singular('page')) return $content;
         if ((int) get_the_ID() !== (int) get_queried_object_id()) return $content;
 
