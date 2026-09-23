@@ -146,7 +146,15 @@ function af_product_schema_name($product) {
     try {
         if (!($product instanceof WC_Product)) return '';
         $name = wp_strip_all_tags((string) $product->get_name());
-        $name = html_entity_decode($name, ENT_QUOTES, 'UTF-8');
+        // Decode until it stops changing, bounded. Measured live: the node
+        // came back reading "Living Room &amp; Home", because the stored
+        // title is double-encoded and one pass turns &amp;amp; into &amp;.
+        // Google would print the entity. Three passes is well past what any
+        // real title needs and cannot spin.
+        for ($i = 0, $prev = null; $name !== $prev && $i < 3; $i++) {
+            $prev = $name;
+            $name = html_entity_decode($name, ENT_QUOTES, 'UTF-8');
+        }
         $name = trim(preg_replace('/\s+/u', ' ', $name));
         return $name;
     } catch (\Throwable $e) {
