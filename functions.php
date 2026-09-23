@@ -5963,17 +5963,9 @@ add_action('wp_head', function() {
 // Products, Recently Viewed. Additive; existing sections untouched.
 // ─────────────────────────────────────────────────────────────
 
-// 7a. Track recently-viewed products (cookie)
-add_action('template_redirect', function() {
-    if (!function_exists('is_product') || !is_product()) return;
-    global $post;
-    if (!$post) return;
-    $ids = isset($_COOKIE['af_recently_viewed']) ? array_filter(array_map('absint', explode('|', $_COOKIE['af_recently_viewed']))) : array();
-    $ids = array_diff($ids, array($post->ID));
-    array_unshift($ids, $post->ID);
-    $ids = array_slice(array_unique($ids), 0, 12);
-    wc_setcookie('af_recently_viewed', implode('|', $ids), time() + 60*60*24*30);
-}, 20);
+// 7a. Recently viewed is recorded in the visitor's browser: see "Recently
+//     viewed" under PHASE 18. A cookie set here was stored in the page cache
+//     with the page and sent to every later visitor (DEF-04).
 
 // 7b. "Buy Now" button beside Add to Cart.
 //     Simple products: direct link to checkout with add-to-cart.
@@ -6080,19 +6072,7 @@ af_section(function() {
     echo '</div></section>';
 }, 21);
 
-// 7f. Recently Viewed after tabs
-af_section(function() {
-    if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
-    $product = af_wc_product();
-    if (!$product) return;
-    $ids = isset($_COOKIE['af_recently_viewed']) ? array_filter(array_map('absint', explode('|', $_COOKIE['af_recently_viewed']))) : array();
-    $ids = array_values(array_diff($ids, array($product->get_id())));
-    $ids = af_ids_with_image($ids, 4);
-    if (count($ids) < 2) return;
-    echo '<section class="af-pp-sec af-recent"><h2>Recently Viewed</h2><div class="af-pp-row af-pp-row-left">';
-    foreach ($ids as $pid) { af_render_mini_card($pid); }
-    echo '</div></section>';
-}, 22);
+// 7f. Recently Viewed: one strip, drawn in the browser (PHASE 18 below).
 
 // Filter product IDs down to those with a real featured image (avoids
 // grey placeholder cards), capped at $max.
@@ -15802,39 +15782,125 @@ add_action('wp_footer', function() {
 </script>
 <?php }, 45);
 
-// ── Recently viewed (spec §7 post-tab): cookie-based strip ───
-add_action('template_redirect', function() {
-    if (!function_exists('is_product') || !is_product()) return;
-    global $post;
-    if (!$post) return;
-    $seen = isset($_COOKIE['af_recent']) ? array_filter(array_map('absint', explode(',', $_COOKIE['af_recent']))) : array();
-    $seen = array_diff($seen, array($post->ID));
-    array_unshift($seen, $post->ID);
-    $seen = array_slice($seen, 0, 9);
-    setcookie('af_recent', implode(',', $seen), time() + MONTH_IN_SECONDS, '/');
-});
-
+// ── Recently viewed (spec §7 post-tab), drawn in the browser ───
+// DEF-04, 23 Sep. This used to be done on the server, twice over: two
+// template_redirect hooks set af_recent and af_recently_viewed on every product
+// page response, and two sections built "Recently Viewed" from those cookies.
+// Product pages are served from LiteSpeed's page cache, and a cached copy keeps
+// both. Measured from fresh browsers, every visitor to the Kerala Mural page
+// was sent "Set-Cookie: af_recent=26084" with one and the same timestamp; and a
+// copy built for a returning visitor would have stored their history in the
+// page's HTML and cookie for everyone after them.
+//
+// So the server sends everyone the same empty placeholder, which is safe to
+// cache, and the script below does the per-visitor part in the visitor's own
+// browser: it reads af_recent (folding in the old af_recently_viewed once), asks
+// the Store API for those products — published and visible ones only, so a
+// hidden product drops out — draws the strip, and records the page being viewed.
+// One strip, where there used to be two.
 af_section(function() {
     if (!af_show_product_sections()) return;   // page + quick-view modal, nothing else
-    global $post;
-    $seen = isset($_COOKIE['af_recent']) ? array_filter(array_map('absint', explode(',', $_COOKIE['af_recent']))) : array();
-    $seen = array_values(array_diff($seen, array($post ? $post->ID : 0)));
-    if (empty($seen)) return;
-    $out = '';
-    $n = 0;
-    foreach ($seen as $pid) {
-        if ($n >= 6) break;
-        $p = wc_get_product($pid);
-        if (!$p || $p->get_status() !== 'publish') continue;
-        $img = wp_get_attachment_image_url($p->get_image_id(), 'woocommerce_thumbnail');
-        if (!$img) continue;
-        $out .= '<a href="' . esc_url(get_permalink($pid)) . '"><img loading="lazy" src="' . esc_url($img) . '" alt="' . esc_attr($p->get_name()) . '">'
-              . esc_html(wp_trim_words($p->get_name(), 7, '…')) . '</a>';
-        $n++;
-    }
-    if (!$out) return;
-    echo '<div class="af-recent"><h3>Recently Viewed</h3><div class="af-recent-row">' . $out . '</div></div>';
+    $product = af_wc_product();
+    if (!$product) return;
+    echo '<div class="af-recent" data-af-recent data-af-current="' . (int) $product->get_id() . '" hidden></div>';
 }, 22);
+
+add_action('wp_footer', function () {
+    if (is_admin()) return;
+    ?>
+<script>
+(function(){
+  var KEY = 'af_recent', OLD = 'af_recently_viewed', KEEP = 9, SHOW = 6;
+  function read(name){
+    var m = document.cookie.match(new RegExp('(?:^|; )' + name + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : '';
+  }
+  function ids(s, sep){
+    return String(s || '').split(sep).map(function(x){ return parseInt(x, 10); }).filter(function(n){ return n > 0; });
+  }
+  function history(){
+    var seen = ids(read(KEY), ',');
+    var old = ids(read(OLD), '|');
+    if (old.length) {
+      old.forEach(function(n){ if (seen.indexOf(n) < 0) seen.push(n); });
+      document.cookie = OLD + '=; path=/; max-age=0';
+    }
+    return seen.slice(0, KEEP);
+  }
+  function remember(pid){
+    var list = [pid].concat(history().filter(function(n){ return n !== pid; })).slice(0, KEEP);
+    document.cookie = KEY + '=' + list.join(',') + '; path=/; max-age=' + (30 * 86400) + '; SameSite=Lax'
+      + (location.protocol === 'https:' ? '; Secure' : '');
+  }
+  // The Store API sends names HTML-encoded ("&#8211;"). A textarea decodes
+  // entities without running anything, and the result only ever goes into
+  // textContent and alt.
+  function plain(s){ var t = document.createElement('textarea'); t.innerHTML = String(s || ''); return t.value; }
+  function short(s){ var w = s.split(/\s+/); return w.length > 7 ? w.slice(0, 7).join(' ') + '…' : s; }
+  function fill(box){
+    if (box.getAttribute('data-af-done')) return;
+    box.setAttribute('data-af-done', '1');
+    var cur = parseInt(box.getAttribute('data-af-current'), 10) || 0;
+    var want = history().filter(function(n){ return n !== cur; });
+    if (!want.length) return;
+    fetch('/wp-json/wc/store/v1/products?per_page=' + want.length + '&include=' + want.join(','), { credentials: 'same-origin' })
+      .then(function(r){ return r.ok ? r.json() : []; })
+      .then(function(list){
+        var byId = {};
+        (list || []).forEach(function(p){ byId[p.id] = p; });
+        var row = document.createElement('div');
+        row.className = 'af-recent-row';
+        var n = 0;
+        want.forEach(function(id){
+          var p = byId[id];
+          if (!p || n >= SHOW || !p.permalink) return;
+          var src = p.images && p.images[0] ? (p.images[0].thumbnail || p.images[0].src) : '';
+          if (!src) return;
+          var name = plain(p.name);
+          var a = document.createElement('a');
+          a.href = p.permalink;
+          var img = document.createElement('img');
+          img.loading = 'lazy'; img.src = src; img.alt = name;
+          a.appendChild(img);
+          a.appendChild(document.createTextNode(short(name)));
+          row.appendChild(a);
+          n++;
+        });
+        if (!n) return;
+        var h = document.createElement('h3');
+        h.textContent = 'Recently Viewed';
+        box.appendChild(h);
+        box.appendChild(row);
+        box.hidden = false;
+      })
+      .catch(function(){});
+  }
+  function scan(root){ (root || document).querySelectorAll('.af-recent[data-af-recent]').forEach(fill); }
+  function start(){
+    scan(document);
+    // Record the product page being viewed, after its own strip has read the
+    // history, so a page never lists itself.
+    var m = document.body && document.body.classList.contains('single-product')
+      && (document.body.className.match(/(?:^|\s)postid-(\d+)/) || [])[1];
+    if (m) remember(parseInt(m, 10));
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start); else start();
+  // The quick-view modal brings its own placeholder in later, on any page.
+  if ('MutationObserver' in window) {
+    new MutationObserver(function(muts){
+      muts.forEach(function(mu){
+        mu.addedNodes.forEach(function(node){
+          if (node.nodeType !== 1) return;
+          if (node.matches('.af-recent[data-af-recent]')) fill(node);
+          else if (node.querySelector('.af-recent[data-af-recent]')) scan(node);
+        });
+      });
+    }).observe(document.documentElement, { childList: true, subtree: true });
+  }
+})();
+</script>
+    <?php
+}, 60);
 
 // ── 18c. Variation strips on shop/category product cards ─────
 // One batched endpoint tells the page which visible products get the

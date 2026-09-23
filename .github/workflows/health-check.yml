@@ -87,6 +87,34 @@ jobs:
             echo "  stylesheet links the server renders for /shop/ (custom.css is on every page):"
             curl -s -m 25 -H "Sec-Fetch-Mode: navigate" "https://theartframer.us/shop/?af_nocache=$(date +%s)" \
               | grep -o -E "<link[^>]+postero-child[^>]+>" | head -4 | cut -c1-220 | sed "s/^/    /" || echo "    (none)"
+            echo; echo "--- DEF-04: why product pages miss the page cache ---"
+            # A shopper measured miss, miss, miss on one product page, about
+            # 2.5 s each, while other pages hit. Two "recently viewed" features
+            # set a cookie on every product page response, and a response that
+            # sets a cookie is not normally stored. From the server itself, so
+            # neither the bot protection nor the network is in the way: the same
+            # product three times, the shop twice as a control, and the product
+            # again carrying the cookies a returning visitor has.
+            P="https://theartframer.us/product/kerala-mural-celebration-canvas-wall-art/"
+            S="https://theartframer.us/shop/"
+            UA="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36"
+            for u in "$P" "$P" "$P" "$S" "$S"; do
+              echo "  GET ${u#https://theartframer.us}  (no cookies)"
+              curl -s -o /dev/null -D - -m 30 -A "$UA" -H "Sec-Fetch-Mode: navigate" -w "    total %{time_total}s\n" "$u" 2>&1 \
+                | grep -iE "^HTTP/|^x-litespeed|^set-cookie|^cache-control|^vary|total" | cut -c1-170 | sed "s/^/    /"
+            done
+            for i in 1 2; do
+              echo "  GET ${P#https://theartframer.us}  (with woocs_* and af_recent* cookies)"
+              curl -s -o /dev/null -D - -m 30 -A "$UA" -H "Sec-Fetch-Mode: navigate" \
+                -H "Cookie: woocs_current_currency=USD; woocs_session_currency=USD; af_recently_viewed=26875; af_recent=26875" \
+                -w "    total %{time_total}s\n" "$P" 2>&1 \
+                | grep -iE "^HTTP/|^x-litespeed|^set-cookie|^cache-control|^vary|total" | cut -c1-170 | sed "s/^/    /"
+            done
+            echo "  LiteSpeed page cache settings that can exclude a page:"
+            for k in cache cache-priv cache-ttl_pub cache-exc cache-exc_cat cache-exc_tag cache-exc_cookies cache-exc_qs cache-exc_useragents cache-exc_roles cache-force_uri cache-force_pub_uri cache-priv_uri cache-drop_qs esi; do
+              printf "    %-22s " "$k"; timeout 60 wp litespeed-option get "$k" --allow-root 2>/dev/null | tr "\n" " " | cut -c1-150; echo
+            done
+
             echo; echo "--- the PHP error log ---"
             # tail -25 was useless the one time it mattered: two plugins emit a
             # _load_textdomain_just_in_time notice on every request, so the tail
