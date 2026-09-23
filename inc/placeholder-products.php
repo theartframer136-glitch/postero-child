@@ -26,12 +26,36 @@
  */
 if (!defined('ABSPATH')) exit;
 
-/** id => the name it must still carry. Bump the revision after changing this. */
-define('AF_PLACEHOLDER_PRODUCTS_REV', '1');
+/**
+ * id => the name it must still carry. Bump the revision after changing this.
+ *
+ * Revision 2, 23 Sep: revision 1 made 11491 private at 12:49:01 and closed 9
+ * of the 10 ways in. The product sitemap still listed it, because Rank Math
+ * serves a sitemap it built earlier and the save did not clear it (the copy
+ * fetched past the page cache listed it too). Revision 2 clears that copy.
+ */
+define('AF_PLACEHOLDER_PRODUCTS_REV', '2');
+
 function af_placeholder_products() {
     return array(
         11491 => 'test',
     );
+}
+
+/**
+ * Make Rank Math build the product sitemap again, so a hidden product stops
+ * being listed. Says which method ran, the way robots-noindex.php does.
+ */
+function af_placeholder_sitemap_clear() {
+    if (is_callable(array('RankMath\Sitemap\Cache', 'invalidate_storage'))) {
+        \RankMath\Sitemap\Cache::invalidate_storage('product');
+        return 'Cache::invalidate_storage(product)';
+    }
+    if (is_callable(array('RankMath\Sitemap\Cache_Watcher', 'invalidate'))) {
+        \RankMath\Sitemap\Cache_Watcher::invalidate('product');
+        return 'Cache_Watcher::invalidate(product)';
+    }
+    return 'none available';
 }
 
 add_action('wp_loaded', function () {
@@ -45,6 +69,7 @@ add_action('wp_loaded', function () {
         // Record first, so a failure below cannot repeat on every request.
         update_option('af_placeholder_products_rev', AF_PLACEHOLDER_PRODUCTS_REV, true);
         $log = array();
+        $hidden = 0;
         foreach (af_placeholder_products() as $id => $name) {
             $product = wc_get_product($id);
             if (!$product) {
@@ -59,6 +84,7 @@ add_action('wp_loaded', function () {
             }
             if ($status !== 'publish') {
                 $log[] = $id . ' already ' . $status;
+                $hidden++;
                 continue;
             }
             $product->set_status('private');
@@ -71,6 +97,10 @@ add_action('wp_loaded', function () {
                 do_action('litespeed_purge_url', wc_get_page_permalink('shop'));
             }
             $log[] = $id . ' publish -> ' . get_post_status($id);
+            $hidden++;
+        }
+        if ($hidden) {
+            $log[] = 'sitemap: ' . af_placeholder_sitemap_clear();
         }
         update_option('af_placeholder_products', implode('; ', $log) . ' @ ' . gmdate('c'), false);
     } catch (\Throwable $e) {
