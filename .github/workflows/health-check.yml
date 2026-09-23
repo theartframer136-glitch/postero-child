@@ -65,6 +65,26 @@ jobs:
             echo "  options present:"
             timeout 60 wp option list --search="wmc*" --fields=option_name --allow-root 2>/dev/null | tail -n +2 | head -8 | sed "s/^/    /"
             timeout 60 wp option list --search="woocs*" --fields=option_name --allow-root 2>/dev/null | tail -n +2 | head -8 | sed "s/^/    /"
+            echo; echo "--- stale CSS: what strips ?ver from the theme stylesheets ---"
+            # The live checkout links checkout.css with no ?ver, and Chromium
+            # parsed a copy older than 21 Sep while the server holds the new
+            # one. The theme versions its stylesheets with the file mtime, and
+            # LiteSpeed "remove query strings" was switched off on 18 Sep. So:
+            # that setting now, the options deciding who answers for a static
+            # file, the active plugins that could rewrite asset URLs, the hooks
+            # on the asset URL filters, and the links the server renders.
+            for k in optm-qs_rm cache-browser cache-ttl_browser optm-css_min optm-css_comb optm-ucss cdn cdn-quic cdn-cloudflare; do
+              printf "  %-20s " "$k"; timeout 60 wp litespeed-option get "$k" --allow-root 2>/dev/null | tail -1 || echo "(unreadable)"
+            done
+            echo "  active plugins that can rewrite asset URLs:"
+            timeout 60 wp plugin list --status=active --field=name --allow-root 2>/dev/null \
+              | grep -i -E "litespeed|hostinger|optimi|autoptim|query|minif|speed|cache|perfmatters|asset|rocket|swift|w3-total|hummingbird|sg-" \
+              | sed "s/^/    /" || echo "    (none matched)"
+            echo "  callbacks on the asset URL filters (as loaded under wp-cli):"
+            timeout 60 wp eval "global \$wp_filter; foreach (array(\"style_loader_src\", \"script_loader_src\") as \$h) { if (empty(\$wp_filter[\$h])) { echo \"    \$h: none\" . PHP_EOL; continue; } foreach (\$wp_filter[\$h]->callbacks as \$p => \$cbs) { foreach (\$cbs as \$id => \$cb) { echo \"    \$h @\$p  \$id\" . PHP_EOL; } } }" --allow-root 2>/dev/null | head -12
+            echo "  stylesheet links the server renders for /shop/ (custom.css is on every page):"
+            curl -s -m 25 -H "Sec-Fetch-Mode: navigate" "https://theartframer.us/shop/?af_nocache=$(date +%s)" \
+              | grep -o -E "<link[^>]+postero-child[^>]+>" | head -4 | cut -c1-220 | sed "s/^/    /" || echo "    (none)"
             echo; echo "--- the PHP error log ---"
             # tail -25 was useless the one time it mattered: two plugins emit a
             # _load_textdomain_just_in_time notice on every request, so the tail

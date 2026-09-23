@@ -157,6 +157,45 @@ foreach (array('litespeed_conf_optm-css_exc', 'litespeed_option_optm-css_exc', '
     });
 }
 
+/**
+ * Put our files' ?ver back after LiteSpeed strips it.
+ *
+ * Measured 23 Sep. LiteSpeed's "remove query strings" is on (optm-qs_rm 1,
+ * although it was set to 0 on 18 Sep). At priority 999 on style_loader_src and
+ * script_loader_src it deletes the whole query from every internal .css/.js
+ * URL, so custom.css and checkout.css were linked with no version at all. The
+ * Hostinger CDN (server: hcdn) in front of the origin answers that URL for a
+ * year (max-age=31536000). All twelve requests for checkout.css returned the
+ * 17,674-byte copy from 21 Sep, 27 hours old, while the file on disk, reached
+ * with a cache-buster, was the 22,056 bytes that include DEF-16. A deploy
+ * clears LiteSpeed's cache, not the CDN's, and a URL that never changes is
+ * never fetched again. So a CSS fix could deploy and not reach the page.
+ *
+ * The 22 Sep answer copied each file to a stamped filename, and it took the
+ * shop down on every uncached render until it was reverted. This one touches
+ * no files. It runs after LiteSpeed and puts back the version WordPress
+ * registered (the file's mtime, above), so every deploy is a URL the CDN has
+ * never seen. Only this theme's own files, and only when the version is
+ * missing. It works whatever the setting is: turning query stripping off
+ * makes it a no-op. Any failure returns the URL exactly as it came.
+ */
+function af_keep_asset_version($src, $handle = '') {
+    try {
+        if (!is_string($src) || $src === '' || !is_string($handle) || $handle === '') return $src;
+        if (preg_match('/[?&]ver=/', $src)) return $src;
+        if (strpos($src, '/wp-content/themes/' . get_stylesheet() . '/') === false) return $src;
+        $deps = (current_filter() === 'script_loader_src') ? wp_scripts() : wp_styles();
+        $dep  = (is_object($deps) && isset($deps->registered[$handle])) ? $deps->registered[$handle] : null;
+        $ver  = $dep ? $dep->ver : null;
+        if (!is_scalar($ver) || $ver === '' || $ver === false) return $src;
+        return add_query_arg('ver', rawurlencode((string) $ver), $src);
+    } catch (\Throwable $e) {
+        return $src;
+    }
+}
+add_filter('style_loader_src', 'af_keep_asset_version', PHP_INT_MAX, 2);
+add_filter('script_loader_src', 'af_keep_asset_version', PHP_INT_MAX, 2);
+
 add_action('wp_loaded', function () {
     if (wp_doing_ajax() || (defined('REST_REQUEST') && REST_REQUEST)) return;
     // functions.php is in the stamp, and it is the reason this is being
