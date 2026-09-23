@@ -32,7 +32,6 @@ $safe = array(
     'optm-css_min'   => array(1, 'minify CSS'),
     'optm-js_min'    => array(1, 'minify JS'),
     'optm-html_min'  => array(1, 'minify HTML'),
-    'optm-qs_rm'     => array(1, 'remove query strings from static assets'),
     'optm-emoji_rm'  => array(1, 'remove WordPress emoji script'),
 );
 
@@ -50,6 +49,12 @@ $keep_off = array(
     'optm-js_defer'  => 'defer JS',
     'media-lazy'     => 'LiteSpeed JS lazy-load (theme does native lazy)',
     'media-iframe_lazy' => 'LiteSpeed iframe lazy (theme does native lazy)',
+    // Removing query strings deletes every ?ver=, so a changed stylesheet or
+    // script keeps its old URL, and the Hostinger CDN serves the old copy
+    // for a year (max-age=31536000). Measured 23 Sep: checkout.css served
+    // at 17,674 bytes from 21 Sep while 22,056 were on disk. This file used
+    // to switch it ON, so every full deploy undid the 18 Sep switch-off.
+    'optm-qs_rm'     => 'remove query strings (keeps stale CSS/JS on the CDN)',
 );
 
 $changed = 0;
