@@ -105,6 +105,66 @@ function af_cart_line_quantity($product_id, $variation_id = 0, $variations = arr
 }
 
 /**
+ * DEF-11. A quantity below 1 is refused with a message, not in silence.
+ *
+ * Reported: -1 and "abc" add nothing and say nothing, while 0 is quietly
+ * turned into 1 and added. The report puts it down to WooCommerce's notice
+ * output being missing from the cart template. WooCommerce's own code says
+ * otherwise. WC_Form_Handler turns "abc" into 0 with intval and passes -1
+ * straight through, and WC_Cart::add_to_cart() then returns false for any
+ * quantity of 0 or less WITHOUT adding a notice. So there was never a message
+ * to output. No template change could have shown one, and the AJAX path's
+ * "redirect to the product page to show any errors" lands on a page with
+ * none to show.
+ *
+ * So the message is created here, in the validation every add-to-cart path
+ * already passes through (product form, ?add-to-cart= links, wc-ajax). All
+ * three then show it the same way the DEF-05 cap message already shows.
+ *
+ * "0" needs its own test. The form handler reads the quantity as
+ * empty($_REQUEST['quantity']) ? 1 : ..., and empty("0") is true in PHP, so
+ * this filter is handed 1 and cannot tell it apart from a real 1. The raw
+ * request says which it was, and it is only read on an add-to-cart request,
+ * so an add made by other code during some unrelated request cannot be
+ * refused because of a quantity field it was never given.
+ *
+ * NOT CHANGED: 1.5 still becomes 1. The report passes that (CART-07), and it
+ * is WooCommerce's integer rounding, not a silent refusal. Grouped products
+ * send an array of quantities and are left to WooCommerce, which already says
+ * "Please choose the quantity of items..." when none is set.
+ */
+function af_quantity_invalid_message() {
+    return 'Please enter a quantity of 1 or more, then add it to your basket again.';
+}
+
+/** The quantity exactly as sent, on an add-to-cart request only; else null. */
+function af_raw_add_to_cart_quantity() {
+    $ajax = isset($_REQUEST['wc-ajax']) && $_REQUEST['wc-ajax'] === 'add_to_cart';
+    if (!isset($_REQUEST['add-to-cart']) && !$ajax) return null;
+    if (!isset($_REQUEST['quantity']) || is_array($_REQUEST['quantity'])) return null;
+    return trim((string) wp_unslash($_REQUEST['quantity']));
+}
+
+add_filter('woocommerce_add_to_cart_validation', function ($passed, $product_id, $quantity) {
+    if (!$passed) return $passed;
+    try {
+        $refuse = ((int) $quantity < 1)                        // -1, and "abc" (intval 0)
+               || (af_raw_add_to_cart_quantity() === '0');     // "0", handed in as 1
+        if (!$refuse) return $passed;
+
+        if (function_exists('wc_add_notice')) {
+            $msg = af_quantity_invalid_message();
+            if (!function_exists('wc_has_notice') || !wc_has_notice($msg, 'error')) {
+                wc_add_notice($msg, 'error');
+            }
+        }
+        return false;
+    } catch (\Throwable $e) {
+        return $passed;
+    }
+}, 5, 3);
+
+/**
  * The control. Everything that adds to the cart passes through here.
  *
  * Returns the incoming verdict untouched on any failure. An optional guard
@@ -118,9 +178,8 @@ add_filter('woocommerce_add_to_cart_validation', function ($passed, $product_id,
     if (!$passed) return $passed;
     try {
         $qty = (int) $quantity;
-        // Zero, negative and non-numeric quantities are DEF-11's subject, not
-        // this one. Touching them here would hide that finding rather than
-        // fix it.
+        // Below 1 is refused, with its own message, by the DEF-11 filter
+        // above at priority 5, before this one runs.
         if ($qty < 1) return $passed;
 
         // This filter fires twice on a simple add: once from
