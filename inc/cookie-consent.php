@@ -52,10 +52,10 @@ add_action('wp_footer', function() {
     .af-ck-main{flex:1 1 340px;min-width:0;}
     .af-ck-main strong{font-size:15px;color:#1a1a1a;}
     .af-ck-main p{margin:4px 0 0;font-size:12.5px;line-height:1.55;color:#5a5140;}
-    .af-ck-main a{color:#a8872e;}
+    .af-ck-main a{color:var(--af-gold-text, #8a6d1f);}
     .af-ck-opts{margin-top:10px;display:flex;flex-direction:column;gap:7px;}
     .af-ck-opts label{font-size:12.5px;color:#3d342a;display:block;line-height:1.5;}
-    .af-ck-opts small{display:block;color:#8a8170;margin-left:22px;}
+    .af-ck-opts small{display:block;color:var(--af-note, #6f675a);margin-left:22px;}
     .af-ck-actions{display:flex;gap:8px;flex-wrap:wrap;}
     .af-ck-btn{border:1.5px solid #d9cfb4;background:#fff;color:#5a5140;font-size:12.5px;font-weight:700;
       padding:10px 16px;border-radius:10px;cursor:pointer;}

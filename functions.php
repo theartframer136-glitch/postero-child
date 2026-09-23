@@ -1117,10 +1117,10 @@ add_action('wp_footer', function() { ?>
 
             var discount = c.querySelector('.price-section .discount, .discount-percentage, span.discount');
             if (discount) {
-                sp(discount,'color','#4caf2f');
+                sp(discount,'color','var(--af-save, #2e7d32)');
                 sp(discount,'font-weight','600');
                 sp(discount,'font-size','13px');
-                discount.querySelectorAll('*').forEach(function(el){ sp(el,'color','#4caf2f'); });
+                discount.querySelectorAll('*').forEach(function(el){ sp(el,'color','var(--af-save, #2e7d32)'); });
             }
 
             // ── Description: 2-line clamp ──
@@ -1593,16 +1593,16 @@ html body .product-card .price-section {
 }
 html body .product-card .price ins { text-decoration:none !important; font-weight:700 !important; color:#1a1a1a !important; }
 html body .product-card .price del,
-html body .product-card .price del * { color:#999 !important; font-weight:400 !important; font-size:12px !important; }
+html body .product-card .price del * { color:var(--af-was, #6b6b6b) !important; font-weight:400 !important; font-size:12px !important; }
 html body .product-card .price del { text-decoration:line-through !important; }
-/* Green, not gold. Every other saving on this site is already #4caf2f — the
+/* Green, not gold. Every other saving on this site is already --af-save — the
    .af-pct-off badge, the .af-disc-badge one, and the .discount rule in
    custom.css all say so — but this rule is more specific than any of them and
    was quietly repainting the card grids gold. One colour, stated once here,
    rather than a fourth override piled on top. */
 html body .product-card .discount-percentage,
 html body .product-card .price-section .discount,
-html body .price-section .discount { font-size:12px !important; color:#4caf2f !important; font-weight:600 !important; }
+html body .price-section .discount { font-size:12px !important; color:var(--af-save, #2e7d32) !important; font-weight:600 !important; }
 
 /* description */
 html body .product-card p.desc,
@@ -1628,7 +1628,7 @@ html body .product-card .add-cart,
 html body .product-card .add_to_cart_button,
 html body .product-card a.button,
 html body .product-card button.button {
-  background:#c9a84c !important; color:#fff !important;
+  background:#c9a84c !important; color:var(--af-on-primary, #1a1206) !important;
   border:none !important; border-radius:7px !important;
   font-size:13px !important; font-weight:600 !important; padding:10px 6px !important;
   cursor:pointer !important; text-decoration:none !important;
@@ -1637,7 +1637,7 @@ html body .product-card button.button {
   flex:1 1 50% !important;
 }
 html body .product-card .add-cart:hover,
-html body .product-card .add_to_cart_button:hover { background:#8b6a2b !important; }
+html body .product-card .add_to_cart_button:hover { background:#8b6a2b !important; color:#fff !important; }
 
 /* Add to Cart — the icon's breathing room, brand gold and hover, applied
    wherever the button lives and whatever the section calls it. The homepage
@@ -2272,9 +2272,9 @@ add_action('wp_head', function() { ?>
     // > .price-section > .price / .old-price / .discount (no <del> tag at all).
     // .trending-card only exists in this section, so it's a safe, unambiguous scope.
     document.querySelectorAll('.trending-card .discount, .trending-card .discount-percentage').forEach(function(el) {
-      el.style.setProperty('color', '#4caf2f', 'important');
+      el.style.setProperty('color', 'var(--af-save, #2e7d32)', 'important');
       el.style.setProperty('font-weight', '600', 'important');
-      el.querySelectorAll('*').forEach(function(c) { c.style.setProperty('color', '#4caf2f', 'important'); });
+      el.querySelectorAll('*').forEach(function(c) { c.style.setProperty('color', 'var(--af-save, #2e7d32)', 'important'); });
     });
     document.querySelectorAll('.trending-card .old-price').forEach(function(el) {
       el.style.setProperty('display', 'inline-block', 'important');
@@ -2504,7 +2504,7 @@ add_action('wp_head', function() { ?>
             var badge = document.createElement('span');
             badge.className = 'af-disc-badge';
             badge.textContent = '(' + pct + '% off)';
-            sp(badge, 'color', '#4caf2f');
+            sp(badge, 'color', 'var(--af-save, #2e7d32)');
             sp(badge, 'font-weight', '600');
             sp(badge, 'font-size', '13px');
             priceEl.appendChild(badge);
@@ -2719,7 +2719,7 @@ add_action('wp_footer', function () {
   text-decoration:line-through;}
 .af-pricerow > .af-pct-off,.af-pricerow > .discount,
 .af-pricerow > .discount-percentage{order:3;}
-.af-pct-off{color:#4caf2f;font-weight:700;font-size:.85em;white-space:nowrap;
+.af-pct-off{color:var(--af-save, #2e7d32);font-weight:700;font-size:.85em;white-space:nowrap;
   text-decoration:none !important;}
 /* The pay price is one line, whatever ends up inside it. A card that already
    nests its saving in there (or any theme markup that turns a child into a
@@ -6114,7 +6114,7 @@ add_action('wp_head', function() {
     .af-ppt{display:flex;align-items:center;gap:9px;flex:1 1 150px;min-width:140px;}
     .af-ppt span{font-size:22px;line-height:1;}
     .af-ppt strong{display:block;font-size:12.5px;color:#1a1a1a;}
-    .af-ppt small{display:block;font-size:11px;color:#888;}
+    .af-ppt small{display:block;font-size:11px;color:var(--af-mute, #6b6b6b);}
     /* Post-summary sections — full width of the theme content column so
        they line up with the native "Related products" section. */
     .af-pp-sec{width:100%;max-width:100%;margin:40px 0 0;padding:0;box-sizing:border-box;clear:both;}
@@ -6131,7 +6131,7 @@ add_action('wp_head', function() {
     .af-mini-card:hover .af-mini-img img{transform:scale(1.05);}
     .af-mini-info{padding:11px 13px;display:flex;flex-direction:column;gap:5px;flex:1 1 auto;}
     .af-mini-title{font-size:13px;font-weight:700;color:#1a1a1a;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:2.7em;}
-    .af-mini-price{font-size:13.5px;font-weight:700;color:#c9a84c;margin-top:auto;}
+    .af-mini-price{font-size:13.5px;font-weight:700;color:var(--af-gold-text, #8a6d1f);margin-top:auto;}
     @media(max-width:900px){ .af-pp-row{grid-template-columns:repeat(2,1fr);} }
     /* Inside the quick-view popup the same sections render in a narrower,
        scrolling container — two cards across, tighter rhythm. */
@@ -6198,7 +6198,7 @@ af_section(function() {
 add_action('wp_head', function() {
     ?>
     <style>
-    .af-pp-sub{font-size:13.5px;color:#777;margin:-8px 0 16px;}
+    .af-pp-sub{font-size:13.5px;color:var(--af-mute, #6b6b6b);margin:-8px 0 16px;}
     .af-customize{background:linear-gradient(90deg,#141414,#2a2416);border-radius:16px;padding:30px 28px;color:#fff;}
     .af-cz-inner{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap;}
     .af-cz-text h2{color:#fff;margin:0 0 6px;font-size:22px;}
@@ -7349,7 +7349,7 @@ add_action('wp_head', function() {
     .af-opt-label{display:block;font-size:12px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:#444;margin:0 0 8px;}
     .af-chips{display:flex;flex-wrap:wrap;gap:8px;}
     .af-chip-opt{background:#fff;border:1.5px solid #ddd;border-radius:8px;padding:8px 14px;font-size:13px;font-weight:600;color:#333;cursor:pointer;transition:all .15s;}
-    .af-chip-opt em{font-style:normal;color:#a8872e;font-weight:700;}
+    .af-chip-opt em{font-style:normal;color:var(--af-gold-text, #8a6d1f);font-weight:700;}
     .af-chip-opt:hover{border-color:#c9a84c;}
     .af-chip-opt.active{border-color:#1a1a1a;background:#1a1a1a;color:#fff;}
     .af-chip-opt.active em{color:#e8c766;}
@@ -7364,7 +7364,7 @@ add_action('wp_head', function() {
       text-transform:uppercase;text-decoration:none;vertical-align:1px;}
     .af-swatch{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1.5px solid #ddd;border-radius:8px;padding:6px 12px 6px 8px;font-size:12.5px;font-weight:600;color:#333;cursor:pointer;transition:all .15s;}
     .af-swatch span{width:18px;height:18px;border-radius:50%;border:1px solid rgba(0,0,0,.15);display:inline-block;}
-    .af-swatch em.af-swatch-fee{font-style:normal;color:#a8872e;font-weight:700;}
+    .af-swatch em.af-swatch-fee{font-style:normal;color:var(--af-gold-text, #8a6d1f);font-weight:700;}
     /* The finish fee pays for the moulding, so af_calc_price does not charge it
        on an unframed print — and the label must not claim it either. The
        default frame is "Without Frame" (af_frame_default returns the first one
@@ -7539,7 +7539,7 @@ add_action('wp_head', function() {
     .af-faq-q:hover{background:#faf7ef;}
     .af-faq-q::after{content:'+';position:absolute;right:18px;top:50%;transform:translateY(-50%);font-size:22px;font-weight:400;color:#c9a84c;line-height:1;transition:transform .2s;}
     .af-faq-item[open] .af-faq-q::after{content:'−';}
-    .af-faq-item[open] .af-faq-q{background:#faf7ef;color:#a8872e;}
+    .af-faq-item[open] .af-faq-q{background:#faf7ef;color:var(--af-gold-text, #8a6d1f);}
     .af-faq-a{padding:0 18px 18px;font-size:13.5px;line-height:1.7;color:#555;}
     </style>
     <?php
@@ -11150,8 +11150,8 @@ add_action('wp_footer', function() {
     .af-dd-feat li::before{content:'✓';position:absolute;left:0;color:#c9a84c;font-weight:800;}
     .af-dd-price{font-size:24px;font-weight:800;color:#1a1a1a;margin:0 0 16px;
       display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;}
-    .af-dd-price del{color:#9a9a9a;font-weight:400;font-size:.8em;text-decoration:line-through;}
-    .af-dd-price .af-pct-off{color:#4caf2f;font-weight:700;font-size:.62em;}
+    .af-dd-price del{color:var(--af-was, #6b6b6b);font-weight:400;font-size:.8em;text-decoration:line-through;}
+    .af-dd-price .af-pct-off{color:var(--af-save, #2e7d32);font-weight:700;font-size:.62em;}
     .af-dd-actions{display:flex;gap:10px;flex-wrap:wrap;}
     .af-dd-btn{flex:1;min-width:130px;text-align:center;padding:12px 14px;border-radius:9px;font-weight:800;font-size:13.5px;cursor:pointer;text-decoration:none;border:none;}
     .af-dd-btn.solid{background:#c9a84c;color:#fff;}
@@ -11703,7 +11703,7 @@ add_action('woocommerce_product_query', function($q) {
 add_action('wp_head', function(){
     ?>
     <style>
-    .af-por{font-size:15px;font-weight:700;color:#a8872e;}
+    .af-por{font-size:15px;font-weight:700;color:var(--af-gold-text, #8a6d1f);}
     .af-por-btn{display:inline-block;}
     .af-por-single{background:#1a1a1a !important;color:#fff !important;padding:12px 22px !important;border-radius:8px !important;margin:6px 0 0 !important;}
     .af-por-single:hover{background:#c9a84c !important;}
@@ -15581,8 +15581,8 @@ add_action('wp_footer', function() {
 .af-wall-hint{margin:2px 0 12px;font-size:12.5px;color:#8a6d1f;font-weight:600;}
 .af-rec{display:block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#256d2c;font-weight:800;}
 .af-color-tip{margin:2px 0 8px;font-size:11.5px;color:#999;}
-.af-live-mrp{color:#9a9a9a;margin-left:10px;font-size:15px;text-decoration:line-through;text-decoration-color:#9a9a9a;text-decoration-thickness:2px;}
-.af-live-disc{margin-left:8px;font-size:13.5px;font-weight:700;color:#4caf2f;}
+.af-live-mrp{color:var(--af-was, #6b6b6b);margin-left:10px;font-size:15px;text-decoration:line-through;text-decoration-color:var(--af-was, #6b6b6b);text-decoration-thickness:2px;}
+.af-live-disc{margin-left:8px;font-size:13.5px;font-weight:700;color:var(--af-save, #2e7d32);}
 .af-price-notes{margin:4px 0 10px;font-size:12.5px;color:#256d2c;font-weight:600;}
 .af-dim-toggle{display:inline-flex;align-items:center;gap:7px;background:#fff;border:1px solid #c9a84c;color:#8a6d1f;
   font-size:12.5px;font-weight:700;padding:8px 14px;cursor:pointer;margin:10px 0 0;}
@@ -19735,7 +19735,7 @@ add_action('wp_head', function() { ?>
   align-items:flex-start;gap:7px;}
 .taf-broch--single{font-size:12.5px;padding:14px 26px;}
 .taf-broch-note{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;
-  color:#a49c8b;font-weight:600;}
+  color:var(--af-note, #6f675a);font-weight:600;}
 /* archive banner */
 .taf-broch-banner{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;
   justify-content:space-between;margin:0 0 24px;padding:16px 22px;
@@ -20783,8 +20783,8 @@ add_action('woocommerce_after_cart_totals', function () {
    reference price are tinted, because those two carry the meaning. */
 .cart_totals .af-ct-items th,.cart_totals .af-ct-was th,.cart_totals .af-ct-save th{font-weight:600;opacity:.85}
 .cart_totals .af-ct-was td s{opacity:.6;text-decoration-thickness:1.5px}
-.cart_totals .af-ct-save th,.cart_totals .af-ct-save td{color:#4caf2f!important}
-.cart_totals .af-ct-save td .amount{color:#4caf2f!important}
+.cart_totals .af-ct-save th,.cart_totals .af-ct-save td{color:var(--af-save, #2e7d32)!important}
+.cart_totals .af-ct-save td .amount{color:var(--af-save, #2e7d32)!important}
 .cart_totals .af-ct-pct{font-weight:700}
 .cart_totals .af-ct-note td{padding-top:4px!important;border-top:0!important}
 .cart_totals .af-ct-note span{display:block;font-size:12px;opacity:.7;line-height:1.5}

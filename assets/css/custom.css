@@ -23,7 +23,7 @@
 .woocommerce .price del,
 .woocommerce-page .price del {
   display: inline !important;
-  color: #999 !important;
+  color: var(--af-was, #6b6b6b) !important;
   font-weight: 400 !important;
   font-size: 0.9em !important;
 }
@@ -624,7 +624,7 @@ ul.postero-scroll-content .cat-item a,
 .af-shell-track .product-card .price-section del *,
 .product-slider .product-card .price-section del,
 .product-slider .product-card .price-section del * {
-  color: #999 !important;
+  color: var(--af-was, #6b6b6b) !important;
   font-weight: 400 !important;
   font-size: 12px !important;
   text-decoration: line-through !important;
@@ -676,7 +676,7 @@ ul.postero-scroll-content .cat-item a,
 .product-card a.button {
   flex: 1 1 50% !important;
   background: #c9a84c !important;
-  color: #fff !important;
+  color: var(--af-on-primary, #1a1206) !important;
   border: none !important;
   border-radius: 7px !important;
   font-size: 13px !important;
@@ -1682,7 +1682,7 @@ body.woocommerce-page ul.products li.product .price ins {
 body.tax-product_cat ul.products li.product .price del,
 body.woocommerce-page ul.products li.product .price del {
   font-size: 12px !important;
-  color: #aaa !important;
+  color: var(--af-was, #6b6b6b) !important;
   text-decoration: line-through !important;
   font-weight: 400 !important;
 }
@@ -1753,9 +1753,9 @@ html body li.product .price del *,
 html body li.product .old-price,
 html body ul.products li.product .price del {
   text-decoration: line-through !important;
-  text-decoration-color: #9a9a9a !important;
+  text-decoration-color: var(--af-was, #6b6b6b) !important;
   text-decoration-thickness: 1.5px !important;
-  color: #9a9a9a !important;
+  color: var(--af-was, #6b6b6b) !important;
   font-weight: 400 !important;
 }
 /* the sale/current price stays solid black, no strike */
@@ -1776,12 +1776,12 @@ html body .old-price *,
 html body .old-price .woocommerce-Price-amount,
 html body .old-price bdi {
   text-decoration: line-through !important;
-  text-decoration-color: #9a9a9a !important;
+  text-decoration-color: var(--af-was, #6b6b6b) !important;
   text-decoration-thickness: 1.5px !important;
-  color: #9a9a9a !important;
+  color: var(--af-was, #6b6b6b) !important;
   font-weight: 400 !important;
 }
-html body .discount { color: #4caf2f !important; font-weight: 600 !important; }
+html body .discount { color: var(--af-save, #2e7d32) !important; font-weight: 600 !important; }
 
 /* Mobile */
 @media (max-width: 640px) {
@@ -1858,7 +1858,7 @@ body:has(.taf-page) .site-main{max-width:none;}
   padding:22px 24px;margin:0;font-size:15px;color:var(--taf-ink);}
 .taf-quote footer{margin-top:10px;font-size:13.5px;color:var(--taf-mut);font-weight:600;}
 .taf-stars{color:var(--taf-gold);letter-spacing:2px;font-size:17px;}
-.taf-badge{display:inline-block;background:var(--taf-cream);border:1px solid var(--taf-gold);color:var(--taf-gold-d);
+.taf-badge{display:inline-block;background:var(--taf-cream);border:1px solid var(--taf-gold);color:var(--af-gold-text, #8a6d1f);
   border-radius:20px;padding:5px 16px;font-size:13px;font-weight:700;margin:3px 4px;}
 .taf-price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin:26px 0 6px;}
 .taf-price{background:var(--taf-dark);color:#fff;border-radius:14px;text-align:center;padding:26px 12px;
@@ -2027,7 +2027,7 @@ body:has(.taf-page) .site-main{max-width:none;}
   .taf-table td:first-child{white-space:normal;font-size:16px;font-weight:800;padding-top:14px;}
   .taf-table td[data-taf-label]::before{content:attr(data-taf-label);display:block;
     font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
-    color:var(--taf-gold-d);margin-bottom:4px;}
+    color:var(--af-gold-text, #8a6d1f);margin-bottom:4px;}
   /* The first cell is the row's subject; its own heading adds nothing. */
   .taf-table td:first-child[data-taf-label]::before{display:none;}
 }
@@ -2277,13 +2277,13 @@ body:has(.taf-page) .site-main{max-width:none;}
 .af-cty-item.on{background:#fbf7ec;}
 .af-cty-nm{flex:1;font-size:13.5px;font-weight:700;color:var(--taf-dark);line-height:1.3;}
 .af-cty-nm small{display:block;font-weight:400;font-size:11.5px;color:var(--taf-mut);margin-top:2px;}
-.af-cty-cur{font-size:11.5px;font-weight:800;color:var(--taf-gold-d);}
+.af-cty-cur{font-size:11.5px;font-weight:800;color:var(--af-gold-text, #8a6d1f);}
 .af-cty-foot{margin:8px 0 0;padding:10px 16px 2px;border-top:1px solid #f0ead9;font-size:12px;color:var(--taf-mut);}
 .af-inf-bar{text-align:center;padding:26px 0 34px;width:100%;}
 .af-inf-btn{background:var(--taf-dark);color:#fff;border:none;padding:14px 40px;font-size:14px;font-weight:800;cursor:pointer;transition:background .2s;}
 .af-inf-btn:hover{background:var(--taf-gold);color:#141414;}
 .af-inf-status{color:var(--taf-mut);font-size:14px;}
-.af-inf-end{color:var(--taf-gold-d);font-size:13px;font-weight:700;letter-spacing:.05em;}
+.af-inf-end{color:var(--af-gold-text, #8a6d1f);font-size:13px;font-weight:700;letter-spacing:.05em;}
 .af-msg-bubble{background:var(--taf-cream);border-left:3px solid #ddd;padding:11px 14px;margin:10px 0;font-size:13.5px;}
 .af-msg-bubble.studio{border-left-color:var(--taf-gold);background:#fbf7ec;}
 .af-msg-bubble b{font-size:12.5px;color:var(--taf-dark);}
@@ -2403,10 +2403,10 @@ html body .woocommerce ul.products li.product .product-transition .onsale{
    ============================================================ */
 body.tax-product_cat .woocommerce-breadcrumb,
 body.post-type-archive-product .woocommerce-breadcrumb{
-  font-size:13px !important;color:#8a8172 !important;margin:4px 0 16px !important;letter-spacing:.01em;
+  font-size:13px !important;color:var(--af-note, #6f675a) !important;margin:4px 0 16px !important;letter-spacing:.01em;
 }
 body.tax-product_cat .woocommerce-breadcrumb a,
-body.post-type-archive-product .woocommerce-breadcrumb a{color:#a8872e !important;text-decoration:none !important;}
+body.post-type-archive-product .woocommerce-breadcrumb a{color:var(--af-gold-text, #8a6d1f) !important;text-decoration:none !important;}
 body.tax-product_cat .woocommerce-breadcrumb a:hover{text-decoration:underline !important;}
 
 /* Category title with gold underline accent */
@@ -2897,5 +2897,80 @@ body button.single_add_to_cart_button,
 body .woocommerce .af-buynow,
 body a.af-buynow,
 body .single_add_to_cart_button {
-  color: #1a1206 !important;
+  color: var(--af-on-primary, #1a1206) !important;
+}
+
+/* ── M-07: text colours as tokens, each one measured against WCAG AA ─────────
+   Test Run 03 found the Add to Cart fix above working (2.74 → 6.77:1) and the
+   same failing colours still everywhere else. tools/probe-contrast.mjs (run
+   95, 23 Sep) counted the texts below AA by colour pair, and
+   tools/diag-contrast-cascade.mjs (run 96) found the rule behind each one.
+   They fall into a handful of colours, so the fix is made to those colours:
+   this theme's rules now name a token instead of a failing hex, and the parent
+   theme's own tokens are given passing values.
+
+     token             value     on white   replaces
+     --af-on-primary   #1a1206   6.77:1*    white on the gold fills (2.74:1)
+     --af-gold-text    #8a6d1f   4.90:1     #c9a84c (2.29), #a8872e (3.40)
+     --af-save         #2e7d32   5.13:1     #4caf2f (2.81), every "(x% off)"
+     --af-was          #6b6b6b   5.33:1     #9a9a9a / #999 / #aaa struck prices
+     --af-mute         #6b6b6b   5.33:1     #888 (3.54), #777 (4.48)
+     --af-note         #6f675a   5.58:1     #a49c8b (2.72), #8a8172, #8a8170
+     --text_light      #6b6b6b   5.33:1     Postero's #999999 (2.85)
+     --light           #6b6b6b   5.33:1     Postero's #909090 (3.19)
+     * on --primary #CA9236; 8.11:1 on #c9a84c.
+
+   All clear 4.5:1 on the cream backgrounds too (#faf7ef, #faf6ec, #f5f3eb).
+   html:root and html body outrank the parent theme's :root / body
+   declarations, wherever in the page those are printed. */
+html:root,
+html body {
+  /* The TAF tokens were only defined inside .taf-page, but about 80 rules
+     outside it use them: the gift card form, the currency picker, "Load More
+     Artworks", the message bubbles, the video player. Outside .taf-page each
+     var() was empty, so "Load More Artworks" and the gift card "Apply" had no
+     fill and showed white text on white, 1:1. Same values as .taf-page. */
+  --taf-gold: #c9a84c;
+  --taf-gold-d: #a8872e;
+  --taf-dark: #141414;
+  --taf-ink: #2b2b2b;
+  --taf-mut: #6b6b6b;
+  --taf-cream: #faf6ec;
+
+  --af-on-primary: #1a1206;
+  --af-gold-text: #8a6d1f;
+  --af-save: #2e7d32;
+  --af-was: #6b6b6b;
+  --af-mute: #6b6b6b;
+  --af-note: #6f675a;
+
+  /* Postero's light-text tokens: review counts, "Show" per page, filter
+     counts, the product theme tags, the price slider label. */
+  --text_light: #6b6b6b;
+  --light: #6b6b6b;
+}
+/* Elementor's global "text light" colour is a copy of the same grey, set per
+   kit on <body>: the breadcrumbs and the shop banner's description use it. */
+body[class*="elementor-kit-"] {
+  --e-global-color-text_light: #6b6b6b;
+}
+
+/* White on the brand gold. Postero paints these buttons
+   background: var(--primary); color: var(--white). --white is also the white
+   of backgrounds elsewhere, so it is changed only on the buttons that sit on
+   the gold fill: the parent's own rule then draws their labels in dark ink,
+   and there is no selector fight to lose to Elementor's !important (which is
+   what happened to the first Add to Cart fix). Hover fills are
+   --primary_hover #B58330, where the ink is 5.52:1. */
+body .postero-sticky-add-to-cart__content-button,
+body .widget_shopping_cart .buttons a.checkout,
+body .woocommerce-mini-cart__buttons a.checkout,
+body .cart_totals a.checkout-button,
+body #payment #place_order,
+body button[name="apply_coupon"],
+body button[name="update_cart"],
+body .af-por-btn,
+body .single_add_to_cart_button,
+body .af-buynow {
+  --white: var(--af-on-primary, #1a1206);
 }
