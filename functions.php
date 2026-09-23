@@ -251,14 +251,15 @@ add_action('template_redirect', function() {
     }
 });
 
-// Force WMC plugin's own stored default to USD (fixes navbar showing INR)
+// DEF-13. One currency plugin runs here: FOX / WOOCS (woocommerce-currency-
+// switcher 1.4.9), which converts CAD. Measured on the server: it is the only
+// currency plugin installed, and no wmc_* option exists. The Multi Currency
+// shims that stood here, and the four cookies written for it (wmc_current_
+// currency, wmc-currency, currency, chosen_currency), served a plugin that is
+// not there. Nothing reads those cookies; only the two woocs_* ones are read,
+// by WOOCS and by af_active_currency() above. So only those are written, and
+// the four are expired in the <head> script below for visitors who have them.
 add_action('init', function() {
-    // Fix WMC plugin database default
-    $wmc_options = get_option('wmc_options', []);
-    if (!empty($wmc_options) && ($wmc_options['default_currency'] ?? '') !== 'USD') {
-        $wmc_options['default_currency'] = 'USD';
-        update_option('wmc_options', $wmc_options);
-    }
     // Fix WOOCS plugin database default
     $woocs_def = get_option('woocs_default_currency', '');
     if ($woocs_def && $woocs_def !== 'USD') {
@@ -271,7 +272,7 @@ add_action('init', function() {
     $exp  = time() + 86400 * 365;
     $path = COOKIEPATH ?: '/';
     $host = COOKIE_DOMAIN ?: '';
-    foreach (['woocs_session_currency','wmc_current_currency','wmc-currency','currency','chosen_currency'] as $name) {
+    foreach (['woocs_session_currency'] as $name) {   // woocs_current_currency: see 10a-2
         if (!isset($_COOKIE[$name]) || $_COOKIE[$name] !== $active) {
             setcookie($name, $active, $exp, $path, $host);
             $_COOKIE[$name] = $active;
@@ -302,11 +303,6 @@ add_filter('woocommerce_price_args', function($args) {
     return $args;
 }, 9999);
 
-// WMC (Woo Multi Currency) — keep pinned to the active whitelist currency
-add_filter('wmc_get_price', function($price, $currency) { return $price; }, 9999, 2);
-add_filter('wmc_current_currency', function() { return af_active_currency(); }, 9999);
-add_filter('wmc_frontend_display_currency', function() { return af_active_currency(); }, 9999);
-
 // Immediately fix navbar currency display before page renders
 add_action('wp_head', function() { ?>
 <script>
@@ -317,10 +313,11 @@ add_action('wp_head', function() { ?>
   var opts = '; path=/; max-age=' + (86400 * 365);
   document.cookie = 'woocs_session_currency=' + cur + opts;
   document.cookie = 'woocs_current_currency=' + cur + opts;
-  document.cookie = 'wmc_current_currency=' + cur + opts;
-  document.cookie = 'wmc-currency=' + cur + opts;
-  document.cookie = 'currency=' + cur + opts;
-  document.cookie = 'chosen_currency=' + cur + opts;
+  // DEF-13: these four were written for a currency plugin that is not
+  // installed, and read by nothing. Expire them where a visitor still has one.
+  ['wmc_current_currency', 'wmc-currency', 'currency', 'chosen_currency'].forEach(function(n){
+    if (('; ' + document.cookie).indexOf('; ' + n + '=') !== -1) document.cookie = n + '=; path=/; max-age=0';
+  });
 
   // Select the active currency in dropdowns without removing other options
   function fixNavCurrency() {
