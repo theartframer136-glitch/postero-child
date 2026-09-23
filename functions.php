@@ -1165,8 +1165,10 @@ add_action('wp_footer', function() { ?>
         }
 
 
-        // Log first card structure once to console so we can verify selectors
-        if (freshCards.length && !window._afCardLogged) {
+        // Log first card structure once to console so we can verify selectors.
+        // Debug switch only (inc/debug-flag.php, DEF-12): it was 2.5 KB of
+        // markup in every visitor's console.
+        if (window.afDebugOn === true && freshCards.length && !window._afCardLogged) {
             window._afCardLogged = true;
             console.log('[AF] product-card HTML:', freshCards[0].outerHTML.substring(0, 2000));
         }
@@ -14580,7 +14582,8 @@ add_action('template_redirect', function () {
    markup changes, which is what the cart fragment refresh does.
 
    It also prints what it found to the console, so a screenshot of that panel
-   answers the next question without another round of guessing.
+   answers the next question without another round of guessing. Only with the
+   debug switch on (?af_debug=1, see inc/debug-flag.php).
    ───────────────────────────────────────────────────────────── */
 add_action('wp_footer', function () {
     if (is_admin()) return;
@@ -14824,8 +14827,11 @@ add_action('wp_footer', function () {
       before = after;
     }
 
-    // say what happened, so a screenshot of the console is enough
-    try {
+    // say what happened, so a screenshot of the console is enough. Debug
+    // switch only (inc/debug-flag.php, DEF-12): this ran on every resize for
+    // every visitor, and measuring each control to build the line forces a
+    // layout. Skipped entirely when off, measuring included.
+    if (window.afDebugOn === true) try {
       var report = items.map(function(el){ var r = el.getBoundingClientRect(); return (el.className || el.tagName).toString().split(' ')[0] + ' y' + Math.round(r.top) + ' x' + Math.round(r.left) + ' ' + Math.round(r.width) + 'x' + Math.round(r.height); });
       var sp2 = Math.round(spreadNow());
       console.log('[af-header-row] ' + window.innerWidth + 'px  ' + (sp2 <= 10 ? 'ONE LINE' : 'STILL STACKED, spread ' + sp2 + 'px')
@@ -17579,7 +17585,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'kit-options', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection') as $af_mod) {
+foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'kit-options', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }

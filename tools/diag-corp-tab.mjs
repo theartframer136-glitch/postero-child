@@ -11,6 +11,9 @@ const puppeteer = createRequire(import.meta.url)('puppeteer-core');
 const b = await puppeteer.launch({ channel: 'chrome', headless: 'new', args: ['--no-sandbox','--disable-dev-shm-usage'] });
 const p = await b.newPage();
 await p.setViewport({ width: 1280, height: 900 });
+// The [af-cp] console lines only print with the theme's debug switch on
+// (inc/debug-flag.php, DEF-12). Set it before any page script runs.
+await p.evaluateOnNewDocument(() => { try { localStorage.setItem('af_debug', '1'); } catch (e) {} });
 let ok = false;
 for (let i = 1; i <= 3 && !ok; i++) {
   try { await p.goto('https://theartframer.us/', { waitUntil: 'domcontentloaded', timeout: 90000 }); ok = true; }

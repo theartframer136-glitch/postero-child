@@ -254,8 +254,10 @@ add_action('wp_footer', function () {
     if (!tab) return;
     if ((tab.getAttribute('data-cat') || '') !== CP.slug) { releaseGrid(); return; }
     // Leaves a trail a probe can read, so "nothing happened" can be told apart
-    // from "the handler never ran".
-    try { console.log('[af-cp] tab clicked'); } catch (x) {}
+    // from "the handler never ran". The console line only with the debug
+    // switch on (inc/debug-flag.php, DEF-12); the data-af-cp attributes are
+    // always set and carry the same trail.
+    if (window.afDebugOn === true) try { console.log('[af-cp] tab clicked'); } catch (x) {}
     document.documentElement.setAttribute('data-af-cp', 'clicked');
 
     // The theme does not know this tab, so nothing else is going to answer it.
@@ -269,7 +271,7 @@ add_action('wp_footer', function () {
     tab.classList.add('active');
 
     var grid = gridFor(tab);
-    try { console.log('[af-cp] grid = ' + (grid ? grid.tagName + '.' + grid.className : 'NULL')); } catch (x) {}
+    if (window.afDebugOn === true) try { console.log('[af-cp] grid = ' + (grid ? grid.tagName + '.' + grid.className : 'NULL')); } catch (x) {}
     document.documentElement.setAttribute('data-af-cp-grid', grid ? (grid.id || grid.className || grid.tagName) : 'NULL');
     if (grid) grid.style.opacity = '.45';
     showCircles();
@@ -280,7 +282,7 @@ add_action('wp_footer', function () {
 
     post(body).then(function (html) {
       busy = false;
-      try { console.log('[af-cp] answer ' + (html ? html.length : 0) + ' bytes, cards=' + hasCards(html)); } catch (x) {}
+      if (window.afDebugOn === true) try { console.log('[af-cp] answer ' + (html ? html.length : 0) + ' bytes, cards=' + hasCards(html)); } catch (x) {}
       document.documentElement.setAttribute('data-af-cp-bytes', String(html ? html.length : 0));
       if (grid) grid.style.opacity = '';
       if (!hasCards(html)) { window.location.href = CP.url; return; }
