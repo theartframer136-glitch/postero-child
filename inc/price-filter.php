@@ -35,8 +35,12 @@
  *    woocommerce_no_products_found (unlike woocommerce_before_shop_loop), and
  *    the "You may also like" row printed on that hook at 30 still follows.
  *
- * Shop, product categories, tags and attribute archives only. Search has its
- * own template.
+ * Shop, product categories, tags and attribute archives. A product search
+ * (/?s=…&post_type=product) is one of these too: WooCommerce serves it from
+ * the shop archive, and is_shop() is true on it. An earlier version of this
+ * file assumed search had its own template, and an empty search said "This
+ * collection is empty right now." (Test Run 03, N-03). An empty search now
+ * names the words that found nothing, and clearing its filters keeps them.
  */
 if (!defined('ABSPATH')) exit;
 
@@ -155,6 +159,12 @@ function af_price_filter_money($v) {
     return $sym . number_format_i18n($f, floor($f) == $f ? 0 : 2);
 }
 
+/** The words of a product search, or '' when this is not one. */
+function af_listing_search_term() {
+    if (!function_exists('is_search') || !is_search()) return '';
+    return trim((string) get_search_query(false));
+}
+
 /** The message and the way out. */
 function af_listing_empty_message() {
     $get      = af_price_filter_query();
@@ -164,9 +174,13 @@ function af_listing_empty_message() {
     $max      = isset($get['max_price']) ? af_price_filter_clean($get['max_price']) : null;
     $by_price = ($min !== null || $max !== null);
     $others   = array_diff($filters, array('min_price', 'max_price'));
+    // A search keeps its words when its filters are cleared.
+    $term     = af_listing_search_term();
+    $shown    = function_exists('mb_strimwidth') ? mb_strimwidth($term, 0, 60, '…', 'UTF-8') : substr($term, 0, 60);
+    $page     = array_intersect_key($get, array('s' => 1, 'post_type' => 1));
 
     if ($filters) {
-        $title = 'Nothing here matches those filters.';
+        $title = $term !== '' ? 'Nothing matches “' . $shown . '” with those filters.' : 'Nothing here matches those filters.';
         if ($by_price) {
             if ($min !== null && $max !== null) $range = 'between ' . af_price_filter_money($min) . ' and ' . af_price_filter_money($max);
             elseif ($min !== null)              $range = 'at ' . af_price_filter_money($min) . ' or more';
@@ -176,12 +190,15 @@ function af_listing_empty_message() {
         } else {
             $detail = 'Try fewer filters, or clear them to see everything.';
         }
+    } elseif ($term !== '') {
+        $title  = 'No artwork matches “' . $shown . '”.';
+        $detail = 'Check the spelling, or try a shorter or broader word.';
     } else {
         $title  = 'This collection is empty right now.';
         $detail = 'New pieces are added all the time. In the meantime, the rest of the studio is open.';
     }
 
-    $all_url = $filters ? af_price_filter_url($path, array()) : home_url('/shop/');
+    $all_url = $filters ? af_price_filter_url($path, $page) : home_url('/shop/');
     $html  = '<div class="af-empty-filter">';
     $html .= '<h2 class="af-ef-title">' . esc_html($title) . '</h2>';
     $html .= '<p class="af-ef-detail">' . esc_html($detail) . '</p>';
