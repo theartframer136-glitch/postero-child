@@ -477,6 +477,109 @@
   .woocommerce-checkout #order_review { top: 148px; }
 }
 
+/* ── DEF-16: the order summary never clips; the card field stays usable ──
+   Measured live (tools/probe-checkout-layout.mjs), one item in the cart:
+     width  summary  total clipped  card field
+     320     290       57 px         128
+     375     345        2 px         183
+     768     738        0            576   one column — fine
+     790     319       28 px         157   two columns from here
+     1024    418        0            256
+     1100    450        0            288
+     1280    525        0            363
+   The two columns are floats from the parent theme: #customer_details
+   left, #order_review right, form.checkout a plain block.
+
+   1. The table is sized by its container, never by its content.
+   2. 769–1149 px gets one column: the form, then the summary, each full
+      width. Below ~1130 the float sidebar cannot give the card field
+      300 px, so that is where two columns start to earn their place.
+      Written to undo floats, widths, flex or grid alike, so a parent
+      theme update that changes how the columns are built does not undo it.
+   3. Under 500 px the table stacks each label above its value, and the
+      nested padding that squeezed the table and the card field is trimmed.
+   (The report also had the floating quick panel over the prices at
+   790–900. The live run found no fixed control over the totals at any
+   width, so nothing is changed for it.) */
+.woocommerce-checkout .woocommerce-checkout-review-order-table {
+  table-layout: fixed;
+  width: 100%;
+  max-width: 100%;
+}
+.woocommerce-checkout .woocommerce-checkout-review-order-table th,
+.woocommerce-checkout .woocommerce-checkout-review-order-table td,
+.woocommerce-checkout .woocommerce-checkout-review-order-table td * {
+  /* The live table had a hard 311 px floor: something in it would not wrap.
+     Names and shipping labels wrap in place; prices, below, still never do. */
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+.woocommerce-checkout .woocommerce-checkout-review-order-table .product-total,
+.woocommerce-checkout .woocommerce-checkout-review-order-table tfoot td {
+  width: 38%;
+  text-align: right;
+}
+.woocommerce-checkout .woocommerce-checkout-review-order-table .amount {
+  white-space: nowrap;          /* a price never breaks across lines */
+}
+
+@media (min-width: 769px) and (max-width: 1149px) {
+  .woocommerce-checkout form.checkout,
+  .woocommerce-checkout form.woocommerce-checkout {
+    display: block !important;
+  }
+  .woocommerce-checkout #customer_details,
+  .woocommerce-checkout #order_review_heading,
+  .woocommerce-checkout #order_review {
+    float: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    grid-column: 1 / -1;
+    flex: 0 0 100%;
+    position: static !important;  /* the sticky summary above is for two columns */
+  }
+}
+
+@media (max-width: 499px) {
+  .woocommerce-checkout .woocommerce-checkout-review-order-table,
+  .woocommerce-checkout .woocommerce-checkout-review-order-table tbody,
+  .woocommerce-checkout .woocommerce-checkout-review-order-table tfoot,
+  .woocommerce-checkout .woocommerce-checkout-review-order-table tr {
+    display: block;
+    width: 100%;
+  }
+  .woocommerce-checkout .woocommerce-checkout-review-order-table thead {
+    display: none;              /* "Product / Subtotal" means nothing once rows stack */
+  }
+  .woocommerce-checkout .woocommerce-checkout-review-order-table tr {
+    border-bottom: 1px solid var(--af-co-line);
+    padding: 8px 0;
+  }
+  .woocommerce-checkout .woocommerce-checkout-review-order-table th,
+  .woocommerce-checkout .woocommerce-checkout-review-order-table td {
+    display: block;
+    width: 100% !important;
+    padding: 2px 0;
+    border: 0;
+    text-align: left;
+  }
+  .woocommerce-checkout .woocommerce-checkout-review-order-table .product-total,
+  .woocommerce-checkout .woocommerce-checkout-review-order-table tfoot td {
+    text-align: right;
+  }
+  /* Nested padding ate the width: at 320 the summary was 290 px and the
+     table inside it 218; the card field inside the payment box was 128. */
+  .woocommerce-checkout #order_review {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+  }
+  .woocommerce-checkout #payment { padding: 12px; }
+  .woocommerce-checkout #payment div.payment_box { padding: 10px; }
+}
+
 /* ── Mobile ───────────────────────────────────────────────── */
 @media (max-width: 768px) {
   /* single column; 16px inputs stop iOS zooming the page on focus */
