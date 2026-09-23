@@ -29,13 +29,13 @@ const fresh = () => browser.newContext({ viewport: { width: 1280, height: 900 },
 
 const load = async (page, path) => {
   const t0 = Date.now();
-  let sent = '';
-  const onReq = req => { if (req.isNavigationRequest() && req.url().startsWith(SITE)) sent = req.headers()['cookie'] || ''; };
-  page.on('request', onReq);
   const r = await page.goto(SITE + path, { waitUntil: 'commit', timeout: 45000 }).catch(() => null);
-  page.off('request', onReq);
   const ttfb = ((Date.now() - t0) / 1000).toFixed(2);
   if (!r) return 'no answer';
+  // allHeaders(), not headers(): the Cookie header is added by the network
+  // stack, and headers() leaves it out, so the first version always said
+  // "(no cookies)".
+  const sent = ((await r.request().allHeaders().catch(() => ({}))).cookie) || '';
   const all = await r.headersArray().catch(() => []);
   const h = n => all.filter(x => x.name.toLowerCase() === n).map(x => x.value);
   const set = h('set-cookie').map(v => v.split(';')[0]).join(' ');
