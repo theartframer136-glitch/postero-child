@@ -72,15 +72,26 @@ for (const path of ['/shop/?orderby=price', '/?s=test&post_type=product', '/', '
 const sm = await page.evaluate(async slug => {
   const idx = await fetch('/sitemap_index.xml').then(r => r.ok ? r.text() : '').catch(() => '');
   const maps = [...idx.matchAll(/<loc>([^<]*product-sitemap[^<]*)<\/loc>/g)].map(m => m[1]);
-  let listed = [];
+  let listed = [], fresh = [];
   for (const m of maps) {
-    const x = await fetch(new URL(m).pathname).then(r => r.ok ? r.text() : '').catch(() => '');
-    if (x.includes('/product/' + slug + '/')) listed.push(new URL(m).pathname);
+    const path = new URL(m).pathname;
+    const r = await fetch(path).catch(() => null);
+    const x = r && r.ok ? await r.text() : '';
+    if (!x.includes('/product/' + slug + '/')) continue;
+    // Listed. Is that a page cache serving an old copy, or the sitemap
+    // itself? A query string the cache has never seen makes WordPress build
+    // it again.
+    const f = await fetch(path + '?af_nocache=' + Date.now()).catch(() => null);
+    const fx = f && f.ok ? await f.text() : '';
+    listed.push(path + ' (cache ' + (r.headers.get('x-litespeed-cache') || '-') + ', age ' + (r.headers.get('age') || '-') + ')');
+    fresh.push(path + ' rebuilt: HTTP ' + (f ? f.status : 0) + ', cache ' + (f && f.headers.get('x-litespeed-cache') || '-')
+      + ', ' + (fx.includes('/product/' + slug + '/') ? 'STILL lists it' : 'does not list it'));
   }
-  return { maps: maps.length, listed };
-}, SLUG).catch(() => ({ maps: 0, listed: [] }));
+  return { maps: maps.length, listed, fresh };
+}, SLUG).catch(() => ({ maps: 0, listed: [], fresh: [] }));
 if (!sm.maps) console.log('  NO DATA ' + 'product sitemaps'.padEnd(34) + 'the sitemap index could not be read');
 else say(!sm.listed.length, 'product sitemaps', sm.maps + ' read · listed in: ' + (sm.listed.join(', ') || 'none'));
+for (const f of sm.fresh) console.log(' '.repeat(43) + f);
 
 const gone = results.filter(Boolean).length;
 console.log('\n' + (gone === results.length ? 'N-01 FIXED' : 'N-01 NOT FIXED') + ': ' + gone + ' of ' + results.length + ' ways in are closed');
