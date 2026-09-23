@@ -212,6 +212,7 @@ const NAMED = {
     ['"Show" per page', '.per-page-title', 0],
     ['filter count', '.wc-layered-nav-term .count', 0],
     ['price slider label', '.price_label', 0],
+    ['banner "25% Off"', '.elementor-cta__title .c-primary', 0],
   ],
   cart: [
     ['Proceed to checkout', '.cart_totals .checkout-button', 1],
@@ -223,6 +224,7 @@ const NAMED = {
   checkout: [
     ['Place order', '#place_order', 1],
     ['coupon Apply', '.checkout_coupon button[name="apply_coupon"]', 1],
+    ['Square gift card Apply', '#square-gift-card-apply-btn', 1],
   ],
 };
 const named = [];
