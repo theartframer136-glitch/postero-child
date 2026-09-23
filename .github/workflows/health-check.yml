@@ -56,6 +56,8 @@ jobs:
             # The probe sees whether the sitemap still lists the noindexed pages.
             # If it does, this says why: which Rank Math method ran, none, or failed.
             timeout 60 wp option get af_noindex_sitemap_flush --allow-root 2>&1 | tail -1
+            echo; echo "--- N-01: was the \"test\" product taken off public sale (inc/placeholder-products.php) ---"
+            timeout 60 wp option get af_placeholder_products --allow-root 2>&1 | tail -1
             echo; echo "--- DEF-13: which currency plugins are installed, and which are active ---"
             # The report counted two plugins from six cookies, but the theme
             # itself writes all six (functions.php, assets/js/custom.js). Only
