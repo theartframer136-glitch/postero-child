@@ -78,13 +78,13 @@ const sm = await page.evaluate(async slug => {
     const r = await fetch(path).catch(() => null);
     const x = r && r.ok ? await r.text() : '';
     if (!x.includes('/product/' + slug + '/')) continue;
-    // Listed. Is that a page cache serving an old copy, or the sitemap
-    // itself? A query string the cache has never seen makes WordPress build
-    // it again.
+    // Listed. Is that the page cache serving an old copy? A query string the
+    // page cache has never seen goes past it to WordPress. If that copy lists
+    // it too, the old copy is Rank Math's own stored sitemap.
     const f = await fetch(path + '?af_nocache=' + Date.now()).catch(() => null);
     const fx = f && f.ok ? await f.text() : '';
     listed.push(path + ' (cache ' + (r.headers.get('x-litespeed-cache') || '-') + ', age ' + (r.headers.get('age') || '-') + ')');
-    fresh.push(path + ' rebuilt: HTTP ' + (f ? f.status : 0) + ', cache ' + (f && f.headers.get('x-litespeed-cache') || '-')
+    fresh.push(path + ' past the page cache: HTTP ' + (f ? f.status : 0) + ', cache ' + (f && f.headers.get('x-litespeed-cache') || '-')
       + ', ' + (fx.includes('/product/' + slug + '/') ? 'STILL lists it' : 'does not list it'));
   }
   return { maps: maps.length, listed, fresh };
