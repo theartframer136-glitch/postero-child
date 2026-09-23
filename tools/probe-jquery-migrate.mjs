@@ -54,13 +54,41 @@ await ctx.route('**/*', route => {
 });
 await ctx.addInitScript(() => {
   window.__afMigrate = [];
+  // V8 keeps 10 frames by default. A 'ready' handler is warned about from
+  // deep inside jQuery's event code, and the script that asked is further up.
+  try { Error.stackTraceLimit = 40; } catch (e) {}
+  // The first run found nothing, and could not have. Live, Migrate announces
+  // itself as "Migrate is installed, version 3.4.1", without "with logging
+  // active", so jQuery.migrateMute is true and migrateWarn() never calls
+  // console.warn. So jQuery's own assignment of window.jQuery is caught, and
+  // migrateMute is pinned to false before Migrate or anything else can set it.
+  // Migrate still records every warning in jQuery.migrateWarnings either way;
+  // read() below takes that too, so a warning cannot go uncounted.
+  try {
+    let jq;
+    Object.defineProperty(window, 'jQuery', {
+      configurable: true,
+      get() { return jq; },
+      set(v) {
+        jq = v;
+        try { Object.defineProperty(v, 'migrateMute', { configurable: true, get() { return false; }, set() {} }); } catch (e) {}
+      },
+    });
+  } catch (e) {}
+  const ol = console.log;
+  console.log = function () {
+    try { const m = String(arguments[0] || ''); if (m.indexOf('JQMIGRATE: Migrate is installed') === 0) window.__afMigrateBanner = m; } catch (e) {}
+    return ol.apply(this, arguments);
+  };
   const ow = console.warn;
   console.warn = function () {
     try {
       const m = String(arguments[0] || '');
       if (m.indexOf('JQMIGRATE') === 0) {
         const frames = (new Error().stack || '').split('\n').slice(1).map(s => s.trim());
-        const caller = frames.find(f => !/jquery-migrate|__afMigrate|console\.warn|migrateWarn/i.test(f) && /https?:/.test(f)) || '';
+        // Skip Migrate's frames and jQuery's own (a 'ready' handler is added
+        // from inside jQuery's event code), to reach the script that asked.
+        const caller = frames.find(f => !/jquery-migrate|\/jquery(\.min)?\.js|__afMigrate|console\.warn|migrateWarn/i.test(f) && /https?:/.test(f)) || '';
         window.__afMigrate.push({ msg: m.replace(/^JQMIGRATE:\s*/, ''), caller: caller.replace(/^at\s+/, '') });
       }
     } catch (e) {}
@@ -76,11 +104,21 @@ const go = async (path, wait = 3500) => {
   if (r) await page.waitForTimeout(wait);
   return r ? r.status() : 0;
 };
-const read = () => page.evaluate(() => ({
-  jq: (window.jQuery && window.jQuery.fn && window.jQuery.fn.jquery) || '(no jQuery)',
-  migrate: (window.jQuery && window.jQuery.migrateVersion) || '(not loaded)',
-  warnings: (window.__afMigrate || []).slice(0, 40),
-})).catch(() => ({ jq: '?', migrate: '?', warnings: [] }));
+const read = () => page.evaluate(() => {
+  const jq = window.jQuery;
+  const caught = (window.__afMigrate || []).slice(0, 40);
+  // Anything Migrate recorded that the console path did not see: listed, no caller.
+  const seen = new Set(caught.map(w => w.msg));
+  const recorded = ((jq && jq.migrateWarnings) || []).map(m => String(m).replace(/\s*\[[^\]]+\]\s*$/, ''));
+  for (const m of recorded) if (!seen.has(m)) caught.push({ msg: m, caller: '(from jQuery.migrateWarnings; caller not captured)' });
+  return {
+    jq: (jq && jq.fn && jq.fn.jquery) || '(no jQuery)',
+    migrate: (jq && jq.migrateVersion) || '(not loaded)',
+    logging: window.__afMigrateBanner ? /logging active/.test(window.__afMigrateBanner) : null,
+    recorded: recorded.length,
+    warnings: caught,
+  };
+}).catch(() => ({ jq: '?', migrate: '?', logging: null, recorded: 0, warnings: [] }));
 
 console.log('probe-jquery-migrate: ' + SITE + '   ' + new Date().toISOString() + '\n');
 
@@ -121,14 +159,14 @@ for (const [label, path] of pages) {
   }
   const r = await read();
   note(label, r, pageErrors.slice());
-  console.log('  ' + label.padEnd(10) + 'HTTP ' + s + '   jQuery ' + r.jq + '   Migrate ' + r.migrate + '   warnings ' + r.warnings.length + '   page errors ' + pageErrors.length);
+  console.log('  ' + label.padEnd(10) + 'HTTP ' + s + '   jQuery ' + r.jq + '   Migrate ' + r.migrate + '   logging ' + (r.logging === null ? '?' : r.logging ? 'on' : 'MUTED') + '   warnings ' + r.warnings.length + '   page errors ' + pageErrors.length);
 }
 for (const [label, path] of [['cart', '/cart/'], ['checkout', '/checkout/'], ['wishlist', '/wishlist/'], ['login', '/login/']]) {
   pageErrors = [];
   const s = await go(path);
   const r = await read();
   note(label, r, pageErrors.slice());
-  console.log('  ' + label.padEnd(10) + 'HTTP ' + s + '   jQuery ' + r.jq + '   Migrate ' + r.migrate + '   warnings ' + r.warnings.length + '   page errors ' + pageErrors.length);
+  console.log('  ' + label.padEnd(10) + 'HTTP ' + s + '   jQuery ' + r.jq + '   Migrate ' + r.migrate + '   logging ' + (r.logging === null ? '?' : r.logging ? 'on' : 'MUTED') + '   warnings ' + r.warnings.length + '   page errors ' + pageErrors.length);
 }
 
 console.log('\n— every distinct Migrate warning, with the script that made the call —');
@@ -149,8 +187,12 @@ const loaded = perPage.filter(p => p.migrate !== '(not loaded)' && p.migrate !==
 console.log('\n— verdict —');
 console.log('  Migrate loaded on ' + loaded + ' of ' + perPage.length + ' pages');
 console.log('  distinct warnings: ' + all.size + ' (' + removed + ' for APIs jQuery 3 removed)');
+// An empty list only counts if Migrate was actually able to speak.
+const heard = perPage.filter(p => p.migrate !== '(not loaded)' && p.migrate !== '?' && p.logging === true).length;
+console.log('  Migrate logging forced on for ' + heard + ' of ' + loaded + ' pages where it loaded');
 console.log('  ' + (loaded === 0 ? 'Migrate is gone.'
-  : removed === 0 ? 'Nothing on these paths depends on Migrate: every warning is for an API jQuery 3.7 still has. Safe to remove.'
+  : heard < loaded ? 'NO DATA — Migrate stayed muted on ' + (loaded - heard) + ' page(s); an empty list there proves nothing.'
+  : removed === 0 ? 'Nothing on these paths depends on Migrate: ' + (all.size ? 'every warning is for an API jQuery 3.7 still has.' : 'it recorded no calls at all.') + ' Safe to remove.'
   : removed + ' removed API(s) in use — those callers must be fixed before Migrate can go.'));
 
 // empty the cart the product step filled
