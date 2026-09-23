@@ -12942,23 +12942,48 @@ add_action('wp_footer', function(){
 // Spec §9: download limits (set by tools/enable-digital-downloads.php),
 // license acceptance at checkout, watermarked product-page previews.
 
-// Does the cart contain any digital download?
+/**
+ * Is this cart line bought as a file?
+ *
+ * NOT is_downloadable(). tools/enable-digital-downloads.php flags every
+ * published product downloadable (see af_is_digital_download), so that check
+ * answered "yes" for a rolled canvas with "You receive: Painting only", and
+ * every order in the shop was asked to accept the Digital Download License and
+ * refused if the box was left empty (Test Run 03, N-02). A line is a file when:
+ *   - it carries af_digital: the download modal, or a product from a
+ *     digital-download category (af_sells_as_digital)
+ *   - "What you receive" is an option that ships nothing: Digital download
+ *     (inc/kit-options.php), which does not set af_digital
+ *   - its product sits in a digital-download category, however it got here
+ */
+function af_cart_line_is_digital($item) {
+    if (!empty($item['af_digital'])) return true;
+    if (!empty($item['af_kit']) && function_exists('af_kit_ships') && !af_kit_ships($item['af_kit'])) return true;
+    $pid = isset($item['product_id']) ? (int) $item['product_id'] : 0;
+    $p = $pid ? wc_get_product($pid) : null;
+    return $p ? af_is_digital_download($p) : false;
+}
+
+// Does the cart contain any digital download? The checkbox and the check that
+// refuses the order both ask this, so they cannot disagree.
 function af_cart_has_digital() {
     if (!function_exists('WC') || !WC()->cart) return false;
     foreach (WC()->cart->get_cart() as $item) {
-        if (!empty($item['af_digital'])) return true;
-        if (!empty($item['data']) && is_object($item['data']) && $item['data']->is_downloadable()) return true;
+        if (af_cart_line_is_digital($item)) return true;
     }
     return false;
 }
 
-// Checkout: required license checkbox when a digital item is in the cart
+// Checkout: required license checkbox when a digital item is in the cart.
+// required + validate-required make the asterisk true in the markup as well:
+// WooCommerce marks the row invalid before the request is sent, and screen
+// readers announce it as required. The server check below still decides.
 add_action('woocommerce_review_order_before_submit', function() {
     if (!af_cart_has_digital()) return;
     ?>
-    <p class="form-row af-dl-license-row" style="background:#faf7f0;border:1px solid #e0d5b8;padding:14px 16px;">
+    <p class="form-row validate-required af-dl-license-row" style="background:#faf7f0;border:1px solid #e0d5b8;padding:14px 16px;">
         <label class="woocommerce-form__label woocommerce-form__label-for-checkbox checkbox" style="display:flex;gap:10px;align-items:flex-start;">
-            <input type="checkbox" class="woocommerce-form__input woocommerce-form__input-checkbox" name="af_dl_license" id="af_dl_license" style="margin-top:4px;">
+            <input type="checkbox" class="woocommerce-form__input woocommerce-form__input-checkbox" name="af_dl_license" id="af_dl_license" required aria-required="true" style="margin-top:4px;">
             <span>Your order includes a digital download. I accept the
             <a href="/digital-download-license/" target="_blank" rel="noopener">Digital Download License</a>
             (personal use only — no resale or redistribution). <abbr class="required" title="required">*</abbr></span>
