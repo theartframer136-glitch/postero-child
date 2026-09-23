@@ -29,6 +29,11 @@ add_action('template_redirect', function() {
     if ($paged === 1 && !$cat && $q->have_posts()) { $hero = $q->posts[0]; }
     $cats  = get_categories(array('hide_empty' => true, 'orderby' => 'count', 'order' => 'DESC', 'number' => 10));
 
+    // DEF-15: tells af_blog_hub_description() below that the hub is what is
+    // being rendered, and for which topic. Set before get_header(), which is
+    // where Rank Math prints the description.
+    $GLOBALS['af_blog_hub'] = array('topic' => $cat ? get_category_by_slug($cat) : null);
+
     status_header(200);
     get_header();
     ?>
@@ -133,4 +138,67 @@ add_action('template_redirect', function() {
     <?php
     get_footer();
     exit;
+}, 1);
+
+/**
+ * The hub's meta description.
+ *
+ * DEF-15. /blog/ had none, measured by the QA report, while every other
+ * indexable template carries one of 97–160 characters. The hub is rendered
+ * above, in template_redirect, not by a page whose SEO fields Rank Math can
+ * read. So there was no text for it to print.
+ *
+ * Only when the hub is rendering, and only when Rank Math has nothing of its
+ * own: a description the owner writes in Rank Math for the Posts page wins.
+ * A topic view (?topic=) names its topic, so the two pages do not share one
+ * description.
+ *
+ * /wishlist/ is left alone. It has been noindex since DEF-10, so a
+ * description there would never reach a search result.
+ */
+function af_blog_hub_description() {
+    if (empty($GLOBALS['af_blog_hub'])) return '';
+    $t = $GLOBALS['af_blog_hub']['topic'];
+    if ($t && !empty($t->name)) {
+        $d = 'Articles on ' . wp_strip_all_tags($t->name)
+           . ' from The Art Framer studio: buying guides, care advice and ideas for living with art.';
+    } else {
+        $d = 'Buying guides, care advice and ideas for living with art, from The Art Framer studio: '
+           . 'canvas care, framing, wall decor trends and more.';
+    }
+    return function_exists('mb_substr') ? mb_substr($d, 0, 160) : substr($d, 0, 160);
+}
+
+add_filter('rank_math/frontend/description', function ($desc) {
+    try {
+        if (is_string($desc) && trim($desc) !== '') return $desc;
+        $ours = af_blog_hub_description();
+        return $ours !== '' ? $ours : $desc;
+    } catch (\Throwable $e) {
+        return $desc;
+    }
+}, 20);
+
+// The share preview too. Measured: /blog/'s og:description was one article's
+// text ("Best Online Canvas Printing Service Near Delaware: …"), so a link
+// to the hub previewed as that post. Rank Math's Open Graph description
+// comes through its own filter, not the one above. Only while the hub is
+// rendering. Unlike the description, this cannot tell an og:description the
+// owner wrote from the first article's text Rank Math falls back to, so on the
+// hub it always uses the hub's own.
+add_filter('rank_math/opengraph/facebook/og_description', function ($desc) {
+    try {
+        if (empty($GLOBALS['af_blog_hub'])) return $desc;
+        $ours = af_blog_hub_description();
+        return $ours !== '' ? $ours : $desc;
+    } catch (\Throwable $e) {
+        return $desc;
+    }
+}, 20);
+
+// Without Rank Math there is no description tag at all; print the one.
+add_action('wp_head', function () {
+    if (defined('RANK_MATH_VERSION')) return;
+    $d = af_blog_hub_description();
+    if ($d !== '') echo '<meta name="description" content="' . esc_attr($d) . '">' . "\n";
 }, 1);
