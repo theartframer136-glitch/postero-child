@@ -56,6 +56,15 @@ jobs:
             # The probe sees whether the sitemap still lists the noindexed pages.
             # If it does, this says why: which Rank Math method ran, none, or failed.
             timeout 60 wp option get af_noindex_sitemap_flush --allow-root 2>&1 | tail -1
+            echo; echo "--- DEF-13: which currency plugins are installed, and which are active ---"
+            # The report counted two plugins from six cookies, but the theme
+            # itself writes all six (functions.php, assets/js/custom.js). Only
+            # the plugin list says what is actually running.
+            timeout 60 wp plugin list --fields=name,status,version --allow-root 2>/dev/null \
+              | grep -i -E "currenc|woocs|wmc|multi|aelia|wpml|wcml" || echo "  (no currency plugin matched)"
+            echo "  options present:"
+            timeout 60 wp option list --search="wmc*" --fields=option_name --allow-root 2>/dev/null | tail -n +2 | head -8 | sed "s/^/    /"
+            timeout 60 wp option list --search="woocs*" --fields=option_name --allow-root 2>/dev/null | tail -n +2 | head -8 | sed "s/^/    /"
             echo; echo "--- the PHP error log ---"
             # tail -25 was useless the one time it mattered: two plugins emit a
             # _load_textdomain_just_in_time notice on every request, so the tail
