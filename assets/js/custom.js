@@ -243,15 +243,11 @@ jQuery(document).ready(function($) {
     new MutationObserver(initCardIconCorner).observe(document.body, { childList: true, subtree: true });
   } catch (e) {}
 
-  // ---- Pre-set USD currency cookie so plugin initialises with USD ----
-  (function() {
-    var opts = '; path=/; max-age=' + (86400 * 365);
-    document.cookie = 'woocs_session_currency=USD' + opts;
-    document.cookie = 'wmc_current_currency=USD' + opts;
-    document.cookie = 'wmc-currency=USD' + opts;
-    document.cookie = 'currency=USD' + opts;
-    document.cookie = 'chosen_currency=USD' + opts;
-  })();
+  // (DEF-13) A block here used to set woocs_session_currency and four other
+  // currency cookies to USD on every page, unconditionally. It ran after the
+  // <head> script in functions.php had set them to the shopper's own choice,
+  // so a shopper on CAD was left with cookies saying both. The <head> script
+  // is the one place the currency cookies are written now.
 
   // ---- Carry the coupon notice across the cart reload (H-01) ----
   //
