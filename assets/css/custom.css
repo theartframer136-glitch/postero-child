@@ -2960,17 +2960,25 @@ body[class*="elementor-kit-"] {
    of backgrounds elsewhere, so it is changed only on the buttons that sit on
    the gold fill: the parent's own rule then draws their labels in dark ink,
    and there is no selector fight to lose to Elementor's !important (which is
-   what happened to the first Add to Cart fix). Hover fills are
-   --primary_hover #B58330, where the ink is 5.52:1. */
-body .postero-sticky-add-to-cart__content-button,
-body .widget_shopping_cart .buttons a.checkout,
-body .woocommerce-mini-cart__buttons a.checkout,
-body .cart_totals a.checkout-button,
-body #payment #place_order,
-body button[name="apply_coupon"],
-body button[name="update_cart"],
-body .af-por-btn,
-body .single_add_to_cart_button,
-body .af-buynow {
+   what happened to the first Add to Cart fix).
+   Only at rest. On hover, focus and press Postero fills them with --accent,
+   black, where the ink would be 1.13:1; there --white stays white (21:1).
+   Measured with probe-contrast's preview, 23 Sep. */
+body .postero-sticky-add-to-cart__content-button:not(:hover):not(:focus):not(:active),
+body .widget_shopping_cart .buttons a.checkout:not(:hover):not(:focus):not(:active),
+body .woocommerce-mini-cart__buttons a.checkout:not(:hover):not(:focus):not(:active),
+body .cart_totals a.checkout-button:not(:hover):not(:focus):not(:active),
+body #payment #place_order:not(:hover):not(:focus):not(:active),
+body button[name="apply_coupon"]:not(:hover):not(:focus):not(:active),
+body button[name="update_cart"]:not(:hover):not(:focus):not(:active),
+body .af-por-btn:not(:hover):not(:focus):not(:active) {
   --white: var(--af-on-primary, #1a1206);
+}
+/* The Add to Cart rule above sets the ink with !important in every state,
+   so on the black hover fill it read 1.13:1. White again there. */
+body .woocommerce .single_add_to_cart_button:is(:hover, :focus, :active),
+body .woocommerce button.single_add_to_cart_button:is(:hover, :focus, :active),
+body button.single_add_to_cart_button:is(:hover, :focus, :active),
+body .single_add_to_cart_button:is(:hover, :focus, :active) {
+  color: #fff !important;
 }

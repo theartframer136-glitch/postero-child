@@ -6108,7 +6108,7 @@ add_action('wp_head', function() {
     <style>
     /* Buy Now (works on product page AND inside the Quick View modal) */
     .af-buynow.button{background:#1a1a1a !important;color:#fff !important;margin-left:8px !important;}
-    .af-buynow.button:hover{background:#c9a84c !important;}
+    .af-buynow.button:hover{background:#c9a84c !important;color:var(--af-on-primary, #1a1206) !important;}
     /* Trust badges under CTA */
     .af-pp-trust{display:flex;flex-wrap:wrap;gap:14px;margin:18px 0 0;padding:14px 0 0;border-top:1px solid #eee;width:100%;}
     .af-ppt{display:flex;align-items:center;gap:9px;flex:1 1 150px;min-width:140px;}
@@ -15572,7 +15572,7 @@ add_action('wp_footer', function() {
     if (is_admin()) return;
     ?>
 <style>
-.af-opt-sub{font-weight:400;color:#999;font-size:11.5px;}
+.af-opt-sub{font-weight:400;color:var(--af-mute, #6b6b6b);font-size:11.5px;}
 /* Only the "Custom ↗" pill still uses this — the S/M/L filters went with the
    size chip grid, since a five-item dropdown has nothing to filter. */
 .af-chip-grp{background:#f5f0e4;border:1px solid #e0d5b8;color:#6b5a23;font-size:11.5px;font-weight:800;
@@ -15580,7 +15580,7 @@ add_action('wp_footer', function() {
 .af-chip-custom{border-style:dashed;}
 .af-wall-hint{margin:2px 0 12px;font-size:12.5px;color:#8a6d1f;font-weight:600;}
 .af-rec{display:block;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#256d2c;font-weight:800;}
-.af-color-tip{margin:2px 0 8px;font-size:11.5px;color:#999;}
+.af-color-tip{margin:2px 0 8px;font-size:11.5px;color:var(--af-mute, #6b6b6b);}
 .af-live-mrp{color:var(--af-was, #6b6b6b);margin-left:10px;font-size:15px;text-decoration:line-through;text-decoration-color:var(--af-was, #6b6b6b);text-decoration-thickness:2px;}
 .af-live-disc{margin-left:8px;font-size:13.5px;font-weight:700;color:var(--af-save, #2e7d32);}
 .af-price-notes{margin:4px 0 10px;font-size:12.5px;color:#256d2c;font-weight:600;}

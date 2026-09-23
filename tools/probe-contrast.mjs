@@ -55,10 +55,24 @@ if (PREVIEW) {
     else flush();
   }
   flush();
-  swaps = swaps.map(([a, b]) => [new RegExp(a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s*'), 'g'), b]);
+  // As loose as a minifier is: any whitespace around punctuation, either
+  // quote, the last ; before } dropped, and any letter case (LiteSpeed
+  // minifies the inline CSS of the pages it caches).
+  const loose = a => {
+    let r = '';
+    for (const ch of a) {
+      if (/\s/.test(ch)) { if (!r.endsWith('\\s*')) r += '\\s*'; }
+      else if (ch === "'" || ch === '"') r += '[\'"]';
+      else if (ch === ';') r += '\\s*;?\\s*';
+      else if ('{}:,>'.includes(ch)) r += '\\s*\\' + ch + '\\s*';
+      else r += ch.replace(/[.*+?^${}()|[\]\\\/!]/g, '\\$&');
+    }
+    return new RegExp(r, 'gi');
+  };
+  swaps = swaps.map(([a, b]) => [loose(a), b, a]);
   css = readFileSync(new URL('../assets/css/custom.css', import.meta.url), 'utf8');
 }
-const found = {};
+const seen = new Set();   // the swaps found somewhere
 
 const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, ignoreHTTPSErrors: true });
@@ -68,14 +82,13 @@ await ctx.route('**/*', async route => {
   const body = (req.postData() || '') + ' ' + url;
   if (NEVER_SEND.some(n => body.includes(n))) return route.fulfill({ status: 200, contentType: 'application/json', body: '{"result":"failure"}' });
   if (PREVIEW && /\/postero-child\/assets\/css\/custom\.css/.test(url)) return route.fulfill({ status: 200, contentType: 'text/css', body: css });
-  if (PREVIEW && req.resourceType() === 'document' && req.method() === 'GET' && url.startsWith(SITE) && !/remove_item|add-to-cart/.test(url)) {
+  // The page, and the stylesheets and scripts LiteSpeed combines inline code into.
+  if (PREVIEW && ['document', 'stylesheet', 'script'].includes(req.resourceType()) && req.method() === 'GET' && url.startsWith(SITE) && !/remove_item|add-to-cart/.test(url)) {
     const r = await route.fetch().catch(() => null);
     if (!r) return route.continue();
-    let html = await r.text();
-    let n = 0;
-    for (const [re, to] of swaps) html = html.replace(re, () => { n++; return to; });
-    found[new URL(url).pathname] = n;
-    return route.fulfill({ response: r, body: html });
+    let text = await r.text();
+    swaps.forEach(([re, to], i) => { text = text.replace(re, () => { seen.add(i); return to; }); });
+    return route.fulfill({ response: r, body: text });
   }
   return route.continue();
 });
@@ -132,7 +145,7 @@ const go = async p => { await page.goto(SITE + p, { waitUntil: 'domcontentloaded
 // `force` selectors name them (the mini cart's buttons live in a closed drawer).
 const audit = (force) => {
   const { measure, srOnly, disabled, ownText } = window.__afc;
-  const sel = el => { const out = []; for (let e = el, i = 0; e && e !== document.body && i < 3; e = e.parentElement, i++) out.unshift(e.tagName.toLowerCase() + (typeof e.className === 'string' && e.className.trim() ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : '')); return out.join(' > '); };
+  const sel = el => { const out = []; for (let e = el, i = 0; e && e !== document.body && i < 3; e = e.parentElement, i++) out.unshift(e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (e.getAttribute('name') ? '[name=' + e.getAttribute('name') + ']' : '') + (typeof e.className === 'string' && e.className.trim() ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : '')); return out.join(' > '); };
   const forced = force ? [...document.querySelectorAll(force)] : [];
   const res = [], skipped = { sr: 0, disabled: 0 };
   for (const el of document.querySelectorAll('body *')) {
@@ -219,18 +232,20 @@ const measureNamed = async (key) => {
   const { root } = await cdp.send('DOM.getDocument', { depth: 0 });
   for (const [label, sel, hover] of NAMED[key]) {
     const at = await page.evaluate(s => { const el = document.querySelector(s); if (!el) return null; const m = window.__afc.measure(el); return m && { ...m, text: (el.textContent || el.value || '').replace(/\s+/g, ' ').trim().slice(0, 28) }; }, sel).catch(() => null);
-    if (!at) { named.push([key, label, null, null, hover]); continue; }
-    let hv = null;
+    if (!at) { named.push([key, label, null, {}, hover]); continue; }
+    const states = {};
     if (hover) {
       const { nodeId } = await cdp.send('DOM.querySelector', { nodeId: root.nodeId, selector: sel }).catch(() => ({ nodeId: 0 }));
       if (nodeId) {
-        await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: ['hover'] }).catch(() => {});
-        await page.waitForTimeout(450);   // let colour transitions finish
-        hv = await page.evaluate(s => window.__afc.measure(document.querySelector(s)), sel).catch(() => null);
-        await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] }).catch(() => {});
+        for (const [name, forced] of [['hover', ['hover']], ['focus', ['focus', 'focus-visible']]]) {
+          await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: forced }).catch(() => {});
+          await page.waitForTimeout(450);   // let colour transitions finish
+          states[name] = await page.evaluate(s => window.__afc.measure(document.querySelector(s)), sel).catch(() => null);
+          await cdp.send('CSS.forcePseudoState', { nodeId, forcedPseudoClasses: [] }).catch(() => {});
+        }
       }
     }
-    named.push([key, label, at, hv, hover]);
+    named.push([key, label, at, states, hover]);
   }
   await cdp.detach().catch(() => {});
 };
@@ -259,18 +274,22 @@ await go('/checkout/');
 report('/checkout/', await page.evaluate(audit, null));
 await measureNamed('checkout');
 
-console.log('\nnamed items (ratio, needs, colour on background; then the same with :hover forced)');
+console.log('\nnamed items (ratio, needs, colour on background; then the same with :hover, and :focus, forced)');
 const fmt = m => m ? (m.pass ? 'pass ' : 'FAIL ') + (m.ratio.toFixed(2) + ':1').padStart(7) + ' (' + m.need + ')  ' + m.fg + ' on ' + m.bg : 'not measurable (image or gradient behind)';
-for (const [key, label, at, hv, hover] of named) {
+for (const [key, label, at, states, hover] of named) {
   if (!at) { console.log('  ' + key.padEnd(9) + label.padEnd(30) + 'not on this page'); continue; }
-  console.log('  ' + key.padEnd(9) + label.padEnd(30) + fmt(at) + '   "' + at.text + '"' + (hover ? '\n' + ' '.repeat(39) + 'hover  ' + fmt(hv) : ''));
+  console.log('  ' + key.padEnd(9) + label.padEnd(30) + fmt(at) + '   "' + at.text + '"');
+  if (hover) for (const st of ['hover', 'focus']) console.log(' '.repeat(39) + st.padEnd(7) + fmt(states[st]));
 }
-const nf = named.filter(([, , at, hv]) => (at && !at.pass) || (hv && !hv.pass)).length;
-console.log('\n' + named.filter(n => n[2]).length + ' named items found, ' + nf + ' below AA at rest or on hover');
+const nf = named.filter(([, , at, st]) => (at && !at.pass) || Object.values(st).some(m => m && !m.pass)).length;
+console.log('\n' + named.filter(n => n[2]).length + ' named items found, ' + nf + ' below AA at rest, on hover or on focus');
 
 console.log('\ntotals');
 for (const [label, n, f] of totals) console.log('  ' + String(f).padStart(4) + ' of ' + String(n).padStart(4) + ' below AA   ' + label);
-if (PREVIEW) console.log('\npreview lines found per page: ' + Object.entries(found).map(([p, n]) => p + ' ' + n).join(' · '));
+if (PREVIEW) {
+  console.log('\npreview: ' + seen.size + ' of ' + swaps.length + ' changed lines found in the pages and their CSS and JS; not found:');
+  swaps.forEach(([, , a], i) => { if (!seen.has(i)) console.log('  ' + a.slice(0, 110)); });
+}
 
 for (let i = 0; i < 6; i++) {
   await go('/cart/');
