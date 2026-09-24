@@ -6072,15 +6072,40 @@ af_section(function() {
     echo '</div></section>';
 }, 21);
 
+// The native "Related products" row has the same fault: two of its four
+// cards were placeholder pictures. Drop those before WooCommerce slices the
+// candidate list to four, so real artwork fills the row instead.
+add_filter('woocommerce_related_products', function($ids) {
+    return array_values(array_filter((array) $ids, function($pid) {
+        $p = wc_get_product($pid);
+        return $p && $p->get_image_id() && !af_is_placeholder_image($p->get_image_id());
+    }));
+}, 20);
+
 // 7f. Recently Viewed: one strip, drawn in the browser (PHASE 18 below).
 
 // Filter product IDs down to those with a real featured image (avoids
 // grey placeholder cards), capped at $max.
+/**
+ * Is this attachment the theme's stand-in picture rather than artwork?
+ * Four leftover theme demo products (Balance Poster, IL Lemone Poster, The
+ * Penguin Show Poster, Geometric Shapes poster) carry placeholder-1.jpeg as
+ * their product image - the grey box with "Postero" on it. They HAVE an image
+ * id, so "has an image" let them through into Popular Products and Related
+ * products as blank cards. Measured on the live product page, 24 Sep.
+ */
+function af_is_placeholder_image($image_id) {
+    if (!$image_id) return true;
+    $file = (string) get_post_meta($image_id, '_wp_attached_file', true);
+    return $file === '' || (bool) preg_match('/(^|\/)(woocommerce-)?placeholder[^\/]*$/i', $file);
+}
+
 function af_ids_with_image($ids, $max) {
     $out = array();
     foreach ((array) $ids as $pid) {
         $p = wc_get_product($pid);
         if (!$p || $p->get_status() !== 'publish' || !$p->get_image_id()) continue;
+        if (af_is_placeholder_image($p->get_image_id())) continue;
         $out[] = $pid;
         if (count($out) >= $max) break;
     }
@@ -6091,10 +6116,16 @@ function af_ids_with_image($ids, $max) {
 function af_render_mini_card($pid) {
     $p = wc_get_product($pid);
     if (!$p || $p->get_status() !== 'publish') return;
-    $img = wp_get_attachment_image_url($p->get_image_id(),'medium');
+    // The card image was the 300px 'medium' size, drawn at ~300 CSS px - soft
+    // on every 1.5x/2x screen. The catalogue size (800px here) with a srcset
+    // lets the browser pick a sharp file for the screen it is on.
+    $img = wp_get_attachment_image($p->get_image_id(), 'woocommerce_thumbnail', false, array(
+        'loading' => 'lazy', 'alt' => $p->get_name(),
+        'sizes'   => '(max-width: 600px) 50vw, (max-width: 1024px) 33vw, 300px',
+    ));
     if (!$img) return; // never render a placeholder card
     echo '<a class="af-mini-card" href="'.esc_url(get_permalink($pid)).'">';
-    echo '<div class="af-mini-img"><img src="'.esc_url($img).'" alt="'.esc_attr($p->get_name()).'" loading="lazy"></div>';
+    echo '<div class="af-mini-img">'.$img.'</div>';
     echo '<div class="af-mini-info"><span class="af-mini-title">'.esc_html($p->get_name()).'</span>';
     echo '<span class="af-mini-price">'.$p->get_price_html().'</span></div></a>';
 }
