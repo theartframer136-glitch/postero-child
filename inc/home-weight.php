@@ -36,7 +36,12 @@
  *    width is not printed. Only in the homepage's own document: the header and
  *    footer templates are on every page and are left as they are. Never in the
  *    editor or its preview, where the owner still sees and edits them. Showing
- *    one again at any width in Elementor brings it back.
+ *    one again at any width in Elementor brings it back. And never one holding
+ *    an HTML, shortcode or template widget: a hidden element still runs its
+ *    scripts, and a hidden HTML widget is how tracking tags are often added.
+ *    The ten on the homepage hold none (probe run 111: a spacer, headings,
+ *    galleries, buttons, a video carousel, a product carousel, and a slider
+ *    whose one script starts only itself).
  *
  * Tests: tools/test-home-weight.php. Live: tools/verify-m09.mjs.
  */
@@ -218,6 +223,26 @@ function af_home_elementor_devices() {
     return $devices;
 }
 
+/**
+ * Widgets that can carry a script doing work elsewhere on the page. A hidden
+ * HTML widget is a common way to add a tracking tag, and a hidden element
+ * still runs its scripts, so an element holding one of these is always sent.
+ */
+function af_home_script_widgets() {
+    return array('html', 'shortcode', 'template', 'wp-widget-custom_html', 'wp-widget-text');
+}
+
+/** Does $element, or anything inside it, hold one of those widgets? */
+function af_home_holds_script_widget($element, $depth = 0) {
+    if ($depth > 20 || !is_object($element)) return false;
+    if (method_exists($element, 'get_name') && in_array((string) $element->get_name(), af_home_script_widgets(), true)) return true;
+    if (!method_exists($element, 'get_children')) return false;
+    foreach ((array) $element->get_children() as $child) {
+        if (af_home_holds_script_widget($child, $depth + 1)) return true;
+    }
+    return false;
+}
+
 /** The ids of the elements left out, for the note at the end of the page. */
 function af_home_not_sent($id = null) {
     static $ids = array();
@@ -237,6 +262,7 @@ function af_home_skip_hidden_everywhere($should, $element) {
     $hide = array();
     foreach ($devices as $d) $hide[$d] = $element->get_settings('hide_' . $d);
     if (!af_home_hidden_everywhere($hide, $devices)) return $should;
+    if (af_home_holds_script_widget($element)) return $should;
     af_home_not_sent($element->get_id());
     return false;
 }

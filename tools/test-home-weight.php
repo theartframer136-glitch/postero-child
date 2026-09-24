@@ -168,10 +168,12 @@ class FakeMode { public $on = false; function is_edit_mode() { return $this->on;
 class FakeDoc { public $id; function __construct($id) { $this->id = $id; } function get_main_id() { return $this->id; } }
 class FakeDocs { public $cur; function get_current() { return $this->cur; } }
 class FakeEl {
-    public $id, $s;
-    function __construct($id, $hidden) { $this->id = $id; $this->s = array(); foreach ($hidden as $d) $this->s['hide_' . $d] = 'hidden-' . $d; }
+    public $id, $s, $name, $kids;
+    function __construct($id, $hidden, $name = 'container', $kids = array()) { $this->id = $id; $this->name = $name; $this->kids = $kids; $this->s = array(); foreach ($hidden as $d) $this->s['hide_' . $d] = 'hidden-' . $d; }
     function get_settings($k) { return isset($this->s[$k]) ? $this->s[$k] : ''; }
     function get_id() { return $this->id; }
+    function get_name() { return $this->name; }
+    function get_children() { return $this->kids; }
 }
 $E = new \Elementor\Plugin(); \Elementor\Plugin::$instance = $E;
 $E->breakpoints = new FakeBp(); $E->editor = new FakeMode(); $E->preview = new FakeMode(); $E->documents = new FakeDocs();
@@ -184,6 +186,15 @@ ok(af_home_skip_hidden_everywhere(true, new FakeEl('ok1', array('mobile', 'mobil
 ok(af_home_skip_hidden_everywhere(true, new FakeEl('ok2', array('desktop', 'laptop', 'tablet_extra', 'tablet', 'mobile_extra'))) === true, 'shown on the smallest phones only: sent');
 ok(af_home_skip_hidden_everywhere(true, new FakeEl('ok3', array())) === true, 'shown everywhere: sent');
 ok(af_home_skip_hidden_everywhere(false, new FakeEl('x', array())) === false, 'something else already said no: still no');
+$carousel = new FakeEl('a0f', $six, 'container', array(new FakeEl('w1', array(), 'eael-woo-product-carousel'), new FakeEl('w2', array(), 'heading')));
+ok(af_home_skip_hidden_everywhere(true, $carousel) === false, 'hidden everywhere, holding a product carousel and a heading: left out');
+$tag = new FakeEl('px', $six, 'container', array(new FakeEl('in', array(), 'container', array(new FakeEl('h', array(), 'html')))));
+ok(af_home_skip_hidden_everywhere(true, $tag) === true, 'hidden everywhere but holding an HTML widget two levels down: sent (its script may be a tracking tag)');
+foreach (array('shortcode', 'template', 'wp-widget-custom_html') as $w) {
+    ok(af_home_skip_hidden_everywhere(true, new FakeEl('s-' . $w, $six, 'container', array(new FakeEl('x', array(), $w)))) === true, "holding a $w widget: sent");
+}
+ok(af_home_skip_hidden_everywhere(true, new FakeEl('solo', $six, 'html')) === true, 'an HTML widget itself, hidden everywhere: sent');
+ok(af_home_skip_hidden_everywhere(true, new FakeEl('sr', $six, 'container', array(new FakeEl('s', array(), 'slider_revolution')))) === false, 'a hidden slider (its script starts only itself): left out');
 $E->documents->cur = new FakeDoc(443);
 ok(af_home_skip_hidden_everywhere(true, new FakeEl('f1648db', $six)) === true, 'hidden everywhere but in the header template: sent (it is on every page)');
 $E->documents->cur = null;
