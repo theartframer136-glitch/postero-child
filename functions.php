@@ -7497,7 +7497,25 @@ add_action('wp_head', function() {
           if(noFrame) sw.setAttribute('aria-disabled','true'); else sw.removeAttribute('aria-disabled');
         });
       }
-      document.querySelectorAll('.af-opts').forEach(syncColorFee);
+      // This script is printed in <head>, before the options exist, so a
+      // check here alone found nothing - and the page OPENS on Without Frame,
+      // which is exactly when the colours must already be off. Measured live:
+      // on load the swatches were fully active until Without Frame was
+      // clicked again. Run it once the options are in the page, and again at
+      // load for anything (quick view) drawn late.
+      function syncAll(){ document.querySelectorAll('.af-opts').forEach(syncColorFee); }
+      syncAll();
+      if(document.readyState === 'loading') document.addEventListener('DOMContentLoaded', syncAll);
+      window.addEventListener('load', syncAll);
+      // Quick view injects a fresh .af-opts after load; catch that too.
+      if(window.MutationObserver){
+        new MutationObserver(function(ms){
+          for(var i=0;i<ms.length;i++){ for(var j=0;j<ms[i].addedNodes.length;j++){
+            var n=ms[i].addedNodes[j];
+            if(n.nodeType===1 && (n.matches('.af-opts') || n.querySelector('.af-opts'))){ syncAll(); return; }
+          } }
+        }).observe(document.documentElement, {childList:true, subtree:true});
+      }
 
       // Arriving from Try On Wall? Pre-select what the visitor configured there,
       // so the price they were shown is the price they land on.

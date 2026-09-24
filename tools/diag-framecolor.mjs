@@ -41,5 +41,8 @@ try {
   await new Promise(r=>setTimeout(r,600));
 } catch(e) { console.log('click err: ' + e.message.slice(0,120)); }
 const s2 = await st(); console.log('AFTER Without Frame + Silver: ' + JSON.stringify(s2, null, 1));
+const P=(ok,t)=>console.log((ok?'PASS':'FAIL')+': '+t);
+P(s1.frame==='Without Frame' && s1.swatches.every(x=>x.includes('[disabled]')), 'ON LOAD, Without Frame: every colour is switched off');
+P(s2.colorInput===s1.colorInput, 'clicking Silver with no frame did not change the colour');
 console.log('page errors: ' + (errs.join(' | ') || 'none'));
 await b.close();
