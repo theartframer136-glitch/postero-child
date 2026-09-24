@@ -1706,6 +1706,18 @@ html body .woocommerce-page ul.products li.product .woocommerce-loop-product__li
   width:100% !important; height:100% !important;
   object-fit:cover !important; display:block !important;
 }
+/* …but only when the link actually HOLDS the picture. On this theme's cards
+   the picture lives in .product-img-wrap and the loop link is left empty, so
+   the rule above turned it into a bare grey 4:3 block under the photo - 482x362
+   on a phone, 275x206 on desktop, measured on the wishlist's "You may also
+   like" row. An empty link becomes a transparent layer over the picture
+   instead: the whole photo still clicks through to the product, and nothing
+   is drawn. Links that do contain the image are untouched. */
+html body .woocommerce ul.products li.product .woocommerce-loop-product__link:not(:has(img)),
+html body .woocommerce-page ul.products li.product .woocommerce-loop-product__link:not(:has(img)) {
+  position:absolute !important; inset:0 !important; height:auto !important;
+  padding:0 !important; background:transparent !important; z-index:1 !important;
+}
 /* Second image (gallery hover) — hidden by default, shown on hover */
 html body .woocommerce ul.products li.product .woocommerce-loop-product__link img:nth-child(2),
 html body .woocommerce ul.products li.product .woocommerce-loop-product__link img + img,

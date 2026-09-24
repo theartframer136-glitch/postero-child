@@ -33,6 +33,12 @@ console.log(await p.evaluate(() => {
     }
   };
   walk(card, 1);
+  const a = card.querySelector('.woocommerce-loop-product__link'), ar = a ? a.getBoundingClientRect() : null;
+  const t = card.querySelector('.product-transition'), iw = card.querySelector('.product-img-wrap');
+  const cap = card.querySelector('.product-caption');
+  const gap = cap && iw ? Math.round(cap.getBoundingClientRect().top - iw.getBoundingClientRect().bottom) : null;
+  out.push('VERDICT link=' + (ar ? Math.round(ar.width)+'x'+Math.round(ar.height) : '-') + ' bg=' + (a ? getComputedStyle(a).backgroundColor : '-') +
+    ' photo->details gap=' + gap + 'px ' + (gap !== null && gap < 40 && a && getComputedStyle(a).backgroundColor === 'rgba(0, 0, 0, 0)' ? 'PASS: no grey box' : 'FAIL: grey box still there'));
   return out.join('\n');
 }));
 await p.close();
