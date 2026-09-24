@@ -2742,6 +2742,29 @@ add_action('wp_footer', function () {
 .af-pricerow .af-now > *{display:inline !important;width:auto !important;
   max-width:none !important;float:none !important;margin:0 !important;
   padding:0 !important;white-space:nowrap !important;}
+
+/* ONE LOOK FOR EVERY CARD'S PRICE, the Corporate Signages card's (owner's
+   screenshot, 24 Sep). Measured live, the other cards each had their own:
+     reference        now 14/700 #1a1a1a  was 13/400 #999    off 12/600 green
+     shop / wishlist  now 15/700          was 12/400 #6b6b6b off 12.75/700 (10.2 on a phone)
+     Trending         now 15/700 #555     was 15/400 #6b6b6b off 12/600
+     New Arrivals     now 15/700 #555     was 15/400 #555    off 12.75/700
+   Price only: sizes, weights, colours, the gap between them. Tripled class so
+   it outranks the per-section rules without touching any of them. */
+html body :is(li.product,.product-card,.trending-card,.new-product-card) .af-pricerow.af-pricerow.af-pricerow{
+  gap:4px !important;align-items:center !important;}
+html body :is(li.product,.product-card,.trending-card,.new-product-card) .af-pricerow.af-pricerow.af-pricerow > :is(ins,.af-now,.current-price),
+html body :is(li.product,.product-card,.trending-card,.new-product-card) .af-pricerow.af-pricerow.af-pricerow > :is(ins,.af-now,.current-price) *{
+  font-size:14px !important;font-weight:700 !important;color:#1a1a1a !important;
+  text-decoration:none !important;opacity:1 !important;}
+html body :is(li.product,.product-card,.trending-card,.new-product-card) .af-pricerow.af-pricerow.af-pricerow > :is(del,.old-price),
+html body :is(li.product,.product-card,.trending-card,.new-product-card) .af-pricerow.af-pricerow.af-pricerow > :is(del,.old-price) *{
+  font-size:13px !important;font-weight:400 !important;color:#999 !important;opacity:1 !important;}
+html body :is(li.product,.product-card,.trending-card,.new-product-card) .af-pricerow.af-pricerow.af-pricerow > :is(del,.old-price){
+  text-decoration:line-through !important;}
+html body :is(li.product,.product-card,.trending-card,.new-product-card) .af-pricerow.af-pricerow.af-pricerow :is(.af-pct-off,.discount,.discount-percentage){
+  font-size:12px !important;font-weight:600 !important;color:var(--af-save, #2e7d32) !important;
+  text-decoration:none !important;opacity:1 !important;}
 </style>
     <?php
 }, 41);
