@@ -118,6 +118,11 @@ const measure = () => {
       in: doc ? doc.getAttribute('data-elementor-type') + ' ' + doc.getAttribute('data-elementor-id') : '(no document)',
       nodes: size(el), links: el.querySelectorAll('a,button').length, imgs: el.querySelectorAll('img').length,
       head: t((el.querySelector('h1,h2,h3,h4,.elementor-heading-title') || {}).textContent || el.textContent).slice(0, 40),
+      // A hidden element still runs its scripts: what would go with it.
+      scripts: [...el.querySelectorAll('script')].map(x => x.src ? 'src ' + x.src.split('/').slice(-2).join('/') : 'inline ' + t(x.textContent).slice(0, 90)),
+      styles: el.querySelectorAll('style,link[rel="stylesheet"]').length,
+      media: el.querySelectorAll('iframe,video,template,noscript').length,
+      widgets: [...new Set([...el.querySelectorAll('[data-widget_type]')].map(w => w.getAttribute('data-widget_type')))].join(' '),
     };
   });
 
@@ -178,7 +183,13 @@ const run = async (name, viewport, scroll) => {
   console.log(`  product cards in the HTML as served ${T.rawCards} · admin-ajax calls: ${ajax.length ? ajax.join(' | ') : 'none'}`);
   console.log(`  Elementor widths switched on: ${d.active.join(', ')}`);
   console.log('  hidden at every one of them:');
-  for (const h of d.hiddenAll) console.log('    ' + (h.type + (h.widget ? ' ' + h.widget : '')).padEnd(34) + (' id ' + h.id).padEnd(13) + ' in ' + h.in.padEnd(22) + String(h.nodes).padStart(6) + ' nodes' + String(h.links).padStart(5) + ' links' + String(h.imgs).padStart(4) + ' imgs  ' + h.head);
+  for (const h of d.hiddenAll) {
+    console.log('    ' + (h.type + (h.widget ? ' ' + h.widget : '')).padEnd(34) + (' id ' + h.id).padEnd(13) + ' in ' + h.in.padEnd(22) + String(h.nodes).padStart(6) + ' nodes' + String(h.links).padStart(5) + ' links' + String(h.imgs).padStart(4) + ' imgs  ' + h.head);
+    if (name.startsWith('desktop, as loaded')) {
+      console.log('        widgets: ' + (h.widgets || 'none') + ' · styles ' + h.styles + ' · iframe/video/template/noscript ' + h.media + ' · scripts ' + h.scripts.length);
+      for (const sc of h.scripts) console.log('          ' + sc);
+    }
+  }
   console.log('\n  section'.padEnd(64) + '   top  nodes links  #  <44 hidden cards imgs  heading');
   const merged = [];
   for (const x of d.rows) {
