@@ -146,6 +146,30 @@ jobs:
             echo "  -- product counts in the collections the grid can open on --"
             timeout 60 wp eval "foreach (get_terms(array(\"taxonomy\" => \"product_cat\", \"hide_empty\" => true, \"orderby\" => \"count\", \"order\" => \"DESC\", \"number\" => 12)) as \$t) { echo \"    \" . str_pad(\$t->count, 5, \" \", STR_PAD_LEFT) . \"  \" . \$t->slug . PHP_EOL; }" --allow-root 2>&1 | head -14
 
+            echo; echo "--- M-09: why the homepage still sends sections hidden at every width ---"
+            # inc/home-weight.php asks Elementor, through the filter
+            # elementor/frontend/<type>/should_render, to leave out elements
+            # hidden at every width. After the deploy the ten were still sent
+            # and the page carried no note, so the filter never said no. Where
+            # does Elementor 4 ask that question, if at all, and is the page
+            # served from an element cache that skips it?
+            E=wp-content/plugins/elementor
+            echo "  -- where Elementor applies a should_render filter --"
+            grep -rn "should_render" "$E" --include=*.php 2>/dev/null | grep -v "/vendor/" | head -20 | cut -c1-230 | sed "s#$E/##; s/^/    /"
+            echo "  -- print_element in the element base class --"
+            grep -n -A40 "public function print_element" "$E/includes/base/element-base.php" 2>/dev/null | grep -n -E "apply_filters|do_action|should|cache|return" | head -20 | cut -c1-200 | sed "s/^/    /"
+            echo "  -- the module, the filter, the homepage id --"
+            timeout 60 wp eval "echo \"    module \" . (function_exists(\"af_home_skip_hidden_everywhere\") ? \"loaded\" : \"MISSING\") . PHP_EOL; echo \"    container filter \" . (has_filter(\"elementor/frontend/container/should_render\") ? \"hooked\" : \"not hooked\") . PHP_EOL; echo \"    page_on_front \" . get_option(\"page_on_front\") . \"  show_on_front \" . get_option(\"show_on_front\") . PHP_EOL; echo \"    devices \" . implode(\",\", \\Elementor\\Plugin::\$instance->breakpoints->get_active_devices_list()) . PHP_EOL;" --allow-root 2>&1 | grep -v "^Notice\|^Deprecated" | head -6
+            echo "  -- Elementor element cache --"
+            timeout 60 wp option list --search="elementor_experiment-e_element_cache" --fields=option_name,option_value --allow-root 2>/dev/null | tail -n +2 | sed "s/^/    /"
+            timeout 60 wp option get elementor_element_cache_ttl --allow-root 2>/dev/null | sed "s/^/    element_cache_ttl /"
+            timeout 60 wp post meta list 75 --keys=_elementor_element_cache --format=count --allow-root 2>/dev/null | sed "s/^/    page 75 _elementor_element_cache rows: /"
+            echo "  -- a fresh render of the homepage (cache bypassed) --"
+            curl -s -m 40 -H "Sec-Fetch-Mode: navigate" "https://theartframer.us/?af_nocache=$(date +%s)" > /tmp/af_home.html
+            printf "    note: "; grep -o "af-home-weight: [^>]*" /tmp/af_home.html | head -1 || echo "(none)"
+            for id in a0f69ef d49c1e8 2c4b1fe; do printf "    elementor-element-%s  x%s\n" "$id" "$(grep -c "elementor-element-$id" /tmp/af_home.html)"; done
+            rm -f /tmp/af_home.html
+
             echo; echo "--- the PHP error log ---"
             # tail -25 was useless the one time it mattered: two plugins emit a
             # _load_textdomain_just_in_time notice on every request, so the tail
