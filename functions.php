@@ -20328,6 +20328,10 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
    546px phone, while the photo inside is a 300px box - leaving a 182px empty
    strip under every photo (measured live, 24 Sep, after the empty grey link
    under it was fixed). Let the frame be exactly as tall as the photo. */
+/* Scoped harder than custom.css's 'html body .woocommerce ul.products li.product
+   .product-block .product-transition{aspect-ratio:1/1!important}', which won
+   against the plain selector (measured live after #1346). */
+html body section.af-wl-related.woocommerce ul.products li.product .product-block .product-transition,
 .af-wl-related li.product .product-transition{height:auto!important;min-height:0!important;
   aspect-ratio:auto!important;padding-bottom:0!important;overflow:hidden!important}
 /* Uniform image box, same measurement the shop uses. The card script builds a
