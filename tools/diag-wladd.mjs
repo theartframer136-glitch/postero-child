@@ -63,3 +63,23 @@ r = await go(S + '/wishlist/?nc=' + Date.now()); await sleep(4000);
 console.log('HDR busted status=' + (r && r.status()) + ' lscache=' + (r && r.headers()['x-litespeed-cache']));
 await rows('cache-busted');
 await b.close();
+
+// ---- VERDICT: guest A saves a piece and opens it from the header heart;
+// guest B, a separate browser, must not see A's list.
+{
+  const b2 = await puppeteer.launch({ channel: 'chrome', headless: 'new', args: ['--no-sandbox','--disable-dev-shm-usage','--disable-gpu'] });
+  const count = (pg) => pg.evaluate(() => document.querySelectorAll('.woosw-items tr.woosw-item').length);
+  const ca = await b2.createBrowserContext(); const a = await ca.newPage(); await a.setViewport({ width: 1280, height: 900 });
+  await a.goto(S + '/shop/', { waitUntil: 'domcontentloaded', timeout: 90000 }); await sleep(7000);
+  const h = await a.$('.woosw-btn:not(.woosw-added)'); await a.evaluate(e => e.scrollIntoView({ block: 'center' }), h); await sleep(500); await h.click(); await sleep(6000);
+  const heartHref = await a.evaluate(() => { const l = document.querySelector('.header-wishlist a, a.header-wishlist, header a[href*="wishlist"]'); return l ? l.getAttribute('href') : '-'; });
+  const hl = await a.$('.header-wishlist a, a.header-wishlist, header a[href*="wishlist"]');
+  await Promise.all([a.waitForNavigation({ timeout: 45000 }).catch(() => {}), hl.click()]); await sleep(5000);
+  const aRows = await count(a); const aUrl = a.url();
+  const cb = await b2.createBrowserContext(); const bp = await cb.newPage();
+  const rb = await bp.goto(S + '/wishlist/', { waitUntil: 'domcontentloaded', timeout: 90000 }); await sleep(5000);
+  const bRows = await count(bp);
+  console.log('VERDICT A: header heart href=' + heartHref + ' landed=' + aUrl + ' rows=' + aRows + (aRows >= 1 ? ' PASS' : ' FAIL'));
+  console.log('VERDICT B: /wishlist/ lscache=' + rb.headers()['x-litespeed-cache'] + ' cc=' + rb.headers()['cache-control'] + ' rows=' + bRows + (bRows === 0 ? ' PASS: no one else\'s list' : ' FAIL: sees another guest\'s list'));
+  await b2.close();
+}
