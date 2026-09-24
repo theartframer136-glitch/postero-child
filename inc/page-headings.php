@@ -106,6 +106,8 @@ add_action('woocommerce_archive_description', function () {
             $html = $term !== ''
                 ? '<h1 class="af-archive-title">Results for <em>&ldquo;' . esc_html($term) . '&rdquo;</em></h1>'
                 : '<h1 class="af-archive-title">Search results</h1>';
+            // Other spellings the search also looked for (inc/search-all.php).
+            if ($term !== '' && function_exists('af_search_added_html')) $html .= af_search_added_html($term);
         } else {
             // The shop page, and anything else on this template: the shop
             // already carries "All Our Wall Art" from Elementor. Adding one

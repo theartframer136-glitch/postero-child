@@ -3,13 +3,17 @@
 //
 // Each case is a first-time visitor. The search cases must name the search;
 // the shop cases are controls, DEF-17's messages, which must not change:
-//   1  /?s=krishan&post_type=product               No artwork matches “krishan”.
+//   1  /?s=dinosaur&post_type=product              No artwork matches “dinosaur”.
 //   2  /?s=zzqxv&post_type=product                 No artwork matches “zzqxv”.
-//   3  the same search with a price range          Nothing matches “krishan” with
+//   3  the same search with a price range          Nothing matches “dinosaur” with
 //                                                  those filters; Clear keeps ?s=
 //   4  /shop/ with a valid range nothing is in     Nothing here matches those filters.
 // On every page: no "collection is empty" on a search, and no art code
 // outside a product card.
+//
+// The empty search used to be "krishan", the misspelling Test Run 03 found
+// returning nothing. Since M-03 it finds the Krishna pieces, so "dinosaur",
+// which the catalogue has no word near, stands in for it.
 //
 // Read-only.
 //
@@ -19,10 +23,10 @@ import { chromium } from 'playwright';
 
 const SITE = (process.argv[2] || process.env.AF_QA_URL || 'https://theartframer.us').replace(/\/$/, '');
 const cases = [
-  { path: '/?s=krishan&post_type=product', title: /^No artwork matches “krishan”\.$/, button: ['Browse the shop', /\/shop\/?$/] },
+  { path: '/?s=dinosaur&post_type=product', title: /^No artwork matches “dinosaur”\.$/, button: ['Browse the shop', /\/shop\/?$/] },
   { path: '/?s=zzqxv&post_type=product', title: /^No artwork matches “zzqxv”\.$/, button: ['Browse the shop', /\/shop\/?$/] },
-  { path: '/?s=krishan&post_type=product&min_price=10&max_price=20', title: /^Nothing matches “krishan” with those filters\.$/,
-    button: ['Clear the filters', /[?&]s=krishan(&|$)/] },
+  { path: '/?s=dinosaur&post_type=product&min_price=10&max_price=20', title: /^Nothing matches “dinosaur” with those filters\.$/,
+    button: ['Clear the filters', /[?&]s=dinosaur(&|$)/] },
   { path: '/shop/?min_price=90000&max_price=99000', title: /^Nothing here matches those filters\.$/, button: ['Clear the filters', /\/shop\/?$/] },
 ];
 

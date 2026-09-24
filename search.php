@@ -104,6 +104,7 @@ get_header();
     <header class="af-sr-head">
         <p class="af-sr-eyebrow">Search</p>
         <h1 class="af-sr-title">Results for <em>&ldquo;<?php echo esc_html($af_term); ?>&rdquo;</em></h1>
+        <?php if (function_exists('af_search_added_html')) echo af_search_added_html($af_term); ?>
         <?php if (!$af_empty) : ?>
             <p class="af-sr-count">
                 <?php

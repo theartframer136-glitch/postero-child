@@ -15,6 +15,7 @@ define('ABSPATH', __DIR__);
 function add_filter() {}
 function add_action() {}
 function post_type_exists() { return true; }
+function esc_html($s) { return htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8'); }
 require __DIR__ . '/../inc/search-all.php';
 
 $pass = 0; $fail = 0;
@@ -173,6 +174,55 @@ ok(preg_match('/IN \(7\)\s*\)\s*GROUP BY/', $og) === 1, 'GROUP BY also ends the 
 $inj = af_search_widen_sql($sql, array("1); DROP TABLE wp_posts;--"), 'wp_posts');
 ok(strpos($inj, 'DROP TABLE') === false && strpos($inj, 'IN (1)') !== false,
    'ids are cast to integers, so nothing but a number reaches the statement');
+
+echo "\nspellings and other names (M-03)\n";
+// Real titles from the product export of 21 Sep, a few of each subject the
+// report searched for, plus the traps: "Elegant" (one letter from "elefant"),
+// "Vishvarupa" (which contains "shva") and "Kalki" (a real word, one letter
+// from "Kali").
+$vocab = af_search_build_vocabulary(array(
+    'Radha Krishna Flute Canvas Wall Art', 'Krishna Raas Leela Pichwai Print', 'Lord Ganesha Gold Foil Canvas',
+    'Ganesh Murti Canvas Wall Art', 'Golden Buddha Meditation Canvas', 'Lakshmi Blessing Canvas Print',
+    'Lord Shiva Mahadev Canvas', 'Elegant Elephant Family Canvas', 'Vishvarupa Canvas Wall Art',
+    'Sai Baba Portrait Canvas', 'Kalki Avatar Canvas', 'Kali Maa Canvas', 'Hindu Deities', 'Wildlife',
+));
+$ex = function ($q) use ($vocab) { return af_search_expand(af_search_terms($q), $vocab); };
+ok(af_search_distance('buddah', 'buddha') === 1, 'two letters swapped are one mistake, not two');
+ok(af_search_distance('krishan', 'krishna') === 1, '"krishan" is one swap from "krishna"');
+ok(af_search_distance('kitten', 'sitting') === 3 && af_search_distance('abc', 'abc') === 0, 'the distance is the usual one otherwise');
+ok(af_search_sound('laxmi') === af_search_sound('lakshmi'), 'laxmi and lakshmi sound the same');
+ok(af_search_sound('elefant') === af_search_sound('elephant'), 'elefant and elephant sound the same');
+foreach (array('krishan' => 'krishna', 'krisna' => 'krishna', 'buddah' => 'buddha', 'budha' => 'buddha',
+               'ganpati' => 'ganesha', 'vinayaka' => 'ganesha', 'laxmi' => 'lakshmi', 'laksmi' => 'lakshmi',
+               'radah krishna' => 'radha', 'elefant' => 'elephant', 'lord shva' => 'shiva',
+               'ganeshji' => 'ganesh', 'radhakrishna' => 'radha krishna', 'saibaba' => 'sai baba') as $typed => $want) {
+    ok(in_array($want, $ex($typed), true), "\"$typed\" also searches \"$want\"");
+}
+ok(!in_array('elegant', $ex('elefant'), true), '"elefant" is not taken for "elegant", the nearer spelling but not the nearer sound');
+ok($ex('kalki') === array(), '"kalki" is a real word and is left alone, though "kali" is one letter away');
+ok($ex('krishna') === array('krishna'), 'a word the catalogue uses gets no guesses, only its own group');
+// "wildlif" begins a catalogue word, so the search already finds it.
+foreach (array('dinosaur', 'blue', 'canvas', 'RK - 0118', 'rk0118', 'PA-1201', '', 'wildlif') as $typed) {
+    $got = $ex($typed);
+    ok($got === array(), '"' . $typed . '" adds nothing' . ($got ? ' (got ' . implode(', ', $got) . ')' : ''));
+}
+ok(af_search_expand(af_search_terms('krishan'), array()) === array(), 'an empty catalogue adds nothing');
+$all = array();
+foreach (array('krishan', 'ganpati', '<script>', "o'keeffe", 'radhakrishna', 'tirupathi') as $typed) $all = array_merge($all, $ex($typed));
+ok((bool) $all && !preg_grep('/[^a-z ]/', $all), 'what is added is only ever lowercase catalogue words, so it is safe to print');
+ok(count($ex('ganpati vinayaka laxmi krishan buddah elefant radhakrishna saibaba lord shva')) <= 8, 'never more than eight additions');
+
+echo "\nthe note under the heading\n";
+af_search_added(array('krishna'));
+$h = af_search_added_html('krishan');
+ok(strpos($h, 'Including results for &ldquo;krishna&rdquo;.') !== false, '"krishan" says it included "krishna"');
+af_search_added(array('ganesha', 'ganesh'));
+ok(af_search_added_html('ganesh') === '', 'nothing is listed that the visitor typed, or that contains it');
+af_search_added(array('shiva', 'mahadev'));
+$h = af_search_added_html('shiv');
+ok(strpos($h, 'mahadev') !== false && strpos($h, 'shiva') === false, '"shiv" lists mahadev but not shiva, which it already finds');
+af_search_added(array());
+ok(af_search_added_html('dinosaur') === '', 'no additions, no note');
 
 echo "\n$pass passed, $fail failed\n";
 exit($fail ? 1 : 0);
