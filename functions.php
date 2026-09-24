@@ -7285,7 +7285,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
         </div>
       </div>
       <div class="af-opt-group">
-        <label class="af-opt-label">Frame Color</label>
+        <label class="af-opt-label">Frame Color <span class="af-opt-sub af-color-needs">(choose a frame first)</span></label>
         <div class="af-chips af-color-chips">
           <?php $swatch=array('Black'=>'#1a1a1a','Silver'=>'#c0c0c0','Gold'=>'#d4af37','Rose Gold'=>'#b76e79'); foreach ($colors as $i => $c): $cfee = isset($cfg['colors'][$c]) ? (float) $cfg['colors'][$c] : 0; ?>
             <button type="button" class="af-swatch<?php echo $i===0?' active':''; ?>" data-type="color" data-val="<?php echo esc_attr($c); ?>" title="<?php echo esc_attr($c); ?>"><span style="background:<?php echo esc_attr($swatch[$c]??'#ccc'); ?>"></span><?php echo esc_html($c); ?><?php if($cfee>0) echo ' <em class="af-swatch-fee">+'.get_woocommerce_currency_symbol().$cfee.'</em>'; ?></button>
@@ -7403,6 +7403,16 @@ add_action('wp_head', function() {
     .af-opts.af-color-free em.af-swatch-fee{display:none;}
     .af-swatch:hover{border-color:#c9a84c;}
     .af-swatch.active{border-color:#1a1a1a;}
+    /* The theme's generic button:hover/:focus paints buttons black, which in
+       the recording turned a pressed swatch into a black pill with grey text.
+       A swatch keeps its own look in every state. */
+    .af-opts .af-swatch:hover,.af-opts .af-swatch:focus,.af-opts .af-swatch:active,.af-opts .af-swatch.active{
+      background:#fff !important;color:#333 !important;box-shadow:none !important;}
+    /* Without Frame: no moulding, so no colour. Shown, but plainly off. */
+    .af-color-needs{display:none;}
+    .af-opts.af-color-free .af-color-needs{display:inline;}
+    .af-opts.af-color-free .af-color-chips .af-swatch{opacity:.38;cursor:not-allowed;border-color:#ddd !important;}
+    .af-opts.af-color-free .af-color-chips .af-swatch:hover{border-color:#ddd !important;}
     /* Size is a dropdown rather than a chip grid — fourteen chips was a wall,
        and the list is short enough now that a select reads faster. */
     .af-size-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;}
@@ -7475,7 +7485,17 @@ add_action('wp_head', function() {
       // would advertise a surcharge the cart would not take, which is the same
       // class of fault as advertising one it does take silently.
       function syncColorFee(wrap){
-        wrap.classList.toggle('af-color-free', chosen(wrap, 'frame') === 'Without Frame');
+        var noFrame = chosen(wrap, 'frame') === 'Without Frame';
+        wrap.classList.toggle('af-color-free', noFrame);
+        // An unframed print has no moulding, so there is no colour to choose.
+        // The price and the cart already ignored the colour in this state;
+        // the swatches did not, and went on accepting clicks that changed
+        // nothing (the owner's recording). They are switched off now, and
+        // come back exactly as they were when a frame is chosen again.
+        wrap.querySelectorAll('.af-color-chips .af-swatch').forEach(function(sw){
+          sw.disabled = noFrame;
+          if(noFrame) sw.setAttribute('aria-disabled','true'); else sw.removeAttribute('aria-disabled');
+        });
       }
       document.querySelectorAll('.af-opts').forEach(syncColorFee);
 
@@ -8362,12 +8382,22 @@ add_action('template_redirect', function(){
           b.style.background=SWATCH[c]||'#1a1a1a';
           b.innerHTML='<span>'+c+'</span>';
           b.addEventListener('click',function(){
+            if(b.disabled) return;
             wrap.querySelectorAll('.af-tow-sw').forEach(function(x){x.classList.remove('on');});
             b.classList.add('on'); $('tow-color').value=c; refresh();
           });
           wrap.appendChild(b);
         });
       })();
+      // Same rule as the product page: "Without Frame" has no moulding, so the
+      // colour swatches are switched off - the price already ignored them.
+      function syncTowColor(){
+        var off = $('tow-frame').value === 'Without Frame';
+        $('tow-colorsw').classList.toggle('af-tow-sw-off', off);
+        $('tow-colorsw').querySelectorAll('.af-tow-sw').forEach(function(x){ x.disabled = off; });
+      }
+      $('tow-frame').addEventListener('change', syncTowColor);
+      syncTowColor();
 
       // ── Photorealistic room scenes (SVG data-URIs, no external assets) ──
       // Bright modern living room styled like a real product mockup:
@@ -9165,6 +9195,7 @@ add_action('template_redirect', function(){
         return Math.round((sizePrice+fee)*100)/100;
       }
       function refresh(){
+        if(typeof syncTowColor==='function') syncTowColor();   // frame may have been set in code
         var p=current();
         if(!p){
           $('tow-panels').innerHTML='';
@@ -9690,6 +9721,8 @@ add_action('template_redirect', function(){
     .af-tow-sw.on{box-shadow:0 0 0 2px #c9a84c, 0 2px 6px rgba(0,0,0,.2);}
     .af-tow-sw span{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;}
     .af-tow-sw:hover span{opacity:1;}
+    .af-tow-sw-off .af-tow-sw{opacity:.35;cursor:not-allowed;transform:none;}
+    .af-tow-sw-off .af-tow-sw.on{box-shadow:0 0 0 1px #d8cdb3;}
     .af-tow-scenes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
     .af-tow-scene{position:relative;height:52px;border-radius:10px;border:2px solid #e2d9c4;background-size:cover;background-position:center;cursor:pointer;overflow:hidden;padding:0;transition:border-color .15s,transform .12s;}
     .af-tow-scene:hover{transform:translateY(-1px);}
