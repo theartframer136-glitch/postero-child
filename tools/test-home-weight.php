@@ -22,7 +22,12 @@ function is_front_page() { return $GLOBALS['front']; }
 function is_admin() { return $GLOBALS['admin']; }
 function home_url($p = '') { return 'https://theartframer.us' . $p; }
 function wp_unslash($v) { return $v; }
-function get_option($k) { return $k === 'page_on_front' ? '75' : false; }
+$GLOBALS['opts'] = array('page_on_front' => '75');
+function get_option($k, $d = false) { return array_key_exists($k, $GLOBALS['opts']) ? $GLOBALS['opts'][$k] : $d; }
+function update_option($k, $v, $autoload = null) { $GLOBALS['opts'][$k] = $v; return true; }
+$GLOBALS['deleted'] = array(); $GLOBALS['actions'] = array();
+function delete_post_meta($id, $key) { $GLOBALS['deleted'][] = array($id, $key); return true; }
+function do_action($h) { $GLOBALS['actions'][] = func_get_args(); }
 function is_wp_error($x) { return false; }
 function esc_html($s) { return htmlspecialchars($s, ENT_QUOTES); }
 function get_term_by($field, $value, $tax) {
@@ -215,6 +220,21 @@ ok(count($GLOBALS['hooks']['elementor/frontend/container/should_render']) === 1
    && count($GLOBALS['hooks']['elementor/frontend/section/should_render']) === 1
    && count($GLOBALS['hooks']['elementor/frontend/widget/should_render']) === 1
    && count($GLOBALS['hooks']['elementor/frontend/column/should_render']) === 1, 'hooked for containers, sections, columns and widgets');
+
+echo "\nElementor's stored copy of the homepage\n";
+ok(in_array('af_home_weight_refresh', $GLOBALS['hooks']['wp_loaded'], true), 'checked on every request, once WordPress has loaded');
+ok(af_home_weight_refresh() === true, 'rules new to this site: the copy is dropped');
+ok($GLOBALS['deleted'] === array(array(75, '_elementor_element_cache')), "only the homepage's copy, page 75, and only Elementor's element cache");
+ok(in_array(array('litespeed_purge_post', 75), $GLOBALS['actions'], true) && in_array(array('litespeed_purge_url', 'https://theartframer.us/'), $GLOBALS['actions'], true), "and LiteSpeed's copy of the homepage with it");
+ok(get_option('af_home_weight_rules') === af_home_weight_rules_version(), 'the rules version is remembered');
+$GLOBALS['deleted'] = array(); $GLOBALS['actions'] = array();
+ok(af_home_weight_refresh() === false && !$GLOBALS['deleted'] && !$GLOBALS['actions'], 'the next request: nothing dropped, nothing purged');
+$GLOBALS['opts']['af_home_weight_rules'] = '2026-01-01.0';
+ok(af_home_weight_refresh() === true && count($GLOBALS['deleted']) === 1, 'rules changed again (a new version): dropped once more');
+$GLOBALS['deleted'] = array(); unset($GLOBALS['opts']['af_home_weight_rules']);
+$GLOBALS['opts']['page_on_front'] = '0';
+ok(af_home_weight_refresh() === true && !$GLOBALS['deleted'], 'no static homepage: nothing to drop, version still remembered');
+$GLOBALS['opts']['page_on_front'] = '75';
 
 echo "\n" . ($fail ? "FAILED: $fail of " . ($pass + $fail) : "all $pass passed") . "\n";
 exit($fail ? 1 : 0);
