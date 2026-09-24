@@ -126,6 +126,24 @@ jobs:
               printf "    %-22s " "$k"; timeout 60 wp litespeed-option get "$k" --allow-root 2>/dev/null | tr "\n" " " | cut -c1-150; echo
             done
 
+            echo; echo "--- M-09: the homepage Shop by Collection grid, in the parent theme ---"
+            # tools/probe-home-weight.mjs found 74 product cards in that grid:
+            # every product of the first collection, because PHASE 25 in the
+            # child functions.php lifts the theme cap of 12. These are the two
+            # places the theme builds that grid (the first render and the
+            # load_products tab switch), read-only.
+            T=$(timeout 60 wp eval "echo get_template_directory();" --allow-root 2>/dev/null | tail -1)
+            echo "  theme: $T"
+            grep -n -E "load_products|posts_per_page|productGrid|subcategory|quick-view-btn|wp_ajax" "$T/functions.php" 2>/dev/null | head -40 | cut -c1-200 | sed "s/^/    /"
+            for r in "150,240" "770,880"; do
+              echo "  -- functions.php lines $r --"
+              sed -n "${r}p" "$T/functions.php" 2>/dev/null | cut -c1-220 | sed "s/^/    /"
+            done
+            echo "  -- theme files that print the Quick View link --"
+            grep -rn "quick-view-btn" "$T" --include=*.php 2>/dev/null | head -8 | cut -c1-240 | sed "s/^/    /"
+            echo "  -- product counts in the collections the grid can open on --"
+            timeout 60 wp eval "foreach (get_terms(array(\"taxonomy\" => \"product_cat\", \"hide_empty\" => true, \"orderby\" => \"count\", \"order\" => \"DESC\", \"number\" => 12)) as \$t) { echo \"    \" . str_pad(\$t->count, 5, \" \", STR_PAD_LEFT) . \"  \" . \$t->slug . PHP_EOL; }" --allow-root 2>&1 | head -14
+
             echo; echo "--- the PHP error log ---"
             # tail -25 was useless the one time it mattered: two plugins emit a
             # _load_textdomain_just_in_time notice on every request, so the tail

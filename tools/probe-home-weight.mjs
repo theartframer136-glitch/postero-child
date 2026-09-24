@@ -77,6 +77,7 @@ const measure = () => {
       cards: b.querySelectorAll('li.product, .product-card, .af-card, [data-product_id]').length,
       imgs: b.querySelectorAll('img').length,
       head: t((b.querySelector('h1,h2,h3,h4,.elementor-heading-title') || {}).textContent).slice(0, 40),
+      hiddenOn: [...b.classList].filter(c => c.startsWith('elementor-hidden-')).map(c => c.slice(17)).join(' '),
     };
   });
   const covered = new Set(); for (const b of blocks) { covered.add(b); for (const d of b.getElementsByTagName('*')) covered.add(d); }
@@ -143,7 +144,15 @@ const run = async (name, viewport, scroll) => {
   console.log(`\n=== ${name} · HTTP ${r.status()} · ${Math.round(T.html / 1024)} KB of DOM as HTML · page ${T.pageHeight}px tall ===`);
   console.log(`  nodes ${T.nodes} · links+buttons ${T.links} (${T.shownLinks} shown) · href="#" ${T.hash} · under 44px ${T.tiny} · scripts ${T.scripts} (${T.scriptsExt} files) · stylesheets ${T.sheets} + ${T.styles} <style> · images ${T.imgs} · nodes not displayed ${T.hidden} · not in any section ${T.uncovered}`);
   console.log('\n  section'.padEnd(64) + '   top  nodes links  #  <44 hidden cards imgs  heading');
-  for (const x of d.rows) console.log('  ' + x.label.padEnd(60).slice(0, 60) + String(x.top).padStart(7) + String(x.nodes).padStart(7) + String(x.links).padStart(6) + String(x.hash).padStart(4) + String(x.tiny).padStart(5) + String(x.hidden).padStart(7) + String(x.cards).padStart(6) + String(x.imgs).padStart(5) + '  ' + x.head);
+  const merged = [];
+  for (const x of d.rows) {
+    const last = merged[merged.length - 1];
+    if (last && last.label === x.label && x.label.indexOf('[') < 0) {
+      last.n++; for (const k of ['nodes', 'links', 'hash', 'tiny', 'hidden', 'cards', 'imgs']) last[k] += x[k];
+    } else merged.push({ ...x, n: 1 });
+  }
+  for (const x of merged) x.label = (x.n > 1 ? x.n + ' × ' : '') + x.label;
+  for (const x of merged) console.log('  ' + x.label.padEnd(60).slice(0, 60) + String(x.top).padStart(7) + String(x.nodes).padStart(7) + String(x.links).padStart(6) + String(x.hash).padStart(4) + String(x.tiny).padStart(5) + String(x.hidden).padStart(7) + String(x.cards).padStart(6) + String(x.imgs).padStart(5) + '  ' + x.head + (x.hiddenOn ? '   [hidden on: ' + x.hiddenOn + ']' : ''));
   if (name.startsWith('desktop, as loaded') || name.startsWith('phone')) {
     console.log('\n  href="#" by owner and kind:');
     for (const [k, n] of d.hashBy) console.log('    ' + String(n).padStart(4) + '  ' + k);
@@ -164,6 +173,7 @@ const run = async (name, viewport, scroll) => {
 console.log('probe-home-weight: ' + SITE + '   ' + new Date().toISOString());
 await run('desktop, as loaded (1440×900, how run 03 counted)', { width: 1440, height: 900 }, false);
 await run('desktop, after scrolling to the end', { width: 1440, height: 900 }, true);
+await run('tablet, as loaded (1024×768)', { width: 1024, height: 768 }, false);
 await run('phone, as loaded (375×812)', { width: 375, height: 812 }, false);
 console.log('\ndone ' + new Date().toISOString());
 await browser.close();
