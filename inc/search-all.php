@@ -312,7 +312,7 @@ function af_search_matching_ids($terms, $limit = 300) {
         if ($rows) $ids = array_merge($ids, $rows);
     }
     // Only published products and posts — never a draft, never a revision,
-    // never an attachment, never a product hidden from search.
+    // never an attachment.
     return af_search_published_ids($ids);
 }
 
@@ -536,11 +536,20 @@ function af_search_sound($w) {
 /**
  * The catalogue words to search as well as what was typed.
  *
- * @param array $terms from af_search_terms()
- * @param array $vocab word => count, from af_search_vocabulary()
+ * @param array $terms     from af_search_terms()
+ * @param array $vocab     word => count, from af_search_vocabulary()
+ * @param array $headline  set to the words worth naming under the heading:
+ *                         one per group (the name the catalogue uses most)
+ *                         and one per misspelling. Everything returned is
+ *                         searched; only these are said. Measured after the
+ *                         first deploy: the live tags spell some pieces
+ *                         "Budha" and "Ganpati", and a "buddha" search said
+ *                         "Including results for “budha”", which reads as
+ *                         the shop suggesting a typo.
  * @return array lowercase words or phrases, most useful first, at most eight
  */
-function af_search_expand($terms, $vocab) {
+function af_search_expand($terms, $vocab, &$headline = null) {
+    $headline = array();
     if (!$terms || !$vocab) return array();
     $phrase = strtolower(trim((string) $terms[0]));
     // An art code is an identifier, never a misspelling of a word.
@@ -556,13 +565,16 @@ function af_search_expand($terms, $vocab) {
             if (strpos($m, ' ') !== false ? strpos(' ' . $phrase . ' ', ' ' . $m . ' ') !== false : in_array($m, $typed, true)) { $hit = true; break; }
         }
         if (!$hit) continue;
+        $top = null; $topN = -1;
         foreach ($group as $m) {
             $grouped[$m] = true;
-            $words = explode(' ', $m);
-            $known = true;
-            foreach ($words as $w) if (!isset($vocab[$w])) { $known = false; break; }
-            if ($known) $out[] = $m;
+            $n = PHP_INT_MAX;
+            foreach (explode(' ', $m) as $w) $n = min($n, isset($vocab[$w]) ? (int) $vocab[$w] : 0);
+            if ($n < 1) continue;
+            $out[] = $m;
+            if ($n > $topN) { $top = $m; $topN = $n; }
         }
+        if ($top !== null) $headline[] = $top;
     }
 
     // Misspellings: only for a word the catalogue does not contain anywhere.
@@ -571,14 +583,14 @@ function af_search_expand($terms, $vocab) {
 
         // "ganeshji", "hanumanji"
         if (substr($w, -2) === 'ji' && strlen($w) >= 6 && af_search_in_vocabulary(substr($w, 0, -2), $vocab)) {
-            $out[] = substr($w, 0, -2);
+            $out[] = $headline[] = substr($w, 0, -2);
             continue;
         }
         // "radhakrishna", "saibaba": two catalogue words run together.
         $split = false;
         for ($i = 3; $i <= strlen($w) - 3; $i++) {
             $l = substr($w, 0, $i); $r = substr($w, $i);
-            if (isset($vocab[$l]) && isset($vocab[$r])) { $out[] = $l . ' ' . $r; $split = true; break; }
+            if (isset($vocab[$l]) && isset($vocab[$r])) { $out[] = $headline[] = $l . ' ' . $r; $split = true; break; }
         }
         if ($split) continue;
 
@@ -602,16 +614,27 @@ function af_search_expand($terms, $vocab) {
             // The best, and a second only if it is exactly as near.
             if ($i === 0 || ($i === 1 && $best[$c][0] === $best[$keys[0]][0] && $best[$c][1] === $best[$keys[0]][1])) $out[] = $c;
         }
+        if ($keys) $headline[] = $keys[0];
     }
 
-    $out = array_values(array_unique($out));
-    return array_slice($out, 0, 8);
+    $out = array_slice(array_values(array_unique($out)), 0, 8);
+    $headline = array_values(array_intersect(array_unique($headline), $out));
+    return $out;
 }
 
 /**
- * Published, searchable products (and posts and pages) among $ids. Never a
- * draft, a revision or an attachment, and never a product the shop hides
- * from search.
+ * Published products, posts and pages among $ids. Never a draft, a revision
+ * or an attachment.
+ *
+ * Catalogue visibility ("Shop only", hidden from search) is deliberately NOT
+ * applied here. It was, for a day, and the live shop showed why not: at
+ * least 38 published products are set "Shop only", and the title search this
+ * module widens returns them anyway, several as the first result. Leaving
+ * them out of these ids alone dropped only the ones matched by a tag
+ * ("Ganpati Bappa artwork"): "ganesha" went from 16 results to 15, against
+ * this module's one promise that it only ever adds. Search should treat
+ * those products one way, and which way is the shop's decision, not this
+ * module's.
  */
 function af_search_published_ids($ids) {
     global $wpdb;
@@ -621,10 +644,6 @@ function af_search_published_ids($ids) {
     $ok = $wpdb->get_col(
         "SELECT ID FROM {$wpdb->posts} WHERE ID IN ({$in})"
         . " AND post_status = 'publish' AND post_type IN ('product','post','page')"
-        . " AND ID NOT IN (SELECT vtr.object_id FROM {$wpdb->term_relationships} vtr"
-        . " INNER JOIN {$wpdb->term_taxonomy} vtt ON vtt.term_taxonomy_id = vtr.term_taxonomy_id"
-        . " INNER JOIN {$wpdb->terms} vt ON vt.term_id = vtt.term_id"
-        . " WHERE vtt.taxonomy = 'product_visibility' AND vt.slug = 'exclude-from-search')"
     );
     return array_map('intval', (array) $ok);
 }
@@ -658,7 +677,7 @@ function af_search_word_ids($words, $limit = 300) {
     return af_search_published_ids($ids);
 }
 
-/** What af_search_expand() added to this page's search, for the note. */
+/** The words af_search_expand() said are worth naming, for the note. */
 function af_search_added($set = null) {
     static $added = array();
     if ($set !== null) $added = $set;
@@ -696,8 +715,8 @@ add_filter('posts_request', function ($sql, $q) {
     // Spellings and other names. A failure here must never cost the search
     // it would have returned anyway.
     try {
-        $added = af_search_expand($terms, af_search_vocabulary());
-        af_search_added($added);
+        $added = af_search_expand($terms, af_search_vocabulary(), $headline);
+        af_search_added($headline);
         if ($added) $ids = array_values(array_unique(array_merge($ids, af_search_word_ids($added))));
     } catch (\Throwable $e) {
         af_search_added(array());

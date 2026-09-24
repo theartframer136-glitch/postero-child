@@ -224,5 +224,29 @@ ok(strpos($h, 'mahadev') !== false && strpos($h, 'shiva') === false, '"shiv" lis
 af_search_added(array());
 ok(af_search_added_html('dinosaur') === '', 'no additions, no note');
 
+echo "\none spelling per name in the note (measured after the first deploy)\n";
+// The live tags spell some pieces "Budha" and "Ganpati". Searching "buddha"
+// then said "Including results for “budha”", which reads as the shop
+// suggesting a typo, and "ganesha" said "…“ganpati”". Every spelling is still
+// searched; the note names only the one the catalogue uses most.
+$live = af_search_build_vocabulary(array(
+    'Golden Buddha Meditation Canvas', 'Buddha Among Pink Lotuses', 'Buddha Bodhi Leaf', 'Budha',
+    'Lord Ganesha Gold Foil Canvas', 'Ganesha Dawn Silhouette', 'Ganpati', 'Ganesh Murti Canvas',
+));
+$say = function ($q) use ($live) {
+    af_search_expand(af_search_terms($q), $live, $h);
+    af_search_added($h);
+    return html_entity_decode(strip_tags(preg_replace('/<style.*$/s', '', af_search_added_html($q))), ENT_QUOTES, 'UTF-8');
+};
+ok(in_array('budha', af_search_expand(af_search_terms('buddha'), $live), true), '"buddha" still searches the pieces spelled "Budha"');
+ok($say('buddha') === '', '"buddha" says nothing about "budha"');
+ok($say('ganesha') === '', '"ganesha" says nothing about "ganpati"');
+ok($say('buddah') === 'Including results for “buddha”.', '"buddah" names "buddha" only, not "budha" (got: ' . $say('buddah') . ')');
+ok($say('ganpati') === 'Including results for “ganesha”.', '"ganpati" names "ganesha" only (got: ' . $say('ganpati') . ')');
+af_search_expand(af_search_terms('krishan'), $vocab, $h);
+ok($h === array('krishna'), 'a misspelling names its one correction');
+af_search_expand(af_search_terms('radah krishna'), $vocab, $h);
+ok(in_array('radha', $h, true), '"radah krishna" names "radha"');
+
 echo "\n$pass passed, $fail failed\n";
 exit($fail ? 1 : 0);
