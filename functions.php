@@ -11692,20 +11692,10 @@ add_action('init', function () {
 // least of it, and the items they are shown cannot be bought at all because
 // woocommerce_is_purchasable above refuses them.
 //
-// They are excluded from the price sort only. They stay in the catalogue, in
-// their categories, in search and in every other ordering, because they are
-// real products someone may want to enquire about. They simply have no price
-// to be sorted by, so they have no place in a list ordered by one.
-add_action('woocommerce_product_query', function($q) {
-    if (is_admin()) return;
-    $orderby = isset($_GET['orderby']) ? sanitize_key(wp_unslash($_GET['orderby'])) : '';
-    if ($orderby !== 'price' && $orderby !== 'price-desc') return;
-    $mq = (array) $q->get('meta_query');
-    // A product with no _price row at all is excluded by the key not existing,
-    // which is the same answer for the same reason.
-    $mq[] = array('key' => '_price', 'value' => 0, 'compare' => '>', 'type' => 'NUMERIC');
-    $q->set('meta_query', $mq);
-});
+// They were excluded from the price sort here. They are now sorted LAST in it
+// instead, by inc/price-sort.php: leaving them out emptied the categories
+// that are mostly these products (Art Accessories) whenever a visitor sorted
+// them by price, and changed the number of results with the sort (M-02).
 
 // Minimal styling for the label + enquire buttons
 add_action('wp_head', function(){
@@ -17720,7 +17710,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'placeholder-products', 'kit-options', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection') as $af_mod) {
+foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'kit-options', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }
