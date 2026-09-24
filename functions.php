@@ -9250,7 +9250,10 @@ add_action('template_redirect', function(){
           }
           // Set width first, then correct so the RENDERED box (frame + mat +
           // art, whose own ratio may differ) matches the real footprint.
-          box.style.width = Math.max(40, targetW) + 'px';
+          // Floor of 20px, not 40: on a phone the red box is ~178px tall, so a
+          // 3x2 ft piece on a 10 ft wall is truly 36px wide, and a 40px floor
+          // drew it 12% too big. 20px is still a grabbable target.
+          box.style.width = Math.max(20, targetW) + 'px';
           // Only the newest correction may run: two applyScale() calls in one
           // frame (refresh() then the artwork's onload) used to have the second
           // measure the already-corrected box and undo the correction.
@@ -9261,7 +9264,7 @@ add_action('template_redirect', function(){
             if(b.height>0 && b.width>0){
               // Scale from what is actually on screen, so this is idempotent and
               // works for any panel count: once the height matches, it is a no-op.
-              var corrected = Math.max(40, b.width * (targetH / b.height));
+              var corrected = Math.max(20, b.width * (targetH / b.height));
               // never exceed the wall itself
               corrected = Math.min(corrected, sw*0.92);
               box.style.width = corrected + 'px';
