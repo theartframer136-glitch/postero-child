@@ -41,7 +41,17 @@ await sleep(6000);
 console.log('heart after: ' + await p.evaluate(e => e.className, btn));
 await cookies('after add');
 
-let r = await go(S + '/wishlist/'); await sleep(5000);
+const links = async (t) => console.log('LINKS ' + t + ': ' + JSON.stringify(await p.evaluate(() =>
+  [...document.querySelectorAll('a[href*="wishlist"]')].map(a => (a.className || a.parentElement.className || '').toString().slice(0, 40) + ' -> ' + a.getAttribute('href')))));
+await links('shop after add');
+// the header heart, clicked the way a visitor does
+const hh = await p.$('header a[href*="wishlist"], .woosw-menu-item a, a.af-qp-wl');
+if (hh) { await Promise.all([p.waitForNavigation({ timeout: 30000 }).catch(() => {}), hh.click().catch(() => {})]); await sleep(4000); await rows('after header heart'); }
+let r = await go(S + '/wishlist/WOOSW/'); await sleep(4000);
+await rows('WOOSW url');
+await go(S + '/shop/?nc=' + Date.now()); await sleep(5000); await links('shop reloaded, cache-busted');
+await go(S + '/'); await sleep(5000); await links('home');
+r = await go(S + '/wishlist/'); await sleep(5000);
 console.log('HDR /wishlist/ status=' + (r && r.status()) + ' lscache=' + (r && r.headers()['x-litespeed-cache']) + ' cc=' + (r && r.headers()['cache-control']) + ' chain=' + (r ? r.request().redirectChain().map(x => x.url()).join(' > ') : '-'));
 await rows('/wishlist/');
 await cookies('on wishlist');
