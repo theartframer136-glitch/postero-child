@@ -311,17 +311,9 @@ function af_search_matching_ids($terms, $limit = 300) {
         ));
         if ($rows) $ids = array_merge($ids, $rows);
     }
-    $ids = array_values(array_unique(array_map('intval', $ids)));
-    if (!$ids) return array();
-
     // Only published products and posts — never a draft, never a revision,
-    // never an attachment.
-    $in = implode(',', $ids);
-    $ok = $wpdb->get_col(
-        "SELECT ID FROM {$wpdb->posts} WHERE ID IN ({$in})"
-        . " AND post_status = 'publish' AND post_type IN ('product','post','page')"
-    );
-    return array_map('intval', (array) $ok);
+    // never an attachment, never a product hidden from search.
+    return af_search_published_ids($ids);
 }
 
 /**
@@ -387,12 +379,329 @@ function af_search_widen_sql($sql, $ids, $posts_table) {
     return substr($sql, 0, $start) . $widened . substr($sql, $end);
 }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+ * SPELLINGS AND OTHER NAMES (Test Run 03, M-03)
+ *
+ * Measured on the live shop, 23 Sep: "shiv" 28 results and "radah krishna"
+ * 112, but "krishan", "krisna", "ganpati" and "buddah" 0 each. Every match
+ * above is LIKE '%word%', so a word finds something only if it is spelled
+ * exactly as a title or a category spells it, and these are the spellings
+ * customers actually type. In the product export of 21 Sep, "krishna" is in
+ * 107 titles and categories and "buddha" in 39; "krishan", "krisna",
+ * "buddah", "ganpati" and "laxmi" are in none.
+ *
+ * Two additions, and like everything else here they only ADD results:
+ *
+ *   other names   a typed word that belongs to a group below (ganpati,
+ *                 vinayaka, ganesh, ganesha) also searches the members of
+ *                 its group that the catalogue actually uses
+ *   misspellings  a typed word that appears in no title and no category is
+ *                 matched to the nearest catalogue word: one letter wrong,
+ *                 missing, extra or swapped with its neighbour ("buddah"),
+ *                 two for words of six letters or more; the first letter has
+ *                 to be right. Run-together words ("radhakrishna") and a
+ *                 trailing "ji" ("ganeshji") are taken apart the same way.
+ *
+ * The catalogue's words are read from product titles and product category,
+ * tag and attribute names, and kept for twelve hours or until a product or
+ * term is saved. What was added is said under the results heading
+ * ("Including results for “krishna”"), so no result is unexplained.
+ * ═══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * Names that mean the same thing to a customer. Each group is searched as a
+ * whole when any member is typed, but only for the members the catalogue
+ * uses (af_search_expand() checks), so a spelling no title has costs nothing.
+ * Short, ambiguous words (a person's name like Shyam, "hari", "mor") are left
+ * out: they would pull in pieces the visitor did not mean.
+ */
+function af_search_synonyms() {
+    return array(
+        array('ganesha', 'ganesh', 'ganpati', 'ganapati', 'ganapathi', 'ganapathy', 'ganesa', 'vinayaka', 'vinayak', 'vinayagar', 'pillaiyar', 'gajanan', 'gajanana'),
+        array('krishna', 'krishan', 'krisna', 'krsna', 'kanha', 'kanhaiya', 'kanhaiyya', 'murlidhar'),
+        array('radha', 'radhe', 'radhika', 'radharani'),
+        array('shiva', 'shiv', 'siva', 'shankar', 'shankara', 'mahadev', 'mahadeva', 'bholenath', 'shambhu', 'neelkanth'),
+        array('lakshmi', 'laxmi', 'lakshmee', 'laksmi', 'lakhsmi', 'mahalakshmi', 'mahalaxmi'),
+        array('saraswati', 'sarasvati', 'saraswathi', 'saraswathy', 'sharada'),
+        array('hanuman', 'hanumaan', 'hanumanji', 'bajrang', 'bajrangbali', 'anjaneya', 'anjaneyar', 'maruti', 'maruthi'),
+        array('durga', 'durgaa', 'bhavani'),
+        array('buddha', 'buddah', 'budha', 'budda', 'bhudda', 'gautama', 'siddhartha'),
+        array('vishnu', 'visnu', 'narayana', 'narayan'),
+        array('balaji', 'venkateswara', 'venkateshwara', 'venkatesh', 'srinivasa', 'tirupati', 'tirupathi', 'thirupathi'),
+        array('murugan', 'muruga', 'kartikeya', 'karthikeya', 'subramanya', 'subramanian', 'skanda', 'shanmukha'),
+        array('rama', 'shriram', 'sriram', 'ramachandra'),
+        array('sita', 'seeta', 'seetha', 'janaki'),
+        array('parvati', 'parvathi', 'parvathy'),
+        array('nataraja', 'natraj', 'nataraj'),
+        array('jagannath', 'jagannatha', 'jaganath'),
+        array('ayyappa', 'ayyappan', 'ayappa'),
+        array('meenakshi', 'minakshi'),
+        array('tanjore', 'thanjavur', 'tanjavur'),
+        array('madhubani', 'madubani', 'mithila'),
+        array('pichwai', 'pichhwai', 'pichvai', 'shrinathji', 'srinathji', 'nathdwara'),
+        array('murti', 'moorti', 'murthi', 'idol'),
+        array('varanasi', 'banaras', 'benares', 'kashi'),
+        array('bharatanatyam', 'bharatnatyam', 'bharathanatyam'),
+        array('temple', 'mandir'),
+        array('elephant', 'elefant', 'haathi', 'hathi'),
+        array('peacock', 'mayur', 'mayura'),
+        array('lotus', 'kamal', 'padma'),
+        array('saibaba', 'sai baba', 'shirdi'),
+    );
+}
+
+/**
+ * Every word of the catalogue, with how often it occurs. Pure, so the tests
+ * can feed it any list of titles.
+ */
+function af_search_build_vocabulary($texts) {
+    $v = array();
+    foreach ((array) $texts as $t) {
+        $t = strtolower(html_entity_decode((string) $t, ENT_QUOTES, 'UTF-8'));
+        foreach (preg_split('/[^a-z]+/', $t, -1, PREG_SPLIT_NO_EMPTY) as $w) {
+            if (strlen($w) >= 3) $v[$w] = isset($v[$w]) ? $v[$w] + 1 : 1;
+        }
+    }
+    return $v;
+}
+
+/** The live catalogue's words: product titles and product term names. */
+function af_search_vocabulary() {
+    static $v = null;
+    if ($v !== null) return $v;
+    $cached = get_transient('af_search_vocab');
+    if (is_array($cached)) return $v = $cached;
+    global $wpdb;
+    $titles = $wpdb->get_col("SELECT post_title FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'");
+    $names  = $wpdb->get_col("SELECT DISTINCT t.name FROM {$wpdb->terms} t"
+        . " INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_id = t.term_id"
+        . " WHERE tt.taxonomy IN ('product_cat','product_tag') OR tt.taxonomy LIKE 'pa\\_%'");
+    $v = af_search_build_vocabulary(array_merge((array) $titles, (array) $names));
+    set_transient('af_search_vocab', $v, 12 * HOUR_IN_SECONDS);
+    return $v;
+}
+foreach (array('save_post_product', 'created_term', 'edited_term', 'delete_term') as $af_hook) {
+    add_action($af_hook, function () { delete_transient('af_search_vocab'); });
+}
+
+/**
+ * Letters to change, add, remove or swap with a neighbour to turn $a into $b
+ * (the optimal string alignment distance). levenshtein() counts a swap as two,
+ * which would put "buddah" as far from "buddha" as from "bud".
+ */
+function af_search_distance($a, $b) {
+    $la = strlen($a); $lb = strlen($b);
+    $d = array();
+    for ($i = 0; $i <= $la; $i++) $d[$i] = array($i);
+    for ($j = 0; $j <= $lb; $j++) $d[0][$j] = $j;
+    for ($i = 1; $i <= $la; $i++) {
+        for ($j = 1; $j <= $lb; $j++) {
+            $cost = ($a[$i - 1] === $b[$j - 1]) ? 0 : 1;
+            $d[$i][$j] = min($d[$i - 1][$j] + 1, $d[$i][$j - 1] + 1, $d[$i - 1][$j - 1] + $cost);
+            if ($i > 1 && $j > 1 && $a[$i - 1] === $b[$j - 2] && $a[$i - 2] === $b[$j - 1]) {
+                $d[$i][$j] = min($d[$i][$j], $d[$i - 2][$j - 2] + 1);
+            }
+        }
+    }
+    return $d[$la][$lb];
+}
+
+/**
+ * True when some catalogue word BEGINS with $w: "shiv" (shiva), "tanjor"
+ * (tanjore), "landscap". Begins, not contains: "shva" is inside
+ * "vishvarupa", and one unrelated piece is not what the visitor asked for.
+ */
+function af_search_in_vocabulary($w, $vocab) {
+    if (isset($vocab[$w])) return true;
+    foreach ($vocab as $word => $n) {
+        if (strpos((string) $word, $w) === 0) return true;
+    }
+    return false;
+}
+
+/**
+ * A word as it sounds, for comparing spellings: ph is f, sh is s, x is ks,
+ * doubled letters are single. Without it "elefant" is nearer "elegant" (one
+ * letter) than "elephant" (two); with it, laxmi and lakshmi are the same word.
+ */
+function af_search_sound($w) {
+    $w = strtr($w, array(
+        'ph' => 'f', 'ck' => 'k', 'sh' => 's', 'th' => 't', 'dh' => 'd', 'bh' => 'b',
+        'kh' => 'k', 'gh' => 'g', 'x' => 'ks', 'q' => 'k', 'z' => 's', 'w' => 'v',
+        'y' => 'i', 'ee' => 'i', 'oo' => 'u',
+    ));
+    return preg_replace('/(.)\1+/', '$1', $w);
+}
+
+/**
+ * The catalogue words to search as well as what was typed.
+ *
+ * @param array $terms from af_search_terms()
+ * @param array $vocab word => count, from af_search_vocabulary()
+ * @return array lowercase words or phrases, most useful first, at most eight
+ */
+function af_search_expand($terms, $vocab) {
+    if (!$terms || !$vocab) return array();
+    $phrase = strtolower(trim((string) $terms[0]));
+    // An art code is an identifier, never a misspelling of a word.
+    if (preg_match('/^[a-z]{1,4}[0-9]{2,6}$/', af_search_flatten($phrase))) return array();
+    $typed = array_values(array_unique(preg_split('/[^a-z]+/', $phrase, -1, PREG_SPLIT_NO_EMPTY)));
+    $out = array();
+    $grouped = array();
+
+    // Other names.
+    foreach (af_search_synonyms() as $group) {
+        $hit = false;
+        foreach ($group as $m) {
+            if (strpos($m, ' ') !== false ? strpos(' ' . $phrase . ' ', ' ' . $m . ' ') !== false : in_array($m, $typed, true)) { $hit = true; break; }
+        }
+        if (!$hit) continue;
+        foreach ($group as $m) {
+            $grouped[$m] = true;
+            $words = explode(' ', $m);
+            $known = true;
+            foreach ($words as $w) if (!isset($vocab[$w])) { $known = false; break; }
+            if ($known) $out[] = $m;
+        }
+    }
+
+    // Misspellings: only for a word the catalogue does not contain anywhere.
+    foreach ($typed as $w) {
+        if (strlen($w) < 4 || isset($grouped[$w]) || af_search_in_vocabulary($w, $vocab)) continue;
+
+        // "ganeshji", "hanumanji"
+        if (substr($w, -2) === 'ji' && strlen($w) >= 6 && af_search_in_vocabulary(substr($w, 0, -2), $vocab)) {
+            $out[] = substr($w, 0, -2);
+            continue;
+        }
+        // "radhakrishna", "saibaba": two catalogue words run together.
+        $split = false;
+        for ($i = 3; $i <= strlen($w) - 3; $i++) {
+            $l = substr($w, 0, $i); $r = substr($w, $i);
+            if (isset($vocab[$l]) && isset($vocab[$r])) { $out[] = $l . ' ' . $r; $split = true; break; }
+        }
+        if ($split) continue;
+
+        $max = strlen($w) >= 6 ? 2 : 1;
+        $ws = af_search_sound($w);
+        $best = array();
+        foreach ($vocab as $cand => $n) {
+            $cand = (string) $cand;
+            if (strlen($cand) < 4 || $cand[0] !== $w[0] || abs(strlen($cand) - strlen($w)) > $max + 1) continue;
+            $cs = af_search_sound($cand);
+            if (levenshtein($ws, $cs) > $max * 2) continue;        // cheap first cut
+            $d = af_search_distance($ws, $cs);
+            if ($d > $max) continue;
+            // Nearest by sound, then by letters, then the word the catalogue
+            // uses most.
+            $best[$cand] = array($d, af_search_distance($w, $cand), -$n);
+        }
+        asort($best);
+        $keys = array_keys($best);
+        foreach ($keys as $i => $c) {
+            // The best, and a second only if it is exactly as near.
+            if ($i === 0 || ($i === 1 && $best[$c][0] === $best[$keys[0]][0] && $best[$c][1] === $best[$keys[0]][1])) $out[] = $c;
+        }
+    }
+
+    $out = array_values(array_unique($out));
+    return array_slice($out, 0, 8);
+}
+
+/**
+ * Published, searchable products (and posts and pages) among $ids. Never a
+ * draft, a revision or an attachment, and never a product the shop hides
+ * from search.
+ */
+function af_search_published_ids($ids) {
+    global $wpdb;
+    $ids = array_values(array_unique(array_map('intval', (array) $ids)));
+    if (!$ids) return array();
+    $in = implode(',', $ids);
+    $ok = $wpdb->get_col(
+        "SELECT ID FROM {$wpdb->posts} WHERE ID IN ({$in})"
+        . " AND post_status = 'publish' AND post_type IN ('product','post','page')"
+        . " AND ID NOT IN (SELECT vtr.object_id FROM {$wpdb->term_relationships} vtr"
+        . " INNER JOIN {$wpdb->term_taxonomy} vtt ON vtt.term_taxonomy_id = vtr.term_taxonomy_id"
+        . " INNER JOIN {$wpdb->terms} vt ON vt.term_id = vtt.term_id"
+        . " WHERE vtt.taxonomy = 'product_visibility' AND vt.slug = 'exclude-from-search')"
+    );
+    return array_map('intval', (array) $ok);
+}
+
+/**
+ * Products whose title, or one of whose category, tag or attribute names, has
+ * a word STARTING with one of $words. Word starts, not LIKE '%rama%', which
+ * would also find "dramatic" and "panorama".
+ */
+function af_search_word_ids($words, $limit = 300) {
+    global $wpdb;
+    $ids = array();
+    foreach ((array) $words as $w) {
+        $like = '% ' . $wpdb->esc_like($w) . '%';
+        $rows = $wpdb->get_col($wpdb->prepare(
+            "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status = 'publish'"
+            . " AND CONCAT(' ', REPLACE(REPLACE(LOWER(post_title),'-',' '),'&',' ')) LIKE %s LIMIT %d",
+            $like, $limit
+        ));
+        if ($rows) $ids = array_merge($ids, $rows);
+        $rows = $wpdb->get_col($wpdb->prepare(
+            "SELECT DISTINCT tr.object_id FROM {$wpdb->term_relationships} tr"
+            . " INNER JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id"
+            . " INNER JOIN {$wpdb->terms} t ON t.term_id = tt.term_id"
+            . " WHERE (tt.taxonomy IN ('product_cat','product_tag') OR tt.taxonomy LIKE 'pa\\_%')"
+            . " AND CONCAT(' ', REPLACE(LOWER(t.name),'-',' ')) LIKE %s LIMIT %d",
+            $like, $limit
+        ));
+        if ($rows) $ids = array_merge($ids, $rows);
+    }
+    return af_search_published_ids($ids);
+}
+
+/** What af_search_expand() added to this page's search, for the note. */
+function af_search_added($set = null) {
+    static $added = array();
+    if ($set !== null) $added = $set;
+    return $added;
+}
+
+/**
+ * "Including results for “krishna”." under the results heading, or '' when
+ * nothing was added. Words the visitor typed, or that contain what they
+ * typed ("ganesha" for "ganesh"), are already their own results and are not
+ * listed.
+ */
+function af_search_added_html($typed) {
+    $typed = strtolower((string) $typed);
+    $show = array();
+    foreach (af_search_added() as $w) {
+        if (strpos($typed, $w) !== false) continue;
+        $contains = false;
+        foreach (preg_split('/[^a-z]+/', $typed, -1, PREG_SPLIT_NO_EMPTY) as $t) {
+            if (strlen($t) >= 3 && strpos($w, $t) !== false) { $contains = true; break; }
+        }
+        if (!$contains) $show[] = '&ldquo;' . esc_html($w) . '&rdquo;';
+    }
+    if (!$show) return '';
+    return '<p class="af-sr-also">Including results for ' . implode(', ', array_slice($show, 0, 4)) . '.</p>'
+         . '<style>.af-sr-also{margin:4px 0 12px;font-size:14px;color:#6b6b6b}</style>';
+}
+
 add_filter('posts_request', function ($sql, $q) {
     if (af_search_disabled()) return $sql;
     if (!af_search_is_main_search($q)) return $sql;
     $terms = af_search_terms(af_search_query_string($q));
     if (!$terms) return $sql;
     $ids = af_search_matching_ids($terms);
+    // Spellings and other names. A failure here must never cost the search
+    // it would have returned anyway.
+    try {
+        $added = af_search_expand($terms, af_search_vocabulary());
+        af_search_added($added);
+        if ($added) $ids = array_values(array_unique(array_merge($ids, af_search_word_ids($added))));
+    } catch (\Throwable $e) {
+        af_search_added(array());
+    }
     af_search_debug('posts_request: ' . count($ids) . ' id(s) matched'
         . '; text_match_present=' . (strpos($sql, 'post_title LIKE') !== false ? 'yes' : 'no'));
     if (!$ids) return $sql;
