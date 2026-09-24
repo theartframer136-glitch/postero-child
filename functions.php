@@ -9213,9 +9213,14 @@ add_action('template_redirect', function(){
           // actual wall and tracks them as they move. Otherwise: the room photo,
           // read as a wall of the height the visitor picked.
           var measured = ( (camOn || CAL.frozen) && CAL.locked && CAL.pxPerFt > 0 );
+          // With the camera on, the wall IS the red rectangle - 68% of the
+          // stage (CAL_BOT - CAL_TOP) - so draw against that, not the 78% the
+          // room photos use. Otherwise a 3 ft piece on a 9 ft wall was 222px
+          // inside a 577px box (38%, not the true 1/3 = one grid cell), and
+          // shrank 13% the moment the box turned green.
           var pxPerFt = measured
             ? CAL.pxPerFt * (CAL.frozen ? frozenScale() : 1)
-            : (sh * WALL_FRAC) / (CAL.wallFt || WALL_FT);
+            : (sh * (camOn ? (CAL_BOT - CAL_TOP) : WALL_FRAC)) / (CAL.wallFt || WALL_FT);
           var targetH = ft.h * pxPerFt * slider;         // true height on the wall
           var targetW = ft.w * pxPerFt * slider;         // true width  on the wall
 
