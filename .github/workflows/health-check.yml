@@ -59,11 +59,11 @@ jobs:
             echo; echo "--- N-01: was the \"test\" product taken off public sale (inc/placeholder-products.php) ---"
             timeout 60 wp option get af_placeholder_products --allow-root 2>&1 | tail -1
             echo; echo "--- M-03: published products hidden from search, and the spellings the catalogue uses ---"
-            # After M-03 deployed, a \"ganesha\" search went from 16 results to
-            # 15. inc/search-all.php now leaves products hidden from search
-            # out of what it adds; this lists those products, so the one that
-            # dropped out can be named rather than assumed. Read-only, apart
-            # from rebuilding the search word cache before counting.
+            # After M-03 first deployed, a \"ganesha\" search went from 16
+            # results to 15: it briefly left products set \"Shop only\" out of
+            # what it adds. This lists those products (at least 38 on 24 Sep,
+            # which the title search returns anyway). Read-only, apart from
+            # rebuilding the search word cache before counting.
             timeout 60 wp eval "foreach (array(\"catalog\", \"hidden\") as \$v) { foreach (wc_get_products(array(\"limit\" => -1, \"status\" => \"publish\", \"visibility\" => \$v)) as \$p) { echo \"    \$v  \" . \$p->get_id() . \"  \" . \$p->get_name() . PHP_EOL; } }" --allow-root 2>&1 | head -40
             echo "  catalogue word counts (af_search_vocabulary):"
             timeout 60 wp eval "delete_transient(\"af_search_vocab\"); \$v = af_search_vocabulary(); echo \"    \" . count(\$v) . \" words\" . PHP_EOL; foreach (array(\"ganesha\", \"ganesh\", \"ganpati\", \"buddha\", \"budha\", \"krishna\", \"lakshmi\") as \$w) { echo \"    \$w: \" . (isset(\$v[\$w]) ? \$v[\$w] : 0) . PHP_EOL; }" --allow-root 2>&1 | head -12

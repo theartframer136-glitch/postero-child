@@ -21,6 +21,10 @@
 //   6    correctly spelled words say nothing about other spellings
 //   7    a word the catalogue has nothing near ("dinosaur") still finds nothing
 //   8    the site search (/?s=krishan) finds the same pieces and says so too
+//   9    correct spellings find at least what they did before any of this
+//        (run 102: krishna 118, ganesha 16, buddha 21). The first deploy
+//        broke this: "ganesha" fell to 15, because the added matches left
+//        out a product set "Shop only" that the title search still returns.
 //
 // Read-only. Nothing goes in a cart.
 //
@@ -85,6 +89,10 @@ say(quiet.length === 3, '6  correct spellings find pieces with no note about oth
 say(!!seen.dinosaur && seen.dinosaur.n === 0 && !seen.dinosaur.also, '7  "dinosaur" still finds nothing', seen.dinosaur ? seen.dinosaur.n + ' · ' + (seen.dinosaur.also || 'no note') : 'no answer');
 const site = await look(q('krishan'));
 say(!!site && site.n > 0 && /krishna/.test(site.also), '8  the site search /?s=krishan finds pieces and says so too', line(site) + (site ? ' · h1 "' + site.h1 + '"' : ''));
+
+const was = { krishna: 118, ganesha: 16, buddha: 21 };
+say(Object.keys(was).every(k => seen[k] && seen[k].n >= was[k]), '9  correct spellings find at least what they did before (118, 16, 21)',
+  Object.keys(was).map(k => k + ' ' + (seen[k] ? seen[k].n : '?')).join(' · '));
 
 const right = results.filter(Boolean).length;
 console.log('\n' + (right === results.length ? 'M-03 FIXED' : 'M-03 NOT FIXED') + ': ' + right + ' of ' + results.length + ' checks right');

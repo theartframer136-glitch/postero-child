@@ -312,7 +312,7 @@ function af_search_matching_ids($terms, $limit = 300) {
         if ($rows) $ids = array_merge($ids, $rows);
     }
     // Only published products and posts — never a draft, never a revision,
-    // never an attachment, never a product hidden from search.
+    // never an attachment.
     return af_search_published_ids($ids);
 }
 
@@ -623,9 +623,18 @@ function af_search_expand($terms, $vocab, &$headline = null) {
 }
 
 /**
- * Published, searchable products (and posts and pages) among $ids. Never a
- * draft, a revision or an attachment, and never a product the shop hides
- * from search.
+ * Published products, posts and pages among $ids. Never a draft, a revision
+ * or an attachment.
+ *
+ * Catalogue visibility ("Shop only", hidden from search) is deliberately NOT
+ * applied here. It was, for a day, and the live shop showed why not: at
+ * least 38 published products are set "Shop only", and the title search this
+ * module widens returns them anyway, several as the first result. Leaving
+ * them out of these ids alone dropped only the ones matched by a tag
+ * ("Ganpati Bappa artwork"): "ganesha" went from 16 results to 15, against
+ * this module's one promise that it only ever adds. Search should treat
+ * those products one way, and which way is the shop's decision, not this
+ * module's.
  */
 function af_search_published_ids($ids) {
     global $wpdb;
@@ -635,10 +644,6 @@ function af_search_published_ids($ids) {
     $ok = $wpdb->get_col(
         "SELECT ID FROM {$wpdb->posts} WHERE ID IN ({$in})"
         . " AND post_status = 'publish' AND post_type IN ('product','post','page')"
-        . " AND ID NOT IN (SELECT vtr.object_id FROM {$wpdb->term_relationships} vtr"
-        . " INNER JOIN {$wpdb->term_taxonomy} vtt ON vtt.term_taxonomy_id = vtr.term_taxonomy_id"
-        . " INNER JOIN {$wpdb->terms} vt ON vt.term_id = vtt.term_id"
-        . " WHERE vtt.taxonomy = 'product_visibility' AND vt.slug = 'exclude-from-search')"
     );
     return array_map('intval', (array) $ok);
 }
