@@ -37,6 +37,14 @@ console.log(await p.evaluate(() => {
   const t = card.querySelector('.product-transition'), iw = card.querySelector('.product-img-wrap');
   const cap = card.querySelector('.product-caption');
   const gap = cap && iw ? Math.round(cap.getBoundingClientRect().top - iw.getBoundingClientRect().bottom) : null;
+  if (t) { const cs = getComputedStyle(t);
+    out.push('FRAME h=' + cs.height + ' ar=' + cs.aspectRatio + ' pb=' + cs.paddingBottom + ' minh=' + cs.minHeight + ' inline=' + (t.getAttribute('style')||'-') +
+      ' myRuleOnPage=' + document.documentElement.innerHTML.includes('as tall as the photo'));
+    for (const ss of document.styleSheets) { let rs; try { rs = ss.cssRules; } catch { continue; }
+      const scan = (list, media) => { for (const r of list) { if (r.cssRules && !r.selectorText) { scan(r.cssRules, r.conditionText||media); continue; }
+        if (r.selectorText && r.style && /product-transition/.test(r.selectorText) && (r.style.height||r.style.aspectRatio||r.style.paddingBottom||r.style.minHeight) && t.matches(r.selectorText.replace(/::?(before|after)/g,'')))
+          out.push('  RULE ' + (ss.href||'inline#'+(ss.ownerNode&&ss.ownerNode.id)).split('/').pop().slice(0,50) + ' [' + (media||'') + '] ' + r.selectorText.slice(0,120) + ' { h=' + r.style.height + ' ar=' + r.style.aspectRatio + ' pb=' + r.style.paddingBottom + ' minh=' + r.style.minHeight + ' }'); } };
+      try { scan(rs, ''); } catch {} } }
   out.push('VERDICT link=' + (ar ? Math.round(ar.width)+'x'+Math.round(ar.height) : '-') + ' bg=' + (a ? getComputedStyle(a).backgroundColor : '-') +
     ' photo->details gap=' + gap + 'px ' + (gap !== null && gap < 40 && a && getComputedStyle(a).backgroundColor === 'rgba(0, 0, 0, 0)' ? 'PASS: no grey box' : 'FAIL: grey box still there'));
   return out.join('\n');
