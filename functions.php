@@ -16162,9 +16162,12 @@ add_action('wp_footer', function() {
 // queries, so pre_get_posts can lift the cap from the child theme
 // without touching parent files. Strictly scoped:
 //   • never main queries (shop archive keeps its own per-page)
-//   • AJAX: only action=load_products
 //   • render: only front-page product queries with the exact
 //     signature posts_per_page==12 + a product_cat tax filter
+// The load_products case moved to inc/home-weight.php (M-09): asked
+// from the homepage it answers with the theme's 12 and a "See all"
+// link, because the homepage grid grew with the catalogue (74 cards
+// for Radha Krishna); asked from anywhere else, every product, as here.
 // ─────────────────────────────────────────────────────────────
 add_action('pre_get_posts', function($q){
     if ($q->is_main_query()) return;
@@ -16172,12 +16175,6 @@ add_action('pre_get_posts', function($q){
     $pt = $q->get('post_type');
     $is_product = ($pt === 'product') || (is_array($pt) && in_array('product', $pt, true));
     if (!$is_product) return;
-
-    // Case 1: collection tab switch (theme AJAX)
-    if (wp_doing_ajax() && isset($_REQUEST['action']) && $_REQUEST['action'] === 'load_products') {
-        $q->set('posts_per_page', -1);
-        return;
-    }
 
     // Case 2: initial homepage grid render — 12-per-page product query filtered
     // by category (tax_query OR the product_cat/category query-var shortcuts)
@@ -17804,7 +17801,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'kit-options', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection') as $af_mod) {
+foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'kit-options', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }

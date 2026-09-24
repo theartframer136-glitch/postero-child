@@ -126,6 +126,26 @@ jobs:
               printf "    %-22s " "$k"; timeout 60 wp litespeed-option get "$k" --allow-root 2>/dev/null | tr "\n" " " | cut -c1-150; echo
             done
 
+            echo; echo "--- M-09: the homepage Shop by Collection grid, in the parent theme ---"
+            # tools/probe-home-weight.mjs found 74 product cards in that grid:
+            # every product of the first collection, because PHASE 25 in the
+            # child functions.php lifts the theme cap of 12. Read-only: where
+            # the theme builds that grid and what asks for it, whether the
+            # cards are in the HTML or arrive later over admin-ajax, and the
+            # Elementor widths a section can be hidden at.
+            T=$(timeout 60 wp eval "echo get_template_directory();" --allow-root 2>/dev/null | tail -1)
+            echo "  theme: $T"
+            grep -n -E "load_products|posts_per_page|productGrid|subcategory|quick-view-btn|wp_ajax" "$T/functions.php" 2>/dev/null | head -40 | cut -c1-200 | sed "s/^/    /"
+            echo "  -- every theme file that names the grid or the endpoint --"
+            grep -rn -E "productGrid|load_products|subcategory" "$T" --include=*.php --include=*.js 2>/dev/null | grep -v "/node_modules/" | head -30 | cut -c1-230 | sed "s#$T/##; s/^/    /"
+            echo "  -- product cards in the homepage HTML the server renders (cache bypassed) --"
+            curl -s -m 40 -H "Sec-Fetch-Mode: navigate" "https://theartframer.us/?af_nocache=$(date +%s)" | grep -o "class=\"product-card" | wc -l | sed "s/^/    /"
+            echo "  -- Elementor version and the widths it has switched on --"
+            timeout 60 wp plugin get elementor --field=version --allow-root 2>/dev/null | sed "s/^/    elementor /"
+            timeout 60 wp eval "echo \"    \" . implode(\", \", array_keys(\\Elementor\\Plugin::\$instance->breakpoints->get_active_breakpoints())) . PHP_EOL;" --allow-root 2>&1 | tail -1
+            echo "  -- product counts in the collections the grid can open on --"
+            timeout 60 wp eval "foreach (get_terms(array(\"taxonomy\" => \"product_cat\", \"hide_empty\" => true, \"orderby\" => \"count\", \"order\" => \"DESC\", \"number\" => 12)) as \$t) { echo \"    \" . str_pad(\$t->count, 5, \" \", STR_PAD_LEFT) . \"  \" . \$t->slug . PHP_EOL; }" --allow-root 2>&1 | head -14
+
             echo; echo "--- the PHP error log ---"
             # tail -25 was useless the one time it mattered: two plugins emit a
             # _load_textdomain_just_in_time notice on every request, so the tail
