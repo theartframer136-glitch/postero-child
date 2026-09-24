@@ -20324,6 +20324,12 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
 .af-wl-related h2{font-size:24px;margin:0 0 18px;color:#1a1a1a}
 .af-wl-related ul.products{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;margin:0!important;padding:0!important;list-style:none!important}
 .af-wl-related ul.products::before,.af-wl-related ul.products::after{display:none!important}
+/* The photo's frame (.product-transition) is drawn as a square: 482x482 on a
+   546px phone, while the photo inside is a 300px box - leaving a 182px empty
+   strip under every photo (measured live, 24 Sep, after the empty grey link
+   under it was fixed). Let the frame be exactly as tall as the photo. */
+.af-wl-related li.product .product-transition{height:auto!important;min-height:0!important;
+  aspect-ratio:auto!important;padding-bottom:0!important;overflow:hidden!important}
 /* Uniform image box, same measurement the shop uses. The card script builds a
    fixed 300px box (260 under 520px) only for cards shipping TWO images, main
    plus hover. A single-image card never gets that box, so it keeps the natural
