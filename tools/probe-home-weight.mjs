@@ -102,7 +102,27 @@ const measure = () => {
       return u.host === location.host ? (m ? m[1] + '/' + (m[2] || '') : u.pathname.split('/').slice(0, 3).join('/')) : u.host;
     } catch { return '?'; }
   };
+  // Elementor elements hidden at every active width: the desktop plus each
+  // breakpoint this site has switched on. Outermost ones only.
+  const cfg = (window.elementorFrontendConfig && elementorFrontendConfig.responsive) || {};
+  const active = ['desktop'].concat(Object.keys(cfg.activeBreakpoints || {}));
+  const everywhere = [...document.querySelectorAll('[class*="elementor-hidden-"]')].filter(el =>
+    active.every(d => el.classList.contains('elementor-hidden-' + d)));
+  const outer = everywhere.filter(el => !everywhere.some(o => o !== el && o.contains(el)));
+  const hiddenAll = outer.map(el => {
+    const doc = el.closest('[data-elementor-type]');
+    return {
+      id: el.getAttribute('data-id') || el.id || '?',
+      type: el.getAttribute('data-element_type') || el.tagName.toLowerCase(),
+      widget: el.getAttribute('data-widget_type') || '',
+      in: doc ? doc.getAttribute('data-elementor-type') + ' ' + doc.getAttribute('data-elementor-id') : '(no document)',
+      nodes: size(el), links: el.querySelectorAll('a,button').length, imgs: el.querySelectorAll('img').length,
+      head: t((el.querySelector('h1,h2,h3,h4,.elementor-heading-title') || {}).textContent || el.textContent).slice(0, 40),
+    };
+  });
+
   return {
+    active, hiddenAll,
     totals: {
       html: document.documentElement.outerHTML.length,
       nodes: all.length,
@@ -131,8 +151,19 @@ const measure = () => {
 const run = async (name, viewport, scroll) => {
   const ctx = await browser.newContext({ viewport, ignoreHTTPSErrors: true });
   const page = await ctx.newPage();
+  const ajax = [];
+  page.on('response', async res => {
+    const req = res.request();
+    if (req.method() !== 'POST' || !/admin-ajax\.php/.test(res.url())) return;
+    const body = req.postData() || '';
+    const action = (body.match(/(?:^|&)action=([^&]+)/) || [])[1] || '?';
+    let cards = '?';
+    try { const txt = await res.text(); cards = (txt.match(/class="product-card/g) || []).length; } catch {}
+    ajax.push(action + ' ' + decodeURIComponent(body.replace(/(^|&)action=[^&]*/, '')).slice(0, 60) + ' → ' + cards + ' cards');
+  });
   const r = await page.goto(SITE + '/', { waitUntil: 'load', timeout: 90000 }).catch(e => { console.log('  no answer: ' + e.message); return null; });
   if (!r) { await ctx.close(); return null; }
+  const raw = await r.text().catch(() => '');
   await page.waitForTimeout(4000);
   if (scroll) {
     await page.evaluate(async () => { for (let y = 0; y < document.documentElement.scrollHeight; y += 700) { scrollTo(0, y); await new Promise(r => setTimeout(r, 180)); } scrollTo(0, 0); });
@@ -141,8 +172,13 @@ const run = async (name, viewport, scroll) => {
   const d = await page.evaluate(measure);
   await ctx.close();
   const T = d.totals;
+  T.rawCards = (raw.match(/class="product-card/g) || []).length;
   console.log(`\n=== ${name} · HTTP ${r.status()} · ${Math.round(T.html / 1024)} KB of DOM as HTML · page ${T.pageHeight}px tall ===`);
   console.log(`  nodes ${T.nodes} · links+buttons ${T.links} (${T.shownLinks} shown) · href="#" ${T.hash} · under 44px ${T.tiny} · scripts ${T.scripts} (${T.scriptsExt} files) · stylesheets ${T.sheets} + ${T.styles} <style> · images ${T.imgs} · nodes not displayed ${T.hidden} · not in any section ${T.uncovered}`);
+  console.log(`  product cards in the HTML as served ${T.rawCards} · admin-ajax calls: ${ajax.length ? ajax.join(' | ') : 'none'}`);
+  console.log(`  Elementor widths switched on: ${d.active.join(', ')}`);
+  console.log('  hidden at every one of them:');
+  for (const h of d.hiddenAll) console.log('    ' + (h.type + (h.widget ? ' ' + h.widget : '')).padEnd(34) + (' id ' + h.id).padEnd(13) + ' in ' + h.in.padEnd(22) + String(h.nodes).padStart(6) + ' nodes' + String(h.links).padStart(5) + ' links' + String(h.imgs).padStart(4) + ' imgs  ' + h.head);
   console.log('\n  section'.padEnd(64) + '   top  nodes links  #  <44 hidden cards imgs  heading');
   const merged = [];
   for (const x of d.rows) {
