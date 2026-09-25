@@ -231,6 +231,10 @@ add_action('woocommerce_before_add_to_cart_button', function () {
 body.af-kit-digital .af-opts .af-opt-group,
 body.af-kit-digital .af-opts .af-wall-hint,
 body.af-kit-digital .af-opts .af-color-tip{display:none !important}
+/* Painting only / on bars: rolled, no frame to choose. */
+body.af-kit-noframe .af-opts .af-grp-frame,
+body.af-kit-noframe .af-opts .af-grp-color,
+body.af-kit-noframe .af-opts .af-color-tip{display:none !important}
 </style>
 <script>
 (function(){
@@ -248,7 +252,7 @@ body.af-kit-digital .af-opts .af-color-tip{display:none !important}
       frameGroup.style.opacity = needsFrame ? '1' : '';
     }
     document.dispatchEvent(new CustomEvent('af:kit-changed', {detail:{kit: e.target.value}}));
-    setTimeout(function(){ digital(e.target.value === 'digital'); }, 60);
+    setTimeout(function(){ frameFor(e.target.value); digital(e.target.value === 'digital'); }, 60);
   });
 
   // Digital download: the price is the file's (the same figure the Digital
@@ -291,9 +295,54 @@ body.af-kit-digital .af-opts .af-color-tip{display:none !important}
       });
     }
   }
-  // a browser that restores the form on Back can open with it already chosen
-  var start = g.querySelector('input[name="af_kit"]:checked');
-  if (start && start.value === 'digital') setTimeout(function(){ digital(true); }, 300);
+  // Only "Painting + structure bars + frame + DIY kit" has a frame in it.
+  // Painting only, and painting on bars, arrive rolled: no Frame Type, no
+  // Frame Color, and the price is the unframed one (the cart enforces the
+  // same). The frame the visitor had picked comes back if they return to the
+  // framed option.
+  var FRAMED = 'painting_bar_frame', keptFrame = null;
+  function frameGroups(){
+    var opts = document.querySelector('.af-opts'); if (!opts) return;
+    opts.querySelectorAll('.af-opt-group').forEach(function(gr){
+      if (gr.querySelector('.af-frame-chips')) gr.classList.add('af-grp-frame');
+      if (gr.querySelector('.af-color-chips')) gr.classList.add('af-grp-color');
+    });
+    return opts;
+  }
+  function frameFor(kit){
+    var opts = frameGroups(); if (!opts) return;
+    var noFrame = kit === 'painting' || kit === 'painting_bar';
+    document.body.classList.toggle('af-kit-noframe', noFrame);
+    var active = opts.querySelector('.af-frame-chips .af-chip-opt.active');
+    var cur = active ? active.getAttribute('data-val') : '';
+    if (noFrame) {
+      if (cur && cur !== 'Without Frame') {
+        keptFrame = cur;
+        var none = opts.querySelector('.af-frame-chips .af-chip-opt[data-val="Without Frame"]');
+        if (none) none.click();
+      }
+    } else if (kit === FRAMED && keptFrame && cur === 'Without Frame') {
+      var back = opts.querySelector('.af-frame-chips .af-chip-opt[data-val="' + keptFrame + '"]:not([disabled])');
+      if (back) back.click();
+      keptFrame = null;
+    }
+  }
+  // On arrival: a frame already chosen elsewhere (Try On Wall passes one in
+  // the address) means the visitor wants it framed, so open on the framed
+  // option instead of silently dropping their frame.
+  function startUp(){
+    var start = g.querySelector('input[name="af_kit"]:checked');
+    var opts = frameGroups();
+    var active = opts ? opts.querySelector('.af-frame-chips .af-chip-opt.active') : null;
+    if (start && start.value !== FRAMED && start.value !== 'digital' && active
+        && active.getAttribute('data-val') !== 'Without Frame') {
+      var framed = g.querySelector('input[name="af_kit"][value="' + FRAMED + '"]');
+      if (framed) { framed.checked = true; framed.dispatchEvent(new Event('change', {bubbles:true})); return; }
+    }
+    if (start) { frameFor(start.value); if (start.value === 'digital') digital(true); }
+  }
+  if (document.readyState === 'complete') setTimeout(startUp, 300);
+  else window.addEventListener('load', function(){ setTimeout(startUp, 300); });
 })();
 </script>
     <?php

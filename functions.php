@@ -7357,6 +7357,12 @@ add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
     if (!isset($cfg['sizes'][$size]) || !af_size_is_offered($size)) $size = af_size_default($product);
     if (!isset($cfg['frames'][$frame]) || !af_frame_is_in_stock($frame)) $frame = af_frame_default();
     if (!isset($cfg['colors'][$color])) $color = array_key_first($cfg['colors']);
+    // "Painting only" and "Painting + structure bars + DIY kit" arrive rolled,
+    // with no frame, so a frame chip left selected on the page is not charged.
+    if (isset($_POST['af_kit']) && isset($cfg['frames']['Without Frame'])
+        && in_array(sanitize_key(wp_unslash($_POST['af_kit'])), array('painting', 'painting_bar'), true)) {
+        $frame = 'Without Frame';
+    }
     $data['af_size']  = $size;
     $data['af_frame'] = $frame;
     $data['af_color'] = $color;
