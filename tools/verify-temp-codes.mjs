@@ -26,6 +26,9 @@ const page = await ctx.newPage();
 const results = [];
 const say = (ok, what, seen) => { results.push(ok); console.log('  ' + (ok ? 'RIGHT ' : 'WRONG ') + what.padEnd(64) + seen); };
 const path = u => { try { return new URL(u, SITE).pathname.replace(/\/+$/, '/'); } catch (e) { return String(u || ''); } };
+// The code as stored reads "RK - 010074-5030" and the texturized copy "RK – 010074-5030";
+// the SKU reads "RK-010074-5030". Compare them without spaces and with one kind of dash.
+const key = s => String(s || '').replace(/^\s*Art Code:\s*/i, '').replace(/[\u2010-\u2015\u2212]/g, '-').replace(/\s+/g, '').toUpperCase();
 
 // JSON from inside the page, so the request is the browser's own (the host's
 // bot protection refuses plain HTTP clients)
@@ -69,21 +72,28 @@ const readPage = async (url) => {
   await page.waitForTimeout(400);
   const d = await page.evaluate(() => {
     const t = s => String(s || '').replace(/\s+/g, ' ').trim();
-    const lines = [...document.querySelectorAll('.af-art-code')].filter(el => !el.classList.contains('af-art-code--empty')).map(el => t(el.textContent));
+    // The product's own lines; the cards of other products lower down carry theirs.
+    const OTHER = 'ul.products, .related, .upsells, .cross-sells, .product-card, .trending-card, [class*="popular"], [class*="recent"], [class*="also-like"]';
+    const own = [...document.querySelectorAll('.af-art-code')]
+      .filter(el => !el.classList.contains('af-art-code--empty') && !el.closest(OTHER));
+    const lines = own.map(el => t(el.textContent));
+    const byScript = own.filter(el => el.classList.contains('af-art-code--card')).length;   // added in the browser
     const summary = document.querySelectorAll('.summary .af-art-code:not(.af-art-code--empty), .entry-summary .af-art-code:not(.af-art-code--empty)').length;
-    return { lines, summary };
-  }).catch(() => ({ lines: [], summary: 0 }));
+    return { lines, byScript, summary };
+  }).catch(() => ({ lines: [], byScript: 0, summary: 0 }));
   return { status, ...d };
 };
 const pageRows = [];
 let n = 0;
 for (const p of temp) {
   const d = await readPage(p.permalink);
-  const want = 'Art Code: ' + p.sku.toUpperCase();
-  pageRows.push({ id: p.id, sku: p.sku, name: p.name, status: d.status, shown: (d.lines || []).some(l => l.toUpperCase() === want.toUpperCase()), summary: d.summary || 0, lines: d.lines || [] });
+  const codes = [...new Set((d.lines || []).map(key))];
+  pageRows.push({ id: p.id, sku: p.sku, name: p.name, status: d.status, lines: d.lines || [], byScript: d.byScript || 0, summary: d.summary || 0,
+    shown: codes.some(c => TMP.test(c)), matches: codes.includes(key(p.sku)), codes });
   if (++n % 40 === 0) console.log('  … ' + n + ' product pages opened');
 }
 const shown = pageRows.filter(r => r.shown);
+const differs = pageRows.filter(r => r.shown && !r.matches);
 const twice = pageRows.filter(r => r.summary > 1);
 const fails = pageRows.filter(r => r.status !== 200);
 
@@ -94,7 +104,7 @@ const realRows = [];
 for (const p of sample) {
   const d = await readPage(p.permalink);
   const code = p.sku.replace(/[A-Z]$/, '');   // a twin's SKU carries a letter; its art code does not
-  realRows.push({ id: p.id, sku: p.sku, status: d.status, ok: (d.lines || []).some(l => l.toUpperCase() === ('Art Code: ' + code).toUpperCase()), summary: d.summary || 0, lines: d.lines || [] });
+  realRows.push({ id: p.id, sku: p.sku, status: d.status, ok: (d.lines || []).some(l => key(l) === key(code)), summary: d.summary || 0, lines: d.lines || [] });
 }
 
 // ── 2: the category grids holding most TMP products ─────────────────────────
@@ -105,7 +115,7 @@ for (const p of temp) for (const c of (p.categories || [])) {
 }
 const cats = [...catCount.entries()].sort((a, b) => b[1] - a[1]).map(e => e[0])
   .filter(u => !/deals-discounts|all-art-prints/.test(u)).slice(0, 5);
-const tempByPath = new Map(temp.map(p => [path(p.permalink), p.sku.toUpperCase()]));
+const tempByPath = new Map(temp.map(p => [path(p.permalink), p.sku]));
 const cardRows = [];
 for (const url of cats) {
   const resp = await page.goto(url, { waitUntil: 'load', timeout: 60000 }).catch(() => null);
@@ -119,21 +129,23 @@ for (const url of cats) {
       return { href: a ? a.getAttribute('href') : '', lines };
     });
   }).catch(() => []);
-  cardRows.push({ url, status: 200, cards: cards.filter(c => tempByPath.has(path(c.href))).map(c => ({ ...c, want: 'Art Code: ' + tempByPath.get(path(c.href)) })) });
+  cardRows.push({ url, status: 200, cards: cards.filter(c => tempByPath.has(path(c.href))).map(c => ({ ...c, sku: tempByPath.get(path(c.href)) })) });
 }
 const tempCards = cardRows.flatMap(r => r.cards);
-const cardsShown = tempCards.filter(c => c.lines.some(l => l.toUpperCase() === c.want.toUpperCase()));
+const cardsShown = tempCards.filter(c => c.lines.some(l => TMP.test(key(l))));
 
 // ── report ───────────────────────────────────────────────────────────────────
 console.log('\n  temporary-code product pages opened: ' + pageRows.length + (fails.length ? ' (' + fails.length + ' did not answer 200: ' + fails.slice(0, 5).map(r => r.id + ' HTTP ' + r.status).join(', ') + ')' : ''));
 console.log('  showing "Art Code: TMP-…"          : ' + shown.length + ' of ' + pageRows.length);
+const per = rows => { const m = new Map(); for (const r of rows) m.set(r.lines.length, (m.get(r.lines.length) || 0) + 1); return [...m.entries()].sort((a, b) => a[0] - b[0]).map(e => e[1] + ' pages × ' + e[0]).join(', '); };
+console.log('  own Art Code lines per TMP page     : ' + per(pageRows.filter(r => r.status === 200)) + '   (added by the browser script: ' + pageRows.filter(r => r.byScript).length + ' pages)');
 const notShown = pageRows.filter(r => r.status === 200 && !r.shown);
 for (const r of notShown.slice(0, 12)) console.log('    not shown: #' + r.id + ' ' + r.sku + '  "' + String(r.name).slice(0, 50) + '"' + (r.lines.length ? '  (page shows: ' + r.lines.join(' | ') + ')' : ''));
 if (notShown.length > 12) console.log('    … and ' + (notShown.length - 12) + ' more');
 console.log('  category grids read: ' + cardRows.map(r => path(r.url) + ' (' + r.cards.length + ' TMP cards)').join(', '));
 console.log('  TMP cards showing their code: ' + cardsShown.length + ' of ' + tempCards.length);
 for (const c of tempCards.filter(c => !cardsShown.includes(c)).slice(0, 8)) console.log('    card without it: ' + path(c.href) + (c.lines.length ? ' (shows ' + c.lines.join(' | ') + ')' : ''));
-console.log('  brochure-code sample: ' + realRows.filter(r => r.ok).length + ' of ' + realRows.length + ' show their own code');
+console.log('  brochure-code sample: ' + realRows.filter(r => r.ok).length + ' of ' + realRows.length + ' show their own code; own lines per page: ' + per(realRows.filter(r => r.status === 200)));
 for (const r of realRows.filter(r => !r.ok)) console.log('    #' + r.id + ' ' + r.sku + ' HTTP ' + r.status + ' shows: ' + (r.lines.join(' | ') || 'nothing'));
 console.log('');
 
@@ -142,6 +154,11 @@ say(tempCards.length > 0 && cardsShown.length === tempCards.length, '2  every TM
 say(realRows.length > 0 && realRows.every(r => r.ok), '3  brochure-coded products still show their own code', realRows.filter(r => r.ok).length + ' of ' + realRows.length);
 say(twice.length === 0 && realRows.every(r => r.summary <= 1), '4  no product page prints the code twice in its summary',
   twice.length ? twice.slice(0, 5).map(r => '#' + r.id).join(' ') : 'none');
+
+// Not part of the checks: a product whose temporary code and SKU are different numbers.
+console.log('\n  found along the way — the code shown is not the SKU: ' + differs.length + ' of ' + shown.length + ' TMP products');
+for (const r of differs.slice(0, 40)) console.log('    #' + r.id + '  shows ' + r.codes.filter(c => TMP.test(c)).join(', ') + '   SKU ' + r.sku + '   "' + String(r.name).replace(/&#215;/g, '×').slice(0, 44) + '"');
+if (differs.length > 40) console.log('    … and ' + (differs.length - 40) + ' more');
 
 const right = results.filter(Boolean).length;
 console.log('\n' + (right === results.length ? 'TEMP CODES SHOWN' : 'TEMP CODES NOT SHOWN') + ': ' + right + ' of ' + results.length + ' checks right');
