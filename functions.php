@@ -1589,7 +1589,7 @@ html body .product-card .price-section {
   display:flex !important; flex-direction:row !important; flex-wrap:nowrap !important;
   align-items:center !important; gap:4px !important; white-space:nowrap !important;
   font-size:14px !important; font-weight:700 !important; color:#1a1a1a !important;
-  margin:0 0 6px !important; padding:0 !important;
+  padding:0 !important;
 }
 html body .product-card .price ins { text-decoration:none !important; font-weight:700 !important; color:#1a1a1a !important; }
 html body .product-card .price del,
