@@ -271,6 +271,40 @@ foreach (array('section', 'column', 'container', 'widget') as $af_type) {
 }
 unset($af_type);
 
+// ── 3. Elementor's stored copy of the homepage ───────────────────────────
+/**
+ * The site runs Elementor's element cache: each page is kept, rendered, in
+ * _elementor_element_cache for 24 hours (element_cache_ttl 24) and printed
+ * from that copy while it lasts. Rule 2 decides what Elementor prints, so it
+ * does nothing until the copy is rebuilt - and a deploy clears LiteSpeed and
+ * the object cache, not this. Measured after #335 deployed: the collection
+ * grid (admin-ajax, never in that copy) was fixed at once; the ten sections
+ * were still in a fresh render, with the rule loaded and hooked. Rendered on
+ * the server with the copy neither read nor written (health-check run 24),
+ * all ten were left out and the sections on show stayed.
+ *
+ * So when these rules change, the homepage's copy is dropped once, and
+ * LiteSpeed's copy of the homepage with it. Elementor builds a new one on the
+ * next visit, exactly as it does after the page is saved. Bump the version
+ * whenever rule 2 changes what it leaves out.
+ */
+function af_home_weight_rules_version() { return '2026-09-24.1'; }
+
+function af_home_weight_refresh() {
+    $v = af_home_weight_rules_version();
+    if (get_option('af_home_weight_rules') === $v) return false;
+    $front = (int) get_option('page_on_front');
+    if ($front > 0) {
+        delete_post_meta($front, '_elementor_element_cache');
+        do_action('litespeed_purge_post', $front);
+        do_action('litespeed_purge_url', home_url('/'));
+    }
+    // Autoloaded: it is read on every request, and this way costs no query.
+    update_option('af_home_weight_rules', $v, true);
+    return true;
+}
+add_action('wp_loaded', 'af_home_weight_refresh');
+
 add_action('wp_footer', function () {
     if (!is_front_page()) return;
     $ids = af_home_not_sent();
