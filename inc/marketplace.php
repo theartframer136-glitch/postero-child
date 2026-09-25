@@ -397,10 +397,12 @@ function af_mk_find_product($identifier) {
     $id = wc_get_product_id_by_sku($identifier);
     if ($id) return wc_get_product($id);
     global $wpdb;
-    // a channel-specific SKU, or the art code
+    // a channel-specific SKU, the art code, or the SKU the product had before
+    // tools/sku-to-artcode.php re-issued it from a changed art code — a channel
+    // may still be sending the old one
     $found = $wpdb->get_var($wpdb->prepare(
         "SELECT post_id FROM {$wpdb->postmeta}
-         WHERE meta_value = %s AND (meta_key LIKE '_af_mk_sku_%%' OR meta_key = '_taf_art_code') LIMIT 1",
+         WHERE meta_value = %s AND (meta_key LIKE '_af_mk_sku_%%' OR meta_key IN ('_taf_art_code', '_af_sku_previous')) LIMIT 1",
         $identifier
     ));
     if ($found) return wc_get_product((int) $found);

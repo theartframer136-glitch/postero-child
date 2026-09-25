@@ -29,6 +29,31 @@
  *      AF_SKU_MAX     (default 800) — product cap for one run
  *      AF_SKU_DRYRUN=1              — report what would change, write nothing
  */
+/**
+ * Does this SKU still belong to this art code?
+ *
+ * Yes when it is the code in SKU form ($base, from af_sku_code_part()) or that
+ * plus the letter the pass adds to keep products sharing a code apart —
+ * RK-010033-3050A. No when it names some other code.
+ *
+ * A product is marked done once its SKU is written, and used to be skipped
+ * after that whatever happened to its code. The temporary codes are re-issued
+ * on every deploy from _af_artcode_temp, and all 97 products holding one of
+ * those (TMP-1204 … TMP-1305) came out of it with a SKU from before: an earlier
+ * temporary number, an old brochure code, or the machine-made TAF-… one.
+ * #30093 shows art code TMP-1290 on its page and in its order lines, and had
+ * SKU TMP-1143. Done now means done FOR THIS CODE: when the code has moved on,
+ * the SKU follows it.
+ *
+ * Pure, so tools/test-sku-follows-code.php can hold it still.
+ */
+function af_sku_belongs_to_code( $sku, $base ) {
+	$sku  = strtoupper( trim( (string) $sku ) );
+	$base = strtoupper( trim( (string) $base ) );
+	if ( $base === '' || $sku === '' || strpos( $sku, $base ) !== 0 ) { return false; }
+	return (bool) preg_match( '/^[A-Z]{0,2}$/', substr( $sku, strlen( $base ) ) );
+}
+
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
 $VERSION = 'artcode-sku-v4-unique';
@@ -218,11 +243,19 @@ function af_sku_persist_letter( $pid, $setlet, $clearlet ) {
 
 // ── Write ───────────────────────────────────────────────────────────────────
 $done = 0; $already = 0; $skipped = 0; $clash = 0; $samples = array();
+$reissued = array();   // done once, but the code has moved on since: pid => "old → new"
 
 foreach ( $ids as $pid ) {
 	if ( ! isset( $want[ $pid ] ) ) { continue; }
 
-	if ( get_post_meta( $pid, '_af_sku_artcode', true ) === $VERSION ) { $already++; continue; }
+	// Done for THIS code only. A SKU still carrying the product's code (with or
+	// without its twin letter) is left exactly as it is, so no SKU on an
+	// invoice moves; one naming an earlier code is re-issued below.
+	$marked = get_post_meta( $pid, '_af_sku_artcode', true ) === $VERSION;
+	if ( $marked && af_sku_belongs_to_code( get_post_meta( $pid, '_sku', true ), af_sku_from_code( $codes[ $pid ] ) ) ) {
+		$already++;
+		continue;
+	}
 	if ( $done >= $MAX || ( microtime( true ) - $started ) > $SECONDS ) { break; }
 
 	$new = $want[ $pid ];
@@ -254,10 +287,12 @@ foreach ( $ids as $pid ) {
 		           . "   [" . $codes[ $pid ] . "]";
 	}
 
+	if ( $marked ) { $reissued[ $pid ] = ( $old === '' ? '(no sku)' : $old ) . '  →  ' . $new . '   [' . $codes[ $pid ] . ']'; }
+
 	if ( $DRY ) { $done++; continue; }
 
 	$product = wc_get_product( $pid );
-	if ( ! $product ) { $skipped++; continue; }
+	if ( ! $product ) { $skipped++; unset( $reissued[ $pid ] ); continue; }
 
 	if ( $old !== '' && get_post_meta( $pid, '_af_sku_before_artcode', true ) === '' ) {
 		update_post_meta( $pid, '_af_sku_before_artcode', $old );
@@ -268,9 +303,13 @@ foreach ( $ids as $pid ) {
 		$product->save();
 	} catch ( Exception $e ) {
 		$skipped++;
+		unset( $reissued[ $pid ] );
 		echo "  FAILED #{$pid} → {$new}: " . $e->getMessage() . "\n";
 		continue;
 	}
+	// The SKU this pass itself wrote for an earlier code is kept, one step back,
+	// so it can still be looked up; _af_sku_before_artcode keeps the original.
+	if ( $marked && $old !== '' ) { update_post_meta( $pid, '_af_sku_previous', $old ); }
 
 	// Only after the SKU is safely written: a letter recorded for a SKU that
 	// failed to save would make the order line disagree with the product.
@@ -292,6 +331,12 @@ if ( $remaining > 0 ) {
 
 if ( $samples ) {
 	echo "\nwhat changed (first " . count( $samples ) . "):\n" . implode( "\n", $samples ) . "\n";
+}
+
+echo "\nSKUs re-issued because the art code had moved on since: " . count( $reissued )
+   . ( $DRY ? ' (dry run)' : '' ) . "\n";
+foreach ( $reissued as $pid => $line ) {
+	printf( "  #%-7d %s\n", $pid, $line );
 }
 
 if ( $lettered ) {
