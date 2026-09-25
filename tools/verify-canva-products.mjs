@@ -36,12 +36,15 @@ const SITE = (process.argv[2] || process.env.AF_QA_URL || 'https://theartframer.
 const DATA = JSON.parse(readFileSync(new URL('./canva-status-2026-09-25.json', import.meta.url), 'utf8'));
 // Opening every page of 368 can outrun the workflow's 30-minute limit, so the
 // workflow's "only" input (AF_QA_ONLY) can take half: 1 = the first half of the
-// pages, 2 = the second. Blank = all of them.
+// pages, 2 = the second. A list of pages (p280,p281) re-checks just those.
+// Blank = all of them.
 const HALF = (process.env.AF_QA_ONLY || '').trim();
 const ALL_ROWS = DATA.rows;
 const MID = Math.ceil(ALL_ROWS.length / 2);
-const ROWS = HALF === '1' ? ALL_ROWS.slice(0, MID) : HALF === '2' ? ALL_ROWS.slice(MID) : ALL_ROWS;
+const PICK = /^p\d+(\s*,\s*p\d+)*$/i.test(HALF) ? new Set(HALF.split(',').map(t => parseInt(t.trim().slice(1), 10))) : null;
+const ROWS = PICK ? ALL_ROWS.filter(r => PICK.has(r.page)) : HALF === '1' ? ALL_ROWS.slice(0, MID) : HALF === '2' ? ALL_ROWS.slice(MID) : ALL_ROWS;
 if (HALF === '1' || HALF === '2') console.log('half ' + HALF + ' of 2: pages ' + ROWS[0].page + '–' + ROWS[ROWS.length - 1].page);
+if (PICK) console.log('pages ' + ROWS.map(r => r.page).join(', ') + ' only');
 
 const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, ignoreHTTPSErrors: true });
