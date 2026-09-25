@@ -1,6 +1,7 @@
 <?php
 /**
- * Take placeholder products off public sale. Test Run 03, N-01.
+ * Take placeholder products off public sale. Test Run 03, N-01; and, from
+ * 25 Sep, the five leftover theme demo posters the owner asked to remove.
  *
  * Product 11491 is called "test". Measured 23 Sep as a first-time visitor: it
  * answers 200 at /product/test-canvas-wall-art/, is marked index,follow for
@@ -33,12 +34,26 @@ if (!defined('ABSPATH')) exit;
  * of the 10 ways in. The product sitemap still listed it, because Rank Math
  * serves a sitemap it built earlier and the save did not clear it (the copy
  * fetched past the page cache listed it too). Revision 2 clears that copy.
+ *
+ * Revision 3, 25 Sep: the owner asked for TMP-1000 to TMP-1004 to be removed
+ * from the website. They are the Postero theme's demo posters, on the site
+ * since the theme was installed (15 Jun 2023): four carry the theme's grey
+ * "Postero" stand-in picture (see af_is_placeholder_image in functions.php)
+ * and none is in the Canva brochure. Private for the same reasons as #11491:
+ * gone from every public view, nothing deleted, one click to publish again.
+ * #11491 is already private and reads "already private".
  */
-define('AF_PLACEHOLDER_PRODUCTS_REV', '2');
+define('AF_PLACEHOLDER_PRODUCTS_REV', '3');
 
 function af_placeholder_products() {
     return array(
         11491 => 'test',
+        // Theme demo posters (art codes TMP-1000 to TMP-1004), owner 25 Sep.
+        115   => 'The Penguin Show Poster',
+        123   => 'IL Lemone Poster',
+        177   => 'Geometric Shapes poster',
+        199   => 'Balance Poster',
+        211   => 'Japanese Butterfly II Poster',
     );
 }
 
