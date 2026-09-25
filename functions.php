@@ -16441,42 +16441,23 @@ function af_grwp_state($state, $files) {
 // apply_art_codes.py). Products without a code simply show nothing.
 // ---------------------------------------------------------------------------
 /**
- * Is this a placeholder rather than a real art code?
+ * The art code as the SHOP prints it — empty only when the product has none.
  *
- * TMP-1210 and its 197 siblings are the audit's bookkeeping: they mark a piece
- * that has no page in the printed collection book yet. They are a note to
- * ourselves, not a catalogue number, and "ART CODE: TMP-1210" on a product card
- * tells a customer nothing except that something is unfinished.
+ * The card, the product summary, the description (twice) and the
+ * card-variations endpoint all call this, so what it returns is what a
+ * shopper sees everywhere.
  *
- * AL codes are deliberately NOT included. They are a real line, not a
- * placeholder, and only three products carry them.
- */
-function af_art_code_is_temporary($code) {
-  $code = trim((string) $code);
-  return (bool) apply_filters('af_art_code_is_temporary',
-    $code !== '' && preg_match('/^TMP[\s\-_]*\d+$/i', $code) === 1, $code);
-}
-
-/**
- * The art code as the SHOP should print it — empty when there is nothing
- * publishable to print.
- *
- * Suppressed here rather than at each of the five places that display it: the
- * card, the product summary, the description (twice) and the card-variations
- * endpoint all call this, so one gate covers them and a sixth display added
- * later inherits it.
- *
- * The meta is untouched. tools/ and inc/search-all.php read _taf_art_code
- * directly, so a TMP code still finds its product in an internal search and
- * still shows in every audit — it just stops being shown to customers.
+ * Temporary codes are shown like any other. TMP-1000 … TMP-1305 go to the
+ * products with no page in the collection book (tools/assign-temp-artcodes.php
+ * issues them on every deploy, and they are the products' SKUs). From 21 Sep
+ * they were hidden here, which left 198 products with no Art Code line at all;
+ * the owner asked on 25 Sep for every product to show one, temporary included.
  */
 function af_get_art_code($product = null) {
   if (!($product instanceof WC_Product)) { $product = af_wc_product($product); }
   if (!$product) return '';
   $code = get_post_meta($product->get_id(), '_taf_art_code', true);
-  $code = is_string($code) ? trim($code) : '';
-  if (af_art_code_is_temporary($code)) return '';
-  return $code;
+  return is_string($code) ? trim($code) : '';
 }
 
 // Shop/archive card: small code line under the title. Always output the span

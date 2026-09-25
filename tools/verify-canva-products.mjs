@@ -84,6 +84,22 @@ for (let i = 0; i < codes.length; i += 40) {
   if (r.body.length && !r.body.some(p => chunk.includes(p.sku))) skuFilterWorks = false;
   for (const p of r.body) { if (!chunk.includes(p.sku)) continue; if (!bySku.has(p.sku)) bySku.set(p.sku, []); bySku.get(p.sku).push(p); if (!byId.has(p.id)) byId.set(p.id, p); }
 }
+// ── 1b'. the same code with a letter on the end (SKUs are unique, so a second
+//        product made from the same page gets "…A", "…B"): the twins ────────
+const byBase = new Map();
+const lettered = codes.flatMap(c => ['A', 'B', 'C'].map(l => c + l));
+for (let i = 0; i < lettered.length; i += 40) {
+  const chunk = lettered.slice(i, i + 40);
+  const r = await api('sku=' + encodeURIComponent(chunk.join(',')) + '&per_page=100');
+  if (r.status !== 200 || !Array.isArray(r.body)) { apiTrouble.push('lettered sku batch ' + (i / 40 + 1) + ': HTTP ' + r.status); continue; }
+  for (const p of r.body) {
+    if (!chunk.includes(p.sku)) continue;
+    const base = p.sku.slice(0, -1);
+    if (!byBase.has(base)) byBase.set(base, []);
+    byBase.get(base).push(p);
+    if (!byId.has(p.id)) byId.set(p.id, p);
+  }
+}
 console.log('Store API: ' + byId.size + ' products read' + (apiTrouble.length ? '   PROBLEMS: ' + apiTrouble.join('; ') : '') + (skuFilterWorks ? '' : '   (the sku filter was ignored — code lookups are not reliable)'));
 
 // ── 1c. first image of every product found ─────────────────────────────────
@@ -104,6 +120,10 @@ for (const r of ROWS) {
   const out = { page: r.page, code: r.code, category: r.category, size: r.size, on_site: r.on_site, uploaded_0922: r.uploaded_0922, ids: r.ids, problems: [], notes: [] };
   const carriers = bySku.get(r.code) || [];
   out.sku_carriers = carriers.map(p => p.id);
+  // every product on the site made from this page: the exact code and the lettered ones
+  const priceOf = p => p.prices && p.prices.price ? Number(p.prices.price) / Math.pow(10, p.prices.currency_minor_unit || 0) : 0;
+  out.code_products = carriers.concat(byBase.get(r.code) || []).map(p => ({ id: p.id, sku: p.sku, name: p.name, link: p.permalink,
+    price: priceOf(p), purchasable: !!p.is_purchasable, in_stock: !!p.is_in_stock }));
   if (!r.on_site) {
     if (carriers.length) out.problems.push('marked NOT on the site, but product ' + carriers.map(p => p.id).join(', ') + ' carries this code');
     else out.notes.push('absent, as the workbook says');
@@ -210,9 +230,9 @@ const absent = results.filter(x => !x.on_site);
 console.log('\n— marked not on the site: ' + absent.length + ' —');
 for (const x of absent) console.log('    p' + x.page + ' ' + x.code + ': ' + (x.problems.join('; ') || x.notes.join('; ')));
 
-const twice = results.filter(x => (x.sku_carriers || []).length > 1);
-console.log('\n— art codes carried by more than one product: ' + twice.length + ' —');
-for (const x of twice) console.log('    p' + x.page + ' ' + x.code + ': products ' + x.sku_carriers.join(', '));
+const twice = results.filter(x => (x.code_products || []).length > 1);
+console.log('\n— pages with more than one product on the site (the code, or the code plus A/B/C): ' + twice.length + ' —');
+for (const x of twice) console.log('    p' + x.page + ' ' + x.code + ': products ' + x.code_products.map(p => p.id + ' (' + p.sku + ')').join(', '));
 
 await browser.close();
 console.log('\ndone ' + new Date().toISOString());
