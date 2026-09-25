@@ -8,7 +8,8 @@
  * writes reaches live products and invoices without a dry run in front of it.
  * It now writes the whole code the page prints, aspect included:
  *
- *     LB - 0901  ->  LB - 090001-3050
+ *     LB - 0901  ->  LB-090001-3050       (the Canva page label, since 25 Sep)
+ *     LB - 090001-3050  ->  LB-090001-3050   (what the catalogue held until then)
  *
  * The properties that must hold while several hundred SKUs are rewritten:
  *
@@ -51,21 +52,31 @@ echo "=== what a real product's code becomes ===\n";
 // book, not typed from memory — four of these were wrong when written by hand
 // and the code was right each time.
 $real = array(
-    'LB - 090001' => 'LB - 090001-3050',   // #220, #7839
-    'LI - 190002' => 'LI - 190002-3050',   // #141
-    'RK - 010010' => 'RK - 010010-5030',   // #223
-    'TP - 050004' => 'TP - 050004-5030',   // #229, after the old TP gap
-    'HD - 080004' => 'HD - 080004-5030',   // #3362
-    'SH - 040001' => 'SH - 040001-3050',   // #232
-    'TA - 210003' => 'TA - 210003-3060',   // the one 3x6 page
+    'LB - 090001' => 'LB-090001-3050',   // #220, #7839
+    'LI - 190002' => 'LI-190002-3050',   // #141
+    'RK - 010010' => 'RK-010010-5030',   // #223
+    'TP - 050004' => 'TP-050004-5030',   // #229, after the old TP gap
+    'HD - 080004' => 'HD-080004-5030',   // #3362
+    'SH - 040001' => 'SH-040001-3050',   // #232
+    'TA - 210003' => 'TA-210003-3060',   // the one 3x6 page
 );
 foreach ($real as $held => $want) check($held, what_the_deploy_writes($held), $want);
 
 echo "\n=== the older shapes a few products still hold ===\n";
-check('four digits',  what_the_deploy_writes('LB - 0901'), 'LB - 090001-3050');
-check('the oldest label', what_the_deploy_writes('LB 01'),  'LB - 090001-3050');
-check('across the TP gap', what_the_deploy_writes('TP 05'), 'TP - 050004-5030');
-check('the Gold Foil copy', what_the_deploy_writes('HD 15-GF'), 'HD - 080014-5030-GF');
+check('four digits',  what_the_deploy_writes('LB - 0901'), 'LB-090001-3050');
+check('the oldest label', what_the_deploy_writes('LB 01'),  'LB-090001-3050');
+check('across the TP gap', what_the_deploy_writes('TP 05'), 'TP-050004-5030');
+check('the Gold Foil copy', what_the_deploy_writes('HD 15-GF'), 'HD-080014-5030-GF');
+
+echo "\n=== 25 Sep: the codes the catalogue holds now, onto the page label ===\n";
+// Every product carried "RK - 010001-3050" (the book label with the aspect
+// appended); the Canva page reads "RK-010001-3050". The next deploy rewrites
+// them once, the page and aspect unchanged, and the SKU does not move.
+foreach (array('RK - 010001-3050' => 'RK-010001-3050', 'LB - 090001-3050' => 'LB-090001-3050',
+               'HD - 080014-5030-GF' => 'HD-080014-5030-GF', 'TA - 210003-3060' => 'TA-210003-3060') as $held => $want) {
+    check($held . ' -> ' . $want, what_the_deploy_writes($held), $want);
+    check('  and its SKU stays ' . af_sku_code_part($held), af_sku_code_part($want), af_sku_code_part($held));
+}
 
 echo "\n=== IT SETTLES: a second deploy must write nothing ===\n";
 // The pass compares its answer to what the product holds and only writes when
@@ -89,7 +100,7 @@ foreach (af_artcode_book() as $pre => $sec) {
         $held = sprintf('%s - %02d%02d', $pre, $sec['no'], $n);
         $out  = what_the_deploy_writes($held);
         // the six digits in the middle must be this section and this page
-        if (!preg_match('/^([A-Z]{2}) - (\d{2})(\d{4})-(\d{4})$/', $out, $m)) { $moved[] = "$held -> $out (shape)"; continue; }
+        if (!preg_match('/^([A-Z]{2})-(\d{2})(\d{4})-(\d{4})$/', $out, $m)) { $moved[] = "$held -> $out (shape)"; continue; }
         if ($m[1] !== $pre || (int) $m[2] !== $sec['no'] || (int) $m[3] !== $n) { $moved[] = "$held -> $out"; continue; }
         if ($m[4] !== af_artcode_page_size($pre, $n)) { $moved[] = "$held -> $out (wrong aspect)"; continue; }
         $n_done++;
@@ -117,9 +128,9 @@ foreach (array('TP 04', 'HD 14', 'AL 05', 'LR 32', 'LI 48', 'hello', '') as $c) 
 // What this pass must NOT do is invent one, so the guard that matters is the
 // one above: no old code reaches a new page.
 check('a new page, named in six digits, is written with its aspect',
-      what_the_deploy_writes('LI - 190048'), 'LI - 190048-' . af_artcode_page_size('LI', 48));
+      what_the_deploy_writes('LI - 190048'), 'LI-190048-' . af_artcode_page_size('LI', 48));
 check('HD 30 likewise',
-      what_the_deploy_writes('HD - 080030'), 'HD - 080030-' . af_artcode_page_size('HD', 30));
+      what_the_deploy_writes('HD - 080030'), 'HD-080030-' . af_artcode_page_size('HD', 30));
 check('but past the end of the book is still refused',
       what_the_deploy_writes('HD - 080031'), '');
 check('and it still settles on a second pass',

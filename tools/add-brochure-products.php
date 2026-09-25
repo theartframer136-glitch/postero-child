@@ -55,11 +55,15 @@ function af_abp_key( $s ) {
     return strtoupper( preg_replace( '/[^A-Za-z0-9]/', '', (string) $s ) );
 }
 
-/** The art code in the spelling this shop stores: "SL-150002-4030" -> "SL - 150002-4030". */
+/**
+ * The art code in the spelling this shop stores, which since 25 Sep is the
+ * book's own: "SL-150002-4030" stays "SL-150002-4030" (upper-cased). It used
+ * to become "SL - 150002-4030"; see af_artcode_full_code() in inc/artcode-book.php.
+ */
 function af_abp_store_code( $code ) {
     $code = trim( (string) $code );
     return preg_match( '/^([A-Za-z]+)-(\d{4,6})(.*)$/', $code, $m )
-        ? strtoupper( $m[1] ) . ' - ' . $m[2] . $m[3]
+        ? strtoupper( $m[1] ) . '-' . $m[2] . $m[3]
         : $code;
 }
 

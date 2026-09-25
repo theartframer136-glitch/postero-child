@@ -198,11 +198,14 @@ async function openPage(url, code, size) {
       img: img ? { ok: img.complete && img.naturalWidth > 0, w: img.naturalWidth } : null,
       btn: !!btn && seen(btn), btnDisabled: !!btn && (btn.disabled || btn.classList.contains('disabled')),
       codeShown: flat(document.body.innerText).includes(flat(code)),
+      // the product's own line, word for word: is it the Canva page label?
+      codeLine: ((document.querySelector('.af-art-code--single') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
       sizes: sizes.slice(0, 12),
     };
   }, code).catch(e => ({ error: String(e.message).slice(0, 80) }));
   if (d.error) { o.problems.push('page not readable: ' + d.error); return o; }
   o.h1 = d.h1; o.sizes = d.sizes; o.code_shown = d.codeShown;
+  o.code_line = d.codeLine; o.code_exact = d.codeLine === 'Art Code: ' + code;
   o.main_image = d.img ? (d.img.ok ? 'rendered ' + d.img.w + 'px' : 'NOT rendered') : 'none';
   if (!d.img || !d.img.ok) o.problems.push('main image did not render');
   if (!d.btn) o.problems.push('no Add to Cart button');
@@ -221,7 +224,7 @@ for (const x of toOpen) {
   n++;
   const o = await openPage(x.live_link, x.code, x.size);
   x.problems.push(...o.problems); x.notes.push(...o.notes);
-  for (const k of ['page_status', 'h1', 'sizes', 'code_shown', 'main_image', 'size_offered']) if (k in o) x[k] = o[k];
+  for (const k of ['page_status', 'h1', 'sizes', 'code_shown', 'code_line', 'code_exact', 'main_image', 'size_offered']) if (k in o) x[k] = o[k];
   if (n % 50 === 0) console.log('  … ' + n + ' opened');
   await page.waitForTimeout(500);
 }
@@ -253,6 +256,14 @@ if (OPEN_ALL) {
   console.log('  main image renders               : ' + results.filter(x => /^rendered/.test(x.main_image || '')).length);
   console.log('  Add to Cart button               : ' + results.filter(x => x.page_status === 200 && !x.problems.includes('no Add to Cart button')).length);
   console.log('  art code shown on the page       : ' + results.filter(x => x.code_shown).length);
+  const exact = results.filter(x => x.code_exact);
+  console.log('  printed exactly as the Canva label: ' + exact.length + '   ("Art Code: RK-010001-3050")');
+  const shapes = new Map();
+  for (const x of results.filter(x => x.page_status === 200 && !x.code_exact)) {
+    const k = (x.code_line || '(no line)').replace(/[A-Z]{2}(\s*[-\u2013]\s*)\d{6}-\d{4}/, 'XX$1NNNNNN-SSSS');
+    shapes.set(k, (shapes.get(k) || 0) + 1);
+  }
+  for (const [k, v] of shapes) console.log('    not exact: ' + v + ' × "' + k + '"   e.g. ' + (results.find(x => x.page_status === 200 && !x.code_exact && (x.code_line || '(no line)').replace(/[A-Z]{2}(\s*[-\u2013]\s*)\d{6}-\d{4}/, 'XX$1NNNNNN-SSSS') === k) || {}).code);
   console.log('  pages with two products          : ' + twins.length + '   (second product\'s page works: ' + twins.filter(x => x.twin_pages.every(t => t.ok)).length + ')');
   console.log('  with a problem a shopper would hit: ' + bad.length);
   for (const x of bad) console.log('    p' + x.page + ' ' + x.code + ' (' + (x.ids[0] || '-') + '): ' + x.problems.join('; '));
