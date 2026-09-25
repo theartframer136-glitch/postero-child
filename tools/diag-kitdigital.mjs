@@ -46,3 +46,20 @@ for (const [w, h] of [[1280, 900], [420, 860]]) {
   await p.close();
 }
 await b.close();
+
+// ---- Corporate Printing offers Painting only; other categories keep all four.
+{
+  const b3 = await puppeteer.launch({ channel: 'chrome', headless: 'new', args: ['--no-sandbox','--disable-dev-shm-usage','--disable-gpu'] });
+  const p = await b3.newPage(); await p.setViewport({ width: 1280, height: 900 });
+  await p.goto('https://theartframer.us/product-category/corporate-printing/', { waitUntil: 'domcontentloaded', timeout: 90000 }); await sleep(6000);
+  const links = await p.evaluate(() => [...new Set([...document.querySelectorAll('a[href*="/product/"]')].map(a => a.href.split('#')[0]))].slice(0, 2));
+  const kits = async (u) => { await p.goto(u, { waitUntil: 'domcontentloaded', timeout: 90000 }); await sleep(6000);
+    return p.evaluate(() => ({ opts: [...document.querySelectorAll('input[name="af_kit"]')].map(i => i.value).join(','),
+      frameShown: [...document.querySelectorAll('.af-opts .af-opt-group')].filter(e => e.getBoundingClientRect().height > 0).length })); };
+  let ok = links.length > 0;
+  for (const u of links) { const k = await kits(u); console.log('CORP ' + u.slice(30, 100) + ' ' + JSON.stringify(k)); if (k.opts !== 'painting') ok = false; }
+  const other = await kits(U); console.log('OTHER ' + JSON.stringify(other));
+  if (other.opts.split(',').length !== 4) ok = false;
+  console.log('VERDICT corporate ' + (ok ? 'PASS' : 'FAIL'));
+  await b3.close();
+}
