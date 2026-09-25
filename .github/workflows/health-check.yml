@@ -191,12 +191,6 @@ jobs:
             # of what the next deploy changes.
             timeout 120 wp eval "\$ids = get_posts(array(\"post_type\" => \"product\", \"post_status\" => array(\"publish\", \"private\", \"draft\", \"pending\"), \"posts_per_page\" => -1, \"fields\" => \"ids\")); \$shape = array(); \$eg = array(); foreach (\$ids as \$pid) { \$c = trim((string) get_post_meta(\$pid, \"_taf_art_code\", true)); \$k = \$c === \"\" ? \"(none)\" : preg_replace(array(\"/[A-Z]/\", \"/[0-9]/\"), array(\"X\", \"N\"), \$c); \$shape[\$k] = (isset(\$shape[\$k]) ? \$shape[\$k] : 0) + 1; if (!isset(\$eg[\$k])) { \$eg[\$k] = \$c; } } arsort(\$shape); foreach (\$shape as \$k => \$n) { \$w = function_exists(\"af_artcode_full_code\") ? preg_replace(\"/^([A-Z]{2}) - ([0-9]{6})/\", \"\$1-\$2\", af_artcode_full_code(\$eg[\$k])) : \"?\"; printf(\"    %5d  %-22s e.g. %-20s the page label: %s\" . PHP_EOL, \$n, \$k, \$eg[\$k], \$w === \"\" ? \"(left alone)\" : \$w); }" --allow-root 2>&1 | grep -v "^Notice\|^Deprecated\|^PHP Notice" | head -30
 
-            echo; echo "--- every product and its art code, one JSON line each (read-only) ---"
-            # For the owner workbook of final and temporary art codes: the whole
-            # catalogue as the database holds it, one line per product, each
-            # starting AFP so the lines can be lifted out of this log.
-            timeout 240 wp eval "\$ids = get_posts(array(\"post_type\" => \"product\", \"post_status\" => \"any\", \"posts_per_page\" => -1, \"fields\" => \"ids\", \"orderby\" => \"ID\", \"order\" => \"ASC\")); foreach (\$ids as \$pid) { \$p = wc_get_product(\$pid); if (!\$p) { continue; } \$cats = wp_get_post_terms(\$pid, \"product_cat\", array(\"fields\" => \"names\")); echo \"AFP \" . wp_json_encode(array(\"id\" => \$pid, \"status\" => get_post_status(\$pid), \"type\" => \$p->get_type(), \"title\" => (string) get_post_field(\"post_title\", \$pid), \"code\" => trim((string) get_post_meta(\$pid, \"_taf_art_code\", true)), \"sku\" => (string) \$p->get_sku(), \"prev_sku\" => (string) get_post_meta(\$pid, \"_af_sku_previous\", true), \"temp\" => (string) get_post_meta(\$pid, \"_af_artcode_temp\", true), \"visibility\" => \$p->get_catalog_visibility(), \"stock\" => \$p->get_stock_status(), \"price\" => (string) \$p->get_price(), \"cats\" => is_array(\$cats) ? implode(\" | \", \$cats) : \"\", \"link\" => get_permalink(\$pid), \"created\" => get_the_date(\"Y-m-d\", \$pid))) . PHP_EOL; } echo \"AFP-END \" . count(\$ids) . PHP_EOL;" --allow-root 2>&1 | grep -v "^Notice\|^Deprecated\|^PHP Notice"
-
             echo; echo "--- the PHP error log ---"
             # tail -25 was useless the one time it mattered: two plugins emit a
             # _load_textdomain_just_in_time notice on every request, so the tail
@@ -245,3 +239,17 @@ jobs:
             done
             echo; echo "=== done ==="
           ' || echo "SSH FAILED — cannot reach the server at all"
+      # Its own step: GitHub refuses a step script that uses secrets once it
+      # passes 21,000 characters, and the one above is close to that.
+      - name: Every product and its art code, one JSON line each (read-only)
+        run: |
+          set +e
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" '
+            # For the owner workbook of final and temporary art codes: the whole
+            # catalogue as the database holds it, one line per product, each
+            # starting AFP so the lines can be lifted out of this log.
+            cd ~/websites/OPu0sKi4J/public_html || exit 1
+            timeout 240 wp eval "\$ids = get_posts(array(\"post_type\" => \"product\", \"post_status\" => \"any\", \"posts_per_page\" => -1, \"fields\" => \"ids\", \"orderby\" => \"ID\", \"order\" => \"ASC\")); foreach (\$ids as \$pid) { \$p = wc_get_product(\$pid); if (!\$p) { continue; } \$cats = wp_get_post_terms(\$pid, \"product_cat\", array(\"fields\" => \"names\")); echo \"AFP \" . wp_json_encode(array(\"id\" => \$pid, \"status\" => get_post_status(\$pid), \"type\" => \$p->get_type(), \"title\" => (string) get_post_field(\"post_title\", \$pid), \"code\" => trim((string) get_post_meta(\$pid, \"_taf_art_code\", true)), \"sku\" => (string) \$p->get_sku(), \"prev_sku\" => (string) get_post_meta(\$pid, \"_af_sku_previous\", true), \"temp\" => (string) get_post_meta(\$pid, \"_af_artcode_temp\", true), \"visibility\" => \$p->get_catalog_visibility(), \"stock\" => \$p->get_stock_status(), \"price\" => (string) \$p->get_price(), \"cats\" => is_array(\$cats) ? implode(\" | \", \$cats) : \"\", \"link\" => get_permalink(\$pid), \"created\" => get_the_date(\"Y-m-d\", \$pid))) . PHP_EOL; } echo \"AFP-END \" . count(\$ids) . PHP_EOL;" --allow-root 2>&1 | grep -v "^Notice\|^Deprecated\|^PHP Notice"
+          ' || echo "SSH FAILED"
