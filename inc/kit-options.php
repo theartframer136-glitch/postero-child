@@ -171,6 +171,32 @@ function af_kit_ships($key) {
     return $opt ? !empty($opt['ships']) : true;
 }
 
+/**
+ * Corporate Printing (and its sub-collections) is printed work only: the
+ * owner's instruction, 25 Sep, is that these products offer "Painting only"
+ * and nothing else. Every other category keeps all four options.
+ */
+function af_kit_is_corporate($pid) {
+    $pid = (int) $pid;
+    if (!$pid) return false;
+    $root = get_term_by('slug', 'corporate-printing', 'product_cat');
+    if (!$root || is_wp_error($root)) return false;
+    foreach (wc_get_product_term_ids($pid, 'product_cat') as $tid) {
+        if ((int) $tid === (int) $root->term_id) return true;
+        if (in_array((int) $root->term_id, array_map('intval', get_ancestors($tid, 'product_cat')), true)) return true;
+    }
+    return false;
+}
+
+/** The options this product offers. */
+function af_kit_options_for($pid) {
+    $opts = af_kit_options();
+    if (af_kit_is_corporate($pid) && isset($opts['painting'])) {
+        return array('painting' => $opts['painting']);
+    }
+    return $opts;
+}
+
 function af_kit_default() {
     return apply_filters('af_kit_default', 'painting');
 }
@@ -181,8 +207,9 @@ function af_kit_default() {
 add_action('woocommerce_before_add_to_cart_button', function () {
     global $product;
     if (!$product || !function_exists('af_pricing_applies') || !af_pricing_applies($product)) return;
-    $opts = af_kit_options();
+    $opts = af_kit_options_for($product->get_id());
     $sel  = af_kit_default();
+    if (!isset($opts[$sel])) $sel = array_key_first($opts);
     ?>
 <div class="af-kit-group" id="af-kit-group"
      data-dd-now="<?php echo esc_attr(function_exists('af_digital_price') ? af_digital_price($product->get_id()) : ''); ?>"
@@ -201,7 +228,7 @@ add_action('woocommerce_before_add_to_cart_button', function () {
       </label>
     <?php endforeach; ?>
   </div>
-  <?php if (!af_kit_priced()) : ?>
+  <?php if (!af_kit_priced() && isset($opts['painting_bar'])) : ?>
     <?php /* This note appears only while af_kit_prices() is all zeroes, which is
              the truth right now: the parts cost the customer nothing. It used to
              say so by explaining our side of it — "while we finalise pricing" —
@@ -351,12 +378,22 @@ body.af-kit-noframe .af-opts .af-color-tip{display:none !important}
 // ─────────────────────────────────────────────────────────────
 // Cart, price and shipping
 // ─────────────────────────────────────────────────────────────
+
+// Corporate Printing offers Painting only. A different af_kit posted for one
+// (an old page, a hand-made request) is rewritten before any pricing reads
+// it, so it can never be bought as a digital download or a kit this way.
+add_filter('woocommerce_add_cart_item_data', function ($data, $pid) {
+    if (isset($_POST['af_kit']) && af_kit_is_corporate($pid)) {
+        $_POST['af_kit'] = $_REQUEST['af_kit'] = 'painting';
+    }
+    return $data;
+}, 1, 2);
 add_filter('woocommerce_add_cart_item_data', function ($data, $pid) {
     $product = wc_get_product($pid);
     if (!$product || !function_exists('af_pricing_applies') || !af_pricing_applies($product)) return $data;
     $kit = isset($_POST['af_kit']) ? sanitize_text_field(wp_unslash($_POST['af_kit'])) : af_kit_default();
-    $opts = af_kit_options();
-    if (!isset($opts[$kit])) $kit = af_kit_default();
+    $opts = af_kit_options_for($pid);
+    if (!isset($opts[$kit])) $kit = isset($opts[af_kit_default()]) ? af_kit_default() : array_key_first($opts);
     $data['af_kit'] = $kit;
     // keep lines with different choices separate in the cart
     if (isset($data['af_unique'])) $data['af_unique'] = md5($data['af_unique'] . '|' . $kit);
