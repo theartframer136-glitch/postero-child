@@ -16,7 +16,9 @@
  *      RK-01B — assigned once and stored, never recomputed from position, so a
  *      SKU already printed on an invoice can never move. The code itself is
  *      left exactly as the book writes it; the letter is the SKU's own
- *      business.
+ *      business. Since 25 Sep the product the brochure names for that page
+ *      (tools/artcode-primary.csv) carries the code itself, RK-01, and only
+ *      the other keeps a letter; the letter it gave up is retired, not reused.
  *   2. Nothing is destroyed. The SKU a product had before is kept in
  *      _af_sku_before_artcode, so tools/restore-sku-from-backup.php can put
  *      every one of them back exactly as it was.
@@ -52,6 +54,53 @@ function af_sku_belongs_to_code( $sku, $base ) {
 	$base = strtoupper( trim( (string) $base ) );
 	if ( $base === '' || $sku === '' || strpos( $sku, $base ) !== 0 ) { return false; }
 	return (bool) preg_match( '/^[A-Z]{0,2}$/', substr( $sku, strlen( $base ) ) );
+}
+
+/**
+ * The letter each product of one shared code gets: pid => letter, '' for the
+ * product that carries the code itself.
+ *
+ * A SKU has to be unique and six codes sit on two products each, so each
+ * product used to get a letter: RK-010033-3050A and RK-010033-3050B. Owner,
+ * 25 Sep: the SKU is to match the art code, so the product the brochure names
+ * for that page — tools/artcode-primary.csv, from the owner's workbook —
+ * carries the code itself, and only the other one keeps a letter.
+ *
+ *   $issued   pid => array( letter, the code it was issued under )
+ *   $primary  the product that carries the plain code, or 0 for none
+ *   $reserved letters retired from a product that now carries the plain code
+ *             (_af_sku_letter_retired): never issued again
+ *
+ * Letters already issued under this code are honoured for everyone else, and a
+ * letter once issued is never handed to another product — the primary's old
+ * letter included — so no other SKU moves. Pure, so
+ * tools/test-sku-follows-code.php can hold it still.
+ */
+function af_sku_plan_group( array $pids, $base, array $issued, $primary = 0, array $reserved = array() ) {
+	$pids = array_map( 'intval', $pids );
+	sort( $pids );
+	$primary = in_array( (int) $primary, $pids, true ) ? (int) $primary : 0;
+	$taken = array(); $got = array();
+	foreach ( $reserved as $l ) { if ( (string) $l !== '' ) { $taken[ strtoupper( (string) $l ) ] = true; } }
+	foreach ( $pids as $pid ) {
+		if ( ! isset( $issued[ $pid ] ) ) { continue; }
+		$l = strtoupper( (string) $issued[ $pid ][0] );
+		$f = (string) $issued[ $pid ][1];
+		if ( $l === '' || strcasecmp( $f, (string) $base ) !== 0 || isset( $taken[ $l ] ) ) { continue; }
+		$taken[ $l ] = true;
+		if ( $pid !== $primary ) { $got[ $pid ] = $l; }
+	}
+	$n = 0;
+	foreach ( $pids as $pid ) {
+		if ( $pid === $primary || isset( $got[ $pid ] ) ) { continue; }
+		while ( isset( $taken[ af_sku_letter_seq( $n ) ] ) ) { $n++; }
+		$got[ $pid ] = af_sku_letter_seq( $n );
+		$taken[ $got[ $pid ] ] = true;
+		$n++;
+	}
+	$out = array();
+	foreach ( $pids as $pid ) { $out[ $pid ] = $pid === $primary ? '' : $got[ $pid ]; }
+	return $out;
 }
 
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
@@ -157,6 +206,24 @@ $want    = array();   // pid => sku
 $lettered = array();  // base => pids, the groups that needed letters
 $setlet  = array();   // pid => array( letter, base )  to persist on write
 $clearlet = array();  // pid list: no longer shares a code, letter must go
+$primary_pids = array();  // pid => true: carries a shared code itself, no letter
+
+// Which product carries a shared code itself: the one the brochure names for
+// that page (tools/artcode-primary.csv, from the owner's workbook). Keyed like
+// $by_sku, so "RK - 010033-3050" and "RK-010033-3050" find the same row.
+$primaries = array();
+$pfile = __DIR__ . '/artcode-primary.csv';
+if ( file_exists( $pfile ) && ( $pfh = fopen( $pfile, 'r' ) ) ) {
+	$phead = array_map( 'strtolower', array_map( 'trim', (array) fgetcsv( $pfh ) ) );
+	$pc = array_flip( $phead );
+	while ( ( $r = fgetcsv( $pfh ) ) !== false ) {
+		if ( ! isset( $pc['art_code'], $pc['product_id'], $r[ $pc['art_code'] ], $r[ $pc['product_id'] ] ) ) { continue; }
+		$k = strtoupper( af_sku_from_code( $r[ $pc['art_code'] ] ) );
+		if ( $k !== '' && (int) $r[ $pc['product_id'] ] > 0 ) { $primaries[ $k ] = (int) $r[ $pc['product_id'] ]; }
+	}
+	fclose( $pfh );
+}
+echo "  shared codes whose brochure product carries the code itself: " . count( $primaries ) . "\n";
 
 foreach ( $by_sku as $key => $pids ) {
 	$base = $as_written[ $key ];
@@ -171,30 +238,21 @@ foreach ( $by_sku as $key => $pids ) {
 		continue;
 	}
 
-	sort( $pids );   // product id order, so a first run and a resumed run agree
-
-	// Honour every letter already issued under THIS code before handing out new
-	// ones, so existing SKUs never move.
-	$taken = array(); $got = array();
+	$issued = array(); $reserved = array();
 	foreach ( $pids as $pid ) {
-		$l = strtoupper( (string) get_post_meta( $pid, '_af_sku_letter', true ) );
-		$f = (string) get_post_meta( $pid, '_af_sku_letter_for', true );
-		if ( $l !== '' && strcasecmp( $f, $base ) === 0 && ! isset( $taken[ $l ] ) ) {
-			$got[ $pid ] = $l;
-			$taken[ $l ] = true;
+		$issued[ $pid ] = array( (string) get_post_meta( $pid, '_af_sku_letter', true ),
+		                         (string) get_post_meta( $pid, '_af_sku_letter_for', true ) );
+		$reserved[] = (string) get_post_meta( $pid, '_af_sku_letter_retired', true );
+	}
+	$primary = isset( $primaries[ $key ] ) ? $primaries[ $key ] : 0;
+	foreach ( af_sku_plan_group( $pids, $base, $issued, $primary, $reserved ) as $pid => $l ) {
+		$want[ $pid ] = $base . $l;
+		if ( $l === '' ) {           // the brochure's product: the code itself, no letter
+			$clearlet[] = $pid;
+			$primary_pids[ $pid ] = true;
+		} else {
+			$setlet[ $pid ] = array( $l, $base );
 		}
-	}
-	$n = 0;
-	foreach ( $pids as $pid ) {
-		if ( isset( $got[ $pid ] ) ) { continue; }
-		while ( isset( $taken[ af_sku_letter_seq( $n ) ] ) ) { $n++; }
-		$l = af_sku_letter_seq( $n );
-		$got[ $pid ] = $l; $taken[ $l ] = true; $n++;
-	}
-
-	foreach ( $pids as $pid ) {
-		$want[ $pid ]   = $base . $got[ $pid ];
-		$setlet[ $pid ] = array( $got[ $pid ], $base );
 	}
 	$lettered[ $base ] = $pids;
 }
@@ -244,15 +302,22 @@ function af_sku_persist_letter( $pid, $setlet, $clearlet ) {
 // ── Write ───────────────────────────────────────────────────────────────────
 $done = 0; $already = 0; $skipped = 0; $clash = 0; $samples = array();
 $reissued = array();   // done once, but the code has moved on since: pid => "old → new"
+$made_plain = array(); // the brochure's product on a shared code, letter dropped: pid => "old → new"
 
-foreach ( $ids as $pid ) {
+// The primaries go last, so a product moving off the plain code (onto its own
+// letter) has done so before the primary takes it.
+$order = array_merge( array_values( array_diff( $ids, array_keys( $primary_pids ) ) ),
+                      array_values( array_intersect( $ids, array_keys( $primary_pids ) ) ) );
+foreach ( $order as $pid ) {
 	if ( ! isset( $want[ $pid ] ) ) { continue; }
 
 	// Done for THIS code only. A SKU still carrying the product's code (with or
 	// without its twin letter) is left exactly as it is, so no SKU on an
 	// invoice moves; one naming an earlier code is re-issued below.
 	$marked = get_post_meta( $pid, '_af_sku_artcode', true ) === $VERSION;
-	if ( $marked && af_sku_belongs_to_code( get_post_meta( $pid, '_sku', true ), af_sku_from_code( $codes[ $pid ] ) ) ) {
+	$is_primary = isset( $primary_pids[ $pid ] );
+	if ( $marked && ! ( $is_primary && (string) get_post_meta( $pid, '_sku', true ) !== $want[ $pid ] )
+	     && af_sku_belongs_to_code( get_post_meta( $pid, '_sku', true ), af_sku_from_code( $codes[ $pid ] ) ) ) {
 		$already++;
 		continue;
 	}
@@ -287,12 +352,14 @@ foreach ( $ids as $pid ) {
 		           . "   [" . $codes[ $pid ] . "]";
 	}
 
-	if ( $marked ) { $reissued[ $pid ] = ( $old === '' ? '(no sku)' : $old ) . '  →  ' . $new . '   [' . $codes[ $pid ] . ']'; }
+	$line = ( $old === '' ? '(no sku)' : $old ) . '  →  ' . $new . '   [' . $codes[ $pid ] . ']';
+	if ( $is_primary ) { $made_plain[ $pid ] = $line; }
+	elseif ( $marked ) { $reissued[ $pid ] = $line; }
 
 	if ( $DRY ) { $done++; continue; }
 
 	$product = wc_get_product( $pid );
-	if ( ! $product ) { $skipped++; unset( $reissued[ $pid ] ); continue; }
+	if ( ! $product ) { $skipped++; unset( $reissued[ $pid ], $made_plain[ $pid ] ); continue; }
 
 	if ( $old !== '' && get_post_meta( $pid, '_af_sku_before_artcode', true ) === '' ) {
 		update_post_meta( $pid, '_af_sku_before_artcode', $old );
@@ -303,13 +370,19 @@ foreach ( $ids as $pid ) {
 		$product->save();
 	} catch ( Exception $e ) {
 		$skipped++;
-		unset( $reissued[ $pid ] );
+		unset( $reissued[ $pid ], $made_plain[ $pid ] );
 		echo "  FAILED #{$pid} → {$new}: " . $e->getMessage() . "\n";
 		continue;
 	}
 	// The SKU this pass itself wrote for an earlier code is kept, one step back,
 	// so it can still be looked up; _af_sku_before_artcode keeps the original.
 	if ( $marked && $old !== '' ) { update_post_meta( $pid, '_af_sku_previous', $old ); }
+	// The brochure's product drops its letter; the letter is retired, not freed,
+	// so no later product sharing the code is handed this one's old SKU.
+	if ( $is_primary ) {
+		$was_letter = (string) get_post_meta( $pid, '_af_sku_letter', true );
+		if ( $was_letter !== '' ) { update_post_meta( $pid, '_af_sku_letter_retired', $was_letter ); }
+	}
 
 	// Only after the SKU is safely written: a letter recorded for a SKU that
 	// failed to save would make the order line disagree with the product.
@@ -333,6 +406,12 @@ if ( $samples ) {
 	echo "\nwhat changed (first " . count( $samples ) . "):\n" . implode( "\n", $samples ) . "\n";
 }
 
+echo "\nShared codes: the brochure's product now carries the code itself: " . count( $made_plain )
+   . ( $DRY ? ' (dry run)' : '' ) . "\n";
+foreach ( $made_plain as $pid => $line ) {
+	printf( "  #%-7d %s\n", $pid, $line );
+}
+
 echo "\nSKUs re-issued because the art code had moved on since: " . count( $reissued )
    . ( $DRY ? ' (dry run)' : '' ) . "\n";
 foreach ( $reissued as $pid => $line ) {
@@ -350,7 +429,7 @@ if ( $lettered ) {
 		echo "  {$base} (" . count( $pids ) . " products)\n";
 		foreach ( $pids as $pid ) {
 			$sku = isset( $want[ $pid ] ) ? $want[ $pid ] : '?';
-			printf( "     %-12s #%-7d %s\n", $sku, $pid,
+			printf( "     %-16s #%-7d %s%s\n", $sku, $pid, isset( $primary_pids[ $pid ] ) ? '(brochure) ' : '',
 				mb_substr( html_entity_decode( wp_strip_all_tags( get_the_title( $pid ) ) ), 0, 54 ) );
 		}
 	}
