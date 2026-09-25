@@ -1,10 +1,14 @@
 // Verify, on the live shop, the Canva brochure pages the status workbook says
-// are on the website, and in particular the 147 uploaded on 22 Sep.
+// are on the website.
 //
-// The rows come from tools/canva-status-2026-09-23.json, exported from the
-// owner's "theartframer-product-status-per-page-updated.xlsx" (sheet "Product
-// Status per Page"). Nothing here reads or writes Canva: the brochure side is
-// that workbook, and the website side is what this measures.
+// The rows come from tools/canva-status-2026-09-25.json, exported from the
+// owner's "pg-yh-updated.xlsx" (sheet "Canva to Website": 368 pages, after the
+// five licensed-character pages were taken out). The 23 Sep run read
+// tools/canva-status-2026-09-23.json, from "theartframer-product-status-per-
+// page-updated.xlsx", and opened only the 147 pages uploaded on 22 Sep; this
+// data sets open_all, so every page on the site is opened, and the second
+// product of every page that has two. Nothing here reads or writes Canva: the
+// brochure side is that workbook, and the website side is what this measures.
 //
 // 1. WooCommerce's public Store API, fetched from inside a real browser page
 //    (the host's bot protection refuses plain HTTP clients):
@@ -29,7 +33,7 @@ import { chromium } from 'playwright';
 import { readFileSync } from 'node:fs';
 
 const SITE = (process.argv[2] || process.env.AF_QA_URL || 'https://theartframer.us').replace(/\/$/, '');
-const DATA = JSON.parse(readFileSync(new URL('./canva-status-2026-09-23.json', import.meta.url), 'utf8'));
+const DATA = JSON.parse(readFileSync(new URL('./canva-status-2026-09-25.json', import.meta.url), 'utf8'));
 const ROWS = DATA.rows;
 
 const browser = await chromium.launch({ headless: true });
@@ -117,7 +121,7 @@ for (let i = 0; i < imgs.length; i += 20) {
 // ── per-row verdict from the API ───────────────────────────────────────────
 const results = [];
 for (const r of ROWS) {
-  const out = { page: r.page, code: r.code, category: r.category, size: r.size, on_site: r.on_site, uploaded_0922: r.uploaded_0922, ids: r.ids, problems: [], notes: [] };
+  const out = { page: r.page, code: r.code, category: r.category, size: r.size, on_site: r.on_site, uploaded_0922: r.uploaded_0922, when: r.when, note: r.note, ids: r.ids, problems: [], notes: [] };
   const carriers = bySku.get(r.code) || [];
   out.sku_carriers = carriers.map(p => p.id);
   // every product on the site made from this page: the exact code and the lettered ones
@@ -158,21 +162,21 @@ for (const r of ROWS) {
   results.push(out);
 }
 
-// ── 2. the 22 Sep uploads, opened as a shopper would ───────────────────────
-const toOpen = results.filter(x => x.uploaded_0922 && x.live_link);
-console.log('\nopening ' + toOpen.length + ' product pages uploaded on 22 Sep …');
-let n = 0;
-for (const x of toOpen) {
-  n++;
+// ── 2. product pages, opened as a shopper would ─────────────────────────────
+// The 22 Sep uploads, or — when the data asks for it (open_all) — every page on
+// the site, and the second product of every page that has two.
+const OPEN_ALL = DATA.open_all === true;
+async function openPage(url, code, size) {
+  const o = { problems: [], notes: [] };
   let status = 0;
   for (let attempt = 0; attempt < 2; attempt++) {
-    const resp = await page.goto(x.live_link, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => null);
+    const resp = await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => null);
     status = resp ? resp.status() : 0;
     if (status === 200) break;
     await page.waitForTimeout(5000);
   }
-  x.page_status = status;
-  if (status !== 200) { x.problems.push('product page answered HTTP ' + status); continue; }
+  o.page_status = status;
+  if (status !== 200) { o.problems.push('product page answered HTTP ' + status); return o; }
   const d = await page.evaluate(async (code) => {
     const seen = el => { if (!el) return false; const s = getComputedStyle(el), b = el.getBoundingClientRect(); return s.display !== 'none' && s.visibility !== 'hidden' && b.width > 2 && b.height > 2; };
     const img = document.querySelector('.woocommerce-product-gallery__image img, .woocommerce-product-gallery img, .product .images img');
@@ -180,30 +184,75 @@ for (const x of toOpen) {
     const btn = document.querySelector('.single_add_to_cart_button');
     const sizeSel = document.querySelector('#af-size-select, select[name*="size" i], select[name^="attribute_pa_size"]');
     const sizes = sizeSel ? [...sizeSel.options].map(o => o.textContent.replace(/\s+/g, ' ').trim()).filter(t => t && !/choose|select/i.test(t)) : [];
+    // the code as the page prints it ("RK - 010074-5030") against the SKU form
+    const flat = t => String(t || '').replace(/[‐-―−]/g, '-').replace(/\s+/g, '').toUpperCase();
     return {
       h1: ((document.querySelector('h1.product_title, .product_title, h1') || {}).textContent || '').replace(/\s+/g, ' ').trim(),
       img: img ? { ok: img.complete && img.naturalWidth > 0, w: img.naturalWidth } : null,
       btn: !!btn && seen(btn), btnDisabled: !!btn && (btn.disabled || btn.classList.contains('disabled')),
-      codeShown: (document.body.innerText || '').includes(code),
+      codeShown: flat(document.body.innerText).includes(flat(code)),
       sizes: sizes.slice(0, 12),
     };
-  }, x.code).catch(e => ({ error: String(e.message).slice(0, 80) }));
-  if (d.error) { x.problems.push('page not readable: ' + d.error); continue; }
-  x.h1 = d.h1; x.sizes = d.sizes; x.code_shown = d.codeShown;
-  x.main_image = d.img ? (d.img.ok ? 'rendered ' + d.img.w + 'px' : 'NOT rendered') : 'none';
-  if (!d.img || !d.img.ok) x.problems.push('main image did not render');
-  if (!d.btn) x.problems.push('no Add to Cart button');
-  const want = sizeKey(x.size);
+  }, code).catch(e => ({ error: String(e.message).slice(0, 80) }));
+  if (d.error) { o.problems.push('page not readable: ' + d.error); return o; }
+  o.h1 = d.h1; o.sizes = d.sizes; o.code_shown = d.codeShown;
+  o.main_image = d.img ? (d.img.ok ? 'rendered ' + d.img.w + 'px' : 'NOT rendered') : 'none';
+  if (!d.img || !d.img.ok) o.problems.push('main image did not render');
+  if (!d.btn) o.problems.push('no Add to Cart button');
+  const want = sizeKey(size);
   if (d.sizes.length) {
-    x.size_offered = d.sizes.some(s => sizeKey(s) === want);
-    if (!x.size_offered) x.notes.push('workbook size ' + x.size + ' is not among the options');
+    o.size_offered = d.sizes.some(s => sizeKey(s) === want);
+    if (!o.size_offered) o.notes.push('workbook size ' + size + ' is not among the options');
   }
-  if (n % 25 === 0) console.log('  … ' + n + ' opened');
-  await page.waitForTimeout(700);
+  return o;
+}
+
+const toOpen = results.filter(x => x.live_link && (OPEN_ALL || x.uploaded_0922));
+console.log('\nopening ' + toOpen.length + (OPEN_ALL ? ' product pages (every page on the site) …' : ' product pages uploaded on 22 Sep …'));
+let n = 0;
+for (const x of toOpen) {
+  n++;
+  const o = await openPage(x.live_link, x.code, x.size);
+  x.problems.push(...o.problems); x.notes.push(...o.notes);
+  for (const k of ['page_status', 'h1', 'sizes', 'code_shown', 'main_image', 'size_offered']) if (k in o) x[k] = o[k];
+  if (n % 50 === 0) console.log('  … ' + n + ' opened');
+  await page.waitForTimeout(500);
+}
+if (OPEN_ALL) {
+  // the other product of a page that has two: is it a working page too?
+  for (const x of results) {
+    const others = (x.code_products || []).filter(p => !x.ids.includes(p.id) && p.link);
+    if (!others.length) continue;
+    x.twin_pages = [];
+    for (const p of others) {
+      const o = await openPage(p.link, x.code, x.size);
+      x.twin_pages.push({ id: p.id, sku: p.sku, status: o.page_status, ok: !o.problems.length, problems: o.problems });
+      await page.waitForTimeout(500);
+    }
+  }
 }
 
 // ── report ────────────────────────────────────────────────────────────────
 for (const x of results) console.log('ROW\t' + JSON.stringify(x));
+
+if (OPEN_ALL) {
+  const on = results.filter(x => x.live_link || (x.code_products || []).length);
+  const bad = results.filter(x => x.problems.some(p => !/^SKU is /.test(p) && !/^the code is on product/.test(p)));
+  const twins = results.filter(x => x.twin_pages);
+  console.log('\n— every brochure page: ' + results.length + ' —');
+  console.log('  found on the site                : ' + on.length + '   (by the product the workbook names: ' + results.filter(x => x.live_link).length + ')');
+  console.log('  page HTTP 200                    : ' + results.filter(x => x.page_status === 200).length);
+  console.log('  priced, buyable, in stock        : ' + results.filter(x => x.price > 0 && x.purchasable && x.in_stock).length);
+  console.log('  main image renders               : ' + results.filter(x => /^rendered/.test(x.main_image || '')).length);
+  console.log('  Add to Cart button               : ' + results.filter(x => x.page_status === 200 && !x.problems.includes('no Add to Cart button')).length);
+  console.log('  art code shown on the page       : ' + results.filter(x => x.code_shown).length);
+  console.log('  pages with two products          : ' + twins.length + '   (second product\'s page works: ' + twins.filter(x => x.twin_pages.every(t => t.ok)).length + ')');
+  console.log('  with a problem a shopper would hit: ' + bad.length);
+  for (const x of bad) console.log('    p' + x.page + ' ' + x.code + ' (' + (x.ids[0] || '-') + '): ' + x.problems.join('; '));
+  const missing = results.filter(x => !on.includes(x));
+  console.log('  NOT on the site                  : ' + missing.length);
+  for (const x of missing) console.log('    p' + x.page + ' ' + x.code + ': ' + (x.problems.join('; ') || x.notes.join('; ')));
+}
 
 const up = results.filter(x => x.uploaded_0922);
 const upBad = up.filter(x => x.problems.length);
