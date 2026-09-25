@@ -34,7 +34,14 @@ import { readFileSync } from 'node:fs';
 
 const SITE = (process.argv[2] || process.env.AF_QA_URL || 'https://theartframer.us').replace(/\/$/, '');
 const DATA = JSON.parse(readFileSync(new URL('./canva-status-2026-09-25.json', import.meta.url), 'utf8'));
-const ROWS = DATA.rows;
+// Opening every page of 368 can outrun the workflow's 30-minute limit, so the
+// workflow's "only" input (AF_QA_ONLY) can take half: 1 = the first half of the
+// pages, 2 = the second. Blank = all of them.
+const HALF = (process.env.AF_QA_ONLY || '').trim();
+const ALL_ROWS = DATA.rows;
+const MID = Math.ceil(ALL_ROWS.length / 2);
+const ROWS = HALF === '1' ? ALL_ROWS.slice(0, MID) : HALF === '2' ? ALL_ROWS.slice(MID) : ALL_ROWS;
+if (HALF === '1' || HALF === '2') console.log('half ' + HALF + ' of 2: pages ' + ROWS[0].page + '–' + ROWS[ROWS.length - 1].page);
 
 const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, ignoreHTTPSErrors: true });
