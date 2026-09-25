@@ -184,7 +184,9 @@ add_action('woocommerce_before_add_to_cart_button', function () {
     $opts = af_kit_options();
     $sel  = af_kit_default();
     ?>
-<div class="af-kit-group" id="af-kit-group">
+<div class="af-kit-group" id="af-kit-group"
+     data-dd-now="<?php echo esc_attr(function_exists('af_digital_price') ? af_digital_price($product->get_id()) : ''); ?>"
+     data-dd-was="<?php echo esc_attr(function_exists('af_digital_was') ? af_digital_was($product->get_id()) : ''); ?>">
   <label class="af-opt-label">What you receive</label>
   <div class="af-kit-list">
     <?php foreach ($opts as $key => $o) : ?>
@@ -225,6 +227,10 @@ add_action('woocommerce_before_add_to_cart_button', function () {
 .af-kit-text em{font-size:12.5px;color:#6b6b6b;font-style:normal;line-height:1.45}
 .af-kit-add{font-size:13px;font-weight:600;color:#8a6d1f;white-space:nowrap}
 .af-kit-note{margin:9px 0 0;font-size:12.5px;color:#6b6b6b}
+/* A file has no size, frame or frame colour to choose. */
+body.af-kit-digital .af-opts .af-opt-group,
+body.af-kit-digital .af-opts .af-wall-hint,
+body.af-kit-digital .af-opts .af-color-tip{display:none !important}
 </style>
 <script>
 (function(){
@@ -242,7 +248,52 @@ add_action('woocommerce_before_add_to_cart_button', function () {
       frameGroup.style.opacity = needsFrame ? '1' : '';
     }
     document.dispatchEvent(new CustomEvent('af:kit-changed', {detail:{kit: e.target.value}}));
+    setTimeout(function(){ digital(e.target.value === 'digital'); }, 60);
   });
+
+  // Digital download: the price is the file's (the same figure the Digital
+  // Download modal and the cart charge), and size and frame are hidden.
+  // Any other choice puts them back and re-prices from the chosen size.
+  var wasDigital = false;
+  function digital(on){
+    document.body.classList.toggle('af-kit-digital', on);
+    if (!on) {
+      if (wasDigital) {
+        var sel = document.getElementById('af-size-select');
+        if (sel) sel.dispatchEvent(new Event('change', {bubbles:true}));
+      }
+      wasDigital = false;
+      return;
+    }
+    wasDigital = true;
+    var now = parseFloat(g.getAttribute('data-dd-now')), was = parseFloat(g.getAttribute('data-dd-was'));
+    if (!(now > 0)) return;
+    var live = document.getElementById('af-live-price');
+    var sym  = live ? ((live.textContent || '').match(/^[^0-9]*/) || ['$'])[0] || '$' : '$';
+    var fmt  = function(v){ return sym + v.toFixed(2); };
+    var pct  = was > now ? Math.round((was - now) / was * 100) : 0;
+    if (live) live.innerHTML = '<span class="amount">' + fmt(now) + '</span>';
+    var mrp = document.getElementById('af-live-mrp'), disc = document.getElementById('af-live-disc');
+    if (mrp)  mrp.textContent  = was > now ? fmt(was) : '';
+    if (disc) disc.textContent = pct > 0 ? '(' + pct + '% OFF)' : '';
+    var head = document.querySelector('.summary .price, .entry-summary .price, p.price');
+    if (head) {
+      var ins = head.querySelector('ins'), del = head.querySelector('del');
+      var cur = (ins || head).querySelector('.woocommerce-Price-amount, .amount');
+      if (cur) cur.innerHTML = fmt(now);
+      var old = del ? del.querySelector('.woocommerce-Price-amount, .amount') : null;
+      if (old) old.innerHTML = fmt(was);
+      var p = head.querySelector('.af-pct-off');
+      if (p) p.textContent = pct > 0 ? '(' + pct + '% off)' : '';
+      head.querySelectorAll('.screen-reader-text').forEach(function(sr){
+        if (/original price/i.test(sr.textContent)) sr.textContent = 'Original price was: ' + fmt(was) + '.';
+        else if (/current price/i.test(sr.textContent)) sr.textContent = 'Current price is: ' + fmt(now) + '.';
+      });
+    }
+  }
+  // a browser that restores the form on Back can open with it already chosen
+  var start = g.querySelector('input[name="af_kit"]:checked');
+  if (start && start.value === 'digital') setTimeout(function(){ digital(true); }, 300);
 })();
 </script>
     <?php

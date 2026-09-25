@@ -7341,7 +7341,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
 
 // 8b. Capture selections + compute authoritative price on add to cart
 add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
-    if (!empty($_REQUEST['af_digital'])) return $data; // digital handled separately
+    if (af_request_wants_digital()) return $data; // digital handled separately
     $product = wc_get_product($pid);
     if (!$product || !af_pricing_applies($product)) return $data;
     $cfg = af_pricing_config($pid);
@@ -10713,8 +10713,18 @@ function af_digital_price_html($pid = 0) {
  * piece for $9.43, and a plain Add to Cart charged the $80.00: the canvas price
  * for a JPG with no canvas behind it.
  */
-function af_sells_as_digital($pid) {
+/**
+ * Did the shopper ask for the file? Either the Digital Download modal (it posts
+ * af_digital) or "What you receive: Digital download" on the product page (it
+ * posts af_kit=digital). Both are the same purchase and are priced as one.
+ */
+function af_request_wants_digital() {
     if (!empty($_REQUEST['af_digital'])) return true;
+    return isset($_REQUEST['af_kit']) && sanitize_key(wp_unslash($_REQUEST['af_kit'])) === 'digital';
+}
+
+function af_sells_as_digital($pid) {
+    if (af_request_wants_digital()) return true;
     $p = wc_get_product($pid);
     return $p ? af_is_digital_download($p) : false;
 }
