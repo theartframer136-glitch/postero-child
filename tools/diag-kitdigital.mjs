@@ -25,7 +25,13 @@ for (const [w, h] of [[1280, 900], [420, 860]]) {
   await p.evaluate(e => e.closest('label').click(), r); await sleep(1200);
   const d = await st(); console.log('digital ' + JSON.stringify(d));
   await p.evaluate(() => document.querySelector('input[name="af_kit"][value="painting"]').closest('label').click()); await sleep(1500);
-  const back = await st(); console.log('back    ' + JSON.stringify(back));
+  const back = await st(); console.log('painting only ' + JSON.stringify(back));
+  await p.evaluate(() => document.querySelector('input[name="af_kit"][value="painting_bar_frame"]').closest('label').click()); await sleep(1500);
+  const framed = await st(); console.log('framed kit    ' + JSON.stringify(framed));
+  await p.evaluate(() => { const c = [...document.querySelectorAll('.af-frame-chips .af-chip-opt:not([disabled])')].find(b => b.dataset.val !== 'Without Frame'); if (c) c.click(); }); await sleep(1200);
+  const withFrame = await st(); console.log('framed + frame ' + JSON.stringify(withFrame));
+  await p.evaluate(() => document.querySelector('input[name="af_kit"][value="painting"]').closest('label').click()); await sleep(1500);
+  const back2 = await st(); console.log('painting again ' + JSON.stringify(back2));
   if (w === 1280) {
     await p.evaluate(() => document.querySelector('input[name="af_kit"][value="digital"]').closest('label').click()); await sleep(800);
     await Promise.all([p.waitForNavigation({ timeout: 45000 }).catch(() => {}),
@@ -34,7 +40,8 @@ for (const [w, h] of [[1280, 900], [420, 860]]) {
     await p.goto('https://theartframer.us/cart/', { waitUntil: 'domcontentloaded', timeout: 90000 }); await sleep(5000);
     console.log('CART ' + JSON.stringify(await p.evaluate(() => [...document.querySelectorAll('.cart_item, tr.woocommerce-cart-form__cart-item, .wc-block-cart-items__row')].map(r => r.innerText.replace(/\s+/g, ' ').slice(0, 260)))));
   }
-  const ok = /^0\//.test(d.groupsVisible) && /\$9\.\d\d/.test(d.live || '') && /\$9\.\d\d/.test(d.head) && !/^0\//.test(back.groupsVisible) && !/\$9\.\d\d/.test(back.live || '');
+  const ok = /^0\//.test(d.groupsVisible) && /\$9\.\d\d/.test(d.live || '') && /\$9\.\d\d/.test(d.head) && /^1\//.test(back.groupsVisible) && /^3\//.test(framed.groupsVisible)
+    && /^1\//.test(back2.groupsVisible) && back2.live === back.live && withFrame.live !== back.live;
   console.log('VERDICT ' + w + ' ' + (ok ? 'PASS' : 'FAIL'));
   await p.close();
 }
