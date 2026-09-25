@@ -192,7 +192,7 @@ check('a page the book only gained is still refused from the OLD numbering',
 check('but its six-digit spelling names a real page, so it resolves',
       af_artcode_book_code('LI - 190048'), 'LI - 190048');
 check('and the aspect comes with it',
-      af_artcode_full_code('LI - 190048'), 'LI - 190048-' . af_artcode_page_size('LI', 48));
+      af_artcode_full_code('LI - 190048'), 'LI-190048-' . af_artcode_page_size('LI', 48));
 check('past the end of the book is still refused, six digits or not',
       af_artcode_book_code('LI - 190052'), '');
 check('HD 30 resolves in six digits',
@@ -268,12 +268,17 @@ check('nonsense gives nothing', af_artcode_size_feet('30x50'), array());
 check('empty gives nothing',    af_artcode_size_feet(''), array());
 
 echo "\n=== the whole code, as the page prints it ===\n";
-check('from the oldest label', af_artcode_full_code('LB 01'),        'LB - 090001-3050');
-check('from four digits',      af_artcode_full_code('LB - 0901'),    'LB - 090001-3050');
-check('from six',              af_artcode_full_code('LB - 090001'),  'LB - 090001-3050');
-check('across a gap',          af_artcode_full_code('HD 15'),        'HD - 080014-5030');
+// Spelled as the Canva page labels it, "Page: LB-090001-3050": no spaces (25 Sep).
+check('from the oldest label', af_artcode_full_code('LB 01'),        'LB-090001-3050');
+check('from four digits',      af_artcode_full_code('LB - 0901'),    'LB-090001-3050');
+check('from six',              af_artcode_full_code('LB - 090001'),  'LB-090001-3050');
+check('across a gap',          af_artcode_full_code('HD 15'),        'HD-080014-5030');
 check('the aspect comes before the Gold Foil suffix',
-      af_artcode_full_code('LB - 090001-GF'), 'LB - 090001-3050-GF');
+      af_artcode_full_code('LB - 090001-GF'), 'LB-090001-3050-GF');
+check('what the catalogue held until 25 Sep loses its spaces',
+      af_artcode_full_code('RK - 010001-3050'), 'RK-010001-3050');
+check('and the page label itself is kept as it is',
+      af_artcode_full_code('RK-010001-3050'), 'RK-010001-3050');
 check('a code naming no page gets nothing', af_artcode_full_code('TP 04'), '');
 check('nor does one past the end',          af_artcode_full_code('LR 32'), '');
 check('nor a page only the book has',       af_artcode_full_code('LI 48'), '');
@@ -285,7 +290,7 @@ $whole = 0; $twice = array();
 foreach ($book as $pre => $sec) {
     for ($n = 1; $n <= $sec['legacy']; $n++) {
         $c = af_artcode_full_code(sprintf('%s - %02d%02d', $pre, $sec['no'], $n));
-        if (preg_match('/^[A-Z]{2} - \d{6}-\d{4}$/', $c)) $whole++;
+        if (preg_match('/^[A-Z]{2}-\d{6}-\d{4}$/', $c)) $whole++;
         if (af_artcode_full_code($c) !== $c) $twice[] = $c . ' -> ' . af_artcode_full_code($c);
     }
 }

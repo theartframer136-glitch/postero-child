@@ -458,11 +458,21 @@ function af_artcode_size_feet( $size ) {
 }
 
 /**
- * The whole code as the book prints it on the page: "LB - 090001-3050".
+ * The whole code as the book prints it on the page: "LB-090001-3050".
  *
  * Takes any shape the catalogue holds and returns the six-digit code with the
  * page's aspect appended. '' when the code names no page — the same refusal
  * af_artcode_book_code() makes, and for the same reason.
+ *
+ * Written exactly as the Canva page labels it — "Page: RK-010001-3050" — with
+ * no spaces. It used to keep the book label's "RK - 010001" and append the
+ * aspect to that, so the shop printed "RK - 010001-3050" (and, where WordPress
+ * texturises the description, "RK – 010001-3050"), which is no page's label.
+ * Owner, 25 Sep: the website carries the final art code as the book prints it.
+ * The SKU was already this spelling (af_sku_code_part), so it does not move.
+ * af_artcode_book_code() and af_artcode_book_label() still write the spaced
+ * label: that is the page without its aspect, used for reading and matching,
+ * and nothing stores it once this pass has run.
  *
  * NOTE ON WHAT THIS PROVES. Nothing about the picture. It appends the aspect of
  * the page the product's code NAMES; whether that is the page the product's
@@ -492,5 +502,5 @@ function af_artcode_full_code( $code ) {
 	$suffix = $parts['suffix'];
 	if ( preg_match( '/^-\d{4}(?![0-9])(.*)$/', $suffix, $m ) ) { $suffix = $m[1]; }
 
-	return $parts['prefix'] . ' - ' . $parts['digits'] . '-' . $size . $suffix;
+	return $parts['prefix'] . '-' . $parts['digits'] . '-' . $size . $suffix;
 }
