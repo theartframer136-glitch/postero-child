@@ -148,6 +148,21 @@ function af_tube_for_size($size_label) {
     return array((int) key($tubes), (float) current($tubes));
 }
 
+/**
+ * Stretcher bars are priced by area: $4 a square foot of the chosen size
+ * (owner's instruction, 25 Sep). 3×4 ft = 12 sq ft = $48. Change the rate in
+ * one place: wp option update af_bar_rate_sqft 4
+ */
+function af_bar_rate_sqft() {
+    $r = get_option('af_bar_rate_sqft');
+    return ($r !== false && is_numeric($r) && (float) $r >= 0) ? (float) $r : 4.0;
+}
+function af_bar_price($size_label) {
+    $in = function_exists('af_ship_inches') ? af_ship_inches($size_label) : null;
+    if (!$in) return 0.0;
+    return round(($in[0] * $in[1] / 144) * af_bar_rate_sqft(), 2);
+}
+
 /** What the chosen option adds to the price of one piece. */
 function af_kit_addon_price($key, $size_label = '') {
     $opt = af_kit_option($key);
@@ -155,6 +170,7 @@ function af_kit_addon_price($key, $size_label = '') {
     $prices = af_kit_prices();
     $sum = 0.0;
     foreach ($opt['parts'] as $part) {
+        if ($part === 'bar' && $size_label !== '') { $sum += af_bar_price($size_label); continue; }
         $sum += isset($prices[$part]) ? (float) $prices[$part] : 0.0;
     }
     // the tube only applies to something that actually posts
@@ -212,6 +228,7 @@ add_action('woocommerce_before_add_to_cart_button', function () {
     if (!isset($opts[$sel])) $sel = array_key_first($opts);
     ?>
 <div class="af-kit-group" id="af-kit-group"
+     data-bar-rate="<?php echo esc_attr(af_bar_rate_sqft()); ?>"
      data-dd-now="<?php echo esc_attr(function_exists('af_digital_price') ? af_digital_price($product->get_id()) : ''); ?>"
      data-dd-was="<?php echo esc_attr(function_exists('af_digital_was') ? af_digital_was($product->get_id()) : ''); ?>">
   <label class="af-opt-label">What you receive</label>
@@ -238,7 +255,7 @@ add_action('woocommerce_before_add_to_cart_button', function () {
              way; only one version of it is the customer's business. The parts
              named are the ones af_kit_options() actually ships: bar, hooks,
              screws, driver, hanging. */ ?>
-    <p class="af-kit-note">Stretcher bars, hooks, screws, screwdriver and hanging strip are included at no extra charge.</p>
+    <p class="af-kit-note">Stretcher bars are priced by size ($<?php echo esc_html(rtrim(rtrim(number_format(af_bar_rate_sqft(), 2), '0'), '.')); ?> a square foot). Hooks, screws, screwdriver and hanging strip are included at no extra charge.</p>
   <?php endif; ?>
 </div>
 <style>
@@ -289,10 +306,10 @@ body.af-kit-noframe .af-opts .af-color-tip{display:none !important}
   function digital(on){
     document.body.classList.toggle('af-kit-digital', on);
     if (!on) {
-      if (wasDigital) {
-        var sel = document.getElementById('af-size-select');
-        if (sel) sel.dispatchEvent(new Event('change', {bubbles:true}));
-      }
+      // re-price from the chosen size: leaving the file, or moving between
+      // options that do and don't include stretcher bars
+      var sel = document.getElementById('af-size-select');
+      if (sel) sel.dispatchEvent(new Event('change', {bubbles:true}));
       wasDigital = false;
       return;
     }

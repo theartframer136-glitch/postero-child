@@ -7515,6 +7515,20 @@ add_action('wp_head', function() {
         var fee  = (cfg.frames[frameVal]||0)
                  + ((colorVal && frameVal !== 'Without Frame') ? (cfg.colors[colorVal]||0) : 0);
         var price = Math.round((sizePrice + fee)*100)/100;
+        // Stretcher bars, when the chosen "What you receive" includes them:
+        // priced by area, the same af_bar_price() the cart charges.
+        var kg = document.getElementById('af-kit-group');
+        var rate = kg ? (parseFloat(kg.getAttribute('data-bar-rate')) || 0) : 0;
+        var inch = (sizeVal || '').match(/\((\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*in\)/);
+        var bar = inch ? Math.round(inch[1] * inch[2] / 144 * rate * 100) / 100 : 0;
+        if (kg) {
+          kg.querySelectorAll('.af-kit-add').forEach(function(s){
+            var k = s.getAttribute('data-kit') || '';
+            s.textContent = (/^painting_bar/.test(k) && bar > 0) ? '+' + money(sym, bar) : '';
+          });
+          var kit = kg.querySelector('input[name="af_kit"]:checked');
+          if (kit && /^painting_bar/.test(kit.value)) price = Math.round((price + bar) * 100) / 100;
+        }
         var el = wrap.querySelector('#af-live-price');
         if(el) el.innerHTML = '<span class="amount">'+money(sym,price)+'</span>';
         syncColorFee(wrap);
