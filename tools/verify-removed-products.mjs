@@ -1,8 +1,10 @@
 // Can a visitor still reach the products taken off the website?
 //
-// inc/placeholder-products.php makes them private: #11491 "test" (N-01), and
+// inc/placeholder-products.php made them private: #11491 "test" (N-01), and
 // from 25 Sep the five theme demo posters the owner asked to remove (art
-// codes TMP-1000 to TMP-1004). This checks, for each, every way a shopper or
+// codes TMP-1000 to TMP-1004); on 26 Sep it deleted all six permanently, and
+// a deleted product must be unreachable the same ten ways. This checks, for
+// each, every way a shopper or
 // a search engine could reach it, as a first-time visitor with no cookies:
 //   - its own address, and ?p=<id>
 //   - the Store API, by id and by searching its name
