@@ -20,10 +20,11 @@
  * ONLY a product whose art code is empty. A product holding anything at all is
  * left exactly as it is, and that is not a detail:
  *
- *   #26145, #23496, #23435 hold AL 01, AL 05 and AL 06. AL is not a section of
- *   the book, so those codes name no page — but they are a flag the audit put
- *   there on purpose, recording that the product came from the Alwars set and
- *   has no home yet. Overwriting them with TMP codes would erase that.
+ *   #26145, #23496, #23435 held AL 01, AL 05 and AL 06: AL is not a section of
+ *   the book, and the audit kept them as a flag that the product came from the
+ *   Alwars set. On 26 Sep the owner asked for temporary codes for them like the
+ *   rest, so tools/artcode-corrections.csv clears them (NONE) and this pass
+ *   fills the empty code. It still never overwrites a code that is there.
  *
  * ── It settles ──────────────────────────────────────────────────────────────
  *
