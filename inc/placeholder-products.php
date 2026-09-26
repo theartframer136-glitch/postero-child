@@ -3,7 +3,8 @@
  * Take placeholder products off public sale. Test Run 03, N-01; and, from
  * 25 Sep, the five leftover theme demo posters the owner asked to remove.
  * On 26 Sep the owner asked for all six to be deleted permanently: see
- * af_placeholder_products_delete() below.
+ * af_placeholder_products_delete() below. The same once-per-deploy pass
+ * also puts a hidden product back in the shop: af_placeholder_products_show().
  *
  * Product 11491 is called "test". Measured 23 Sep as a first-time visitor: it
  * answers 200 at /product/test-canvas-wall-art/, is marked index,follow for
@@ -48,7 +49,7 @@ if (!defined('ABSPATH')) exit;
  * Revision 4, 26 Sep: all six move to the delete list below, so this one is
  * empty until something else needs taking off sale.
  */
-define('AF_PLACEHOLDER_PRODUCTS_REV', '4');
+define('AF_PLACEHOLDER_PRODUCTS_REV', '5');
 
 function af_placeholder_products() {
     return array();
@@ -69,15 +70,33 @@ function af_placeholder_products() {
  * exact name. One that has been published again, or renamed, since the owner
  * asked is left alone and the log says so; deleting cannot be undone, so it
  * only ever removes what was already off the site.
+ *
+ * Revision 4 deleted all six at 2026-09-26 08:16:36 UTC (deploy 1365; the
+ * health check read "deleted permanently" six times and 569 products). The
+ * list is empty from revision 5, so later revisions do not report them again.
  */
 function af_placeholder_products_delete() {
+    return array();
+}
+
+/**
+ * id => the art code it must still carry: products to put BACK in the shop,
+ * catalog visibility "Shop and search results".
+ *
+ * Owner, 26 Sep: make #3362 visible. It is the brochure's product for Canva
+ * page 170, HD-080004-5030 "Divine Lord Ganesha": published, in stock, $100,
+ * its page and Add to Cart working, but set to "Catalog visibility: Hidden",
+ * so the shop, its categories and search never showed it. It is the only
+ * one of the 569 products set that way, since it was created on 29 Jun 2023,
+ * and nothing in this theme or the deploy writes it; it was set by hand.
+ *
+ * Changed only while it is still published, still hidden, and still carries
+ * this art code (matched without spaces or dash style), so an id that later
+ * holds another piece is never touched.
+ */
+function af_placeholder_products_show() {
     return array(
-        11491 => 'test',
-        115   => 'The Penguin Show Poster',
-        123   => 'IL Lemone Poster',
-        177   => 'Geometric Shapes poster',
-        199   => 'Balance Poster',
-        211   => 'Japanese Butterfly II Poster',
+        3362 => 'HD-080004-5030',
     );
 }
 
@@ -164,13 +183,40 @@ add_action('wp_loaded', function () {
             $log[] = $id . ' deleted permanently';
             $deleted++;
         }
-        if ($deleted) {
+        $shown = 0;
+        foreach (af_placeholder_products_show() as $id => $code) {
+            $product = wc_get_product($id);
+            if (!$product) {
+                $log[] = $id . ' not found';
+                continue;
+            }
+            $key = function ($c) { return strtoupper(preg_replace('/[\s\x{2013}-]+/u', '', (string) $c)); };
+            $has = (string) get_post_meta($id, '_taf_art_code', true);
+            if ($key($has) !== $key($code)) {
+                $log[] = $id . ' left alone: art code is now "' . substr($has, 0, 30) . '"';
+                continue;
+            }
+            if ($product->get_status() !== 'publish') {
+                $log[] = $id . ' left alone: ' . $product->get_status() . ', not published';
+                continue;
+            }
+            $was = $product->get_catalog_visibility();
+            if ($was === 'visible') {
+                $log[] = $id . ' already visible';
+                continue;
+            }
+            $product->set_catalog_visibility('visible');
+            $product->save();
+            $log[] = $id . ' catalog visibility ' . $was . ' -> ' . wc_get_product($id)->get_catalog_visibility();
+            $shown++;
+        }
+        if ($deleted || $shown) {
             do_action('litespeed_purge_posttype', 'product');
             if (function_exists('wc_get_page_permalink')) {
                 do_action('litespeed_purge_url', wc_get_page_permalink('shop'));
             }
         }
-        if ($hidden || $deleted) {
+        if ($hidden || $deleted || $shown) {
             $log[] = 'sitemap: ' . af_placeholder_sitemap_clear();
         }
         update_option('af_placeholder_products', implode('; ', $log) . ' @ ' . gmdate('c'), false);
