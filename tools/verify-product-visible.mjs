@@ -61,7 +61,7 @@ for (const q of [P.name, P.code]) {
 // Its category pages, every page of each.
 for (const c of api.cats.filter(c => !/all art prints|deals|digital canvas prints/i.test(c.name))) {
   let found = false, pages = 0;
-  for (let n = 1; n <= 12 && !found; n++) {
+  for (let n = 1; n <= 40 && !found; n++) {
     const url = c.link.replace(/\/$/, '') + (n > 1 ? '/page/' + n + '/' : '/');
     const x = await go(url);
     if (!x || x.status() !== 200) break;
