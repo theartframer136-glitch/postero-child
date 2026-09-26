@@ -2991,3 +2991,17 @@ body .single_add_to_cart_button:hover {
 body .elementor-cta__title .c-primary {
   color: var(--taf-gold-d, #a8872e);
 }
+
+/* Phones and small tablets: Elementor sections overlapping the one below.
+   The home page's sections are set to stack top to bottom with "Wrap" on
+   under 768px (--flex-wrap-mobile: wrap). Chrome sizes the only block in
+   such a section before the rows inside it are laid out, so the gold-foil
+   product grid (widget 7e5b908, 3,357px of content in a 2,005px box) and the
+   Instagram feed (54e05ee, 1,004px in 322px) ran over "Follow Us" and
+   "Latest blogs" (owner's recording, 26 Sep, at 655px). A section holding a
+   single block has nothing to wrap, so turning wrap off changes nothing but
+   the measurement. Measured at 360-767px: both boxes then fit exactly. */
+.e-con.e-flex > .e-con-inner:has(> .elementor-element:only-child),
+.e-con-full.e-flex:has(> .elementor-element:only-child) {
+  flex-wrap: nowrap;
+}
