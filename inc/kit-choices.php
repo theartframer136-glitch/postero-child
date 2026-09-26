@@ -229,6 +229,7 @@ add_action('woocommerce_before_add_to_cart_button', function () {
     ?>
 <div class="af-kit-group" id="af-kit-group"
      data-bar-rate="<?php echo esc_attr(af_bar_rate_sqft()); ?>"
+     data-frame-real="<?php echo esc_attr(function_exists('af_frame_first_real') ? af_frame_first_real() : ''); ?>"
      data-dd-now="<?php echo esc_attr(function_exists('af_digital_price') ? af_digital_price($product->get_id()) : ''); ?>"
      data-dd-was="<?php echo esc_attr(function_exists('af_digital_was') ? af_digital_was($product->get_id()) : ''); ?>">
   <label class="af-opt-label">What you receive</label>
@@ -365,12 +366,28 @@ body.af-kit-noframe .af-opts .af-color-tip{display:none !important}
         var none = opts.querySelector('.af-frame-chips .af-chip-opt[data-val="Without Frame"]');
         if (none) none.click();
       }
-    } else if (kit === FRAMED && keptFrame && cur === 'Without Frame') {
-      var back = opts.querySelector('.af-frame-chips .af-chip-opt[data-val="' + keptFrame + '"]:not([disabled])');
+    } else if (kit === FRAMED && cur === 'Without Frame') {
+      // A framed kit has a frame in it. Bring back the one the visitor had
+      // picked, else the first frame in stock — "+ frame" is never frameless.
+      var want = keptFrame || g.getAttribute('data-frame-real') || '';
+      var back = want ? opts.querySelector('.af-frame-chips .af-chip-opt[data-val="' + want + '"]:not([disabled])') : null;
+      if (!back) back = opts.querySelector('.af-frame-chips .af-chip-opt:not([disabled]):not([data-val="Without Frame"])');
       if (back) back.click();
       keptFrame = null;
     }
   }
+  // Choosing Without Frame while on the framed kit is choosing the kit
+  // without its frame: move to that kit, so the price and the parcel agree.
+  document.addEventListener('click', function(e){
+    var chip = e.target.closest ? e.target.closest('.af-frame-chips .af-chip-opt[data-val="Without Frame"]') : null;
+    if (!chip || chip.disabled) return;
+    var on = g.querySelector('input[name="af_kit"]:checked');
+    if (!on || on.value !== FRAMED) return;
+    var bars = g.querySelector('input[name="af_kit"][value="painting_bar"]');
+    if (!bars) return;
+    bars.checked = true;
+    bars.dispatchEvent(new Event('change', {bubbles:true}));
+  });
   // On arrival: a frame already chosen elsewhere (Try On Wall passes one in
   // the address) means the visitor wants it framed, so open on the framed
   // option instead of silently dropping their frame.

@@ -16,7 +16,7 @@ echo "=== VERIFY KIT OPTIONS ===\n";
 $fail = 0;
 
 if (!function_exists('af_kit_options')) {
-    echo "  inc/kit-options.php not loaded  FAIL\n=== DONE ===\n"; return;
+    echo "  inc/kit-choices.php not loaded  FAIL\n=== DONE ===\n"; return;
 }
 
 echo "\n-- the five options --\n";

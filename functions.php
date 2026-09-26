@@ -7117,6 +7117,18 @@ function af_frame_is_in_stock( $frame ) {
 }
 
 /** The frames currently NOT available, in the same order the card lists them. */
+/**
+ * The first frame in stock that is actually a frame. "Without Frame" opens the
+ * selector (it is first and always in stock), which is right for a rolled
+ * print and wrong for "Painting + structure bars + frame": that kit has a
+ * frame in it by definition, so where nothing better is chosen it gets this.
+ */
+function af_frame_first_real() {
+    foreach ( array_keys( af_pricing_config()['frames'] ) as $f ) {
+        if ( $f !== 'Without Frame' && af_frame_is_in_stock( $f ) ) return $f;
+    }
+    return '';
+}
 function af_frames_out_of_stock() {
     return array_values( array_filter(
         array_keys( af_pricing_config()['frames'] ),
@@ -7359,9 +7371,19 @@ add_filter('woocommerce_add_cart_item_data', function($data, $pid) {
     if (!isset($cfg['colors'][$color])) $color = array_key_first($cfg['colors']);
     // "Painting only" and "Painting + structure bars + DIY kit" arrive rolled,
     // with no frame, so a frame chip left selected on the page is not charged.
-    if (isset($_POST['af_kit']) && isset($cfg['frames']['Without Frame'])
-        && in_array(sanitize_key(wp_unslash($_POST['af_kit'])), array('painting', 'painting_bar'), true)) {
+    $kit_posted = isset($_POST['af_kit']) ? sanitize_key(wp_unslash($_POST['af_kit'])) : '';
+    if ($kit_posted !== '' && isset($cfg['frames']['Without Frame'])
+        && in_array($kit_posted, array('painting', 'painting_bar'), true)) {
         $frame = 'Without Frame';
+    }
+    // "Painting + structure bars + frame + DIY kit" has a frame in it by
+    // definition. The page opens on Without Frame, so a shopper who picked the
+    // framed kit and nothing else was charged for bars alone and would have
+    // received no frame (owner's recording, 26 Sep). The kit gets the first
+    // frame in stock, the same one the page switches to.
+    if ($kit_posted === 'painting_bar_frame' && $frame === 'Without Frame') {
+        $real = af_frame_first_real();
+        if ($real !== '') $frame = $real;
     }
     $data['af_size']  = $size;
     $data['af_frame'] = $frame;
@@ -7522,12 +7544,26 @@ add_action('wp_head', function() {
         var inch = (sizeVal || '').match(/\((\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*in\)/);
         var bar = inch ? Math.round(inch[1] * inch[2] / 144 * rate * 100) / 100 : 0;
         if (kg) {
+          // "+ frame" includes a frame: its add-on is the bars AND the frame
+          // (the chosen one, or the first in stock while the page is still on
+          // Without Frame) plus that frame's colour finish. The cart charges
+          // the same, so the label and the total never disagree.
+          var realFrame = kg.getAttribute('data-frame-real') || '';
+          var effFrame  = (frameVal && frameVal !== 'Without Frame') ? frameVal : realFrame;
+          var frameAdd  = effFrame ? ((cfg.frames[effFrame] || 0) + ((colorVal && cfg.colors[colorVal]) || 0)) : 0;
           kg.querySelectorAll('.af-kit-add').forEach(function(s){
-            var k = s.getAttribute('data-kit') || '';
-            s.textContent = (/^painting_bar/.test(k) && bar > 0) ? '+' + money(sym, bar) : '';
+            var k = s.getAttribute('data-kit') || '', add = 0;
+            if (k === 'painting_bar') add = bar;
+            else if (k === 'painting_bar_frame') add = bar + frameAdd;
+            s.textContent = add > 0 ? '+' + money(sym, add) : '';
           });
           var kit = kg.querySelector('input[name="af_kit"]:checked');
           if (kit && /^painting_bar/.test(kit.value)) price = Math.round((price + bar) * 100) / 100;
+          // the chip switches a moment after the kit does: show the framed
+          // price in between, never a frameless one for a framed kit
+          if (kit && kit.value === 'painting_bar_frame' && frameVal === 'Without Frame' && effFrame) {
+            price = Math.round((price + frameAdd) * 100) / 100;
+          }
         }
         var el = wrap.querySelector('#af-live-price');
         if(el) el.innerHTML = '<span class="amount">'+money(sym,price)+'</span>';
@@ -13078,7 +13114,7 @@ add_action('wp_footer', function(){
  *   - it carries af_digital: the download modal, or a product from a
  *     digital-download category (af_sells_as_digital)
  *   - "What you receive" is an option that ships nothing: Digital download
- *     (inc/kit-options.php), which does not set af_digital
+ *     (inc/kit-choices.php), which does not set af_digital
  *   - its product sits in a digital-download category, however it got here
  */
 function af_cart_line_is_digital($item) {
@@ -17835,7 +17871,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'kit-options', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing') as $af_mod) {
+foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }

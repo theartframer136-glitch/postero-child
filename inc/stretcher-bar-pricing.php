@@ -13,7 +13,7 @@
  *     3×4 ft         12 sq ft     $96 → $48
  *     3×5 ft         15 sq ft    $120 → $60
  *
- * The same af_bar_price() (inc/kit-options.php) still prices the bars inside
+ * The same af_bar_price() (inc/kit-choices.php) still prices the bars inside
  * "Painting + structure bars" on the art pages, so the two never disagree on
  * what is paid.
  *
