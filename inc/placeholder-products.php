@@ -2,6 +2,8 @@
 /**
  * Take placeholder products off public sale. Test Run 03, N-01; and, from
  * 25 Sep, the five leftover theme demo posters the owner asked to remove.
+ * On 26 Sep the owner asked for all six to be deleted permanently: see
+ * af_placeholder_products_delete() below.
  *
  * Product 11491 is called "test". Measured 23 Sep as a first-time visitor: it
  * answers 200 at /product/test-canvas-wall-art/, is marked index,follow for
@@ -42,13 +44,35 @@ if (!defined('ABSPATH')) exit;
  * and none is in the Canva brochure. Private for the same reasons as #11491:
  * gone from every public view, nothing deleted, one click to publish again.
  * #11491 is already private and reads "already private".
+ *
+ * Revision 4, 26 Sep: all six move to the delete list below, so this one is
+ * empty until something else needs taking off sale.
  */
-define('AF_PLACEHOLDER_PRODUCTS_REV', '3');
+define('AF_PLACEHOLDER_PRODUCTS_REV', '4');
 
 function af_placeholder_products() {
+    return array();
+}
+
+/**
+ * id => the name it must still carry: products to DELETE PERMANENTLY.
+ *
+ * Owner, 26 Sep: remove permanently the six products made private above,
+ * #11491 "test" (TMP-1055) and the five theme demo posters (TMP-1000 to
+ * TMP-1004). Deleted outright, not trashed: WooCommerce's own delete, so the
+ * product lookup tables and transients go with the post. Their pictures stay
+ * in the Media Library (the posters share the theme's stand-in picture).
+ * Orders that ever included one keep their line items: WooCommerce stores the
+ * name, quantity and price on the order itself.
+ *
+ * A product is deleted only if it is still PRIVATE and still carries this
+ * exact name. One that has been published again, or renamed, since the owner
+ * asked is left alone and the log says so; deleting cannot be undone, so it
+ * only ever removes what was already off the site.
+ */
+function af_placeholder_products_delete() {
     return array(
         11491 => 'test',
-        // Theme demo posters (art codes TMP-1000 to TMP-1004), owner 25 Sep.
         115   => 'The Penguin Show Poster',
         123   => 'IL Lemone Poster',
         177   => 'Geometric Shapes poster',
@@ -114,7 +138,39 @@ add_action('wp_loaded', function () {
             $log[] = $id . ' publish -> ' . get_post_status($id);
             $hidden++;
         }
-        if ($hidden) {
+        $deleted = 0;
+        foreach (af_placeholder_products_delete() as $id => $name) {
+            $product = wc_get_product($id);
+            if (!$product) {
+                $log[] = $id . ' not found (already deleted)';
+                continue;
+            }
+            $status = $product->get_status();
+            $actual = trim((string) $product->get_name());
+            if (strcasecmp($actual, $name) !== 0) {
+                $log[] = $id . ' left alone: now named "' . substr($actual, 0, 60) . '"';
+                continue;
+            }
+            if ($status !== 'private') {
+                $log[] = $id . ' left alone: ' . $status . ', not private';
+                continue;
+            }
+            $product->delete(true);
+            clean_post_cache($id);
+            if (get_post($id)) {
+                $log[] = $id . ' delete FAILED, still ' . get_post_status($id);
+                continue;
+            }
+            $log[] = $id . ' deleted permanently';
+            $deleted++;
+        }
+        if ($deleted) {
+            do_action('litespeed_purge_posttype', 'product');
+            if (function_exists('wc_get_page_permalink')) {
+                do_action('litespeed_purge_url', wc_get_page_permalink('shop'));
+            }
+        }
+        if ($hidden || $deleted) {
             $log[] = 'sitemap: ' . af_placeholder_sitemap_clear();
         }
         update_option('af_placeholder_products', implode('; ', $log) . ' @ ' . gmdate('c'), false);
