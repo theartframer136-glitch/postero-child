@@ -128,9 +128,21 @@ foreach ($af_alu_filters as $af_hook => $af_spec) {
         if ($def === '') return $price;
         $pair = af_alu_size_prices()[$def];
         return (string) $pair[$af_spec[1]];
-    }, 10, 2);
+    }, 99, 2);
 }
 unset($af_alu_filters, $af_hook, $af_spec);
+
+// Measured live, 26 Sep: with the filters above at the default priority the
+// Store API read price $24 and list $48 but on_sale false, and the admin API
+// read sale_price ''. Something later in the chain blanks the sale price for a
+// product with no stored price. Running last (99) and stating the sale plainly
+// keeps the SALE ribbon and the feeds in step with the price shown.
+add_filter('woocommerce_product_is_on_sale', function ($on_sale, $product) {
+    if (!af_alu_storefront() || !($product instanceof WC_Product) || !af_is_alu_product($product)) return $on_sale;
+    $reg  = (float) $product->get_regular_price();
+    $sale = (float) $product->get_sale_price();
+    return $sale > 0 && $reg > $sale;
+}, 99, 2);
 
 // "From $48.00 $24.00" wherever a card or the page quotes it. The struck
 // list price is what the shop's own script reads to add "(50% off)".
@@ -141,7 +153,7 @@ add_filter('woocommerce_get_price_html', function ($html, $product) {
     list($sale, $reg) = af_alu_size_prices()[$def];
     $out = '<span class="af-alu-from">From </span>';
     return $out . ($reg > $sale ? wc_format_sale_price($reg, $sale) : wc_price($sale));
-}, 30, 2);
+}, 99, 2);
 
 // The size and colour choice on the product page
 add_action('woocommerce_before_add_to_cart_button', function () {
