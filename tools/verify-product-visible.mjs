@@ -50,12 +50,22 @@ const api = await page.evaluate(async ({ id, name }) => {
 say(api.catalog, 'Store API, catalog-visible products', api.catalog ? 'listed' : 'not listed');
 say(api.search, 'Store API, search-visible products', api.search ? 'listed' : 'not listed');
 
-// Product search, by name and by art code.
+// Product search, by name and by art code, every page of results: a search
+// also matches descriptions, so other products can rank above this one.
+const cards = () => page.evaluate(() => document.querySelectorAll('ul.products li.product').length).catch(() => 0);
 for (const q of [P.name, P.code]) {
-  const s = await go('/?s=' + encodeURIComponent(q) + '&post_type=product');
-  await page.waitForTimeout(1500);
-  const found = s ? (await linksToIt()) || page.url().includes('/product/' + P.slug) : false;
-  say(found, 'search "' + q + '"', 'HTTP ' + (s ? s.status() : 0) + ' · ' + (found ? 'links to it' : 'no link'));
+  let found = false, pages = 0, first = 0, status = 0;
+  for (let n = 1; n <= 20 && !found; n++) {
+    const s = await go((n > 1 ? '/page/' + n + '/' : '/') + '?s=' + encodeURIComponent(q) + '&post_type=product');
+    if (!s || s.status() !== 200) { if (n === 1) status = s ? s.status() : 0; break; }
+    status = 200; pages = n;
+    await page.waitForTimeout(1200);
+    if (n === 1) first = await cards();
+    found = (await linksToIt()) || page.url().includes('/product/' + P.slug);
+    if (!found && (await cards()) === 0) break;
+  }
+  say(found, 'search "' + q + '"', 'HTTP ' + status + ' · ' + first + ' results on page 1 · '
+    + (found ? 'links to it, on page ' + pages : 'no link in ' + pages + ' page(s)'));
 }
 
 // Its category pages, every page of each.
