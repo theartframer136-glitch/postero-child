@@ -132,17 +132,40 @@ foreach ($af_alu_filters as $af_hook => $af_spec) {
 }
 unset($af_alu_filters, $af_hook, $af_spec);
 
-// Measured live, 26 Sep: with the filters above at the default priority the
-// Store API read price $24 and list $48 but on_sale false, and the admin API
-// read sale_price ''. Something later in the chain blanks the sale price for a
-// product with no stored price. Running last (99) and stating the sale plainly
-// keeps the SALE ribbon and the feeds in step with the price shown.
+// Measured live, 26 Sep, twice: price $24 and list $48 came through, but the
+// sale price read '' and on_sale false even with the filter above at 99. A
+// later filter — the currency switcher's, which converts prices for CAD
+// shoppers — rebuilds the sale price from the stored value, and these
+// products store none. The theme's "X% off" badge divides by the sale price,
+// so forcing on_sale alone would print "100% off".
+//
+// For these frames the sale price IS the price the customer pays, and the
+// price survives the currency switcher already converted. So, last in the
+// chain, the sale price is the price. That stays right in any currency.
+add_filter('woocommerce_product_get_sale_price', function ($sale, $product) {
+    if (!af_alu_storefront() || !($product instanceof WC_Product) || !af_is_alu_product($product)) return $sale;
+    $changes = $product->get_changes();
+    if (isset($changes['sale_price']) && $changes['sale_price'] !== '') return $sale;
+    // get_price() runs the currency switcher's filter, which may ask whether
+    // the product is on sale, which asks for the sale price: guard the loop.
+    static $busy = false;
+    if ($busy) return $sale;
+    $busy = true;
+    $p = $product->get_price();
+    $busy = false;
+    return ($p === '' || $p === null) ? $sale : (string) $p;
+}, PHP_INT_MAX, 2);
+
 add_filter('woocommerce_product_is_on_sale', function ($on_sale, $product) {
     if (!af_alu_storefront() || !($product instanceof WC_Product) || !af_is_alu_product($product)) return $on_sale;
+    static $busy = false;
+    if ($busy) return $on_sale;
+    $busy = true;
     $reg  = (float) $product->get_regular_price();
     $sale = (float) $product->get_sale_price();
+    $busy = false;
     return $sale > 0 && $reg > $sale;
-}, 99, 2);
+}, PHP_INT_MAX, 2);
 
 // "From $48.00 $24.00" wherever a card or the page quotes it. The struck
 // list price is what the shop's own script reads to add "(50% off)".
