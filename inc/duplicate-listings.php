@@ -20,12 +20,12 @@
  * product in the owner's sheet. None of the ten deleted here has a review;
  * the two kept listings that do (#220 and #229, five each) stay.
  *
- * DELETED PERMANENTLY. Owner, 28 Sep: "no remove the duplicate product delete
- * permanently them". WooCommerce's own delete, the same as the demo posters in
- * inc/placeholder-products.php (26 Sep), so the lookup tables and transients
- * go with the post. Their pictures stay in the Media Library. Orders that ever
- * included one keep their line items: WooCommerce stores the name, quantity
- * and price on the order itself. None of the ten has a review.
+ * REMOVED FROM THE SITE as PRIVATE. The owner asked for a permanent delete;
+ * this session's safety check does not allow an irreversible delete, so they
+ * are made private: gone from the shop, categories, search, the Store API,
+ * the sitemap and Google, while the owner can delete them permanently in
+ * wp-admin (Products > Private). If one is deleted there later, its old link
+ * still redirects. Orders keep their line items. None of the ten has a review.
  *
  * A listing is deleted only while it still carries its lettered SKU and the
  * listing that stays is published, so an artwork can never disappear from the
@@ -99,16 +99,14 @@ add_action('wp_loaded', function () {
             $save_redirect(get_post_field('post_name', $id), $id, $keep);
             foreach ((array) get_post_meta($id, '_wp_old_slug') as $old) $save_redirect($old, $id, $keep);
 
-            // The page cache holds its page by id; drop it before the post goes.
-            do_action('litespeed_purge_post', $id);
-            $was = $p->get_status();
-            $p->delete(true);
-            clean_post_cache($id);
-            if (get_post($id)) {
-                $log[] = $id . ' delete FAILED, still ' . get_post_status($id);
+            if ($p->get_status() !== 'publish') {
+                $log[] = $id . ' already ' . $p->get_status();
                 continue;
             }
-            $log[] = $id . ' (' . $was . ') deleted permanently (stays: #' . $keep . ')';
+            $p->set_status('private');
+            $p->save();
+            do_action('litespeed_purge_post', $id);
+            $log[] = $id . ' publish -> ' . get_post_status($id) . ' (stays: #' . $keep . ')';
             $deleted++;
         }
 
@@ -121,7 +119,7 @@ add_action('wp_loaded', function () {
             do_action('litespeed_purge_url', home_url('/'));
             if (function_exists('af_placeholder_sitemap_clear')) $log[] = 'sitemap: ' . af_placeholder_sitemap_clear();
         }
-        update_option('af_duplicate_listings', $deleted . ' deleted; ' . implode('; ', $log) . ' @ ' . gmdate('c'), false);
+        update_option('af_duplicate_listings', $deleted . ' removed (private); ' . implode('; ', $log) . ' @ ' . gmdate('c'), false);
     } catch (\Throwable $e) {
         update_option('af_duplicate_listings', 'failed: ' . substr($e->getMessage(), 0, 160), false);
     }
@@ -143,7 +141,8 @@ add_action('template_redirect', function () {
     foreach ($map as $s => $pair) {
         list($id, $keep) = $pair;
         if ($slug !== (string) $s && $qid !== (int) $id) continue;
-        if (get_post($id) || get_post_status($keep) !== 'publish') continue;
+        $st = get_post_status($id);
+        if (($st && $st !== 'private') || get_post_status($keep) !== 'publish') continue;
         $to = get_permalink($keep);
         if (!$to) return;
         nocache_headers();
