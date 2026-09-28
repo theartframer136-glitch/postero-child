@@ -58,7 +58,7 @@ if (!/80\.00/.test(s0.live) || !/128\.00/.test(s1.live) || !/176\.00/.test(s2.li
   await pick('painting_bar_frame'); await sleep(700);
   await Promise.all([q.waitForNavigation({ timeout: 45000 }).catch(() => {}), q.evaluate(() => document.querySelector('form.cart .single_add_to_cart_button').click())]); await sleep(3000);
   await q.goto('https://theartframer.us/cart/', { waitUntil: 'domcontentloaded', timeout: 90000 }); await sleep(5000);
-  const c2 = await q.evaluate(() => [...document.querySelectorAll('.cart_item, tr.woocommerce-cart-form__cart-item')].map(r => r.innerText.replace(/\s+/g, ' ').slice(0, 300)));
+  const c2 = await q.evaluate(() => [...document.querySelectorAll('.cart_item, tr.woocommerce-cart-form__cart-item')].map(r => r.innerText.replace(/\s+/g, ' ').slice(-160)));
   console.log('CART (framed kit 3x4) ' + JSON.stringify(c2));
   if (!c2.some(c => /176\.00/.test(c))) ok = false;
 }
