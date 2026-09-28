@@ -6,11 +6,12 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const p = await b.newPage(); await p.setViewport({ width: 1280, height: 900 });
 let ok = true;
 // 1. a bar product
-await p.goto('https://theartframer.us/?p=8337', { waitUntil: 'domcontentloaded', timeout: 90000 }); await sleep(6000);
-const bar = await p.evaluate(() => ({ url: location.pathname.slice(0, 60),
+await p.goto('https://theartframer.us/?p=8337', { waitUntil: 'networkidle2', timeout: 90000 }).catch(() => {}); await sleep(6000);
+const retry = async (fn) => { for (let i = 0; i < 4; i++) { try { return await fn(); } catch (e) { await sleep(3000); } } return fn(); };
+const bar = await retry(() => p.evaluate(() => ({ url: location.pathname.slice(0, 60),
   sizes: [...document.querySelectorAll('#af-bar-size-select option')].map(o => o.textContent.trim()),
   live: (document.getElementById('af-bar-live') || {}).textContent, head: ((document.querySelector('.summary .price, p.price') || {}).innerText || '').trim(),
-  atc: !!document.querySelector('form.cart .single_add_to_cart_button') }));
+  atc: !!document.querySelector('form.cart .single_add_to_cart_button') })));
 console.log('BAR PRODUCT ' + JSON.stringify(bar));
 if (bar.sizes.length !== 5 || !bar.atc || !/24\.00/.test(bar.live || '')) ok = false;
 await p.select('#af-bar-size-select', '3×4 ft (36×48 in)'); await sleep(500);
