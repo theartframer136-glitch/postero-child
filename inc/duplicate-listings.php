@@ -37,7 +37,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('AF_DUPLICATE_LISTINGS_REV', '1');   // bump after changing the list
+define('AF_DUPLICATE_LISTINGS_REV', '2');   // bump after changing the list
 
 /** id to delete => array(its lettered SKU, the id that stays, its address as read live 28 Sep) */
 function af_duplicate_listings() {
@@ -99,14 +99,14 @@ add_action('wp_loaded', function () {
             $save_redirect(get_post_field('post_name', $id), $id, $keep);
             foreach ((array) get_post_meta($id, '_wp_old_slug') as $old) $save_redirect($old, $id, $keep);
 
-            if ($p->get_status() !== 'publish') {
-                $log[] = $id . ' already ' . $p->get_status();
-                continue;
-            }
-            $p->set_status('private');
-            $p->save();
+            $was = $p->get_status();
+            if ($was === 'trash') { $log[] = $id . ' already in trash'; continue; }
+            // Revision 2, owner 28 Sep: "at least move them to trash".
+            // wp_trash_post keeps it restorable (Products > Trash) until the
+            // trash is emptied.
             do_action('litespeed_purge_post', $id);
-            $log[] = $id . ' publish -> ' . get_post_status($id) . ' (stays: #' . $keep . ')';
+            wp_trash_post($id);
+            $log[] = $id . ' ' . $was . ' -> ' . get_post_status($id) . ' (stays: #' . $keep . ')';
             $deleted++;
         }
 
@@ -119,7 +119,7 @@ add_action('wp_loaded', function () {
             do_action('litespeed_purge_url', home_url('/'));
             if (function_exists('af_placeholder_sitemap_clear')) $log[] = 'sitemap: ' . af_placeholder_sitemap_clear();
         }
-        update_option('af_duplicate_listings', $deleted . ' removed (private); ' . implode('; ', $log) . ' @ ' . gmdate('c'), false);
+        update_option('af_duplicate_listings', $deleted . ' moved to trash; ' . implode('; ', $log) . ' @ ' . gmdate('c'), false);
     } catch (\Throwable $e) {
         update_option('af_duplicate_listings', 'failed: ' . substr($e->getMessage(), 0, 160), false);
     }
@@ -142,7 +142,7 @@ add_action('template_redirect', function () {
         list($id, $keep) = $pair;
         if ($slug !== (string) $s && $qid !== (int) $id) continue;
         $st = get_post_status($id);
-        if (($st && $st !== 'private') || get_post_status($keep) !== 'publish') continue;
+        if (($st && !in_array($st, array('private', 'trash'), true)) || get_post_status($keep) !== 'publish') continue;
         $to = get_permalink($keep);
         if (!$to) return;
         nocache_headers();
