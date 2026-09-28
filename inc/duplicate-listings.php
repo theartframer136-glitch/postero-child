@@ -8,8 +8,8 @@
  * Each pair's pictures were compared by three independent reviewers, and the
  * live pages were read on 28 Sep (tools/diag-duplicates.mjs):
  *
- *   SAME artwork, 3 of 3 reviewers  -> hidden here (10 listings)
- *   #7824 Bal Krishna Flute          -> NOT hidden: reviewers split 2 to 1, and it
+ *   SAME artwork, 3 of 3 reviewers  -> deleted here (10 listings)
+ *   #7824 Bal Krishna Flute          -> NOT deleted: reviewers split 2 to 1, and it
  *                                       holds the pair's only reviews (2); the
  *                                       product that would stay has none
  *   #19453, #24836, #7781, #8424,    -> NOT hidden: DIFFERENT artworks that were
@@ -17,27 +17,29 @@
  *                                       said same). They need their own codes.
  *
  * The listing that stays is the one holding the plain SKU, the brochure's
- * product in the owner's sheet. None of the ten hidden here has a review;
+ * product in the owner's sheet. None of the ten deleted here has a review;
  * the two kept listings that do (#220 and #229, five each) stay.
  *
- * PRIVATE, not deleted, the same as inc/placeholder-products.php: gone from
- * the shop, categories, search, the Store API and the sitemap; nothing is
- * lost; publishing it again in wp-admin is one click. Orders that include one
- * keep their line items.
+ * DELETED PERMANENTLY. Owner, 28 Sep: "no remove the duplicate product delete
+ * permanently them". WooCommerce's own delete, the same as the demo posters in
+ * inc/placeholder-products.php (26 Sep), so the lookup tables and transients
+ * go with the post. Their pictures stay in the Media Library. Orders that ever
+ * included one keep their line items: WooCommerce stores the name, quantity
+ * and price on the order itself. None of the ten has a review.
  *
- * A listing is hidden only while it still carries its lettered SKU, is still
- * published, and the listing that stays is published too, so an artwork can
- * never disappear from the shop altogether and an id that later holds another
- * piece is never touched. Anyone following an old link to a hidden listing is
- * sent (301) to the listing that stays. Runs once per revision, on the first
+ * A listing is deleted only while it still carries its lettered SKU and the
+ * listing that stays is published, so an artwork can never disappear from the
+ * shop altogether and an id that later holds another piece is never touched.
+ * Its address is recorded first, and anyone following an old link is sent
+ * (301) to the listing that stays. Runs once per revision, on the first
  * request after the deploy; what happened is recorded in the
- * af_duplicate_listings option.
+ * af_duplicate_listings option, which health-check.yml reads.
  */
 if (!defined('ABSPATH')) exit;
 
-define('AF_DUPLICATE_LISTINGS_REV', '1');
+define('AF_DUPLICATE_LISTINGS_REV', '1');   // bump after changing the list
 
-/** hidden id => array(its lettered SKU, the id that stays) */
+/** id to delete => array(its lettered SKU, the id that stays) */
 function af_duplicate_listings() {
     return array(
         17212 => array('LR-070004-5030A', 34243),  // "Beautiful Lord Krishna Statue" = Ram Lalla in Pink Silk
@@ -79,19 +81,21 @@ add_action('wp_loaded', function () {
                 $log[] = $id . ' left alone: #' . $keep . ' (the listing that stays) is ' . ($k ? $k->get_status() : 'missing');
                 continue;
             }
-            // Remembered even if it is already private, so its old link still
-            // leads somewhere.
+            // Remembered before the post goes, so its old link still leads
+            // somewhere afterwards.
             $slug = get_post_field('post_name', $id);
             if ($slug) $redirects[$slug] = array((int) $id, (int) $keep);
 
-            if ($p->get_status() !== 'publish') {
-                $log[] = $id . ' already ' . $p->get_status();
+            // The page cache holds its page by id; drop it before the post goes.
+            do_action('litespeed_purge_post', $id);
+            $was = $p->get_status();
+            $p->delete(true);
+            clean_post_cache($id);
+            if (get_post($id)) {
+                $log[] = $id . ' delete FAILED, still ' . get_post_status($id);
                 continue;
             }
-            $p->set_status('private');
-            $p->save();
-            do_action('litespeed_purge_post', $id);
-            $log[] = $id . ' publish -> ' . get_post_status($id) . ' (stays: #' . $keep . ')';
+            $log[] = $id . ' (' . $was . ') deleted permanently (stays: #' . $keep . ')';
             $hidden++;
         }
         update_option('af_duplicate_redirects', $redirects, true);
@@ -105,17 +109,16 @@ add_action('wp_loaded', function () {
             do_action('litespeed_purge_url', home_url('/'));
             if (function_exists('af_placeholder_sitemap_clear')) $log[] = 'sitemap: ' . af_placeholder_sitemap_clear();
         }
-        update_option('af_duplicate_listings', $hidden . ' hidden; ' . implode('; ', $log) . ' @ ' . gmdate('c'), false);
+        update_option('af_duplicate_listings', $hidden . ' deleted; ' . implode('; ', $log) . ' @ ' . gmdate('c'), false);
     } catch (\Throwable $e) {
         update_option('af_duplicate_listings', 'failed: ' . substr($e->getMessage(), 0, 160), false);
     }
 }, 99);
 
 /**
- * An old link to a hidden listing goes to the listing that stays, instead of
- * a "page not found". Only while the hidden one is still private and the one
- * that stays is still published, so publishing a listing again in wp-admin
- * brings its own page straight back.
+ * An old link to a deleted listing goes to the listing that stays, instead of
+ * a "page not found". Only while that id is really gone and the listing that
+ * stays is still published.
  */
 add_action('template_redirect', function () {
     if (!is_404()) return;
@@ -128,7 +131,7 @@ add_action('template_redirect', function () {
     foreach ($map as $s => $pair) {
         list($id, $keep) = $pair;
         if ($slug !== $s && $qid !== (int) $id) continue;
-        if (get_post_status($id) !== 'private' || get_post_status($keep) !== 'publish') return;
+        if (get_post($id) || get_post_status($keep) !== 'publish') continue;
         $to = get_permalink($keep);
         if (!$to) return;
         nocache_headers();
