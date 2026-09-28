@@ -12,7 +12,7 @@
  *   #7824 Bal Krishna Flute          -> NOT deleted: reviewers split 2 to 1, and it
  *                                       holds the pair's only reviews (2); the
  *                                       product that would stay has none
- *   #19453, #24836, #7781, #8424,    -> NOT hidden: DIFFERENT artworks that were
+ *   #19453, #24836, #7781, #8424,    -> NOT deleted: DIFFERENT artworks that were
  *   #8494, #8474                        given the same art code (0 of 3 reviewers
  *                                       said same). They need their own codes.
  *
@@ -39,19 +39,19 @@ if (!defined('ABSPATH')) exit;
 
 define('AF_DUPLICATE_LISTINGS_REV', '1');   // bump after changing the list
 
-/** id to delete => array(its lettered SKU, the id that stays) */
+/** id to delete => array(its lettered SKU, the id that stays, its address as read live 28 Sep) */
 function af_duplicate_listings() {
     return array(
-        17212 => array('LR-070004-5030A', 34243),  // "Beautiful Lord Krishna Statue" = Ram Lalla in Pink Silk
-        11541 => array('RK-010002-3050A', 11577),  // Radha Krishna Divine Love
-        11617 => array('RK-010002-3050B', 11577),  // Radha Krishna Divine Love
-        24592 => array('RK-010063-4030A', 34855),  // Radha Krishna Moonlit Melody
-        14678 => array('RK-010090-5030A', 34147),  // Krishna Bells and Lamps Aarti
-        26875 => array('HD-080001-5030B', 8398),   // Mahavatar Babaji
-        7839  => array('LB-090001-3050B', 220),    // Serene Buddha with Lotus
-        17543 => array('LR-070005-5030B', 15913),  // Lord Vishnu Statue (Balaji)
-        31829 => array('RK-010033-3050B', 14617),  // Krishna Playing Flute
-        31890 => array('TP-050013-5030C', 15730),  // Vishnu Blue Form
+        17212 => array('LR-070004-5030A', 34243, 'beautiful-lord-krishna-statue-canvas-wall-art'),  // "Beautiful Lord Krishna Statue" = Ram Lalla in Pink Silk
+        11541 => array('RK-010002-3050A', 11577, 'premium-radha-krishna-love-wall-art-36x60-inches-spiritual-digital-canvas-print'),  // Radha Krishna Divine Love
+        11617 => array('RK-010002-3050B', 11577, 'radha-krishna-canvas-wall-art-24x36-inches-floating-frame-premium-digital'),  // Radha Krishna Divine Love
+        24592 => array('RK-010063-4030A', 34855, 'veena-under-violet-moon-canvas-wall-art'),  // Radha Krishna Moonlit Melody
+        14678 => array('RK-010090-5030A', 34147, 'golden-krishna-temple-idol-canvas-wall-art'),  // Krishna Bells and Lamps Aarti
+        26875 => array('HD-080001-5030B', 8398, 'mahavatar-babaji-canvas-wall-art'),   // Mahavatar Babaji
+        7839  => array('LB-090001-3050B', 220, 'buddha-lotus-serenity-canvas-wall-art'),    // Serene Buddha with Lotus
+        17543 => array('LR-070005-5030B', 15913, 'lord-balaji-idol-canvas-wall-art'),  // Lord Vishnu Statue (Balaji)
+        31829 => array('RK-010033-3050B', 14617, 'krishna-flute-panorama-canvas-wall-art'),  // Krishna Playing Flute
+        31890 => array('TP-050013-5030C', 15730, 'lord-vishnu-golden-halo-canvas-wall-art'),  // Vishnu Blue Form
     );
 }
 
@@ -63,15 +63,28 @@ add_action('wp_loaded', function () {
         update_option('af_duplicate_listings_rev', AF_DUPLICATE_LISTINGS_REV, true);
 
         $log = array();
-        $hidden = 0;
-        $redirects = get_option('af_duplicate_redirects');
-        if (!is_array($redirects)) $redirects = array();
+        $deleted = 0;
+        // Every listing's address is known in advance (the list above), and
+        // each redirect is saved BEFORE its delete, so a run that stops
+        // partway, or two runs at once, can never lose an old link.
+        $save_redirect = function ($slug, $id, $keep) {
+            $slug = strtolower(trim((string) $slug));
+            if ($slug === '') return;
+            $map = get_option('af_duplicate_redirects');
+            if (!is_array($map)) $map = array();
+            $map[$slug] = array((int) $id, (int) $keep);
+            update_option('af_duplicate_redirects', $map, true);
+        };
         $norm = function ($s) { return strtoupper(trim((string) $s)); };
 
         foreach (af_duplicate_listings() as $id => $row) {
-            list($sku, $keep) = $row;
+            list($sku, $keep, $known_slug) = $row;
             $p = wc_get_product($id);
-            if (!$p) { $log[] = $id . ' not found'; continue; }
+            if (!$p) {
+                $save_redirect($known_slug, $id, $keep);   // already gone: its link still leads on
+                $log[] = $id . ' not found';
+                continue;
+            }
             if ($norm($p->get_sku()) !== $norm($sku)) {
                 $log[] = $id . ' left alone: SKU is now "' . substr((string) $p->get_sku(), 0, 30) . '"';
                 continue;
@@ -81,10 +94,10 @@ add_action('wp_loaded', function () {
                 $log[] = $id . ' left alone: #' . $keep . ' (the listing that stays) is ' . ($k ? $k->get_status() : 'missing');
                 continue;
             }
-            // Remembered before the post goes, so its old link still leads
-            // somewhere afterwards.
-            $slug = get_post_field('post_name', $id);
-            if ($slug) $redirects[$slug] = array((int) $id, (int) $keep);
+            // Its address now, the one read live, and any it had before.
+            $save_redirect($known_slug, $id, $keep);
+            $save_redirect(get_post_field('post_name', $id), $id, $keep);
+            foreach ((array) get_post_meta($id, '_wp_old_slug') as $old) $save_redirect($old, $id, $keep);
 
             // The page cache holds its page by id; drop it before the post goes.
             do_action('litespeed_purge_post', $id);
@@ -96,11 +109,10 @@ add_action('wp_loaded', function () {
                 continue;
             }
             $log[] = $id . ' (' . $was . ') deleted permanently (stays: #' . $keep . ')';
-            $hidden++;
+            $deleted++;
         }
-        update_option('af_duplicate_redirects', $redirects, true);
 
-        if ($hidden) {
+        if ($deleted) {
             // The shop, categories and tags list products; the home page
             // bands do too. Purged by name, not the whole site (see
             // af_purge_listing_pages for why).
@@ -109,7 +121,7 @@ add_action('wp_loaded', function () {
             do_action('litespeed_purge_url', home_url('/'));
             if (function_exists('af_placeholder_sitemap_clear')) $log[] = 'sitemap: ' . af_placeholder_sitemap_clear();
         }
-        update_option('af_duplicate_listings', $hidden . ' deleted; ' . implode('; ', $log) . ' @ ' . gmdate('c'), false);
+        update_option('af_duplicate_listings', $deleted . ' deleted; ' . implode('; ', $log) . ' @ ' . gmdate('c'), false);
     } catch (\Throwable $e) {
         update_option('af_duplicate_listings', 'failed: ' . substr($e->getMessage(), 0, 160), false);
     }
@@ -126,11 +138,11 @@ add_action('template_redirect', function () {
     if (!is_array($map) || !$map) return;
     $path = trim((string) wp_parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/');
     $slug = '';
-    if (preg_match('#(?:^|/)product/([^/]+)$#', $path, $m)) $slug = rawurldecode($m[1]);
+    if (preg_match('#(?:^|/)product/([^/]+)$#i', $path, $m)) $slug = strtolower(rawurldecode($m[1]));
     $qid = isset($_GET['p']) ? (int) $_GET['p'] : 0;
     foreach ($map as $s => $pair) {
         list($id, $keep) = $pair;
-        if ($slug !== $s && $qid !== (int) $id) continue;
+        if ($slug !== (string) $s && $qid !== (int) $id) continue;
         if (get_post($id) || get_post_status($keep) !== 'publish') continue;
         $to = get_permalink($keep);
         if (!$to) return;
