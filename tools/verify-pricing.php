@@ -115,7 +115,7 @@ foreach ($pages as $where => $url) {
 // ── listings must carry the same book ──
 // a product titled 3×4 must LIST at $80, open its options on the 3×4 chip,
 // and quick-add to the cart at $80 — one number, three surfaces
-$sampled = 0; $wrong = array(); $backed = 0;
+$sampled = 0; $wrong = array();
 foreach (wc_get_products(array('status'=>'publish','limit'=>60,'return'=>'ids','orderby'=>'date','order'=>'DESC')) as $sid) {
     $sp = wc_get_product($sid);
     if (!$sp || !af_pricing_applies($sp) || $sp->is_type('variable')) continue;
@@ -128,12 +128,23 @@ foreach (wc_get_products(array('status'=>'publish','limit'=>60,'return'=>'ids','
     $cfg2 = af_pricing_config($sid);
     $want = (float) $cfg2['sizes'][$slabel];
     if ((float) $sp->get_price() !== $want) $wrong[] = "#{$sid} {$slabel} lists \${$sp->get_price()} (card \${$want})";
-    if (get_post_meta($sid, '_af_price_backup', true)) $backed++;
     if ($sampled >= 25) break;
 }
 af_prv('listings priced from the card (' . $sampled . ' sampled)', !$wrong, $fail,
        $wrong ? implode('; ', array_slice($wrong, 0, 3)) : 'all exact');
-af_prv('old prices backed up for reversal', $sampled === 0 || $backed > 0, $fail, "{$backed} of {$sampled}");
+// reprice-from-card.php keeps a product's old price only when it CHANGES
+// that price. The first run (8 Aug) repriced 332 of 340 listings and backed
+// each up; everything added since — the ~150 brochure pages of 19 Sep among
+// them — was created at the card price, so it has no old price to keep.
+// Asking the newest 25 for a backup found only those, and read "0 of 25" on
+// every full deploy from at least 25 Sep. The reversal is only lost if the
+// backups are gone from the whole catalogue, so count them there.
+$backed = count(get_posts(array(
+    'post_type' => 'product', 'post_status' => 'publish', 'posts_per_page' => -1, 'fields' => 'ids',
+    'meta_query' => array(array('key' => '_af_price_backup', 'compare' => 'EXISTS')),
+)));
+af_prv('old prices backed up for reversal', $sampled === 0 || $backed > 0, $fail,
+       "{$backed} published products carry one");
 if ($pid) {
     $pp = wc_get_product($pid);
     $plabel = af_size_label_for_product($pp);
