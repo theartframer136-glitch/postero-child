@@ -234,6 +234,13 @@ foreach ( $by_sku as $key => $pids ) {
 		// the SKU is the plain code again.
 		if ( (string) get_post_meta( $pids[0], '_af_sku_letter', true ) !== '' ) {
 			$clearlet[] = $pids[0];
+			// The brochure's product for the page, left alone on the code when
+			// the other moved off it (#19453 on RK-010044-5030, 29 Sep): it
+			// drops its letter as it would in a shared group. Anyone else keeps
+			// the SKU already on its invoices.
+			if ( isset( $primaries[ $key ] ) && $primaries[ $key ] === (int) $pids[0] ) {
+				$primary_pids[ $pids[0] ] = true;
+			}
 		}
 		continue;
 	}
@@ -299,6 +306,46 @@ function af_sku_persist_letter( $pid, $setlet, $clearlet ) {
 	}
 }
 
+/**
+ * Is this product's SKU done for its current code? A SKU still carrying the
+ * product's code (with or without its twin letter) is left exactly as it is,
+ * so no SKU on an invoice moves; one naming an earlier code is re-issued.
+ * The brochure's product on a shared code is not done until it has dropped
+ * its letter.
+ */
+function af_sku_is_settled( $pid, $want, $codes, $primary_pids, $version ) {
+	$sku = (string) get_post_meta( $pid, '_sku', true );
+	return get_post_meta( $pid, '_af_sku_artcode', true ) === $version
+	    && ! ( isset( $primary_pids[ $pid ] ) && $sku !== $want[ $pid ] )
+	    && af_sku_belongs_to_code( $sku, af_sku_from_code( $codes[ $pid ] ) );
+}
+
+/**
+ * May $holder give its SKU up now, so $pid can take it?
+ *
+ * Two products whose codes were swapped each want the SKU the other holds,
+ * and WooCommerce refuses a duplicate, so whichever went first failed on
+ * every deploy and both stayed put. The holder can step aside, but only if it
+ * is sure to take its own new SKU later in this pass: its turn is still to
+ * come, it is not done already, and the SKU it wants is free, or is the one
+ * $pid is leaving, or is held by a product that moves on in its own later
+ * turn (a chain, followed to its end). Otherwise it would be left with no SKU
+ * at all, which is worse than the clash.
+ */
+function af_sku_can_make_room( $holder, $pid, $want, $pos, $codes, $primary_pids, $version ) {
+	$seen = array( $pid => true );
+	$prev = $pid;
+	for ( $h = (int) $holder, $steps = 0; $h && $steps < 50; $steps++ ) {
+		if ( isset( $seen[ $h ] ) ) { return true; }   // back round to one already moving: a swap or a ring
+		if ( ! isset( $want[ $h ], $pos[ $h ] ) || $pos[ $h ] < $pos[ $prev ]
+		     || af_sku_is_settled( $h, $want, $codes, $primary_pids, $version ) ) { return false; }
+		$seen[ $h ] = true;
+		$prev = $h;
+		$h = (int) wc_get_product_id_by_sku( $want[ $h ] );
+	}
+	return ! $h;                                        // the chain ends on a free SKU
+}
+
 // ── Write ───────────────────────────────────────────────────────────────────
 $done = 0; $already = 0; $skipped = 0; $clash = 0; $samples = array();
 $reissued = array();   // done once, but the code has moved on since: pid => "old → new"
@@ -308,25 +355,27 @@ $made_plain = array(); // the brochure's product on a shared code, letter droppe
 // letter) has done so before the primary takes it.
 $order = array_merge( array_values( array_diff( $ids, array_keys( $primary_pids ) ) ),
                       array_values( array_intersect( $ids, array_keys( $primary_pids ) ) ) );
+$pos = array_flip( $order );
 foreach ( $order as $pid ) {
 	if ( ! isset( $want[ $pid ] ) ) { continue; }
 
-	// Done for THIS code only. A SKU still carrying the product's code (with or
-	// without its twin letter) is left exactly as it is, so no SKU on an
-	// invoice moves; one naming an earlier code is re-issued below.
+	// Done for THIS code only (af_sku_is_settled); one naming an earlier code
+	// is re-issued below.
 	$marked = get_post_meta( $pid, '_af_sku_artcode', true ) === $VERSION;
 	$is_primary = isset( $primary_pids[ $pid ] );
-	if ( $marked && ! ( $is_primary && (string) get_post_meta( $pid, '_sku', true ) !== $want[ $pid ] )
-	     && af_sku_belongs_to_code( get_post_meta( $pid, '_sku', true ), af_sku_from_code( $codes[ $pid ] ) ) ) {
+	if ( af_sku_is_settled( $pid, $want, $codes, $primary_pids, $VERSION ) ) {
 		$already++;
 		continue;
 	}
 	if ( $done >= $MAX || ( microtime( true ) - $started ) > $SECONDS ) { break; }
 
 	$new = $want[ $pid ];
-	$old = (string) get_post_meta( $pid, '_sku', true );
+	$cur = (string) get_post_meta( $pid, '_sku', true );
+	// Gave its SKU up to another product earlier in this pass (or a run cut
+	// short): what it held is the SKU it is moving off, for the records below.
+	$old = $cur !== '' ? $cur : (string) get_post_meta( $pid, '_af_sku_vacated', true );
 
-	if ( $old === $new ) {                       // nothing to do, but it is done
+	if ( $cur === $new ) {                       // nothing to do, but it is done
 		if ( ! $DRY ) {
 			af_sku_persist_letter( $pid, $setlet, $clearlet );
 			update_post_meta( $pid, '_af_sku_artcode', $VERSION );
@@ -344,6 +393,25 @@ foreach ( $order as $pid ) {
 			$clash++;
 			echo "  CLASH  #{$pid} wanted {$new} — already held by #{$holder}; left as {$old}\n";
 			continue;
+		}
+		// The holder is moving off this SKU too, but has not had its turn yet
+		// (af_sku_can_make_room): it gives the SKU up now. What it held is kept
+		// in _af_sku_vacated for its own turn, which writes its new SKU (the
+		// next run's, if this one stops early).
+		if ( $holder && $holder !== (int) $pid && ! $DRY
+		     && af_sku_can_make_room( $holder, $pid, $want, $pos, $codes, $primary_pids, $VERSION ) ) {
+			$hp = wc_get_product( $holder );
+			if ( $hp ) {
+				$held = (string) get_post_meta( $holder, '_sku', true );
+				try {
+					$hp->set_sku( '' );
+					$hp->save();
+					update_post_meta( $holder, '_af_sku_vacated', $held );
+					echo "  made room: #{$holder} gives up {$held} for #{$pid}; it takes {$want[ $holder ]} in its turn\n";
+				} catch ( Exception $e ) {
+					echo "  could not make room: #{$holder} keeps {$held}: " . $e->getMessage() . "\n";
+				}
+			}
 		}
 	}
 
@@ -388,6 +456,7 @@ foreach ( $order as $pid ) {
 	// failed to save would make the order line disagree with the product.
 	af_sku_persist_letter( $pid, $setlet, $clearlet );
 	update_post_meta( $pid, '_af_sku_artcode', $VERSION );
+	delete_post_meta( $pid, '_af_sku_vacated' );
 	if ( function_exists( 'wc_delete_product_transients' ) ) { wc_delete_product_transients( $pid ); }
 	$done++;
 }
