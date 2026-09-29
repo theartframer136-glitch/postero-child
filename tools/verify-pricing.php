@@ -40,12 +40,24 @@ af_prv('config matches every card row', !$bad, $fail, $bad ? implode('; ', $bad)
 af_prv('floating frame is the card\'s +$50', (float)$cfg['frames']['Floating Frame'] === 50.0, $fail,
        '+$' . $cfg['frames']['Floating Frame']);
 
+// Aluminium is not a flat fee: it is the size's square feet × the rate the
+// Premium Aluminium Frames sell at, af_alu_rate_sqft() (owner, 28 Sep: "we
+// have $4 per square feet for aluminium frame"; 63e49d4). The square feet
+// come from the size's own inches here, not from af_frame_fee(), so the
+// engine is not marking its own homework.
+function af_prv_sqft($size) {
+    return preg_match('/\((\d+(?:\.\d+)?)×(\d+(?:\.\d+)?) in\)/u', $size, $m) ? $m[1] * $m[2] / 144 : 0.0;
+}
+$alu_rate = function_exists('af_alu_rate_sqft') ? (float) af_alu_rate_sqft() : 0.0;
+$alu = function ($size) use ($alu_rate) { return round(af_prv_sqft($size) * $alu_rate, 2); };
+$alu_lbl = 'alu $' . rtrim(rtrim(number_format($alu_rate, 2), '0'), '.') . '/sqft';
+
 // the authoritative calculator, spot-checked against the card
 $cases = array(
     array('2×3 ft (24×36 in)', 'Without Frame',   'Black', 60.0,  'card 2×3, unframed'),
-    array('4×4 ft (48×48 in)', 'Aluminium Frame', 'Black', 165.0, 'card 4×4 + alu 55'),
+    array('4×4 ft (48×48 in)', 'Aluminium Frame', 'Black', 110.0 + $alu('4×4 ft (48×48 in)'),        "card 4×4 + {$alu_lbl}"),
     array('4×6 ft (48×72 in)', 'Floating Frame',  'Black', 200.0, 'card 4×6 + floating 50'),
-    array('4×6 ft (48×72 in)', 'Aluminium Frame', 'Gold',  215.0, 'card 4×6 + alu 55 + gold 10'),
+    array('4×6 ft (48×72 in)', 'Aluminium Frame', 'Gold',  150.0 + $alu('4×6 ft (48×72 in)') + 10.0, "card 4×6 + {$alu_lbl} + gold 10"),
     array('3×6 ft (36×72 in)', 'Without Frame',   'Gold',  120.0, 'unframed never pays a colour fee'),
 );
 foreach ($cases as $c) {
@@ -56,9 +68,16 @@ foreach ($cases as $c) {
 $a = af_calc_price(999, '4×4 ft (48×48 in)', 'Without Frame', 'Black');
 $b = af_calc_price(10,  '4×4 ft (48×48 in)', 'Without Frame', 'Black');
 af_prv('listing price does not change the size price', $a === $b, $fail, "\${$a} at both \$999 and \$10 listings");
-// and the old multiplier ceiling is gone
+// and the old multiplier ceiling is gone. The dearest piece the card allows is
+// its largest size in the dearest frame and colour: 4×6 $150 + aluminium over
+// its 24 sq ft ($96, more than floating's $50) + Rose Gold's $10 = $256. The
+// owner's $4 is written here, not read from af_alu_rate_sqft(), so a rate that
+// runs away (the option or the code) fails this row instead of raising it.
+$owner_alu_sqft = 4.0;
+$ceiling = $card['4×6 ft (48×72 in)'] + round(af_prv_sqft('4×6 ft (48×72 in)') * $owner_alu_sqft, 2) + 10.0;
 $max = af_calc_price(179, '4×6 ft (48×72 in)', 'Aluminium Frame', 'Rose Gold');
-af_prv('dearest possible piece is card-sized, not $600+', $max < 250, $fail, "\${$max}");
+af_prv('dearest possible piece is card-sized, not $600+', $max <= $ceiling + 0.005, $fail,
+       "\${$max} (ceiling \${$ceiling})");
 
 // the same numbers must reach the browsers: product page + try-on-wall configs
 function af_prv_get($url) {
