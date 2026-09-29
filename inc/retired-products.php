@@ -22,7 +22,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('AF_RETIRED_PRODUCTS_REV', '2');   // bump after changing the list
+define('AF_RETIRED_PRODUCTS_REV', '3');   // bump after changing the list
 
 /** deleted product's address slug => array(its id, the id that stays) */
 function af_retired_products() {
@@ -48,8 +48,8 @@ function af_retired_products() {
         'seven-horses-cliff-dawn-canvas-wall-art' => array(23191, 19025),   // Seven Horses Cliff Dawn Canvas Wall Art 
         'seven-white-horses-golden-sky-canvas-wall-art-3x2-feet-floating-frame-premium-digital-canvas-print-living-room-home-spiritual-wall-decor' => array(34194, 20953),   // Seven White Horses Golden Sky Canvas Wal
         'balaji-heritage-collage-canvas-wall-art' => array(30905, 31456),   // Balaji Heritage Collage Canvas Wall Art 
-        'savanna-sunset-silhouettes-canvas-wall-art' => array(28839, 27695),   // Savanna Sunset Silhouettes Canvas Wall A
-        'savanna-golden-hour-canvas-wall-art' => array(28962, 27695),   // Savanna Golden Hour Canvas Wall Art 3x4 
+        'savanna-sunset-silhouettes-canvas-wall-art' => array(28839, 28962),   // Savanna Sunset Silhouettes Canvas Wall A
+        'savanna-evening-dance-canvas-wall-art' => array(27695, 28962),   // Savanna Evening Dance Canvas Wall Art 3x (#28962 is the crisper of the three, so it stays)
     );
 }
 
