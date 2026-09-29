@@ -131,8 +131,8 @@ check('a new page, named in six digits, is written with its aspect',
       what_the_deploy_writes('LI - 190048'), 'LI-190048-' . af_artcode_page_size('LI', 48));
 check('HD 30 likewise',
       what_the_deploy_writes('HD - 080030'), 'HD-080030-' . af_artcode_page_size('HD', 30));
-check('but past the end of the book is still refused',
-      what_the_deploy_writes('HD - 080031'), '');
+check('but past the end of the book is still refused (HD has 31 pages since 29 Sep)',
+      what_the_deploy_writes('HD - 080032'), '');
 check('and it still settles on a second pass',
       what_the_deploy_writes(what_the_deploy_writes('HD - 080030')),
       what_the_deploy_writes('HD - 080030'));
