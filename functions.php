@@ -6993,6 +6993,12 @@ function af_shipping_copy() {
  */
 function af_pricing_config($product_id = 0) {
     $cfg = af_pricing_config_base();
+    // Frames priced by area rather than a flat fee. Aluminium is $4 a square
+    // foot of the chosen size (owner, 28 Sep) - the same af_alu_rate_sqft()
+    // the Premium Aluminium Frames products sell at, so the frame costs the
+    // same wherever it is bought. Every price calculation reads this key.
+    $cfg['frame_sqft'] = function_exists('af_alu_rate_sqft')
+        ? array('Aluminium Frame' => af_alu_rate_sqft()) : array();
     if ($product_id && function_exists('af_goldfoil_factor')) {
         $factor = af_goldfoil_factor($product_id);
         if ($factor != 1.0) {
@@ -7275,11 +7281,24 @@ function af_size_label_for_product($product) {
 // call sites don't churn, and in case a per-product premium ever returns).
 // The colour fee pays for the frame's finish, so an unframed (gallery-wrapped)
 // print is never charged for one — there is no moulding to finish.
+/**
+ * What a frame adds for this size: square feet × its rate when it is priced
+ * by area (cfg frame_sqft), otherwise its flat fee.
+ * Aluminium at $4/sq ft: 2×3 $24, 2.5×3 $30, 3×4 $48, 3×5 $60.
+ */
+function af_frame_fee($cfg, $frame, $size) {
+    if (!empty($cfg['frame_sqft'][$frame]) && function_exists('af_ship_inches')) {
+        $in = af_ship_inches($size);
+        if ($in) return round($in[0] * $in[1] / 144 * (float) $cfg['frame_sqft'][$frame], 2);
+    }
+    return isset($cfg['frames'][$frame]) ? (float) $cfg['frames'][$frame] : 0.0;
+}
+
 function af_calc_price($base, $size, $frame, $color, $product_id = 0) {
     $cfg = af_pricing_config($product_id);
     $sizes = $cfg['sizes'];
     $price = isset($sizes[$size]) ? (float)$sizes[$size] : (float)reset($sizes);
-    $fee  = (isset($cfg['frames'][$frame]) ? (float)$cfg['frames'][$frame] : 0);
+    $fee  = af_frame_fee($cfg, $frame, $size);
     if ($frame !== 'Without Frame') {
         $fee += (isset($cfg['colors'][$color]) ? (float)$cfg['colors'][$color] : 0);
     }
@@ -7326,7 +7345,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
       <div class="af-opt-group">
         <label class="af-opt-label">Frame Type</label>
         <div class="af-chips af-frame-chips">
-          <?php foreach ($frames as $i => $f): $fee=$cfg['frames'][$f]; $oos = !af_frame_is_in_stock($f); ?>
+          <?php foreach ($frames as $i => $f): $fee=af_frame_fee($cfg, $f, $def_size); $oos = !af_frame_is_in_stock($f); ?>
             <button type="button" class="af-chip-opt<?php echo $f===$def_frame?' active':''; ?><?php echo $oos?' af-chip-oos':''; ?>" data-type="frame" data-val="<?php echo esc_attr($f); ?>"<?php echo $oos?' disabled aria-disabled="true"':''; ?>><?php if(!$oos && $f==='Floating Frame') echo '<span class="af-rec">Recommended</span>'; ?><?php echo esc_html($f); ?><?php if($fee>0) echo ' <em>+'.get_woocommerce_currency_symbol().$fee.'</em>'; ?><?php if($oos) echo ' <span class="af-oos">Out of stock</span>'; ?></button>
           <?php endforeach; ?>
         </div>
@@ -7533,8 +7552,22 @@ add_action('wp_head', function() {
         var colorVal = chosen(wrap, 'color');
         // the size IS the price, from the rate card (matches af_calc_price)
         var sizePrice = (sizeVal && cfg.sizes[sizeVal]) ? cfg.sizes[sizeVal] : base;
+        // A frame priced by area (cfg.frame_sqft, Aluminium at $4/sq ft) costs
+        // square feet × rate for this size; the rest keep their flat fee.
+        // Matches af_frame_fee().
+        var sq = (sizeVal || '').match(/\((\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*in\)/);
+        function frameFee(f){
+          var r = cfg.frame_sqft && cfg.frame_sqft[f];
+          if (r && sq) return Math.round(sq[1] * sq[2] / 144 * r * 100) / 100;
+          return (cfg.frames && cfg.frames[f]) || 0;
+        }
+        // the chip labels follow the size
+        wrap.querySelectorAll('.af-frame-chips .af-chip-opt').forEach(function(b){
+          var f = b.getAttribute('data-val'), em = b.querySelector('em');
+          if (em && cfg.frame_sqft && cfg.frame_sqft[f]) em.textContent = '+' + money(sym, frameFee(f)).replace(/\.00$/, '');
+        });
         // no frame means no frame-finish surcharge (matches af_calc_price)
-        var fee  = (cfg.frames[frameVal]||0)
+        var fee  = frameFee(frameVal)
                  + ((colorVal && frameVal !== 'Without Frame') ? (cfg.colors[colorVal]||0) : 0);
         var price = Math.round((sizePrice + fee)*100)/100;
         // Stretcher bars, when the chosen "What you receive" includes them:
@@ -7550,7 +7583,7 @@ add_action('wp_head', function() {
           // the same, so the label and the total never disagree.
           var realFrame = kg.getAttribute('data-frame-real') || '';
           var effFrame  = (frameVal && frameVal !== 'Without Frame') ? frameVal : realFrame;
-          var frameAdd  = effFrame ? ((cfg.frames[effFrame] || 0) + ((colorVal && cfg.colors[colorVal]) || 0)) : 0;
+          var frameAdd  = effFrame ? (frameFee(effFrame) + ((colorVal && cfg.colors[colorVal]) || 0)) : 0;
           kg.querySelectorAll('.af-kit-add').forEach(function(s){
             var k = s.getAttribute('data-kit') || '', add = 0;
             if (k === 'painting_bar') add = bar;
@@ -8270,7 +8303,8 @@ add_action('template_redirect', function(){
       CATS.forEach(function(c){ var o=document.createElement('option'); o.value=c.slug; o.textContent=c.name; $('tow-cat').appendChild(o); });
       Object.keys(CFG.frames).forEach(function(f){ var o=document.createElement('option'); o.value=f;
         var oos = INSTOCK.indexOf(f) === -1;
-        o.textContent=f+(CFG.frames[f]>0?(' (+'+SYM+CFG.frames[f]+')'):'')+(oos?' — Out of stock':'');
+        var perSq = CFG.frame_sqft && CFG.frame_sqft[f];
+        o.textContent=f+(perSq?(' (+'+SYM+perSq+'/sq ft)'):(CFG.frames[f]>0?(' (+'+SYM+CFG.frames[f]+')'):''))+(oos?' — Out of stock':'');
         o.disabled = oos; if(!oos && !$('tow-frame').value) o.selected = true;
         $('tow-frame').appendChild(o); });
       SIZES.forEach(function(s){ var o=document.createElement('option'); o.value=s; o.textContent=s; $('tow-size').appendChild(o); });
@@ -9300,7 +9334,11 @@ add_action('template_redirect', function(){
         if (p.gf && p.gf !== 1) sizePrice = Math.max(5, Math.round(sizePrice * p.gf / 5) * 5);
         var frameVal=$('tow-frame').value;
         // no frame means no frame-finish surcharge (matches af_calc_price)
-        var fee=(CFG.frames[frameVal]||0)+(frameVal!=='Without Frame' ? (CFG.colors[$('tow-color').value]||0) : 0);
+        // Aluminium is $4 a square foot of the size (matches af_frame_fee)
+        var sqm=($('tow-size').value||'').match(/\((\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*in\)/);
+        var perSq=CFG.frame_sqft && CFG.frame_sqft[frameVal];
+        var frameFee=(perSq && sqm) ? Math.round(sqm[1]*sqm[2]/144*perSq*100)/100 : (CFG.frames[frameVal]||0);
+        var fee=frameFee+(frameVal!=='Without Frame' ? (CFG.colors[$('tow-color').value]||0) : 0);
         return Math.round((sizePrice+fee)*100)/100;
       }
       function refresh(){
@@ -16815,7 +16853,8 @@ add_action('template_redirect', function () {
             <select id="ftm-frame">
               <?php $ftm_def = function_exists('af_frame_default') ? af_frame_default() : array_key_first($cfg['frames']); ?>
               <?php foreach ($cfg['frames'] as $f => $fee): $oos = function_exists('af_frame_is_in_stock') && !af_frame_is_in_stock($f); ?>
-                <option value="<?php echo esc_attr($f); ?>" data-fee="<?php echo esc_attr($fee); ?>"<?php echo $oos?' disabled':''; ?><?php echo $f===$ftm_def?' selected':''; ?>><?php echo esc_html($f); ?><?php if($fee>0) echo ' (+'.$sym.$fee.')'; ?><?php if($oos) echo ' — Out of stock'; ?></option>
+                <?php $ftm_sq = isset($cfg['frame_sqft'][$f]) ? (float) $cfg['frame_sqft'][$f] : 0; ?>
+                <option value="<?php echo esc_attr($f); ?>" data-fee="<?php echo esc_attr($fee); ?>" data-sqft="<?php echo esc_attr($ftm_sq); ?>"<?php echo $oos?' disabled':''; ?><?php echo $f===$ftm_def?' selected':''; ?>><?php echo esc_html($f); ?><?php if($ftm_sq>0) echo ' (+'.$sym.$ftm_sq.'/sq ft)'; elseif($fee>0) echo ' (+'.$sym.$fee.')'; ?><?php if($oos) echo ' — Out of stock'; ?></option>
               <?php endforeach; ?>
             </select>
 
@@ -17034,7 +17073,10 @@ add_action('template_redirect', function () {
         var sizePrice = parseFloat($('ftm-size').selectedOptions[0].dataset.mult) || BASE;
         // no frame means no frame-finish surcharge (matches af_calc_price)
         var noFrame = $('ftm-frame').value === 'Without Frame';
-        var fee  = (parseFloat($('ftm-frame').selectedOptions[0].dataset.fee) || 0)
+        // Aluminium is $4 a square foot of the size (matches af_frame_fee)
+        var fo = $('ftm-frame').selectedOptions[0], perSq = parseFloat(fo.dataset.sqft) || 0;
+        var sqm = ($('ftm-size').value || '').match(/\((\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*in\)/);
+        var fee  = ((perSq && sqm) ? Math.round(sqm[1] * sqm[2] / 144 * perSq * 100) / 100 : (parseFloat(fo.dataset.fee) || 0))
                  + (noFrame ? 0 : (parseFloat($('ftm-color').selectedOptions[0].dataset.fee) || 0))
                  + (parseFloat($('ftm-type').selectedOptions[0].dataset.fee)  || 0);
         return Math.round((sizePrice + fee) * 100) / 100;
@@ -17871,7 +17913,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing') as $af_mod) {
+foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }

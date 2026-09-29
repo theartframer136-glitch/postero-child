@@ -68,7 +68,11 @@ function af_bot_intents() {
     $home   = home_url('/');
 
     $frame_list = array();
-    foreach ($frames as $name => $fee) $frame_list[] = $name . ($fee > 0 ? ' (+' . af_bot_money($fee) . ')' : ' (no extra cost)');
+    foreach ($frames as $name => $fee) {
+        $sq = isset($cfg['frame_sqft'][$name]) ? (float) $cfg['frame_sqft'][$name] : 0;
+        $frame_list[] = $name . ($sq > 0 ? ' (+' . af_bot_money($sq) . ' a square foot of the size)'
+                             : ($fee > 0 ? ' (+' . af_bot_money($fee) . ')' : ' (no extra cost)'));
+    }
     $colour_list = array();
     foreach ($colors as $name => $fee) $colour_list[] = $name . ($fee > 0 ? ' (+' . af_bot_money($fee) . ')' : '');
 

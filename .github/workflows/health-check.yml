@@ -58,6 +58,8 @@ jobs:
             timeout 60 wp option get af_noindex_sitemap_flush --allow-root 2>&1 | tail -1
             echo; echo "--- N-01: was the \"test\" product taken off public sale (inc/placeholder-products.php) ---"
             timeout 60 wp option get af_placeholder_products --allow-root 2>&1 | tail -1
+            echo; echo "--- Duplicate listings made private, one artwork one product (inc/duplicate-listings.php) ---"
+            timeout 60 wp option get af_duplicate_listings --allow-root 2>&1 | tail -1
             echo; echo "--- M-03: published products hidden from search, and the spellings the catalogue uses ---"
             # After M-03 first deployed, a \"ganesha\" search went from 16
             # results to 15: it briefly left products set \"Shop only\" out of
