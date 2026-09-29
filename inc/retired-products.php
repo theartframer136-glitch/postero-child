@@ -1,7 +1,7 @@
 <?php
 /**
- * Fourteen listings deleted on 29 Sep 2026 because each showed the same
- * picture as another listing.
+ * Twenty-two listings deleted on 29 Sep 2026 because each showed the same
+ * picture (or the same artwork recoloured) as another listing.
  *
  * Owner, 29 Sep: of every pair with the same main picture, keep the one whose
  * main image is the better and delete the other. The pairs are the "Same
@@ -22,7 +22,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('AF_RETIRED_PRODUCTS_REV', '1');   // bump after changing the list
+define('AF_RETIRED_PRODUCTS_REV', '2');   // bump after changing the list
 
 /** deleted product's address slug => array(its id, the id that stays) */
 function af_retired_products() {
@@ -41,6 +41,15 @@ function af_retired_products() {
         'radha-krishna-with-peacocks-canvas-wall-art' => array(19392, 33911),   // Radha Krishna with Peacocks Canvas Wall 
         'namaste-henna-hands-gold-foiled-uv-canvas-art-3x5-feet' => array(33285, 24714),   // Namaste Henna Hands Canvas Wall Art 3x5 
         'rhythm-in-orange-gold-foiled-uv-canvas-art-3x2-feet' => array(33291, 28778),   // Rhythm In Orange Canvas Wall Art 3x4 Fee
+        // round two, owner 29 Sep 19:35: frame sizes to one product, recoloured pairs to one
+        'large-canvas-wall-frame-floating-frame-canvas-printing-big-wall-art-frame' => array(8444, 8440),   // Large Canvas Wall Frame – Floating Frame
+        'large-square-canvas-wall-art' => array(8447, 8440),   // Large Square Canvas Wall Art 4x4 ft | Cu
+        'graphite-muse-sketch-canvas-wall-art' => array(27017, 33972),   // Graphite Muse Sketch Canvas Wall Art 3x4
+        'seven-horses-cliff-dawn-canvas-wall-art' => array(23191, 19025),   // Seven Horses Cliff Dawn Canvas Wall Art 
+        'seven-white-horses-golden-sky-canvas-wall-art-3x2-feet-floating-frame-premium-digital-canvas-print-living-room-home-spiritual-wall-decor' => array(34194, 20953),   // Seven White Horses Golden Sky Canvas Wal
+        'balaji-heritage-collage-canvas-wall-art' => array(30905, 31456),   // Balaji Heritage Collage Canvas Wall Art 
+        'savanna-sunset-silhouettes-canvas-wall-art' => array(28839, 27695),   // Savanna Sunset Silhouettes Canvas Wall A
+        'savanna-golden-hour-canvas-wall-art' => array(28962, 27695),   // Savanna Golden Hour Canvas Wall Art 3x4 
     );
 }
 
