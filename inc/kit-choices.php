@@ -236,7 +236,7 @@ add_action('woocommerce_before_add_to_cart_button', function () {
   <div class="af-kit-list">
     <?php foreach ($opts as $key => $o) : ?>
       <label class="af-kit-item<?php echo $key === $sel ? ' is-on' : ''; ?>">
-        <input type="radio" name="af_kit" value="<?php echo esc_attr($key); ?>"
+        <input type="radio" name="af_kit" value="<?php echo esc_attr($key); ?>" autocomplete="off"
                <?php checked($key, $sel); ?>>
         <span class="af-kit-text">
           <strong><?php echo esc_html($o['label']); ?></strong>
@@ -392,6 +392,15 @@ body.af-kit-noframe .af-opts .af-color-tip{display:none !important}
   // the address) means the visitor wants it framed, so open on the framed
   // option instead of silently dropping their frame.
   function startUp(){
+    // The page always opens on the shop's own default (Painting only).
+    // Browsers restore a radio choice on reload or Back, so a visitor who
+    // had picked Digital download reopened the page at $9.99 with size and
+    // frame hidden, and no choice made on this visit (owner's recording,
+    // 29 Sep). Put every option back to how the page was built.
+    g.querySelectorAll('input[name="af_kit"]').forEach(function(r){
+      r.checked = r.defaultChecked;
+      var it = r.closest('.af-kit-item'); if (it) it.classList.toggle('is-on', r.defaultChecked);
+    });
     var start = g.querySelector('input[name="af_kit"]:checked');
     var opts = frameGroups();
     var active = opts ? opts.querySelector('.af-frame-chips .af-chip-opt.active') : null;
