@@ -45,9 +45,9 @@ $book = af_artcode_book();
 
 echo "=== the map is today's book ===\n";
 check('21 sections', count($book), 21);
-check('373 product pages', af_artcode_book_pages(), 373);
+check('376 product pages (373, plus RK 98, TP 16 and HD 31 added 29 Sep)', af_artcode_book_pages(), 376);
 check('Living Room has 51', af_artcode_book_pages('LI'), 51);
-check('Radha Krishna has 97', af_artcode_book_pages('RK'), 97);
+check('Radha Krishna has 98', af_artcode_book_pages('RK'), 98);
 check('an unknown prefix has none', af_artcode_book_pages('ZZ'), 0);
 
 // Page N of the book sits at Canva page 4 + N, and the sections follow one
@@ -60,8 +60,8 @@ foreach ($book as $pre => $sec) {
     $expected_first = $sec['pages'][1] + 1;
 }
 check('each section spans exactly its own page count', $ok_pages, true);
-check('the sections run back to back, 5 through 377', $ok_order, true);
-check('the last page is 377', $expected_first - 1, 377);
+check('the sections run back to back, 5 through 380', $ok_order, true);
+check('the last page is 380', $expected_first - 1, 380);
 
 echo "\n=== section numbers are 1..21 in printed order ===\n";
 check('numbered in order', array_values(array_map(
@@ -162,7 +162,7 @@ $new_pages = 0;
 foreach ($book as $sec) { $new_pages += $sec['count'] - $sec['legacy']; }
 check('and the only new answers are the book\'s own new pages, spelled in six digits',
       count($gained_six), $new_pages);
-check('which is the 33 pages the book gained', $new_pages, 33);
+check('which is the 33 pages the book gained, and the 3 added on 29 Sep', $new_pages, 36);
 
 echo "\n=== and it really is six digits now ===\n";
 $widened = 0;
@@ -197,8 +197,10 @@ check('past the end of the book is still refused, six digits or not',
       af_artcode_book_code('LI - 190052'), '');
 check('HD 30 resolves in six digits',
       af_artcode_book_code('HD - 080030'), 'HD - 080030');
-check('HD 31 does not — the book has 30',
-      af_artcode_book_code('HD - 080031'), '');
+check('HD 31 resolves in six digits: the Surya chariot, added 29 Sep',
+      af_artcode_book_code('HD - 080031'), 'HD - 080031');
+check('HD 32 does not — the book has 31',
+      af_artcode_book_code('HD - 080032'), '');
 check('not a code at all',       af_artcode_book_code('hello'), '');
 
 echo "\n=== the gap arithmetic still shifts what follows it ===\n";
@@ -239,7 +241,13 @@ echo "\n=== the aspect each page is printed at ===\n";
 $sizes = af_artcode_page_sizes();
 $total = 0;
 foreach ($sizes as $run) { $total += count($run); }
-check('every one of the 373 pages has one', $total, 373);
+check('every one of the 376 pages has one', $total, 376);
+// 29 Sep: HD 8 now prints the fiery Ganesha at 5030 (it was the Surya
+// chariot at 4040, which moved to HD 31), and three pages were added.
+check('HD page 8 is 5030',  af_artcode_page_size('HD', 8), '5030');
+check('HD page 31 is 4040', af_artcode_page_size('HD', 31), '4040');
+check('RK page 98 is 5040', af_artcode_page_size('RK', 98), '5040');
+check('TP page 16 is 3060', af_artcode_page_size('TP', 16), '3060');
 check('21 sections', count($sizes), 21);
 
 $bad = array();
