@@ -9,6 +9,10 @@ on:
         description: 'Type yes to place and then cancel two real test orders'
         required: true
         default: 'no'
+      cancel_only:
+        description: 'Order numbers to read back and cancel, without placing new ones (e.g. "34885 34886")'
+        required: false
+        default: ''
 jobs:
   orders:
     if: ${{ github.event.inputs.confirm == 'yes' }}
@@ -17,6 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Place the test orders (once each, no retry)
+        if: ${{ github.event.inputs.cancel_only == '' }}
         run: |
           set -uo pipefail
           npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
@@ -33,7 +38,11 @@ jobs:
         if: always()
         run: |
           set +e
-          IDS=$(cut -d' ' -f1 qa-orders.txt 2>/dev/null | grep -E '^[0-9]+$' | tr '\n' ' ')
+          if [ -n "${{ github.event.inputs.cancel_only }}" ]; then
+            IDS=$(echo "${{ github.event.inputs.cancel_only }}" | tr -cs '0-9' ' ')
+          else
+            IDS=$(cut -d' ' -f1 qa-orders.txt 2>/dev/null | grep -E '^[0-9]+$' | tr '\n' ' ')
+          fi
           echo "orders to cancel: ${IDS:-none}"
           [ -z "$IDS" ] && exit 0
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
@@ -41,8 +50,8 @@ jobs:
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" "
             cd ~/websites/OPu0sKi4J/public_html
             for id in $IDS; do
-              timeout 90 wp --allow-root eval '
-                \$id = (int) \$args[0]; \$o = wc_get_order(\$id);
+              ORDER_ID=\$id timeout 90 wp --allow-root eval '
+                \$id = (int) getenv(\"ORDER_ID\"); \$o = wc_get_order(\$id);
                 if (!\$o) { echo \"#\$id not found\n\"; return; }
                 if (\$o->get_billing_email() !== \"qa-test-order@example.com\") { echo \"#\$id is NOT a test order - left alone\n\"; return; }
                 echo \"#\$id status \" . \$o->get_status() . \" | payment \" . \$o->get_payment_method_title() . \" | subtotal \" . \$o->get_subtotal() . \" | shipping \" . \$o->get_shipping_total() . \" (\" . \$o->get_shipping_method() . \")\" . \" | fees \" . array_sum(array_map(function(\$f){return (float)\$f->get_total();}, \$o->get_fees())) . \" | tax \" . \$o->get_total_tax() . \" | total \" . \$o->get_total() . \" \" . \$o->get_currency() . \"\n\";
@@ -50,6 +59,6 @@ jobs:
                 echo \"   ships to: \" . preg_replace(\"/\\s+/\", \" \", wp_strip_all_tags(\$o->get_formatted_shipping_address() ?: \$o->get_formatted_billing_address())) . \"\n\";
                 \$o->update_status(\"cancelled\", \"QA test order placed by the site tester on the owner instruction of 30 Sep - cancelled straight after, never to be shipped.\");
                 echo \"   -> now \" . wc_get_order(\$id)->get_status() . \"\n\";
-              ' \$id 2>&1 | grep -v -E 'Notice: Function _load_textdomain'
+              ' 2>&1 | grep -v -E 'Notice: Function _load_textdomain'
             done
           "
