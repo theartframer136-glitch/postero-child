@@ -2,7 +2,9 @@
    tools/diag-review-order.mjs before it goes into inc/checkout-fixes.php. */
 
 /* the product column takes the room; the price column only needs a price */
-.woocommerce-checkout-review-order-table thead th.product-total{width:30%!important}
+/* (woocommerce.css also sets the product heading to 45%, so both are set) */
+.woocommerce-checkout-review-order-table thead th.product-name{width:72%!important}
+.woocommerce-checkout-review-order-table thead th.product-total{width:28%!important}
 
 /* one line = photo | name and details | price, all starting on the same top line */
 .woocommerce-checkout-review-order-table tr.cart_item td{vertical-align:top!important;padding-top:16px!important;padding-bottom:16px!important}

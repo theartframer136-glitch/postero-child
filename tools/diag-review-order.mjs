@@ -60,6 +60,9 @@ await p.evaluate(() => {
 });
 try { await p.waitForFunction(() => !document.querySelector('.blockUI.blockOverlay'), { timeout: 25000 }); } catch {}
 await sleep(2500);
+// the cookie notice covers the list on a phone; choose "Necessary only" (a test browser)
+await p.evaluate(() => { const b = [...document.querySelectorAll('button, a')].find(x => /necessary only/i.test(x.textContent || '')); if (b) b.click(); });
+await sleep(800);
 if (PREVIEW) {
   await p.evaluate((css) => { const old = document.getElementById('af-co-thumbs'); if (old) old.remove(); const st = document.createElement('style'); st.id = 'af-preview'; st.textContent = css; document.head.appendChild(st); }, PREVIEW);
   await sleep(800);
@@ -132,7 +135,7 @@ for (const [w, h] of [[1918, 1078], [1366, 900], [1024, 800], [390, 844]]) {
     await el.evaluate(e => e.scrollIntoView({ block: 'start' })); await sleep(800);
     const bx = await el.boundingBox(); const clip = { width: bx.width, height: bx.height };
     const raw = await el.screenshot({ encoding: 'base64' });
-    const small = await p.evaluate(shrink, 'data:image/png;base64,' + raw, 380, 0.6);
+    const small = await p.evaluate(shrink, 'data:image/png;base64,' + raw, 520, 0.62);
     const b64 = small.replace(/^data:image\/jpeg;base64,/, '');
     console.log(`=== PICTURE ${w} (${Math.round(clip.width)}x${Math.round(clip.height)}, jpeg, ${b64.length} chars) ===`);
     for (let i = 0; i < b64.length; i += 180) console.log('B64 ' + b64.slice(i, i + 180));
