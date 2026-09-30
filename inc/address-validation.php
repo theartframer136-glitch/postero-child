@@ -9,9 +9,18 @@
  */
 if (!defined('ABSPATH')) exit;
 
-/** US ZIP prefix (first 3 digits) ranges => state. Unknown prefixes are allowed. */
+/**
+ * US ZIP prefix (first 3 digits) ranges => state. Unknown prefixes are allowed.
+ * First match wins, so the military and territory entries sit ahead of the
+ * ranges they cut into: 340 is the Armed Forces Americas (AA) inside
+ * Florida's 320-349, and 008 is the US Virgin Islands inside Puerto Rico's
+ * 006-009. Without them a soldier's AA address or a St Thomas address was
+ * refused as "belongs to FL / PR" (checkout audit, 30 Sep).
+ */
 function af_zip_state_ranges() {
     return array(
+        array('340','340','AA'), array('090','098','AE'), array('962','966','AP'),
+        array('008','008','VI'),
         array('005','005','NY'), array('006','009','PR'), array('010','027','MA'),
         array('028','029','RI'), array('030','038','NH'), array('039','049','ME'),
         array('050','059','VT'), array('060','069','CT'), array('070','089','NJ'),
@@ -49,7 +58,9 @@ function af_ca_postal_provinces() {
 function af_state_for_zip($zip) {
     $zip = preg_replace('/[^0-9]/', '', (string) $zip);
     if (strlen($zip) < 5) return '';
+    if (substr($zip, 0, 5) === '96799') return 'AS';   // American Samoa, inside Hawaii's 967
     $p = substr($zip, 0, 3);
+    if ($p === '969') return '';                      // Guam and the Northern Marianas share it
     foreach (af_zip_state_ranges() as $r) {
         if ($p >= $r[0] && $p <= $r[1]) return $r[2];
     }
@@ -136,9 +147,13 @@ add_action('woocommerce_after_checkout_validation', function($data, $errors) {
             ));
         }
 
-        // Large canvases cannot go to a PO Box or parcel locker.
-        if ($addr !== '' && af_cart_has_oversized()
-            && preg_match('/\b(p\.?\s*o\.?\s*box|post\s*office\s*box|parcel\s*locker)\b/i', $addr)) {
+        // Large canvases cannot go to a PO Box or parcel locker. Only the
+        // address the parcel goes to matters: a PO Box billing address with a
+        // street address to ship to was refused (checkout audit, 30 Sep).
+        $ships_here = ($prefix === ($ship_diff ? 'shipping' : 'billing'));
+        $addr_all   = trim($addr . ' ' . (isset($data[$prefix . '_address_2']) ? $data[$prefix . '_address_2'] : ''));
+        if ($ships_here && $addr_all !== '' && af_cart_has_oversized()
+            && preg_match('/\b(p\.?\s*o\.?\s*box|post\s*office\s*box|parcel\s*locker)\b/i', $addr_all)) {
             $errors->add('validation', sprintf(
                 '%s address is a PO Box. Your order includes a piece 4 ft or larger, which couriers can only deliver to a street address.', $label
             ));

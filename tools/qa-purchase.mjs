@@ -22,11 +22,15 @@ let fails = 0, passes = 0;
 const ok = (cond, what, detail = '') => { if (cond) passes++; else fails++; console.log((cond ? '  PASS ' : '  FAIL ') + what + (detail ? '  [' + detail + ']' : '')); return cond; };
 const money = (s) => { const m = String(s || '').replace(/,/g, '').match(/-?\$?\s*(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : NaN; };
 const near = (a, e) => Math.abs(a - e) < 0.015;
+// The LAST dollar figure in a row, with its sign: fee labels carry numbers of
+// their own ("Oversize handling (Large — over 4 ft) $20.00" read as $4).
+const lastMoney = (s) => { const all = [...String(s || '').replace(/,/g, '').matchAll(/([-−]?)\s*\$\s*(\d+(?:\.\d+)?)/g)]; if (!all.length) return NaN; const m = all[all.length - 1]; return (m[1] ? -1 : 1) * parseFloat(m[2]); };
 
 async function newPage(w = 1366, h = 900) {
   const ctx = await b.createBrowserContext(); const p = await ctx.newPage(); await p.setViewport({ width: w, height: h });
   p.on('console', m => { if (m.type() === 'error' && !/403|favicon|google|facebook|pinterest|doubleclick|clarity/i.test(m.text())) errs.push(w + ' ' + p.url().replace(S, '').slice(0, 40) + ': ' + m.text().slice(0, 150)); });
   p.on('pageerror', e => errs.push(w + ' ' + p.url().replace(S, '').slice(0, 40) + ' pageerror: ' + e.message.slice(0, 150)));
+  p.on('response', r => { if (r.status() === 404 && r.url() !== p.url()) errs.push(w + ' ' + p.url().replace(S, '').slice(0, 40) + ': 404 file ' + r.url().replace(S, '').slice(0, 140)); });
   return p;
 }
 async function go(p, u) {
@@ -137,6 +141,11 @@ if (MODE === 'pricing') {
   const cl = await cartLines(q);
   console.log('  cart lines: ' + JSON.stringify(cl.map(c => c.price + ' x' + c.qty + ' = ' + c.sub)));
   ok(cl.length === 3, 'three separate lines in the cart', String(cl.length));
+  const first = await q.evaluate(() => { const t = document.querySelector('.cart_totals'); return t ? t.innerText.replace(/\s+/g, ' ') : ''; });
+  console.log('  first cart view, no address yet: ' + first.slice(0, 400));
+  ok(!/Rajasthan|India/i.test(first), 'new guest: no delivery guessed for the store\'s own region (India)', (first.match(/Shipping to[^.]*\./) || [''])[0]);
+  ok(/Items/.test(first) && /You save/.test(first), 'new guest: Items / Price before discount / You save rows shown before an address');
+  ok(!/included in the total/i.test(first), 'new guest: note does not claim delivery is in the total');
   for (const w of want.filter(w => w.price)) ok(cl.some(c => near(money(c.price), w.price)), `cart line at $${w.price.toFixed(2)} (${w.l.size} ${w.l.kit})`);
   // quantity 2 on the first line
   await q.evaluate(() => { const i = document.querySelector('tr.cart_item input.qty'); if (i) { i.value = 2; i.dispatchEvent(new Event('change', { bubbles: true })); } const u = document.querySelector('button[name="update_cart"]'); if (u) { u.disabled = false; u.click(); } });
@@ -147,16 +156,20 @@ if (MODE === 'pricing') {
   console.log('  cart totals: ' + tot.slice(0, 400));
   const sumLines = cl2.reduce((a, c) => a + money(c.sub), 0);
   ok(near(money((tot.match(/Subtotal\s*\$[\d,.]+/) || [''])[0].replace('Subtotal', '')), sumLines), 'subtotal = sum of lines', '$' + sumLines.toFixed(2));
-  // quantity cap
-  await q.evaluate(() => { const i = document.querySelector('tr.cart_item input.qty'); if (i) { i.value = 99; i.dispatchEvent(new Event('change', { bubbles: true })); } const u = document.querySelector('button[name="update_cart"]'); if (u) { u.disabled = false; u.click(); } });
+  // quantity cap: the box advertises 25, and the server refuses 99 even with
+  // the browser's own check switched off (a request not from a browser)
+  const maxAttr = await q.evaluate(() => { const i = document.querySelector('tr.cart_item input.qty'); return i ? i.getAttribute('max') : null; });
+  ok(maxAttr === '25', 'quantity box advertises a maximum of 25', 'max=' + maxAttr);
+  await q.evaluate(() => { const f = document.querySelector('form.woocommerce-cart-form'); if (f) f.noValidate = true; const i = document.querySelector('tr.cart_item input.qty'); if (i) { i.removeAttribute('max'); i.value = 99; i.dispatchEvent(new Event('change', { bubbles: true })); } const u = document.querySelector('button[name="update_cart"]'); if (u) { u.disabled = false; u.click(); } });
   await waitAjax(q); await sleep(2500);
   const capMsg = await txt(q, '.woocommerce-error, .woocommerce-notices-wrapper');
+  await go(q, S + '/cart/');
   const cl3 = await cartLines(q);
-  ok(cl3[0] && parseInt(cl3[0].qty, 10) <= 25, 'quantity 99 refused (cap 25)', 'qty now ' + (cl3[0] || {}).qty + ' | ' + capMsg.slice(0, 120));
+  ok(cl3[0] && parseInt(cl3[0].qty, 10) <= 25, 'quantity 99 refused by the server (cap 25)', 'qty after reload ' + (cl3[0] || {}).qty + ' | ' + capMsg.slice(0, 160));
   // coupon + gift card with junk codes
-  await q.evaluate(() => { const c = document.getElementById('coupon_code'); if (c) { c.value = 'NOTACODE123'; const bt = document.querySelector('button[name="apply_coupon"]'); if (bt) bt.click(); } });
-  await waitAjax(q); await sleep(2000);
-  ok(/does not exist|not valid|invalid/i.test(await txt(q, '.woocommerce-error, .woocommerce-notices-wrapper')), 'junk coupon refused', (await txt(q, '.woocommerce-error')).slice(0, 100));
+  const hasCoupon = await q.evaluate(() => { const c = document.getElementById('coupon_code'); if (!c) return false; c.value = 'NOTACODE123'; const bt = document.querySelector('button[name="apply_coupon"]'); if (bt) bt.click(); return true; });
+  if (!hasCoupon) console.log('  INFO no coupon box on the cart: coupons are switched off in WooCommerce');
+  else { await waitAjax(q); await sleep(2000); ok(/does not exist|not valid|invalid/i.test(await txt(q, '.woocommerce-error, .woocommerce-notices-wrapper')), 'junk coupon refused', (await txt(q, '.woocommerce-error')).slice(0, 100)); }
   await q.evaluate(() => { const i = document.querySelector('.af-gc-input'); if (i) { i.value = 'TAF-0000-0000-0000'; const bt = document.querySelector('.af-gc-apply'); if (bt) bt.click(); } });
   await sleep(4000);
   const gcm = await txt(q, '.af-gc-msg');
@@ -168,10 +181,27 @@ if (MODE === 'pricing') {
   const rv = await reviewNumbers(q);
   console.log('  review: ' + (rv ? rv.all : 'none'));
   if (rv) {
-    const sum = money(rv.subtotal) + money(rv.shipping || '0') + rv.fees.reduce((a, f) => a + money(f), 0);
-    ok(near(money(rv.total), sum), 'checkout total = subtotal + delivery + fees', `${rv.subtotal} + ${rv.shipping} + ${rv.fees.join(',') || '0'} = ${rv.total}`);
-    ok(rv.fees.some(f => /Oversize/i.test(f) && near(money(f), oversizeFee('3×5 ft (36×60 in)', true))), 'oversize fee for the framed 3x5 = $' + oversizeFee('3×5 ft (36×60 in)', true), rv.fees.join(' | '));
+    const sum = lastMoney(rv.subtotal) + (rv.shipping ? lastMoney(rv.shipping) : 0) + rv.fees.reduce((a, f) => a + lastMoney(f), 0);
+    ok(near(lastMoney(rv.total), sum), 'checkout total = subtotal + delivery + fees', `${rv.subtotal} + ${rv.shipping} + ${rv.fees.join(',') || '0'} = ${rv.total}`);
+    ok(rv.fees.some(f => /Oversize/i.test(f) && near(lastMoney(f), oversizeFee('3×5 ft (36×60 in)', true))), 'oversize fee for the framed 3x5 = $' + oversizeFee('3×5 ft (36×60 in)', true), rv.fees.join(' | '));
   }
+
+  await go(q, S + '/cart/');
+  const withAddr = await q.evaluate(() => { const t = document.querySelector('.cart_totals'); return t ? t.innerText.replace(/\s+/g, ' ') : ''; });
+  console.log('  cart after the NY address: ' + withAddr.slice(0, 400));
+  ok(/included in the total/i.test(withAddr) && !/Shipping cost shown at checkout/i.test(withAddr), 'with an address: note says delivery is included, not "shown at checkout"');
+
+  console.log('\n--- Digital Download modal records a download ---');
+  const dm = await newPage();
+  await go(dm, PRODUCT);
+  const pid = await dm.evaluate(() => { const i = document.querySelector('form.cart [name="add-to-cart"], form.cart button[name="add-to-cart"]'); return i ? i.value : ''; });
+  const added = await dm.evaluate(async (pid) => { const r = await fetch('/?wc-ajax=add_to_cart', { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'product_id=' + encodeURIComponent(pid) + '&quantity=1&af_digital=1' }); return r.status; }, pid);
+  await go(dm, S + '/cart/');
+  const dl = await cartLines(dm);
+  console.log('  modal add (product ' + pid + ', HTTP ' + added + '): ' + (dl[0] ? dl[0].text : 'no line'));
+  ok(dl.length === 1 && /Digital download/i.test(dl[0].text) && !/Painting only/i.test(dl[0].text), 'modal purchase reads "You receive: Digital download"', dl[0] ? dl[0].price : '');
+  const dlt = await dm.evaluate(() => { const t = document.querySelector('.cart_totals'); return t ? t.innerText.replace(/\s+/g, ' ') : ''; });
+  ok(/nothing to deliver|no delivery charge/i.test(dlt) && /Items/.test(dlt), 'download-only cart: rows shown and "no delivery charge"', dlt.slice(0, 200));
 
   console.log('\n--- Buy Now keeps the chosen options ---');
   const bn = await newPage();
@@ -181,10 +211,10 @@ if (MODE === 'pricing') {
   await sleep(3000);
   const bnr = await reviewNumbers(bn);
   console.log('  landed on ' + bn.url().replace(S, '') + ' | ' + (bnr ? bnr.all.slice(0, 250) : 'no review'));
-  ok(bnr && near(money(bnr.subtotal), exp), 'Buy Now charges the chosen 3x5 + bars = $' + exp.toFixed(2), bnr ? 'checkout subtotal ' + bnr.subtotal : '');
+  ok(bnr && near(lastMoney(bnr.subtotal), exp), 'Buy Now charges the chosen 3x5 + bars = $' + exp.toFixed(2), bnr ? 'checkout subtotal ' + bnr.subtotal : '');
   await bn.reload({ waitUntil: 'networkidle2' }).catch(() => {}); await sleep(3000);
   const bnr2 = await reviewNumbers(bn);
-  ok(bnr && bnr2 && near(money(bnr2.subtotal), money(bnr.subtotal)), 'reloading checkout does not add a second copy', bnr2 ? 'after reload ' + bnr2.subtotal : '');
+  ok(bnr && bnr2 && near(lastMoney(bnr2.subtotal), lastMoney(bnr.subtotal)), 'reloading checkout does not add a second copy', bnr2 ? 'after reload ' + bnr2.subtotal : '');
 }
 
 // =============================================================================
@@ -225,12 +255,12 @@ if (MODE === 'delivery') {
     for (const [name, st, zip, ll] of (c === carts[0] ? Z : Z.filter(z => ['19711', '10001', '60601', '94043', '99501', '10118'].includes(z[2])))) {
       await setAddress(p, { a1: '100 Main St', city: name.split(' ')[0], st, zip });
       const rv = await reviewNumbers(p);
-      const got = rv ? money(rv.shipping) : NaN;
+      const got = rv ? lastMoney(rv.shipping) : NaN;
       const exp = expectedDelivery(c.lbs, ll);
       const mi = ll ? Math.round(hav(HOCKESSIN, ll)) : null;
       const notes = await txt(p, '.woocommerce-NoticeGroup, .woocommerce-error');
       ok(near(got, exp), `${name} ${zip} (~${mi == null ? '?' : mi} mi): delivery $${isNaN(got) ? '-' : got.toFixed(2)}`, 'expected $' + exp.toFixed(2) + (notes ? ' | notice: ' + notes.slice(0, 80) : ''));
-      if (rv && c.fee) ok(rv.fees.some(f => near(money(f), c.fee)), '  oversize fee $' + c.fee + ' present', rv.fees.join(' | '));
+      if (rv && c.fee) ok(rv.fees.some(f => near(lastMoney(f), c.fee)), '  oversize fee $' + c.fee + ' present', rv.fees.join(' | '));
     }
   }
   console.log('\n--- outside the US ---');
@@ -297,6 +327,19 @@ if (MODE === 'payment') {
     const n = await txt(p, '.woocommerce-NoticeGroup-checkout, .woocommerce-error');
     ok(expect.test(n) && !/order-received/.test(p.url()), name + ' refused', n.slice(0, 120));
   }
+  // Enter in the gift card box must apply the code, not submit the order.
+  // The first name is left empty, so even a submit could not create an order.
+  await go(p, S + '/checkout/');
+  await setAddress(p, { a1: '350 5th Ave', city: 'New York', st: 'NY', zip: '10001' });
+  await p.evaluate(() => { const f = document.getElementById('billing_first_name'); if (f) f.value = ''; });
+  const gcIn = await p.$('.woocommerce-checkout-review-order-table .af-gc-input, .af-gc-input');
+  if (gcIn) {
+    await gcIn.click(); await gcIn.type('TAF-0000-0000-0000'); await p.keyboard.press('Enter');
+    await sleep(5000);
+    const gc = { msg: await txt(p, '.af-gc-msg'), err: await txt(p, '.woocommerce-NoticeGroup-checkout, .woocommerce-error'), url: p.url() };
+    console.log('  Enter in the gift card box: ' + JSON.stringify(gc).slice(0, 300));
+    ok(/not found|no longer active|no remaining/i.test(gc.msg) && !/required field/i.test(gc.err) && !/order-received/.test(gc.url), 'Enter in the gift card box checks the code and does not submit the order', gc.msg.slice(0, 80));
+  } else console.log('  no gift card box on checkout');
   // phone
   const m = await newPage(390, 844);
   await go(m, PRODUCT); await addToCart(m); await go(m, S + '/checkout/');
@@ -307,7 +350,7 @@ if (MODE === 'payment') {
 // =============================================================================
 if (MODE === 'smoke') {
   console.log('=== WHOLE SITE: every main page, desktop and phone ===');
-  const pages = ['/', '/shop/', '/product-category/digital-canvas-prints/', PRODUCT.replace(S, ''), '/cart/', '/checkout/', '/my-account/', '/wishlist/', '/try-on-wall/', '/frame-the-moment/', '/customize-your-picture/', '/gift-cards/', '/about/', '/contact/', '/blog/', '/artists/', '/clearance/', '/shipping-delivery/', '/return-refund-policy/', '/privacy-policy/', '/track-your-order/', '/help-support/', '/wholesale-corporate/', '/?s=krishna&post_type=product', '/this-page-does-not-exist-qa/'];
+  const pages = ['/', '/shop/', '/product-category/digital-canvas-prints/', PRODUCT.replace(S, ''), '/cart/', '/checkout/', '/my-account/', '/wishlist/', '/try-on-wall/', '/frame-the-moment/', '/customize-your-picture/', '/gift-cards/', '/about/', '/contact/', '/blog/', '/artists/', '/clearance/', '/shipping-delivery/', '/refund-policy/', '/returns-exchanges/', '/order-tracking/', '/product-category/digital-downloads/', '/privacy-policy/', '/track-your-order/', '/help-support/', '/wholesale-corporate/', '/?s=krishna&post_type=product', '/this-page-does-not-exist-qa/'];
   for (const [w, h] of [[1366, 900], [390, 844]]) {
     const p = await newPage(w, h);
     for (const path of pages) {

@@ -6010,11 +6010,38 @@ add_action('woocommerce_after_add_to_cart_button', function() {
     if (!$product || !$product->is_purchasable() || !$product->is_in_stock()) return;
 
     if ($product->is_type('simple')) {
-        $url = esc_url(wc_get_checkout_url() . '?add-to-cart=' . $product->get_id());
-        // nofollow: crawlers following this link mint a cart session and an
-        // uncacheable checkout render per product; the crawl guard bounces
-        // headerless hits, this stops compliant bots queueing them at all.
-        echo '<a href="' . $url . '" rel="nofollow" class="af-buynow button">Buy Now</a>';
+        // Submits the product form, so the size, frame, colour and "What you
+        // receive" the shopper chose travel with it, then goes to checkout
+        // (woocommerce_add_to_cart_redirect below). It used to be a link to
+        // /checkout/?add-to-cart=ID, which added the piece with every option
+        // at its default, and left ?add-to-cart in the address so a reload
+        // added a second copy (owner's checkout test, 30 Sep). A button is
+        // also nothing for a crawler to follow.
+        echo '<button type="button" class="af-buynow af-buynow-simple button">Buy Now</button>';
+        ?>
+        <script>
+        (function(){
+          if (window.__afBuyNowSimple) return; window.__afBuyNowSimple = true;
+          // Back from checkout restores the page with the flag still in the
+          // form; drop it so a plain Add to cart stays on the page.
+          window.addEventListener('pageshow', function(){
+            document.querySelectorAll('form.cart input[name="af_buy_now"]').forEach(function(i){ i.remove(); });
+          });
+          document.addEventListener('click', function(e){
+            var b = e.target.closest('.af-buynow-simple'); if(!b) return;
+            e.preventDefault();
+            var form = b.closest('form.cart'); if(!form) return;
+            if (!form.querySelector('input[name="af_buy_now"]')) {
+              var flag = document.createElement('input');
+              flag.type = 'hidden'; flag.name = 'af_buy_now'; flag.value = '1';
+              form.appendChild(flag);
+            }
+            var addBtn = form.querySelector('.single_add_to_cart_button');
+            if (addBtn) addBtn.click(); else form.submit();
+          });
+        })();
+        </script>
+        <?php
     } elseif ($product->is_type('variable')) {
         // Button submits the variation form, then redirects to checkout.
         echo '<button type="button" class="af-buynow af-buynow-var button" data-checkout="' . esc_url(wc_get_checkout_url()) . '">Buy Now</button>';
@@ -13761,7 +13788,11 @@ add_action('woocommerce_cart_calculate_fees', function($cart) {
     if ($use > 0) $cart->add_fee('Gift card (' . $gc->code . ')', -$use, false);
 }, 20);
 
-// Deduct the used balance when the order is placed
+// Record the gift card on the order when it is created; take the balance only
+// once the order is confirmed. The balance used to be taken here, at order
+// creation - before the card payment - and the code cleared from the session,
+// so a declined card left the order unpaid with the gift card already spent
+// and nothing to retry with (checkout audit, 30 Sep).
 add_action('woocommerce_checkout_create_order', function($order) {
     $gc = af_gc_applied();
     if (!$gc) return;
@@ -13770,18 +13801,45 @@ add_action('woocommerce_checkout_create_order', function($order) {
         if (strpos($fee->get_name(), 'Gift card (') === 0) $used += abs((float) $fee->get_total());
     }
     if ($used <= 0) return;
-    global $wpdb;
-    $new = max(0, (float) $gc->balance - $used);
-    $wpdb->update(af_gc_table(), array(
-        'balance' => $new,
-        'status'  => $new <= 0 ? 'used' : 'active',
-        'used_at' => current_time('mysql'),
-    ), array('id' => $gc->id));
     $order->update_meta_data('_af_gc_code', $gc->code);
     $order->update_meta_data('_af_gc_used', $used);
-    $order->add_order_note(sprintf('Gift card %s redeemed: %s (remaining %s).', $gc->code, strip_tags(wc_price($used)), strip_tags(wc_price($new))));
-    WC()->session->set('af_gc_code', null);
+    $order->update_meta_data('_af_gc_pending', '1');   // orders placed before this change never carry it
 }, 20);
+
+/** Take the balance when the order is confirmed; give it back if the order then fails or is cancelled. */
+add_action('woocommerce_order_status_changed', function ($order_id, $from, $to, $order) {
+    if (!$order instanceof WC_Order || $order->get_meta('_af_gc_pending') !== '1') return;
+    $code = (string) $order->get_meta('_af_gc_code');
+    $gc   = $code !== '' ? af_gc_get($code) : null;
+    if (!$gc) return;
+    global $wpdb;
+    $taken = (float) $order->get_meta('_af_gc_taken');
+    if (in_array($to, array('processing', 'on-hold', 'completed'), true) && $taken <= 0) {
+        $want = (float) $order->get_meta('_af_gc_used');
+        $use  = min((float) $gc->balance, $want);
+        // Only two orders racing for the same card can get here short; say so
+        // on the order so the studio can collect the difference.
+        $short = $want - $use > 0.005 ? sprintf(' SHORT by %s: the card did not hold the full discount given on this order.', strip_tags(wc_price($want - $use))) : '';
+        if ($use <= 0) { $order->add_order_note('Gift card ' . $code . ' had no balance left to take.' . $short); return; }
+        $new = max(0, (float) $gc->balance - $use);
+        $wpdb->update(af_gc_table(), array('balance' => $new, 'status' => $new <= 0 ? 'used' : 'active', 'used_at' => current_time('mysql')), array('id' => $gc->id));
+        $order->update_meta_data('_af_gc_taken', $use);
+        $order->save_meta_data();
+        $order->add_order_note(sprintf('Gift card %s redeemed: %s (remaining %s).', $code, strip_tags(wc_price($use)), strip_tags(wc_price($new))) . $short);
+    } elseif (in_array($to, array('cancelled', 'failed', 'refunded'), true) && $taken > 0) {
+        $new = (float) $gc->balance + $taken;
+        $wpdb->update(af_gc_table(), array('balance' => $new, 'status' => 'active'), array('id' => $gc->id));
+        $order->update_meta_data('_af_gc_taken', 0);
+        $order->save_meta_data();
+        $order->add_order_note(sprintf('Gift card %s: %s given back (order %s; balance now %s).', $code, strip_tags(wc_price($taken)), $to, strip_tags(wc_price($new))));
+    }
+}, 20, 4);
+
+// The shopper's gift card leaves their session once the order is through,
+// not before: a failed payment keeps it applied for the retry.
+add_action('woocommerce_thankyou', function () {
+    if (function_exists('WC') && WC()->session) WC()->session->set('af_gc_code', null);
+});
 
 // Redemption UI on cart + checkout
 add_action('woocommerce_cart_totals_before_order_total', 'af_gc_redeem_box');
@@ -13811,10 +13869,13 @@ function af_gc_redeem_box() {
     </td></tr>
     <script>
     (function(){
-      var box = document.querySelector('.af-gc-redeem');
-      if (!box || box.dataset.bound) return;
-      box.dataset.bound = '1';
-      function send(code){
+      // Bound once on the document, not on the box. WooCommerce redraws the
+      // cart totals and the checkout review table over AJAX and drops inline
+      // scripts when it does, so buttons bound to the old box went dead after
+      // any cart update. And the box sits inside the checkout form: Enter in
+      // it submitted the form and placed the order without the gift card.
+      if (window.__afGcBound) return; window.__afGcBound = true;
+      function send(box, code){
         var msg = box.querySelector('.af-gc-msg'), fd = new FormData();
         fd.append('action', 'af_gc_apply'); fd.append('nonce', box.dataset.nonce); fd.append('code', code);
         fetch(box.dataset.ajax, { method:'POST', credentials:'same-origin', body: fd })
@@ -13826,9 +13887,18 @@ function af_gc_redeem_box() {
             if (res.success) location.reload();
           });
       }
-      var applyBtn = box.querySelector('.af-gc-apply'), rmBtn = box.querySelector('.af-gc-remove');
-      if (applyBtn) applyBtn.addEventListener('click', function(){ send(box.querySelector('.af-gc-input').value.trim()); });
-      if (rmBtn) rmBtn.addEventListener('click', function(){ send('REMOVE'); });
+      document.addEventListener('click', function(e){
+        var a = e.target.closest('.af-gc-apply, .af-gc-remove'); if (!a) return;
+        var box = a.closest('.af-gc-redeem'); if (!box) return;
+        e.preventDefault();
+        if (a.classList.contains('af-gc-remove')) send(box, 'REMOVE');
+        else send(box, (box.querySelector('.af-gc-input') || {}).value ? box.querySelector('.af-gc-input').value.trim() : '');
+      });
+      document.addEventListener('keydown', function(e){
+        if (e.key !== 'Enter' || !e.target.classList || !e.target.classList.contains('af-gc-input')) return;
+        e.preventDefault();
+        var box = e.target.closest('.af-gc-redeem'); if (box) send(box, e.target.value.trim());
+      }, true);
     })();
     </script>
     <?php
@@ -20932,10 +21002,17 @@ function af_cart_reference_total() {
     return array($items, round($ref, 2), $sub);
 }
 
-add_action('woocommerce_cart_totals_before_shipping', function () {
+// Drawn before the delivery row when there is one, otherwise just before the
+// total. WooCommerce only fires the "before shipping" hook when it shows a
+// delivery row, so these rows vanished for a shopper who had not entered an
+// address yet and for a download-only cart (checkout audit, 30 Sep).
+function af_cart_breakdown_rows() {
+    static $done = false;
+    if ($done) return;
     if (!function_exists('af_mrp_multiplier') || !function_exists('WC') || !WC()->cart) return;
     list($items, $ref, $sub) = af_cart_reference_total();
     if ($items < 1) return;
+    $done = true;
     $save = $ref - $sub;
     $pct  = $ref > 0 ? (int) round($save / $ref * 100) : 0;
     ?>
@@ -20954,18 +21031,39 @@ add_action('woocommerce_cart_totals_before_shipping', function () {
   </tr>
     <?php endif; ?>
     <?php
-}, 5);
+}
+add_action('woocommerce_cart_totals_before_shipping', 'af_cart_breakdown_rows', 5);
+add_action('woocommerce_cart_totals_before_order_total', 'af_cart_breakdown_rows', 1);
+
+/**
+ * The delivery line under the cart total, true to what the total holds.
+ * It always said "Shipping cost shown at checkout", even when the delivery
+ * row sat right above it and was already added into the total, and even
+ * for a download-only cart that has nothing to deliver (checkout audit,
+ * 30 Sep). A free-shipping setting keeps its own wording.
+ */
+function af_cart_delivery_note() {
+    $ship = function_exists('af_shipping_copy') ? af_shipping_copy() : array('short' => 'Shipping cost shown at checkout', 'free' => false);
+    if (!empty($ship['free']) || !function_exists('WC') || !WC()->cart) return $ship['short'];
+    $cart = WC()->cart;
+    if (!$cart->needs_shipping()) return 'Digital download: nothing to deliver, no delivery charge';
+    if ($cart->show_shipping()) {
+        foreach (WC()->shipping()->get_packages() as $pkg) {
+            if (!empty($pkg['rates'])) return 'Delivery to your address is included in the total';
+        }
+    }
+    return $ship['short'];
+}
 
 // Below the total: what is NOT yet in that number, said plainly. A buyer who
 // cannot tell whether $80 is the final figure abandons the cart.
 add_action('woocommerce_cart_totals_after_order_total', function () {
     if (!function_exists('af_shipping_copy')) return;
-    $ship = af_shipping_copy();
     ?>
   <tr class="af-ct-note">
     <td colspan="2">
       <span>Inclusive of all taxes</span>
-      <span><?php echo esc_html($ship['short']); ?></span>
+      <span><?php echo esc_html(af_cart_delivery_note()); ?></span>
     </td>
   </tr>
     <?php
@@ -20986,7 +21084,7 @@ add_action('woocommerce_after_cart_totals', function () {
 <div class="af-ct-extra">
   <div class="af-ct-row">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-    <span><?php echo esc_html($ship['short']); ?></span>
+    <span><?php echo esc_html(af_cart_delivery_note()); ?></span>
   </div>
   <div class="af-ct-row">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
