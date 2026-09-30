@@ -262,6 +262,24 @@ function af_currency_name_for($code) {
     return isset($names[$code]) ? $names[$code] : $code;
 }
 
+/**
+ * US dollars to the shopper's currency, at the rate the currency plugin
+ * (FOX / WOOCS) converts the cart with. 1 for USD. The product page's live
+ * price is worked out in the browser from the US price list, and it printed
+ * those US figures behind a "CA$" sign: CA$80.00 on the page, CA$109.60 in
+ * the cart (site test, 30 Sep).
+ */
+function af_fx_rate() {
+    $cur = af_active_currency();
+    if ($cur === 'USD') return 1.0;
+    global $WOOCS;
+    if (is_object($WOOCS) && method_exists($WOOCS, 'get_currencies')) {
+        $all = $WOOCS->get_currencies();
+        if (isset($all[$cur]['rate']) && (float) $all[$cur]['rate'] > 0) return (float) $all[$cur]['rate'];
+    }
+    return 1.0;
+}
+
 function af_active_currency() {
     static $cur = null;
     if ($cur !== null) return $cur;
@@ -6010,11 +6028,38 @@ add_action('woocommerce_after_add_to_cart_button', function() {
     if (!$product || !$product->is_purchasable() || !$product->is_in_stock()) return;
 
     if ($product->is_type('simple')) {
-        $url = esc_url(wc_get_checkout_url() . '?add-to-cart=' . $product->get_id());
-        // nofollow: crawlers following this link mint a cart session and an
-        // uncacheable checkout render per product; the crawl guard bounces
-        // headerless hits, this stops compliant bots queueing them at all.
-        echo '<a href="' . $url . '" rel="nofollow" class="af-buynow button">Buy Now</a>';
+        // Submits the product form, so the size, frame, colour and "What you
+        // receive" the shopper chose travel with it, then goes to checkout
+        // (woocommerce_add_to_cart_redirect below). It used to be a link to
+        // /checkout/?add-to-cart=ID, which added the piece with every option
+        // at its default, and left ?add-to-cart in the address so a reload
+        // added a second copy (owner's checkout test, 30 Sep). A button is
+        // also nothing for a crawler to follow.
+        echo '<button type="button" class="af-buynow af-buynow-simple button">Buy Now</button>';
+        ?>
+        <script>
+        (function(){
+          if (window.__afBuyNowSimple) return; window.__afBuyNowSimple = true;
+          // Back from checkout restores the page with the flag still in the
+          // form; drop it so a plain Add to cart stays on the page.
+          window.addEventListener('pageshow', function(){
+            document.querySelectorAll('form.cart input[name="af_buy_now"]').forEach(function(i){ i.remove(); });
+          });
+          document.addEventListener('click', function(e){
+            var b = e.target.closest('.af-buynow-simple'); if(!b) return;
+            e.preventDefault();
+            var form = b.closest('form.cart'); if(!form) return;
+            if (!form.querySelector('input[name="af_buy_now"]')) {
+              var flag = document.createElement('input');
+              flag.type = 'hidden'; flag.name = 'af_buy_now'; flag.value = '1';
+              form.appendChild(flag);
+            }
+            var addBtn = form.querySelector('.single_add_to_cart_button');
+            if (addBtn) addBtn.click(); else form.submit();
+          });
+        })();
+        </script>
+        <?php
     } elseif ($product->is_type('variable')) {
         // Button submits the variation form, then redirects to checkout.
         echo '<button type="button" class="af-buynow af-buynow-var button" data-checkout="' . esc_url(wc_get_checkout_url()) . '">Buy Now</button>';
@@ -7329,7 +7374,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
     // selector opens on the first one we can actually make.
     $def_frame = af_frame_default();
     ?>
-    <div class="af-opts" id="af-opts" data-base="<?php echo esc_attr($base); ?>" data-config='<?php echo esc_attr(wp_json_encode($cfg)); ?>' data-symbol="<?php echo esc_attr(get_woocommerce_currency_symbol()); ?>" data-mrp-mult="<?php echo esc_attr(round(af_mrp_multiplier($product->get_id()), 6)); ?>">
+    <div class="af-opts" id="af-opts" data-base="<?php echo esc_attr($base); ?>" data-config='<?php echo esc_attr(wp_json_encode($cfg)); ?>' data-symbol="<?php echo esc_attr(get_woocommerce_currency_symbol()); ?>" data-rate="<?php echo esc_attr(function_exists('af_fx_rate') ? af_fx_rate() : 1); ?>" data-mrp-mult="<?php echo esc_attr(round(af_mrp_multiplier($product->get_id()), 6)); ?>">
       <div class="af-opt-group">
         <label class="af-opt-label" for="af-size-select">Size <span class="af-opt-sub">(height × width)</span></label>
         <div class="af-size-row">
@@ -7511,7 +7556,10 @@ add_action('wp_head', function() {
     </style>
     <script>
     (function(){
-      function money(sym,val){ return sym + val.toFixed(2); }
+      // The price list is in US dollars; the page shows the shopper's
+      // currency at the rate the cart converts with (data-rate, 1 for USD).
+      var fx = 1;
+      function money(sym,val){ return sym + (Math.round(val * fx * 100) / 100).toFixed(2); }
       document.addEventListener('click', function(e){
         var b = e.target.closest('.af-chip-opt, .af-swatch'); if(!b) return;
         if(b.disabled || b.classList.contains('af-chip-oos')) return;   // out of stock
@@ -7544,7 +7592,9 @@ add_action('wp_head', function() {
       });
 
       function recalc(wrap){
-        var base = parseFloat(wrap.getAttribute('data-base'))||0;
+        fx = parseFloat(wrap.getAttribute('data-rate')) || 1;
+        // data-base is already in the shopper's currency; the list is not
+        var base = (parseFloat(wrap.getAttribute('data-base'))||0) / fx;
         var cfg = {}; try{ cfg = JSON.parse(wrap.getAttribute('data-config')); }catch(e){ return; }
         var sym = wrap.getAttribute('data-symbol')||'$';
         var sizeVal  = chosen(wrap, 'size');
@@ -13757,11 +13807,23 @@ add_action('woocommerce_cart_calculate_fees', function($cart) {
         $eligible += (float) $item['line_total'] + (float) $item['line_tax'];
     }
     if ($eligible <= 0) return;
-    $use = min((float) $gc->balance, $eligible);
+    // Delivery and the oversize fee are part of what the shopper pays, so the
+    // card covers them too; it used to stop at the goods and leave delivery
+    // to be paid another way (checkout audit, 30 Sep). The oversize fee is
+    // added at priority 10, before this.
+    $eligible += (float) $cart->get_shipping_total() + (float) $cart->get_shipping_tax();
+    foreach ($cart->fees_api()->get_fees() as $fee) {
+        if ((float) $fee->amount > 0 && strpos((string) $fee->name, 'Gift card (') !== 0) $eligible += (float) $fee->amount;
+    }
+    $use = min((float) $gc->balance, round($eligible, 2));
     if ($use > 0) $cart->add_fee('Gift card (' . $gc->code . ')', -$use, false);
 }, 20);
 
-// Deduct the used balance when the order is placed
+// Record the gift card on the order when it is created; take the balance only
+// once the order is confirmed. The balance used to be taken here, at order
+// creation - before the card payment - and the code cleared from the session,
+// so a declined card left the order unpaid with the gift card already spent
+// and nothing to retry with (checkout audit, 30 Sep).
 add_action('woocommerce_checkout_create_order', function($order) {
     $gc = af_gc_applied();
     if (!$gc) return;
@@ -13770,18 +13832,45 @@ add_action('woocommerce_checkout_create_order', function($order) {
         if (strpos($fee->get_name(), 'Gift card (') === 0) $used += abs((float) $fee->get_total());
     }
     if ($used <= 0) return;
-    global $wpdb;
-    $new = max(0, (float) $gc->balance - $used);
-    $wpdb->update(af_gc_table(), array(
-        'balance' => $new,
-        'status'  => $new <= 0 ? 'used' : 'active',
-        'used_at' => current_time('mysql'),
-    ), array('id' => $gc->id));
     $order->update_meta_data('_af_gc_code', $gc->code);
     $order->update_meta_data('_af_gc_used', $used);
-    $order->add_order_note(sprintf('Gift card %s redeemed: %s (remaining %s).', $gc->code, strip_tags(wc_price($used)), strip_tags(wc_price($new))));
-    WC()->session->set('af_gc_code', null);
+    $order->update_meta_data('_af_gc_pending', '1');   // orders placed before this change never carry it
 }, 20);
+
+/** Take the balance when the order is confirmed; give it back if the order then fails or is cancelled. */
+add_action('woocommerce_order_status_changed', function ($order_id, $from, $to, $order) {
+    if (!$order instanceof WC_Order || $order->get_meta('_af_gc_pending') !== '1') return;
+    $code = (string) $order->get_meta('_af_gc_code');
+    $gc   = $code !== '' ? af_gc_get($code) : null;
+    if (!$gc) return;
+    global $wpdb;
+    $taken = (float) $order->get_meta('_af_gc_taken');
+    if (in_array($to, array('processing', 'on-hold', 'completed'), true) && $taken <= 0) {
+        $want = (float) $order->get_meta('_af_gc_used');
+        $use  = min((float) $gc->balance, $want);
+        // Only two orders racing for the same card can get here short; say so
+        // on the order so the studio can collect the difference.
+        $short = $want - $use > 0.005 ? sprintf(' SHORT by %s: the card did not hold the full discount given on this order.', strip_tags(wc_price($want - $use))) : '';
+        if ($use <= 0) { $order->add_order_note('Gift card ' . $code . ' had no balance left to take.' . $short); return; }
+        $new = max(0, (float) $gc->balance - $use);
+        $wpdb->update(af_gc_table(), array('balance' => $new, 'status' => $new <= 0 ? 'used' : 'active', 'used_at' => current_time('mysql')), array('id' => $gc->id));
+        $order->update_meta_data('_af_gc_taken', $use);
+        $order->save_meta_data();
+        $order->add_order_note(sprintf('Gift card %s redeemed: %s (remaining %s).', $code, strip_tags(wc_price($use)), strip_tags(wc_price($new))) . $short);
+    } elseif (in_array($to, array('cancelled', 'failed', 'refunded'), true) && $taken > 0) {
+        $new = (float) $gc->balance + $taken;
+        $wpdb->update(af_gc_table(), array('balance' => $new, 'status' => 'active'), array('id' => $gc->id));
+        $order->update_meta_data('_af_gc_taken', 0);
+        $order->save_meta_data();
+        $order->add_order_note(sprintf('Gift card %s: %s given back (order %s; balance now %s).', $code, strip_tags(wc_price($taken)), $to, strip_tags(wc_price($new))));
+    }
+}, 20, 4);
+
+// The shopper's gift card leaves their session once the order is through,
+// not before: a failed payment keeps it applied for the retry.
+add_action('woocommerce_thankyou', function () {
+    if (function_exists('WC') && WC()->session) WC()->session->set('af_gc_code', null);
+});
 
 // Redemption UI on cart + checkout
 add_action('woocommerce_cart_totals_before_order_total', 'af_gc_redeem_box');
@@ -13811,10 +13900,13 @@ function af_gc_redeem_box() {
     </td></tr>
     <script>
     (function(){
-      var box = document.querySelector('.af-gc-redeem');
-      if (!box || box.dataset.bound) return;
-      box.dataset.bound = '1';
-      function send(code){
+      // Bound once on the document, not on the box. WooCommerce redraws the
+      // cart totals and the checkout review table over AJAX and drops inline
+      // scripts when it does, so buttons bound to the old box went dead after
+      // any cart update. And the box sits inside the checkout form: Enter in
+      // it submitted the form and placed the order without the gift card.
+      if (window.__afGcBound) return; window.__afGcBound = true;
+      function send(box, code){
         var msg = box.querySelector('.af-gc-msg'), fd = new FormData();
         fd.append('action', 'af_gc_apply'); fd.append('nonce', box.dataset.nonce); fd.append('code', code);
         fetch(box.dataset.ajax, { method:'POST', credentials:'same-origin', body: fd })
@@ -13826,9 +13918,18 @@ function af_gc_redeem_box() {
             if (res.success) location.reload();
           });
       }
-      var applyBtn = box.querySelector('.af-gc-apply'), rmBtn = box.querySelector('.af-gc-remove');
-      if (applyBtn) applyBtn.addEventListener('click', function(){ send(box.querySelector('.af-gc-input').value.trim()); });
-      if (rmBtn) rmBtn.addEventListener('click', function(){ send('REMOVE'); });
+      document.addEventListener('click', function(e){
+        var a = e.target.closest('.af-gc-apply, .af-gc-remove'); if (!a) return;
+        var box = a.closest('.af-gc-redeem'); if (!box) return;
+        e.preventDefault();
+        if (a.classList.contains('af-gc-remove')) send(box, 'REMOVE');
+        else send(box, (box.querySelector('.af-gc-input') || {}).value ? box.querySelector('.af-gc-input').value.trim() : '');
+      });
+      document.addEventListener('keydown', function(e){
+        if (e.key !== 'Enter' || !e.target.classList || !e.target.classList.contains('af-gc-input')) return;
+        e.preventDefault();
+        var box = e.target.closest('.af-gc-redeem'); if (box) send(box, e.target.value.trim());
+      }, true);
     })();
     </script>
     <?php
@@ -17913,7 +18014,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings') as $af_mod) {
+foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings', 'retired-products', 'checkout-fixes') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }
@@ -20436,6 +20537,25 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
 .af-wl-related h2{font-size:24px;margin:0 0 18px;color:#1a1a1a}
 .af-wl-related ul.products{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;margin:0!important;padding:0!important;list-style:none!important}
 .af-wl-related ul.products::before,.af-wl-related ul.products::after{display:none!important}
+/* No hover swap in the related rows (owner's recording, 30 Sep). On the shop
+   a card keeps its photo under the mouse. Here the theme's "fade" effect
+   still ran: the photo faded out and the room mockup faded in at 105%,
+   cropped to a portrait slice of a landscape photo, inside a wrapper allowed
+   to overflow - the ghosting and the off-centre picture in the recording.
+   The child theme's own hover script cannot help: it is inside a
+   window.innerWidth <= 600 guard (functions.php, the wp_head script), so it
+   never runs where a mouse exists. Scoped to these two rows; the theme's
+   selector is (0,7,1), these outrank it. */
+html body section.af-wl-related ul.products li.product .product-block .product-transition .product-img-wrap .product-image.image-main,
+html body section.af-xsell ul.products li.product .product-block .product-transition .product-img-wrap .product-image.image-main,
+html body section.af-wl-related ul.products li.product .product-block:hover .product-transition .product-img-wrap .product-image.image-main,
+html body section.af-xsell ul.products li.product .product-block:hover .product-transition .product-img-wrap .product-image.image-main{
+  opacity:1!important;transform:none!important}
+html body section.af-wl-related ul.products li.product .product-block .product-transition .product-img-wrap .product-image.second-image,
+html body section.af-xsell ul.products li.product .product-block .product-transition .product-img-wrap .product-image.second-image,
+html body section.af-wl-related ul.products li.product .product-block:hover .product-transition .product-img-wrap .product-image.second-image,
+html body section.af-xsell ul.products li.product .product-block:hover .product-transition .product-img-wrap .product-image.second-image{
+  opacity:0!important;transform:none!important;overflow:hidden!important;pointer-events:none!important}
 /* The photo's frame (.product-transition) is drawn as a square: 482x482 on a
    546px phone, while the photo inside is a 300px box - leaving a 182px empty
    strip under every photo (measured live, 24 Sep, after the empty grey link
@@ -20906,17 +21026,46 @@ function af_cart_reference_total() {
         if (empty($item['product_id'])) continue;
         $qty    = isset($item['quantity']) ? (int) $item['quantity'] : 1;
         $line   = isset($item['line_subtotal']) ? (float) $item['line_subtotal'] : 0.0;
+        // A gift card sells at face value and is not a piece to count.
+        if (!empty($item['af_gc'])) { $ref += $line; continue; }
         $items += $qty;
-        $ref   += $line * af_mrp_multiplier((int) $item['product_id']);
+        $ref   += $line * af_cart_line_reference_multiplier($item);
     }
     $sub = (float) WC()->cart->get_subtotal();
     return array($items, round($ref, 2), $sub);
 }
 
-add_action('woocommerce_cart_totals_before_shipping', function () {
+/**
+ * The "before discount" factor for one cart line, the same one its own page
+ * shows. Bars and aluminium frame kits carry their listed regular price, and
+ * downloads use af_digital_was(); every other piece keeps the per-product
+ * af_mrp_multiplier(). One factor for every line made a $48 bar kit read
+ * "$68.57 before" in the cart against "$96" on its page (checkout audit, 30 Sep).
+ */
+function af_cart_line_reference_multiplier($item) {
+    $pid   = isset($item['product_id']) ? (int) $item['product_id'] : 0;
+    $price = isset($item['af_price']) ? (float) $item['af_price'] : 0.0;
+    foreach (array('af_bar_regular', 'af_alu_regular') as $k) {
+        if (!empty($item[$k]) && $price > 0 && (float) $item[$k] >= $price) return (float) $item[$k] / $price;
+    }
+    if (!empty($item['af_digital']) && function_exists('af_digital_was') && function_exists('af_digital_price')) {
+        $now = (float) af_digital_price($pid);
+        if ($now > 0) return max(1.0, (float) af_digital_was($pid) / $now);
+    }
+    return af_mrp_multiplier($pid);
+}
+
+// Drawn before the delivery row when there is one, otherwise just before the
+// total. WooCommerce only fires the "before shipping" hook when it shows a
+// delivery row, so these rows vanished for a shopper who had not entered an
+// address yet and for a download-only cart (checkout audit, 30 Sep).
+function af_cart_breakdown_rows() {
+    static $done = false;
+    if ($done) return;
     if (!function_exists('af_mrp_multiplier') || !function_exists('WC') || !WC()->cart) return;
     list($items, $ref, $sub) = af_cart_reference_total();
     if ($items < 1) return;
+    $done = true;
     $save = $ref - $sub;
     $pct  = $ref > 0 ? (int) round($save / $ref * 100) : 0;
     ?>
@@ -20935,18 +21084,39 @@ add_action('woocommerce_cart_totals_before_shipping', function () {
   </tr>
     <?php endif; ?>
     <?php
-}, 5);
+}
+add_action('woocommerce_cart_totals_before_shipping', 'af_cart_breakdown_rows', 5);
+add_action('woocommerce_cart_totals_before_order_total', 'af_cart_breakdown_rows', 1);
+
+/**
+ * The delivery line under the cart total, true to what the total holds.
+ * It always said "Shipping cost shown at checkout", even when the delivery
+ * row sat right above it and was already added into the total, and even
+ * for a download-only cart that has nothing to deliver (checkout audit,
+ * 30 Sep). A free-shipping setting keeps its own wording.
+ */
+function af_cart_delivery_note() {
+    $ship = function_exists('af_shipping_copy') ? af_shipping_copy() : array('short' => 'Shipping cost shown at checkout', 'free' => false);
+    if (!empty($ship['free']) || !function_exists('WC') || !WC()->cart) return $ship['short'];
+    $cart = WC()->cart;
+    if (!$cart->needs_shipping()) return 'Digital download: nothing to deliver, no delivery charge';
+    if ($cart->show_shipping()) {
+        foreach (WC()->shipping()->get_packages() as $pkg) {
+            if (!empty($pkg['rates'])) return 'Delivery to your address is included in the total';
+        }
+    }
+    return $ship['short'];
+}
 
 // Below the total: what is NOT yet in that number, said plainly. A buyer who
 // cannot tell whether $80 is the final figure abandons the cart.
 add_action('woocommerce_cart_totals_after_order_total', function () {
     if (!function_exists('af_shipping_copy')) return;
-    $ship = af_shipping_copy();
     ?>
   <tr class="af-ct-note">
     <td colspan="2">
       <span>Inclusive of all taxes</span>
-      <span><?php echo esc_html($ship['short']); ?></span>
+      <span><?php echo esc_html(af_cart_delivery_note()); ?></span>
     </td>
   </tr>
     <?php
@@ -20967,7 +21137,7 @@ add_action('woocommerce_after_cart_totals', function () {
 <div class="af-ct-extra">
   <div class="af-ct-row">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-    <span><?php echo esc_html($ship['short']); ?></span>
+    <span><?php echo esc_html(af_cart_delivery_note()); ?></span>
   </div>
   <div class="af-ct-row">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>

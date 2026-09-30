@@ -437,6 +437,12 @@ add_filter('woocommerce_add_cart_item_data', function ($data, $pid) {
     $kit = isset($_POST['af_kit']) ? sanitize_text_field(wp_unslash($_POST['af_kit'])) : af_kit_default();
     $opts = af_kit_options_for($pid);
     if (!isset($opts[$kit])) $kit = isset($opts[af_kit_default()]) ? af_kit_default() : array_key_first($opts);
+    // The Digital Download modal posts af_digital and no af_kit, so the line
+    // defaulted to "Painting only": the cart and order read "You receive:
+    // Painting only" and the packing slip listed a canvas for a $9 file
+    // (checkout audit, 30 Sep). A file bought from the modal is a download,
+    // on every product the modal sells, Corporate Printing included.
+    if (!empty($_REQUEST['af_digital'])) $kit = 'digital';
     $data['af_kit'] = $kit;
     // keep lines with different choices separate in the cart
     if (isset($data['af_unique'])) $data['af_unique'] = md5($data['af_unique'] . '|' . $kit);
@@ -461,7 +467,14 @@ add_action('woocommerce_before_calculate_totals', function ($cart) {
 
         $add = af_kit_addon_price($kit, $size);
         if ($add > 0) {
-            $item['data']->set_price((float) $item['data']->get_price() + $add);
+            // Start from the stored US price, not get_price(): the currency
+            // plugin hands that back already converted, so a Canadian cart
+            // added US-dollar bars to a CAD price and converted the lot again,
+            // CA$215.91 for a 3x4 ft with bars instead of CA$175.36 (site
+            // test, 30 Sep). USD carts are unchanged.
+            $base = (isset($item['af_price']) && (float) $item['af_price'] > 0)
+                ? (float) $item['af_price'] : (float) $item['data']->get_price('edit');
+            $item['data']->set_price($base + $add);
         }
     }
 }, 25);

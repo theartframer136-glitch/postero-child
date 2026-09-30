@@ -43,6 +43,12 @@ add_action('after_setup_theme', function() {
 
 // ── capture ──────────────────────────────────────────────────────────
 
+/** The cart item keys that carry a shopper's choices. */
+function af_ac_choice_keys() {
+    return array('af_size', 'af_frame', 'af_color', 'af_art_code', 'af_kit', 'af_digital',
+                 'af_bar_size', 'af_alu_size', 'af_alu_color');
+}
+
 /** The cart, reduced to what we need to rebuild it later. */
 function af_ac_snapshot() {
     if (!function_exists('WC') || !WC()->cart || WC()->cart->is_empty()) return null;
@@ -55,8 +61,11 @@ function af_ac_snapshot() {
             'variation'    => isset($item['variation']) && is_array($item['variation']) ? $item['variation'] : array(),
             'options'      => array(),
         );
-        // the size / frame / colour engine stores its choices on the cart item
-        foreach (array('af_size', 'af_frame', 'af_color', 'af_art_code') as $k) {
+        // every choice the pricing filters read back on restore: size, frame,
+        // colour, "What you receive", digital, and the bar / frame kit sizes.
+        // Only the first four were kept, so a restored basket came back as
+        // "Painting only" at the default size (checkout audit, 30 Sep).
+        foreach (af_ac_choice_keys() as $k) {
             if (isset($item[$k]) && is_scalar($item[$k])) $keep['options'][$k] = (string) $item[$k];
         }
         if ($keep['product_id']) $items[] = $keep;
@@ -184,7 +193,15 @@ add_action('template_redirect', function() {
     $items = json_decode($row->contents, true);
     if (!is_array($items) || !function_exists('WC') || !WC()->cart) return;
 
-    WC()->cart->empty_cart();
+    // Rebuild on top of what the shopper has now rather than wiping it; if
+    // this browser still holds exactly the saved basket, there is nothing to
+    // add, so it is not doubled either.
+    $now = af_ac_snapshot();
+    if ($now && wp_json_encode($now['items']) === wp_json_encode($items)) {
+        wc_add_notice('Welcome back — your basket is exactly as you left it.', 'success');
+        wp_safe_redirect(wc_get_cart_url()); exit;
+    }
+    $had   = !WC()->cart->is_empty();
     $added = 0;
     foreach ($items as $it) {
         $pid = isset($it['product_id']) ? (int) $it['product_id'] : 0;
@@ -195,10 +212,21 @@ add_action('template_redirect', function() {
         $vid  = isset($it['variation_id']) ? (int) $it['variation_id'] : 0;
         $var  = isset($it['variation']) && is_array($it['variation']) ? $it['variation'] : array();
         $data = isset($it['options']) && is_array($it['options']) ? $it['options'] : array();
-        if (WC()->cart->add_to_cart($pid, $qty, $vid, $var, $data)) $added++;
+        // The pricing filters read the shopper's choices from the request, as
+        // the product form sends them, so put the saved ones there for this line.
+        $keep_post = $_POST; $keep_req = $_REQUEST;
+        foreach (af_ac_choice_keys() as $k) {
+            if ($k !== 'af_art_code' && isset($data[$k]) && is_scalar($data[$k])) { $_POST[$k] = $_REQUEST[$k] = (string) $data[$k]; }
+        }
+        try {
+            if (WC()->cart->add_to_cart($pid, $qty, $vid, $var, $data)) $added++;
+        } finally {
+            $_POST = $keep_post; $_REQUEST = $keep_req;
+        }
     }
     if ($added) {
-        wc_add_notice('Welcome back — your basket is exactly as you left it.', 'success');
+        wc_add_notice($had ? 'Welcome back — the pieces you left are back in your basket, alongside what you have added since.'
+                           : 'Welcome back — your basket is exactly as you left it.', 'success');
     } else {
         wc_add_notice('Those items are no longer available, sorry.', 'notice');
     }

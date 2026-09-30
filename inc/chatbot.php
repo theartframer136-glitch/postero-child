@@ -61,9 +61,39 @@ function af_bot_from_price() {
 
 function af_bot_intents() {
     $cfg    = function_exists('af_pricing_config') ? af_pricing_config() : array('sizes' => array(), 'frames' => array(), 'colors' => array());
-    $sizes  = array_keys($cfg['sizes']);
-    $size_prices = array_values(array_filter(array_map('floatval', $cfg['sizes'])));
+    // Only what can be ordered today. The price book keeps every size and
+    // frame it has ever listed, so reading it whole had the assistant
+    // offering 15 sizes up to 4x6 ft and three frames at flat fees while the
+    // product page sells five sizes up to 3x5 ft and one aluminium frame
+    // priced by the square foot (site test, 30 Sep).
+    $offered = function_exists('af_sizes_offered') ? af_sizes_offered() : array_keys($cfg['sizes']);
+    $size_map = array();
+    foreach ($offered as $lbl) if (isset($cfg['sizes'][$lbl])) $size_map[$lbl] = (float) $cfg['sizes'][$lbl];
+    if (!$size_map) $size_map = array_map('floatval', $cfg['sizes']);
+    $sizes  = array_keys($size_map);
+    $size_prices = array_values(array_filter($size_map));
+    $short  = function ($lbl) { return trim(preg_replace('/\s*\(.*\)\s*$/', '', (string) $lbl)); };
+    $sqft_of = function ($lbl) { return preg_match('/\((\d+(?:\.\d+)?)×(\d+(?:\.\d+)?) in\)/u', (string) $lbl, $m) ? $m[1] * $m[2] / 144 : 0; };
+    $cheap  = $size_map ? array_search(min($size_map), $size_map) : '';
+    $dear   = $size_map ? array_search(max($size_map), $size_map) : '';
     $frames = $cfg['frames'];
+    if (function_exists('af_frames_in_stock')) $frames = array_intersect_key($frames, array_flip(af_frames_in_stock()));
+    $framed = array_values(array_diff(array_keys($frames), array('Without Frame')));
+    $frame_cost = array();
+    foreach ($framed as $name) {
+        $sq = isset($cfg['frame_sqft'][$name]) ? (float) $cfg['frame_sqft'][$name] : 0;
+        $frame_cost[] = $sq > 0
+            ? sprintf('%s adds %s a square foot of the size (%s on a %s, %s on a %s)', $name, af_bot_money($sq),
+                af_bot_money($sq * $sqft_of($cheap)), $short($cheap), af_bot_money($sq * $sqft_of($dear)), $short($dear))
+            : sprintf('%s adds %s', $name, af_bot_money($frames[$name]));
+    }
+    $dd_link = home_url('/product-category/digital-downloads-2/');
+    if (function_exists('af_digital_cat_slugs')) {
+        foreach (af_digital_cat_slugs() as $slug) {
+            $t = get_term_by('slug', $slug, 'product_cat');
+            if ($t && !is_wp_error($t) && (int) $t->count > 0) { $l = get_term_link($t); if (!is_wp_error($l)) { $dd_link = $l; break; } }
+        }
+    }
     $colors = $cfg['colors'];
     $home   = home_url('/');
 
@@ -79,23 +109,23 @@ function af_bot_intents() {
     return array(
         'sizes' => array(
             'k' => array('size', 'sizes', 'dimension', 'how big', 'inches', 'feet', 'ft', 'large', 'small', 'measurement'),
-            'a' => "We print " . count($sizes) . " standard sizes, from " . ($sizes ? $sizes[0] : '2×3 ft') .
-                   " up to " . ($sizes ? end($sizes) : '4×6 ft') . ".\n\nThe most popular are 3×4 ft and 3×5 ft for a living-room wall, and 2×3 ft for a hallway or bedroom.\n\nNot sure what fits? Preview any piece true-to-scale on a photo of your own wall.",
+            'a' => "We print " . count($sizes) . " standard sizes, from " . ($sizes ? $short($sizes[0]) : '2×3 ft') .
+                   " up to " . ($sizes ? $short(end($sizes)) : '3×5 ft') . ".\n\nThe most popular are 3×4 ft and 3×5 ft for a living-room wall, and 2×3 ft for a hallway or bedroom.\n\nNot sure what fits? Preview any piece true-to-scale on a photo of your own wall.",
             'c' => array('Try it on my wall' => home_url('/try-on-wall/'), 'See all sizes' => home_url('/shop/')),
         ),
         'frames' => array(
             'k' => array('frame', 'framed', 'framing', 'moulding', 'border', 'unframed', 'colour', 'color', 'gold', 'silver', 'black'),
-            'a' => "Every piece can be ordered unframed or in one of three frames:\n• " . implode("\n• ", $frame_list) .
+            'a' => "Every piece can be ordered " . (count($framed) === 1 ? "unframed or framed:" : "unframed or in one of " . count($framed) . " frames:") . "\n• " . implode("\n• ", $frame_list) .
                    "\n\nFrame colours: " . implode(', ', $colour_list) . ".\n\nGallery-wrapped canvas (no frame) is ready to hang as it is — the image continues around the edges.",
             'c' => array('See frames on a wall' => home_url('/try-on-wall/'), 'Browse art' => home_url('/shop/')),
         ),
         'price' => array(
             'k' => array('price', 'cost', 'how much', 'expensive', 'cheap', 'budget', 'afford', 'discount', 'offer', 'sale'),
             'a' => "The size sets the price, straight from our pine-wood framing price list: " .
-                   af_bot_money($size_prices ? min($size_prices) : 60) . " for a 2×3 ft up to " .
-                   af_bot_money($size_prices ? max($size_prices) : 150) . " for a 4×6 ft.\n\nA frame adds a flat fee (" .
-                   af_bot_money(min(array_filter($frames))) . "–" . af_bot_money(max($frames)) . "); gold and rose gold add " . af_bot_money(10) . ".\n\nThe price updates live on the product page as you choose — nothing is hidden until checkout.",
-            'c' => array('Browse art' => home_url('/shop/'), 'Digital downloads' => home_url('/product-category/digital-downloads/')),
+                   af_bot_money($size_prices ? min($size_prices) : 60) . " for a " . ($cheap !== '' ? $short($cheap) : '2×3 ft') . " up to " .
+                   af_bot_money($size_prices ? max($size_prices) : 100) . " for a " . ($dear !== '' ? $short($dear) : '3×5 ft') . ".\n\n" .
+                   ($frame_cost ? implode('; ', $frame_cost) . "; gold and rose gold add " . af_bot_money(10) . "." : "Gold and rose gold add " . af_bot_money(10) . ".") . "\n\nThe price updates live on the product page as you choose — nothing is hidden until checkout.",
+            'c' => array('Browse art' => home_url('/shop/'), 'Digital downloads' => $dd_link),
         ),
         'shipping' => array(
             'k' => array('ship', 'shipping', 'delivery', 'deliver', 'post', 'courier', 'how long', 'arrive', 'dispatch', 'tracking number', 'freight'),
@@ -109,17 +139,17 @@ function af_bot_intents() {
         'returns' => array(
             'k' => array('return', 'refund', 'exchange', 'damaged', 'broken', 'cancel', 'wrong item', 'not happy', 'money back'),
             'a' => "If a piece arrives damaged or isn't what you ordered, we replace or refund it — start the return from the order in your account within 14 days of delivery and we'll arrange collection.\n\nBecause every canvas is printed for your order, change-of-mind returns are limited, but tell us what happened — we'd rather fix it than lose you.",
-            'c' => array('Start a return' => home_url('/my-account/orders/'), 'Return policy' => home_url('/return-refund-policy/')),
+            'c' => array('Start a return' => home_url('/my-account/orders/'), 'Return policy' => home_url('/refund-policy/')),
         ),
         'order' => array(
             'k' => array('my order', 'order status', 'where is my', 'track', 'tracking', 'shipped yet', 'order number', 'delivery status'),
             'a' => "I can look that up. Sign in and open your orders — every order shows its status, tracking and invoice.\n\nIf you checked out as a guest, use the tracking link in your confirmation email, or tell our team your order number and we'll chase it.",
-            'c' => array('My orders' => home_url('/my-account/orders/'), 'Track an order' => home_url('/order-tracking/')),
+            'c' => array('My orders' => home_url('/my-account/orders/'), 'Track an order' => home_url('/track-your-order/')),
         ),
         'digital' => array(
             'k' => array('digital', 'download', 'downloadable', 'file', 'jpg', 'print at home', 'instant', 'printable'),
             'a' => "Most artworks are also available as an instant digital download for under " . af_bot_money(10) . ".\n\nYou get a high-resolution, print-ready file by email straight after payment — print it at home or at any print shop. The link allows 5 downloads within 30 days.\n\nLook for the “Digital Download” option on a product card.",
-            'c' => array('Digital downloads' => home_url('/product-category/digital-downloads/')),
+            'c' => array('Digital downloads' => $dd_link),
         ),
         'custom' => array(
             'k' => array('custom', 'personalised', 'personalized', 'my photo', 'own photo', 'my picture', 'bespoke', 'frame my', 'portrait of'),
