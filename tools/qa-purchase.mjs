@@ -379,6 +379,35 @@ if (MODE === 'smoke') {
   }
 }
 
+// =============================================================================
+if (MODE === 'smoke') {
+  console.log('\n--- the chat assistant: what it tells shoppers, and where its buttons go ---');
+  const c = await newPage();
+  await go(c, S + '/');
+  const asks = [
+    ['QA test: what sizes do you have', /5 standard sizes/i, /4×6/],
+    ['QA test: how much does a frame cost', /a square foot/i, /flat fee|three frames/i],
+    ['QA test: what frames can I choose', /Aluminium/i, /Fibre|Floating/i],
+    ['QA test: track my order', /orders/i, null],
+    ['QA test: digital download', /download/i, null],
+    ['QA test: return policy', /return|refund/i, null],
+  ];
+  for (const [q, want, never] of asks) {
+    const r = await c.evaluate(async (q) => {
+      const m = document.documentElement.innerHTML.match(/var NONCE = "([^"]+)"/); if (!m) return { err: 'no chat key on the page' };
+      const body = new URLSearchParams(); body.set('action', 'af_bot_reply'); body.set('nonce', m[1]); body.set('msg', q);
+      const j = await (await fetch('/wp-admin/admin-ajax.php', { method: 'POST', credentials: 'same-origin', body })).json().catch(() => null);
+      if (!j || !j.success) return { err: 'no reply' };
+      const links = [];
+      for (const [label, url] of Object.entries(j.data.chips || {})) { let st = 0; try { st = (await fetch(url, { credentials: 'same-origin' })).status; } catch {} links.push(label + ' ' + url.replace(location.origin, '') + ' ' + st); }
+      return { reply: j.data.reply.replace(/\s+/g, ' '), links };
+    }, q);
+    if (r.err) { ok(false, 'chat: "' + q + '"', r.err); continue; }
+    ok(want.test(r.reply) && !(never && never.test(r.reply)), 'chat answer: "' + q.replace('QA test: ', '') + '"', r.reply.slice(0, 230));
+    for (const l of r.links) ok(/ 200$/.test(l), '  chat button ' + l);
+  }
+}
+
 console.log('\n=== console / page errors seen ===\n' + ([...new Set(errs)].slice(0, 25).join('\n') || 'none'));
 console.log(`\nSUMMARY ${MODE}: ${passes} passed, ${fails} failed`);
 await b.close();
