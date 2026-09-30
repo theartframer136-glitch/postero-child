@@ -111,6 +111,10 @@ foreach ( $ids as $pid ) {
     // A variable parent has no price of its own — its variations carry them,
     // and those are in this list already.
     if ( $product->is_type( 'variable' ) ) { $skip++; continue; }
+    // Corporate Printing carries the Corporate Rate Card's own list price and
+    // its 40% off (owner, 30 Sep: "all things from pdf"), not a derived markup.
+    $cid = $product->get_parent_id() ?: $product->get_id();
+    if ( has_term( 'corporate-printing', 'product_cat', $cid ) ) { $skip++; continue; }
     afm_apply( $product, $REVERT, $done, $skip, $none, $hist );
 }
 
