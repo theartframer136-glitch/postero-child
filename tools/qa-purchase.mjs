@@ -167,9 +167,18 @@ if (MODE === 'pricing') {
   const cl3 = await cartLines(q);
   ok(cl3[0] && parseInt(cl3[0].qty, 10) <= 25, 'quantity 99 refused by the server (cap 25)', 'qty after reload ' + (cl3[0] || {}).qty + ' | ' + capMsg.slice(0, 160));
   // coupon + gift card with junk codes
-  const hasCoupon = await q.evaluate(() => { const c = document.getElementById('coupon_code'); if (!c) return false; c.value = 'NOTACODE123'; const bt = document.querySelector('button[name="apply_coupon"]'); if (bt) bt.click(); return true; });
+  const couponReplies = [];
+  const onCoupon = async (r) => { if (/apply_coupon/.test(r.url())) { let body = ''; try { body = (await r.text()).replace(/\s+/g, ' ').slice(0, 300); } catch {} couponReplies.push(r.status() + ' ' + body); } };
+  q.on('response', onCoupon);
+  const hasCoupon = await q.evaluate(() => { const c = document.getElementById('coupon_code'); if (!c) return null; const vis = c.offsetParent !== null; c.value = 'NOTACODE123'; const bt = document.querySelector('button[name="apply_coupon"]'); if (bt) bt.click(); return { vis, btn: !!bt }; });
   if (!hasCoupon) console.log('  INFO no coupon box on the cart: coupons are switched off in WooCommerce');
-  else { await waitAjax(q); await sleep(2000); ok(/does not exist|not valid|invalid/i.test(await txt(q, '.woocommerce-error, .woocommerce-notices-wrapper')), 'junk coupon refused', (await txt(q, '.woocommerce-error')).slice(0, 100)); }
+  else {
+    await waitAjax(q); await sleep(2500);
+    const notes = await q.evaluate(() => [...document.querySelectorAll('.woocommerce-error, .woocommerce-message, .woocommerce-info, [role="alert"], .wc-block-components-notice-banner, .woocommerce-notices-wrapper')].map(e => e.className.toString().slice(0, 40) + ': ' + e.innerText.replace(/\s+/g, ' ').trim().slice(0, 120)).filter(t => !/: $/.test(t)));
+    console.log('  coupon box ' + JSON.stringify(hasCoupon) + ' | server replied: ' + (couponReplies.join(' || ') || '(no apply_coupon request)') + ' | notices on page: ' + JSON.stringify(notes).slice(0, 400));
+    ok(notes.some(t => /does not exist|not valid|invalid|not found/i.test(t)), 'junk coupon: the shopper is told it is not valid', notes.join(' | ').slice(0, 120));
+  }
+  q.off('response', onCoupon);
   await q.evaluate(() => { const i = document.querySelector('.af-gc-input'); if (i) { i.value = 'TAF-0000-0000-0000'; const bt = document.querySelector('.af-gc-apply'); if (bt) bt.click(); } });
   await sleep(4000);
   const gcm = await txt(q, '.af-gc-msg');
@@ -201,7 +210,7 @@ if (MODE === 'pricing') {
   console.log('  modal add (product ' + pid + ', HTTP ' + added + '): ' + (dl[0] ? dl[0].text : 'no line'));
   ok(dl.length === 1 && /Digital download/i.test(dl[0].text) && !/Painting only/i.test(dl[0].text), 'modal purchase reads "You receive: Digital download"', dl[0] ? dl[0].price : '');
   const dlt = await dm.evaluate(() => { const t = document.querySelector('.cart_totals'); return t ? t.innerText.replace(/\s+/g, ' ') : ''; });
-  ok(/nothing to deliver|no delivery charge/i.test(dlt) && /Items/.test(dlt), 'download-only cart: rows shown and "no delivery charge"', dlt.slice(0, 200));
+  ok(/nothing to deliver|no delivery charge/i.test(dlt) && /Items?\s+\d/.test(dlt), 'download-only cart: rows shown and "no delivery charge"', dlt.slice(0, 200));
 
   console.log('\n--- Buy Now keeps the chosen options ---');
   const bn = await newPage();
@@ -253,7 +262,8 @@ if (MODE === 'delivery') {
     const onArrival = await p.evaluate(() => ({ country: (document.getElementById('billing_country') || {}).value, state: (document.getElementById('billing_state') || {}).value }));
     ok(onArrival.country === 'US', 'checkout opens on United States', JSON.stringify(onArrival));
     for (const [name, st, zip, ll] of (c === carts[0] ? Z : Z.filter(z => ['19711', '10001', '60601', '94043', '99501', '10118'].includes(z[2])))) {
-      await setAddress(p, { a1: '100 Main St', city: name.split(' ')[0], st, zip });
+      // Puerto Rico is its own country in WooCommerce's list, which is what a shopper there picks
+      await setAddress(p, st === 'PR' ? { country: 'PR', a1: '100 Calle Main', city: 'Adjuntas', st: '', zip } : { a1: '100 Main St', city: name.split(' ')[0], st, zip });
       const rv = await reviewNumbers(p);
       const got = rv ? lastMoney(rv.shipping) : NaN;
       const exp = expectedDelivery(c.lbs, ll);
