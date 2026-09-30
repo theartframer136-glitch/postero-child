@@ -95,7 +95,7 @@ console.log(await p.evaluate(() => {
   return sels.map(s => { const n = document.querySelectorAll(s); return s + ': ' + n.length + (n.length ? ' (imgs ' + [...n].reduce((a, x) => a + x.querySelectorAll('img').length, 0) + ', visible ' + [...n].filter(x => x.offsetParent !== null).length + ')' : ''); }).join('\n');
 }));
 
-for (const [w, h] of [[1918, 1078], [1366, 900], [1024, 800], [390, 844]]) {
+for (const [w, h] of [[1918, 1078], [1366, 900], [1150, 800], [1024, 800], [390, 844]]) {
   await p.setViewport({ width: w, height: h }); await sleep(1500);
   console.log('\n=== ' + w + 'px ===');
   console.log(await p.evaluate(() => {
