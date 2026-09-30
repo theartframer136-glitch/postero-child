@@ -18,8 +18,11 @@
 /* phones: checkout.css stacks each line under 500px; keep the price with its
    product, under the details, instead of across a divider */
 @media (max-width:499px){
-.woocommerce-checkout-review-order-table tr.cart_item td.product-name{display:flow-root;box-sizing:border-box;padding:14px 0 6px 70px!important;border-bottom:0!important}
+/* one line between products: the row's own (checkout.css), not three */
+.woocommerce-checkout-review-order-table tr.cart_item{padding:0!important}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name{display:flow-root;box-sizing:border-box;padding:14px 0 6px 70px!important;border-top:0!important;border-bottom:0!important}
+.woocommerce-checkout-review-order-table tr.cart_item:first-child td.product-name{border-top:1px solid var(--af-co-line,#ece5d4)!important}
 .woocommerce-checkout-review-order-table tr.cart_item td.product-name::before{height:56px}
 .woocommerce-checkout-review-order-table .af-co-thumb{top:14px;width:56px;height:56px;border-radius:9px}
-.woocommerce-checkout-review-order-table tr.cart_item td.product-total{box-sizing:border-box;padding:0 0 14px 70px!important;border-top:0!important;text-align:right}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-total{box-sizing:border-box;padding:0 0 14px 70px!important;border-top:0!important;border-bottom:0!important;text-align:right}
 }
