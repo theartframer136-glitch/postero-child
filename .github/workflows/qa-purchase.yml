@@ -1,0 +1,19 @@
+name: QA Purchase Path
+# Read-only QA of the purchase path, live, as a guest: prices, delivery,
+# checkout/payment forms, whole-site smoke. Never places an order.
+on:
+  workflow_dispatch:
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [pricing, delivery, payment, smoke]
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afh/node_modules node tools/qa-purchase.mjs ${{ matrix.mode }} || true
