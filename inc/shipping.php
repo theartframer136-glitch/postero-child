@@ -120,7 +120,7 @@ add_action('woocommerce_single_product_summary', function() {
     if (!$product || !function_exists('af_pricing_applies') || !af_pricing_applies($product)) return;
     echo '<p class="af-ship-note" style="margin:10px 0 0;font-size:12.5px;color:#5a5140;">'
        . '📦 <strong>Rolled</strong> in a protective tube up to 3&nbsp;ft unframed; larger or framed pieces ship '
-       . '<strong>flat in a corner-protected crate</strong>. Oversize handling is shown at checkout.'
+       . '<strong>flat in a corner-protected crate</strong>. Delivery is charged at UPS Ground rates, shown at checkout.'
        . '</p>';
 }, 26);
 

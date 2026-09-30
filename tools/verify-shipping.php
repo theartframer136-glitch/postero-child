@@ -42,8 +42,12 @@ af_sv('bigger piece costs more to ship', $bill_big > $bill_small, $fail,
       round($bill_small, 1) . ' vs ' . round($bill_big, 1) . ' lb');
 
 echo "\n--- surcharge bands ---\n";
+// Since 30 Sep 2026 the size surcharges are UPS's own (Additional Handling,
+// Large Package) inside the delivery line, so inc/shipping-ups.php empties
+// this table: a non-empty one would bill the size twice.
 $bands = af_ship_surcharge_table();
-af_sv('bands descend by size', $bands[0]['over'] > $bands[count($bands)-1]['over'], $fail, count($bands) . ' bands');
+af_sv('size surcharges left to the UPS delivery line', count($bands) === 0, $fail,
+      $bands ? count($bands) . ' bands would double-charge' : 'no separate fee');
 af_sv('cart fee hook', (bool) has_action('woocommerce_cart_calculate_fees'), $fail);
 af_sv('dimensions applied to cart items', (bool) has_action('woocommerce_before_calculate_totals'), $fail);
 

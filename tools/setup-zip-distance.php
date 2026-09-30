@@ -6,7 +6,7 @@
  * Source: US Census ZCTA centre points (public domain, ~33k rows), fetched
  * once from a stable mirror. Idempotent — if the table is already populated
  * it reports the count and stops. If the download fails the method still
- * works: unknown ZIPs fall back to the flat af_distance_fallback rate.
+ * works: unknown ZIPs fall back to the zone in option af_ups_fallback_zone.
  *
  * Run: wp eval-file tools/setup-zip-distance.php --allow-root
  */

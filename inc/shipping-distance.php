@@ -1,21 +1,23 @@
 <?php
 /**
- * Distance-based delivery from the studio: ZIP 19707, Hockessin, Delaware.
+ * Delivery from the studio: ZIP 19707, Hockessin, Delaware.
  *
  * The owner's requirement: orders ship FROM 19707 and the delivery charge is
- * calculated by how far the customer's address is from there. No external
- * rate API is involved — the charge comes from a distance tier table the
- * owner controls, so it can be tuned to real carrier prices at any time
- * without code changes.
+ * what UPS charges to carry them. This file knows WHERE the customer is —
+ * the straight-line miles from the studio — and registers the WooCommerce
+ * shipping method; the pricing itself is the UPS calculation in
+ * inc/shipping-ups.php (zone, billable weight, rate card, surcharges, fuel).
  *
  * How the distance is known: a one-time table of every US ZIP code's centre
  * point (latitude/longitude, US Census ZCTA data, public domain) is loaded by
- * tools/setup-zip-distance.php. At checkout the straight-line (haversine)
- * miles between 19707 and the customer's ZIP pick the tier.
+ * tools/setup-zip-distance.php. The miles between 19707 and the customer's
+ * ZIP pick the UPS zone until the studio's own UPS zone chart is loaded
+ * (tools/setup-ups-zones.php), after which the chart wins.
  *
- * The tiers ship with DEFAULTS the owner has not confirmed yet. They live in
- * one option so correcting them is a single update, no deploy:
- *   wp option update af_distance_tiers '[{"mi":15,"cost":15}, ...]' --format=json
+ * History: until 30 Sep 2026 this file priced by its own distance tiers
+ * (option af_distance_tiers, a handling base plus a per-pound rate per band).
+ * That option is no longer read; the UPS figures live in the af_ups_*
+ * options described in inc/shipping-ups.php.
  */
 if (!defined('ABSPATH')) exit;
 
@@ -50,54 +52,6 @@ function af_zip_distance_miles($from, $to) {
 }
 
 /**
- * Zone bands by distance from the studio. Carriers price on TWO things — how
- * far the parcel goes AND how big/heavy it is — so a flat per-distance charge
- * was wrong: it billed $65 to ship a rolled print that a carrier moves for a
- * fraction of that, and would have undercharged a large framed crate.
- *
- * Each band therefore carries a handling base plus a per-pound rate, applied
- * to the parcel's BILLABLE weight (the greater of real weight and dimensional
- * weight, which is how every carrier bills). A rolled tube is light and small
- * and lands cheap; a 4 ft framed crate is bulky and lands dear, automatically.
- *
- * STILL PLACEHOLDERS until the owner supplies carrier quotes. One option to
- * change, no deploy:
- *   wp option update af_distance_tiers '[{"mi":50,"base":8,"per_lb":0.6}, ...]' --format=json
- */
-function af_distance_tiers() {
-    $t = get_option('af_distance_tiers');
-    if (is_string($t)) $t = json_decode($t, true);
-    if (is_array($t) && $t) return $t;
-    return array(
-        array('mi' => 50,    'base' => 8,  'per_lb' => 0.60, 'label' => 'Local / regional'),
-        array('mi' => 150,   'base' => 9,  'per_lb' => 0.90, 'label' => 'Extended region'),
-        array('mi' => 500,   'base' => 10, 'per_lb' => 1.30, 'label' => 'East coast / near Midwest'),
-        array('mi' => 1000,  'base' => 11, 'per_lb' => 1.70, 'label' => 'Midwest / South'),
-        array('mi' => 1800,  'base' => 12, 'per_lb' => 2.10, 'label' => 'Mountain / South West'),
-        array('mi' => 99999, 'base' => 14, 'per_lb' => 2.60, 'label' => 'West coast / AK / HI'),
-    );
-}
-
-/** The band a distance falls into; the last band when the ZIP is unknown. */
-function af_distance_band($miles) {
-    $tiers = af_distance_tiers();
-    if ($miles === null) {
-        $i = (int) get_option('af_distance_fallback_band', 2);
-        return isset($tiers[$i]) ? $tiers[$i] : end($tiers);
-    }
-    foreach ($tiers as $t) {
-        if ($miles <= (float) $t['mi']) return $t;
-    }
-    return end($tiers);
-}
-
-/**
- * What actually has to travel, and what it weighs to a carrier.
- *
- * Digital downloads travel by email: they add nothing here, so a download-only
- * order is never charged delivery — that was the $65 on an $80 download.
- */
-/**
  * How many pieces share one parcel. A tube holds several rolled prints; a
  * flat crate takes a few pieces stacked, which grows its depth and nothing
  * else. Filterable because these are physical limits the studio knows better
@@ -110,118 +64,19 @@ function af_ship_parcel_capacity($method) {
 }
 
 /**
- * What actually leaves the studio, as parcels rather than as pieces.
+ * Billable pounds across the order's parcels and the count of parcels.
+ * Kept for the verifier and for anything that only wants the weight; the
+ * parcels themselves (DEF-03: bill for parcels, not for pieces) come from
+ * af_ups_parcels() in inc/shipping-ups.php.
  *
- * DEF-03. The old version summed each piece's billable weight and multiplied
- * by quantity, which for a 36×48 in rolled print meant:
- *
- *     tube        l = 52, w = 6, h = 6
- *     real        max(2.0, (36×48)/720 + 1.5)  =  3.90 lb
- *     dimensional (52 × 6 × 6) / 139           = 13.47 lb   <- billable
- *
- * and then charged 13.47 lb for every copy. Measured at checkout: $49.02 for
- * one, then +$35.01 per piece, uncapped — $189.08 to deliver five prints on a
- * $400 order, 47% of the order value.
- *
- * The error is what dimensional weight means. 13.47 lb is the volume of THE
- * TUBE, not of the print inside it. Five prints go in one tube — the site's
- * own product copy says so — so charging five tubes' worth of air is billing
- * for parcels that do not exist.
- *
- * So pieces are grouped into parcels first. A tube's volume counts once and
- * the prints' real weights add up; a crate's depth grows with what is stacked
- * in it, which is what actually happens to its dimensions. Five prints then
- * bill as one tube: real 5 × 3.90 = 19.50 lb against dimensional 13.47, so
- * 19.50 lb and $64.70 instead of $189.08.
- *
- * Deliberately conservative in two places. Each piece keeps the tube
- * allowance in its own weight, so a shared tube is counted slightly heavy
- * rather than slightly light; and the handling base stays charged once per
- * order rather than once per parcel, which is how it behaves today. Changing
- * the rate model and the base at the same time would make the next
- * measurement unreadable.
- *
- * @return array [ billable pounds, count of physical lines ]
+ * @return array [ billable pounds, count of parcels ]
  */
 function af_distance_package_weight($package) {
-    $physical = 0;
-    $groups   = array();
-    $loose    = 0.0;
-
-    foreach ((array) $package['contents'] as $item) {
-        $product = isset($item['data']) ? $item['data'] : null;
-        if (!$product) continue;
-        // a download or a virtual line ships nothing
-        if ((method_exists($product, 'is_virtual') && $product->is_virtual())
-         || (method_exists($product, 'is_downloadable') && $product->is_downloadable()
-             && !$product->needs_shipping())) {
-            continue;
-        }
-        if (method_exists($product, 'needs_shipping') && !$product->needs_shipping()) continue;
-        $physical++;
-        $qty = isset($item['quantity']) ? max(1, (int) $item['quantity']) : 1;
-
-        $pkg = null;
-        if (!empty($item['af_size']) && function_exists('af_ship_package')) {
-            $pkg = af_ship_package($item['af_size'], isset($item['af_frame']) ? $item['af_frame'] : '');
-        }
-        if (!$pkg || empty($pkg['method'])) {
-            // No dimensions to reason about, so no consolidation is claimed:
-            // this behaves exactly as it did before.
-            $w = (float) ($product->get_weight() ? $product->get_weight() : 5);
-            $loose += max(1.0, $w) * $qty;
-            continue;
-        }
-
-        // Same shape and same packing method travel together.
-        $key = $pkg['method'] . '|' . round((float) $pkg['l'], 1)
-             . '|' . round((float) $pkg['w'], 1) . '|' . round((float) $pkg['h'], 1);
-        if (!isset($groups[$key])) $groups[$key] = array('pkg' => $pkg, 'qty' => 0);
-        $groups[$key]['qty'] += $qty;
-    }
-
-    $lbs = $loose;
-    foreach ($groups as $g) {
-        $pkg    = $g['pkg'];
-        $left   = (int) $g['qty'];
-        $method = $pkg['method'];
-        $cap    = af_ship_parcel_capacity($method);
-        $unit   = max(1.0, (float) $pkg['weight']);
-
-        // DEF-05. This loop runs once per parcel, so its length is the
-        // quantity ordered divided by what a parcel holds — and until the
-        // cap in inc/quantity-limits.php there was no ceiling on that
-        // quantity at all. 99999 rolled prints meant 20000 turns of this
-        // loop on every cart render. The cap is the fix; this is the belt,
-        // so a quantity that ever gets past it cannot spin the calculator.
-        // The remainder bills at real weight, which is the conservative
-        // direction: it never under-charges.
-        $parcels = 0;
-        while ($left > 0) {
-            if (++$parcels > 200) { $lbs += $unit * $left; break; }
-            $n     = min($cap, $left);
-            $left -= $n;
-            $l = (float) $pkg['l'];
-            $w = (float) $pkg['w'];
-            // A tube holds more without getting bigger. A crate gets deeper.
-            $h = ($method === 'crate') ? ((float) $pkg['h'] * $n) : (float) $pkg['h'];
-            $real = $unit * $n;
-            $dim  = ($l > 0 && $w > 0 && $h > 0 && function_exists('af_ship_dim_weight'))
-                  ? (float) af_ship_dim_weight($l, $w, $h)
-                  : 0.0;
-            $lbs += max(1.0, max($real, $dim));
-        }
-    }
-
-    return array($lbs, $physical);
-}
-
-/** Legacy helper kept for the verifier: flat cost for a distance. */
-function af_distance_rate($miles, $lbs = 12.0) {
-    $b = af_distance_band($miles);
-    $base   = isset($b['base'])   ? (float) $b['base']   : 10.0;
-    $per_lb = isset($b['per_lb']) ? (float) $b['per_lb'] : 1.5;
-    return round($base + $per_lb * max(1.0, (float) $lbs), 2);
+    if (!function_exists('af_ups_parcels')) return array(0.0, 0);
+    $lbs = 0.0;
+    $parcels = af_ups_parcels($package);
+    foreach ($parcels as $p) $lbs += (float) $p['billable'];
+    return array($lbs, count($parcels));
 }
 
 add_action('woocommerce_shipping_init', function () {
@@ -229,52 +84,57 @@ add_action('woocommerce_shipping_init', function () {
 
     class AF_Distance_Shipping extends WC_Shipping_Method {
         public function __construct($instance_id = 0) {
+            // The id stays 'af_distance' so the instances already sitting in
+            // the shipping zones keep working; only the pricing behind it moved.
             $this->id                 = 'af_distance';
             $this->instance_id        = absint($instance_id);
-            $this->method_title       = 'Distance-based delivery (from ZIP 19707)';
-            $this->method_description = 'Charges by distance from the Hockessin, DE studio to the '
-                                      . 'customer ZIP. Tiers: option af_distance_tiers.';
+            $this->method_title       = 'UPS Ground delivery (from ZIP 19707)';
+            $this->method_description = 'Charges what UPS Ground charges from the Hockessin, DE studio '
+                                      . 'to the customer address: zone, billable weight, surcharges and '
+                                      . 'fuel. Live UPS quote when API credentials are set; otherwise the '
+                                      . 'published-rate model in inc/shipping-ups.php (options af_ups_*).';
             $this->supports           = array('shipping-zones', 'instance-settings',
                                               'instance-settings-modal');
             $this->instance_form_fields = array(
                 'title' => array(
                     'title'   => 'Label shown at checkout',
                     'type'    => 'text',
-                    'default' => 'Delivery',
+                    'default' => 'UPS Ground',
                 ),
             );
-            $this->title = $this->get_option('title', 'Delivery');
+            $this->title = $this->get_option('title', 'UPS Ground');
         }
 
         public function calculate_shipping($package = array()) {
-            $dest    = isset($package['destination']) ? $package['destination'] : array();
-            $country = isset($dest['country']) ? $dest['country'] : '';
-            $zip     = isset($dest['postcode']) ? $dest['postcode'] : '';
-
-            list($lbs, $physical) = af_distance_package_weight($package);
+            if (!function_exists('af_ups_quote')) return;
+            $quote = af_ups_quote($package);
             // nothing physical in the basket: a download-only order pays no
             // delivery at all, so no rate is offered
-            if ($physical < 1 || $lbs <= 0) return;
+            if (!$quote || !isset($quote['cost'])) return;
 
-            $miles = ($country === 'US') ? af_zip_distance_miles(AF_SHIP_ORIGIN_ZIP, $zip) : null;
-            $band  = af_distance_band($miles);
-            $base   = isset($band['base'])   ? (float) $band['base']   : 10.0;
-            $per_lb = isset($band['per_lb']) ? (float) $band['per_lb'] : 1.5;
-            $cost   = round($base + $per_lb * $lbs, 2);
-
-            // The distance and the origin town are how this method works, not
-            // something the customer ordered. "Delivery (~85 mi from Hockessin,
-            // DE)" reads like a leaked internal field on the one line where a
-            // shopper is deciding whether the number beside it is fair, and it
-            // publishes the studio's location on every cart in the country.
-            // The rate is unchanged; only the label stops explaining itself.
-            $label = $this->title;
+            // What the number is made of travels with the order line, so the
+            // owner can hold it against the UPS invoice. The customer sees
+            // only the label: the zone and the parcel list are how this
+            // method works, not something they ordered.
+            $meta = array(
+                'UPS zone'    => (string) $quote['zone'],
+                'Rate source' => ($quote['source'] === 'api') ? 'UPS Rating API' : 'published-rate table',
+                'Parcels'     => count($quote['parcels']),
+            );
+            $i = 0;
+            foreach ($quote['parcels'] as $p) {
+                $i++;
+                $meta['Parcel ' . $i] = sprintf('%s %dx%dx%d in, %d lb billable, $%.2f',
+                    $p['method'], round($p['l']), round($p['w']), round($p['h']),
+                    $p['charge']['billable'], $p['charge']['total']);
+            }
 
             $this->add_rate(array(
-                'id'      => $this->get_rate_id(),
-                'label'   => $label,
-                'cost'    => $cost,
-                'package' => $package,
+                'id'        => $this->get_rate_id(),
+                'label'     => $this->title,
+                'cost'      => (float) $quote['cost'],
+                'package'   => $package,
+                'meta_data' => $meta,
             ));
         }
     }

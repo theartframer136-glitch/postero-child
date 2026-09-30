@@ -4647,7 +4647,7 @@ add_action('wp_footer', function() { ?>
       title: '🚚 ' + AF_SHIP.label,
       // the old copy promised free shipping here and then listed free delivery
       // in four states only — one claim, stated once, from af_shipping_copy()
-      body: '<p>' + AF_SHIP.blurb + '</p><h4>📦 How it travels:</h4><ul><li>Smaller unframed prints ship rolled in a protective tube</li><li>Framed and larger pieces ship flat in a corner-protected crate</li><li>Oversize handling, where it applies, is shown at checkout</li></ul><p>Everything is made to order, so allow a few days for production before it ships. Tracking follows by email.</p>'
+      body: '<p>' + AF_SHIP.blurb + '</p><h4>📦 How it travels:</h4><ul><li>Smaller unframed prints ship rolled in a protective tube</li><li>Framed and larger pieces ship flat in a corner-protected crate</li><li>Delivery is charged at UPS Ground rates for your parcel and ZIP, shown at checkout</li></ul><p>Everything is made to order, so allow a few days for production before it ships. Tracking follows by email.</p>'
     },
     {
       label: 'High Resolution',
@@ -12415,7 +12415,7 @@ add_shortcode('af_delivery_checker', function() {
       out.innerHTML = '<b>🎁 Free delivery to ' + m[1] + '.</b><br>' + arrival;
     } else {
       out.className = 'taf-shipcheck-result mid';
-      out.innerHTML = '<b>🚚 We deliver to ' + m[1] + '.</b> Shipping is calculated at checkout based on artwork size.<br>' +
+      out.innerHTML = '<b>🚚 We deliver to ' + m[1] + '.</b> UPS Ground from our Delaware studio — the exact charge for your artwork\'s size and your ZIP is shown at checkout.<br>' +
         'Estimated arrival between <b>' + fmt(early) + '</b> and <b>' + fmt(late) + '</b>.';
     }
   }
@@ -17913,7 +17913,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings', 'retired-products') as $af_mod) {
+foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-ups', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings', 'retired-products') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }
