@@ -20436,6 +20436,25 @@ table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
 .af-wl-related h2{font-size:24px;margin:0 0 18px;color:#1a1a1a}
 .af-wl-related ul.products{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;margin:0!important;padding:0!important;list-style:none!important}
 .af-wl-related ul.products::before,.af-wl-related ul.products::after{display:none!important}
+/* No hover swap in the related rows (owner's recording, 30 Sep). On the shop
+   a card keeps its photo under the mouse. Here the theme's "fade" effect
+   still ran: the photo faded out and the room mockup faded in at 105%,
+   cropped to a portrait slice of a landscape photo, inside a wrapper allowed
+   to overflow - the ghosting and the off-centre picture in the recording.
+   The child theme's own hover script cannot help: it is inside a
+   window.innerWidth <= 600 guard (functions.php, the wp_head script), so it
+   never runs where a mouse exists. Scoped to these two rows; the theme's
+   selector is (0,7,1), these outrank it. */
+html body section.af-wl-related ul.products li.product .product-block .product-transition .product-img-wrap .product-image.image-main,
+html body section.af-xsell ul.products li.product .product-block .product-transition .product-img-wrap .product-image.image-main,
+html body section.af-wl-related ul.products li.product .product-block:hover .product-transition .product-img-wrap .product-image.image-main,
+html body section.af-xsell ul.products li.product .product-block:hover .product-transition .product-img-wrap .product-image.image-main{
+  opacity:1!important;transform:none!important}
+html body section.af-wl-related ul.products li.product .product-block .product-transition .product-img-wrap .product-image.second-image,
+html body section.af-xsell ul.products li.product .product-block .product-transition .product-img-wrap .product-image.second-image,
+html body section.af-wl-related ul.products li.product .product-block:hover .product-transition .product-img-wrap .product-image.second-image,
+html body section.af-xsell ul.products li.product .product-block:hover .product-transition .product-img-wrap .product-image.second-image{
+  opacity:0!important;transform:none!important;overflow:hidden!important;pointer-events:none!important}
 /* The photo's frame (.product-transition) is drawn as a square: 482x482 on a
    546px phone, while the photo inside is a 300px box - leaving a 182px empty
    strip under every photo (measured live, 24 Sep, after the empty grey link
