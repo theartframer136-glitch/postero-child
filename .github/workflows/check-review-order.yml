@@ -1,0 +1,41 @@
+name: Check Review Order
+# Read-only. The checkout "Your order" list: its markup, layout at three
+# widths and a picture of it; and whether the parent theme or a plugin
+# replaces WooCommerce's review-order template.
+on:
+  workflow_dispatch:
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Server view (read-only)
+        run: |
+          set +e
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" '
+            cd ~/websites/OPu0sKi4J/public_html/wp-content
+            echo "=== review-order templates outside WooCommerce ==="
+            find themes plugins -path "*woocommerce/checkout/review-order.php" -not -path "plugins/woocommerce/*" 2>/dev/null
+            echo "=== parent theme woocommerce/checkout folder ==="
+            ls themes/postero/woocommerce/checkout/ 2>/dev/null || echo "(none)"
+            f=themes/postero/woocommerce/checkout/review-order.php
+            if [ -f "$f" ]; then echo "=== $f (product rows) ==="; grep -n "cart_item_name\|product-name\|thumbnail\|get_image\|product-quantity\|formatted_cart_item_data" "$f"; fi
+            echo "=== who filters the cart item name or thumbnail (plugins + parent theme) ==="
+            grep -rln "woocommerce_cart_item_name\|woocommerce_cart_item_thumbnail" themes/postero plugins --include=*.php 2>/dev/null | grep -v "plugins/woocommerce/" | head -20
+            echo "=== WooCommerce version ==="
+            grep -m1 "Version:" plugins/woocommerce/woocommerce.php
+          '
+      - name: Live look (read-only, no order placed)
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afh/node_modules node tools/diag-review-order.mjs || true
