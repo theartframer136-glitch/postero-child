@@ -1,0 +1,71 @@
+name: Check Checkout Config
+# Read-only. Where "1268 Madison Ln" is stored, the store address, the default
+# customer location, the admin accounts' saved addresses, shipping zones and
+# methods, tax and payment settings - everything checkout reads.
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Server view
+        run: |
+          set +e
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" '
+            cd ~/websites/OPu0sKi4J/public_html
+            W="timeout 60 wp --allow-root --skip-plugins=litespeed-cache"
+            q() { timeout 60 wp --allow-root db query "$1" --skip-column-names 2>/dev/null; }
+            P=$(timeout 30 wp --allow-root db prefix 2>/dev/null | tail -1)
+            echo "=== store address and customer defaults ==="
+            for o in woocommerce_store_address woocommerce_store_address_2 woocommerce_store_city woocommerce_store_postcode woocommerce_default_country woocommerce_default_customer_address woocommerce_allowed_countries woocommerce_specific_allowed_countries woocommerce_ship_to_countries woocommerce_specific_ship_to_countries woocommerce_ship_to_destination woocommerce_calc_taxes woocommerce_prices_include_tax woocommerce_tax_based_on woocommerce_enable_guest_checkout woocommerce_enable_checkout_login_reminder woocommerce_enable_signup_and_login_from_checkout woocommerce_enable_shipping_calc woocommerce_shipping_cost_requires_address woocommerce_checkout_phone_field woocommerce_checkout_company_field woocommerce_checkout_address_2_field woocommerce_currency woocommerce_force_ssl_checkout; do
+              printf "%-48s %s\n" "$o" "$($W option get $o 2>/dev/null | tr "\n" " " | cut -c1-160)"
+            done
+            echo
+            echo "=== where 1268 Madison Ln is stored ==="
+            echo "-- options:";  q "SELECT option_name, LEFT(option_value,160) FROM ${P}options WHERE option_value LIKE \"%Madison Ln%\" LIMIT 20"
+            echo "-- user meta:"; q "SELECT user_id, meta_key, LEFT(meta_value,120) FROM ${P}usermeta WHERE meta_value LIKE \"%Madison Ln%\" OR (meta_key LIKE \"%postcode\" AND meta_value=\"34444\") LIMIT 30"
+            echo "-- customer sessions holding it:"; q "SELECT COUNT(*) FROM ${P}woocommerce_sessions WHERE session_value LIKE \"%Madison Ln%\""
+            echo "-- orders (HPOS addresses) with it:"; q "SELECT COUNT(*) FROM ${P}wc_order_addresses WHERE address_1 LIKE \"%Madison Ln%\""
+            echo "-- orders (post meta) with it:"; q "SELECT COUNT(DISTINCT post_id) FROM ${P}postmeta WHERE meta_value LIKE \"%Madison Ln%\""
+            echo
+            echo "=== administrators and shop managers ==="
+            $W user list --role__in=administrator,shop_manager --fields=ID,user_login,display_name,roles 2>/dev/null
+            for id in $($W user list --role__in=administrator,shop_manager --field=ID 2>/dev/null); do
+              echo "-- user $id address fields:"
+              q "SELECT meta_key, meta_value FROM ${P}usermeta WHERE user_id=$id AND meta_key IN (\"billing_address_1\",\"billing_address_2\",\"billing_city\",\"billing_state\",\"billing_postcode\",\"billing_country\",\"shipping_address_1\",\"shipping_address_2\",\"shipping_city\",\"shipping_state\",\"shipping_postcode\",\"shipping_country\") ORDER BY meta_key"
+            done
+            echo
+            echo "=== shipping zones, their regions and methods ==="
+            q "SELECT z.zone_id, z.zone_name, z.zone_order FROM ${P}woocommerce_shipping_zones z ORDER BY z.zone_order"
+            echo "-- regions:"; q "SELECT zone_id, location_type, location_code FROM ${P}woocommerce_shipping_zone_locations ORDER BY zone_id LIMIT 60"
+            echo "-- methods:";  q "SELECT zone_id, instance_id, method_id, is_enabled, method_order FROM ${P}woocommerce_shipping_zone_methods ORDER BY zone_id, method_order"
+            echo "-- method settings:"; q "SELECT option_name, LEFT(option_value,200) FROM ${P}options WHERE option_name LIKE \"woocommerce\\_%\\_settings\" AND (option_name LIKE \"%flat_rate%\" OR option_name LIKE \"%free_shipping%\" OR option_name LIKE \"%local_pickup%\" OR option_name LIKE \"%af_distance%\") LIMIT 20"
+            echo "-- af_distance_tiers:"; $W option get af_distance_tiers --format=json 2>&1 | tail -1
+            echo "-- zip table rows:"; q "SELECT COUNT(*) FROM ${P}af_zip_geo"
+            echo
+            echo "=== tax rates ==="
+            q "SELECT tax_rate_country, tax_rate_state, tax_rate, tax_rate_name, tax_rate_shipping, tax_rate_class FROM ${P}woocommerce_tax_rates LIMIT 40"
+            echo
+            echo "=== payment gateways enabled ==="
+            for g in $($W option list --search="woocommerce_*_settings" --field=option_name 2>/dev/null); do
+              en=$($W option pluck "$g" enabled 2>/dev/null)
+              [ "$en" = "yes" ] && printf "%-55s enabled  title=%s  testmode=%s\n" "$g" "$($W option pluck $g title 2>/dev/null)" "$($W option pluck $g testmode 2>/dev/null)$($W option pluck $g test_mode 2>/dev/null)$($W option pluck $g sandbox 2>/dev/null)"
+            done
+            echo
+            echo "=== checkout page, cart page, plugins that touch checkout ==="
+            echo "checkout page: $($W option get woocommerce_checkout_page_id 2>/dev/null)  cart page: $($W option get woocommerce_cart_page_id 2>/dev/null)"
+            cid=$($W option get woocommerce_checkout_page_id 2>/dev/null); q "SELECT LEFT(post_content,300) FROM ${P}posts WHERE ID=$cid"
+            $W plugin list --status=active --field=name 2>/dev/null | tr "\n" " "; echo
+            echo
+            echo "=== recent PHP errors mentioning checkout/shipping/cart ==="
+            tail -n 400 wp-content/debug.log 2>/dev/null | grep -iE "checkout|shipping|cart|address|af_distance|kit" | tail -15
+          '
