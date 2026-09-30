@@ -241,7 +241,12 @@ add_action('wp_head', function () {
     if (!function_exists('is_checkout') || !is_checkout() || (function_exists('is_order_received_page') && is_order_received_page())) return;
     ?>
 <style id="af-co-up">
-.woocommerce-checkout-review-order-table .af-co-up{margin:12px 0 2px;padding:10px 12px 11px;border:1px solid #ece5d4;border-radius:10px;background:#fcfaf6}
+/* below the details the photo column is empty, so the block runs the full
+   width of the line (the name cell's left padding, checkout-fixes.php) */
+.woocommerce-checkout-review-order-table .af-co-up{margin:14px 0 2px;padding:10px 12px 11px;border:1px solid #ece5d4;border-radius:10px;background:#fcfaf6}
+.woocommerce-checkout-review-order-table .af-co-up.is-placed{margin-left:-112px}
+@media (min-width:1150px) and (max-width:1299px){.woocommerce-checkout-review-order-table .af-co-up.is-placed{margin-left:-94px}}
+@media (max-width:499px){.woocommerce-checkout-review-order-table .af-co-up.is-placed{margin-left:-88px}}
 .woocommerce-checkout-review-order-table .af-co-up-title{font-size:12.5px;font-weight:600;color:#2b2824;margin:0 0 8px}
 .woocommerce-checkout-review-order-table .af-co-up-title span{font-weight:400;color:#6b655c}
 .woocommerce-checkout-review-order-table .af-co-up-opts{display:flex;flex-direction:column;gap:6px}
@@ -249,7 +254,10 @@ add_action('wp_head', function () {
 .woocommerce-checkout-review-order-table .af-co-up-opt:hover{border-color:#c9a84c}
 .woocommerce-checkout-review-order-table .af-co-up-opt.is-on{border-color:#c9a84c;background:#fdf7e8;font-weight:600}
 .woocommerce-checkout-review-order-table .af-co-up-opt:focus-visible,.woocommerce-checkout-review-order-table .af-co-up-color:focus-visible{outline:2px solid #8a6d1f;outline-offset:2px}
-.woocommerce-checkout-review-order-table .af-co-up-price{white-space:nowrap;font-weight:600;color:#1c1a17}
+.woocommerce-checkout-review-order-table .af-co-up-price,.woocommerce-checkout-review-order-table .af-co-up-price *,.woocommerce-checkout-review-order-table .af-co-up-color,.woocommerce-checkout-review-order-table .af-co-up-color *{white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important}
+.woocommerce-checkout-review-order-table .af-co-up-price{font-weight:600;color:#1c1a17;flex:0 0 auto}
+.woocommerce-checkout-review-order-table .af-co-up-name{flex:1 1 auto;min-width:0}
+.woocommerce-checkout-review-order-table .af-co-up-color small{margin-left:3px}
 .woocommerce-checkout-review-order-table .af-co-up-colors{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:9px}
 .woocommerce-checkout-review-order-table .af-co-up-colors-label{font-size:12px;color:#6b665e;margin-right:2px}
 .woocommerce-checkout-review-order-table .af-co-up-color{height:auto;min-height:0;width:auto;margin:0;padding:5px 10px;border:1.5px solid #e2dccf;border-radius:999px;background:#fff;color:#2b2824;font:inherit;font-size:12px;line-height:1.2;cursor:pointer;text-transform:none;letter-spacing:0;box-shadow:none}
@@ -264,41 +272,52 @@ add_action('wp_head', function () {
 <script>
 (function(){
   if (window.__afCoUp) return; window.__afCoUp = true;
+  var pending = null;   // the change just saved, waiting for checkout's redraw
   // WooCommerce prints the block beside the quantity, above the details; put it below them
   function place(){
     document.querySelectorAll('.woocommerce-checkout-review-order-table td.product-name .af-co-up').forEach(function(up){
       var dl = up.parentElement.querySelector('dl.variation');
       if (dl && dl.nextElementSibling !== up) dl.after(up);
+      // only once it sits under the details may it reach under the photo
+      if (dl && !up.classList.contains('is-placed')) up.classList.add('is-placed');
     });
   }
-  place();
-  document.addEventListener('DOMContentLoaded', place);
-  if (window.jQuery) jQuery(document.body).on('updated_checkout', place);
-  // after a change: focus the chosen button again and say it worked
-  var after = null;
-  function restore(){
-    if (!after) return; var a = after; after = null;
-    var box = document.querySelector('.af-co-up[data-key="' + a.key + '"]'); if (!box) return;
-    var sel = a.color ? '.af-co-up-color[data-color="' + a.color + '"]' : '.af-co-up-opt[data-kit="' + a.kit + '"]';
-    var btn = box.querySelector(sel); if (btn) btn.focus({ preventScroll: true });
+  function releaseOrder(){ var po = document.getElementById('place_order'); if (po) po.disabled = false; }
+  // after checkout redraws the list: focus the chosen button again and say it worked
+  function afterRedraw(){
+    place();
+    if (!pending) return;
+    var box = document.querySelector('.af-co-up[data-key="' + pending.key + '"]');
+    if (!box || box === pending.old) return;          // not redrawn yet
+    var a = pending; pending = null; releaseOrder();
+    var btn = box.querySelector(a.color ? '.af-co-up-color[data-color="' + a.color + '"]' : '.af-co-up-opt[data-kit="' + a.kit + '"]');
+    if (btn) btn.focus({ preventScroll: true });
     var m = box.querySelector('.af-co-up-msg'); if (m) { m.classList.add('is-ok'); m.textContent = 'Updated: the price and delivery now include your choice.'; }
   }
-  if (window.jQuery) jQuery(document.body).on('updated_checkout', restore);
+  // Watch the order box itself: this script runs in the page head, before
+  // jQuery and before WooCommerce's checkout events can be listened to.
+  function watch(){
+    var root = document.getElementById('order_review') || document.querySelector('form.checkout') || document.body;
+    if (!root) return;
+    var t; new MutationObserver(function(){ clearTimeout(t); t = setTimeout(afterRedraw, 30); }).observe(root, { childList: true, subtree: true });
+    afterRedraw();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch); else watch();
   document.addEventListener('click', function(e){
     var b = e.target.closest('.af-co-up-opt, .af-co-up-color'); if (!b) return;
     var box = b.closest('.af-co-up'); if (!box) return;
     e.preventDefault();
     if (b.classList.contains('is-on')) return;
     // one change at a time: two at once would each save a basket missing the other
-    if (document.querySelector('.af-co-up.is-busy')) return;
+    if (document.querySelector('.af-co-up.is-busy') || pending) return;
     var fd = new FormData();
     fd.append('key', box.dataset.key); fd.append('nonce', box.dataset.nonce);
     fd.append('kit', b.dataset.kit); if (b.dataset.color) fd.append('color', b.dataset.color);
-    var msg = box.querySelector('.af-co-up-msg'); if (msg) msg.textContent = '';
+    var msg = box.querySelector('.af-co-up-msg'); if (msg) { msg.classList.remove('is-ok'); msg.textContent = ''; }
     box.classList.add('is-busy');
-    // no order while the line is changing; the redraw brings a fresh button back
+    // no order while the line is changing; released after the redraw
     var po = document.getElementById('place_order'); if (po) po.disabled = true;
-    function free(){ box.classList.remove('is-busy'); var p2 = document.getElementById('place_order'); if (p2) p2.disabled = false; if (po) po.disabled = false; }
+    function free(){ box.classList.remove('is-busy'); releaseOrder(); }
     var ctl = window.AbortController ? new AbortController() : null;
     var timer = setTimeout(function(){ if (ctl) ctl.abort(); }, 20000);
     fetch(box.dataset.endpoint, { method: 'POST', credentials: 'same-origin', body: fd, signal: ctl ? ctl.signal : undefined })
@@ -306,11 +325,10 @@ add_action('wp_head', function () {
       .then(function(res){
         clearTimeout(timer);
         if (res && res.success) {
-          after = { key: (res.data && res.data.key) || box.dataset.key, kit: b.dataset.kit, color: b.dataset.color || '' };
-          // WooCommerce only redraws the payment area when it changed, so the
-          // button paused above is released here rather than left to the redraw
-          if (window.jQuery) { jQuery(document.body).one('updated_checkout', free); jQuery(document.body).trigger('update_checkout'); }
-          else location.reload();
+          pending = { key: (res.data && res.data.key) || box.dataset.key, kit: b.dataset.kit, color: b.dataset.color || '', old: box };
+          // if the redraw never comes, do not leave Place order switched off
+          setTimeout(function(){ if (pending) { pending = null; free(); } }, 25000);
+          if (window.jQuery) jQuery(document.body).trigger('update_checkout'); else location.reload();
         } else {
           free();
           if (msg) msg.textContent = (res && res.data && res.data.message) || 'That did not work. Please refresh checkout and try again.';
