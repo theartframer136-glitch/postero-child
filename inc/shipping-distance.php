@@ -266,7 +266,12 @@ add_action('woocommerce_shipping_init', function () {
             // delivery at all, so no rate is offered
             if ($physical < 1 || $lbs <= 0) return;
 
-            $miles = ($country === 'US') ? af_zip_distance_miles(AF_SHIP_ORIGIN_ZIP, $zip) : null;
+            // US territories are separate countries in WooCommerce but post on
+            // US ZIP codes, so they are measured like any other US address.
+            // Picking "Puerto Rico" used to fall to the fallback band ($27.51
+            // for a 3x4 ft roll against $40.28 by distance; site test, 30 Sep).
+            $us_zips = in_array($country, array('US', 'PR', 'VI', 'GU', 'AS', 'MP'), true);
+            $miles = $us_zips ? af_zip_distance_miles(AF_SHIP_ORIGIN_ZIP, $zip) : null;
             $band  = af_distance_band($miles);
             $base   = isset($band['base'])   ? (float) $band['base']   : 10.0;
             $per_lb = isset($band['per_lb']) ? (float) $band['per_lb'] : 1.5;
