@@ -27,6 +27,10 @@ const CHANGED = [
 // The line may read "RK - 010044-5030" or "RK – 010044-5030": compare without
 // spaces and with one kind of dash.
 const key = s => String(s || '').replace(/^\s*Art Code:\s*/i, '').replace(/[‐-―−]/g, '-').replace(/\s+/g, '').toUpperCase();
+// The page the line names, size part off: #7819's line reads "RK - 010008"
+// while its SKU is RK-010008-3040, and both name Canva page 12. The SKU check
+// below stays exact.
+const pageKey = s => key(s).replace(/^([A-Z]+-\d{6})-\d{4}(?!\d)/, '$1');
 
 const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, ignoreHTTPSErrors: true });
@@ -58,7 +62,7 @@ for (const p of all) {
     summary: ((document.querySelector('.summary, .entry-summary') || {}).textContent || ''),
   })).catch(() => ({ line: '', summary: '' })) : { line: '', summary: '' };
   const status = r ? r.status() : 0;
-  const lineOk = key(d.line) === key(p.code);
+  const lineOk = d.line !== '' && pageKey(d.line) === pageKey(p.code);
   const skuOk = a.sku === p.sku;
   const gone = !p.was || !key(d.summary).includes(key(p.was));
   const ok = status === 200 && lineOk && skuOk && gone;
