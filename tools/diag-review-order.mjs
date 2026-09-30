@@ -9,6 +9,10 @@
  *   node tools/diag-review-order.mjs
  */
 import { createRequire } from 'module';
+import fs from 'fs';
+// optional: a stylesheet to try on the live page in place of the site's own
+// #af-co-thumbs rules, so a style change can be seen before it is deployed
+const PREVIEW = process.argv[2] ? fs.readFileSync(process.argv[2], 'utf8') : '';
 const puppeteer = createRequire(import.meta.url)('puppeteer-core');
 const S = 'https://theartframer.us';
 const PRODUCT = S + '/product/radha-krishna-moonlit-melody-canvas-wall-art-3x4-feet-floating-frame-premium-digital-canvas-print-living-room-home-spiritual-wall-decor/';
@@ -56,6 +60,11 @@ await p.evaluate(() => {
 });
 try { await p.waitForFunction(() => !document.querySelector('.blockUI.blockOverlay'), { timeout: 25000 }); } catch {}
 await sleep(2500);
+if (PREVIEW) {
+  await p.evaluate((css) => { const old = document.getElementById('af-co-thumbs'); if (old) old.remove(); const st = document.createElement('style'); st.id = 'af-preview'; st.textContent = css; document.head.appendChild(st); }, PREVIEW);
+  await sleep(800);
+  console.log('=== PREVIEW: the site\'s #af-co-thumbs rules replaced by ' + process.argv[2] + ' (' + PREVIEW.length + ' chars) ===');
+}
 
 console.log('=== MARKUP: first product row of the order list ===');
 console.log(await p.evaluate(() => { const r = document.querySelector('.woocommerce-checkout-review-order-table tr.cart_item'); return r ? r.outerHTML.replace(/\s+/g, ' ').slice(0, 2200) : 'no tr.cart_item'; }));
@@ -83,7 +92,7 @@ console.log(await p.evaluate(() => {
   return sels.map(s => { const n = document.querySelectorAll(s); return s + ': ' + n.length + (n.length ? ' (imgs ' + [...n].reduce((a, x) => a + x.querySelectorAll('img').length, 0) + ', visible ' + [...n].filter(x => x.offsetParent !== null).length + ')' : ''); }).join('\n');
 }));
 
-for (const [w, h] of [[1918, 1078], [1366, 900], [390, 844]]) {
+for (const [w, h] of [[1918, 1078], [1366, 900], [1024, 800], [390, 844]]) {
   await p.setViewport({ width: w, height: h }); await sleep(1500);
   console.log('\n=== ' + w + 'px ===');
   console.log(await p.evaluate(() => {
@@ -99,6 +108,24 @@ for (const [w, h] of [[1918, 1078], [1366, 900], [390, 844]]) {
       dl ? 'meta list: ' + dl.tagName + '.' + dl.className + ' display ' + getComputedStyle(dl).display + ' width ' + Math.round(dl.getBoundingClientRect().width) : 'no meta list',
       'page overflow ' + (document.documentElement.scrollWidth - window.innerWidth) + 'px',
     ].join('\n');
+  }));
+  console.log(await p.evaluate(() => {
+    const row = document.querySelector('.woocommerce-checkout-review-order-table tr.cart_item'); if (!row) return '';
+    const els = [['tr', row], ['name td', row.querySelector('td.product-name')], ['price td', row.querySelector('td.product-total')], ['thead th price', document.querySelector('.woocommerce-checkout-review-order-table thead th.product-total')]];
+    const out = [];
+    for (const [label, el] of els) {
+      if (!el) continue; const c = getComputedStyle(el); const r = el.getBoundingClientRect();
+      out.push(label + ': ' + Math.round(r.width) + 'x' + Math.round(r.height) + ' display ' + c.display + ' pad ' + c.padding + ' valign ' + c.verticalAlign + ' border-top ' + c.borderTopWidth + ' ' + c.borderTopColor + ' border-bottom ' + c.borderBottomWidth + ' ' + c.borderBottomColor + ' color ' + c.color + ' weight ' + c.fontWeight + ' width-rule ' + c.width);
+      // which rules give it borders or padding
+      for (const ss of document.styleSheets) { let rs; try { rs = ss.cssRules; } catch { continue; }
+        const scan = (list, media) => { for (const r of list) { if (r.cssRules && !r.selectorText) { scan(r.cssRules, r.conditionText || media); continue; }
+          if (!r.selectorText || !r.style) continue; let m = false; try { m = el.matches(r.selectorText); } catch {}
+          if (!m) continue; if (media && !window.matchMedia(media).matches) continue;
+          const bits = ['border', 'border-top', 'border-bottom', 'padding', 'vertical-align', 'width', 'display'].map(k => r.style.getPropertyValue(k) ? k + ':' + r.style.getPropertyValue(k) + (r.style.getPropertyPriority(k) ? '!' : '') : '').filter(Boolean);
+          if (bits.length) out.push('    ' + (ss.href || ('inline#' + (ss.ownerNode && ss.ownerNode.id))).split('/').pop().split('?')[0].slice(0, 28) + (media ? ' @' + media.slice(0, 24) : '') + ' | ' + r.selectorText.replace(/\s+/g, ' ').slice(0, 110) + ' { ' + bits.join('; ') + ' }'); } };
+        try { scan(rs, ''); } catch {} }
+    }
+    return out.join('\n');
   }));
   const el = await p.$('#order_review') || await p.$('.woocommerce-checkout-review-order-table');
   if (el) {

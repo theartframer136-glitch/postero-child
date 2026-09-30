@@ -4,6 +4,11 @@ name: Check Review Order
 # replaces WooCommerce's review-order template.
 on:
   workflow_dispatch:
+    inputs:
+      preview_css:
+        description: 'Optional stylesheet in the repo to try on the live page instead of the site rules (e.g. tools/preview-review-order.css)'
+        required: false
+        default: ''
 jobs:
   look:
     runs-on: ubuntu-latest
@@ -38,4 +43,4 @@ jobs:
         run: |
           set -uo pipefail
           npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
-          NODE_PATH=/tmp/afh/node_modules node tools/diag-review-order.mjs || true
+          NODE_PATH=/tmp/afh/node_modules node tools/diag-review-order.mjs ${{ github.event.inputs.preview_css }} || true
