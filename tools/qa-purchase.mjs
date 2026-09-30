@@ -30,6 +30,7 @@ async function newPage(w = 1366, h = 900) {
   const ctx = await b.createBrowserContext(); const p = await ctx.newPage(); await p.setViewport({ width: w, height: h });
   p.on('console', m => { if (m.type() === 'error' && !/403|favicon|google|facebook|pinterest|doubleclick|clarity/i.test(m.text())) errs.push(w + ' ' + p.url().replace(S, '').slice(0, 40) + ': ' + m.text().slice(0, 150)); });
   p.on('pageerror', e => errs.push(w + ' ' + p.url().replace(S, '').slice(0, 40) + ' pageerror: ' + e.message.slice(0, 150)));
+  p.on('dialog', async d => { errs.push(w + ' ' + p.url().replace(S, '').slice(0, 40) + ' DIALOG (' + d.type() + '): ' + d.message().slice(0, 150)); try { await d.dismiss(); } catch {} });
   p.on('response', r => { if (r.status() === 404 && r.url() !== p.url()) errs.push(w + ' ' + p.url().replace(S, '').slice(0, 40) + ': 404 file ' + r.url().replace(S, '').slice(0, 140)); });
   return p;
 }
