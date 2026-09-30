@@ -65,6 +65,18 @@ console.log(await p.evaluate(() => {
   const chain = []; let e = t; for (let i = 0; i < 5 && e; i++) { chain.push(e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + (e.className && typeof e.className === 'string' ? '.' + e.className.trim().split(/\s+/).join('.') : '')); e = e.parentElement; }
   return 'thead: ' + (t.tHead ? t.tHead.innerText.replace(/\s+/g, ' ') : '-') + '\nparents: ' + chain.join(' < ') + '\nimages already in the table: ' + t.querySelectorAll('img').length;
 }));
+console.log('\n=== photos in the order list ===');
+console.log(await p.evaluate(async () => {
+  const rows = [...document.querySelectorAll('.woocommerce-checkout-review-order-table tr.cart_item')];
+  const out = [];
+  for (const r of rows) {
+    const td = r.querySelector('td.product-name'); const im = td && td.querySelector('.af-co-thumb img');
+    if (im && !im.complete) await new Promise(res => { im.onload = im.onerror = res; setTimeout(res, 8000); });
+    const t = td.getBoundingClientRect(), b = im ? im.getBoundingClientRect() : null;
+    out.push((im ? 'photo ' + (im.naturalWidth > 0 ? 'LOADED ' + im.naturalWidth + 'x' + im.naturalHeight : 'NOT LOADED') + ' shown ' + Math.round(b.width) + 'x' + Math.round(b.height) + ' at +' + Math.round(b.left - t.left) + ',+' + Math.round(b.top - t.top) + ' inside cell ' + (b.bottom <= t.bottom + 0.5 ? 'yes' : 'NO') + ' src ' + (im.currentSrc || im.src).split('/').pop().slice(0, 60) : 'NO PHOTO') + ' | ' + td.innerText.replace(/\s+/g, ' ').slice(0, 50));
+  }
+  return out.join('\n') || 'no rows';
+}));
 console.log('\n=== anything else on the checkout page that lists cart items ===');
 console.log(await p.evaluate(() => {
   const sels = ['.woocommerce-mini-cart-item', '.mini_cart_item', '.widget_shopping_cart_content', '.cart-dropdown', '.af-mini-cart', '[class*="mini-cart"]', '[class*="minicart"]'];
@@ -91,9 +103,8 @@ for (const [w, h] of [[1918, 1078], [1366, 900], [390, 844]]) {
   const el = await p.$('#order_review') || await p.$('.woocommerce-checkout-review-order-table');
   if (el) {
     await el.evaluate(e => e.scrollIntoView({ block: 'start' })); await sleep(800);
-    const bx = await el.boundingBox();
-    const clip = { x: Math.max(0, bx.x), y: Math.max(0, bx.y), width: Math.min(bx.width, w), height: Math.min(bx.height, 1400) };
-    const raw = await p.screenshot({ clip, encoding: 'base64', captureBeyondViewport: true });
+    const bx = await el.boundingBox(); const clip = { width: bx.width, height: bx.height };
+    const raw = await el.screenshot({ encoding: 'base64' });
     const small = await p.evaluate(shrink, 'data:image/png;base64,' + raw, 380, 0.6);
     const b64 = small.replace(/^data:image\/jpeg;base64,/, '');
     console.log(`=== PICTURE ${w} (${Math.round(clip.width)}x${Math.round(clip.height)}, jpeg, ${b64.length} chars) ===`);
@@ -101,5 +112,9 @@ for (const [w, h] of [[1918, 1078], [1366, 900], [390, 844]]) {
     console.log('=== END PICTURE ' + w + ' ===');
   }
 }
+await p.setViewport({ width: 1366, height: 900 });
+await go(p, S + '/cart/');
+console.log('\n=== cart page (must be unchanged): rows, pictures per row, any order-list photo class ===');
+console.log(await p.evaluate(() => [...document.querySelectorAll('tr.cart_item, tr.woocommerce-cart-form__cart-item')].map(r => 'imgs ' + r.querySelectorAll('img').length + ' | af-co-thumb ' + r.querySelectorAll('.af-co-thumb').length + ' | ' + r.innerText.replace(/\s+/g, ' ').slice(0, 60)).join('\n')));
 await ctx.close();
 await b.close();

@@ -195,6 +195,14 @@ if (MODE === 'pricing') {
     ok(near(lastMoney(rv.total), sum), 'checkout total = subtotal + delivery + fees', `${rv.subtotal} + ${rv.shipping} + ${rv.fees.join(',') || '0'} = ${rv.total}`);
     ok(rv.fees.some(f => /Oversize/i.test(f) && near(lastMoney(f), oversizeFee('3×5 ft (36×60 in)', true))), 'oversize fee for the framed 3x5 = $' + oversizeFee('3×5 ft (36×60 in)', true), rv.fees.join(' | '));
   }
+  // owner, 30 Sep: the product photo beside each line of "Your order"
+  const photos = await q.evaluate(async () => {
+    const rows = [...document.querySelectorAll('.woocommerce-checkout-review-order-table tr.cart_item')];
+    const ims = rows.map(r => r.querySelector('td.product-name .af-co-thumb img'));
+    await Promise.all(ims.filter(i => i && !i.complete).map(i => new Promise(res => { i.onload = i.onerror = res; setTimeout(res, 8000); })));
+    return { rows: rows.length, loaded: ims.filter(i => i && i.naturalWidth > 0).length };
+  });
+  ok(photos.rows > 0 && photos.loaded === photos.rows, 'checkout "Your order": a photo on every line', photos.loaded + ' of ' + photos.rows);
 
   await go(q, S + '/cart/');
   const withAddr = await q.evaluate(() => { const t = document.querySelector('.cart_totals'); return t ? t.innerText.replace(/\s+/g, ' ') : ''; });

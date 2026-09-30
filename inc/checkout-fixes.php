@@ -77,3 +77,65 @@ add_action('wp_head', function () {
 </style>
     <?php
 }, 99);
+
+/**
+ * The product photo beside each line of the checkout "Your order" list.
+ * Owner, 30 Sep, with a screenshot of that list: "photo to be shown in the
+ * final product list". The list named each piece but showed no picture, so
+ * the last look before paying was a column of long, near-identical titles.
+ *
+ * Only this list changes. WooCommerce prints every cart item name through
+ * one filter (the cart page, mini-carts, plugins), so the photo is added
+ * only between the two hooks WooCommerce fires around this list's rows, and
+ * the list keeps it when checkout redraws the list after an address change.
+ * The picture is the product's own gallery thumbnail, the variation's when
+ * there is one, passed through the cart's thumbnail filter like the cart
+ * page's; alt is empty because the name is written right beside it.
+ */
+function af_review_rows($set = null) {
+    static $on = false;
+    if ($set !== null) $on = (bool) $set;
+    return $on;
+}
+add_action('woocommerce_review_order_before_cart_contents', function () { af_review_rows(true); }, 1);
+add_action('woocommerce_review_order_after_cart_contents', function () { af_review_rows(false); }, 999);
+
+add_filter('woocommerce_cart_item_name', function ($name, $cart_item = array(), $cart_item_key = '') {
+    if (!af_review_rows()) return $name;
+    try {
+        $product = (is_array($cart_item) && isset($cart_item['data'])) ? $cart_item['data'] : null;
+        if (!$product instanceof WC_Product) return $name;
+        $img = $product->get_image('woocommerce_gallery_thumbnail', array('alt' => '', 'loading' => 'lazy', 'class' => 'af-co-thumb-img'));
+        $img = apply_filters('woocommerce_cart_item_thumbnail', $img, $cart_item, $cart_item_key);
+        if (!is_string($img) || stripos($img, '<img') === false) return $name;
+        // the site fills an empty alt with the product title (functions.php
+        // 24e); here the title is printed right beside the photo, so keep it empty
+        $img = preg_replace('/\salt=("[^"]*"|\'[^\']*\')/', ' alt=""', $img, 1);
+        return '<span class="af-co-thumb" aria-hidden="true">' . $img . '</span>' . $name;
+    } catch (\Throwable $e) {
+        return $name;
+    }
+}, 20, 3);
+
+add_action('wp_head', function () {
+    if (!function_exists('is_checkout') || !is_checkout() || (function_exists('is_order_received_page') && is_order_received_page())) return;
+    ?>
+<style id="af-co-thumbs">
+/* the photo sits in the name cell's left padding, level with the first line
+   of the name; the cell keeps its own top padding explicit so the two agree
+   at every width (checkout.css stacks the rows under 500px, each cell at
+   width:100%, so there the padding has to count inside that width) */
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name{position:relative;padding-left:70px!important;padding-top:14px!important}
+/* a zero-width float the cell must contain, so a line with little text is
+   still as tall as its photo (min-height does nothing on a table cell) */
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name::before{content:"";float:left;width:0;height:58px}
+.woocommerce-checkout-review-order-table .af-co-thumb{position:absolute;left:0;top:14px;width:56px;height:56px;border-radius:8px;overflow:hidden;background:#f3efe8;box-shadow:0 0 0 1px rgba(0,0,0,.08)}
+.woocommerce-checkout-review-order-table .af-co-thumb img{display:block;width:100%!important;height:100%!important;max-width:none!important;object-fit:cover;margin:0!important;border-radius:0}
+@media (max-width:499px){
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name{padding-left:64px!important;display:flow-root;box-sizing:border-box}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name::before{height:54px}
+.woocommerce-checkout-review-order-table .af-co-thumb{width:52px;height:52px}
+}
+</style>
+    <?php
+}, 99);
