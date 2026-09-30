@@ -121,20 +121,40 @@ add_action('wp_head', function () {
     if (!function_exists('is_checkout') || !is_checkout() || (function_exists('is_order_received_page') && is_order_received_page())) return;
     ?>
 <style id="af-co-thumbs">
-/* the photo sits in the name cell's left padding, level with the first line
-   of the name; the cell keeps its own top padding explicit so the two agree
-   at every width (checkout.css stacks the rows under 500px, each cell at
-   width:100%, so there the padding has to count inside that width) */
-.woocommerce-checkout-review-order-table tr.cart_item td.product-name{position:relative;padding-left:70px!important;padding-top:14px!important}
+/* Each line reads photo | name and details | price, all starting on one top
+   line (owner, 30 Sep: "image is showing but not proper style"). Measured on
+   the live page with tools/diag-review-order.mjs: the parent theme's
+   woocommerce.css sets these cells to 1em padding and vertical-align:middle
+   with #order_review selectors, which outrank checkout.css, so the few rules
+   that must win carry !important. */
+
+/* the product column takes the room, the price column only needs a price
+   (woocommerce.css also gives the product heading 45%, so both are set) */
+.woocommerce-checkout-review-order-table thead th.product-name{width:70%!important}
+.woocommerce-checkout-review-order-table thead th.product-total{width:30%!important}
+
+.woocommerce-checkout-review-order-table tr.cart_item td{vertical-align:top!important;padding-top:16px!important;padding-bottom:16px!important}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name{position:relative;padding-left:80px!important;padding-right:0!important;color:#2b2824}
+.woocommerce-checkout-review-order-table tr.cart_item .variation dd{text-wrap:balance}
 /* a zero-width float the cell must contain, so a line with little text is
    still as tall as its photo (min-height does nothing on a table cell) */
-.woocommerce-checkout-review-order-table tr.cart_item td.product-name::before{content:"";float:left;width:0;height:58px}
-.woocommerce-checkout-review-order-table .af-co-thumb{position:absolute;left:0;top:14px;width:56px;height:56px;border-radius:8px;overflow:hidden;background:#f3efe8;box-shadow:0 0 0 1px rgba(0,0,0,.08)}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name::before{content:"";float:left;width:0;height:64px}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name .product-quantity{color:#8a847a;font-weight:500;white-space:nowrap}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-total{color:#1c1a17;font-weight:600;font-size:15px;line-height:21.75px}
+.woocommerce-checkout-review-order-table .af-co-thumb{position:absolute;left:0;top:16px;width:64px;height:64px;border-radius:10px;overflow:hidden;background:#f7f4ee;border:1px solid #e6e0d4;box-sizing:border-box}
 .woocommerce-checkout-review-order-table .af-co-thumb img{display:block;width:100%!important;height:100%!important;max-width:none!important;object-fit:cover;margin:0!important;border-radius:0}
+
+/* phones: checkout.css stacks each line under 500px (cells at width:100%,
+   so the padding counts inside it). The price stays with its product, under
+   the details, and one line separates products instead of three. */
 @media (max-width:499px){
-.woocommerce-checkout-review-order-table tr.cart_item td.product-name{padding-left:64px!important;display:flow-root;box-sizing:border-box}
-.woocommerce-checkout-review-order-table tr.cart_item td.product-name::before{height:54px}
-.woocommerce-checkout-review-order-table .af-co-thumb{width:52px;height:52px}
+.woocommerce-checkout-review-order-table tr.cart_item{padding:0!important}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name{display:flow-root;box-sizing:border-box;padding:14px 0 6px 70px!important;border-top:0!important;border-bottom:0!important}
+.woocommerce-checkout-review-order-table tr.cart_item:first-child td.product-name{border-top:1px solid var(--af-co-line,#ece5d4)!important}
+.woocommerce-checkout-review-order-table tr.cart_item:last-child{border-bottom:0!important}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name::before{height:56px}
+.woocommerce-checkout-review-order-table .af-co-thumb{top:14px;width:56px;height:56px;border-radius:9px}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-total{box-sizing:border-box;padding:0 0 14px 70px!important;border-top:0!important;border-bottom:0!important;text-align:right}
 }
 </style>
     <?php
