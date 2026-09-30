@@ -8,7 +8,8 @@
 
 /* one line = photo | name and details | price, all starting on the same top line */
 .woocommerce-checkout-review-order-table tr.cart_item td{vertical-align:top!important;padding-top:16px!important;padding-bottom:16px!important}
-.woocommerce-checkout-review-order-table tr.cart_item td.product-name{position:relative;padding-left:80px!important;padding-right:14px!important;color:#2b2824}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name{position:relative;padding-left:80px!important;padding-right:0!important;color:#2b2824}
+.woocommerce-checkout-review-order-table tr.cart_item .variation dd{text-wrap:balance}
 .woocommerce-checkout-review-order-table tr.cart_item td.product-name::before{content:"";float:left;width:0;height:64px}
 .woocommerce-checkout-review-order-table tr.cart_item td.product-name .product-quantity{color:#8a847a;font-weight:500;white-space:nowrap}
 .woocommerce-checkout-review-order-table tr.cart_item td.product-total{color:#1c1a17;font-weight:600;font-size:15px;line-height:21.75px}
@@ -22,6 +23,7 @@
 .woocommerce-checkout-review-order-table tr.cart_item{padding:0!important}
 .woocommerce-checkout-review-order-table tr.cart_item td.product-name{display:flow-root;box-sizing:border-box;padding:14px 0 6px 70px!important;border-top:0!important;border-bottom:0!important}
 .woocommerce-checkout-review-order-table tr.cart_item:first-child td.product-name{border-top:1px solid var(--af-co-line,#ece5d4)!important}
+.woocommerce-checkout-review-order-table tr.cart_item:last-child{border-bottom:0!important}
 .woocommerce-checkout-review-order-table tr.cart_item td.product-name::before{height:56px}
 .woocommerce-checkout-review-order-table .af-co-thumb{top:14px;width:56px;height:56px;border-radius:9px}
 .woocommerce-checkout-review-order-table tr.cart_item td.product-total{box-sizing:border-box;padding:0 0 14px 70px!important;border-top:0!important;border-bottom:0!important;text-align:right}
