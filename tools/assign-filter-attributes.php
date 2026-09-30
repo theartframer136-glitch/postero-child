@@ -56,6 +56,9 @@ $done = 0;
 foreach ($ids as $pid) {
     $product = wc_get_product($pid);
     if (!$product) continue;
+    // Corporate Printing is not a canvas: no canvas sizes, frames or frame
+    // colours to filter by (owner, 30 Sep). Its size is its own attribute.
+    if (has_term('corporate-printing', 'product_cat', $pid)) continue;
 
     // Every canvas is offered in ALL configured sizes (that's the pricing model
     // shown on the product page), so assign the FULL size list from

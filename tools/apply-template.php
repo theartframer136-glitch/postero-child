@@ -24,6 +24,7 @@ $EXCLUDE_CAT_SLUGS = array(
     'banners-signage','banners-signages','backdrops','banner-stands','fabric-cloth-banners',
     'fence-banners','vinyl-banners',
     'digital-downloads','instant-downloads','printable-art',
+    'corporate-printing', // banners, cards, bags: their own attributes (owner, 30 Sep)
     'black','silver','gold','rose-gold', // frame-color leaf cats
 );
 
