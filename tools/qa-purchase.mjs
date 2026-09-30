@@ -212,6 +212,18 @@ if (MODE === 'pricing') {
   const dlt = await dm.evaluate(() => { const t = document.querySelector('.cart_totals'); return t ? t.innerText.replace(/\s+/g, ' ') : ''; });
   ok(/nothing to deliver|no delivery charge/i.test(dlt) && /Items?\s+\d/.test(dlt), 'download-only cart: rows shown and "no delivery charge"', dlt.slice(0, 200));
 
+  console.log('\n--- a Canadian-dollar cart: bars priced once, not converted twice ---');
+  const cad = await newPage();
+  for (const kit of ['painting', 'painting_bar']) { await go(cad, PRODUCT + '?currency=CAD'); const g = await pickOptions(cad, { size: '3×4 ft (36×48 in)', kit }); console.log('  CAD page price ' + kit + ': ' + g.live); await addToCart(cad); }
+  await go(cad, S + '/cart/?currency=CAD');
+  const cadLines = await cartLines(cad);
+  console.log('  CAD cart lines: ' + JSON.stringify(cadLines.map(l => l.price + ' | ' + l.text.slice(0, 40))));
+  const cadSym = await cad.evaluate(() => (document.querySelector('.cart_totals .woocommerce-Price-currencySymbol') || {}).textContent || '');
+  if (cadLines.length === 2) {
+    const [a, bb] = cadLines.map(l => lastMoney(l.price)).sort((x, y) => x - y);
+    ok(Math.abs(bb / a - 128 / 80) < 0.01, 'CAD: painting + bars is 1.6 x painting only, as in USD ($128 / $80)', `${cadSym} ${a} and ${bb}, ratio ${(bb / a).toFixed(3)}`);
+  } else console.log('  CAD cart did not hold two lines');
+
   console.log('\n--- Buy Now keeps the chosen options ---');
   const bn = await newPage();
   await go(bn, PRODUCT); await pickOptions(bn, { size: '3×5 ft (36×60 in)', kit: 'painting_bar' });
@@ -392,16 +404,23 @@ if (MODE === 'smoke') {
     ['QA test: digital download', /download/i, null],
     ['QA test: return policy', /return|refund/i, null],
   ];
-  for (const [q, want, never] of asks) {
-    const r = await c.evaluate(async (q) => {
-      const m = document.documentElement.innerHTML.match(/var NONCE = "([^"]+)"/); if (!m) return { err: 'no chat key on the page' };
-      const body = new URLSearchParams(); body.set('action', 'af_bot_reply'); body.set('nonce', m[1]); body.set('msg', q);
-      const j = await (await fetch('/wp-admin/admin-ajax.php', { method: 'POST', credentials: 'same-origin', body })).json().catch(() => null);
-      if (!j || !j.success) return { err: 'no reply' };
-      const links = [];
-      for (const [label, url] of Object.entries(j.data.chips || {})) { let st = 0; try { st = (await fetch(url, { credentials: 'same-origin' })).status; } catch {} links.push(label + ' ' + url.replace(location.origin, '') + ' ' + st); }
-      return { reply: j.data.reply.replace(/\s+/g, ' '), links };
-    }, q);
+  // used the way a shopper uses it: open the bubble, type, read the reply
+  const opened = await c.evaluate(() => { const b = document.getElementById('af-chat-open'); if (!b) return false; b.click(); return true; });
+  if (!opened) ok(false, 'chat: the chat bubble is on the page');
+  else for (const [q, want, never] of asks) {
+    const before = await c.evaluate(() => document.querySelectorAll('#af-chat-thread .af-chat-bot').length);
+    await c.evaluate((q) => { const i = document.getElementById('af-chat-text'); i.value = q; document.getElementById('af-chat-form').requestSubmit(); }, q);
+    try { await c.waitForFunction((n) => document.querySelectorAll('#af-chat-thread .af-chat-bot').length > n && !document.getElementById('af-chat-typing'), { timeout: 20000 }, before); } catch {}
+    await sleep(1200);
+    const r = await c.evaluate(async () => {
+      const bots = document.querySelectorAll('#af-chat-thread .af-chat-bot'); const last = bots[bots.length - 1];
+      if (!last) return { err: 'no reply' };
+      let el = last, links = []; while ((el = el.nextElementSibling) && !el.classList.contains('af-chat-me')) links.push(...el.querySelectorAll('.af-chat-links a'));
+      if (!links.length) links = [...(last.querySelectorAll('.af-chat-links a'))];
+      const out = [];
+      for (const a of links) { let st = 0; try { st = (await fetch(a.href, { credentials: 'same-origin' })).status; } catch {} out.push(a.textContent.trim() + ' ' + a.href.replace(location.origin, '') + ' ' + st); }
+      return { reply: last.innerText.replace(/\s+/g, ' '), links: out };
+    });
     if (r.err) { ok(false, 'chat: "' + q + '"', r.err); continue; }
     ok(want.test(r.reply) && !(never && never.test(r.reply)), 'chat answer: "' + q.replace('QA test: ', '') + '"', r.reply.slice(0, 230));
     for (const l of r.links) ok(/ 200$/.test(l), '  chat button ' + l);
