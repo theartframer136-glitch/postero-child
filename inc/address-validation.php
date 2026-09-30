@@ -54,6 +54,22 @@ function af_ca_postal_provinces() {
     );
 }
 
+/**
+ * ZIPs that serve places across a state line, and the other state they may
+ * carry. The 3-digit table puts each of these in its neighbour, so a correct
+ * address was refused with "belongs to ID, not WY" and nothing to do about
+ * it (checkout audit, 30 Sep). Filterable to add more.
+ */
+function af_zip_state_exceptions() {
+    return apply_filters('af_zip_state_exceptions', array(
+        '83414' => array('WY'),   // Alta, WY (Driggs, ID office)
+        '73960' => array('TX'),   // Texhoma, TX (Oklahoma prefix)
+        '97635' => array('CA'),   // New Pine Creek, CA (Oregon prefix)
+        '99362' => array('OR'),   // Walla Walla, WA route into Oregon
+        '42223' => array('TN'),   // Fort Campbell, KY / TN
+    ));
+}
+
 /** Which state a US ZIP belongs to, or '' when we cannot say. */
 function af_state_for_zip($zip) {
     $zip = preg_replace('/[^0-9]/', '', (string) $zip);
@@ -117,7 +133,10 @@ add_action('woocommerce_after_checkout_validation', function($data, $errors) {
                 $errors->add('validation', sprintf('%s ZIP code should be 5 digits (or ZIP+4, like 90210-1234).', $label));
             } else {
                 $expect = af_state_for_zip($zip);
-                if ($expect && $state && strtoupper($state) !== $expect) {
+                $also   = af_zip_state_exceptions();
+                $z5     = substr(preg_replace('/\D/', '', (string) $zip), 0, 5);
+                if ($expect && $state && strtoupper($state) !== $expect
+                    && !(isset($also[$z5]) && in_array(strtoupper($state), $also[$z5], true))) {
                     $errors->add('validation', sprintf(
                         '%s ZIP %s belongs to %s, not %s — please check the state and ZIP.',
                         $label, esc_html($zip), esc_html($expect), esc_html(strtoupper($state))

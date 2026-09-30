@@ -214,7 +214,8 @@ if (MODE === 'pricing') {
 
   console.log('\n--- a Canadian-dollar cart: bars priced once, not converted twice ---');
   const cad = await newPage();
-  for (const kit of ['painting', 'painting_bar']) { await go(cad, PRODUCT + '?currency=CAD'); const g = await pickOptions(cad, { size: '3×4 ft (36×48 in)', kit }); console.log('  CAD page price ' + kit + ': ' + g.live); await addToCart(cad); }
+  const cadPage = [];
+  for (const kit of ['painting', 'painting_bar']) { await go(cad, PRODUCT + '?currency=CAD'); const g = await pickOptions(cad, { size: '3×4 ft (36×48 in)', kit }); console.log('  CAD page price ' + kit + ': ' + g.live); cadPage.push(lastMoney(g.live)); await addToCart(cad); }
   await go(cad, S + '/cart/?currency=CAD');
   const cadLines = await cartLines(cad);
   console.log('  CAD cart lines: ' + JSON.stringify(cadLines.map(l => l.price + ' | ' + l.text.slice(0, 40))));
@@ -222,6 +223,8 @@ if (MODE === 'pricing') {
   if (cadLines.length === 2) {
     const [a, bb] = cadLines.map(l => lastMoney(l.price)).sort((x, y) => x - y);
     ok(Math.abs(bb / a - 128 / 80) < 0.01, 'CAD: painting + bars is 1.6 x painting only, as in USD ($128 / $80)', `${cadSym} ${a} and ${bb}, ratio ${(bb / a).toFixed(3)}`);
+    const pg = cadPage.slice().sort((x, y) => x - y);
+    ok(near(pg[0], a) && near(pg[1], bb), 'CAD: the product page shows the price the cart charges', `page ${pg.join(' / ')} vs cart ${a} / ${bb}`);
   } else console.log('  CAD cart did not hold two lines');
 
   console.log('\n--- Buy Now keeps the chosen options ---');
@@ -372,7 +375,7 @@ if (MODE === 'payment') {
 // =============================================================================
 if (MODE === 'smoke') {
   console.log('=== WHOLE SITE: every main page, desktop and phone ===');
-  const pages = ['/', '/shop/', '/product-category/digital-canvas-prints/', PRODUCT.replace(S, ''), '/cart/', '/checkout/', '/my-account/', '/wishlist/', '/try-on-wall/', '/frame-the-moment/', '/customize-your-picture/', '/gift-cards/', '/about/', '/contact/', '/blog/', '/artists/', '/clearance/', '/shipping-delivery/', '/refund-policy/', '/returns-exchanges/', '/order-tracking/', '/product-category/digital-downloads/', '/privacy-policy/', '/track-your-order/', '/help-support/', '/wholesale-corporate/', '/?s=krishna&post_type=product', '/this-page-does-not-exist-qa/'];
+  const pages = ['/', '/shop/', '/product-category/digital-canvas-prints/', PRODUCT.replace(S, ''), '/cart/', '/checkout/', '/my-account/', '/wishlist/', '/try-on-wall/', '/frame-the-moment/', '/customize-your-picture/', '/gift-cards/', '/about/', '/contact/', '/blog/', '/artists/', '/clearance/', '/shipping-delivery/', '/refund-policy/', '/returns-exchanges/', '/product-category/digital-downloads-2/', '/privacy-policy/', '/track-your-order/', '/help-support/', '/wholesale-corporate/', '/?s=krishna&post_type=product', '/this-page-does-not-exist-qa/'];
   for (const [w, h] of [[1366, 900], [390, 844]]) {
     const p = await newPage(w, h);
     for (const path of pages) {

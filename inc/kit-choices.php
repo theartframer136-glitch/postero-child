@@ -467,7 +467,14 @@ add_action('woocommerce_before_calculate_totals', function ($cart) {
 
         $add = af_kit_addon_price($kit, $size);
         if ($add > 0) {
-            $item['data']->set_price((float) $item['data']->get_price() + $add);
+            // Start from the stored US price, not get_price(): the currency
+            // plugin hands that back already converted, so a Canadian cart
+            // added US-dollar bars to a CAD price and converted the lot again,
+            // CA$215.91 for a 3x4 ft with bars instead of CA$175.36 (site
+            // test, 30 Sep). USD carts are unchanged.
+            $base = (isset($item['af_price']) && (float) $item['af_price'] > 0)
+                ? (float) $item['af_price'] : (float) $item['data']->get_price('edit');
+            $item['data']->set_price($base + $add);
         }
     }
 }, 25);

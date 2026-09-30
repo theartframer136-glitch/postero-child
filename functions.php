@@ -262,6 +262,24 @@ function af_currency_name_for($code) {
     return isset($names[$code]) ? $names[$code] : $code;
 }
 
+/**
+ * US dollars to the shopper's currency, at the rate the currency plugin
+ * (FOX / WOOCS) converts the cart with. 1 for USD. The product page's live
+ * price is worked out in the browser from the US price list, and it printed
+ * those US figures behind a "CA$" sign: CA$80.00 on the page, CA$109.60 in
+ * the cart (site test, 30 Sep).
+ */
+function af_fx_rate() {
+    $cur = af_active_currency();
+    if ($cur === 'USD') return 1.0;
+    global $WOOCS;
+    if (is_object($WOOCS) && method_exists($WOOCS, 'get_currencies')) {
+        $all = $WOOCS->get_currencies();
+        if (isset($all[$cur]['rate']) && (float) $all[$cur]['rate'] > 0) return (float) $all[$cur]['rate'];
+    }
+    return 1.0;
+}
+
 function af_active_currency() {
     static $cur = null;
     if ($cur !== null) return $cur;
@@ -7356,7 +7374,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
     // selector opens on the first one we can actually make.
     $def_frame = af_frame_default();
     ?>
-    <div class="af-opts" id="af-opts" data-base="<?php echo esc_attr($base); ?>" data-config='<?php echo esc_attr(wp_json_encode($cfg)); ?>' data-symbol="<?php echo esc_attr(get_woocommerce_currency_symbol()); ?>" data-mrp-mult="<?php echo esc_attr(round(af_mrp_multiplier($product->get_id()), 6)); ?>">
+    <div class="af-opts" id="af-opts" data-base="<?php echo esc_attr($base); ?>" data-config='<?php echo esc_attr(wp_json_encode($cfg)); ?>' data-symbol="<?php echo esc_attr(get_woocommerce_currency_symbol()); ?>" data-rate="<?php echo esc_attr(function_exists('af_fx_rate') ? af_fx_rate() : 1); ?>" data-mrp-mult="<?php echo esc_attr(round(af_mrp_multiplier($product->get_id()), 6)); ?>">
       <div class="af-opt-group">
         <label class="af-opt-label" for="af-size-select">Size <span class="af-opt-sub">(height × width)</span></label>
         <div class="af-size-row">
@@ -7538,7 +7556,10 @@ add_action('wp_head', function() {
     </style>
     <script>
     (function(){
-      function money(sym,val){ return sym + val.toFixed(2); }
+      // The price list is in US dollars; the page shows the shopper's
+      // currency at the rate the cart converts with (data-rate, 1 for USD).
+      var fx = 1;
+      function money(sym,val){ return sym + (Math.round(val * fx * 100) / 100).toFixed(2); }
       document.addEventListener('click', function(e){
         var b = e.target.closest('.af-chip-opt, .af-swatch'); if(!b) return;
         if(b.disabled || b.classList.contains('af-chip-oos')) return;   // out of stock
@@ -7571,7 +7592,9 @@ add_action('wp_head', function() {
       });
 
       function recalc(wrap){
-        var base = parseFloat(wrap.getAttribute('data-base'))||0;
+        fx = parseFloat(wrap.getAttribute('data-rate')) || 1;
+        // data-base is already in the shopper's currency; the list is not
+        var base = (parseFloat(wrap.getAttribute('data-base'))||0) / fx;
         var cfg = {}; try{ cfg = JSON.parse(wrap.getAttribute('data-config')); }catch(e){ return; }
         var sym = wrap.getAttribute('data-symbol')||'$';
         var sizeVal  = chosen(wrap, 'size');
@@ -13784,7 +13807,15 @@ add_action('woocommerce_cart_calculate_fees', function($cart) {
         $eligible += (float) $item['line_total'] + (float) $item['line_tax'];
     }
     if ($eligible <= 0) return;
-    $use = min((float) $gc->balance, $eligible);
+    // Delivery and the oversize fee are part of what the shopper pays, so the
+    // card covers them too; it used to stop at the goods and leave delivery
+    // to be paid another way (checkout audit, 30 Sep). The oversize fee is
+    // added at priority 10, before this.
+    $eligible += (float) $cart->get_shipping_total() + (float) $cart->get_shipping_tax();
+    foreach ($cart->fees_api()->get_fees() as $fee) {
+        if ((float) $fee->amount > 0 && strpos((string) $fee->name, 'Gift card (') !== 0) $eligible += (float) $fee->amount;
+    }
+    $use = min((float) $gc->balance, round($eligible, 2));
     if ($use > 0) $cart->add_fee('Gift card (' . $gc->code . ')', -$use, false);
 }, 20);
 
@@ -20995,11 +21026,33 @@ function af_cart_reference_total() {
         if (empty($item['product_id'])) continue;
         $qty    = isset($item['quantity']) ? (int) $item['quantity'] : 1;
         $line   = isset($item['line_subtotal']) ? (float) $item['line_subtotal'] : 0.0;
+        // A gift card sells at face value and is not a piece to count.
+        if (!empty($item['af_gc'])) { $ref += $line; continue; }
         $items += $qty;
-        $ref   += $line * af_mrp_multiplier((int) $item['product_id']);
+        $ref   += $line * af_cart_line_reference_multiplier($item);
     }
     $sub = (float) WC()->cart->get_subtotal();
     return array($items, round($ref, 2), $sub);
+}
+
+/**
+ * The "before discount" factor for one cart line, the same one its own page
+ * shows. Bars and aluminium frame kits carry their listed regular price, and
+ * downloads use af_digital_was(); every other piece keeps the per-product
+ * af_mrp_multiplier(). One factor for every line made a $48 bar kit read
+ * "$68.57 before" in the cart against "$96" on its page (checkout audit, 30 Sep).
+ */
+function af_cart_line_reference_multiplier($item) {
+    $pid   = isset($item['product_id']) ? (int) $item['product_id'] : 0;
+    $price = isset($item['af_price']) ? (float) $item['af_price'] : 0.0;
+    foreach (array('af_bar_regular', 'af_alu_regular') as $k) {
+        if (!empty($item[$k]) && $price > 0 && (float) $item[$k] >= $price) return (float) $item[$k] / $price;
+    }
+    if (!empty($item['af_digital']) && function_exists('af_digital_was') && function_exists('af_digital_price')) {
+        $now = (float) af_digital_price($pid);
+        if ($now > 0) return max(1.0, (float) af_digital_was($pid) / $now);
+    }
+    return af_mrp_multiplier($pid);
 }
 
 // Drawn before the delivery row when there is one, otherwise just before the
