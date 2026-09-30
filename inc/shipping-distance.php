@@ -34,7 +34,17 @@ function af_zip_latlng($zip) {
     if (array_key_exists($zip, $cache)) return $cache[$zip];
     $t = af_zip_geo_table();
     $row = $wpdb->get_row($wpdb->prepare("SELECT lat, lng FROM {$t} WHERE zip = %s", $zip));
-    return $cache[$zip] = ($row ? array((float) $row->lat, (float) $row->lng) : null);
+    if ($row) return $cache[$zip] = array((float) $row->lat, (float) $row->lng);
+    // Not every ZIP is in the census table: single-building and PO-box ZIPs
+    // are not areas, so 10118 (the Empire State Building), 20500 and 34444
+    // are missing (measured 30 Sep) and were priced at the fallback band
+    // however near they were. The first three digits are the sorting centre,
+    // so the centre of the ZIPs that share them stands in. A prefix with no
+    // ZIPs at all (military APO/FPO) still falls back as before.
+    $pre = $wpdb->get_row($wpdb->prepare(
+        "SELECT AVG(lat) AS lat, AVG(lng) AS lng, COUNT(*) AS n FROM {$t} WHERE zip LIKE %s",
+        $wpdb->esc_like(substr($zip, 0, 3)) . '%'));
+    return $cache[$zip] = ($pre && (int) $pre->n > 0 ? array((float) $pre->lat, (float) $pre->lng) : null);
 }
 
 /** Straight-line miles between two US ZIPs; null when either is unknown. */
