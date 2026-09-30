@@ -6,9 +6,11 @@ const b = await puppeteer.launch({ channel: 'chrome', headless: 'new', args: ['-
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 for (const [w, h] of [[1918, 1078], [1366, 768], [390, 844]]) {
   const ctx = await b.createBrowserContext(); const p = await ctx.newPage(); await p.setViewport({ width: w, height: h });
-  const go = async (u) => { for (let i = 0; i < 3; i++) { try { await p.goto(u, { waitUntil: 'networkidle2', timeout: 90000 }); break; } catch { await sleep(3000); } } await sleep(2500); };
+  const go = async (u) => { for (let i = 0; i < 3; i++) { try { await p.goto(u, { waitUntil: 'networkidle2', timeout: 90000 }); break; } catch { await sleep(3000); } }
+    for (let i = 0; i < 6; i++) { let bl = false; try { bl = await p.evaluate(() => document.body.innerText.includes('Checking your browser') || !document.querySelector('header, .site-header, #masthead')); } catch {} if (!bl) break; await sleep(4000); try { await p.reload({ waitUntil: 'networkidle2', timeout: 60000 }); } catch {} }
+    await sleep(2500); };
   await go(S + '/product/radha-krishna-moonlit-melody-canvas-wall-art-3x4-feet-floating-frame-premium-digital-canvas-print-living-room-home-spiritual-wall-decor/');
-  await Promise.all([p.waitForNavigation({ timeout: 45000 }).catch(() => {}), p.evaluate(() => document.querySelector('form.cart .single_add_to_cart_button').click())]);
+  await Promise.all([p.waitForNavigation({ timeout: 45000 }).catch(() => {}), p.evaluate(() => { const b = document.querySelector('form.cart .single_add_to_cart_button'); if (b) b.click(); })]);
   await sleep(2500); await go(S + '/cart/');
   console.log('\n=== ' + w + ' ===');
   console.log(await p.evaluate(() => {
