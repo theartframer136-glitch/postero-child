@@ -16297,6 +16297,18 @@ function af_card_variations_handler() {
     foreach ($ids as $id) {
         $p = wc_get_product($id);
         if (!$p || $p->get_status() !== 'publish') continue;
+        // Corporate Printing: the rate card's size and quantity where the
+        // canvas cards say "5 sizes · 2 frames" (inc/corporate-specs.php).
+        $corp = function_exists('af_corp_spec') ? af_corp_spec($p) : null;
+        if ($corp) {
+            $out[$id] = array(
+                'ok'   => 1,
+                'corp' => implode(' · ', array_filter($corp)),
+                'url'  => get_permalink($id),
+                'code' => function_exists('af_get_art_code') ? af_get_art_code($p) : '',
+            );
+            continue;
+        }
         if (!af_pricing_applies($p) || !$p->is_purchasable()) { $out[$id] = array('ok' => 0); continue; }
         $base = $p->is_type('variable') ? (float) $p->get_variation_price('min') : (float) wc_get_price_to_display($p);
         $out[$id] = array(
@@ -16355,6 +16367,12 @@ add_action('wp_footer', function() {
           var strip = document.createElement('div');
           strip.className = 'af-card-vars';
           var d = Object.keys(dots).map(function(c){ return '<i title="' + c + '" style="background:' + dots[c] + '"></i>'; }).join('');
+          if (info.corp) {
+            // a banner, a standee or a pack of cards: its own size and quantity
+            var sp = document.createElement('span'); sp.textContent = info.corp;
+            var a = document.createElement('a'); a.href = info.url; a.appendChild(sp);
+            strip.className += ' af-corp-spec'; strip.appendChild(a);
+          } else
           strip.innerHTML = '<a href="' + info.url + '"><span class="af-card-dots">' + d + '</span>' +
             '<span>' + (meta.label || (meta.sizes + ' sizes · ' + meta.frames + ' frames')) + '</span>' +
             '<span class="af-card-from">From ' + info.from + '</span></a>';
