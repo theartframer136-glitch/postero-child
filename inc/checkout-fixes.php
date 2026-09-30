@@ -134,27 +134,33 @@ add_action('wp_head', function () {
 .woocommerce-checkout-review-order-table thead th.product-total{width:30%!important}
 
 .woocommerce-checkout-review-order-table tr.cart_item td{vertical-align:top!important;padding-top:16px!important;padding-bottom:16px!important}
-.woocommerce-checkout-review-order-table tr.cart_item td.product-name{position:relative;padding-left:80px!important;padding-right:0!important;color:#2b2824}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name{position:relative;padding-left:112px!important;padding-right:0!important;color:#2b2824}
 .woocommerce-checkout-review-order-table tr.cart_item .variation dd{text-wrap:balance}
 /* a zero-width float the cell must contain, so a line with little text is
    still as tall as its photo (min-height does nothing on a table cell) */
-.woocommerce-checkout-review-order-table tr.cart_item td.product-name::before{content:"";float:left;width:0;height:64px}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name::before{content:"";float:left;width:0;height:96px}
 .woocommerce-checkout-review-order-table tr.cart_item td.product-name .product-quantity{color:#8a847a;font-weight:500;white-space:nowrap}
 .woocommerce-checkout-review-order-table tr.cart_item td.product-total{color:#1c1a17;font-weight:600;font-size:15px;line-height:21.75px}
-.woocommerce-checkout-review-order-table .af-co-thumb{position:absolute;left:0;top:16px;width:64px;height:64px;border-radius:10px;overflow:hidden;background:#f7f4ee;border:1px solid #e6e0d4;box-sizing:border-box}
+.woocommerce-checkout-review-order-table .af-co-thumb{position:absolute;left:0;top:16px;width:96px;height:96px;border-radius:12px;overflow:hidden;background:#f7f4ee;border:1px solid #e6e0d4;box-sizing:border-box}
 .woocommerce-checkout-review-order-table .af-co-thumb img{display:block;width:100%!important;height:100%!important;max-width:none!important;object-fit:cover;margin:0!important;border-radius:0}
 
 /* phones: checkout.css stacks each line under 500px (cells at width:100%,
    so the padding counts inside it). The price stays with its product, under
    the details, and one line separates products instead of three. */
+/* the narrow checkout column (two columns from 1150px) keeps the name readable */
+@media (min-width:1150px) and (max-width:1299px){
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name{padding-left:94px!important}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name::before{height:80px}
+.woocommerce-checkout-review-order-table .af-co-thumb{width:80px;height:80px;border-radius:10px}
+}
 @media (max-width:499px){
 .woocommerce-checkout-review-order-table tr.cart_item{padding:0!important}
-.woocommerce-checkout-review-order-table tr.cart_item td.product-name{display:flow-root;box-sizing:border-box;padding:14px 0 6px 70px!important;border-top:0!important;border-bottom:0!important}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name{display:flow-root;box-sizing:border-box;padding:14px 0 6px 88px!important;border-top:0!important;border-bottom:0!important}
 .woocommerce-checkout-review-order-table tr.cart_item:first-child td.product-name{border-top:1px solid var(--af-co-line,#ece5d4)!important}
 .woocommerce-checkout-review-order-table tr.cart_item:last-child{border-bottom:0!important}
-.woocommerce-checkout-review-order-table tr.cart_item td.product-name::before{height:56px}
-.woocommerce-checkout-review-order-table .af-co-thumb{top:14px;width:56px;height:56px;border-radius:9px}
-.woocommerce-checkout-review-order-table tr.cart_item td.product-total{box-sizing:border-box;padding:0 0 14px 70px!important;border-top:0!important;border-bottom:0!important;text-align:right}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-name::before{height:76px}
+.woocommerce-checkout-review-order-table .af-co-thumb{top:14px;width:76px;height:76px;border-radius:10px}
+.woocommerce-checkout-review-order-table tr.cart_item td.product-total{box-sizing:border-box;padding:0 0 14px 88px!important;border-top:0!important;border-bottom:0!important;text-align:right}
 }
 </style>
     <?php
