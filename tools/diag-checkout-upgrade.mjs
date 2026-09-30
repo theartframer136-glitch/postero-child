@@ -94,12 +94,12 @@ ok(s && s.upAfterDetails === true, 'the block sits under the line\'s details');
 const del0 = money(s && s.shipping);
 await picture(p, 'start-1366', 520);
 
-ok(await choose(p, '.af-co-up-opt[data-kit="painting_bar"]'), 'clicked "+ Stretcher bars"');
+ok(await choose(p, '.af-co-up-opt[data-kit="painting_bar"]'), 'clicked "Painting + structure bars + DIY kit"');
 s = await state(p); console.log('  bars: ' + JSON.stringify(s));
 ok(s && money(s.price) === 128 && /structure bars/i.test(s.receive) && /Without Frame/i.test(s.frame), 'line $128, You receive: bars, no frame', s ? s.price + ' | ' + s.receive + ' | ' + s.frame : '');
 ok(s && money(s.shipping) === del0, 'delivery unchanged (still rolled in a tube)', s ? s.shipping + ' vs ' + del0 : '');
 
-ok(await choose(p, '.af-co-up-opt[data-kit="painting_bar_frame"]'), 'clicked "+ Bars & aluminium frame"');
+ok(await choose(p, '.af-co-up-opt[data-kit="painting_bar_frame"]'), 'clicked "Painting + structure bars + frame + DIY kit"');
 s = await state(p); console.log('  frame: ' + JSON.stringify(s));
 ok(s && money(s.price) === 176 && /frame/i.test(s.receive) && /Aluminium/i.test(s.frame), 'line $176, You receive: frame, Frame Type: Aluminium', s ? s.price + ' | ' + s.receive + ' | ' + s.frame : '');
 ok(s && s.colors.length === 4, 'frame colour choices shown', s ? s.colors.join(' | ') : '');

@@ -130,6 +130,9 @@ function af_ac_capture_handler() {
     $email = isset($_POST['email']) ? sanitize_email(wp_unslash($_POST['email'])) : '';
     $first = isset($_POST['first']) ? sanitize_text_field(wp_unslash($_POST['first'])) : '';
     if (!$email || !is_email($email)) wp_send_json_error();
+    // kept for later captures in this session (a change made at checkout,
+    // inc/checkout-upgrade.php), since checkout's own refresh never stores it
+    if (function_exists('WC') && WC()->session) { WC()->session->set('af_ac_email', $email); WC()->session->set('af_ac_first', $first); }
     af_ac_capture($email, $first);
     wp_send_json_success();
 }

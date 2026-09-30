@@ -165,3 +165,6 @@ add_action('wp_head', function () {
 </style>
     <?php
 }, 99);
+
+// Stretcher bars and frame can be added from the checkout list (owner, 30 Sep).
+require_once __DIR__ . '/checkout-upgrade.php';
