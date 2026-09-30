@@ -1,0 +1,43 @@
+name: Set Owner Account Address
+# Owner, 30 Sep: his account (user 3, Sushovan) carries the studio's address
+# (1268 Madison Ln, city "test", DE 34444) as its billing address, so his cart
+# said "Shipping to" the studio. He asked for another US address on it.
+# Prints the old values first, changes only the address lines (name, email,
+# phone untouched), prints the new ones.
+on:
+  workflow_dispatch:
+jobs:
+  set:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Update user 3 address
+        run: |
+          set +e
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" '
+            cd ~/websites/OPu0sKi4J/public_html
+            W="timeout 60 wp --allow-root"
+            U=3
+            login=$($W user get $U --field=user_login 2>/dev/null | tail -1)
+            echo "user $U login: $login"
+            [ "$login" = "Sushovan" ] || { echo "NOT the expected account - nothing changed"; exit 0; }
+            show() { for k in address_1 address_2 city state postcode country; do for t in billing shipping; do printf "  %-20s %s\n" "${t}_$k" "$($W user meta get $U ${t}_$k 2>/dev/null | tail -1)"; done; done; }
+            echo "--- BEFORE"; show
+            for t in billing shipping; do
+              $W user meta update $U ${t}_address_1 "350 5th Ave" >/dev/null
+              $W user meta update $U ${t}_address_2 "" >/dev/null
+              $W user meta update $U ${t}_city "New York" >/dev/null
+              $W user meta update $U ${t}_state "NY" >/dev/null
+              $W user meta update $U ${t}_postcode "10118" >/dev/null
+              $W user meta update $U ${t}_country "US" >/dev/null
+            done
+            echo "--- AFTER"; show
+          '
