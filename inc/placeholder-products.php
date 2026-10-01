@@ -66,8 +66,17 @@ if (!defined('ABSPATH')) exit;
  * title can be edited at any time. A product whose code has changed since
  * is left alone and logged. #25240 went private in revision 6 and reads
  * "already private".
+ *
+ * Revision 8, 1 Oct: the owner listed 45 more temporary codes, TMP-1124 to
+ * TMP-1310, "make them private too". All 45 were published, $80 canvas
+ * prints, none in the Canva brochure. The seven from revision 7 stay on the
+ * list and read "already private". Two of the 45 are where old addresses of
+ * listings deleted on 29 Sep lead (inc/retired-products.php): #31456 for
+ * #30905, and #28962 for #28839 and #27695. inc/duplicate-listings.php only
+ * redirects to a listing that is still published, so those three old
+ * addresses answer 404 from now on, as any address of a private product does.
  */
-define('AF_PLACEHOLDER_PRODUCTS_REV', '7');
+define('AF_PLACEHOLDER_PRODUCTS_REV', '8');
 
 function af_placeholder_products() {
     return array(
@@ -78,6 +87,52 @@ function af_placeholder_products() {
         28422 => 'TMP-1120',   // Raas Leela Miniature
         23789 => 'TMP-1078',   // Radha Krishna Color Duet
         22383 => 'TMP-1071',   // Krishna Rainbow Splash
+        // revision 8: the 45, in the order the owner listed them
+        27325 => 'TMP-1310',   // Radha Krishna on the Branch
+        31527 => 'TMP-1304',   // Krishna Cowherd Modern Art
+        31456 => 'TMP-1303',   // Balaji Abstract Gold
+        31395 => 'TMP-1302',   // Shiva Smoke and Trident
+        31273 => 'TMP-1301',   // Palace in the Grove
+        31150 => 'TMP-1299',   // Shiva Family Harmony
+        31088 => 'TMP-1298',   // Vaikuntha Celestial Court
+        30966 => 'TMP-1297',   // Vishnu on Shesha
+        29751 => 'TMP-1289',   // Sacred Cow Relief Art
+        30093 => 'TMP-1290',   // Horses of the Dust Plains
+        30154 => 'TMP-1291',   // Ganesha Dawn Silhouette
+        30276 => 'TMP-1292',   // Red Sun Winter Tree
+        30338 => 'TMP-1293',   // Shiva Parivar in Clouds
+        30775 => 'TMP-1294',   // Marigold Dreams Portrait
+        29159 => 'TMP-1280',   // Horse Studies Collage
+        29220 => 'TMP-1281',   // Vishnu Cosmic Lotus
+        29281 => 'TMP-1282',   // Balaji Divine Collage
+        29395 => 'TMP-1283',   // Pichwai Ganesha Fountains
+        29456 => 'TMP-1284',   // Maratha Pride with Lion
+        29517 => 'TMP-1285',   // Lone Tree Between Worlds
+        29578 => 'TMP-1286',   // Twin Faces of Serenity
+        28473 => 'TMP-1273',   // Quiet Harbor Minimal
+        28534 => 'TMP-1274',   // Kirtan Celebration
+        28717 => 'TMP-1275',   // Vishnu in Golden Garlands
+        28962 => 'TMP-1278',   // Savanna Golden Hour
+        27133 => 'TMP-1257',   // Geometric Falls Sunrise
+        27194 => 'TMP-1258',   // Murmuration at Dusk
+        27264 => 'TMP-1259',   // Nataraja Bronze Glory
+        27388 => 'TMP-1260',   // Krishna Minimal Splash
+        27449 => 'TMP-1261',   // Buddha Offering Lotus
+        27510 => 'TMP-1262',   // Cubist Buddha Visage
+        27572 => 'TMP-1263',   // Two Horses Cubist
+        27633 => 'TMP-1264',   // Flight Path Reverie
+        27750 => 'TMP-1266',   // Krishna and the Monkeys Folk
+        27811 => 'TMP-1267',   // Buddha Among Pink Lotuses
+        27981 => 'TMP-1268',   // Crimson Veil Portrait
+        28103 => 'TMP-1269',   // Krishna Serene Face
+        28164 => 'TMP-1270',   // Temple Bells and Cows
+        28225 => 'TMP-1271',   // Nandi and the Jyotirlingas
+        30032 => 'TMP-1142',   // Devotion in Color Mist
+        30409 => 'TMP-1147',   // Krishna's Temple Gardens
+        30714 => 'TMP-1148',   // Krishna Sudama Friendship
+        31027 => 'TMP-1153',   // Radha Krishna Graphite Duet
+        28656 => 'TMP-1124',   // Radha's Mirror of Krishna
+        29084 => 'TMP-1130',   // Shiva of the Ghats
     );
 }
 
