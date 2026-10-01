@@ -3,7 +3,9 @@
 // inc/placeholder-products.php made them private: #11491 "test" (N-01), and
 // from 25 Sep the five theme demo posters the owner asked to remove (art
 // codes TMP-1000 to TMP-1004); on 26 Sep it deleted all six permanently, and
-// a deleted product must be unreachable the same ten ways. This checks, for
+// a deleted product must be unreachable the same ten ways. On 1 Oct the owner
+// asked to remove TMP-1246, #25240 "Vaishnava Symbols Trio", made private the
+// same way. This checks, for
 // each, every way a shopper or
 // a search engine could reach it, as a first-time visitor with no cookies:
 //   - its own address, and ?p=<id>
@@ -27,13 +29,21 @@ const PRODUCTS = [
   { id: 199, slug: 'balance-poster', name: 'Balance Poster', code: 'TMP-1003' },
   { id: 211, slug: 'japanese-butterfly-ii-poster', name: 'Japanese Butterfly II Poster', code: 'TMP-1004' },
   { id: 11491, slug: 'test-canvas-wall-art', name: 'test', code: 'TMP-1055' },
+  { id: 25240, slug: 'vaishnava-symbols-trio-canvas-wall-art', code: 'TMP-1246',
+    name: 'Vaishnava Symbols Trio Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor' },
 ];
 
 const browser = await chromium.launch({ headless: true });
 const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, ignoreHTTPSErrors: true });
 const page = await ctx.newPage();
 const go = async path => page.goto(SITE + path, { waitUntil: 'domcontentloaded', timeout: 45000 }).catch(() => null);
-const same = (a, b) => (a || '').replace(/\s+/g, ' ').trim().toLowerCase() === (b || '').replace(/\s+/g, ' ').trim().toLowerCase();
+// WordPress prints "3x4" in a title as "3×4": both read the same here.
+const norm = s => (s || '').replace(/×/g, 'x').replace(/\s+/g, ' ').trim().toLowerCase();
+const same = (a, b) => norm(a) === norm(b);
+// The H1 read on a product's own address is cut to 60 characters, so it is
+// held against the name cut the same way; a long name (#25240's is 137)
+// otherwise never matches, and a page still showing the product reads GONE.
+const head60 = s => (s || '').replace(/\s+/g, ' ').trim().slice(0, 60);
 
 console.log('verify-removed-products: ' + SITE + '   ' + new Date().toISOString() + '\n');
 
@@ -74,7 +84,7 @@ for (const p of PRODUCTS) {
       h1: ((document.querySelector('h1.product_title, h1') || {}).textContent || '').replace(/\s+/g, ' ').trim().slice(0, 60),
       atc: !!document.querySelector('.single_add_to_cart_button'),
     })).catch(() => ({ h1: '', atc: false }));
-    const shown = r.status() === 200 && same(d.h1, p.name);
+    const shown = r.status() === 200 && same(d.h1, head60(p.name));
     say(!shown, path, 'HTTP ' + r.status() + ' · H1 "' + d.h1 + '" · Add to Cart ' + (d.atc ? 'yes' : 'no')
       + ' · x-litespeed-cache ' + (r.headers()['x-litespeed-cache'] || '-'));
   }
