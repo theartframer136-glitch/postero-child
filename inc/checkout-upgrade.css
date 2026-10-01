@@ -24,7 +24,9 @@
 #order_review .woocommerce-checkout-review-order-table tr.cart_item:has(+ tr.af-co-up-row) > td{border-bottom:0!important;padding-bottom:10px!important}
 #order_review .woocommerce-checkout-review-order-table tr.af-co-up-row > td{padding:0 0 20px!important;border-top:0!important;border-bottom:1px solid var(--af-co-line,#ece5d4)!important;vertical-align:top!important;text-align:left!important;background:none!important}
 /* the details the controls now show (the order, emails and invoices keep them) */
-#order_review .woocommerce-checkout-review-order-table tr.cart_item:is(:has(+ tr.af-co-up-row),:has(.af-co-up)) dl.variation :is(dt,dd):is(.variation-Size,.variation-FrameType,.variation-FrameColor,.variation-Youreceive){display:none!important}
+#order_review .woocommerce-checkout-review-order-table tr.cart_item:is(:has(+ tr.af-co-up-row),:has(.af-co-up)) dl.variation :is(dt,dd).variation-Size{display:none!important}
+/* (a line priced before today's prices has no choice marked: it keeps its own description) */
+#order_review .woocommerce-checkout-review-order-table tr.cart_item:is(:has(+ tr.af-co-up-row .af-co-up--set),:has(.af-co-up--set)) dl.variation :is(dt,dd):is(.variation-FrameType,.variation-FrameColor,.variation-Youreceive){display:none!important}
 @media (max-width:499px){
 #order_review .woocommerce-checkout-review-order-table tr.cart_item:has(+ tr.af-co-up-row){border-bottom:0!important}
 #order_review .woocommerce-checkout-review-order-table tr.cart_item:has(+ tr.af-co-up-row) > td.product-total{padding-bottom:12px!important}
@@ -170,8 +172,10 @@
 .woocommerce-cart-form table.cart tr.af-co-up-row{border-bottom:1px solid var(--border,#e6e0d4)}
 .woocommerce-cart-form table.cart tr.af-co-up-row > td{padding:0 0 26px!important;border:0!important;vertical-align:top!important;text-align:left!important;background:none!important}
 .woocommerce-cart-form table.cart tr.af-co-up-row > td::before{content:none!important;display:none!important}
-/* the details the controls now show (the order, emails and invoices keep them) */
-.woocommerce-cart-form table.cart tr.cart_item:is(:has(+ tr.af-co-up-row),:has(.af-co-up)) dl.variation :is(dt,dd):is(.variation-Size,.variation-FrameType,.variation-FrameColor,.variation-Youreceive){display:none!important}
+/* the details the controls now show (the order, emails and invoices keep them);
+   a line priced before today's prices has no choice marked and keeps its own */
+.woocommerce-cart-form table.cart tr.cart_item:is(:has(+ tr.af-co-up-row),:has(.af-co-up)) dl.variation :is(dt,dd).variation-Size{display:none!important}
+.woocommerce-cart-form table.cart tr.cart_item:is(:has(+ tr.af-co-up-row .af-co-up--set),:has(.af-co-up--set)) dl.variation :is(dt,dd):is(.variation-FrameType,.variation-FrameColor,.variation-Youreceive){display:none!important}
 /* one delivery note for the list, under its last editor */
 .woocommerce-cart-form table.cart tr.af-co-up-row:has(~ tr.af-co-up-row) .af-co-up-note{display:none}
 /* nothing to check out with, and no quantity or line to change, while a line
@@ -187,12 +191,18 @@ html.af-co-up-saving .woocommerce-cart-form :is(.quantity,td.product-remove,td.a
   /* the grid is the container itself, so each chip takes two of its four columns */
   :is(#order_review,.woocommerce-cart-form) .af-co-up--cart button.af-co-up-color{grid-column:span 2;display:flex!important;flex-wrap:nowrap;align-items:center;justify-content:space-between;column-gap:6px;padding:7px 10px!important;text-align:left!important}
 }
+/* 312-339px editors (360 and 375px phones): checkout's narrow rule makes the
+   colour grid two columns; the span-2 chips above need its four back to sit
+   two by two (under 312px they take a row each) */
+@container afup (min-width:312px) and (max-width:339px){
+  :is(#order_review,.woocommerce-cart-form) .af-co-up--cart .af-co-up-colors{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
 /* phones and tablets: WooCommerce stacks each line (photo on the left, the
    rest beside it); the editor takes the full width under its line */
 @media (max-width:768px){
 .woocommerce-cart-form table.cart tr.af-co-up-row{display:block!important;position:static!important;padding:0!important}
 .woocommerce-cart-form table.cart tr.af-co-up-row > td.af-co-up-pad{display:none!important}
-.woocommerce-cart-form table.cart tr.af-co-up-row > td.af-co-up-cell{display:block!important;width:auto!important;padding:2px 0 20px!important}
+.woocommerce-cart-form table.cart tr.af-co-up-row > td.af-co-up-cell{display:block!important;width:auto!important;padding:2px 4px 20px 0!important}
 .woocommerce-cart-form table.cart tr.cart_item:has(+ tr.af-co-up-row) > td{padding-bottom:10px!important}
 .woocommerce-cart-form table.cart tr.cart_item:has(+ tr.af-co-up-row) > td:last-child{padding-bottom:14px!important}
 :is(#order_review,.woocommerce-cart-form) .af-co-up--cart button.af-co-up-opt,

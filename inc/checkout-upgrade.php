@@ -123,7 +123,7 @@ function af_co_up_money($usd) {
  * the owner's recording of 1 Oct) the buttons met the theme's global gold
  * capsule style. Shipping the rules with the markup closes that gap.
  */
-function af_co_up_style_tag() {
+function af_co_up_style_tag($where = 'checkout') {
     static $done = false, $css = null;
     if ($done) return '';
     $done = true;
@@ -131,7 +131,13 @@ function af_co_up_style_tag() {
         $f = __DIR__ . '/checkout-upgrade.css';
         $css = is_readable($f) ? (string) file_get_contents($f) : '';
     }
-    return $css !== '' ? '<style id="af-co-up-css">' . $css . '</style>' : '';
+    if ($css === '') return '';
+    // The stylesheet names both pages as :is(#order_review,.woocommerce-cart-form).
+    // A browser without :is() (iOS 12 Safari, Chrome before 88) drops every rule
+    // written so, so each page gets its own plain selector, both with an id's
+    // weight: checkout's rules read exactly as they did before the cart had one.
+    $scope = $where === 'cart' ? '.woocommerce-cart-form:not(#af-co-up-none)' : '#order_review';
+    return '<style id="af-co-up-css">' . str_replace(':is(#order_review,.woocommerce-cart-form)', $scope, $css) . '</style>';
 }
 
 /**
@@ -168,8 +174,8 @@ function af_co_up_markup($cart_item, $cart_item_key, $where = 'checkout') {
             ? 'Delivery is worked out at checkout: a framed piece ships flat in a crate, which costs more to deliver (large sizes add oversize handling).'
             : 'Delivery updates with your choice: a framed piece ships flat in a crate, which costs more to deliver (large sizes add oversize handling).';
         ob_start();
-        echo af_co_up_style_tag();   // travels with the list, so markup and style always match ?>
-<div class="af-co-up af-co-up--<?php echo esc_attr($where); ?>" data-key="<?php echo esc_attr($cart_item_key); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('woocommerce-af-co-upgrade')); ?>" data-endpoint="<?php echo esc_url(WC_AJAX::get_endpoint('af_co_upgrade')); ?>"><div class="af-co-up-in">
+        echo af_co_up_style_tag($where);   // travels with the list, so markup and style always match ?>
+<div class="af-co-up af-co-up--<?php echo esc_attr($where); ?><?php echo $cur !== '' ? ' af-co-up--set' : ''; ?>" data-key="<?php echo esc_attr($cart_item_key); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('woocommerce-af-co-upgrade')); ?>" data-endpoint="<?php echo esc_url(WC_AJAX::get_endpoint('af_co_upgrade')); ?>"><div class="af-co-up-in">
   <?php if (count($sizes) > 1) : ?>
   <div class="af-co-up-g af-co-up-g--size" role="group" aria-labelledby="<?php echo esc_attr($uid . '-size'); ?>">
     <div class="af-co-up-lab" id="<?php echo esc_attr($uid . '-size'); ?>">Size<?php if ($inches !== '') : ?><span class="af-co-up-hint"><?php echo esc_html($inches); ?></span><?php endif; ?><?php if ($qty > 1) : ?><span class="af-co-up-each">price per piece</span><?php endif; ?></div>
@@ -383,6 +389,11 @@ add_action('wp_head', function () {
   function lock(on){
     var po = document.getElementById('place_order'); if (po) po.disabled = !!on;
     document.documentElement.classList.toggle('af-co-up-saving', !!on);
+    // cart: the totals box (checkout button, shipping estimate, coupons) and the
+    // lines' quantity, remove and update controls wait too, for the keyboard as
+    // well as the mouse: WooCommerce saves the whole basket at the end of each
+    // request, so one overlapping the change would put the old choice back
+    document.querySelectorAll('div.cart_totals, .woocommerce-cart-form .quantity, .woocommerce-cart-form td.product-remove, .woocommerce-cart-form td.actions').forEach(function(el){ el.inert = !!on; });
   }
   // after the page redraws the list: focus the chosen button again and say it worked
   function afterRedraw(){
@@ -424,8 +435,8 @@ add_action('wp_head', function () {
     // it 0.7s later), or a cart update under way, would be lost or would undo
     // this change (the change gives the line a new key). Let it finish first.
     var form = onCart(box) ? box.closest('.woocommerce-cart-form') : null;
-    if (form && (form.classList.contains('processing') || form.querySelector('.blockUI') || [].some.call(form.querySelectorAll('input.qty'), function(i){ return i.value !== i.defaultValue; }))) {
-      if (msg) { msg.classList.remove('is-ok'); msg.textContent = 'One moment: your basket is saving the quantity. Please choose again when it has updated.'; }
+    if (form && (form.classList.contains('processing') || form.querySelector('.blockUI') || document.querySelector('div.cart_totals.processing, div.cart_totals .blockUI') || [].some.call(form.querySelectorAll('input.qty'), function(i){ return i.value !== i.defaultValue; }))) {
+      if (msg) { msg.classList.remove('is-ok'); msg.textContent = 'One moment: your basket is updating. Please choose again when it has.'; }
       return;
     }
     var fd = new FormData();
@@ -446,11 +457,15 @@ add_action('wp_head', function () {
       .then(function(res){
         clearTimeout(timer);
         if (res && res.success) {
-          pending = { key: (res.data && res.data.key) || box.dataset.key, kit: b.dataset.kit, color: b.dataset.color || '', size: b.dataset.size || '', old: box };
-          // if the redraw never comes, do not leave ordering switched off
-          setTimeout(function(){ if (pending) { pending = null; free(); } }, 25000);
-          // the cart redraws its form and totals the way a quantity change does
-          if (onCart(box)) { if (window.jQuery && typeof window.wc_cart_params !== 'undefined') jQuery(document.body).trigger('wc_update_cart'); else location.reload(); }
+          var mine = pending = { key: (res.data && res.data.key) || box.dataset.key, kit: b.dataset.kit, color: b.dataset.color || '', size: b.dataset.size || '', old: box };
+          // if this change's redraw never comes, do not leave ordering switched
+          // off (an earlier change's timer must not end a later one)
+          setTimeout(function(){ if (pending === mine) { pending = null; free(); } }, 25000);
+          // The cart redraws its form and totals the way a quantity change does.
+          // WooCommerce's cart script listens only from DOM-ready (its ready
+          // callbacks run in turn), so a choice made while the page is still
+          // loading asks after them.
+          if (onCart(box)) { if (window.jQuery && typeof window.wc_cart_params !== 'undefined') jQuery(function(){ setTimeout(function(){ jQuery(document.body).trigger('wc_update_cart'); }, 0); }); else location.reload(); }
           else if (window.jQuery) jQuery(document.body).trigger('update_checkout'); else location.reload();
         } else {
           free();
