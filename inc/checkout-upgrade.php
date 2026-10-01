@@ -389,7 +389,10 @@ add_action('wp_head', function () {
     place();
     if (!pending) return;
     var box = document.querySelector('.af-co-up[data-key="' + pending.key + '"]');
-    if (!box || box === pending.old) return;          // not redrawn yet
+    // redrawn only once the list holding the clicked editor has been replaced:
+    // when the change joins an identical line, that line's editor exists before
+    // the redraw too
+    if (!box || box === pending.old || document.contains(pending.old)) return;
     var a = pending; pending = null; lock(false);
     var btn = box.querySelector(a.size ? '.af-co-up-size[data-size="' + a.size + '"]' : a.color ? '.af-co-up-color[data-color="' + a.color + '"]' : '.af-co-up-opt[data-kit="' + a.kit + '"]');
     if (btn) btn.focus({ preventScroll: true });
@@ -416,14 +419,26 @@ add_action('wp_head', function () {
     if (b.classList.contains('is-on')) return;
     // one change at a time: two at once would each save a basket missing the other
     if (document.querySelector('.af-co-up.is-busy') || pending) return;
+    var msg = box.querySelector('.af-co-up-msg');
+    // Cart: a quantity typed or stepped but not yet sent (functions.php sends
+    // it 0.7s later), or a cart update under way, would be lost or would undo
+    // this change (the change gives the line a new key). Let it finish first.
+    var form = onCart(box) ? box.closest('.woocommerce-cart-form') : null;
+    if (form && (form.classList.contains('processing') || form.querySelector('.blockUI') || [].some.call(form.querySelectorAll('input.qty'), function(i){ return i.value !== i.defaultValue; }))) {
+      if (msg) { msg.classList.remove('is-ok'); msg.textContent = 'One moment: your basket is saving the quantity. Please choose again when it has updated.'; }
+      return;
+    }
     var fd = new FormData();
     fd.append('key', box.dataset.key); fd.append('nonce', box.dataset.nonce);
     fd.append('kit', b.dataset.kit); if (b.dataset.color) fd.append('color', b.dataset.color); if (b.dataset.size) fd.append('size', b.dataset.size);
-    var msg = box.querySelector('.af-co-up-msg'); if (msg) { msg.classList.remove('is-ok'); msg.textContent = ''; }
+    if (msg) { msg.classList.remove('is-ok'); msg.textContent = ''; }
     box.classList.add('is-busy');
     // no order while the line is changing; released after the redraw
     lock(true);
-    function free(){ box.classList.remove('is-busy'); lock(false); }
+    // cart: WooCommerce's cart script holds back its own updates (quantities,
+    // coupon) while its form is marked as processing
+    if (form) form.classList.add('processing');
+    function free(){ box.classList.remove('is-busy'); lock(false); if (form) form.classList.remove('processing'); }
     var ctl = window.AbortController ? new AbortController() : null;
     var timer = setTimeout(function(){ if (ctl) ctl.abort(); }, 20000);
     fetch(box.dataset.endpoint, { method: 'POST', credentials: 'same-origin', body: fd, signal: ctl ? ctl.signal : undefined })

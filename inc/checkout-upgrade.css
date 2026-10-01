@@ -174,8 +174,11 @@
 .woocommerce-cart-form table.cart tr.cart_item:is(:has(+ tr.af-co-up-row),:has(.af-co-up)) dl.variation :is(dt,dd):is(.variation-Size,.variation-FrameType,.variation-FrameColor,.variation-Youreceive){display:none!important}
 /* one delivery note for the list, under its last editor */
 .woocommerce-cart-form table.cart tr.af-co-up-row:has(~ tr.af-co-up-row) .af-co-up-note{display:none}
-/* nothing to check out with while a line is changing */
+/* nothing to check out with, and no quantity or line to change, while a line
+   is changing (the change gives the line a new key; a quantity sent meanwhile
+   would miss it) */
 html.af-co-up-saving .wc-proceed-to-checkout .checkout-button{pointer-events:none!important;opacity:.6!important}
+html.af-co-up-saving .woocommerce-cart-form :is(.quantity,td.product-remove,td.actions){pointer-events:none!important}
 /* cart: four colour chips need about 380px; narrower (phones, and the
    500-768px stacked layout with its label column) they go two by two, name
    left and fee right, as checkout's narrow list does */
