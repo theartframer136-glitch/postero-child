@@ -29,7 +29,9 @@ const PRODUCTS = [
   { id: 199, slug: 'balance-poster', name: 'Balance Poster', code: 'TMP-1003' },
   { id: 211, slug: 'japanese-butterfly-ii-poster', name: 'Japanese Butterfly II Poster', code: 'TMP-1004' },
   { id: 11491, slug: 'test-canvas-wall-art', name: 'test', code: 'TMP-1055' },
-  { id: 25240, slug: 'vaishnava-symbols-trio-canvas-wall-art', code: 'TMP-1246',
+  // A search for the whole 137-character name finds nothing even while the
+  // product is up, so the searches use the words a shopper would type.
+  { id: 25240, slug: 'vaishnava-symbols-trio-canvas-wall-art', code: 'TMP-1246', search: 'Vaishnava Symbols Trio',
     name: 'Vaishnava Symbols Trio Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor' },
 ];
 
@@ -91,16 +93,17 @@ for (const p of PRODUCTS) {
 
   // The Store API: what every widget and app reads.
   await go('/');
-  const api = await page.evaluate(async ({ id, name }) => {
+  const words = p.search || p.name;
+  const api = await page.evaluate(async ({ id, words }) => {
     const one = await fetch('/wp-json/wc/store/v1/products/' + id).then(r => r.status).catch(() => 0);
-    const hits = await fetch('/wp-json/wc/store/v1/products?per_page=50&search=' + encodeURIComponent(name)).then(r => r.ok ? r.json() : []).catch(() => []);
+    const hits = await fetch('/wp-json/wc/store/v1/products?per_page=50&search=' + encodeURIComponent(words)).then(r => r.ok ? r.json() : []).catch(() => []);
     return { one, found: hits.some(h => h.id === id) };
-  }, p).catch(() => ({ one: 0, found: true }));
+  }, { id: p.id, words }).catch(() => ({ one: 0, found: true }));
   say(api.one !== 200, 'Store API /products/' + p.id, 'HTTP ' + api.one);
-  say(!api.found, 'Store API search "' + p.name + '"', api.found ? 'listed' : 'not listed');
+  say(!api.found, 'Store API search "' + words + '"', api.found ? 'listed' : 'not listed');
 
   // Product search by name and by art code.
-  for (const q of [p.name, p.code]) {
+  for (const q of [words, p.code]) {
     const path = '/?s=' + encodeURIComponent(q) + '&post_type=product';
     const r = await go(path);
     if (!r) { say(false, 'search "' + q + '"', 'no answer'); continue; }
