@@ -82,8 +82,14 @@ if (!defined('ABSPATH')) exit;
  * (#26628), TMP-1295 (#30836) and TMP-1309 (#8805, the cafe set). All five
  * published; nothing in this theme links to them by id. Private the same way,
  * nothing deleted. The 52 already on the list read "already private".
+ *
+ * Revision 10, 1 Oct: the owner, with one more row of the sheet, "remove this
+ * also": TMP-1046 (#8669, the wooden portrait canvas frame, a custom photo
+ * product, out of stock). Published; nothing in this theme links to it by
+ * id. Private the same way, nothing deleted. The 57 already on the list read
+ * "already private".
  */
-define('AF_PLACEHOLDER_PRODUCTS_REV', '9');
+define('AF_PLACEHOLDER_PRODUCTS_REV', '10');
 
 function af_placeholder_products() {
     return array(
@@ -146,6 +152,8 @@ function af_placeholder_products() {
         26628 => 'TMP-1256',   // Floral Arch Wall Art
         30836 => 'TMP-1295',   // Veena Player with Peacock
         8805  => 'TMP-1309',   // Modern Cafe Decor Wall Art Set
+        // revision 10: one more from the sheet
+        8669  => 'TMP-1046',   // Premium Wooden Portrait Canvas Frame
     );
 }
 
