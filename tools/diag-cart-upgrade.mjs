@@ -162,7 +162,7 @@ ok(s.lines[0].qty === '1' && money(s.lines[0].subtotal) === 80, 'line 1 back to 
 await p.setViewport({ width: 390, height: 844 }); await sleep(1500);
 s = await state(p); console.log('  390: ' + JSON.stringify(s.lines.map(l => ({ imgW: l.imgW, imgRight: l.imgRight, nameLeft: l.nameLeft, colorRows: l.colorCols, fits: l.fits }))));
 ok(s.lines.every(l => l.imgW <= 92 && l.imgRight <= l.nameLeft), 'phone: each photo 90px, beside the name (not over it)', s.lines.map(l => l.imgW + '/' + l.imgRight + '<' + l.nameLeft).join(' '));
-ok(s.lines[1].colorRows === 2 && s.lines.every(l => l.fits !== false), 'phone: colour chips two by two, nothing spills', 'rows ' + s.lines[1].colorRows);
+ok(s.lines[1].colorCols === 2 && s.lines.every(l => l.fits !== false), 'phone: colour chips two by two, nothing spills', 'rows ' + s.lines[1].colorCols);
 ok(s.overflow <= 0, 'phone: no sideways scroll');
 await picture(p, 'phone-390', 340);
 
