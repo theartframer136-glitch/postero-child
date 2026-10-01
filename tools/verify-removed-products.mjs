@@ -5,7 +5,8 @@
 // codes TMP-1000 to TMP-1004); on 26 Sep it deleted all six permanently, and
 // a deleted product must be unreachable the same ten ways. On 1 Oct the owner
 // asked to remove TMP-1246, #25240 "Vaishnava Symbols Trio", made private the
-// same way. This checks, for
+// same way, and then six more: TMP-1233, TMP-1229, TMP-1134, TMP-1120,
+// TMP-1078 and TMP-1071, "don't delete them, make them private". This checks, for
 // each, every way a shopper or
 // a search engine could reach it, as a first-time visitor with no cookies:
 //   - its own address, and ?p=<id>
@@ -29,10 +30,22 @@ const PRODUCTS = [
   { id: 199, slug: 'balance-poster', name: 'Balance Poster', code: 'TMP-1003' },
   { id: 211, slug: 'japanese-butterfly-ii-poster', name: 'Japanese Butterfly II Poster', code: 'TMP-1004' },
   { id: 11491, slug: 'test-canvas-wall-art', name: 'test', code: 'TMP-1055' },
-  // A search for the whole 137-character name finds nothing even while the
+  // A search for one of these whole long names finds nothing even while the
   // product is up, so the searches use the words a shopper would type.
   { id: 25240, slug: 'vaishnava-symbols-trio-canvas-wall-art', code: 'TMP-1246', search: 'Vaishnava Symbols Trio',
     name: 'Vaishnava Symbols Trio Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor' },
+  { id: 22747, slug: 'ganesh-pop-art-canvas-wall-art', code: 'TMP-1233', search: 'Ganesh Pop Art',
+    name: 'Ganesh Pop Art Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor' },
+  { id: 22016, slug: 'horses-in-color-field-canvas-wall-art', code: 'TMP-1229', search: 'Horses in Color Field',
+    name: 'Horses in Color Field Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor' },
+  { id: 29342, slug: 'kashi-vishwanath-gold-spire-canvas-wall-art', code: 'TMP-1134', search: 'Kashi Vishwanath Gold Spire',
+    name: 'Kashi Vishwanath Gold Spire Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor' },
+  { id: 28422, slug: 'raas-leela-miniature-canvas-wall-art', code: 'TMP-1120', search: 'Raas Leela Miniature',
+    name: 'Raas Leela Miniature Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor' },
+  { id: 23789, slug: 'radha-krishna-color-duet-canvas-wall-art', code: 'TMP-1078', search: 'Radha Krishna Color Duet',
+    name: 'Radha Krishna Color Duet Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor' },
+  { id: 22383, slug: 'krishna-rainbow-splash-canvas-wall-art', code: 'TMP-1071', search: 'Krishna Rainbow Splash',
+    name: 'Krishna Rainbow Splash Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor' },
 ];
 
 const browser = await chromium.launch({ headless: true });

@@ -31,7 +31,8 @@
 if (!defined('ABSPATH')) exit;
 
 /**
- * id => the name it must still carry. Bump the revision after changing this.
+ * id => the art code it must still carry (from revision 7; until then, the
+ * name). Bump the revision after changing this.
  *
  * Revision 2, 23 Sep: revision 1 made 11491 private at 12:49:01 and closed 9
  * of the 10 ways in. The product sitemap still listed it, because Rank Math
@@ -55,13 +56,38 @@ if (!defined('ABSPATH')) exit;
  * deleted, one click to publish again. Its stored name carries "&amp;" where
  * the shop prints "&", so names are compared with entities decoded
  * (af_placeholder_same_name).
+ *
+ * Revision 7, 1 Oct: the owner listed seven temporary codes, TMP-1246 among
+ * them, with "don't delete them, make them private". All seven were
+ * published, $80 each, none in the Canva brochure. The owner names them by
+ * their code, so from this revision a product is matched by the art code it
+ * must still carry (af_placeholder_code_key), as the show list below already
+ * is: a TMP code belongs to one product and stays with it, while a long
+ * title can be edited at any time. A product whose code has changed since
+ * is left alone and logged. #25240 went private in revision 6 and reads
+ * "already private".
  */
-define('AF_PLACEHOLDER_PRODUCTS_REV', '6');
+define('AF_PLACEHOLDER_PRODUCTS_REV', '7');
 
 function af_placeholder_products() {
     return array(
-        25240 => 'Vaishnava Symbols Trio Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor',
+        25240 => 'TMP-1246',   // Vaishnava Symbols Trio
+        22747 => 'TMP-1233',   // Ganesh Pop Art
+        22016 => 'TMP-1229',   // Horses in Color Field
+        29342 => 'TMP-1134',   // Kashi Vishwanath Gold Spire
+        28422 => 'TMP-1120',   // Raas Leela Miniature
+        23789 => 'TMP-1078',   // Radha Krishna Color Duet
+        22383 => 'TMP-1071',   // Krishna Rainbow Splash
     );
+}
+
+/**
+ * An art code as written, reduced so that "HD - 080004-5030", "HD-080004-5030"
+ * and "HD – 080004-5030" compare equal: spaces, hyphens and en dashes out,
+ * upper case.
+ */
+function af_placeholder_code_key($code) {
+    return strtoupper(preg_replace('/[\s\x{2013}-]+/u', '', (string) $code));
 }
 
 /**
@@ -151,16 +177,16 @@ add_action('wp_loaded', function () {
         update_option('af_placeholder_products_rev', AF_PLACEHOLDER_PRODUCTS_REV, true);
         $log = array();
         $hidden = 0;
-        foreach (af_placeholder_products() as $id => $name) {
+        foreach (af_placeholder_products() as $id => $code) {
             $product = wc_get_product($id);
             if (!$product) {
                 $log[] = $id . ' not found';
                 continue;
             }
             $status = $product->get_status();
-            $actual = trim((string) $product->get_name());
-            if (!af_placeholder_same_name($actual, $name)) {
-                $log[] = $id . ' left alone: now named "' . substr($actual, 0, 60) . '"';
+            $has = (string) get_post_meta($id, '_taf_art_code', true);
+            if (af_placeholder_code_key($has) !== af_placeholder_code_key($code)) {
+                $log[] = $id . ' left alone: art code is now "' . substr($has, 0, 30) . '"';
                 continue;
             }
             if ($status !== 'publish') {
@@ -213,9 +239,8 @@ add_action('wp_loaded', function () {
                 $log[] = $id . ' not found';
                 continue;
             }
-            $key = function ($c) { return strtoupper(preg_replace('/[\s\x{2013}-]+/u', '', (string) $c)); };
             $has = (string) get_post_meta($id, '_taf_art_code', true);
-            if ($key($has) !== $key($code)) {
+            if (af_placeholder_code_key($has) !== af_placeholder_code_key($code)) {
                 $log[] = $id . ' left alone: art code is now "' . substr($has, 0, 30) . '"';
                 continue;
             }
