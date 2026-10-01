@@ -2,8 +2,15 @@ name: Check Cart Lines
 # Read-only (a fresh guest basket, no order). The cart page with real lines in
 # it: what renders it, its markup, layout and pictures at six widths, how it
 # redraws, and a self-contained copy of the page for offline design work.
+# A job log is cut at about 1 MB: the pictures and the page copy run as jobs
+# of their own.
 on:
   workflow_dispatch:
+    inputs:
+      snapshot:
+        description: 'Also print the self-contained copy of the page (large)'
+        required: false
+        default: 'no'
 jobs:
   look:
     runs-on: ubuntu-latest
@@ -45,4 +52,25 @@ jobs:
         run: |
           set -uo pipefail
           npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
-          NODE_PATH=/tmp/afh/node_modules node tools/diag-cart-lines.mjs || true
+          PARTS=info,redraw NODE_PATH=/tmp/afh/node_modules node tools/diag-cart-lines.mjs || true
+  pictures:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Pictures at six widths (read-only, no order placed)
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
+          PARTS=pics NODE_PATH=/tmp/afh/node_modules node tools/diag-cart-lines.mjs || true
+  snapshot:
+    if: ${{ github.event.inputs.snapshot == 'yes' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Self-contained copy of the page (read-only, no order placed)
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
+          PARTS=snap NODE_PATH=/tmp/afh/node_modules node tools/diag-cart-lines.mjs || true

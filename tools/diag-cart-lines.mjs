@@ -11,6 +11,9 @@
  * widths, and a self-contained copy of the page (markup with every same-site
  * stylesheet inlined, gzip + base64) for designing against offline.
  *
+ * A job log is cut at about 1 MB, so the parts can be asked for separately:
+ *   PARTS=info,redraw   (default: info,pics,redraw,snap)
+ *
  *   node tools/diag-cart-lines.mjs
  */
 import { createRequire } from 'module';
@@ -19,6 +22,7 @@ const S = 'https://theartframer.us';
 const PRODUCT = S + '/product/radha-krishna-moonlit-melody-canvas-wall-art-3x4-feet-floating-frame-premium-digital-canvas-print-living-room-home-spiritual-wall-decor/';
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const b = await puppeteer.launch({ channel: 'chrome', headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] });
+const PARTS = new Set((process.env.PARTS || 'info,pics,redraw,snap').split(',').map(x => x.trim()));
 const errs = [];
 function shrink(dataUrl, targetW, quality) {
   return new Promise((resolve) => { const im = new Image(); im.onload = function () { const sc = Math.min(1, targetW / im.naturalWidth); const c = document.createElement('canvas'); c.width = Math.round(im.naturalWidth * sc); c.height = Math.round(im.naturalHeight * sc); c.getContext('2d').drawImage(im, 0, 0, c.width, c.height); resolve(c.toDataURL('image/jpeg', quality)); }; im.onerror = () => resolve(''); im.src = dataUrl; });
@@ -63,6 +67,7 @@ await go(p, S + '/cart/');
 await p.evaluate(() => { const b = [...document.querySelectorAll('button, a')].find(x => /necessary only/i.test(x.textContent || '')); if (b) b.click(); });
 await sleep(1500);
 
+if (PARTS.has('info')) {
 console.log('=== SERVER HTML MARKERS ===');
 console.log('notices hook: ' + ([...html.matchAll(/<!-- af-notices via ([^ ]+) -->/g)].map(m => m[1]).join(', ') || '(none)'));
 console.log('elementor documents: ' + [...new Set([...html.matchAll(/data-elementor-type="([^"]+)"[^>]*data-elementor-id="(\d+)"/g)].map(m => m[1] + '#' + m[2]))].join(', '));
@@ -106,6 +111,7 @@ const info = await p.evaluate(() => {
   return out;
 });
 for (const [k, v] of Object.entries(info)) console.log(k + ': ' + (Array.isArray(v) ? '\n   ' + v.join('\n   ') : v));
+}
 
 for (const [w, h] of [[1918, 1000], [1366, 900], [1150, 900], [1024, 900], [768, 1000], [390, 844]]) {
   await p.setViewport({ width: w, height: h }); await sleep(1500);
@@ -116,10 +122,11 @@ for (const [w, h] of [[1918, 1000], [1366, 900], [1150, 900], [1024, 900], [768,
     return 'form ' + r(f) + ' totals ' + r(c) + ' table ' + r(t) + ' tr.display=' + getComputedStyle(line).display + ' | ' + [...line.children].map(td => (td.className.split(' ')[0] || td.tagName) + ' ' + r(td) + ' d=' + getComputedStyle(td).display + (getComputedStyle(td, '::before').content !== 'none' ? ' before=' + getComputedStyle(td, '::before').content.slice(0, 20) : '')).join(' | ') + ' overflow=' + (document.documentElement.scrollWidth - document.documentElement.clientWidth);
   });
   console.log('\n--- ' + w + ' --- ' + lay);
-  await picture(p, 'cart-' + w, w <= 400 ? 380 : 700);
+  if (PARTS.has('pics')) await picture(p, 'cart-' + w, w <= 400 ? 380 : 640);
 }
 await p.setViewport({ width: 1366, height: 900 }); await sleep(1200);
 
+if (PARTS.has('redraw')) {
 console.log('\n=== HOW THE CART REDRAWS AFTER A QUANTITY CHANGE ===');
 const listen = () => p.evaluate(() => { window.__afEv = []; if (window.jQuery) jQuery(document.body).on('updated_wc_div updated_cart_totals wc_fragments_refreshed wc_cart_emptied', (e) => window.__afEv.push(e.type)); });
 await listen();
@@ -138,7 +145,9 @@ console.log(await p.evaluate(() => 'wc_update_cart event: same page ' + (window.
 // put the quantity back
 await p.evaluate(() => { const i = document.querySelector('.woocommerce-cart-form tr.cart_item input.qty'); if (i) { i.value = '1'; if (window.jQuery) jQuery(i).trigger('change'); } });
 await sleep(6000);
+}
 
+if (PARTS.has('snap')) {
 console.log('\n=== SNAPSHOT (gzip+base64 html with inlined css, 1366) ===');
 const snap = await p.evaluate(async () => {
   const css = [];
@@ -163,6 +172,7 @@ const snap = await p.evaluate(async () => {
 console.log(`=== SNAP cart-1366 (${snap.size} chars html, ${snap.b64.length} b64) ===`);
 for (let i = 0; i < snap.b64.length; i += 180) console.log('SNP ' + snap.b64.slice(i, i + 180));
 console.log('=== END SNAP ===');
+}
 
 console.log('\n=== console / page errors ===\n' + ([...new Set(errs)].join('\n') || 'none'));
 await b.close();
