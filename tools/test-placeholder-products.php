@@ -4,10 +4,10 @@
  * Tests inc/placeholder-products.php: what it takes off sale, and what it
  * leaves alone.
  *
- * Owner, 1 Oct, with a screenshot of TMP-1246: "remove this". #25240 goes
- * private. Its stored name carries "&amp;" where the shop prints "&", so the
- * name check must not depend on how WordPress stored the ampersand, while a
- * product renamed since, or one no longer published, is still left alone.
+ * Owner, 1 Oct: TMP-1246, TMP-1233, TMP-1229, TMP-1134, TMP-1120, TMP-1078 and
+ * TMP-1071, "don't delete them, make them private". Each goes private while it
+ * still carries that art code, however the code is spaced or dashed; one whose
+ * code has changed since is left alone, and nothing is ever deleted.
  *
  * Runs the REAL file with WordPress and WooCommerce stubbed. Plain `php`:
  *
@@ -44,52 +44,66 @@ function check($what, $got, $want) {
     if ($got === $want) { $pass++; echo "  OK    $what\n"; }
     else { $fail++; echo "  FAIL  $what: got " . var_export($got, true) . ", want " . var_export($want, true) . "\n"; }
 }
-/** A fresh site: the given products, the option from the last deploy, then one request. */
-function request($products, $rev = '5') {
+/** A fresh site: the given products and art codes, the option from the last deploy, then one request. */
+function request($products, $codes, $rev = '6') {
     $GLOBALS['P'] = $products; $GLOBALS['FIRED'] = array();
     $GLOBALS['OPT'] = $rev === null ? array() : array('af_placeholder_products_rev' => $rev);
     $GLOBALS['META'] = array(3362 => array('_taf_art_code' => 'HD - 080004-5030'));
+    foreach ($codes as $id => $c) { $GLOBALS['META'][$id]['_taf_art_code'] = $c; }
     foreach ($GLOBALS['HOOKS']['wp_loaded'] as $cb) { $cb(); }
     return (string) get_option('af_placeholder_products', '');
 }
-$STORED = 'Vaishnava Symbols Trio Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room &amp; Home Spiritual Wall Décor';
+$SEVEN = array(25240 => 'TMP-1246', 22747 => 'TMP-1233', 22016 => 'TMP-1229', 29342 => 'TMP-1134',
+               28422 => 'TMP-1120', 23789 => 'TMP-1078', 22383 => 'TMP-1071');
 $ganesha = array('status' => 'publish', 'name' => 'Divine Lord Ganesha', 'vis' => 'visible');
+$live = function ($status = 'publish') use ($SEVEN) {
+    $p = array();
+    foreach ($SEVEN as $id => $c) { $p[$id] = array('status' => $status, 'name' => "product $id Living Room &amp; Home", 'vis' => 'visible'); }
+    return $p;
+};
 
-echo "=== #25240 as WordPress stores it, \"&amp;\" in the name ===\n";
-$log = request(array(25240 => array('status' => 'publish', 'name' => $STORED, 'vis' => 'visible'), 3362 => $ganesha));
-check('#25240 goes private', get_post_status(25240), 'private');
-check('the log says so', strpos($log, '25240 publish -> private') !== false, true);
+echo "=== the list is the owner's seven codes ===\n";
+check('seven products', count(af_placeholder_products()), 7);
+check('each with the code the owner named', af_placeholder_products(), $SEVEN);
+
+echo "\n=== all seven published, #25240 already private from revision 6 ===\n";
+$site = $live(); $site[25240]['status'] = 'private'; $site[3362] = $ganesha;
+$log = request($site, $SEVEN);
+foreach ($SEVEN as $id => $c) { check("#$id ($c) is private", get_post_status($id), 'private'); }
+check('#25240 reads "already private"', strpos($log, '25240 already private') !== false, true);
+check('the six read publish -> private', substr_count($log, 'publish -> private'), 6);
+check('nothing is deleted', count(array_intersect_key($GLOBALS['P'], $SEVEN)), 7);
 check('the product pages and the shop are purged', in_array('litespeed_purge_posttype', $GLOBALS['FIRED'], true), true);
 check('the sitemap is rebuilt', strpos($log, 'sitemap: ') !== false, true);
-check('nothing is deleted', isset($GLOBALS['P'][25240]), true);
 check('#3362 stays in the shop', $GLOBALS['P'][3362]['vis'], 'visible');
 
-echo "\n=== the same name stored with a plain \"&\" and &#8211; dashes ===\n";
-request(array(25240 => array('status' => 'publish', 'name' => str_replace(array('&amp;', '–'), array('&', '&#8211;'), $STORED), 'vis' => 'visible')));
-check('#25240 goes private', get_post_status(25240), 'private');
+echo "\n=== the code as the renumber pass may space it ===\n";
+request(array(22747 => array('status' => 'publish', 'name' => 'x', 'vis' => 'visible')), array(22747 => 'TMP - 1233'));
+check('"TMP - 1233" is TMP-1233', get_post_status(22747), 'private');
 
-echo "\n=== renamed since the owner asked ===\n";
-$log = request(array(25240 => array('status' => 'publish', 'name' => 'Something Else Canvas Wall Art', 'vis' => 'visible')));
-check('left published', get_post_status(25240), 'publish');
-check('the log says why', strpos($log, '25240 left alone: now named') !== false, true);
+echo "\n=== a product whose code has changed since the owner asked ===\n";
+$log = request(array(22016 => array('status' => 'publish', 'name' => 'x', 'vis' => 'visible')), array(22016 => 'SH-040011-3050'));
+check('left published', get_post_status(22016), 'publish');
+check('the log says why', strpos($log, '22016 left alone: art code is now "SH-040011-3050"') !== false, true);
 
-echo "\n=== already private (taken off by hand) ===\n";
-$log = request(array(25240 => array('status' => 'private', 'name' => $STORED, 'vis' => 'visible')));
-check('stays private', get_post_status(25240), 'private');
-check('the log reads "already private"', strpos($log, '25240 already private') !== false, true);
+echo "\n=== the name no longer matters ===\n";
+request(array(29342 => array('status' => 'publish', 'name' => 'Renamed by the owner', 'vis' => 'visible')), array(29342 => 'TMP-1134'));
+check('a renamed product with its code goes private', get_post_status(29342), 'private');
 
 echo "\n=== gone ===\n";
-$log = request(array());
-check('the log reads "not found"', strpos($log, '25240 not found') !== false, true);
+$log = request(array(), array());
+$nf = 0; foreach ($SEVEN as $id => $c) { $nf += substr_count($log, $id . ' not found'); }
+check('the log reads "not found" for each of the seven', $nf, 7);
 
 echo "\n=== a second request after the same deploy does nothing ===\n";
-request(array(25240 => array('status' => 'publish', 'name' => $STORED, 'vis' => 'visible')), AF_PLACEHOLDER_PRODUCTS_REV);
-check('left published', get_post_status(25240), 'publish');
+request($live(), $SEVEN, AF_PLACEHOLDER_PRODUCTS_REV);
+check('all left published', array_unique(array_map('get_post_status', array_keys($SEVEN))), array('publish'));
 check('no purge', $GLOBALS['FIRED'], array());
 
-echo "\n=== af_placeholder_same_name ===\n";
-check('"&amp;" and "&" are the same', af_placeholder_same_name('A &amp; B', 'A & B'), true);
-check('case and runs of spaces aside', af_placeholder_same_name("  a   &  b ", 'A & B'), true);
+echo "\n=== af_placeholder_code_key and af_placeholder_same_name ===\n";
+check('spaces, hyphens and en dashes aside', af_placeholder_code_key('HD – 080004-5030'), af_placeholder_code_key('hd-080004-5030'));
+check('a different code is not the same', af_placeholder_code_key('TMP-1233') === af_placeholder_code_key('TMP-1234'), false);
+check('"&amp;" and "&" are the same name', af_placeholder_same_name('A &amp; B', 'A & B'), true);
 check('a different name is not', af_placeholder_same_name('A & C', 'A & B'), false);
 check('the delete list is still empty', af_placeholder_products_delete(), array());
 
