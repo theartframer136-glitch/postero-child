@@ -75,6 +75,10 @@
 #order_review .af-co-up button.is-on,
 #order_review .af-co-up button.is-on:hover,
 #order_review .af-co-up button.is-on:focus{background:var(--afu-sel)!important;border-color:#a8842c!important;box-shadow:inset 0 0 0 1px #c9a84c!important;color:var(--afu-ink)!important}
+/* the theme lays buttons out as a horizontal flex row (measured live, 1 Oct):
+   size and colour chips stack their name over their price instead */
+#order_review .af-co-up button.af-co-up-size,
+#order_review .af-co-up button.af-co-up-color{display:block!important;gap:0!important}
 /* a theme or page-builder icon on buttons must not land inside these */
 #order_review .af-co-up button::before,
 #order_review .af-co-up button::after{content:none!important;display:none!important}

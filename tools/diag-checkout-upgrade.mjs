@@ -54,6 +54,7 @@ async function state(p) {
       colors: up ? [...up.querySelectorAll('.af-co-up-color')].map(b => (b.classList.contains('is-on') ? '*' : '') + txt(b)) : [],
       upAfterDetails: up ? !!(edRow(row) && edRow(row).contains(up) && up.classList.contains('is-placed')) : null,
       hiddenRows: [...row.querySelectorAll('dl.variation dt')].filter(d => getComputedStyle(d).display === 'none').map(d => d.textContent.trim()),
+      stacked: up ? [...up.querySelectorAll('.af-co-up-size, .af-co-up-color')].every(b => { const v = b.querySelector('.af-co-up-v'), pr = b.querySelector('.af-co-up-p'); if (!v || !pr) return false; const a = v.getBoundingClientRect(), c = pr.getBoundingClientRect(); return c.top >= a.bottom - 1 || c.left >= a.right - 1; }) : null,
       buttonLook: up ? (() => { const b = up.querySelector('.af-co-up-size') || up.querySelector('.af-co-up-opt'); const c = getComputedStyle(b); return c.textTransform + '|' + c.backgroundColor + '|' + Math.round(b.getBoundingClientRect().height); })() : '',
       msg: up ? txt(up.querySelector('.af-co-up-msg')) : '',
       shipping: txt(t.querySelector('tr.shipping td, tr.woocommerce-shipping-totals td')),
@@ -99,6 +100,7 @@ ok(s && s.upAfterDetails === true, 'the editor sits in its own full-width row un
 ok(s && s.styleShipped, 'the editor\'s styles arrive with the list');
 ok(s && /^none\|rgb\(255, 255, 255\)/.test(s.buttonLook), 'buttons styled by the editor, not the theme (no capitals, white)', s ? s.buttonLook : '');
 ok(s && ['Size:', 'Frame Type:', 'You receive:'].every(x => s.hiddenRows.includes(x)), 'details the editor shows are not repeated', s ? s.hiddenRows.join(' ') : '');
+ok(s && s.stacked === true, 'size chips: the size and its price do not overlap');
 const del0 = money(s && s.shipping);
 await picture(p, 'start-1366', 520);
 
@@ -111,6 +113,7 @@ ok(await choose(p, '.af-co-up-opt[data-kit="painting_bar_frame"]'), 'clicked "Pa
 s = await state(p); console.log('  frame: ' + JSON.stringify(s));
 ok(s && money(s.price) === 176 && /frame/i.test(s.receive) && /Aluminium/i.test(s.frame), 'line $176, You receive: frame, Frame Type: Aluminium', s ? s.price + ' | ' + s.receive + ' | ' + s.frame : '');
 ok(s && s.colors.length === 4, 'frame colour choices shown', s ? s.colors.join(' | ') : '');
+ok(s && s.stacked === true, 'colour chips: the name and its price do not overlap');
 ok(s && money(s.shipping) > del0, 'delivery goes up (framed ships flat in a crate)', s ? s.shipping + ' vs ' + del0 : '');
 ok(s && s.fees.some(f => /Oversize/i.test(f) && money(f) === 20), 'oversize fee $20 for the 54 in crate', s ? s.fees.join(' | ') : '');
 await picture(p, 'frame-1366', 520);
