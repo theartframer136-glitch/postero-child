@@ -1,0 +1,152 @@
+/* ── Checkout line editor, direction C: "spec sheet" ─────────────────────
+   The editor gets its own full-width row under its line (placement 'row').
+   A label column as wide as the photo column puts every control exactly
+   under the product name; the Size, Frame Color and You receive detail rows
+   are hidden on this view because the controls show the current value.
+   Every selector starts with #order_review so the theme's global
+   button/.button capsule (gold, uppercase, 14px 30px, pill) cannot win. */
+
+/* grid offsets mirror the name cell's left padding (photo + gap) */
+#order_review .af-co-up{--afu-lab:112px;--afu-ink:#1c1a17;--afu-mut:#6b655c;--afu-line:#e3dbc9;--afu-hair:#ece5d4;--afu-sel:#fcf8ee;--afu-gold:#8a6d1f}
+@media (min-width:1150px) and (max-width:1299px){#order_review .af-co-up{--afu-lab:94px}}
+@media (max-width:499px){#order_review .af-co-up{--afu-lab:88px}}
+
+/* ── the row the editor lives in, and the line above it ── */
+#order_review .woocommerce-checkout-review-order-table tr.cart_item:has(+ tr.af-co-up-row) > td{border-bottom:0!important;padding-bottom:10px!important}
+#order_review .woocommerce-checkout-review-order-table tr.af-co-up-row > td{padding:0 0 20px!important;border-top:0!important;border-bottom:1px solid var(--af-co-line,#ece5d4)!important;vertical-align:top!important;text-align:left!important;background:none!important}
+/* the details the controls now show (the order, emails and invoices keep them) */
+#order_review .woocommerce-checkout-review-order-table tr.cart_item:is(:has(+ tr.af-co-up-row),:has(.af-co-up)) dl.variation :is(dt,dd):is(.variation-Size,.variation-FrameType,.variation-FrameColor,.variation-Youreceive){display:none!important}
+@media (max-width:499px){
+#order_review .woocommerce-checkout-review-order-table tr.cart_item:has(+ tr.af-co-up-row){border-bottom:0!important}
+#order_review .woocommerce-checkout-review-order-table tr.cart_item:has(+ tr.af-co-up-row) > td.product-total{padding-bottom:12px!important}
+#order_review .woocommerce-checkout-review-order-table tr.af-co-up-row{padding:0!important;border-bottom:1px solid var(--af-co-line,#ece5d4)!important}
+#order_review .woocommerce-checkout-review-order-table tr.af-co-up-row > td{padding:0 0 18px!important;border-bottom:0!important}
+}
+
+/* ── block ── */
+#order_review .af-co-up{container:afup / inline-size;display:block;box-sizing:border-box;width:auto;max-width:100%;margin:0!important;padding:0!important;border:0!important;background:none!important;font-size:13px;line-height:1.35;color:var(--afu-ink);text-align:left;white-space:normal}
+#order_review .af-co-up *,#order_review .af-co-up *::before,#order_review .af-co-up *::after{box-sizing:border-box}
+#order_review .af-co-up-in{display:flex;flex-direction:column;gap:12px}
+#order_review .af-co-up.is-busy{opacity:.55;pointer-events:none}
+
+/* narrow (and no container-query support): label above its control */
+#order_review .af-co-up-g{display:block;min-width:0;margin:0;padding:0;border:0}
+#order_review .af-co-up-lab{display:block;margin:0 0 6px;padding:0;font-size:12px!important;font-weight:600;line-height:16px;letter-spacing:.07em;text-transform:uppercase;color:var(--afu-mut);white-space:normal;overflow-wrap:normal!important}
+#order_review .af-co-up-each,#order_review .af-co-up-hint{font-weight:400;letter-spacing:0;text-transform:none;color:var(--afu-mut)}
+#order_review .af-co-up-hint::before{content:" · "}
+#order_review .af-co-up-each::before{content:" · "}
+#order_review .af-co-up-ctl{min-width:0}
+#order_review .af-co-up-foot{min-width:0}
+
+/* wide: label column under the photo, controls under the name */
+@container afup (min-width:420px){
+  #order_review .af-co-up-g{display:grid;grid-template-columns:var(--afu-lab) minmax(0,1fr);align-items:start}
+  #order_review .af-co-up-lab{margin:0;padding:13px 10px 0 0}
+  #order_review .af-co-up-g--kit .af-co-up-lab{padding-top:10px}
+  #order_review .af-co-up-each,#order_review .af-co-up-hint{display:block;margin-top:2px;font-size:12px}
+  #order_review .af-co-up-each::before,#order_review .af-co-up-hint::before{content:none}
+  #order_review .af-co-up-foot{margin-left:var(--afu-lab)}
+}
+
+/* ── every control: full reset against the theme's global button style ── */
+#order_review .af-co-up button.af-co-up-size,
+#order_review .af-co-up button.af-co-up-opt,
+#order_review .af-co-up button.af-co-up-color{
+  -webkit-appearance:none!important;appearance:none!important;
+  position:relative!important;float:none!important;box-sizing:border-box!important;
+  width:100%!important;min-width:0!important;max-width:none!important;
+  height:auto!important;min-height:0!important;max-height:none!important;
+  margin:0!important;padding:6px 4px!important;
+  background:#fff!important;background-image:none!important;color:var(--afu-ink)!important;
+  border:1px solid var(--afu-line)!important;border-radius:8px!important;
+  box-shadow:none!important;text-shadow:none!important;outline:0;
+  font:inherit!important;font-family:inherit!important;font-size:13px!important;font-weight:400!important;font-style:normal!important;
+  line-height:16px!important;letter-spacing:0!important;text-transform:none!important;text-decoration:none!important;
+  text-align:center!important;white-space:normal!important;vertical-align:top!important;
+  transform:none!important;filter:none!important;opacity:1!important;cursor:pointer!important;-webkit-tap-highlight-color:transparent;
+  transition:border-color .15s ease,background-color .15s ease,box-shadow .15s ease!important}
+#order_review .af-co-up button.af-co-up-size:hover,
+#order_review .af-co-up button.af-co-up-opt:hover,
+#order_review .af-co-up button.af-co-up-color:hover{background:#fff!important;color:var(--afu-ink)!important;border-color:#b9ad92!important;box-shadow:none!important;transform:none!important}
+#order_review .af-co-up button.af-co-up-size:focus,
+#order_review .af-co-up button.af-co-up-opt:focus,
+#order_review .af-co-up button.af-co-up-color:focus{background:#fff!important;color:var(--afu-ink)!important;box-shadow:none!important}
+/* selected: gold outline (2px, no layout shift), warm fill, bolder label */
+#order_review .af-co-up button.is-on,
+#order_review .af-co-up button.is-on:hover,
+#order_review .af-co-up button.is-on:focus{background:var(--afu-sel)!important;border-color:#a8842c!important;box-shadow:inset 0 0 0 1px #c9a84c!important;color:var(--afu-ink)!important}
+/* a theme or page-builder icon on buttons must not land inside these */
+#order_review .af-co-up button::before,
+#order_review .af-co-up button::after{content:none!important;display:none!important}
+#order_review .af-co-up button.af-co-up-size:focus-visible,
+#order_review .af-co-up button.af-co-up-opt:focus-visible,
+#order_review .af-co-up button.af-co-up-color:focus-visible{outline:2px solid var(--afu-gold)!important;outline-offset:2px!important}
+#order_review .af-co-up button .af-co-up-v,
+#order_review .af-co-up button .af-co-up-p{display:block!important;min-width:0!important;margin:0!important;padding:0!important;background:none!important;font-family:inherit!important;font-style:normal!important;letter-spacing:0!important;text-transform:none!important;text-decoration:none!important;overflow-wrap:normal!important;word-break:normal!important}
+#order_review .af-co-up button .af-co-up-v{font-size:13px!important;line-height:16px!important;color:var(--afu-ink)!important}
+/* a price never breaks */
+#order_review .af-co-up button .af-co-up-p,
+#order_review .af-co-up button .af-co-up-p *{white-space:nowrap!important;font-variant-numeric:tabular-nums}
+#order_review .af-co-up button .af-co-up-p{font-size:12px!important;line-height:15px!important;font-weight:400!important;color:var(--afu-mut)!important}
+#order_review .af-co-up button .af-co-up-v{font-weight:400!important}
+#order_review .af-co-up button.is-on .af-co-up-v{font-weight:600!important}
+#order_review .af-co-up button.af-co-up-opt.is-on .af-co-up-v{font-weight:500!important}
+#order_review .af-co-up button.is-on .af-co-up-p{font-weight:600!important;color:var(--afu-gold)!important}
+
+/* ── size: five across, size over price ── */
+#order_review .af-co-up-sizes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+#order_review .af-co-up button.af-co-up-size .af-co-up-v{white-space:nowrap!important}
+
+/* ── you receive: one grouped radio list, prices in one column ── */
+#order_review .af-co-up-opts{display:flex;flex-direction:column;gap:4px}
+#order_review .af-co-up button.af-co-up-opt{display:flex!important;align-items:center;gap:10px;padding:8px 12px 8px 11px!important;text-align:left!important}
+#order_review .af-co-up button.af-co-up-opt .af-co-up-v{flex:1 1 auto;text-wrap:balance}
+#order_review .af-co-up button.af-co-up-opt .af-co-up-p{flex:0 0 auto;font-size:13px!important;line-height:16px!important;color:var(--afu-ink)!important}
+#order_review .af-co-up button.af-co-up-opt .af-co-up-p{font-weight:500!important;color:var(--afu-ink)!important}
+#order_review .af-co-up button.af-co-up-opt.is-on .af-co-up-p{font-weight:600!important;color:var(--afu-gold)!important}
+#order_review .af-co-up-radio{flex:0 0 auto;display:block!important;width:16px!important;height:16px!important;margin:0!important;padding:0!important;border-radius:50%!important;border:1.5px solid #8f877a!important;background:#fff!important}
+#order_review .af-co-up button.is-on .af-co-up-radio{border-color:var(--afu-gold)!important;background:radial-gradient(circle,var(--afu-gold) 0 3.5px,#fff 4px)!important}
+
+/* ── frame color: swatch + name over the surcharge ── */
+#order_review .af-co-up-colors{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+#order_review .af-co-up button.af-co-up-color{width:100%!important;padding:6px 6px!important}
+#order_review .af-co-up button.af-co-up-color .af-co-up-v{white-space:nowrap!important}
+#order_review .af-co-up button .af-co-up-sw{display:inline-block!important;width:11px!important;height:11px!important;margin:0 5px 0 0!important;padding:0!important;border:0!important;border-radius:50%!important;vertical-align:-1px!important;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)!important}
+@container afup (max-width:339px){
+  #order_review .af-co-up-sizes{gap:4px}
+  #order_review .af-co-up button.af-co-up-size{padding:6px 2px!important}
+  #order_review .af-co-up-colors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  #order_review .af-co-up button.af-co-up-color{display:flex!important;flex-wrap:nowrap;align-items:center;justify-content:space-between;column-gap:6px;width:100%!important;padding:7px 10px!important;text-align:left!important}
+}
+@container afup (max-width:289px){
+  #order_review .af-co-up-sizes{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+
+/* ── footer: delivery note, then the status line ── */
+#order_review .af-co-up-note,
+#order_review .af-co-up-msg{margin:0!important;padding:0 0 0 20px;font-size:12px!important;line-height:17px;position:relative;overflow-wrap:normal!important}
+#order_review .af-co-up-note{color:var(--afu-mut)}
+#order_review .woocommerce-checkout-review-order-table tr.af-co-up-row:has(~ tr.af-co-up-row) .af-co-up-note{display:none}
+#order_review .af-co-up-note::before,
+#order_review .af-co-up-msg::before{content:"";position:absolute;left:0;top:2px;width:13px;height:13px;border-radius:50%;background-repeat:no-repeat;background-position:center;background-size:13px 13px}
+#order_review .af-co-up-note::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='none' stroke='%236b655c' stroke-width='1.4'/%3E%3Cpath d='M8 7v4.2' stroke='%236b655c' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='4.8' r='.95' fill='%236b655c'/%3E%3C/svg%3E")}
+#order_review .af-co-up-msg{margin-top:6px!important;color:#b3261e;font-weight:500}
+#order_review .af-co-up-msg::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='8' fill='%23b3261e'/%3E%3Cpath d='M8 4.2v4.6' stroke='%23fff' stroke-width='1.7' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='11.6' r='1' fill='%23fff'/%3E%3C/svg%3E")}
+#order_review .af-co-up-msg.is-ok{color:#2e6b3a}
+#order_review .af-co-up-msg.is-ok::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='8' fill='%232e6b3a'/%3E%3Cpath d='M4.6 8.3l2.3 2.2 4.5-4.6' fill='none' stroke='%23fff' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+/* empty status stays in the page (a live region must exist before it speaks) */
+#order_review .af-co-up-msg:empty{margin:0!important;padding:0}
+#order_review .af-co-up-msg:empty::before{content:none}
+@media (prefers-reduced-motion:reduce){#order_review .af-co-up button.af-co-up-size,#order_review .af-co-up button.af-co-up-opt,#order_review .af-co-up button.af-co-up-color{transition:none!important}}
+
+/* phone: comfortable tap targets */
+@media (max-width:499px){
+  #order_review .af-co-up button.af-co-up-opt,
+  #order_review .af-co-up button.af-co-up-color{min-height:44px!important}
+  #order_review .af-co-up button.af-co-up-size{min-height:44px!important}
+}
+#order_review .af-co-up-msg{text-wrap:balance}
+/* the one-column checkout (769-1149px) is wide: keep prices near their labels */
+@container afup (min-width:700px){
+  #order_review .af-co-up-in{max-width:640px}
+}

@@ -111,6 +111,24 @@ function af_co_up_money($usd) {
     return wc_price(round($usd * $rate, 2));
 }
 
+/**
+ * The editor's stylesheet (inc/checkout-upgrade.css), printed with the list
+ * itself, once per response. Checkout redraws the list over AJAX; when the
+ * page's own head was older than the list (a deploy between the two, as in
+ * the owner's recording of 1 Oct) the buttons met the theme's global gold
+ * capsule style. Shipping the rules with the markup closes that gap.
+ */
+function af_co_up_style_tag() {
+    static $done = false, $css = null;
+    if ($done) return '';
+    $done = true;
+    if ($css === null) {
+        $f = __DIR__ . '/checkout-upgrade.css';
+        $css = is_readable($f) ? (string) file_get_contents($f) : '';
+    }
+    return $css !== '' ? '<style id="af-co-up-css">' . $css . '</style>' : '';
+}
+
 // ── The choices, under each eligible line of "Your order" ──────────────────
 // WooCommerce prints the quantity through this filter without passing it
 // through wp_kses_post (unlike the name), so buttons survive. The block is
@@ -133,45 +151,54 @@ add_filter('woocommerce_checkout_cart_item_quantity', function ($html, $cart_ite
         $now = round((float) (isset($cart_item['af_price']) ? $cart_item['af_price'] : 0) + af_kit_addon_price($cur, $cart_item['af_size']), 2);
         if (abs($now - af_co_up_unit_price($cart_item, $cur, $color)) > 0.005) $cur = '';
         $pname = isset($cart_item['data']) && is_object($cart_item['data']) ? $cart_item['data']->get_name() : '';
-        $level = ob_get_level();
-        ob_start(); ?>
-<div class="af-co-up" data-key="<?php echo esc_attr($cart_item_key); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('woocommerce-af-co-upgrade')); ?>" data-endpoint="<?php echo esc_url(WC_AJAX::get_endpoint('af_co_upgrade')); ?>">
-  <div class="af-co-up-title">Your choices<?php echo $qty > 1 ? ' <span>(price of one piece)</span>' : ''; ?></div>
-  <?php // every size on sale, priced with this line's current choices
-  $sizes = function_exists('af_sizes_offered') ? af_sizes_offered() : array();
-  if (count($sizes) > 1) : ?>
-  <div class="af-co-up-sub">Size</div>
-  <div class="af-co-up-sizes" role="group" aria-label="<?php echo esc_attr('Size: ' . $pname); ?>">
-    <?php foreach ($sizes as $sz) :
-        $alt = $cart_item; $alt['af_size'] = $sz;
+        $sizes = function_exists('af_sizes_offered') ? af_sizes_offered() : array();
         $kit_for = $cur !== '' ? $cur : $cart_item['af_kit'];
-        $on = ($sz === $cart_item['af_size']); ?>
-    <button type="button" class="af-co-up-size<?php echo $on ? ' is-on' : ''; ?>" data-kit="<?php echo esc_attr($kit_for); ?>" data-size="<?php echo esc_attr($sz); ?>" aria-pressed="<?php echo $on ? 'true' : 'false'; ?>"><span><?php echo esc_html(trim(preg_replace('/\s*\(.*\)\s*$/', '', $sz))); ?></span> <b><?php echo wp_kses_post(af_co_up_money(af_co_up_unit_price($alt, $kit_for, $color))); ?></b></button>
-    <?php endforeach; ?>
+        $short = function ($sz) { return trim(preg_replace('/\s*\(.*\)\s*$/', '', (string) $sz)); };
+        $inches = preg_match('/\(([^)]+)\)/', (string) $cart_item['af_size'], $m) ? $m[1] : '';
+        $material = trim(preg_replace('/\s*Frame$/i', '', (string) af_co_up_frame_for($cart_item, 'painting_bar_frame')));
+        $hex = array('Black' => '#1d1d1d', 'Silver' => '#c7c9cc', 'Gold' => '#c9a84c', 'Rose Gold' => '#d4a39a');
+        $uid = 'af-co-up-' . substr(md5($cart_item_key), 0, 10);
+        $level = ob_get_level();
+        ob_start();
+        echo af_co_up_style_tag();   // travels with the list, so markup and style always match ?>
+<div class="af-co-up" data-key="<?php echo esc_attr($cart_item_key); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('woocommerce-af-co-upgrade')); ?>" data-endpoint="<?php echo esc_url(WC_AJAX::get_endpoint('af_co_upgrade')); ?>"><div class="af-co-up-in">
+  <?php if (count($sizes) > 1) : ?>
+  <div class="af-co-up-g af-co-up-g--size" role="group" aria-labelledby="<?php echo esc_attr($uid . '-size'); ?>">
+    <div class="af-co-up-lab" id="<?php echo esc_attr($uid . '-size'); ?>">Size<?php if ($inches !== '') : ?><span class="af-co-up-hint"><?php echo esc_html($inches); ?></span><?php endif; ?><?php if ($qty > 1) : ?><span class="af-co-up-each">price per piece</span><?php endif; ?></div>
+    <div class="af-co-up-ctl af-co-up-sizes">
+      <?php foreach ($sizes as $sz) :
+          $alt = $cart_item; $alt['af_size'] = $sz;
+          $on = ($sz === $cart_item['af_size']); ?>
+      <button type="button" class="af-co-up-size<?php echo $on ? ' is-on' : ''; ?>" data-kit="<?php echo esc_attr($kit_for); ?>" data-size="<?php echo esc_attr($sz); ?>" aria-pressed="<?php echo $on ? 'true' : 'false'; ?>" title="<?php echo esc_attr($sz); ?>"><span class="af-co-up-v"><?php echo esc_html($short($sz)); ?></span><span class="af-co-up-p"><?php echo wp_kses_post(af_co_up_money(af_co_up_unit_price($alt, $kit_for, $color))); ?></span></button>
+      <?php endforeach; ?>
+    </div>
   </div>
-  <div class="af-co-up-sub">What you receive</div>
   <?php endif; ?>
-  <div class="af-co-up-opts" role="group" aria-label="<?php echo esc_attr('What you receive: ' . $pname); ?>">
-    <?php foreach ($labels as $kit => $label) :
-        $on = ($kit === $cur); ?>
-    <button type="button" class="af-co-up-opt<?php echo $on ? ' is-on' : ''; ?>" data-kit="<?php echo esc_attr($kit); ?>" aria-pressed="<?php echo $on ? 'true' : 'false'; ?>">
-      <span class="af-co-up-name"><?php echo esc_html($label); ?></span>
-      <span class="af-co-up-price"><?php echo wp_kses_post(af_co_up_money(af_co_up_unit_price($cart_item, $kit, $color))); ?></span>
-    </button>
-    <?php endforeach; ?>
+  <div class="af-co-up-g af-co-up-g--kit" role="group" aria-labelledby="<?php echo esc_attr($uid . '-kit'); ?>">
+    <div class="af-co-up-lab" id="<?php echo esc_attr($uid . '-kit'); ?>">You receive<?php if ($qty > 1 && count($sizes) <= 1) : ?><span class="af-co-up-each">price per piece</span><?php endif; ?></div>
+    <div class="af-co-up-ctl af-co-up-opts">
+      <?php foreach ($labels as $kit => $label) :
+          $on = ($kit === $cur); ?>
+      <button type="button" class="af-co-up-opt<?php echo $on ? ' is-on' : ''; ?>" data-kit="<?php echo esc_attr($kit); ?>" aria-pressed="<?php echo $on ? 'true' : 'false'; ?>"><span class="af-co-up-radio" aria-hidden="true"></span><span class="af-co-up-v"><?php echo esc_html($label); ?></span><span class="af-co-up-p"><?php echo wp_kses_post(af_co_up_money(af_co_up_unit_price($cart_item, $kit, $color))); ?></span></button>
+      <?php endforeach; ?>
+    </div>
   </div>
   <?php if ($cur === 'painting_bar_frame') : ?>
-  <div class="af-co-up-colors" role="group" aria-label="<?php echo esc_attr('Frame Color: ' . $pname); ?>">
-    <span class="af-co-up-colors-label">Frame Color</span>
-    <?php foreach (af_co_up_colors($pid) as $name => $fee) :
-        $on = ($name === $color); ?>
-    <button type="button" class="af-co-up-color<?php echo $on ? ' is-on' : ''; ?>" data-kit="painting_bar_frame" data-color="<?php echo esc_attr($name); ?>" aria-pressed="<?php echo $on ? 'true' : 'false'; ?>"><?php echo esc_html($name); ?><?php if ((float) $fee > 0) : ?> <small>+<?php echo wp_kses_post(af_co_up_money((float) $fee)); ?></small><?php endif; ?></button>
-    <?php endforeach; ?>
+  <div class="af-co-up-g af-co-up-g--color" role="group" aria-labelledby="<?php echo esc_attr($uid . '-color'); ?>">
+    <div class="af-co-up-lab" id="<?php echo esc_attr($uid . '-color'); ?>">Frame color<?php if ($material !== '') : ?><span class="af-co-up-hint"><?php echo esc_html($material); ?></span><?php endif; ?></div>
+    <div class="af-co-up-ctl af-co-up-colors">
+      <?php foreach (af_co_up_colors($pid) as $name => $fee) :
+          $on = ($name === $color); ?>
+      <button type="button" class="af-co-up-color<?php echo $on ? ' is-on' : ''; ?>" data-kit="painting_bar_frame" data-color="<?php echo esc_attr($name); ?>" aria-pressed="<?php echo $on ? 'true' : 'false'; ?>"><span class="af-co-up-v"><span class="af-co-up-sw" style="background:<?php echo esc_attr(isset($hex[$name]) ? $hex[$name] : '#cccccc'); ?>" aria-hidden="true"></span><?php echo esc_html($name); ?></span><span class="af-co-up-p"><?php echo (float) $fee > 0 ? wp_kses_post('+' . af_co_up_money((float) $fee)) : 'Included'; ?></span></button>
+      <?php endforeach; ?>
+    </div>
   </div>
   <?php endif; ?>
-  <p class="af-co-up-note">Delivery updates with your choice: a framed piece ships flat in a crate, which costs more to deliver (large sizes add oversize handling).</p>
-  <p class="af-co-up-msg" role="status" aria-live="polite"></p>
-</div>
+  <div class="af-co-up-foot">
+    <p class="af-co-up-note">Delivery updates with your choice: a framed piece ships flat in a crate, which costs more to deliver (large sizes add oversize handling).</p>
+    <p class="af-co-up-msg" role="status" aria-live="polite"></p>
+  </div>
+</div></div>
         <?php
         return $html . ob_get_clean();
     } catch (\Throwable $e) {
@@ -261,53 +288,24 @@ function af_co_upgrade_handler() {
 add_action('wp_head', function () {
     if (!function_exists('is_checkout') || !is_checkout() || (function_exists('is_order_received_page') && is_order_received_page())) return;
     ?>
-<style id="af-co-up">
-/* below the details the photo column is empty, so the block runs the full
-   width of the line (the name cell's left padding, checkout-fixes.php) */
-.woocommerce-checkout-review-order-table .af-co-up{margin:14px 0 2px;padding:10px 12px 11px;border:1px solid #ece5d4;border-radius:10px;background:#fcfaf6}
-.woocommerce-checkout-review-order-table .af-co-up.is-placed{margin-left:-112px}
-@media (min-width:1150px) and (max-width:1299px){.woocommerce-checkout-review-order-table .af-co-up.is-placed{margin-left:-94px}}
-@media (max-width:499px){.woocommerce-checkout-review-order-table .af-co-up.is-placed{margin-left:-88px}}
-.woocommerce-checkout-review-order-table .af-co-up-title{font-size:12.5px;font-weight:600;color:#2b2824;margin:0 0 8px}
-.woocommerce-checkout-review-order-table .af-co-up-title span{font-weight:400;color:#6b655c}
-.woocommerce-checkout-review-order-table .af-co-up-opts{display:flex;flex-direction:column;gap:6px}
-.woocommerce-checkout-review-order-table .af-co-up-opt{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;height:auto;min-height:0;margin:0;padding:8px 11px;border:1.5px solid #e2dccf;border-radius:8px;background:#fff;color:#2b2824;font:inherit;font-size:13px;line-height:1.3;text-align:left;cursor:pointer;text-transform:none;letter-spacing:0;box-shadow:none;transition:border-color .15s,background .15s}
-.woocommerce-checkout-review-order-table .af-co-up-opt:hover{border-color:#c9a84c}
-.woocommerce-checkout-review-order-table .af-co-up-opt.is-on{border-color:#c9a84c;background:#fdf7e8;font-weight:600}
-.woocommerce-checkout-review-order-table .af-co-up-opt:focus-visible,.woocommerce-checkout-review-order-table .af-co-up-color:focus-visible{outline:2px solid #8a6d1f;outline-offset:2px}
-.woocommerce-checkout-review-order-table .af-co-up-price,.woocommerce-checkout-review-order-table .af-co-up-price *,.woocommerce-checkout-review-order-table .af-co-up-color,.woocommerce-checkout-review-order-table .af-co-up-color *{white-space:nowrap!important;overflow-wrap:normal!important;word-break:normal!important}
-.woocommerce-checkout-review-order-table .af-co-up-price{font-weight:600;color:#1c1a17;flex:0 0 auto}
-.woocommerce-checkout-review-order-table .af-co-up-name{flex:1 1 auto;min-width:0}
-.woocommerce-checkout-review-order-table .af-co-up-color small{margin-left:3px}
-.woocommerce-checkout-review-order-table .af-co-up-colors{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:9px}
-.woocommerce-checkout-review-order-table .af-co-up-colors-label{font-size:12px;color:#6b665e;margin-right:2px}
-.woocommerce-checkout-review-order-table .af-co-up-color{height:auto;min-height:0;width:auto;margin:0;padding:5px 10px;border:1.5px solid #e2dccf;border-radius:999px;background:#fff;color:#2b2824;font:inherit;font-size:12px;line-height:1.2;cursor:pointer;text-transform:none;letter-spacing:0;box-shadow:none}
-.woocommerce-checkout-review-order-table .af-co-up-color small{font-size:11px;color:#8a6d1f}
-.woocommerce-checkout-review-order-table .af-co-up-color.is-on{border-color:#c9a84c;background:#fdf7e8;font-weight:600}
-.woocommerce-checkout-review-order-table .af-co-up-note{margin:8px 0 0;font-size:11.5px;line-height:1.45;color:#6b655c}
-.woocommerce-checkout-review-order-table .af-co-up-msg{margin:6px 0 0;font-size:12px;color:#b3261e}
-.woocommerce-checkout-review-order-table .af-co-up-sub{font-size:12px;font-weight:600;color:#6b655c;margin:8px 0 6px}
-.woocommerce-checkout-review-order-table .af-co-up-sizes{display:flex;flex-wrap:wrap;gap:6px}
-.woocommerce-checkout-review-order-table .af-co-up-size{height:auto;min-height:0;width:auto;margin:0;padding:6px 10px;border:1.5px solid #e2dccf;border-radius:8px;background:#fff;color:#2b2824;font:inherit;font-size:12.5px;line-height:1.25;cursor:pointer;text-transform:none;letter-spacing:0;box-shadow:none;white-space:nowrap!important;overflow-wrap:normal!important}
-.woocommerce-checkout-review-order-table .af-co-up-size *{white-space:nowrap!important;overflow-wrap:normal!important}
-.woocommerce-checkout-review-order-table .af-co-up-size b{font-weight:600;margin-left:4px}
-.woocommerce-checkout-review-order-table .af-co-up-size:hover{border-color:#c9a84c}
-.woocommerce-checkout-review-order-table .af-co-up-size.is-on{border-color:#c9a84c;background:#fdf7e8;font-weight:600}
-.woocommerce-checkout-review-order-table .af-co-up-msg.is-ok{color:#2e6b3a}
-.woocommerce-checkout-review-order-table .af-co-up-msg:empty{display:none}
-.woocommerce-checkout-review-order-table .af-co-up.is-busy{opacity:.55;pointer-events:none}
-</style>
+<?php /* styles: inc/checkout-upgrade.css, printed with the list (af_co_up_style_tag) */ ?>
 <script>
 (function(){
   if (window.__afCoUp) return; window.__afCoUp = true;
   var pending = null;   // the change just saved, waiting for checkout's redraw
-  // WooCommerce prints the block beside the quantity, above the details; put it below them
+  // WooCommerce prints the block beside the quantity inside the line's name
+  // cell; it lives in its own full-width row right under the line.
   function place(){
     document.querySelectorAll('.woocommerce-checkout-review-order-table td.product-name .af-co-up').forEach(function(up){
-      var dl = up.parentElement.querySelector('dl.variation');
-      if (dl && dl.nextElementSibling !== up) dl.after(up);
-      // only once it sits under the details may it reach under the photo
-      if (dl && !up.classList.contains('is-placed')) up.classList.add('is-placed');
+      var tr = up.closest('tr'); if (!tr) return;
+      var row = tr.nextElementSibling;
+      if (!row || !row.classList.contains('af-co-up-row')) {
+        row = document.createElement('tr'); row.className = 'af-co-up-row';
+        var td = document.createElement('td'); td.colSpan = 2; row.appendChild(td);
+        tr.after(row);
+      }
+      var cell = row.firstElementChild; while (cell.firstChild) cell.removeChild(cell.firstChild);
+      cell.appendChild(up); up.classList.add('is-placed');
     });
   }
   function releaseOrder(){ var po = document.getElementById('place_order'); if (po) po.disabled = false; }
@@ -327,7 +325,9 @@ add_action('wp_head', function () {
   function watch(){
     var root = document.getElementById('order_review') || document.querySelector('form.checkout') || document.body;
     if (!root) return;
-    var t; new MutationObserver(function(){ clearTimeout(t); t = setTimeout(afterRedraw, 30); }).observe(root, { childList: true, subtree: true });
+    // placed in the observer itself (before the redraw paints), focus and the
+    // message a moment later
+    var t; new MutationObserver(function(){ place(); clearTimeout(t); t = setTimeout(afterRedraw, 30); }).observe(root, { childList: true, subtree: true });
     afterRedraw();
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch); else watch();
