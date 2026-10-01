@@ -6,10 +6,19 @@
    Every selector starts with #order_review so the theme's global
    button/.button capsule (gold, uppercase, 14px 30px, pill) cannot win. */
 
+/* The cart page carries the same editor under each line (owner, 1 Oct: "same
+   also this page"). The editor's own rules match on both pages through
+   :is(#order_review,.woocommerce-cart-form), which keeps an id's weight on
+   the cart too, so the theme's button style loses there as well; each
+   page's table rules stay with that page's table. */
+:is(#order_review,.woocommerce-cart-form) .af-co-up{--afu-ink:#1c1a17;--afu-mut:#6b655c;--afu-line:#e3dbc9;--afu-hair:#ece5d4;--afu-sel:#fcf8ee;--afu-gold:#8a6d1f}
 /* grid offsets mirror the name cell's left padding (photo + gap) */
-#order_review .af-co-up{--afu-lab:112px;--afu-ink:#1c1a17;--afu-mut:#6b655c;--afu-line:#e3dbc9;--afu-hair:#ece5d4;--afu-sel:#fcf8ee;--afu-gold:#8a6d1f}
+#order_review .af-co-up{--afu-lab:112px}
 @media (min-width:1150px) and (max-width:1299px){#order_review .af-co-up{--afu-lab:94px}}
 @media (max-width:499px){#order_review .af-co-up{--afu-lab:88px}}
+/* cart: as wide as the photo column, measured by the script (this until then) */
+.woocommerce-cart-form .af-co-up{--afu-lab:145px}
+@media (max-width:768px){.woocommerce-cart-form .af-co-up{--afu-lab:120px}}
 
 /* ── the row the editor lives in, and the line above it ── */
 #order_review .woocommerce-checkout-review-order-table tr.cart_item:has(+ tr.af-co-up-row) > td{border-bottom:0!important;padding-bottom:10px!important}
@@ -24,34 +33,34 @@
 }
 
 /* ── block ── */
-#order_review .af-co-up{container:afup / inline-size;display:block;box-sizing:border-box;width:auto;max-width:100%;margin:0!important;padding:0!important;border:0!important;background:none!important;font-size:13px;line-height:1.35;color:var(--afu-ink);text-align:left;white-space:normal}
-#order_review .af-co-up *,#order_review .af-co-up *::before,#order_review .af-co-up *::after{box-sizing:border-box}
-#order_review .af-co-up-in{display:flex;flex-direction:column;gap:12px}
-#order_review .af-co-up.is-busy{opacity:.55;pointer-events:none}
+:is(#order_review,.woocommerce-cart-form) .af-co-up{container:afup / inline-size;display:block;box-sizing:border-box;width:auto;max-width:100%;margin:0!important;padding:0!important;border:0!important;background:none!important;font-size:13px;line-height:1.35;color:var(--afu-ink);text-align:left;white-space:normal}
+:is(#order_review,.woocommerce-cart-form) .af-co-up *,:is(#order_review,.woocommerce-cart-form) .af-co-up *::before,:is(#order_review,.woocommerce-cart-form) .af-co-up *::after{box-sizing:border-box}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-in{display:flex;flex-direction:column;gap:12px}
+:is(#order_review,.woocommerce-cart-form) .af-co-up.is-busy{opacity:.55;pointer-events:none}
 
 /* narrow (and no container-query support): label above its control */
-#order_review .af-co-up-g{display:block;min-width:0;margin:0;padding:0;border:0}
-#order_review .af-co-up-lab{display:block;margin:0 0 6px;padding:0;font-size:12px!important;font-weight:600;line-height:16px;letter-spacing:.07em;text-transform:uppercase;color:var(--afu-mut);white-space:normal;overflow-wrap:normal!important}
-#order_review .af-co-up-each,#order_review .af-co-up-hint{font-weight:400;letter-spacing:0;text-transform:none;color:var(--afu-mut)}
-#order_review .af-co-up-hint::before{content:" · "}
-#order_review .af-co-up-each::before{content:" · "}
-#order_review .af-co-up-ctl{min-width:0}
-#order_review .af-co-up-foot{min-width:0}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-g{display:block;min-width:0;margin:0;padding:0;border:0}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-lab{display:block;margin:0 0 6px;padding:0;font-size:12px!important;font-weight:600;line-height:16px;letter-spacing:.07em;text-transform:uppercase;color:var(--afu-mut);white-space:normal;overflow-wrap:normal!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-each,:is(#order_review,.woocommerce-cart-form) .af-co-up-hint{font-weight:400;letter-spacing:0;text-transform:none;color:var(--afu-mut)}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-hint::before{content:" · "}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-each::before{content:" · "}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-ctl{min-width:0}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-foot{min-width:0}
 
 /* wide: label column under the photo, controls under the name */
 @container afup (min-width:420px){
-  #order_review .af-co-up-g{display:grid;grid-template-columns:var(--afu-lab) minmax(0,1fr);align-items:start}
-  #order_review .af-co-up-lab{margin:0;padding:13px 10px 0 0}
-  #order_review .af-co-up-g--kit .af-co-up-lab{padding-top:10px}
-  #order_review .af-co-up-each,#order_review .af-co-up-hint{display:block;margin-top:2px;font-size:12px}
-  #order_review .af-co-up-each::before,#order_review .af-co-up-hint::before{content:none}
-  #order_review .af-co-up-foot{margin-left:var(--afu-lab)}
+  :is(#order_review,.woocommerce-cart-form) .af-co-up-g{display:grid;grid-template-columns:var(--afu-lab) minmax(0,1fr);align-items:start}
+  :is(#order_review,.woocommerce-cart-form) .af-co-up-lab{margin:0;padding:13px 10px 0 0}
+  :is(#order_review,.woocommerce-cart-form) .af-co-up-g--kit .af-co-up-lab{padding-top:10px}
+  :is(#order_review,.woocommerce-cart-form) .af-co-up-each,:is(#order_review,.woocommerce-cart-form) .af-co-up-hint{display:block;margin-top:2px;font-size:12px}
+  :is(#order_review,.woocommerce-cart-form) .af-co-up-each::before,:is(#order_review,.woocommerce-cart-form) .af-co-up-hint::before{content:none}
+  :is(#order_review,.woocommerce-cart-form) .af-co-up-foot{margin-left:var(--afu-lab)}
 }
 
 /* ── every control: full reset against the theme's global button style ── */
-#order_review .af-co-up button.af-co-up-size,
-#order_review .af-co-up button.af-co-up-opt,
-#order_review .af-co-up button.af-co-up-color{
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-size,
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-opt,
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-color{
   -webkit-appearance:none!important;appearance:none!important;
   position:relative!important;float:none!important;box-sizing:border-box!important;
   width:100%!important;min-width:0!important;max-width:none!important;
@@ -65,92 +74,126 @@
   text-align:center!important;white-space:normal!important;vertical-align:top!important;
   transform:none!important;filter:none!important;opacity:1!important;cursor:pointer!important;-webkit-tap-highlight-color:transparent;
   transition:border-color .15s ease,background-color .15s ease,box-shadow .15s ease!important}
-#order_review .af-co-up button.af-co-up-size:hover,
-#order_review .af-co-up button.af-co-up-opt:hover,
-#order_review .af-co-up button.af-co-up-color:hover{background:#fff!important;color:var(--afu-ink)!important;border-color:#b9ad92!important;box-shadow:none!important;transform:none!important}
-#order_review .af-co-up button.af-co-up-size:focus,
-#order_review .af-co-up button.af-co-up-opt:focus,
-#order_review .af-co-up button.af-co-up-color:focus{background:#fff!important;color:var(--afu-ink)!important;box-shadow:none!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-size:hover,
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-opt:hover,
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-color:hover{background:#fff!important;color:var(--afu-ink)!important;border-color:#b9ad92!important;box-shadow:none!important;transform:none!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-size:focus,
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-opt:focus,
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-color:focus{background:#fff!important;color:var(--afu-ink)!important;box-shadow:none!important}
 /* selected: gold outline (2px, no layout shift), warm fill, bolder label */
-#order_review .af-co-up button.is-on,
-#order_review .af-co-up button.is-on:hover,
-#order_review .af-co-up button.is-on:focus{background:var(--afu-sel)!important;border-color:#a8842c!important;box-shadow:inset 0 0 0 1px #c9a84c!important;color:var(--afu-ink)!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.is-on,
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.is-on:hover,
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.is-on:focus{background:var(--afu-sel)!important;border-color:#a8842c!important;box-shadow:inset 0 0 0 1px #c9a84c!important;color:var(--afu-ink)!important}
 /* the theme lays buttons out as a horizontal flex row (measured live, 1 Oct):
    size and colour chips stack their name over their price instead */
-#order_review .af-co-up button.af-co-up-size,
-#order_review .af-co-up button.af-co-up-color{display:block!important;gap:0!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-size,
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-color{display:block!important;gap:0!important}
 /* a theme or page-builder icon on buttons must not land inside these */
-#order_review .af-co-up button::before,
-#order_review .af-co-up button::after{content:none!important;display:none!important}
-#order_review .af-co-up button.af-co-up-size:focus-visible,
-#order_review .af-co-up button.af-co-up-opt:focus-visible,
-#order_review .af-co-up button.af-co-up-color:focus-visible{outline:2px solid var(--afu-gold)!important;outline-offset:2px!important}
-#order_review .af-co-up button .af-co-up-v,
-#order_review .af-co-up button .af-co-up-p{display:block!important;min-width:0!important;margin:0!important;padding:0!important;background:none!important;font-family:inherit!important;font-style:normal!important;letter-spacing:0!important;text-transform:none!important;text-decoration:none!important;overflow-wrap:normal!important;word-break:normal!important}
-#order_review .af-co-up button .af-co-up-v{font-size:13px!important;line-height:16px!important;color:var(--afu-ink)!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button::before,
+:is(#order_review,.woocommerce-cart-form) .af-co-up button::after{content:none!important;display:none!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-size:focus-visible,
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-opt:focus-visible,
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-color:focus-visible{outline:2px solid var(--afu-gold)!important;outline-offset:2px!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button .af-co-up-v,
+:is(#order_review,.woocommerce-cart-form) .af-co-up button .af-co-up-p{display:block!important;min-width:0!important;margin:0!important;padding:0!important;background:none!important;font-family:inherit!important;font-style:normal!important;letter-spacing:0!important;text-transform:none!important;text-decoration:none!important;overflow-wrap:normal!important;word-break:normal!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button .af-co-up-v{font-size:13px!important;line-height:16px!important;color:var(--afu-ink)!important}
 /* a price never breaks */
-#order_review .af-co-up button .af-co-up-p,
-#order_review .af-co-up button .af-co-up-p *{white-space:nowrap!important;font-variant-numeric:tabular-nums}
-#order_review .af-co-up button .af-co-up-p{font-size:12px!important;line-height:15px!important;font-weight:400!important;color:var(--afu-mut)!important}
-#order_review .af-co-up button .af-co-up-v{font-weight:400!important}
-#order_review .af-co-up button.is-on .af-co-up-v{font-weight:600!important}
-#order_review .af-co-up button.af-co-up-opt.is-on .af-co-up-v{font-weight:500!important}
-#order_review .af-co-up button.is-on .af-co-up-p{font-weight:600!important;color:var(--afu-gold)!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button .af-co-up-p,
+:is(#order_review,.woocommerce-cart-form) .af-co-up button .af-co-up-p *{white-space:nowrap!important;font-variant-numeric:tabular-nums}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button .af-co-up-p{font-size:12px!important;line-height:15px!important;font-weight:400!important;color:var(--afu-mut)!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button .af-co-up-v{font-weight:400!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.is-on .af-co-up-v{font-weight:600!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-opt.is-on .af-co-up-v{font-weight:500!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.is-on .af-co-up-p{font-weight:600!important;color:var(--afu-gold)!important}
 
 /* ── size: five across, size over price ── */
-#order_review .af-co-up-sizes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
-#order_review .af-co-up button.af-co-up-size .af-co-up-v{white-space:nowrap!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-sizes{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-size .af-co-up-v{white-space:nowrap!important}
 
 /* ── you receive: one grouped radio list, prices in one column ── */
-#order_review .af-co-up-opts{display:flex;flex-direction:column;gap:4px}
-#order_review .af-co-up button.af-co-up-opt{display:flex!important;align-items:center;gap:10px;padding:8px 12px 8px 11px!important;text-align:left!important}
-#order_review .af-co-up button.af-co-up-opt .af-co-up-v{flex:1 1 auto;text-wrap:balance}
-#order_review .af-co-up button.af-co-up-opt .af-co-up-p{flex:0 0 auto;font-size:13px!important;line-height:16px!important;color:var(--afu-ink)!important}
-#order_review .af-co-up button.af-co-up-opt .af-co-up-p{font-weight:500!important;color:var(--afu-ink)!important}
-#order_review .af-co-up button.af-co-up-opt.is-on .af-co-up-p{font-weight:600!important;color:var(--afu-gold)!important}
-#order_review .af-co-up-radio{flex:0 0 auto;display:block!important;width:16px!important;height:16px!important;margin:0!important;padding:0!important;border-radius:50%!important;border:1.5px solid #8f877a!important;background:#fff!important}
-#order_review .af-co-up button.is-on .af-co-up-radio{border-color:var(--afu-gold)!important;background:radial-gradient(circle,var(--afu-gold) 0 3.5px,#fff 4px)!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-opts{display:flex;flex-direction:column;gap:4px}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-opt{display:flex!important;align-items:center;gap:10px;padding:8px 12px 8px 11px!important;text-align:left!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-opt .af-co-up-v{flex:1 1 auto;text-wrap:balance}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-opt .af-co-up-p{flex:0 0 auto;font-size:13px!important;line-height:16px!important;color:var(--afu-ink)!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-opt .af-co-up-p{font-weight:500!important;color:var(--afu-ink)!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-opt.is-on .af-co-up-p{font-weight:600!important;color:var(--afu-gold)!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-radio{flex:0 0 auto;display:block!important;width:16px!important;height:16px!important;margin:0!important;padding:0!important;border-radius:50%!important;border:1.5px solid #8f877a!important;background:#fff!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.is-on .af-co-up-radio{border-color:var(--afu-gold)!important;background:radial-gradient(circle,var(--afu-gold) 0 3.5px,#fff 4px)!important}
 
 /* ── frame color: swatch + name over the surcharge ── */
-#order_review .af-co-up-colors{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
-#order_review .af-co-up button.af-co-up-color{width:100%!important;padding:6px 6px!important}
-#order_review .af-co-up button.af-co-up-color .af-co-up-v{white-space:nowrap!important}
-#order_review .af-co-up button .af-co-up-sw{display:inline-block!important;width:11px!important;height:11px!important;margin:0 5px 0 0!important;padding:0!important;border:0!important;border-radius:50%!important;vertical-align:-1px!important;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-colors{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-color{width:100%!important;padding:6px 6px!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-color .af-co-up-v{white-space:nowrap!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up button .af-co-up-sw{display:inline-block!important;width:11px!important;height:11px!important;margin:0 5px 0 0!important;padding:0!important;border:0!important;border-radius:50%!important;vertical-align:-1px!important;box-shadow:inset 0 0 0 1px rgba(0,0,0,.2)!important}
 @container afup (max-width:339px){
-  #order_review .af-co-up-sizes{gap:4px}
-  #order_review .af-co-up button.af-co-up-size{padding:6px 2px!important}
-  #order_review .af-co-up-colors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
-  #order_review .af-co-up button.af-co-up-color{display:flex!important;flex-wrap:nowrap;align-items:center;justify-content:space-between;column-gap:6px;width:100%!important;padding:7px 10px!important;text-align:left!important}
+  :is(#order_review,.woocommerce-cart-form) .af-co-up-sizes{gap:4px}
+  :is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-size{padding:6px 2px!important}
+  :is(#order_review,.woocommerce-cart-form) .af-co-up-colors{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+  :is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-color{display:flex!important;flex-wrap:nowrap;align-items:center;justify-content:space-between;column-gap:6px;width:100%!important;padding:7px 10px!important;text-align:left!important}
 }
 @container afup (max-width:289px){
-  #order_review .af-co-up-sizes{grid-template-columns:repeat(3,minmax(0,1fr))}
+  :is(#order_review,.woocommerce-cart-form) .af-co-up-sizes{grid-template-columns:repeat(3,minmax(0,1fr))}
 }
 
 /* ── footer: delivery note, then the status line ── */
-#order_review .af-co-up-note,
-#order_review .af-co-up-msg{margin:0!important;padding:0 0 0 20px;font-size:12px!important;line-height:17px;position:relative;overflow-wrap:normal!important}
-#order_review .af-co-up-note{color:var(--afu-mut)}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-note,
+:is(#order_review,.woocommerce-cart-form) .af-co-up-msg{margin:0!important;padding:0 0 0 20px;font-size:12px!important;line-height:17px;position:relative;overflow-wrap:normal!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-note{color:var(--afu-mut)}
 #order_review .woocommerce-checkout-review-order-table tr.af-co-up-row:has(~ tr.af-co-up-row) .af-co-up-note{display:none}
-#order_review .af-co-up-note::before,
-#order_review .af-co-up-msg::before{content:"";position:absolute;left:0;top:2px;width:13px;height:13px;border-radius:50%;background-repeat:no-repeat;background-position:center;background-size:13px 13px}
-#order_review .af-co-up-note::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='none' stroke='%236b655c' stroke-width='1.4'/%3E%3Cpath d='M8 7v4.2' stroke='%236b655c' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='4.8' r='.95' fill='%236b655c'/%3E%3C/svg%3E")}
-#order_review .af-co-up-msg{margin-top:6px!important;color:#b3261e;font-weight:500}
-#order_review .af-co-up-msg::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='8' fill='%23b3261e'/%3E%3Cpath d='M8 4.2v4.6' stroke='%23fff' stroke-width='1.7' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='11.6' r='1' fill='%23fff'/%3E%3C/svg%3E")}
-#order_review .af-co-up-msg.is-ok{color:#2e6b3a}
-#order_review .af-co-up-msg.is-ok::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='8' fill='%232e6b3a'/%3E%3Cpath d='M4.6 8.3l2.3 2.2 4.5-4.6' fill='none' stroke='%23fff' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-note::before,
+:is(#order_review,.woocommerce-cart-form) .af-co-up-msg::before{content:"";position:absolute;left:0;top:2px;width:13px;height:13px;border-radius:50%;background-repeat:no-repeat;background-position:center;background-size:13px 13px}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-note::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='7' fill='none' stroke='%236b655c' stroke-width='1.4'/%3E%3Cpath d='M8 7v4.2' stroke='%236b655c' stroke-width='1.5' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='4.8' r='.95' fill='%236b655c'/%3E%3C/svg%3E")}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-msg{margin-top:6px!important;color:#b3261e;font-weight:500}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-msg::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='8' fill='%23b3261e'/%3E%3Cpath d='M8 4.2v4.6' stroke='%23fff' stroke-width='1.7' stroke-linecap='round'/%3E%3Ccircle cx='8' cy='11.6' r='1' fill='%23fff'/%3E%3C/svg%3E")}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-msg.is-ok{color:#2e6b3a}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-msg.is-ok::before{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Ccircle cx='8' cy='8' r='8' fill='%232e6b3a'/%3E%3Cpath d='M4.6 8.3l2.3 2.2 4.5-4.6' fill='none' stroke='%23fff' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")}
 /* empty status stays in the page (a live region must exist before it speaks) */
-#order_review .af-co-up-msg:empty{margin:0!important;padding:0}
-#order_review .af-co-up-msg:empty::before{content:none}
-@media (prefers-reduced-motion:reduce){#order_review .af-co-up button.af-co-up-size,#order_review .af-co-up button.af-co-up-opt,#order_review .af-co-up button.af-co-up-color{transition:none!important}}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-msg:empty{margin:0!important;padding:0}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-msg:empty::before{content:none}
+@media (prefers-reduced-motion:reduce){:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-size,:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-opt,:is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-color{transition:none!important}}
 
 /* phone: comfortable tap targets */
 @media (max-width:499px){
-  #order_review .af-co-up button.af-co-up-opt,
-  #order_review .af-co-up button.af-co-up-color{min-height:44px!important}
-  #order_review .af-co-up button.af-co-up-size{min-height:44px!important}
+  :is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-opt,
+  :is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-color{min-height:44px!important}
+  :is(#order_review,.woocommerce-cart-form) .af-co-up button.af-co-up-size{min-height:44px!important}
 }
-#order_review .af-co-up-msg{text-wrap:balance}
+:is(#order_review,.woocommerce-cart-form) .af-co-up-msg{text-wrap:balance}
 /* the one-column checkout (769-1149px) is wide: keep prices near their labels */
 @container afup (min-width:700px){
-  #order_review .af-co-up-in{max-width:640px}
+  :is(#order_review,.woocommerce-cart-form) .af-co-up-in{max-width:640px}
 }
+
+/* ── cart page: the row the editor lives in (WooCommerce's cart table) ── */
+.woocommerce-cart-form table.cart tr.cart_item:has(+ tr.af-co-up-row){border-bottom:0!important}
+.woocommerce-cart-form table.cart tr.cart_item:has(+ tr.af-co-up-row) > td{padding-bottom:14px!important}
+.woocommerce-cart-form table.cart tr.af-co-up-row{border-bottom:1px solid var(--border,#e6e0d4)}
+.woocommerce-cart-form table.cart tr.af-co-up-row > td{padding:0 0 26px!important;border:0!important;vertical-align:top!important;text-align:left!important;background:none!important}
+.woocommerce-cart-form table.cart tr.af-co-up-row > td::before{content:none!important;display:none!important}
+/* the details the controls now show (the order, emails and invoices keep them) */
+.woocommerce-cart-form table.cart tr.cart_item:is(:has(+ tr.af-co-up-row),:has(.af-co-up)) dl.variation :is(dt,dd):is(.variation-Size,.variation-FrameType,.variation-FrameColor,.variation-Youreceive){display:none!important}
+/* one delivery note for the list, under its last editor */
+.woocommerce-cart-form table.cart tr.af-co-up-row:has(~ tr.af-co-up-row) .af-co-up-note{display:none}
+/* nothing to check out with while a line is changing */
+html.af-co-up-saving .wc-proceed-to-checkout .checkout-button{pointer-events:none!important;opacity:.6!important}
+/* cart: four colour chips need about 380px; narrower (phones, and the
+   500-768px stacked layout with its label column) they go two by two, name
+   left and fee right, as checkout's narrow list does */
+:is(#order_review,.woocommerce-cart-form) .af-co-up--cart .af-co-up-g--color .af-co-up-ctl{container:afctl / inline-size}
+@container afctl (max-width:379px){
+  /* the grid is the container itself, so each chip takes two of its four columns */
+  :is(#order_review,.woocommerce-cart-form) .af-co-up--cart button.af-co-up-color{grid-column:span 2;display:flex!important;flex-wrap:nowrap;align-items:center;justify-content:space-between;column-gap:6px;padding:7px 10px!important;text-align:left!important}
+}
+/* phones and tablets: WooCommerce stacks each line (photo on the left, the
+   rest beside it); the editor takes the full width under its line */
+@media (max-width:768px){
+.woocommerce-cart-form table.cart tr.af-co-up-row{display:block!important;position:static!important;padding:0!important}
+.woocommerce-cart-form table.cart tr.af-co-up-row > td.af-co-up-pad{display:none!important}
+.woocommerce-cart-form table.cart tr.af-co-up-row > td.af-co-up-cell{display:block!important;width:auto!important;padding:2px 0 20px!important}
+.woocommerce-cart-form table.cart tr.cart_item:has(+ tr.af-co-up-row) > td{padding-bottom:10px!important}
+.woocommerce-cart-form table.cart tr.cart_item:has(+ tr.af-co-up-row) > td:last-child{padding-bottom:14px!important}
+:is(#order_review,.woocommerce-cart-form) .af-co-up--cart button.af-co-up-opt,
+:is(#order_review,.woocommerce-cart-form) .af-co-up--cart button.af-co-up-color,
+:is(#order_review,.woocommerce-cart-form) .af-co-up--cart button.af-co-up-size{min-height:44px!important}
+}
+

@@ -79,6 +79,26 @@ add_action('wp_head', function () {
 }, 99);
 
 /**
+ * The cart's product photo on phones and tablets. Measured on the live cart,
+ * 1 Oct, at 390px and 768px: each line's photo grew to the full width of the
+ * screen (350x455 at 390px) and covered the product's name and details. The
+ * parent theme lays a phone cart line out as a 90px photo on the left
+ * (woocommerce.css: "table.cart td.product-thumbnail img { max-width: 90px }",
+ * the photo's cell positioned at the line's left edge) with the rest beside
+ * it; the child theme's phone rule "img, svg { max-width: 100% !important }"
+ * (af-mobile-responsive in functions.php) outweighed it. The theme's 90px
+ * comes back, on the cart table only.
+ */
+add_action('wp_head', function () {
+    if (!function_exists('is_cart') || !is_cart()) return;
+    ?>
+<style id="af-cart-thumb">
+@media (max-width:781px){.woocommerce-cart-form table.cart td.product-thumbnail img{max-width:90px!important}}
+</style>
+    <?php
+}, 99);
+
+/**
  * The product photo beside each line of the checkout "Your order" list.
  * Owner, 30 Sep, with a screenshot of that list: "photo to be shown in the
  * final product list". The list named each piece but showed no picture, so

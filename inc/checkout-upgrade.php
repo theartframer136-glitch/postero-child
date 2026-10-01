@@ -21,6 +21,11 @@
  * Offered only where the product page offers it: a canvas the size and frame
  * engine prices (not a download, gift card, Corporate Printing, an accessory),
  * at a size still on sale, with a real frame in stock.
+ *
+ * The cart page carries the same editor under each line (owner, 1 Oct: "same
+ * also this page"), from the same markup, styles, request and script; the
+ * cart redraws its own form and totals after a change, as it does after a
+ * quantity change.
  */
 if (!defined('ABSPATH')) exit;
 
@@ -129,14 +134,16 @@ function af_co_up_style_tag() {
     return $css !== '' ? '<style id="af-co-up-css">' . $css . '</style>' : '';
 }
 
-// ── The choices, under each eligible line of "Your order" ──────────────────
-// WooCommerce prints the quantity through this filter without passing it
-// through wp_kses_post (unlike the name), so buttons survive. The block is
-// moved below the line's details by the script further down.
-add_filter('woocommerce_checkout_cart_item_quantity', function ($html, $cart_item = array(), $cart_item_key = '') {
+/**
+ * The editor for one cart line: its sizes, the three "You receive" choices and,
+ * with a frame, the frame colours, each priced for one piece. $where is
+ * 'checkout' or 'cart' (the delivery note differs: the cart shows no delivery
+ * cost yet). Empty for a line it does not apply to.
+ */
+function af_co_up_markup($cart_item, $cart_item_key, $where = 'checkout') {
+    $level = ob_get_level();
     try {
-        if (function_exists('af_review_rows') && !af_review_rows()) return $html;
-        if (!$cart_item_key || !af_co_up_eligible($cart_item)) return $html;
+        if (!$cart_item_key || !af_co_up_eligible($cart_item)) return '';
         $pid    = (int) $cart_item['product_id'];
         $cur    = $cart_item['af_kit'];
         $color  = af_co_up_color_for($cart_item, $pid);
@@ -150,7 +157,6 @@ add_filter('woocommerce_checkout_cart_item_quantity', function ($html, $cart_ite
         // every choice (its own included) can be picked to put it right.
         $now = round((float) (isset($cart_item['af_price']) ? $cart_item['af_price'] : 0) + af_kit_addon_price($cur, $cart_item['af_size']), 2);
         if (abs($now - af_co_up_unit_price($cart_item, $cur, $color)) > 0.005) $cur = '';
-        $pname = isset($cart_item['data']) && is_object($cart_item['data']) ? $cart_item['data']->get_name() : '';
         $sizes = function_exists('af_sizes_offered') ? af_sizes_offered() : array();
         $kit_for = $cur !== '' ? $cur : $cart_item['af_kit'];
         $short = function ($sz) { return trim(preg_replace('/\s*\(.*\)\s*$/', '', (string) $sz)); };
@@ -158,10 +164,12 @@ add_filter('woocommerce_checkout_cart_item_quantity', function ($html, $cart_ite
         $material = trim(preg_replace('/\s*Frame$/i', '', (string) af_co_up_frame_for($cart_item, 'painting_bar_frame')));
         $hex = array('Black' => '#1d1d1d', 'Silver' => '#c7c9cc', 'Gold' => '#c9a84c', 'Rose Gold' => '#d4a39a');
         $uid = 'af-co-up-' . substr(md5($cart_item_key), 0, 10);
-        $level = ob_get_level();
+        $note = $where === 'cart'
+            ? 'Delivery is worked out at checkout: a framed piece ships flat in a crate, which costs more to deliver (large sizes add oversize handling).'
+            : 'Delivery updates with your choice: a framed piece ships flat in a crate, which costs more to deliver (large sizes add oversize handling).';
         ob_start();
         echo af_co_up_style_tag();   // travels with the list, so markup and style always match ?>
-<div class="af-co-up" data-key="<?php echo esc_attr($cart_item_key); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('woocommerce-af-co-upgrade')); ?>" data-endpoint="<?php echo esc_url(WC_AJAX::get_endpoint('af_co_upgrade')); ?>"><div class="af-co-up-in">
+<div class="af-co-up af-co-up--<?php echo esc_attr($where); ?>" data-key="<?php echo esc_attr($cart_item_key); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('woocommerce-af-co-upgrade')); ?>" data-endpoint="<?php echo esc_url(WC_AJAX::get_endpoint('af_co_upgrade')); ?>"><div class="af-co-up-in">
   <?php if (count($sizes) > 1) : ?>
   <div class="af-co-up-g af-co-up-g--size" role="group" aria-labelledby="<?php echo esc_attr($uid . '-size'); ?>">
     <div class="af-co-up-lab" id="<?php echo esc_attr($uid . '-size'); ?>">Size<?php if ($inches !== '') : ?><span class="af-co-up-hint"><?php echo esc_html($inches); ?></span><?php endif; ?><?php if ($qty > 1) : ?><span class="af-co-up-each">price per piece</span><?php endif; ?></div>
@@ -195,44 +203,76 @@ add_filter('woocommerce_checkout_cart_item_quantity', function ($html, $cart_ite
   </div>
   <?php endif; ?>
   <div class="af-co-up-foot">
-    <p class="af-co-up-note">Delivery updates with your choice: a framed piece ships flat in a crate, which costs more to deliver (large sizes add oversize handling).</p>
+    <p class="af-co-up-note"><?php echo esc_html($note); ?></p>
     <p class="af-co-up-msg" role="status" aria-live="polite"></p>
   </div>
 </div></div>
         <?php
-        return $html . ob_get_clean();
+        return ob_get_clean();
     } catch (\Throwable $e) {
         // never leave a buffer open: this runs inside checkout's JSON refresh
-        if (isset($level)) { while (ob_get_level() > $level) ob_end_clean(); }
-        return $html;
+        while (ob_get_level() > $level) ob_end_clean();
+        return '';
     }
+}
+
+// ── The choices, under each eligible line of "Your order" ──────────────────
+// WooCommerce prints the quantity through this filter without passing it
+// through wp_kses_post (unlike the name), so buttons survive. The block is
+// moved below the line's details by the script further down.
+add_filter('woocommerce_checkout_cart_item_quantity', function ($html, $cart_item = array(), $cart_item_key = '') {
+    if (function_exists('af_review_rows') && !af_review_rows()) return $html;
+    return $html . af_co_up_markup($cart_item, $cart_item_key, 'checkout');
 }, 20, 3);
+
+// ── The same choices on the cart page ──────────────────────────────────────
+// Printed only while WooCommerce draws the cart table's rows: the same hook
+// also fires in mini-cart templates (Elementor Pro, Essential Addons), which
+// must not grow an editor. WooCommerce prints this hook right after the
+// line's name, outside wp_kses_post; the script moves the block into a row of
+// its own under the line, as on checkout.
+function af_co_up_cart_rows($set = null) {
+    static $on = false;
+    if ($set !== null) $on = (bool) $set;
+    return $on;
+}
+add_action('woocommerce_before_cart_contents', function () { af_co_up_cart_rows(true); }, 1);
+add_action('woocommerce_after_cart_contents', function () { af_co_up_cart_rows(false); }, 999);
+add_action('woocommerce_after_cart_item_name', function ($cart_item = array(), $cart_item_key = '') {
+    if (!af_co_up_cart_rows()) return;
+    echo af_co_up_markup($cart_item, $cart_item_key, 'cart');
+}, 20, 2);
+// placed as soon as the table is parsed, so the block never flashes inside the
+// narrow name column (the cart's own redraws are placed by the script's watcher)
+add_action('woocommerce_after_cart_table', function () {
+    echo '<script>window.__afCoUpPlace&&window.__afCoUpPlace();</script>';
+}, 1);
 
 // ── The request that changes the line ───────────────────────────────────────
 add_action('wc_ajax_af_co_upgrade', 'af_co_upgrade_handler');
 function af_co_upgrade_handler() {
     if (!check_ajax_referer('woocommerce-af-co-upgrade', 'nonce', false)) {
-        wp_send_json_error(array('message' => 'This page has expired. Please refresh checkout and try again.'), 403);
+        wp_send_json_error(array('message' => 'This page has expired. Please refresh the page and try again.'), 403);
     }
     $key   = isset($_POST['key'])   ? sanitize_text_field(wp_unslash($_POST['key']))   : '';
     $kit   = isset($_POST['kit'])   ? sanitize_key(wp_unslash($_POST['kit']))          : '';
     $size  = isset($_POST['size'])  ? sanitize_text_field(wp_unslash($_POST['size']))  : '';
     $color = isset($_POST['color']) ? sanitize_text_field(wp_unslash($_POST['color'])) : '';
-    if (!function_exists('WC') || !WC()->cart) wp_send_json_error(array('message' => 'Your basket could not be read. Please refresh checkout.'), 400);
+    if (!function_exists('WC') || !WC()->cart) wp_send_json_error(array('message' => 'Your basket could not be read. Please refresh the page.'), 400);
     $cart = WC()->cart;
     $contents = $cart->get_cart();
     if ($key === '' || !isset($contents[$key])) {
-        wp_send_json_error(array('message' => 'That piece is no longer in your basket. Please refresh checkout.'), 404);
+        wp_send_json_error(array('message' => 'That piece is no longer in your basket. Please refresh the page.'), 404);
     }
     $item = $contents[$key];
     if (!in_array($kit, af_co_up_kits(), true) || !af_co_up_eligible($item)) {
-        wp_send_json_error(array('message' => 'This piece can no longer be changed here. Please refresh checkout.'), 400);
+        wp_send_json_error(array('message' => 'This piece can no longer be changed here. Please refresh the page.'), 400);
     }
     $colors = af_co_up_colors((int) $item['product_id']);
     if ($color !== '' && !isset($colors[$color])) $color = '';
     if ($size !== '') {
         if (!function_exists('af_size_is_offered') || !af_size_is_offered($size)) {
-            wp_send_json_error(array('message' => 'That size is not on sale. Please refresh checkout.'), 400);
+            wp_send_json_error(array('message' => 'That size is not on sale. Please refresh the page.'), 400);
         }
         $item['af_size'] = $size;
     }
@@ -286,49 +326,87 @@ function af_co_upgrade_handler() {
 
 // ── Style and behaviour ─────────────────────────────────────────────────────
 add_action('wp_head', function () {
-    if (!function_exists('is_checkout') || !is_checkout() || (function_exists('is_order_received_page') && is_order_received_page())) return;
+    if (!function_exists('is_checkout')) return;
+    $checkout = is_checkout() && !(function_exists('is_order_received_page') && is_order_received_page());
+    $cart = function_exists('is_cart') && is_cart();
+    if (!$checkout && !$cart) return;
     ?>
 <?php /* styles: inc/checkout-upgrade.css, printed with the list (af_co_up_style_tag) */ ?>
 <script>
 (function(){
   if (window.__afCoUp) return; window.__afCoUp = true;
-  var pending = null;   // the change just saved, waiting for checkout's redraw
-  // WooCommerce prints the block beside the quantity inside the line's name
-  // cell; it lives in its own full-width row right under the line.
+  var pending = null;   // the change just saved, waiting for the page's redraw
+  function onCart(el){ return !!(el && el.closest && el.closest('.woocommerce-cart-form')); }
+  // The block is printed inside the line's name cell (checkout: beside the
+  // quantity; cart: after the name); it lives in a row of its own under the
+  // line. On the cart the row leaves the remove column empty and starts under
+  // the photo.
+  function rowFor(tr, cart){
+    var row = tr.nextElementSibling;
+    if (row && row.classList.contains('af-co-up-row')) return row;
+    row = document.createElement('tr'); row.className = 'af-co-up-row';
+    if (cart) {
+      var pad = document.createElement('td'); pad.className = 'af-co-up-pad'; pad.setAttribute('aria-hidden', 'true'); row.appendChild(pad);
+      var cell = document.createElement('td'); cell.className = 'af-co-up-cell'; cell.colSpan = Math.max(1, tr.children.length - 1); row.appendChild(cell);
+    } else {
+      var td = document.createElement('td'); td.colSpan = 2; row.appendChild(td);
+    }
+    tr.after(row);
+    return row;
+  }
   function place(){
-    document.querySelectorAll('.woocommerce-checkout-review-order-table td.product-name .af-co-up').forEach(function(up){
+    document.querySelectorAll('.woocommerce-checkout-review-order-table td.product-name .af-co-up, .woocommerce-cart-form table.cart td.product-name .af-co-up').forEach(function(up){
       var tr = up.closest('tr'); if (!tr) return;
-      var row = tr.nextElementSibling;
-      if (!row || !row.classList.contains('af-co-up-row')) {
-        row = document.createElement('tr'); row.className = 'af-co-up-row';
-        var td = document.createElement('td'); td.colSpan = 2; row.appendChild(td);
-        tr.after(row);
-      }
-      var cell = row.firstElementChild; while (cell.firstChild) cell.removeChild(cell.firstChild);
+      var cell = rowFor(tr, onCart(up)).lastElementChild;
+      while (cell.firstChild) cell.removeChild(cell.firstChild);
       cell.appendChild(up); up.classList.add('is-placed');
     });
+    align();
   }
-  function releaseOrder(){ var po = document.getElementById('place_order'); if (po) po.disabled = false; }
-  // after checkout redraws the list: focus the chosen button again and say it worked
+  // cart: the labels start under the photo's left edge and the controls where
+  // the product name does (both move with the screen width)
+  function align(){
+    document.querySelectorAll('.woocommerce-cart-form table.cart tr.af-co-up-row').forEach(function(row){
+      var up = row.querySelector('.af-co-up'), cell = up && up.parentElement, line = row.previousElementSibling;
+      var name = line && line.querySelector('td.product-name'); if (!up || !cell || !name) return;
+      var img = line.querySelector('td.product-thumbnail img'), ib = img && img.getBoundingClientRect();
+      var left = cell.getBoundingClientRect().left;
+      var pad = ib && ib.width ? Math.round(ib.left - left) : 0;
+      if (pad < 0 || pad > 120) pad = 0;
+      cell.style.setProperty('padding-left', pad + 'px', 'important');
+      var off = Math.round(name.getBoundingClientRect().left - left - pad);
+      if (off >= 72 && off <= 240) up.style.setProperty('--afu-lab', off + 'px'); else up.style.removeProperty('--afu-lab');
+    });
+  }
+  window.__afCoUpPlace = place;
+  // nothing to order or check out with while a line is changing
+  function lock(on){
+    var po = document.getElementById('place_order'); if (po) po.disabled = !!on;
+    document.documentElement.classList.toggle('af-co-up-saving', !!on);
+  }
+  // after the page redraws the list: focus the chosen button again and say it worked
   function afterRedraw(){
     place();
     if (!pending) return;
     var box = document.querySelector('.af-co-up[data-key="' + pending.key + '"]');
     if (!box || box === pending.old) return;          // not redrawn yet
-    var a = pending; pending = null; releaseOrder();
+    var a = pending; pending = null; lock(false);
     var btn = box.querySelector(a.size ? '.af-co-up-size[data-size="' + a.size + '"]' : a.color ? '.af-co-up-color[data-color="' + a.color + '"]' : '.af-co-up-opt[data-kit="' + a.kit + '"]');
     if (btn) btn.focus({ preventScroll: true });
-    var m = box.querySelector('.af-co-up-msg'); if (m) { m.classList.add('is-ok'); m.textContent = 'Updated: the price and delivery now include your choice.'; }
+    var m = box.querySelector('.af-co-up-msg'); if (m) { m.classList.add('is-ok'); m.textContent = onCart(box) ? 'Updated: the price now includes your choice.' : 'Updated: the price and delivery now include your choice.'; }
   }
-  // Watch the order box itself: this script runs in the page head, before
-  // jQuery and before WooCommerce's checkout events can be listened to.
+  // Watch the list's container itself: this script runs in the page head,
+  // before jQuery and before WooCommerce's events can be listened to.
   function watch(){
-    var root = document.getElementById('order_review') || document.querySelector('form.checkout') || document.body;
+    var form = document.querySelector('.woocommerce-cart-form');
+    var root = document.getElementById('order_review') || document.querySelector('form.checkout') || (form && (form.closest('.woocommerce') || form.parentElement)) || document.body;
     if (!root) return;
     // placed in the observer itself (before the redraw paints), focus and the
     // message a moment later
     var t; new MutationObserver(function(){ place(); clearTimeout(t); t = setTimeout(afterRedraw, 30); }).observe(root, { childList: true, subtree: true });
     afterRedraw();
+    var rt; window.addEventListener('resize', function(){ clearTimeout(rt); rt = setTimeout(align, 150); });
+    window.addEventListener('load', align);
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch); else watch();
   document.addEventListener('click', function(e){
@@ -344,8 +422,8 @@ add_action('wp_head', function () {
     var msg = box.querySelector('.af-co-up-msg'); if (msg) { msg.classList.remove('is-ok'); msg.textContent = ''; }
     box.classList.add('is-busy');
     // no order while the line is changing; released after the redraw
-    var po = document.getElementById('place_order'); if (po) po.disabled = true;
-    function free(){ box.classList.remove('is-busy'); releaseOrder(); }
+    lock(true);
+    function free(){ box.classList.remove('is-busy'); lock(false); }
     var ctl = window.AbortController ? new AbortController() : null;
     var timer = setTimeout(function(){ if (ctl) ctl.abort(); }, 20000);
     fetch(box.dataset.endpoint, { method: 'POST', credentials: 'same-origin', body: fd, signal: ctl ? ctl.signal : undefined })
@@ -354,12 +432,14 @@ add_action('wp_head', function () {
         clearTimeout(timer);
         if (res && res.success) {
           pending = { key: (res.data && res.data.key) || box.dataset.key, kit: b.dataset.kit, color: b.dataset.color || '', size: b.dataset.size || '', old: box };
-          // if the redraw never comes, do not leave Place order switched off
+          // if the redraw never comes, do not leave ordering switched off
           setTimeout(function(){ if (pending) { pending = null; free(); } }, 25000);
-          if (window.jQuery) jQuery(document.body).trigger('update_checkout'); else location.reload();
+          // the cart redraws its form and totals the way a quantity change does
+          if (onCart(box)) { if (window.jQuery && typeof window.wc_cart_params !== 'undefined') jQuery(document.body).trigger('wc_update_cart'); else location.reload(); }
+          else if (window.jQuery) jQuery(document.body).trigger('update_checkout'); else location.reload();
         } else {
           free();
-          if (msg) msg.textContent = (res && res.data && res.data.message) || 'That did not work. Please refresh checkout and try again.';
+          if (msg) msg.textContent = (res && res.data && res.data.message) || 'That did not work. Please refresh the page and try again.';
         }
       })
       .catch(function(){ clearTimeout(timer); free(); if (msg) msg.textContent = 'That took too long or the connection dropped. Please try again.'; });
