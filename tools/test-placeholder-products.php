@@ -5,9 +5,10 @@
  * leaves alone.
  *
  * Owner, 1 Oct: TMP-1246, TMP-1233, TMP-1229, TMP-1134, TMP-1120, TMP-1078 and
- * TMP-1071, "don't delete them, make them private". Each goes private while it
- * still carries that art code, however the code is spaced or dashed; one whose
- * code has changed since is left alone, and nothing is ever deleted.
+ * TMP-1071, "don't delete them, make them private" (revision 7); then 45 more,
+ * TMP-1124 to TMP-1310, "make them private too" (revision 8). Each goes private
+ * while it still carries that art code, however the code is spaced or dashed;
+ * one whose code has changed since is left alone, and nothing is ever deleted.
  *
  * Runs the REAL file with WordPress and WooCommerce stubbed. Plain `php`:
  *
@@ -45,7 +46,7 @@ function check($what, $got, $want) {
     else { $fail++; echo "  FAIL  $what: got " . var_export($got, true) . ", want " . var_export($want, true) . "\n"; }
 }
 /** A fresh site: the given products and art codes, the option from the last deploy, then one request. */
-function request($products, $codes, $rev = '6') {
+function request($products, $codes, $rev = '7') {
     $GLOBALS['P'] = $products; $GLOBALS['FIRED'] = array();
     $GLOBALS['OPT'] = $rev === null ? array() : array('af_placeholder_products_rev' => $rev);
     $GLOBALS['META'] = array(3362 => array('_taf_art_code' => 'HD - 080004-5030'));
@@ -55,24 +56,42 @@ function request($products, $codes, $rev = '6') {
 }
 $SEVEN = array(25240 => 'TMP-1246', 22747 => 'TMP-1233', 22016 => 'TMP-1229', 29342 => 'TMP-1134',
                28422 => 'TMP-1120', 23789 => 'TMP-1078', 22383 => 'TMP-1071');
+// revision 8, in the order the owner listed them
+$MORE = array(27325 => 'TMP-1310', 31527 => 'TMP-1304', 31456 => 'TMP-1303', 31395 => 'TMP-1302',
+               31273 => 'TMP-1301', 31150 => 'TMP-1299', 31088 => 'TMP-1298', 30966 => 'TMP-1297',
+               29751 => 'TMP-1289', 30093 => 'TMP-1290', 30154 => 'TMP-1291', 30276 => 'TMP-1292',
+               30338 => 'TMP-1293', 30775 => 'TMP-1294', 29159 => 'TMP-1280', 29220 => 'TMP-1281',
+               29281 => 'TMP-1282', 29395 => 'TMP-1283', 29456 => 'TMP-1284', 29517 => 'TMP-1285',
+               29578 => 'TMP-1286', 28473 => 'TMP-1273', 28534 => 'TMP-1274', 28717 => 'TMP-1275',
+               28962 => 'TMP-1278', 27133 => 'TMP-1257', 27194 => 'TMP-1258', 27264 => 'TMP-1259',
+               27388 => 'TMP-1260', 27449 => 'TMP-1261', 27510 => 'TMP-1262', 27572 => 'TMP-1263',
+               27633 => 'TMP-1264', 27750 => 'TMP-1266', 27811 => 'TMP-1267', 27981 => 'TMP-1268',
+               28103 => 'TMP-1269', 28164 => 'TMP-1270', 28225 => 'TMP-1271', 30032 => 'TMP-1142',
+               30409 => 'TMP-1147', 30714 => 'TMP-1148', 31027 => 'TMP-1153', 28656 => 'TMP-1124',
+               29084 => 'TMP-1130');
+$ALL = $SEVEN + $MORE;
 $ganesha = array('status' => 'publish', 'name' => 'Divine Lord Ganesha', 'vis' => 'visible');
-$live = function ($status = 'publish') use ($SEVEN) {
+$live = function ($status = 'publish') use ($ALL) {
     $p = array();
-    foreach ($SEVEN as $id => $c) { $p[$id] = array('status' => $status, 'name' => "product $id Living Room &amp; Home", 'vis' => 'visible'); }
+    foreach ($ALL as $id => $c) { $p[$id] = array('status' => $status, 'name' => "product $id Living Room &amp; Home", 'vis' => 'visible'); }
     return $p;
 };
 
-echo "=== the list is the owner's seven codes ===\n";
-check('seven products', count(af_placeholder_products()), 7);
-check('each with the code the owner named', af_placeholder_products(), $SEVEN);
+echo "=== the list is the owner's 7 + 45 codes ===\n";
+check('52 products', count(af_placeholder_products()), 52);
+check('each with the code the owner named, in order', af_placeholder_products(), $ALL);
+check('no code twice', count(array_unique(af_placeholder_products())), 52);
 
-echo "\n=== all seven published, #25240 already private from revision 6 ===\n";
-$site = $live(); $site[25240]['status'] = 'private'; $site[3362] = $ganesha;
-$log = request($site, $SEVEN);
-foreach ($SEVEN as $id => $c) { check("#$id ($c) is private", get_post_status($id), 'private'); }
-check('#25240 reads "already private"', strpos($log, '25240 already private') !== false, true);
-check('the six read publish -> private', substr_count($log, 'publish -> private'), 6);
-check('nothing is deleted', count(array_intersect_key($GLOBALS['P'], $SEVEN)), 7);
+echo "\n=== after revision 7: the seven private, the 45 published ===\n";
+$site = $live(); foreach ($SEVEN as $id => $c) { $site[$id]['status'] = 'private'; } $site[3362] = $ganesha;
+$log = request($site, $ALL);
+$priv = 0; foreach ($ALL as $id => $c) { if (get_post_status($id) === 'private') { $priv++; } }
+check('all 52 are private', $priv, 52);
+check('the seven read "already private"', substr_count($log, 'already private'), 7);
+check('the 45 read publish -> private', substr_count($log, 'publish -> private'), 45);
+check('#31456 (where #30905 led) is private', get_post_status(31456), 'private');
+check('#28962 (where #28839 and #27695 led) is private', get_post_status(28962), 'private');
+check('nothing is deleted', count(array_intersect_key($GLOBALS['P'], $ALL)), 52);
 check('the product pages and the shop are purged', in_array('litespeed_purge_posttype', $GLOBALS['FIRED'], true), true);
 check('the sitemap is rebuilt', strpos($log, 'sitemap: ') !== false, true);
 check('#3362 stays in the shop', $GLOBALS['P'][3362]['vis'], 'visible');
@@ -92,12 +111,12 @@ check('a renamed product with its code goes private', get_post_status(29342), 'p
 
 echo "\n=== gone ===\n";
 $log = request(array(), array());
-$nf = 0; foreach ($SEVEN as $id => $c) { $nf += substr_count($log, $id . ' not found'); }
-check('the log reads "not found" for each of the seven', $nf, 7);
+$nf = 0; foreach ($ALL as $id => $c) { $nf += substr_count($log, $id . ' not found'); }
+check('the log reads "not found" for each of the 52', $nf, 52);
 
 echo "\n=== a second request after the same deploy does nothing ===\n";
 request($live(), $SEVEN, AF_PLACEHOLDER_PRODUCTS_REV);
-check('all left published', array_unique(array_map('get_post_status', array_keys($SEVEN))), array('publish'));
+check('all left published', array_unique(array_map('get_post_status', array_keys($ALL))), array('publish'));
 check('no purge', $GLOBALS['FIRED'], array());
 
 echo "\n=== af_placeholder_code_key and af_placeholder_same_name ===\n";
