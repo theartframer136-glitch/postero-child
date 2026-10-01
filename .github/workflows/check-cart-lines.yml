@@ -1,0 +1,48 @@
+name: Check Cart Lines
+# Read-only (a fresh guest basket, no order). The cart page with real lines in
+# it: what renders it, its markup, layout and pictures at six widths, how it
+# redraws, and a self-contained copy of the page for offline design work.
+on:
+  workflow_dispatch:
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Server view (read-only)
+        run: |
+          set +e
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" '
+            cd ~/websites/OPu0sKi4J/public_html/wp-content
+            echo "=== cart templates outside WooCommerce ==="
+            find themes plugins -path "*woocommerce/cart/*.php" -not -path "plugins/woocommerce/*" 2>/dev/null | head -20
+            echo "=== parent theme woocommerce/cart folder ==="
+            ls themes/postero/woocommerce/cart/ 2>/dev/null || echo "(none)"
+            f=themes/postero/woocommerce/cart/cart.php
+            if [ -f "$f" ]; then echo "=== $f ==="; cat "$f"; fi
+            echo "=== WooCommerce cart.php hooks around the line (stock template) ==="
+            grep -n "do_action\|apply_filters" plugins/woocommerce/templates/cart/cart.php | head -60
+            echo "=== who hooks the cart line (plugins + parent theme) ==="
+            grep -rn "woocommerce_after_cart_item_name\|woocommerce_cart_item_name\|woocommerce_before_cart_contents\|woocommerce_cart_contents\b" themes/postero plugins --include=*.php 2>/dev/null | grep -v "plugins/woocommerce/" | head -30
+            echo "=== cart page content ==="
+            cd ..
+            id=$(wp option get woocommerce_cart_page_id 2>/dev/null)
+            echo "cart page id: $id"
+            wp post get "$id" --field=post_content 2>/dev/null | head -c 1500; echo
+            echo "elementor edit mode: $(wp post meta get "$id" _elementor_edit_mode 2>/dev/null)  template: $(wp post meta get "$id" _wp_page_template 2>/dev/null)"
+            grep -m1 "Version:" wp-content/plugins/woocommerce/woocommerce.php
+          '
+      - name: Live look (read-only, no order placed)
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afh/node_modules node tools/diag-cart-lines.mjs || true
