@@ -75,8 +75,15 @@ if (!defined('ABSPATH')) exit;
  * #30905, and #28962 for #28839 and #27695. inc/duplicate-listings.php only
  * redirects to a listing that is still published, so those three old
  * addresses answer 404 from now on, as any address of a private product does.
+ *
+ * Revision 9, 1 Oct: the owner, with five rows of the temporary-code sheet,
+ * "remove this ... from the website": TMP-1216 (#8711, the family photo
+ * collage print), TMP-1218 (#8869, the 3-panel living room set), TMP-1256
+ * (#26628), TMP-1295 (#30836) and TMP-1309 (#8805, the cafe set). All five
+ * published; nothing in this theme links to them by id. Private the same way,
+ * nothing deleted. The 52 already on the list read "already private".
  */
-define('AF_PLACEHOLDER_PRODUCTS_REV', '8');
+define('AF_PLACEHOLDER_PRODUCTS_REV', '9');
 
 function af_placeholder_products() {
     return array(
@@ -133,6 +140,12 @@ function af_placeholder_products() {
         31027 => 'TMP-1153',   // Radha Krishna Graphite Duet
         28656 => 'TMP-1124',   // Radha's Mirror of Krishna
         29084 => 'TMP-1130',   // Shiva of the Ghats
+        // revision 9: five more from the temporary-code sheet
+        8711  => 'TMP-1216',   // Stunning Personalized Family Photo Collage
+        8869  => 'TMP-1218',   // Modern Living Room Wall Decor Canvas Set, 3 panel
+        26628 => 'TMP-1256',   // Floral Arch Wall Art
+        30836 => 'TMP-1295',   // Veena Player with Peacock
+        8805  => 'TMP-1309',   // Modern Cafe Decor Wall Art Set
     );
 }
 

@@ -7,7 +7,8 @@
 // asked to remove TMP-1246, #25240 "Vaishnava Symbols Trio", made private the
 // same way, and then six more: TMP-1233, TMP-1229, TMP-1134, TMP-1120,
 // TMP-1078 and TMP-1071, "don't delete them, make them private"; then 45 more,
-// TMP-1124 to TMP-1310, "make them private too". This checks, for
+// TMP-1124 to TMP-1310, "make them private too"; then five from the
+// temporary-code sheet (TMP-1216, 1218, 1256, 1295, 1309). This checks, for
 // each, every way a shopper or
 // a search engine could reach it, as a first-time visitor with no cookies:
 //   - its own address, and ?p=<id>
@@ -142,6 +143,17 @@ const PRODUCTS = [
     name: "Radha's Mirror of Krishna Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor" },
   { id: 29084, slug: "shiva-of-the-ghats-canvas-wall-art", code: "TMP-1130", search: "Shiva of the Ghats",
     name: "Shiva of the Ghats Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor" },
+  // 1 Oct, five more from the temporary-code sheet, "remove this ... from the website"
+  { id: 8711, slug: "stunning-personalized-family-photo-collage-canvas-print-36-x-60-inches", code: "TMP-1216", search: "Personalized Family Photo Collage",
+    name: "Stunning Personalized Family Photo Collage Canvas Print (36 x 60 Inches) – Custom Wall Art for Living Room" },
+  { id: 8869, slug: "modern-living-room-wall-decor-canvas-set-3-panel-landscape-wall-art-stylish", code: "TMP-1218", search: "Modern Living Room Wall Decor Canvas Set",
+    name: "Modern Living Room Wall Decor Canvas Set – 3 Panel Landscape Wall Art for Stylish & Luxurious Interiors" },
+  { id: 26628, slug: "floral-arch-wall-art-canvas-wall-art", code: "TMP-1256", search: "Floral Arch Wall Art",
+    name: "Floral Arch Wall Art Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor" },
+  { id: 30836, slug: "veena-player-with-peacock-canvas-wall-art", code: "TMP-1295", search: "Veena Player with Peacock",
+    name: "Veena Player with Peacock Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor" },
+  { id: 8805, slug: "modern-cafe-decor-wall-art-set-72x24-inch-stunning-contemporary-abstract-panel", code: "TMP-1309", search: "Modern Cafe Decor Wall Art Set",
+    name: "Modern Cafe Decor Wall Art Set – 72x24 Inch Stunning Contemporary Abstract Panel Digital Canvas Print" },
 ];
 const ONLY = (process.env.AF_QA_ONLY || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 const CHECK = ONLY.length ? PRODUCTS.filter(p => ONLY.includes(p.code.toUpperCase()) || ONLY.includes(String(p.id))) : PRODUCTS;
