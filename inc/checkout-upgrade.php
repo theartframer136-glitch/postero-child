@@ -137,6 +137,20 @@ add_filter('woocommerce_checkout_cart_item_quantity', function ($html, $cart_ite
         ob_start(); ?>
 <div class="af-co-up" data-key="<?php echo esc_attr($cart_item_key); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('woocommerce-af-co-upgrade')); ?>" data-endpoint="<?php echo esc_url(WC_AJAX::get_endpoint('af_co_upgrade')); ?>">
   <div class="af-co-up-title">What you receive<?php echo $qty > 1 ? ' <span>(price of one piece)</span>' : ''; ?></div>
+  <?php // every size on sale, priced with this line's current choices
+  $sizes = function_exists('af_sizes_offered') ? af_sizes_offered() : array();
+  if (count($sizes) > 1) : ?>
+  <div class="af-co-up-sub">Size</div>
+  <div class="af-co-up-sizes" role="group" aria-label="<?php echo esc_attr('Size: ' . $pname); ?>">
+    <?php foreach ($sizes as $sz) :
+        $alt = $cart_item; $alt['af_size'] = $sz;
+        $kit_for = $cur !== '' ? $cur : $cart_item['af_kit'];
+        $on = ($sz === $cart_item['af_size']); ?>
+    <button type="button" class="af-co-up-size<?php echo $on ? ' is-on' : ''; ?>" data-kit="<?php echo esc_attr($kit_for); ?>" data-size="<?php echo esc_attr($sz); ?>" aria-pressed="<?php echo $on ? 'true' : 'false'; ?>"><span><?php echo esc_html(trim(preg_replace('/\s*\(.*\)\s*$/', '', $sz))); ?></span> <b><?php echo wp_kses_post(af_co_up_money(af_co_up_unit_price($alt, $kit_for, $color))); ?></b></button>
+    <?php endforeach; ?>
+  </div>
+  <div class="af-co-up-sub">What you receive</div>
+  <?php endif; ?>
   <div class="af-co-up-opts" role="group" aria-label="<?php echo esc_attr('What you receive: ' . $pname); ?>">
     <?php foreach ($labels as $kit => $label) :
         $on = ($kit === $cur); ?>
@@ -175,6 +189,7 @@ function af_co_upgrade_handler() {
     }
     $key   = isset($_POST['key'])   ? sanitize_text_field(wp_unslash($_POST['key']))   : '';
     $kit   = isset($_POST['kit'])   ? sanitize_key(wp_unslash($_POST['kit']))          : '';
+    $size  = isset($_POST['size'])  ? sanitize_text_field(wp_unslash($_POST['size']))  : '';
     $color = isset($_POST['color']) ? sanitize_text_field(wp_unslash($_POST['color'])) : '';
     if (!function_exists('WC') || !WC()->cart) wp_send_json_error(array('message' => 'Your basket could not be read. Please refresh checkout.'), 400);
     $cart = WC()->cart;
@@ -188,6 +203,12 @@ function af_co_upgrade_handler() {
     }
     $colors = af_co_up_colors((int) $item['product_id']);
     if ($color !== '' && !isset($colors[$color])) $color = '';
+    if ($size !== '') {
+        if (!function_exists('af_size_is_offered') || !af_size_is_offered($size)) {
+            wp_send_json_error(array('message' => 'That size is not on sale. Please refresh checkout.'), 400);
+        }
+        $item['af_size'] = $size;
+    }
     $new = af_co_up_apply($item, $kit, $color);
     // A new identity for the changed line, the one add-to-cart would give these
     // choices. Keeping the old key meant adding the original choice again from
@@ -265,6 +286,13 @@ add_action('wp_head', function () {
 .woocommerce-checkout-review-order-table .af-co-up-color.is-on{border-color:#c9a84c;background:#fdf7e8;font-weight:600}
 .woocommerce-checkout-review-order-table .af-co-up-note{margin:8px 0 0;font-size:11.5px;line-height:1.45;color:#6b655c}
 .woocommerce-checkout-review-order-table .af-co-up-msg{margin:6px 0 0;font-size:12px;color:#b3261e}
+.woocommerce-checkout-review-order-table .af-co-up-sub{font-size:12px;font-weight:600;color:#6b655c;margin:8px 0 6px}
+.woocommerce-checkout-review-order-table .af-co-up-sizes{display:flex;flex-wrap:wrap;gap:6px}
+.woocommerce-checkout-review-order-table .af-co-up-size{height:auto;min-height:0;width:auto;margin:0;padding:6px 10px;border:1.5px solid #e2dccf;border-radius:8px;background:#fff;color:#2b2824;font:inherit;font-size:12.5px;line-height:1.25;cursor:pointer;text-transform:none;letter-spacing:0;box-shadow:none;white-space:nowrap!important;overflow-wrap:normal!important}
+.woocommerce-checkout-review-order-table .af-co-up-size *{white-space:nowrap!important;overflow-wrap:normal!important}
+.woocommerce-checkout-review-order-table .af-co-up-size b{font-weight:600;margin-left:4px}
+.woocommerce-checkout-review-order-table .af-co-up-size:hover{border-color:#c9a84c}
+.woocommerce-checkout-review-order-table .af-co-up-size.is-on{border-color:#c9a84c;background:#fdf7e8;font-weight:600}
 .woocommerce-checkout-review-order-table .af-co-up-msg.is-ok{color:#2e6b3a}
 .woocommerce-checkout-review-order-table .af-co-up-msg:empty{display:none}
 .woocommerce-checkout-review-order-table .af-co-up.is-busy{opacity:.55;pointer-events:none}
@@ -290,7 +318,7 @@ add_action('wp_head', function () {
     var box = document.querySelector('.af-co-up[data-key="' + pending.key + '"]');
     if (!box || box === pending.old) return;          // not redrawn yet
     var a = pending; pending = null; releaseOrder();
-    var btn = box.querySelector(a.color ? '.af-co-up-color[data-color="' + a.color + '"]' : '.af-co-up-opt[data-kit="' + a.kit + '"]');
+    var btn = box.querySelector(a.size ? '.af-co-up-size[data-size="' + a.size + '"]' : a.color ? '.af-co-up-color[data-color="' + a.color + '"]' : '.af-co-up-opt[data-kit="' + a.kit + '"]');
     if (btn) btn.focus({ preventScroll: true });
     var m = box.querySelector('.af-co-up-msg'); if (m) { m.classList.add('is-ok'); m.textContent = 'Updated: the price and delivery now include your choice.'; }
   }
@@ -304,7 +332,7 @@ add_action('wp_head', function () {
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', watch); else watch();
   document.addEventListener('click', function(e){
-    var b = e.target.closest('.af-co-up-opt, .af-co-up-color'); if (!b) return;
+    var b = e.target.closest('.af-co-up-opt, .af-co-up-color, .af-co-up-size'); if (!b) return;
     var box = b.closest('.af-co-up'); if (!box) return;
     e.preventDefault();
     if (b.classList.contains('is-on')) return;
@@ -312,7 +340,7 @@ add_action('wp_head', function () {
     if (document.querySelector('.af-co-up.is-busy') || pending) return;
     var fd = new FormData();
     fd.append('key', box.dataset.key); fd.append('nonce', box.dataset.nonce);
-    fd.append('kit', b.dataset.kit); if (b.dataset.color) fd.append('color', b.dataset.color);
+    fd.append('kit', b.dataset.kit); if (b.dataset.color) fd.append('color', b.dataset.color); if (b.dataset.size) fd.append('size', b.dataset.size);
     var msg = box.querySelector('.af-co-up-msg'); if (msg) { msg.classList.remove('is-ok'); msg.textContent = ''; }
     box.classList.add('is-busy');
     // no order while the line is changing; released after the redraw
@@ -325,7 +353,7 @@ add_action('wp_head', function () {
       .then(function(res){
         clearTimeout(timer);
         if (res && res.success) {
-          pending = { key: (res.data && res.data.key) || box.dataset.key, kit: b.dataset.kit, color: b.dataset.color || '', old: box };
+          pending = { key: (res.data && res.data.key) || box.dataset.key, kit: b.dataset.kit, color: b.dataset.color || '', size: b.dataset.size || '', old: box };
           // if the redraw never comes, do not leave Place order switched off
           setTimeout(function(){ if (pending) { pending = null; free(); } }, 25000);
           if (window.jQuery) jQuery(document.body).trigger('update_checkout'); else location.reload();

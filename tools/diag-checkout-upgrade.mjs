@@ -118,6 +118,11 @@ await p.setViewport({ width: 1366, height: 900 }); await sleep(800);
 ok(await choose(p, '.af-co-up-opt[data-kit="painting"]'), 'clicked "Painting only"');
 s = await state(p); console.log('  back: ' + JSON.stringify(s));
 ok(s && money(s.price) === 80 && /Painting only/i.test(s.receive) && money(s.shipping) === del0 && !s.fees.some(f => /Oversize/i.test(f)), 'back to $80, tube delivery, no oversize fee', s ? s.price + ' | ' + s.shipping + ' | ' + s.fees.join(',') : '');
+ok(await choose(p, '.af-co-up-size[data-size="3×5 ft (36×60 in)"]'), 'clicked size 3x5');
+s = await state(p); console.log('  size: ' + JSON.stringify(s));
+ok(s && money(s.price) === 100 && /Painting only/i.test(s.receive), 'size 3x5 painting only = $100', s ? s.price : '');
+ok(await choose(p, '.af-co-up-size[data-size="3×4 ft (36×48 in)"]'), 'clicked size 3x4 back');
+s = await state(p);
 const sum = money(s.total), parts = [...(await p.evaluate(() => [...document.querySelectorAll('.woocommerce-checkout-review-order-table tr.cart_item td.product-total')].map(td => td.innerText)))].reduce((a, x) => a + money(x), 0) + money(s.shipping) + s.fees.reduce((a, f) => a + money(f), 0);
 ok(Math.abs(sum - parts) < 0.015, 'total = lines + delivery + fees', sum + ' vs ' + parts.toFixed(2));
 
