@@ -136,7 +136,7 @@ add_filter('woocommerce_checkout_cart_item_quantity', function ($html, $cart_ite
         $level = ob_get_level();
         ob_start(); ?>
 <div class="af-co-up" data-key="<?php echo esc_attr($cart_item_key); ?>" data-nonce="<?php echo esc_attr(wp_create_nonce('woocommerce-af-co-upgrade')); ?>" data-endpoint="<?php echo esc_url(WC_AJAX::get_endpoint('af_co_upgrade')); ?>">
-  <div class="af-co-up-title">What you receive<?php echo $qty > 1 ? ' <span>(price of one piece)</span>' : ''; ?></div>
+  <div class="af-co-up-title">Your choices<?php echo $qty > 1 ? ' <span>(price of one piece)</span>' : ''; ?></div>
   <?php // every size on sale, priced with this line's current choices
   $sizes = function_exists('af_sizes_offered') ? af_sizes_offered() : array();
   if (count($sizes) > 1) : ?>
