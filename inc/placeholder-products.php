@@ -48,11 +48,34 @@ if (!defined('ABSPATH')) exit;
  *
  * Revision 4, 26 Sep: all six move to the delete list below, so this one is
  * empty until something else needs taking off sale.
+ *
+ * Revision 6, 1 Oct: the owner, with a screenshot of TMP-1246: "remove this".
+ * #25240 "Vaishnava Symbols Trio Canvas Wall Art" (TMP-1246, $80, in Hindu
+ * Deities) goes private the same way: gone from every public view, nothing
+ * deleted, one click to publish again. Its stored name carries "&amp;" where
+ * the shop prints "&", so names are compared with entities decoded
+ * (af_placeholder_same_name).
  */
-define('AF_PLACEHOLDER_PRODUCTS_REV', '5');
+define('AF_PLACEHOLDER_PRODUCTS_REV', '6');
 
 function af_placeholder_products() {
-    return array();
+    return array(
+        25240 => 'Vaishnava Symbols Trio Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor',
+    );
+}
+
+/**
+ * Does a product still carry the name it was listed under? Case and runs of
+ * spaces aside, and with HTML entities decoded on both sides: WordPress may
+ * store a title's "&" as "&amp;" (#25240 does) or a dash as "&#8211;", and
+ * that must not decide whether a product is touched.
+ */
+function af_placeholder_same_name($actual, $listed) {
+    $norm = function ($s) {
+        $s = html_entity_decode((string) $s, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        return trim(preg_replace('/\s+/u', ' ', $s));
+    };
+    return strcasecmp($norm($actual), $norm($listed)) === 0;
 }
 
 /**
@@ -136,7 +159,7 @@ add_action('wp_loaded', function () {
             }
             $status = $product->get_status();
             $actual = trim((string) $product->get_name());
-            if (strcasecmp($actual, $name) !== 0) {
+            if (!af_placeholder_same_name($actual, $name)) {
                 $log[] = $id . ' left alone: now named "' . substr($actual, 0, 60) . '"';
                 continue;
             }
@@ -166,7 +189,7 @@ add_action('wp_loaded', function () {
             }
             $status = $product->get_status();
             $actual = trim((string) $product->get_name());
-            if (strcasecmp($actual, $name) !== 0) {
+            if (!af_placeholder_same_name($actual, $name)) {
                 $log[] = $id . ' left alone: now named "' . substr($actual, 0, 60) . '"';
                 continue;
             }
