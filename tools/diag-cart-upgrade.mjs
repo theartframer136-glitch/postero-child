@@ -61,7 +61,7 @@ async function state(p) {
       const name = tr.querySelector('td.product-name'), img = tr.querySelector('td.product-thumbnail img');
       const ctl = up && up.querySelector('.af-co-up-ctl'), lab = up && up.querySelector('.af-co-up-lab');
       return {
-        size: dd('Size'), receive: dd('Youreceive'), frame: dd('FrameType'), color: dd('FrameColor'),
+        size: dd('Size'), receive: dd('Youreceive'), qty: (tr.querySelector('input.qty') || {}).value, frame: dd('FrameType'), color: dd('FrameColor'),
         price: txt(tr.querySelector('td.product-price')), subtotal: txt(tr.querySelector('td.product-subtotal')),
         editor: !!up, placed: up ? up.classList.contains('is-placed') : null,
         opts: up ? [...up.querySelectorAll('.af-co-up-opt')].map(x => (x.classList.contains('is-on') ? '*' : '') + txt(x)) : [],
@@ -140,6 +140,24 @@ s = await state(p); console.log('  back: ' + JSON.stringify(s.lines[0]) + ' subt
 ok(money(s.lines[0].price) === 80 && /Painting only/i.test(s.lines[0].receive) && /3×4/.test(s.lines[0].size), 'line 1 back to 3x4 Painting only $80', s.lines[0].price);
 const sum = s.lines.reduce((t, l) => t + money(l.subtotal), 0);
 ok(Math.abs(sum - money(s.subtotal)) < 0.015, 'cart subtotal = the lines added up', s.subtotal + ' vs ' + sum.toFixed(2));
+
+// a quantity stepped and a choice clicked at once: the choice waits for the quantity, which is kept
+await p.evaluate(() => { const tr = document.querySelectorAll('.woocommerce-cart-form table.cart tr.cart_item')[0]; const plus = tr.querySelector('.quantity .plus'); if (plus) plus.click(); const ed = tr.nextElementSibling; const bt = ed && ed.querySelector('.af-co-up-opt[data-kit="painting_bar"]'); if (bt) bt.click(); });
+await sleep(400);
+s = await state(p);
+ok(/One moment/.test(s.lines[0].msg) && /Painting only/i.test(s.lines[0].receive), 'quantity + and a choice at once: the choice waits and says why', s.lines[0].msg);
+await sleep(2500); await settle(p);
+s = await state(p);
+ok(s.lines[0].qty === '2' && money(s.lines[0].subtotal) === 160, 'the quantity was saved (2 x $80)', s.lines[0].qty + ' | ' + s.lines[0].subtotal);
+ok(await choose(p, 0, '.af-co-up-opt[data-kit="painting_bar"]'), 'then clicked "Painting + structure bars + DIY kit"');
+s = await state(p);
+ok(s.lines[0].qty === '2' && money(s.lines[0].price) === 128 && money(s.lines[0].subtotal) === 256, 'choice saved and the quantity kept: 2 x $128 = $256', s.lines[0].qty + ' | ' + s.lines[0].price + ' | ' + s.lines[0].subtotal);
+// back to one Painting only
+ok(await choose(p, 0, '.af-co-up-opt[data-kit="painting"]'), 'back to "Painting only"');
+await p.evaluate(() => { const i = document.querySelector('.woocommerce-cart-form table.cart tr.cart_item input.qty'); if (i) { i.value = '1'; if (window.jQuery) jQuery(i).trigger('change'); } });
+await sleep(2500); await settle(p);
+s = await state(p);
+ok(s.lines[0].qty === '1' && money(s.lines[0].subtotal) === 80, 'line 1 back to one at $80', s.lines[0].qty + ' | ' + s.lines[0].subtotal);
 
 await p.setViewport({ width: 390, height: 844 }); await sleep(1500);
 s = await state(p); console.log('  390: ' + JSON.stringify(s.lines.map(l => ({ imgW: l.imgW, imgRight: l.imgRight, nameLeft: l.nameLeft, colorRows: l.colorCols, fits: l.fits }))));
