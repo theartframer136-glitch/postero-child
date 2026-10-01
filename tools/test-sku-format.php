@@ -166,10 +166,14 @@ if ( ! function_exists( 'af_artcode_book_code' ) ) {
 			if ( af_artcode_book_code( sprintf( '%s - %02d%04d', $prefix, $sec['no'], $n ) ) !== '' ) { $reachable_six++; }
 		}
 	}
-	$ok( $reachable_old === 0, "no OLD code resolves onto one of the book's 33 new pages",
+	// 50: the 33 the book gained on 12 Sep, 3 on 29 Sep and 14 on 1 Oct. The
+	// same number tools/test-artcode-book.php pins locally; it read 33 here
+	// until 1 Oct, so this check reported a failure from 29 Sep that was only
+	// its own count being stale.
+	$ok( $reachable_old === 0, "no OLD code resolves onto one of the book's 50 new pages",
 		$reachable_old . ' reachable', '0 reachable' );
-	$ok( $reachable_six === 33, "the 33 new pages are reachable only by their six-digit spelling",
-		$reachable_six . ' reachable', '33 reachable' );
+	$ok( $reachable_six === 50, "the 50 new pages are reachable only by their six-digit spelling",
+		$reachable_six . ' reachable', '50 reachable' );
 }
 
 // ── the size half, against the real card ────────────────────────────────────
