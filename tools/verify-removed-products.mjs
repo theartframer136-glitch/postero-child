@@ -8,8 +8,8 @@
 // same way, and then six more: TMP-1233, TMP-1229, TMP-1134, TMP-1120,
 // TMP-1078 and TMP-1071, "don't delete them, make them private"; then 45 more,
 // TMP-1124 to TMP-1310, "make them private too"; then five from the
-// temporary-code sheet (TMP-1216, 1218, 1256, 1295, 1309). This checks, for
-// each, every way a shopper or
+// temporary-code sheet (TMP-1216, 1218, 1256, 1295, 1309); then TMP-1046,
+// "remove this also". This checks, for each, every way a shopper or
 // a search engine could reach it, as a first-time visitor with no cookies:
 //   - its own address, and ?p=<id>
 //   - the Store API, by id and by searching its name
@@ -154,6 +154,9 @@ const PRODUCTS = [
     name: "Veena Player with Peacock Canvas Wall Art 3x4 Feet – Floating Frame – Premium Digital Canvas Print – Living Room & Home Spiritual Wall Décor" },
   { id: 8805, slug: "modern-cafe-decor-wall-art-set-72x24-inch-stunning-contemporary-abstract-panel", code: "TMP-1309", search: "Modern Cafe Decor Wall Art Set",
     name: "Modern Cafe Decor Wall Art Set – 72x24 Inch Stunning Contemporary Abstract Panel Digital Canvas Print" },
+  // 1 Oct, one more from the sheet, "remove this also"
+  { id: 8669, slug: "premium-wooden-portrait-canvas-frame-60-24-inches-solid-wood-digital-p", code: "TMP-1046", search: "Premium Wooden Portrait Canvas Frame",
+    name: "Premium Wooden Portrait Canvas Frame (60 × 24 Inches) – Solid Wood Digital Print for Elegant Photo Display" },
 ];
 const ONLY = (process.env.AF_QA_ONLY || '').split(',').map(s => s.trim().toUpperCase()).filter(Boolean);
 const CHECK = ONLY.length ? PRODUCTS.filter(p => ONLY.includes(p.code.toUpperCase()) || ONLY.includes(String(p.id))) : PRODUCTS;
