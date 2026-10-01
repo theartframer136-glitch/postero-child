@@ -1,11 +1,13 @@
-// Do the six Personal Pic products carry their CO codes?
+// Do the Personal Pic products carry their CO codes?
 //
 // Owner, 30 Sep: the Personal Pic folder (Final Edited Photos > Based on Excel
-// Sheet > Personal Pic) files six pictures as CO-240001 to CO-240006. Each was
-// matched by picture to its product, all six on temporary codes until now
+// Sheet > Personal Pic) files six pictures as CO-240001 to CO-240006. On 1 Oct
+// it holds 25: CO-240007 to CO-240024 are new, and 17 of those 18 are the
+// picture of a product on the website (CO-240010 is a picture no product shows).
+// Each was matched by picture to its product, all on temporary codes until then
 // (tools/artcode-corrections.csv). CO codes are outside the art-code book, like
 // AC and CP, so every pass leaves them as written and the SKU is the code.
-// This checks, as a first-time visitor, for all six:
+// This checks, as a first-time visitor, for all 23:
 //   - its page opens (HTTP 200)
 //   - its own "Art Code:" line reads the CO code (not a card's)
 //   - its SKU, from the Store API, is the CO code
@@ -25,6 +27,24 @@ const CHANGED = [
   { id: 25840, code: 'CO-240004-5030', sku: 'CO-240004-5030', was: 'TMP-1251' },
   { id: 33302, code: 'CO-240005-3050', sku: 'CO-240005-3050', was: 'TMP-1170' },
   { id: 28778, code: 'CO-240006-0000', sku: 'CO-240006-0000', was: 'TMP-1276' },
+  // 1 Oct: 17 of the 18 new pictures
+  { id: 22564, code: 'CO-240007-2035', sku: 'CO-240007-2035', was: 'TMP-1231' },
+  { id: 26023, code: 'CO-240008-3520', sku: 'CO-240008-3520', was: 'TMP-1253' },
+  { id: 25596, code: 'CO-240009-3020', sku: 'CO-240009-3020', was: 'TMP-1093' },
+  { id: 25021, code: 'CO-240011-3020', sku: 'CO-240011-3020', was: 'TMP-1244' },
+  { id: 24470, code: 'CO-240012-3020', sku: 'CO-240012-3020', was: 'TMP-1239' },
+  { id: 23496, code: 'CO-240013-3020', sku: 'CO-240013-3020', was: 'TMP-1307' },
+  { id: 23911, code: 'CO-240014-3020', sku: 'CO-240014-3020', was: 'TMP-1236' },
+  { id: 23435, code: 'CO-240015-3020', sku: 'CO-240015-3020', was: 'TMP-1306' },
+  { id: 26145, code: 'CO-240016-3020', sku: 'CO-240016-3020', was: 'TMP-1308' },
+  { id: 26267, code: 'CO-240017-0000', sku: 'CO-240017-0000', was: 'TMP-1254' },
+  { id: 14034, code: 'CO-240018-3030', sku: 'CO-240018-3030', was: 'TMP-1220' },
+  { id: 25657, code: 'CO-240019-3030', sku: 'CO-240019-3030', was: 'TMP-1249' },
+  { id: 25297, code: 'CO-240020-3030', sku: 'CO-240020-3030', was: 'TMP-1247' },
+  { id: 26328, code: 'CO-240021-0000', sku: 'CO-240021-0000', was: 'TMP-1255' },
+  { id: 24094, code: 'CO-240022-0000', sku: 'CO-240022-0000', was: 'TMP-1237' },
+  { id: 24714, code: 'CO-240023-0000', sku: 'CO-240023-0000', was: 'TMP-1241' },
+  { id: 22686, code: 'CO-240024-0000', sku: 'CO-240024-0000', was: 'TMP-1232' },
 ];
 // The line may read "RK - 010044-5030" or "RK – 010044-5030": compare without
 // spaces and with one kind of dash.
@@ -74,7 +94,7 @@ for (const p of all) {
     + ' · ' + (gone ? p.was + ' gone' : 'still shows ' + p.was));
 }
 
-console.log('\n— the six Personal Pic products: ' + CHANGED.length + ' —');
+console.log('\n— the Personal Pic products: ' + CHANGED.length + ' —');
 console.log('  page opens (HTTP 200)             : ' + tally.page);
 console.log('  "Art Code:" line is the CO code   : ' + tally.line);
 console.log('  SKU = the CO code                 : ' + tally.sku);
