@@ -73,6 +73,7 @@ $af_ports = array(
     'instagram-feed'    => 'insta-gallery',
     'header-footer-elementor' => 'header-footer-elementor',
     'customer-reviews'  => 'customer-reviews-woocommerce',
+    'revslider'         => 'revslider',
 );
 $af_activating = af_ports_activating();
 foreach ($af_ports as $af_port => $af_port_plugin) {
