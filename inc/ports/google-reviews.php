@@ -62,6 +62,11 @@ require_once GR_BASE_PATH_PUBLIC . 'includes/class-grwp-reviews-widget-grid.php'
 require_once GR_BASE_PATH_PUBLIC . 'includes/class-grwp-reviews-widget-badge.php';
 require_once GR_BASE_PATH_PUBLIC . 'includes/class-grwp-shortcode.php';
 require_once GR_BASE_PATH_PUBLIC . 'includes/class-grwp-google-reviews-public.php';
+// The output class reads the stored reviews through these two (static) API
+// classes from the plugin's admin/includes, which its autoloader loaded on
+// first use; copied unchanged. Their constructors (admin AJAX) are not called.
+require_once __DIR__ . '/grwp/admin/includes/class-grwp-free-api-service.php';
+require_once __DIR__ . '/grwp/admin/includes/class-grwp-pro-api-service.php';
 
 /* GRWP_Google_Reviews_Startup (public/includes/class-grwp-google-reviews-startup.php):
    the shortcode, and the public styles and scripts at wp_enqueue_scripts:10. */
