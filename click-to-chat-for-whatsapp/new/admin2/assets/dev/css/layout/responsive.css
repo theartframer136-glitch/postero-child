@@ -1,0 +1,387 @@
+/* ==========================================================================
+   RESPONSIVE
+   ========================================================================== */
+
+/* 640px + */
+@media (min-width: 640px) {
+    /* .admin-badge {
+       display: block;
+   } */
+
+    .save-button .text-label {
+        display: inline;
+    }
+
+    .device-button>span:not(.dashicons) {
+        display: inline;
+    }
+
+    .header-left h1 {
+        display: block;
+    }
+}
+
+/* 768px + (Tablet/Desktop Base) */
+@media (min-width: 768px) {
+    .main-content {
+        padding: 2rem;
+    }
+
+    .mobile-only-content {
+        display: none;
+    }
+
+    /* .sidebar {
+        position: fixed;
+        top: 84px;
+        inset-inline-start: 160px;
+        bottom: 0;
+        transform: translateX(0%);
+        display: block;
+        width: 4rem;
+        transition: width 0.3s ease, inset-inline-start 0.3s ease;
+    }
+
+    body.folded .sidebar {
+        inset-inline-start: 36px;
+    } */
+
+    .sidebar {
+        position: sticky;
+        top: var(--ctc-sticky-top);
+        height: calc(100vh - var(--ctc-sticky-top) - var(--ctc-header-height));
+        transform: translateX(0%);
+        display: block;
+        width: 4rem;
+        transition: width 0.3s ease;
+        z-index: 40;
+    }
+
+    .sidebar.expanded {
+        width: 16rem;
+    }
+
+    .sidebar-header {
+        justify-content: center;
+    }
+
+    .sidebar-header .sidebar-title,
+    .close-sidebar {
+        display: none;
+    }
+
+
+
+    /* Collapsed (icon-only) state. Labels stay in the DOM and animate via
+       max-width/opacity — display:none can't transition and made the text pop
+       in/out abruptly while the sidebar width was still animating. */
+    .nav-item,
+    .drill-down-btn {
+        justify-content: center;
+        padding: 0.75rem;
+        gap: 0;
+        transition: background-color 0.2s ease, color 0.2s ease,
+            padding 0.3s ease, gap 0.3s ease;
+    }
+
+    .nav-item span:not(.dashicons),
+    .drill-down-btn span:not(.dashicons) {
+        flex: none;
+        max-width: 0;
+        opacity: 0;
+        overflow: hidden;
+        white-space: nowrap;
+        /* Labels longer than the expanded max-width clip with an ellipsis
+           instead of disappearing mid-word (base styles wrapped them, but
+           wrapping can't coexist with the width animation). */
+        text-overflow: ellipsis;
+        transition: max-width 0.3s ease, opacity 0.15s ease;
+    }
+
+    .sidebar.expanded .nav-item,
+    .sidebar.expanded .drill-down-btn {
+        padding: 0.75rem 1rem;
+        gap: 0.75rem;
+    }
+
+    .sidebar.expanded .nav-item span:not(.dashicons),
+    .sidebar.expanded .drill-down-btn span:not(.dashicons) {
+        flex: 1;
+        max-width: 12rem;
+        opacity: 1;
+        /* Label fades in after the width has started opening up */
+        transition: max-width 0.3s ease, opacity 0.2s ease 0.1s;
+    }
+}
+
+/* 1024px + */
+@media (min-width: 1024px) {
+
+    /* .main-content {
+        margin-inline-start: 54px;
+        max-width: calc(100% - 54px - 350px);
+        transition: margin-inline-start 0.3s ease, max-width 0.3s ease;
+    }
+
+    body.folded .main-content {
+        margin-inline-start: 50px;
+        max-width: calc(100% - 50px - 350px);
+    }
+
+    .sidebar.expanded~.main-content {
+        margin-inline-start: 266px;
+        max-width: calc(100% - 266px - 350px);
+    }
+
+    body.folded .sidebar.expanded~.main-content {
+        margin-inline-start: 292px;
+        max-width: calc(100% - 292px - 350px);
+    } */
+
+    .main-content {
+        flex: 1;
+        transition: padding 0.3s ease;
+    }
+}
+
+/* 1200px + — reveal the right sidebar only once there is genuinely room for it.
+   The WordPress admin menu eats ~160px on the left, so showing the fixed 350px
+   sidebar from 1024px squeezed .main-content too far and clipped the fixed-width
+   segment controls (Show/Hide) on the Display & Customize tabs (the right edge
+   got cut by .main-content's overflow). Below 1200px the sidebar stays hidden
+   and the content takes the full width. */
+@media (min-width: 1200px) {
+    .right-sidebar {
+        display: flex;
+        position: sticky;
+        top: var(--ctc-sticky-top);
+        height: calc(100vh - var(--ctc-sticky-top) - var(--ctc-header-height));
+        width: 350px;
+        flex-shrink: 0;
+    }
+}
+
+/* 1280px + */
+@media (min-width: 1280px) {
+    .main-content {
+        padding: 2rem 3rem;
+    }
+}
+
+/* Max 767px */
+@media (max-width: 767px) {
+
+    .ctc-admin-dashboard select {
+        padding: 0.5rem 0.625rem;
+        font-size: 0.8rem;
+        /* Full width to match text inputs (was 80%, which looked inconsistent on mobile). */
+        width: 100%;
+    }
+
+    .row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .col {
+        flex: none;
+        width: 100%;
+    }
+}
+
+/* Max 810px */
+@media (max-width: 810px) {
+    .admin-header {
+        padding: 0 1rem;
+    }
+
+    .logo-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+        font-size: 0.75rem;
+    }
+
+    h1 {
+        font-size: 1rem;
+    }
+
+    .menu-toggle,
+    .theme-toggle,
+    .save-button {
+        padding: 0.375rem;
+    }
+
+    .header-left h1 {
+        display: none;
+    }
+
+    /* .admin-badge {
+       display: none;
+   } */
+
+
+    .switch-text {
+        display: none;
+    }
+
+    .save-button .text-label {
+        display: none;
+    }
+
+    .main-content {
+        padding: 1rem;
+    }
+}
+
+/* Max 480px */
+@media (max-width: 480px) {
+    .grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+    }
+
+    .grid-preview {
+        height: 60px;
+    }
+
+    .grid-name {
+        font-size: 0.7rem;
+    }
+
+    .panel-header h2,
+    .panel-header .panel-title {
+        font-size: 1.125rem;
+    }
+
+    .ctc-card-header,
+    .ctc-card-content {
+        padding: 0.75rem;
+    }
+
+    .pro-features {
+        padding: 0.5rem;
+    }
+
+    .feature-icon {
+        width: 1.5rem;
+        height: 1.5rem;
+        font-size: 0.875rem;
+    }
+
+    .pro-feature-item {
+        padding: 0.375rem;
+    }
+
+    .info-box,
+    .reference-box {
+        padding: 0.5rem;
+    }
+
+    /* Segment control (Show/Hide/Global toggles): on very narrow screens the
+       fixed-width label + 210px control don't fit on one row and the control's
+       right edge gets clipped by .main-content's overflow. Stack the label above
+       the control (which keeps its fixed width and left-aligned edges) so nothing
+       is cut off. */
+    .field-radio-wrapper.segment-control {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}
+
+/* Range 768-991 */
+@media (min-width: 768px) and (max-width: 991px) {
+
+    /* Sidebar */
+    .sidebar {
+        top: var(--ctc-sticky-top);
+        width: 3.5rem;
+    }
+
+    /* When your sidebar is expanded */
+    .sidebar.expanded {
+        width: 14rem;
+    }
+
+    /* Main content */
+    /* 
+    .main-content {
+        margin-inline-start: 120px;
+        max-width: calc(100% - 120px);
+        transition: margin-inline-start 0.3s ease, max-width 0.3s ease;
+    }
+
+    body.folded .main-content {
+        margin-inline-start: 92px;
+        max-width: calc(100% - 92px);
+    }
+
+    .sidebar.expanded~.main-content {
+        margin-inline-start: 250px;
+        max-width: calc(100% - 250px);
+    }
+
+    body.folded .sidebar.expanded~.main-content {
+        margin-inline-start: 252px;
+        max-width: calc(100% - 252px);
+    }
+     */
+
+    .main-content {
+        padding: 1.5rem;
+    }
+}
+
+/* Range 992-1199 */
+@media (min-width: 992px) and (max-width: 1199px) {
+
+    /* Sidebar positioning for larger tablets/small desktops */
+    /* 
+    .sidebar {
+        position: fixed;
+        top: 84px;
+        inset-inline-start: 160px;
+        bottom: 0;
+        width: 4rem;
+        transition: inset-inline-start 0.3s ease, width 0.3s ease;
+    }
+
+    body.folded .sidebar {
+        inset-inline-start: 36px;
+    } 
+    */
+
+
+    .sidebar {
+        top: var(--ctc-sticky-top);
+        width: 4rem;
+    }
+
+    .sidebar.expanded {
+        width: 16rem;
+    }
+
+    /* Main content adjustments */
+    /* 
+    .main-content {
+        margin-inline-start: 120px;
+        max-width: calc(100% - 120px);
+        transition: margin-inline-start 0.3s ease, max-width 0.3s ease;
+    }
+
+    body.folded .main-content {
+        margin-inline-start: 96px;
+        max-width: calc(100% - 96px);
+    }
+
+    .sidebar.expanded~.main-content {
+        margin-inline-start: 270px;
+        max-width: calc(100% - 270px);
+    }
+
+    body.folded .sidebar.expanded~.main-content {
+        margin-inline-start: 270px;
+        max-width: calc(100% - 270px);
+    }
+    */
+}

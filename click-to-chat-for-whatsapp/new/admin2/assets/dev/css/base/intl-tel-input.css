@@ -1,0 +1,62 @@
+/* For number field alignment of and fontsize typography of intl-tel-input */
+.ctc-admin-dashboard .iti .iti__selected-dial-code, 
+.ctc-admin-dashboard .iti .intl_number {
+    font-size: 0.875rem; 
+    line-height: 1.5;
+    color: var(--text);
+}
+
+/* ==========================================================================
+   INTL-TEL-INPUT OVERRIDES (DARK MODE & RTL)
+   ========================================================================== */
+
+/* Dark Mode Overrides */
+html[data-theme="dark"] .iti__selected-country {
+    background-color: var(--input-bg);
+}
+
+html[data-theme="dark"] .iti__country-list {
+    background-color: var(--bg);
+    border: 1px solid var(--border-color);
+    color: var(--text);
+}
+
+html[data-theme="dark"] .iti__country {
+    border-bottom: 1px solid var(--border-color);
+}
+
+html[data-theme="dark"] .iti__country:last-child {
+    border-bottom: none;
+}
+
+html[data-theme="dark"] .iti__country.iti__highlight {
+    background-color: var(--bg-secondary);
+}
+
+html[data-theme="dark"] .iti__arrow {
+    border-top-color: var(--text-secondary);
+}
+
+html[data-theme="dark"] .iti__arrow--up {
+    border-bottom-color: var(--text-secondary);
+}
+
+/* Ensure inputs in dark mode have correct text color */
+html[data-theme="dark"] input.iti__tel-input {
+    color: var(--text);
+    background-color: var(--input-bg);
+    border-color: var(--border-color);
+}
+
+/* RTL Overrides */
+/* 
+ * FIX 1: Dropdown Alignment
+ * Setting position to relative is perfectly valid here. The wrapper (.iti--container) 
+ * is already dynamically positioned (fixed/absolute) via JS. Changing this to relative 
+ * prevents the browser's RTL engine from statically anchoring the absolute box to the wrong edge.
+ */
+[dir="rtl"] .iti--inline-dropdown .iti__dropdown-content {
+    /* position: relative; */
+    left: 0;
+    /* right: auto; !important */
+}
