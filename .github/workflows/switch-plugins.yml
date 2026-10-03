@@ -1,0 +1,113 @@
+name: Switch Plugins
+# Owner, 3 Oct: move the plugins' work into the theme and switch the plugins
+# off, with nothing a visitor sees or does changing. This switches the named
+# plugins off only behind a before/after comparison of every published page
+# (tools/diag-plugin-switch.mjs): two snapshots before (to learn what changes
+# by itself), the switch, a cache purge, a snapshot after. If any page breaks
+# (status, script errors, lost text or elements), or differs beyond the
+# before-noise and keep_on_review is not 'yes', the plugins are switched back
+# on and the cache purged again, automatically.
+#
+#   mode=check     two snapshots only, nothing switched (measures the noise)
+#   mode=apply     switch off, compare, switch back on unless it passes
+#   mode=activate  switch the named plugins back on (manual rollback)
+on:
+  workflow_dispatch:
+    inputs:
+      plugins:
+        description: 'Plugin slugs (folder names), space separated'
+        required: true
+      mode:
+        description: 'check | apply | activate'
+        required: true
+        default: 'check'
+      keep_on_review:
+        description: 'Keep the switch when only small differences remain (yes/no)'
+        required: false
+        default: 'no'
+concurrency:
+  group: switch-plugins
+  cancel-in-progress: false
+jobs:
+  switch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    env:
+      PLUGINS: ${{ github.event.inputs.plugins }}
+      MODE: ${{ github.event.inputs.mode }}
+      KEEP: ${{ github.event.inputs.keep_on_review }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          cat > /tmp/remote.sh <<'EOS'
+          #!/usr/bin/env bash
+          # run one wp-cli command line on the host, retrying a dropped connection
+          for i in 1 2 3; do
+            ssh -p "$SSH_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 "$SSH_DEST" "cd ~/websites/OPu0sKi4J/public_html && $1" && exit 0
+            echo "  (connection attempt $i failed)"; sleep 15
+          done
+          exit 1
+          EOS
+          chmod +x /tmp/remote.sh
+      - name: Check the names
+        env:
+          SSH_PORT: ${{ secrets.HOSTINGER_PORT }}
+          SSH_DEST: ${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}
+        run: |
+          set -uo pipefail
+          case "$MODE" in check|apply|activate) ;; *) echo "mode must be check, apply or activate"; exit 1;; esac
+          for p in $PLUGINS; do
+            case "$p" in *[!a-z0-9-]*) echo "bad plugin name: $p"; exit 1;; esac
+            case "$p" in woocommerce|elementor|elementor-pro|woocommerce-square|litespeed-cache|af-crawl-guard) echo "refusing to switch the platform plugin $p"; exit 1;; esac
+          done
+          /tmp/remote.sh "wp plugin list --fields=name,status,version --allow-root 2>/dev/null" | tee /tmp/plugins-before.txt
+          for p in $PLUGINS; do grep -q "^$p[[:space:]]" /tmp/plugins-before.txt || { echo "no plugin named $p"; exit 1; }; done
+      - name: Manual rollback
+        if: ${{ github.event.inputs.mode == 'activate' }}
+        env:
+          SSH_PORT: ${{ secrets.HOSTINGER_PORT }}
+          SSH_DEST: ${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}
+        run: |
+          set -uo pipefail
+          /tmp/remote.sh "wp plugin activate $PLUGINS --allow-root 2>&1; wp litespeed-purge all --allow-root 2>&1; wp plugin list --fields=name,status --allow-root 2>/dev/null | grep -E '^($(echo $PLUGINS | tr ' ' '|'))[[:space:]]'"
+      - name: Browser tools
+        if: ${{ github.event.inputs.mode != 'activate' }}
+        run: npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 pngjs@7 pixelmatch@5 > /dev/null 2>&1 || true
+      - name: Before (two snapshots, to learn what changes by itself)
+        if: ${{ github.event.inputs.mode != 'activate' }}
+        run: |
+          set -uo pipefail
+          NODE_PATH=/tmp/afh/node_modules node tools/diag-plugin-switch.mjs snap /tmp/snapA
+          NODE_PATH=/tmp/afh/node_modules node tools/diag-plugin-switch.mjs snap /tmp/snapB
+      - name: Noise between the two befores
+        if: ${{ github.event.inputs.mode == 'check' }}
+        run: |
+          set +e
+          NODE_PATH=/tmp/afh/node_modules node tools/diag-plugin-switch.mjs compare /tmp/snapA /tmp/snapA /tmp/snapB
+          echo "(check mode: nothing was switched)"
+      - name: Switch off, compare, and switch back on unless it passes
+        if: ${{ github.event.inputs.mode == 'apply' }}
+        env:
+          SSH_PORT: ${{ secrets.HOSTINGER_PORT }}
+          SSH_DEST: ${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}
+        run: |
+          set +e
+          echo "=== switching off: $PLUGINS"
+          /tmp/remote.sh "wp plugin deactivate $PLUGINS --allow-root 2>&1; wp litespeed-purge all --allow-root 2>&1"
+          sleep 20
+          NODE_PATH=/tmp/afh/node_modules node tools/diag-plugin-switch.mjs snap /tmp/snapC
+          NODE_PATH=/tmp/afh/node_modules node tools/diag-plugin-switch.mjs compare /tmp/snapA /tmp/snapB /tmp/snapC
+          rc=$?
+          if [ $rc -eq 1 ] || { [ $rc -eq 2 ] && [ "$KEEP" != "yes" ]; } || [ $rc -gt 2 ]; then
+            echo "=== ROLLED BACK (compare exit $rc): switching back on: $PLUGINS"
+            /tmp/remote.sh "wp plugin activate $PLUGINS --allow-root 2>&1; wp litespeed-purge all --allow-root 2>&1"
+            echo "SWITCH RESULT: rolled back"
+          else
+            echo "SWITCH RESULT: kept (compare exit $rc)"
+          fi
+          /tmp/remote.sh "wp plugin list --fields=name,status --allow-root 2>/dev/null | grep -E '^($(echo $PLUGINS | tr ' ' '|'))[[:space:]]'"
