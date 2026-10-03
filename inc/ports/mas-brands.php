@@ -17,6 +17,9 @@
 if (!defined('ABSPATH')) exit;
 if (defined('MAS_WCBR_PLUGIN_FILE') || class_exists('Mas_WC_Brands', false)) return;
 
+// Declared inside a block: a top-level class is declared when the file is
+// compiled, before the early return above, and would clash with the plugin's.
+if (!class_exists('Mas_WC_Brands', false)) {
 final class Mas_WC_Brands {
     public $version = '1.1.0';
     protected static $_instance = null;
@@ -41,8 +44,12 @@ final class Mas_WC_Brands {
     }
 }
 
-function Mas_WC_Brands() { //phpcs:ignore
-    return Mas_WC_Brands::instance();
+}
+
+if (!function_exists('Mas_WC_Brands')) {
+    function Mas_WC_Brands() { //phpcs:ignore
+        return Mas_WC_Brands::instance();
+    }
 }
 $GLOBALS['mas_wc_brands'] = Mas_WC_Brands();
 
