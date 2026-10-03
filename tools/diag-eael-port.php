@@ -65,8 +65,13 @@ foreach ($wpdb->get_results("SELECT post_id, meta_value FROM {$wpdb->postmeta} W
     if (!is_array($s)) continue;
     $hit = array();
     foreach ($s as $k => $v) if (strpos($k, 'eael_') === 0) $hit[$k] = is_scalar($v) ? (strlen((string) $v) > 60 ? substr((string) $v, 0, 60) . '...' : $v) : '[' . gettype($v) . ']';
-    if ($hit) echo "  #{$r->post_id} " . get_post_type($r->post_id) . ' ' . get_post_status($r->post_id) . ' ' . json_encode($hit, JSON_UNESCAPED_SLASHES) . "\n";
+    // a saved title or other text alone switches nothing on; print only documents
+    // where an EA page extension is set to yes, and count the rest
+    $on = array_filter($hit, function ($v) { return $v === 'yes'; });
+    if ($on) echo "  #{$r->post_id} " . get_post_type($r->post_id) . ' ' . get_post_status($r->post_id) . ' ' . json_encode($hit, JSON_UNESCAPED_SLASHES) . "\n";
+    elseif ($hit) { $only_text = isset($only_text) ? $only_text + 1 : 1; }
 }
+echo '  documents with EA page keys but nothing set to yes: ' . (isset($only_text) ? $only_text : 0) . "\n";
 
 echo "\n=== other EA post meta\n";
 foreach (array('_eael_checkout_fields_settings', '_eael_post_view_count') as $k) {
