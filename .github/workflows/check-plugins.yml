@@ -1,0 +1,82 @@
+name: Check Plugins
+# Read-only. What every plugin costs: on the server (boot time, hook work,
+# database queries per plugin on each key page, with the page cache out of
+# the way) and in the browser (transfer, blocking, and how much of each file
+# the page uses). The groundwork for replacing plugins with the theme's own
+# code without changing what the site does.
+on:
+  workflow_dispatch:
+    inputs:
+      urls:
+        description: 'Paths to profile on the server, comma separated'
+        required: false
+        default: '/,/shop/,/product-category/digital-canvas-prints/radha-krishna/,/product/radha-krishna-moonlit-melody-canvas-wall-art-3x4-feet-floating-frame-premium-digital-canvas-print-living-room-home-spiritual-wall-decor/,/cart/,/checkout/'
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Send the profiler up
+        run: |
+          set -uo pipefail
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/profile-plugins.php \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/profile-plugins.php" \
+            || echo "  scp failed"
+      - name: Inventory (read-only)
+        run: |
+          set +e
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" '
+            cd ~/websites/OPu0sKi4J/public_html
+            echo "=== versions ==="; php -v | head -1; wp core version --allow-root; wp cli version --allow-root
+            echo "=== plugins (wp plugin list) ==="
+            wp plugin list --fields=name,status,version,update_version,auto_update --allow-root 2>/dev/null
+            echo "=== must-use plugins ==="; wp plugin list --status=must-use --fields=name,version --allow-root 2>/dev/null; ls wp-content/mu-plugins 2>/dev/null
+            echo "=== drop-ins ==="; wp plugin list --status=dropin --fields=name --allow-root 2>/dev/null; ls wp-content/*.php 2>/dev/null
+            echo "=== themes ==="; wp theme list --fields=name,status,version --allow-root 2>/dev/null
+            echo "=== plugin size on disk (KB) and PHP file count ==="
+            for d in wp-content/plugins/*/; do n=$(basename "$d"); s=$(du -sk "$d" | cut -f1); c=$(find "$d" -name "*.php" | wc -l); j=$(find "$d" \( -name "*.js" -o -name "*.css" \) | wc -l); echo "  $s KB  php:$c css/js:$j  $n"; done | sort -rn
+            echo "=== plugin headers (what each says it is) ==="
+            for f in wp-content/plugins/*/*.php; do h=$(grep -m1 "^ \* Plugin Name:\|^Plugin Name:" "$f" 2>/dev/null); [ -n "$h" ] && echo "  $(basename $(dirname $f)): $(echo "$h" | sed "s/.*Plugin Name: *//")  —  $(grep -m1 "Description:" "$f" | sed "s/.*Description: *//" | cut -c1-110)"; done
+            echo "=== cron events (which plugins run in the background) ==="
+            wp cron event list --fields=hook,recurrence,next_run_relative --allow-root 2>/dev/null | head -60
+            echo "=== options autoloaded on every request ==="
+            P=$(wp db prefix --allow-root 2>/dev/null)
+            wp db query "SELECT COUNT(*) AS n, ROUND(SUM(LENGTH(option_value))/1024) AS kb FROM ${P}options WHERE autoload IN (\"yes\",\"on\",\"auto-on\",\"auto\")" --allow-root 2>/dev/null
+            wp db query "SELECT SUBSTRING_INDEX(option_name,\"_\",1) AS prefix, COUNT(*) AS n, ROUND(SUM(LENGTH(option_value))/1024) AS kb FROM ${P}options WHERE autoload IN (\"yes\",\"on\",\"auto-on\",\"auto\") GROUP BY prefix ORDER BY kb DESC LIMIT 25" --allow-root 2>/dev/null
+            echo "=== plugin tables ==="
+            wp db query "SELECT table_name, ROUND((data_length+index_length)/1024) AS kb, table_rows FROM information_schema.tables WHERE table_schema = DATABASE() ORDER BY kb DESC LIMIT 40" --allow-root 2>/dev/null
+            echo "=== page cache plugin ==="
+            wp plugin list --name=litespeed-cache --fields=name,status,version --allow-root 2>/dev/null; wp option get litespeed.conf.cache --allow-root 2>/dev/null
+          '
+      - name: Profile each page on the server (read-only, cache out of the way)
+        run: |
+          set +e
+          IFS="," read -ra URLS <<< "${{ github.event.inputs.urls }}"
+          for u in "${URLS[@]}"; do
+            ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+                -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+                "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+              "cd ~/websites/OPu0sKi4J/public_html && timeout 170 php wp-content/themes/postero-child/tools/profile-plugins.php '$u' theartframer.us 2>&1 | head -400" \
+              || echo "  profile of $u failed"
+          done
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Weigh each page in Chrome (read-only, no order placed)
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afh/node_modules node tools/diag-plugin-weight.mjs || true
