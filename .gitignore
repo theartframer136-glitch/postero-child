@@ -27,3 +27,12 @@ id_ed25519
 # Logs
 *.log
 debug.log
+
+# Plugin code moved into the theme keeps the plugin's own folder layout, and
+# some plugins ship a folder named vendor/ (Composer autoloader, bundled JS
+# libraries). Those belong to the theme copy and must be committed.
+!inc/ports/**/vendor/
+!assets/ports/**/vendor/
+
+# Working copies made by Claude Code agents (never part of the theme)
+.claude/
