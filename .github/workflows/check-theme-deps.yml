@@ -1,0 +1,78 @@
+name: Check Theme Dependencies
+# Read-only. Which plugins the parent theme (postero, not in this repo) and the
+# child theme call into: functions, classes, shortcodes, hooks, options, with
+# the line and whether it is guarded by a class_exists / function_exists /
+# defined check. A plugin the theme calls unguarded cannot be switched off
+# without a fatal error, so this is read before any plugin is switched off.
+on:
+  workflow_dispatch:
+    inputs:
+      pattern:
+        description: 'Extra extended-regex to search for (optional)'
+        required: false
+        default: ''
+jobs:
+  grep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Search the themes (read-only)
+        env:
+          EXTRA: ${{ github.event.inputs.pattern }}
+        run: |
+          set +e
+          for i in 1 2 3; do
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" "EXTRA='$EXTRA' bash -s" <<'EOS' && break
+          cd ~/websites/OPu0sKi4J/public_html/wp-content/themes || exit 1
+          declare -A P
+          P[contact-form-7]='wpcf7|WPCF7|contact-form-7'
+          P[mailchimp-for-wp]='mc4wp|MC4WP'
+          P[mas-woocommerce-brands]='Mas_WC_Brands|mas_wcbr|mas_wc_brands|mas-wc-brands'
+          P[woo-smart-wishlist]='woosw|WPCleverWoosw|Woosw'
+          P[woo-smart-quick-view]='woosq|WPCleverWoosq|Woosq'
+          P[woo-variation-swatches]='woo_variation_swatches|Woo_Variation_Swatches|wvs_'
+          P[revslider]='RevSlider|rev_slider|revslider|sr7'
+          P[yith-woocommerce-featured-video]='YITH_WC_Audio_Video|ywcfav|yith_wc_featured'
+          P[woocommerce-currency-switcher]='WOOCS|woocs'
+          P[transposh]='transposh|lsft_|cfxlsft'
+          P[click-to-chat-for-whatsapp]='ht_ctc|HT_CTC'
+          P[wpc-estimated-delivery-date]='wpced|WPCleverWpced'
+          P[wpc-smart-messages]='wpcsm|WPCleverWpcsm'
+          P[insta-gallery]='insta_gallery|qligg|QuadLayers'
+          P[embedder-for-google-reviews]='grwp|google_reviews_option'
+          P[essential-addons-for-elementor-lite]='eael|Essential_Addons_Elementor'
+          P[premium-addons-for-elementor]='PremiumAddons|premium_addons|pa_'
+          P[header-footer-elementor]='hfe_|HFE_|Header_Footer_Elementor|UAE'
+          P[dynamic-visibility-for-elementor]='DynamicVisibility|dce_'
+          P[customer-reviews-woocommerce]='CR_|cusrev|ivole'
+          P[custom-payment-gateways-woocommerce]='alg_wc_custom|Alg_WC_Custom|alg_custom_gateway'
+          P[templately]='templately|Templately'
+          P[google-listings-and-ads]='GoogleListingsAndAds|woogle|gla_'
+          P[code-snippets]='code_snippets|Code_Snippets'
+          P[header-footer-code-manager]='NNR_HFCM|hfcm'
+          P[seo-by-rank-math]='RankMath|rank_math'
+          P[hostinger]='Hostinger|hostinger'
+          [ -n "$EXTRA" ] && P[extra]="$EXTRA"
+          for k in "${!P[@]}"; do
+            for t in postero postero-child; do
+              hits=$(grep -rnE --include=*.php "${P[$k]}" "$t" 2>/dev/null | grep -v "/tools/" | head -60)
+              n=$(printf '%s' "$hits" | grep -c . )
+              [ "$n" -eq 0 ] && continue
+              echo "=== $k in $t: $n lines (first 60)"
+              printf '%s\n' "$hits" | cut -c1-230
+            done
+          done
+          echo "=== postero theme: which plugins it declares as required (TGM)"
+          grep -rnE "'slug'\s*=>" postero/inc 2>/dev/null | cut -c1-160 | head -40
+          echo "=== END"
+          EOS
+          echo "  attempt $i failed"; sleep 15
+          done
