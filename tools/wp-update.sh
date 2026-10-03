@@ -18,6 +18,11 @@
 #                              on 3 Oct it said 6.9.9 was the latest while 7.1.2 was out,
 #                              so moving to 7 is done in Hostinger's hPanel.
 #   wp-update.sh woocommerce   WooCommerce and the plugins built on it
+#
+# A plugin whose new version needs a newer WooCommerce or Elementor than the
+# site has is held back at every stage, and the plan says which and why
+# (check_needs): on 3 Oct Square 5.5.1 needed WooCommerce 10.9, the shop had
+# 10.7, and WooCommerce 11 waits on WordPress 7. They go in once that is done.
 #   wp-update.sh elementor     Elementor, Elementor Pro and the Elementor add-ons
 #   wp-update.sh rollback STAMP     put back the plugin folder (and WordPress, for a core
 #                                   stage) from that backup; the database is left alone
@@ -82,9 +87,73 @@ $WP core check-update --fields=version,update_type --format=table 2>&1 | head -8
 echo "--- plugins ---"
 $WP plugin list --fields=name,status,version,update_version --format=table 2>&1
 echo
+# WP-CLI holds back an update that needs a newer WordPress or PHP (WooCommerce
+# 11.1.2 needs WordPress 7.0, so it is not offered here), but not one that
+# needs a newer WooCommerce or Elementor than the site has. Woo's own
+# extensions switch themselves off then: Square 5.5.1 says "WC requires at
+# least: 10.9", and on this shop's 10.7 that would take card payment off the
+# checkout (3 Oct). So read each new version's header from its download, and
+# hold back any that would not run here. A WooCommerce or Elementor update in
+# the same run counts. A download that cannot be read is held too.
+check_needs() {
+    AF_CHECK="$*" $WP eval '
+        require_once ABSPATH . "wp-admin/includes/file.php";
+        require_once ABSPATH . "wp-admin/includes/plugin.php";
+        $want = preg_split("/\s+/", trim(getenv("AF_CHECK")));
+        $t = get_site_transient("update_plugins");
+        $by = array();
+        foreach (($t && !empty($t->response)) ? $t->response : array() as $file => $u) $by[dirname($file)] = array($file, $u);
+        $has = array("woocommerce" => defined("WC_VERSION") ? WC_VERSION : "", "elementor" => defined("ELEMENTOR_VERSION") ? ELEMENTOR_VERSION : "");
+        // WooCommerce and Elementor first: a new one counts for the rest only once it passes.
+        usort($want, function ($a, $b) use ($has) { return (isset($has[$b]) ? 1 : 0) - (isset($has[$a]) ? 1 : 0); });
+        foreach ($want as $slug) {
+            if (!isset($by[$slug]) || empty($by[$slug][1]->package)) { echo "UNCHECKED $slug: no download offered\n"; continue; }
+            list($file, $u) = $by[$slug];
+            $tmp = download_url($u->package, 180);
+            if (is_wp_error($tmp)) { echo "UNCHECKED $slug: ", $tmp->get_error_message(), "\n"; continue; }
+            $head = "";
+            if (class_exists("ZipArchive")) {
+                $z = new ZipArchive();
+                if ($z->open($tmp) === true) { $head = (string) $z->getFromName($file, 8192); $z->close(); }
+            } else {
+                require_once ABSPATH . "wp-admin/includes/class-pclzip.php";
+                $z = new PclZip($tmp);
+                $x = $z->extract(PCLZIP_OPT_BY_NAME, $file, PCLZIP_OPT_EXTRACT_AS_STRING);
+                if (is_array($x) && isset($x[0]["content"])) $head = substr($x[0]["content"], 0, 8192);
+            }
+            @unlink($tmp);
+            if ($head === "") { echo "UNCHECKED $slug: $file is not in the download\n"; continue; }
+            $why = array();
+            foreach (array("woocommerce" => array("WC requires at least", "WooCommerce"), "elementor" => array("Elementor requires at least", "Elementor")) as $base => $h) {
+                if (!preg_match("/^[ \t\/*#@]*" . preg_quote($h[0], "/") . ":(.*)/mi", $head, $m)) continue;
+                $need = trim($m[1]);
+                if ($need !== "" && $has[$base] !== "" && version_compare($has[$base], $need, "<")) $why[] = $h[1] . " " . $need . " (the site has " . $has[$base] . ")";
+            }
+            if ($why) { echo "HOLD $slug: " . $u->new_version . " needs " . implode(" and ", $why) . "\n"; continue; }
+            echo "OK $slug " . $u->new_version . "\n";
+            if (isset($has[$slug])) $has[$slug] = $u->new_version;
+        }
+    ' 2>/dev/null | grep -E '^(OK|HOLD|UNCHECKED) '
+}
+
 echo "=== what each stage would update ==="
 AVAIL=$($WP plugin list --update=available --field=name 2>/dev/null)
-for p in $AVAIL; do printf '  %-12s %s\n' "$(stage_of "$p")" "$p"; done | sort
+TO_CHECK=""
+for p in $AVAIL; do s=$(stage_of "$p"); [ "$s" != skip ] && { [ "$STAGE" = plan ] || [ "$s" = "$STAGE" ]; } && TO_CHECK="$TO_CHECK $p"; done
+CHECKED=""
+[ -n "$TO_CHECK" ] && CHECKED=$(check_needs $TO_CHECK)
+# Anything not answered OK is held: a crashed check holds them all.
+HELD=""
+for p in $TO_CHECK; do printf '%s\n' "$CHECKED" | grep -q "^OK $p " || HELD="$HELD $p"; done
+for p in $AVAIL; do
+    s=$(stage_of "$p")
+    if in_list "$p" "$HELD"; then
+        why=$(printf '%s\n' "$CHECKED" | grep -E "^(HOLD|UNCHECKED) $p:" | head -1 | cut -d: -f2-)
+        printf '  %-12s %s  <- held:%s\n' "$s" "$p" "${why:- the check gave no answer}"
+    else
+        printf '  %-12s %s\n' "$s" "$p"
+    fi
+done | sort
 CORE_NEW=$($WP core check-update --field=version 2>/dev/null | grep -E '^[0-9]+\.[0-9]+' | head -1)
 printf '  %-12s %s\n' core "${CORE_NEW:-(WordPress is up to date)}"
 
@@ -171,7 +240,7 @@ restore_files() {
 case "$STAGE" in
     plugins-low|woocommerce|elementor)
         LIST=""
-        for p in $AVAIL; do [ "$(stage_of "$p")" = "$STAGE" ] && LIST="$LIST $p"; done
+        for p in $AVAIL; do [ "$(stage_of "$p")" = "$STAGE" ] && ! in_list "$p" "$HELD" && LIST="$LIST $p"; done
         if [ -z "$LIST" ]; then echo; echo "Nothing to update in $STAGE: nothing was changed."; exit 0; fi
         backup
         echo

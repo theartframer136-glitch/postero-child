@@ -11,6 +11,8 @@ name: Update WordPress
 #   plugins-low   the plugins nothing else is built on
 #   core          WordPress itself, then its database
 #   woocommerce   WooCommerce, Square, Google Listings, the currency switcher, swatches
+#                 (a plugin needing a newer WooCommerce or Elementor than the site
+#                 has is held back at every stage; the plan says which and why)
 #   elementor     Elementor, Elementor Pro and the Elementor add-ons
 #   rollback      put back the plugin folder (and WordPress, after a core stage)
 #                 from the backup named in 'backup'; the database is left alone
