@@ -54,9 +54,17 @@ for f in $(logs); do LOGLEN="$LOGLEN $f:$(wc -l < "$f")"; done
 
 echo "=== server ==="
 for t in mysqldump mysql tar gzip sed xargs; do printf '  %-10s %s\n' "$t" "$(command -v "$t" || echo MISSING)"; done
-for d in "$HOME" "$HOME/websites/OPu0sKi4J" "$PWD/.." /tmp; do
-    if [ -w "$d" ]; then echo "  writable:     $d"; else echo "  not writable: $d"; fi
+# -w only asks the permission bits; this host refuses some writes they allow
+# (3 Oct: -w said yes for the home folder, creating a file there failed). Try.
+for d in "$HOME" "$HOME/websites" "$HOME/websites/OPu0sKi4J" "$HOME/websites/OPu0sKi4J/logs" \
+         "$HOME/tmp" "$HOME/.cache" "$HOME/.local" "$HOME/.wp-cli" /tmp "${TMPDIR:-/tmp}"; do
+    [ -d "$d" ] || { echo "  (no folder)   $d"; continue; }
+    t="$d/.af-write-test-$$"
+    if ( : > "$t" ) 2>/dev/null; then rm -f "$t"; echo "  can write:    $d"; else echo "  cannot write: $d"; fi
 done
+echo "  user $(id -un), home $HOME"
+ls -la "$HOME" 2>/dev/null | head -20 | sed 's/^/    /'
+df -h /tmp 2>/dev/null | tail -1 | sed 's/^/  \/tmp: /'
 echo "  free: $(df -Pk "$HOME/websites/OPu0sKi4J" 2>/dev/null | tail -1 | tr -s ' ' | cut -d' ' -f4) KB"
 echo "  database: $($WP db size --human-readable --skip-plugins --skip-themes 2>/dev/null | tail -1)"
 echo
