@@ -80,9 +80,18 @@ jobs:
         run: npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 pngjs@7 pixelmatch@5 > /dev/null 2>&1 || true
       - name: Before (two snapshots, to learn what changes by itself)
         if: ${{ github.event.inputs.mode != 'activate' }}
+        env:
+          SSH_PORT: ${{ secrets.HOSTINGER_PORT }}
+          SSH_DEST: ${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}
         run: |
           set -uo pipefail
           NODE_PATH=/tmp/afh/node_modules node tools/diag-plugin-switch.mjs snap /tmp/snapA
+          # The switch purges the page cache, and freshly built pages differ from
+          # cached ones (random related products, ids made per build, data
+          # cached in the object cache). The second "before" is taken after a
+          # purge too, so those differences count as noise, not as the switch.
+          /tmp/remote.sh "wp litespeed-purge all --allow-root 2>&1"
+          sleep 20
           NODE_PATH=/tmp/afh/node_modules node tools/diag-plugin-switch.mjs snap /tmp/snapB
       - name: Noise between the two befores
         if: ${{ github.event.inputs.mode == 'check' }}

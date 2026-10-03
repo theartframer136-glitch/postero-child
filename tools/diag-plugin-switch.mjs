@@ -76,8 +76,10 @@ async function snap(out) {
         if (['SCRIPT', 'STYLE', 'LINK', 'META', 'NOSCRIPT', 'BR'].includes(el.tagName)) continue;
         if (!vis(el)) continue;
         n++;
-        const cls = [...el.classList].filter(c => !/^(swiper-slide-(active|next|prev|duplicate)|slick-(active|current|cloned)|is-|active$|elementor-element-[0-9a-f]{6,}|e-con-inner|lazy|loaded|animated|fadeIn)/.test(c)).sort().join('.');
-        const k = el.tagName.toLowerCase() + (el.id && !/\d{3,}/.test(el.id) ? '#' + el.id : '') + (cls ? '.' + cls : '');
+        // state classes (slider position, lazy-load done, animation run) and
+        // ids made fresh on every page build are not part of what is shown
+        const cls = [...el.classList].filter(c => !/^(swiper-slide-(active|next|prev|duplicate|visible|fully-visible)|slick-(active|current|cloned)|is-|active$|elementor-element-[0-9a-f]{6,}|e-con-inner|lazy|loaded|animated|fadeIn|e-lazyloaded|e-lazy|elementor-invisible|woosq-btn-\d|woosw-btn-\d|post-\d)/.test(c)).sort().join('.');
+        const k = el.tagName.toLowerCase() + (el.id && !/\d/.test(el.id) ? '#' + el.id : '') + (cls ? '.' + cls : '');
         sig[k] = (sig[k] || 0) + 1;
       }
       const text = document.body.innerText.split('\n').map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
