@@ -68,6 +68,7 @@ $af_ports = array(
     'wishlist'          => 'woo-smart-wishlist',
     'google-reviews'    => 'embedder-for-google-reviews',
     'language-switcher' => 'language-switcher-for-transposh',
+    'essential-addons'  => 'essential-addons-for-elementor-lite',
     'premium-addons'    => 'premium-addons-for-elementor',
     'instagram-feed'    => 'insta-gallery',
     'header-footer-elementor' => 'header-footer-elementor',
