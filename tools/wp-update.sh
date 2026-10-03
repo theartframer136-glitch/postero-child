@@ -143,6 +143,14 @@ check_needs() {
         require_once ABSPATH . "wp-admin/includes/plugin.php";
         $want = preg_split("/\s+/", trim(getenv("AF_CHECK")));
         $t = get_site_transient("update_plugins");
+        // Installing a plugin clears the list of available updates; the re-check
+        // after a pinned WooCommerce found it empty (3 Oct). Ask again then.
+        $have = ($t && !empty($t->response)) ? array_map("dirname", array_keys($t->response)) : array();
+        if (array_diff($want, $have)) {
+            require_once ABSPATH . "wp-includes/update.php";
+            wp_update_plugins();
+            $t = get_site_transient("update_plugins");
+        }
         $by = array();
         foreach (($t && !empty($t->response)) ? $t->response : array() as $file => $u) $by[dirname($file)] = array($file, $u);
         $has = array("woocommerce" => defined("WC_VERSION") ? WC_VERSION : "", "elementor" => defined("ELEMENTOR_VERSION") ? ELEMENTOR_VERSION : "");
