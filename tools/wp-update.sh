@@ -29,6 +29,12 @@
 # (check_needs): on 3 Oct Square 5.5.1 needed WooCommerce 10.9, the shop had
 # 10.7, and WooCommerce 11 waits on WordPress 7. They go in once that is done.
 #
+# A plugin whose newest release needs a newer WordPress or PHP than the site
+# has (WP-CLI does not offer it at all) goes to the newest release that does
+# run here (find_pins), and what was held for it is checked again in the same
+# stage: on 3 Oct, WooCommerce 11.1.2 needed WordPress 7.0 while 11.0.1 runs
+# on 6.9, and WooCommerce 11.0.1 lets Square 5.5.1 and Google Listings 3.9.5 in.
+#
 # Every stage that changes anything backs up first, outside the web root in a
 # private folder in /tmp: the database (mysqldump), the plugin folder, and the
 # version of WordPress and of every plugin. A stage with nothing to update changes nothing and
@@ -46,16 +52,23 @@ WP="wp --allow-root"
 BKDIR="/tmp/af-backup-$(id -u)"
 BK="$BKDIR/af-backup"
 
-# Being replaced by theme code (the owner, 3 Oct: "Skip those"). Never updated here.
+# Being replaced by theme code (the owner, 3 Oct: "Skip those"): left alone
+# while switched on, so an update cannot move them under that work. Once the
+# theme has taken over and they are switched off, an update changes nothing a
+# visitor sees, and they go with the everyday plugins (the owner, later the
+# same day: "update all").
 SKIP="code-snippets header-footer-code-manager classic-editor mas-woocommerce-brands wpc-estimated-delivery-date click-to-chat-for-whatsapp"
 # WooCommerce and what is built on it: the shop, its prices and its payments.
 WOO="woocommerce woocommerce-square google-listings-and-ads woocommerce-currency-switcher woo-variation-swatches"
 # Elementor and its add-ons: they move together, an add-on can need the new Elementor.
 ELE="elementor elementor-pro essential-addons-for-elementor-lite premium-addons-for-elementor header-footer-elementor dynamic-visibility-for-elementor templately"
 
-in_list() { case " $2 " in *" $1 "*) return 0;; esac; return 1; }
+# Lists come space- or line-separated (WP-CLI prints one name a line).
+in_list() { case " $(printf '%s' "$2" | tr '\n\t' '  ') " in *" $1 "*) return 0;; esac; return 1; }
+INACTIVE=$($WP plugin list --status=inactive --field=name 2>/dev/null)
 stage_of() {
-    if in_list "$1" "$SKIP"; then echo skip
+    if in_list "$1" "$SKIP" && ! in_list "$1" "$INACTIVE"; then echo skip
+    elif in_list "$1" "$SKIP"; then echo plugins-low
     elif in_list "$1" "$WOO"; then echo woocommerce
     elif in_list "$1" "$ELE"; then echo elementor
     else echo plugins-low; fi
@@ -86,6 +99,35 @@ echo "--- WordPress updates available ---"
 $WP core check-update --fields=version,update_type --format=table 2>&1 | head -8
 echo "--- plugins ---"
 $WP plugin list --fields=name,status,version,update_version --format=table 2>&1
+if [ "$STAGE" = plan ]; then
+    # This host runs WordPress from its own managed copy; whether wp-admin and
+    # wp-includes are links into it says whether an update from here could
+    # touch WordPress at all, or it has to be moved on in hPanel.
+    echo "--- how WordPress itself is installed here ---"
+    for f in wp-admin wp-includes wp-settings.php wp-load.php index.php; do
+        if [ -L "$f" ]; then echo "  $f -> $(readlink "$f")"
+        elif [ -e "$f" ]; then echo "  $f: here, not a link"
+        else echo "  $f: missing"; fi
+    done
+    echo "  version.php is $(readlink -f wp-includes/version.php 2>/dev/null)"
+    echo "  WordPress runs from $($WP eval 'echo ABSPATH;' --skip-plugins --skip-themes 2>/dev/null | tail -1)"
+    # Elementor Pro's update comes from Elementor's server, which answers to
+    # the licence. Its state as Elementor Pro stored it; never the key.
+    echo "--- Elementor Pro licence (the key is not printed) ---"
+    $WP eval '
+        $k = get_option("elementor_pro_license_key");
+        echo "  a key is stored: ", $k ? "yes" : "no", "\n";
+        foreach (array("_elementor_pro_license_v2_data", "_elementor_pro_license_data") as $o) {
+            $d = get_option($o);
+            if (!is_array($d)) continue;
+            $v = isset($d["value"]) ? json_decode($d["value"], true) : $d;
+            if (!is_array($v)) continue;
+            $out = array();
+            foreach (array("license", "success", "expires", "error") as $f) if (isset($v[$f])) $out[] = $f . " " . (is_bool($v[$f]) ? ($v[$f] ? "yes" : "no") : (is_scalar($v[$f]) ? $v[$f] : "?"));
+            echo "  ", $o, ": ", $out ? implode(", ", $out) : "(nothing readable)", isset($d["timeout"]) ? " (Elementor keeps this until " . gmdate("Y-m-d H:i", (int) $d["timeout"]) . " UTC)" : "", "\n";
+        }
+    ' 2>/dev/null | grep -E '^  '
+fi
 echo
 # WP-CLI holds back an update that needs a newer WordPress or PHP (WooCommerce
 # 11.1.2 needs WordPress 7.0, so it is not offered here), but not one that
@@ -136,8 +178,57 @@ check_needs() {
     ' 2>/dev/null | grep -E '^(OK|HOLD|UNCHECKED) '
 }
 
+# A plugin whose newest release needs a newer WordPress or PHP than the site
+# has is not offered by WP-CLI at all (WooCommerce 11.1.2 needs WordPress 7.0;
+# the host keeps this site on 6.9.9). It can still go to the newest release
+# that runs here, read from that release's own header (or readme) on
+# wordpress.org. Prints "PIN <slug> <version>: ..." or "NOPIN <slug>: ...".
+find_pins() {
+    AF_PIN="$*" $WP eval '
+        require_once ABSPATH . "wp-admin/includes/plugin-install.php";
+        require_once ABSPATH . "wp-admin/includes/plugin.php";
+        global $wp_version;
+        $all = get_plugins();
+        $need = function ($text, $h) { return preg_match("/^[ \t\/*#@=]*" . preg_quote($h, "/") . ":(.*)/mi", $text, $m) ? trim($m[1]) : ""; };
+        foreach (preg_split("/\s+/", trim(getenv("AF_PIN"))) as $slug) {
+            $file = "";
+            foreach ($all as $f => $d) if (dirname($f) === $slug) $file = $f;
+            if ($file === "") { echo "NOPIN $slug: not installed\n"; continue; }
+            $cur = $all[$file]["Version"];
+            $info = plugins_api("plugin_information", array("slug" => $slug, "fields" => array("versions" => true)));
+            if (is_wp_error($info) || empty($info->versions)) { echo "NOPIN $slug: wordpress.org gave no list of releases\n"; continue; }
+            $vs = array_values(array_filter(array_keys((array) $info->versions), function ($v) use ($cur) { return preg_match("/^\d+(\.\d+)+$/", $v) && version_compare($v, $cur, ">"); }));
+            usort($vs, function ($a, $b) { return version_compare($b, $a); });
+            $pin = "";
+            foreach (array_slice($vs, 0, 30) as $v) {
+                $base = "https://plugins.svn.wordpress.org/$slug/tags/$v/";
+                $head = substr((string) wp_remote_retrieve_body(wp_remote_get($base . basename($file), array("timeout" => 20))), 0, 8192);
+                if (!preg_match("/Plugin Name:/i", $head)) continue;
+                $wp = $need($head, "Requires at least"); $php = $need($head, "Requires PHP");
+                if ($wp === "" || $php === "") {
+                    $readme = substr((string) wp_remote_retrieve_body(wp_remote_get($base . "readme.txt", array("timeout" => 20))), 0, 8192);
+                    if ($wp === "") $wp = $need($readme, "Requires at least");
+                    if ($php === "") $php = $need($readme, "Requires PHP");
+                }
+                if (($wp === "" || version_compare($wp_version, $wp, ">=")) && ($php === "" || version_compare(PHP_VERSION, $php, ">="))) { $pin = $v; break; }
+            }
+            echo $pin !== "" ? "PIN $slug $pin: the newest release WordPress $wp_version runs (" . $info->version . " needs a newer WordPress or PHP)\n"
+                             : "NOPIN $slug: no newer release runs on WordPress $wp_version\n";
+        }
+    ' 2>/dev/null | grep -E '^(PIN|NOPIN) '
+}
+
 echo "=== what each stage would update ==="
 AVAIL=$($WP plugin list --update=available --field=name 2>/dev/null)
+# Plugins with a newer release that WP-CLI does not offer (it needs a newer
+# WordPress or PHP): try for the newest release that does run here.
+BLOCKED=""
+for p in $($WP plugin list --fields=name,update_version --format=csv 2>/dev/null | tail -n +2 | grep -E ',[0-9]' | cut -d, -f1); do
+    in_list "$p" "$AVAIL" && continue
+    s=$(stage_of "$p"); [ "$s" != skip ] && { [ "$STAGE" = plan ] || [ "$s" = "$STAGE" ]; } && BLOCKED="$BLOCKED $p"
+done
+PINS=""
+[ -n "$BLOCKED" ] && PINS=$(find_pins $BLOCKED)
 TO_CHECK=""
 for p in $AVAIL; do s=$(stage_of "$p"); [ "$s" != skip ] && { [ "$STAGE" = plan ] || [ "$s" = "$STAGE" ]; } && TO_CHECK="$TO_CHECK $p"; done
 CHECKED=""
@@ -154,6 +245,13 @@ for p in $AVAIL; do
         printf '  %-12s %s\n' "$s" "$p"
     fi
 done | sort
+for p in $BLOCKED; do
+    line=$(printf '%s\n' "$PINS" | grep -E "^(PIN|NOPIN) $p[ :]" | head -1)
+    case "$line" in
+        PIN*)   printf '  %-12s %s -> %s\n' "$(stage_of "$p")" "$p" "$(printf '%s' "$line" | cut -d' ' -f3-)" ;;
+        *)      printf '  %-12s %s  <- held: %s\n' "$(stage_of "$p")" "$p" "$(printf '%s' "${line:-the newest release needs a newer WordPress}" | cut -d: -f2- | sed 's/^ //')" ;;
+    esac
+done
 CORE_NEW=$($WP core check-update --field=version 2>/dev/null | grep -E '^[0-9]+\.[0-9]+' | head -1)
 printf '  %-12s %s\n' core "${CORE_NEW:-(WordPress is up to date)}"
 
@@ -241,12 +339,36 @@ case "$STAGE" in
     plugins-low|woocommerce|elementor)
         LIST=""
         for p in $AVAIL; do [ "$(stage_of "$p")" = "$STAGE" ] && ! in_list "$p" "$HELD" && LIST="$LIST $p"; done
-        if [ -z "$LIST" ]; then echo; echo "Nothing to update in $STAGE: nothing was changed."; exit 0; fi
+        PINNED=$(printf '%s\n' "$PINS" | grep '^PIN ' | cut -d' ' -f2,3 | tr -d ':')
+        if [ -z "$LIST" ] && [ -z "$PINNED" ]; then echo; echo "Nothing to update in $STAGE: nothing was changed."; exit 0; fi
         backup
-        echo
-        echo "=== updating:$LIST ==="
-        $WP plugin update $LIST 2>&1
+        # The pinned ones first: a WooCommerce brought forward here is what
+        # the extensions held for it below are checked against again.
+        printf '%s\n' "$PINNED" | while read -r p v; do
+            [ -n "$p" ] || continue
+            echo
+            echo "=== updating $p to $v (the newest release this WordPress runs) ==="
+            $WP plugin update "$p" --version="$v" 2>&1
+        done
+        if [ -n "$LIST" ]; then
+            echo
+            echo "=== updating:$LIST ==="
+            $WP plugin update $LIST 2>&1
+        fi
         if [ "$STAGE" = woocommerce ]; then echo "--- WooCommerce database ---"; $WP wc update 2>&1 | tail -5; fi
+        # Held for a newer WooCommerce or Elementor than the site had: if the
+        # update above brought one far enough, they pass the check now.
+        if [ -n "$PINNED" ] && [ -n "$HELD" ]; then
+            AGAIN=$(check_needs $HELD)
+            NOW=""
+            for p in $HELD; do printf '%s\n' "$AGAIN" | grep -q "^OK $p " && NOW="$NOW $p"; done
+            printf '%s\n' "$AGAIN" | grep -E '^(HOLD|UNCHECKED) ' | sed 's/^/  still held: /'
+            if [ -n "$NOW" ]; then
+                echo
+                echo "=== updating, now that they run here:$NOW ==="
+                $WP plugin update $NOW 2>&1
+            fi
+        fi
         if [ "$STAGE" = elementor ]; then
             echo "--- Elementor database and CSS ---"
             $WP elementor update db 2>&1 | tail -3
