@@ -24,15 +24,22 @@
 #   wp-update.sh rollback-db STAMP  put back the database too. Anything written since the
 #                                   backup is lost, orders included: only on the owner's word.
 #
-# Every stage that changes anything backs up first, as files in the home
-# folder (outside the web root): the database (mysqldump), the plugin folder,
-# and the version of WordPress and of every plugin. A stage with nothing to update changes nothing and
+# Every stage that changes anything backs up first, outside the web root in a
+# private folder in /tmp: the database (mysqldump), the plugin folder, and the
+# version of WordPress and of every plugin. A stage with nothing to update changes nothing and
 # backs up nothing. The four newest backups are kept.
 set -uo pipefail
 STAGE="${1:-plan}"
 STAMP_IN="${2:-}"
 WP="wp --allow-root"
-BK="$HOME/af-backup"
+# Where backups go. On this host the shell can write nowhere outside the web
+# root but /tmp (3 Oct: the home folder, ~/websites and the site folder all
+# refuse a new file), and a database dump never goes inside the web root. So:
+# a folder in /tmp only this account can open, files only it can read. /tmp is
+# cleared from time to time, so these are for rolling a stage back straight
+# away; Hostinger's own backups (hPanel) are the long-term copy.
+BKDIR="/tmp/af-backup-$(id -u)"
+BK="$BKDIR/af-backup"
 
 # Being replaced by theme code (the owner, 3 Oct: "Skip those"). Never updated here.
 SKIP="code-snippets header-footer-code-manager classic-editor mas-woocommerce-brands wpc-estimated-delivery-date click-to-chat-for-whatsapp"
@@ -96,7 +103,7 @@ db_cnf() {
     host="${h%%:*}"; port=""; sock=""
     case "$h" in *:/*) sock="${h#*:}";; *:*) port="${h#*:}";; esac
     DB_NAME="$name"
-    DB_CNF="$HOME/.af-update-db.cnf"
+    DB_CNF="$BKDIR/.db.cnf"
     ( umask 077
       { echo "[client]"
         echo "user=\"$(printf '%s' "$user" | sed 's/\\/\\\\/g; s/"/\\"/g')\""
@@ -106,16 +113,21 @@ db_cnf() {
         [ -n "$sock" ] && echo "socket=$sock"
       } > "$DB_CNF" )
 }
-trap 'rm -f "$HOME/.af-update-db.cnf"' EXIT
+trap 'rm -f "$BKDIR/.db.cnf"' EXIT
 
-# Backups are files in the home folder, beside this script and outside the
-# web root: af-backup-db-<stamp>.sql.gz, -plugins-<stamp>.tar.gz and
-# -versions-<stamp>.txt. (A folder of its own cannot be made there.)
+# Backups: af-backup-db-<stamp>.sql.gz, -plugins-<stamp>.tar.gz and
+# -versions-<stamp>.txt in $BKDIR.
 backup() {
     STAMP="$(date -u +%Y%m%d-%H%M%S)-$STAGE"
     echo
     echo "=== backup $STAMP ==="
-    if ! : > "$BK-versions-$STAMP.txt" 2>/dev/null; then echo "BACKUP FAILED: cannot write to $HOME. Nothing was updated."; exit 2; fi
+    # The folder must be a real folder this account owns, not a link someone
+    # else left in the shared /tmp.
+    if [ -L "$BKDIR" ] || { [ -e "$BKDIR" ] && [ ! -O "$BKDIR" ]; }; then
+        echo "BACKUP FAILED: $BKDIR is not this account's own folder. Nothing was updated."; exit 2
+    fi
+    mkdir -p -m 700 "$BKDIR" && chmod 700 "$BKDIR"
+    if ! : > "$BK-versions-$STAMP.txt" 2>/dev/null; then echo "BACKUP FAILED: cannot write to $BKDIR. Nothing was updated."; exit 2; fi
     echo "  plugin folder $(du -sh wp-content/plugins | cut -f1); database $($WP db size --human-readable --skip-plugins --skip-themes 2>/dev/null | tail -1 | tr -s '\t ' ' ' | cut -d' ' -f2-)"
     db_cnf
     mysqldump --defaults-extra-file="$DB_CNF" --single-transaction --quick --routines --no-tablespaces "$DB_NAME" 2> "$BK-db-$STAMP.err" | gzip > "$BK-db-$STAMP.sql.gz"
