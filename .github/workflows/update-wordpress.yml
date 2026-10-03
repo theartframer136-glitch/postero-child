@@ -12,7 +12,9 @@ name: Update WordPress
 #   core          WordPress itself, then its database
 #   woocommerce   WooCommerce, Square, Google Listings, the currency switcher, swatches
 #                 (a plugin needing a newer WooCommerce or Elementor than the site
-#                 has is held back at every stage; the plan says which and why)
+#                 has is held back at every stage; the plan says which and why;
+#                 one whose newest release needs a newer WordPress goes to the
+#                 newest release that runs here, e.g. WooCommerce 11.0.1 on 6.9)
 #   elementor     Elementor, Elementor Pro and the Elementor add-ons
 #   rollback      put back the plugin folder (and WordPress, after a core stage)
 #                 from the backup named in 'backup'; the database is left alone
