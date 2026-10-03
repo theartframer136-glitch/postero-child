@@ -16556,7 +16556,8 @@ function af_grwp_page_has_widget() {
     // exchange for arrows that work wherever the widget appears.
     static $active = null;
     if ($active === null) {
-        $active = false;
+        // the plugin's front end moved into the theme (inc/ports/google-reviews.php)
+        $active = defined('AF_GRWP_PORT');
         foreach ((array) get_option('active_plugins', array()) as $p) {
             if (strpos($p, 'embedder-for-google-reviews') === 0) { $active = true; break; }
         }
@@ -16582,6 +16583,9 @@ add_action('wp_footer', function () {
     // Order matters here: the vendor swiper bundle must execute before the
     // plugin's own bundle asks it to build the carousel.
     $base = WP_PLUGIN_DIR . '/' . $slug;
+    // the same files, copied byte for byte with the same layout, once the
+    // plugin's front end lives in the theme (inc/ports/google-reviews.php)
+    if (defined('AF_GRWP_PORT')) $base = untrailingslashit(GR_BASE_PATH);
     if (!is_dir($base)) { af_grwp_state('plugin-dir-missing', array()); return; }
 
     // Take every front-end file the plugin ships. An earlier version filtered
@@ -16610,7 +16614,9 @@ add_action('wp_footer', function () {
             $name = basename($file);
             if (isset($seen[$name])) continue;
             $seen[$name] = true;
-            $href = plugins_url(substr($file, strlen($base) + 1), $base . '/' . $slug . '.php');
+            $href = defined('AF_GRWP_PORT')
+                ? GR_PLUGIN_DIR_URL . substr($file, strlen($base) + 1)
+                : plugins_url(substr($file, strlen($base) + 1), $base . '/' . $slug . '.php');
             $ver  = (int) @filemtime($file);
             if ($ext === 'js') {
                 echo '<script src="' . esc_url($href) . '?ver=' . $ver . '"></script>' . "\n";
