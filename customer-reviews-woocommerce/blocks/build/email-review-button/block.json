@@ -1,0 +1,37 @@
+{
+  "$schema": "https://schemas.wp.org/trunk/block.json",
+  "apiVersion": 3,
+  "name": "cusrev/email-review-button",
+  "version": "1.0.0",
+  "title": "CusRev Review Button",
+  "category": "widgets",
+  "icon": "star-filled",
+  "description": "Display a button that links to a review form for the products of the order.",
+  "supports": {
+    "email": true,
+    "html": false,
+    "align": false,
+    "multiple": false,
+    "reusable": false
+  },
+  "attributes": {
+    "label": {
+      "type": "string",
+      "default": ""
+    },
+    "bg": {
+      "type": "string",
+      "default": "#0073aa"
+    },
+    "color": {
+      "type": "string",
+      "default": "#ffffff"
+    },
+    "radius": {
+      "type": "string",
+      "default": "4px"
+    }
+  },
+  "textdomain": "customer-reviews-woocommerce",
+  "editorScript": "file:./index.js"
+}

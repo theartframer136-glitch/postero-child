@@ -1,0 +1,135 @@
+.ivole-import-container, .cr-import-container {
+	.cr-admin-import-steps-desc li {
+		list-style: disc;
+		list-style-position: inside;
+		margin: 3px 0 0 0;
+	}
+	.cr-import-upload-btn {
+		margin: 0 10px;
+	}
+	.cr-import-upload-tr {
+		vertical-align: top;
+	}
+	.cr-import-upload-filelist {
+		margin: 10px 0;
+	}
+	.ivole-import-step {
+		padding-bottom: 15px;
+	}
+	.ivole-import-step .ivole-step-title {
+		font-weight: normal;
+	}
+}
+
+#ivole-import-status {
+	display: none;
+}
+
+#ivole-import-status.status-error, #cr-export-results .status-error{
+	color:#ca4a1f;
+}
+
+#ivole-upload-container table td {
+	vertical-align: top;
+	padding: 5px 20px 0px 0px;
+}
+
+#ivole-import-progress, #cr-export-progress, .cr-import-progress, .cr-export-progress {
+	max-width: 700px;
+	margin: 40px auto;
+	display: none;
+	text-align: center;
+}
+
+#ivole-import-progress h2, #cr-export-progress h2,
+.cr-import-progress h2, .cr-export-progress h2 {
+	text-align: center;
+	font-weight: normal;
+}
+
+#ivole-import-progress progress, #cr-export-progress progress,
+.cr-import-progress progress, .cr-export-progress progress {
+	width: 100%;
+	height: 42px;
+	margin: 0 auto 24px;
+	display: block;
+	-webkit-appearance: none;
+	background: #ffffff;
+	border: 2px solid #eee;
+	border-radius: 4px;
+	padding: 0;
+	box-shadow: 0 1px 0px 0 rgba(255, 255, 255, 0.2);
+}
+
+#ivole-import-progress progress::-webkit-progress-bar,
+#cr-export-progress progress::-webkit-progress-bar,
+.cr-import-progress progress::-webkit-progress-bar,
+.cr-export-progress progress::-webkit-progress-bar {
+		background: transparent none;
+		border: 0;
+		border-radius: 4px;
+		padding: 0;
+		box-shadow: none;
+}
+
+#ivole-import-progress progress::-webkit-progress-value,
+#cr-export-progress progress::-webkit-progress-value,
+.cr-import-progress progress::-webkit-progress-value,
+.cr-export-progress progress::-webkit-progress-value {
+		border-radius: 3px;
+		box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.4);
+		background: #A46497;
+		background: linear-gradient( top, #A46497, #66405F ), #A46497;
+		transition: width 1s ease;
+}
+
+#ivole-import-progress progress::-moz-progress-bar,
+#cr-export-progress progress::-moz-progress-bar,
+.cr-import-progress progress::-moz-progress-bar,
+.cr-export-progress progress::-moz-progress-bar {
+		border-radius: 3px;
+		box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.4);
+		background: #A46497;
+		background: linear-gradient( top, #A46497, #66405F ), #A46497;
+		transition: width 1s ease;
+}
+
+#ivole-import-progress progress::-ms-fill,
+#cr-export-progress progress::-ms-fill,
+.cr-import-progress progress::-ms-fill,
+.cr-export-progress progress::-ms-fill {
+		border-radius: 3px;
+		box-shadow: inset 0 1px 1px 0 rgba(255, 255, 255, 0.4);
+		background: #A46497;
+		background: linear-gradient( to bottom, #A46497, #66405F ), #A46497;
+		transition: width 1s ease;
+}
+
+#ivole-import-results, #cr-export-results,
+.cr-import-results, .cr-export-results {
+		display: none;
+}
+
+#cr-export-results, .cr-export-results {
+		max-width:700px;
+		margin:0 auto;
+		text-align:center;
+}
+
+#ivole-import-results p,
+#cr-export-results p,
+.cr-import-results p,
+.cr-export-results p {
+	font-size: 1.1em;
+}
+.cr-import-results h4 {
+	font-size: 1.2em;
+	margin: 1em 0;
+}
+
+#ivole-import-cancel, #cr-export-cancel {
+		font-size: 15px;
+		line-height: 32px;
+		height: 34px;
+		padding: 0 20px 1px;
+}
