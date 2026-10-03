@@ -70,6 +70,7 @@ $af_ports = array(
     'language-switcher' => 'language-switcher-for-transposh',
     'premium-addons'    => 'premium-addons-for-elementor',
     'instagram-feed'    => 'insta-gallery',
+    'header-footer-elementor' => 'header-footer-elementor',
 );
 $af_activating = af_ports_activating();
 foreach ($af_ports as $af_port => $af_port_plugin) {

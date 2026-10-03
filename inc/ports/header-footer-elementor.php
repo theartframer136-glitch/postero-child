@@ -21,8 +21,8 @@
  *    [hfe_site_title] shortcodes, the cart-fragment filter, and the
  *    scroll-to-top and reading-progress extensions (with their Site
  *    Settings tabs);
- *  - the three widgets placed on the site: Site Logo, Navigation Menu and
- *    Basic Posts (home page);
+ *  - all fifteen of its Elementor widgets, as in the plugin (three are placed
+ *    on the site: Site Logo, Navigation Menu and Basic Posts on the home page);
  *  - editing: the post type keeps Elementor support, and the template
  *    metabox (type, display rules, user roles, canvas option) still saves.
  *
@@ -34,9 +34,8 @@
  * Left out, admin only: the UAE dashboard (settings app, its REST routes,
  * onboarding, AJAX), analytics and usage tracking, the NPS survey, admin
  * notices, Pro upsells, the Learn API, the Abilities/AI integration,
- * rollback, the post duplicator (off on this site) and the twelve widgets
- * not placed anywhere. The template list moves from the plugin's "UAE" menu
- * to Appearance > Header & Footer.
+ * rollback and the post duplicator (off on this site). The template list
+ * moves from the plugin's "UAE" menu to Appearance > Header & Footer.
  *
  * While the plugin is still active this file does nothing.
  */
