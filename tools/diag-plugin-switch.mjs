@@ -68,6 +68,9 @@ async function snap(out) {
     await sleep(1500);
     // let lazy parts load, then come back to the top
     try { await p.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 700) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 120)); } window.scrollTo(0, 0); }); await sleep(800); } catch {}
+    // Related, upsell and cross-sell carousels show other random products on
+    // every build: not part of the comparison (hidden before measuring).
+    await p.evaluate(() => document.querySelectorAll('section.related, .related.products, .up-sells, .upsells, .cross-sells, .af-wl-related').forEach(e => e.style.setProperty('display', 'none', 'important'))).catch(() => {});
     const data = await p.evaluate(() => {
       const vis = (el) => { const s = getComputedStyle(el); if (s.display === 'none' || s.visibility === 'hidden' || +s.opacity === 0) return false; const b = el.getBoundingClientRect(); return b.width > 0 && b.height > 0; };
       const sig = {};
