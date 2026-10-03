@@ -35,6 +35,12 @@ $af_dir = __DIR__;
 for ($i = 0; $i < 8; $i++) { if (file_exists($af_dir . '/wp-load.php')) break; $af_dir = dirname($af_dir); }
 if (!file_exists($af_dir . '/wp-load.php')) { fwrite(STDERR, "wp-load.php not found above " . __DIR__ . "\n"); exit(1); }
 chdir($af_dir);
+// This host serves WordPress core from a shared copy (/opt/h5g/flavors/...),
+// so ABSPATH resolves there and WordPress would look for plugins and themes in
+// the shared copy's empty wp-content. Web requests and WP-CLI are pointed at
+// the site's own; so is this.
+$_SERVER['DOCUMENT_ROOT'] = $af_dir;
+if (!defined('WP_CONTENT_DIR') && is_dir($af_dir . '/wp-content/plugins')) define('WP_CONTENT_DIR', $af_dir . '/wp-content');
 
 $AF = array('t0' => microtime(true), 'mark' => microtime(true), 'boot' => array(), 'work' => array(), 'hooks' => array(),
             'stack' => array(), 'wrapped' => 0, 'wrappers' => array(), 'ownerCache' => array());
