@@ -131,9 +131,16 @@ foreach ($tbl as $o => $tags) { arsort($tags); $ajax = 0; foreach ($tags as $t =
 
 // ── 4. each plugin's own data ────────────────────────────────────────────────
 echo "\n=== 4. PLUGIN DATA AND SETTINGS ===\n";
+// Never print a credential into a job log: values of keys that name a token,
+// key, secret, password or code are masked, as is any long opaque string.
+function af_pu_mask($name, $v) {
+    if (preg_match('/token|secret|passw|api_?key|bypass|auth|license|nonce|salt/i', $name)) return '[masked, ' . strlen($v) . ' chars]';
+    $v = preg_replace('/(s:\d+:"[^"]*(?:token|secret|passw|api_?key|bypass|auth|license|code)[^"]*";s:\d+:")[^"]*/i', '$1[masked]', $v);
+    return preg_replace('/[A-Za-z0-9_\-]{40,}/', '[masked]', $v);
+}
 $opt_prefix = function ($px, $max = 40) use ($wpdb) {
     $rows = $wpdb->get_results($wpdb->prepare("SELECT option_name, LENGTH(option_value) AS len, LEFT(option_value, 300) AS v, autoload FROM {$wpdb->options} WHERE option_name LIKE %s ORDER BY option_name LIMIT %d", $wpdb->esc_like($px) . '%', $max));
-    foreach ($rows as $r) echo '      ' . $r->option_name . ' (' . $r->len . ' b, autoload ' . $r->autoload . '): ' . preg_replace('/\s+/', ' ', $r->v) . "\n";
+    foreach ($rows as $r) echo '      ' . $r->option_name . ' (' . $r->len . ' b, autoload ' . $r->autoload . '): ' . af_pu_mask($r->option_name, preg_replace('/\s+/', ' ', $r->v)) . "\n";
     if (!$rows) echo "      (no options starting $px)\n";
 };
 $cnt = function ($sql) use ($wpdb) { $v = $wpdb->get_var($sql); return $v === null ? 'n/a' : $v; };
@@ -166,9 +173,9 @@ foreach ((array) $wpdb->get_results("SELECT id, title, alias FROM {$P}revslider_
 foreach ((array) $wpdb->get_results("SELECT id, title, alias FROM {$P}revslider_sliders7 LIMIT 20") as $r) echo "v7#{$r->id} {$r->alias}; ";
 echo "\n";
 echo "  [code-snippets] snippets:\n";
-foreach ((array) $wpdb->get_results("SELECT id, name, active, scope, priority, LENGTH(code) len, code FROM {$P}snippets ORDER BY id") as $r) { echo "      #{$r->id} \"{$r->name}\" active={$r->active} scope={$r->scope} prio={$r->priority} ({$r->len} b)\n"; if ($r->active) echo "        CODE>>> " . str_replace("\n", "\n        | ", $r->code) . "\n"; }
+foreach ((array) $wpdb->get_results("SELECT id, name, active, scope, priority, LENGTH(code) len, code FROM {$P}snippets ORDER BY id") as $r) { echo "      #{$r->id} \"{$r->name}\" active={$r->active} scope={$r->scope} prio={$r->priority} ({$r->len} b)\n"; if ($r->active) echo "        CODE>>> " . str_replace("\n", "\n        | ", af_pu_mask('', $r->code)) . "\n"; }
 echo "  [header-footer-code-manager] snippets:\n";
-foreach ((array) $wpdb->get_results("SHOW TABLES LIKE '{$P}hfcm_scripts'") as $t) foreach ((array) $wpdb->get_results("SELECT script_id, name, location, display_on, device_type, status, LENGTH(snippet) len, snippet FROM {$P}hfcm_scripts ORDER BY script_id") as $r) { echo "      #{$r->script_id} \"{$r->name}\" {$r->status} at {$r->location} on {$r->display_on} device {$r->device_type} ({$r->len} b)\n"; if ($r->status === 'active') echo "        SNIPPET>>> " . str_replace("\n", "\n        | ", $r->snippet) . "\n"; }
+foreach ((array) $wpdb->get_results("SHOW TABLES LIKE '{$P}hfcm_scripts'") as $t) foreach ((array) $wpdb->get_results("SELECT script_id, name, location, display_on, device_type, status, LENGTH(snippet) len, snippet FROM {$P}hfcm_scripts ORDER BY script_id") as $r) { echo "      #{$r->script_id} \"{$r->name}\" {$r->status} at {$r->location} on {$r->display_on} device {$r->device_type} ({$r->len} b)\n"; if ($r->status === 'active') echo "        SNIPPET>>> " . str_replace("\n", "\n        | ", af_pu_mask('', $r->snippet)) . "\n"; }
 echo "  [custom-payment-gateways-woocommerce] gateways:\n";
 if (function_exists('WC')) foreach (WC()->payment_gateways()->payment_gateways() as $id => $g) echo "      $id \"" . $g->get_title() . "\" enabled=" . $g->enabled . ' class=' . get_class($g) . ' owner=' . af_pu_owner_file((new ReflectionClass($g))->getFileName()) . "\n";
 echo "  [woocommerce-currency-switcher] "; $opt_prefix('woocs', 70);
