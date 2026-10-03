@@ -18,16 +18,16 @@
 #                              on 3 Oct it said 6.9.9 was the latest while 7.1.2 was out,
 #                              so moving to 7 is done in Hostinger's hPanel.
 #   wp-update.sh woocommerce   WooCommerce and the plugins built on it
-#
-# A plugin whose new version needs a newer WooCommerce or Elementor than the
-# site has is held back at every stage, and the plan says which and why
-# (check_needs): on 3 Oct Square 5.5.1 needed WooCommerce 10.9, the shop had
-# 10.7, and WooCommerce 11 waits on WordPress 7. They go in once that is done.
 #   wp-update.sh elementor     Elementor, Elementor Pro and the Elementor add-ons
 #   wp-update.sh rollback STAMP     put back the plugin folder (and WordPress, for a core
 #                                   stage) from that backup; the database is left alone
 #   wp-update.sh rollback-db STAMP  put back the database too. Anything written since the
 #                                   backup is lost, orders included: only on the owner's word.
+#
+# A plugin whose new version needs a newer WooCommerce or Elementor than the
+# site has is held back at every stage, and the plan says which and why
+# (check_needs): on 3 Oct Square 5.5.1 needed WooCommerce 10.9, the shop had
+# 10.7, and WooCommerce 11 waits on WordPress 7. They go in once that is done.
 #
 # Every stage that changes anything backs up first, outside the web root in a
 # private folder in /tmp: the database (mysqldump), the plugin folder, and the
