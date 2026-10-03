@@ -8,12 +8,17 @@ on:
       script:
         description: 'File in tools/, e.g. diag-elementor-addons.php'
         required: true
+      skip_plugins:
+        description: 'Plugin folders to leave unloaded for this one wp-cli run (comma separated, optional)'
+        required: false
+        default: ''
 jobs:
   read:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
       SCRIPT: ${{ github.event.inputs.script }}
+      SKIP: ${{ github.event.inputs.skip_plugins }}
     steps:
       - uses: actions/checkout@v4
       - name: Check the name
@@ -23,6 +28,7 @@ jobs:
           case "$SCRIPT" in *[!a-z0-9.-]*) echo "bad name"; exit 1;; esac
           test -f "tools/$SCRIPT"
           grep -q "AF-WEB-GUARD" "tools/$SCRIPT" || { echo "the script must carry the AF-WEB-GUARD line"; exit 1; }
+          case "$SKIP" in *[!a-z0-9,-]*) echo "bad skip_plugins"; exit 1;; esac
       - name: Setup SSH
         run: |
           set -euo pipefail
@@ -37,6 +43,6 @@ jobs:
               "tools/$SCRIPT" "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/$SCRIPT" \
             && ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-              "cd ~/websites/OPu0sKi4J/public_html && timeout 300 wp eval-file wp-content/themes/postero-child/tools/$SCRIPT --allow-root 2>&1" && break
+              "cd ~/websites/OPu0sKi4J/public_html && timeout 300 wp eval-file wp-content/themes/postero-child/tools/$SCRIPT --allow-root ${SKIP:+--skip-plugins=$SKIP} 2>&1" && break
             echo "  attempt $i failed"; sleep 20
           done
