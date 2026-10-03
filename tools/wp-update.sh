@@ -48,6 +48,14 @@ logs() { ls ~/websites/OPu0sKi4J/public_html/wp-content/debug.log ~/websites/OPu
 LOGLEN=""
 for f in $(logs); do LOGLEN="$LOGLEN $f:$(wc -l < "$f")"; done
 
+echo "=== server ==="
+for t in mysqldump mysql tar gzip sed xargs; do printf '  %-10s %s\n' "$t" "$(command -v "$t" || echo MISSING)"; done
+for d in "$HOME" "$HOME/websites/OPu0sKi4J" "$PWD/.." /tmp; do
+    if [ -w "$d" ]; then echo "  writable:     $d"; else echo "  not writable: $d"; fi
+done
+echo "  free: $(df -Pk "$HOME/websites/OPu0sKi4J" 2>/dev/null | tail -1 | tr -s ' ' | cut -d' ' -f4) KB"
+echo "  database: $($WP db size --human-readable --skip-plugins --skip-themes 2>/dev/null | tail -1)"
+echo
 echo "=== now ==="
 echo "WordPress $($WP core version)"
 echo "--- WordPress updates available ---"

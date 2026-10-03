@@ -2,7 +2,10 @@
 // (WordPress, PHP), from api.wordpress.org. Read-only; the site is not touched.
 //
 // Run: node tools/print-wp-versions.mjs [slug ...]
-const slugs = process.argv.slice(2).length ? process.argv.slice(2) : (process.env.AF_QA_ONLY || 'woocommerce,elementor,elementor-pro').split(',');
+// qa-personas.yml passes the site address as the first argument: only plugin
+// slugs are taken from the command line.
+const args = process.argv.slice(2).filter(a => !a.includes('://'));
+const slugs = args.length ? args : (process.env.AF_QA_ONLY || 'woocommerce,elementor,elementor-pro').split(',');
 const core = await fetch('https://api.wordpress.org/core/version-check/1.7/').then(r => r.json()).catch(() => null);
 if (core) console.log('WordPress offers: ' + core.offers.map(o => o.current + ' (' + o.response + ', needs PHP ' + o.php_version + ')').join('; '));
 for (const s of slugs) {
