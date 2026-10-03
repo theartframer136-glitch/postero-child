@@ -162,5 +162,18 @@ echo "  ($qn queries, " . $ms($qt) . " in all)\n";
 echo "\n--- 4. callbacks registered on this page, by owner ---\n";
 arsort($AF['hooks']);
 foreach ($AF['hooks'] as $o => $n) printf("  %5d  %s\n", $n, $o);
+// When no plugin loaded, say why (the numbers above then measure core alone).
+if (empty($AF['boot']) || count($AF['boot']) < 4) {
+    $act = get_option('active_plugins');
+    echo "\n--- why so few owners? ---\n";
+    echo '  wp_installing(): ' . var_export(function_exists('wp_installing') ? wp_installing() : null, true) . ' | WP_INSTALLING: ' . var_export(defined('WP_INSTALLING') ? WP_INSTALLING : '(undefined)', true) . ' | SHORTINIT: ' . var_export(defined('SHORTINIT') ? SHORTINIT : '(undefined)', true) . "\n";
+    echo '  active_plugins option: ' . (is_array($act) ? count($act) . ' entries, first: ' . implode(', ', array_slice($act, 0, 3)) : var_export($act, true)) . "\n";
+    echo '  active and valid now: ' . count(function_exists('wp_get_active_and_valid_plugins') ? wp_get_active_and_valid_plugins() : array()) . ' | paused: ' . var_export(function_exists('wp_paused_plugins') ? array_keys((array) wp_paused_plugins()->get_all()) : null, true) . "\n";
+    echo '  template/stylesheet: ' . get_option('template') . ' / ' . get_option('stylesheet') . ' | theme files loaded: ' . (function_exists('af_review_rows') ? 'yes' : 'no') . "\n";
+    echo '  DB_NAME set: ' . (defined('DB_NAME') ? 'yes (' . strlen(DB_NAME) . ' chars)' : 'no') . ' | table prefix: ' . $GLOBALS['table_prefix'] . ' | WP_CONTENT_DIR: ' . (defined('WP_CONTENT_DIR') ? WP_CONTENT_DIR : '?') . ' | WP_PLUGIN_DIR: ' . (defined('WP_PLUGIN_DIR') ? WP_PLUGIN_DIR : '?') . "\n";
+    echo '  siteurl/home: ' . get_option('siteurl') . ' / ' . get_option('home') . ' | object cache drop-in: ' . var_export(wp_using_ext_object_cache(), true) . "\n";
+    echo '  mu-plugins loaded: ' . implode(', ', array_map('basename', function_exists('wp_get_mu_plugins') ? wp_get_mu_plugins() : array())) . "\n";
+    echo '  constants: WP_CLI ' . var_export(defined('WP_CLI'), true) . ', WP_ADMIN ' . var_export(defined('WP_ADMIN'), true) . ', DOING_CRON ' . var_export(defined('DOING_CRON'), true) . ', WP_RECOVERY? ' . var_export(function_exists('wp_is_recovery_mode') ? wp_is_recovery_mode() : null, true) . "\n";
+}
 echo "=== END PROFILE {$af_path} ===\n";
 exit(0);

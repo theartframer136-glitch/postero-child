@@ -11,6 +11,10 @@ on:
         description: 'Paths to profile on the server, comma separated'
         required: false
         default: '/,/shop/,/product-category/digital-canvas-prints/radha-krishna/,/product/radha-krishna-moonlit-melody-canvas-wall-art-3x4-feet-floating-frame-premium-digital-canvas-print-living-room-home-spiritual-wall-decor/,/cart/,/checkout/'
+      browser:
+        description: 'Also weigh each page in Chrome (about 15 minutes)'
+        required: false
+        default: 'yes'
 jobs:
   server:
     runs-on: ubuntu-latest
@@ -71,6 +75,7 @@ jobs:
               || echo "  profile of $u failed"
           done
   browser:
+    if: ${{ github.event.inputs.browser != 'no' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
