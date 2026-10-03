@@ -22,6 +22,8 @@ jobs:
   source:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write
     env:
       PLUGINS: ${{ github.event.inputs.plugins }}
       BRANCH: ${{ github.event.inputs.branch }}
