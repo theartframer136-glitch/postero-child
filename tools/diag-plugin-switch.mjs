@@ -158,6 +158,9 @@ function compare(fa, fb, fc) {
     for (const s of keys) {
       const x = sa[s] || 0, y = sb[s] || 0, z = sc[s] || 0;
       if (!(x > 0 && x === y && z === 0)) continue;
+      // scroll position and carousel state, not page content: a stuck header,
+      // the back-to-top button, slider arrows and dots, screen-reader labels
+      if (/stuck|sticky|af-qp|swiper-button|swiper-pagination|slick-|elementor-screen-only|chevron|lightbox|tooltip/.test(s)) continue;
       const m = s.match(/^([a-z0-9]+)(#[^.]+)?(?:\.([^.]+))?/); if (!m) continue;
       const base = m[1] + (m[2] || '') , cls = m[3] || '';
       const still = Object.keys(sc).some(k => (sc[k] || 0) > 0 && k.startsWith(base) && (cls === '' || k.split('.').includes(cls)));
