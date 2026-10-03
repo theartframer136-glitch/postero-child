@@ -1,0 +1,71 @@
+name: Fetch Plugin Source
+# Read-only on the server. Copies the named plugins' code from the live site
+# onto a delivery branch (force-pushed, never deployed), so what each plugin
+# does can be rebuilt as the theme's own code that behaves exactly the same.
+# Check Plugin Usage carries the small plugins on 'plugin-src'; this one takes
+# any list, onto its own branch.
+on:
+  workflow_dispatch:
+    inputs:
+      plugins:
+        description: 'Plugin folder names, space separated'
+        required: true
+      branch:
+        description: 'Delivery branch (never deployed)'
+        required: false
+        default: 'plugin-src-2'
+      media:
+        description: 'Also copy images, fonts and video (yes/no)'
+        required: false
+        default: 'no'
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      PLUGINS: ${{ github.event.inputs.plugins }}
+      BRANCH: ${{ github.event.inputs.branch }}
+      MEDIA: ${{ github.event.inputs.media }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the inputs
+        run: |
+          set -euo pipefail
+          for p in $PLUGINS; do case "$p" in *[!a-z0-9_-]*) echo "bad plugin name: $p"; exit 1;; esac; done
+          case "$BRANCH" in plugin-src-*) ;; *) echo "branch must start with plugin-src-"; exit 1;; esac
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Copy the plugins' code (read-only on the server)
+        run: |
+          set -uo pipefail
+          EX="--exclude=*.mo --exclude=*.po --exclude=*.pot --exclude=*.l10n.php --exclude=*.map --exclude=node_modules --exclude=*.zip"
+          if [ "$MEDIA" != "yes" ]; then
+            EX="$EX --exclude=*.png --exclude=*.jpg --exclude=*.jpeg --exclude=*.gif --exclude=*.webp --exclude=*.mp4 --exclude=*.webm --exclude=*.woff --exclude=*.woff2 --exclude=*.ttf --exclude=*.eot --exclude=*.otf"
+          fi
+          for i in 1 2 3; do
+            ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+                -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+                "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+              "cd ~/websites/OPu0sKi4J/public_html/wp-content/plugins && tar czf - $EX $PLUGINS 2>/dev/null" > /tmp/plugins.tgz && break
+            echo "  attempt $i failed"; sleep 20
+          done
+          ls -la /tmp/plugins.tgz
+          mkdir -p /tmp/src && tar xzf /tmp/plugins.tgz -C /tmp/src && du -sh /tmp/src/* | sort -h
+      - name: Carry it on the delivery branch (never deployed)
+        run: |
+          set -uo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          rm -rf /tmp/wt && git worktree add --detach /tmp/wt >/dev/null
+          cd /tmp/wt
+          git checkout --orphan "$BRANCH" >/dev/null 2>&1
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          find . -maxdepth 1 -mindepth 1 ! -name '.git' -exec rm -rf {} + 2>/dev/null || true
+          cp -r /tmp/src/* .
+          printf '%s\n' "Source of plugins as installed on the live site, copied read-only by" "Fetch Plugin Source run ${GITHUB_RUN_NUMBER}. A delivery channel, force-pushed, never deployed." > README.txt
+          git add -A && git commit -q -m "Plugin source from the live site (run ${GITHUB_RUN_NUMBER})" && git push --force origin "$BRANCH"
+          git log --oneline -1

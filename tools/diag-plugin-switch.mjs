@@ -33,6 +33,8 @@ const EXTRA = [
   '/product-category/digital-canvas-prints/radha-krishna/',
   '/shop/',
   '/product/radha-krishna-moonlit-melody-canvas-wall-art-3x4-feet-floating-frame-premium-digital-canvas-print-living-room-home-spiritual-wall-decor/',
+  // the three products with a featured video (yith-woocommerce-featured-video)
+  '/?p=7802', '/?p=7811', '/?p=8301',
 ];
 const SKIP = /\/(cart|checkout|my-account|order-received|dashboard)\/?$/;
 
