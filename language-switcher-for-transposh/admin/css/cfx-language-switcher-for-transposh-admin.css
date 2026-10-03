@@ -1,0 +1,501 @@
+/**
+ * All of the CSS for your admin-specific functionality should be
+ * included in this file.
+ */
+#cfxlsft-general .default-lang_wrapper {
+  background: transparent;
+  padding: 10px;
+  display: grid;
+  grid-gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-rows: repeat(auto, 50px);
+  align-items: center;
+  justify-content: space-between;
+}
+
+#cfxlsft-general .lang_wrapper {
+  background: transparent;
+  display: flex;
+  width: 90%;
+  justify-content: start;
+  align-items: left;
+  flex-direction: row;
+  flex-wrap: wrap;
+  padding: 10px;
+}
+
+#cfxlsft-general .lang-div {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  margin: 6px;
+  padding: 5px;
+  background: #eee;
+  width: 154px;
+  height: 40px;
+  justify-content: flex-start;
+}
+
+#cfxlsft-general .lang-div * {
+  margin-right: 4px;
+}
+
+#cfxlsft-general .lang-div img {
+  width: 24px;
+}
+
+#cfxlsft-general .lang-div .locale-code {
+  font-size: 0.9em;
+  font-style: italic;
+}
+
+#cfxlsft-general .lang-div.green {
+  background: greenyellow;
+}
+
+#cfxlsft-general .hidden {
+  display: none;
+}
+
+#cfxlsft-general #custom_css_editor.disabled .CodeMirror-scroll {
+  /* pointer-events: none; */
+  background: #ccc;
+}
+
+#cfxlsft-general .CodeMirror.cm-s-default.CodeMirror-wrap {
+  height: 500px;
+  background: #f0f0f1;
+  border: 1px solid #ececec;
+}
+
+#cfxlsft-general #confirmMessage {
+  background: #ececec;
+  color: black;
+  padding: 6px;
+  display: none;
+  border-radius: 28px;
+  border-radius: 30px;
+}
+
+#cfxlsft-general .dashicons.dashicons-saved {
+  padding: 0px;
+  border-radius: 50px;
+  background: aquamarine;
+  color: white;
+  margin-right: 10px;
+}
+
+#cfxlsft-general #copy-button {
+  display: flex;
+  width: 100%;
+  padding: 10px 0;
+  justify-content: end;
+}
+
+#cfxlsft-general #copy-button button {
+  margin-left: 10px;
+}
+
+#cfxlsft-general .settingsbox {
+  background: white;
+  padding: 20px 40px;;
+}
+
+#cfxlsft-general .disabled {
+  background: #eee !important;
+  pointer-events: none;
+}
+
+#cfxlsft-general .disabled .CodeMirror-vscrollbar {
+  pointer-events: all;
+}
+
+#cfxlsft-general .plugin-invalid {
+  font-size: 1.2em;
+}
+
+#cfxlsft-general .menu_location {
+  margin: 10px auto;
+}
+
+.settings-group {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding: 4px;
+  margin-bottom: 20px;
+  /* border-bottom: 1px solid #ccc; */
+}
+
+#dropdown_styles {
+  padding-left: 60px;
+}
+
+/*AUTOMODE SWITCHER*/
+#cfxlsft-general .switch-holder {
+	display: flex;
+	padding: 0px 10px;
+	border-radius: 10px;
+	margin-bottom: 30px;
+	justify-content: flex-start;
+	align-items: center;
+	width: auto;
+}
+
+#cfxlsft-general .switch-holder p {
+  margin-left: 10px;
+}
+
+#cfxlsft-general .switch-label {
+  width: auto;
+}
+
+#cfxlsft-general .switch-label i {
+  margin-right: 5px;
+}
+
+#cfxlsft-general .switch-toggle {
+  height: 22px;
+  width: auto;
+}
+
+#cfxlsft-general .switch-toggle input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  z-index: -2;
+}
+
+#cfxlsft-general .switch-toggle input[type="checkbox"]+label {
+  position: relative;
+  display: inline-block;
+	width: 50px;
+	height: 22px;
+	border-radius: 25px;
+	margin: 0;
+	cursor: pointer;
+	box-shadow: inset -8px -8px 15px rgba(255, 255, 255, 0.6), inset 10px 10px 10px rgba(0, 0, 0, 0.35);
+}
+
+#cfxlsft-general .switch-toggle input[type="checkbox"]+label::before {
+	position: absolute;
+	content: "OFF";
+	font-size: 13px;
+	text-align: center;
+	line-height: 15px;
+	top: 2px;
+	left: 4px;
+	width: 30px;
+	height: 17px;
+	border-radius: 20px;
+	background-color: #bcbcbc;
+	box-shadow: -2px -2px 5px rgba(255, 255, 255, 0.5), 1px 1px 5px rgba(0, 0, 0, 0.25);
+	transition: 0.3s ease-in-out;
+}
+
+#cfxlsft-general .switch-toggle input[type="checkbox"]:checked+label::before {
+	left: 40%;
+	content: "ON";
+	color: #fff;
+	background-color: #009900;
+	/* box-shadow: -3px -3px 5px rgba(255, 255, 255, 0.5), 3px 3px 5px #237A1C; */
+	box-shadow: -3px -3px 5px rgba(255, 255, 255, 0.4), 1px 1px 4px #009900;
+}
+
+/*SMALLER*/
+/* #cfxlsft-general .switch-holder {
+  display: flex;
+  padding: 10px 10px;
+  border-radius: 10px;
+  margin-bottom: 30px;
+  box-shadow: -8px -1px 1px rgba(255, 255, 255, 0.7), 1px 1px 1px rgba(0, 0, 0, 0.3), inset 1px 1px 1px rgba(255, 255, 255, 0.7), inset 1px 1px 1px rgba(0, 0, 0, 0.3);
+  justify-content: space-between;
+  align-items: center;
+  width: 160px;
+}
+
+#cfxlsft-general .switch-label {
+  width: 100px;
+}
+
+#cfxlsft-general .switch-toggle {
+  height: 22px;
+}
+
+#cfxlsft-general .switch-toggle input[type="checkbox"]+label {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 22px;
+  border-radius: 25px;
+  margin: 0;
+  cursor: pointer;
+  box-shadow: inset -8px -8px 15px rgba(255, 255, 255, 0.6), inset 10px 10px 10px rgba(0, 0, 0, 0.25);
+}
+
+
+#cfxlsft-general .switch-toggle input[type="checkbox"]+label::before {
+  position: absolute;
+  content: "OFF";
+  font-size: 13px;
+  text-align: center;
+  line-height: 15px;
+  top: 4px;
+  left: 4px;
+  width: 30px;
+  height: 15px;
+  border-radius: 20px;
+  background-color: #d1dad3;
+  box-shadow: -3px -3px 5px rgba(255, 255, 255, 0.5), 3px 3px 5px rgba(0, 0, 0, 0.25);
+  transition: 0.3s ease-in-out;
+} */
+
+/*END AUTOMODE SWITCHER*/
+
+#cfxlsft-general a,
+#cfxlsft-general a:hover,
+#cfxlsft-general a:focus,
+#cfxlsft-general a:visited,
+#cfxlsft-general a:active {
+  outline: none;
+  box-shadow: none;
+}
+
+#cfxlsft-general .small {
+  width: 16px;
+}
+
+#cfxlsft-general .medium {
+  width: 24px;
+}
+
+#cfxlsft-general .big {
+  width: 32px;
+}
+
+#cfxlsft-general .flag-container ul {
+  display: flex;
+  background: #eee;
+  min-height: 20vh;
+}
+
+#cfxlsft-general .flag-container.flex-column ul {
+  flex-direction: column;
+  height: 40vh;
+  width: 80px;
+  margin: 0 auto;
+}
+
+#cfxlsft-general .ju-flex-start {
+  justify-content: flex-start;
+}
+
+#cfxlsft-general .ju-center {
+  justify-content: center;
+}
+
+#cfxlsft-general .ju-flex-end {
+  justify-content: flex-end;
+}
+
+#cfxlsft-general .ju-space-between {
+  justify-content: space-between;
+}
+
+#cfxlsft-general .ju-space-around {
+  justify-content: space-around;
+}
+
+#cfxlsft-general .ju-space-evenly {
+  justify-content: space-evenly;
+}
+
+#cfxlsft-general .al-flex-start {
+  align-items: flex-start;
+}
+
+#cfxlsft-general .al-center {
+  align-items: center;
+}
+
+#cfxlsft-general .al-flex-end {
+  align-items: flex-end;
+}
+
+#cfxlsft-general #general input,
+#cfxlsft-general #general select,
+#styles input,
+#cfxlsft-general #styles select {
+  margin: 10px 0;
+}
+
+#cfxlsft-general th {
+  font-weight: bold;
+  text-align: left;
+  padding: 10px;
+}
+
+#cfxlsft-general td {
+  /* border: 1px solid #212121; */
+  padding: 10px;
+}
+
+#cfxlsft-general .row {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+}
+
+#cfxlsft-general .col-12 {
+  width: 100%;
+  padding: 0 10px;
+}
+#cfxlsft-general .col-8 {
+  width: 80%;
+  padding: 0 10px;
+}
+
+#cfxlsft-general .col-6 {
+  width: 50%;
+  padding: 0 10px;
+}
+
+#cfxlsft-general .col-6:last-child {
+  padding-left: 40px;
+  border-left: 1px solid #ccc;
+}
+
+#cfxlsft-general .col-4 {
+  width: 19%;
+  padding: 0 10px;
+}
+
+#cfxlsft-general .nav-tab {
+  float: none;
+  padding: 4px 10px;
+}
+
+#cfxlsft-general .nav-tab.active,
+#cfxlsft-general .nav-tab.active:focus {
+  background: white;
+  outline: none;
+  box-shadow: none;
+}
+
+#cfxlsft-general .tab-content {
+  background: white;
+  border: 1px solid #c3c4c7;
+  border-top: none;
+  padding: 10px;
+  width: 100%;
+}
+
+#cfxlsft-general .tab-panel {
+  display: none;
+}
+
+#cfxlsft-general .tab-panel.active {
+  display: block;
+}
+
+#cfxlsft-general table.styles-table {
+  width: 100%;
+}
+
+#cfxlsft-general table.styles-table td {
+  width: 50%;
+}
+
+#cfxlsft-general .margins,
+#cfxlsft-general .paddings {
+  display: inline-block;
+  margin: 8px 0;
+  width: 60px;
+}
+
+#cfxlsft-general .input-group {
+  width: 100%;
+}
+
+a.lock-controls {
+  text-decoration: none;
+}
+
+#cfxlsft-general a.lock-controls .dashicons {
+  vertical-align: text-bottom;
+}
+
+#select-styles-wrapper {
+  display: flex;
+  justify-content: left;
+  align-items: center;
+}
+
+#select-styles-wrapper * {
+  margin-right: 10px!important;
+}
+
+.myspinner {
+  visibility: hidden;
+  opacity: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(farthest-side, #30f218 94%, #0000) top/9px 9px no-repeat,
+    conic-gradient(#0000 30%, #30f218);
+  -webkit-mask: radial-gradient(farthest-side, #0000 calc(100% - 9px), #000 0);
+  mask: radial-gradient(farthest-side, #0000 calc(100% - 9px), #000 0);
+  animation: spinner-c7wet2 1s infinite linear;
+}
+
+@keyframes spinner-c7wet2 {
+  100% {
+    transform: rotate(1turn);
+  }
+}
+
+.shortcode-sel {
+  background-color: #bdbdbe;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+#lsft-widget-lsft-horizontal-flags li:not(:last-child),
+#lsft-widget-lsft-horizontal-codes li:not(:last-child), 
+#sh_lsft_horizontal_flags li:not(:last-child), 
+#sh_lsft_horizontal_codes li:not(:last-child) {
+  margin-right: 10px;
+}
+
+#cfxlsft-general .more-tools-plugins {
+  display: flex;
+  flex-direction: column;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+#cfxlsft-general .more-tools-plugins .plugin-item {
+  display: flex;
+  flex-direction: row;
+  align-items: start;
+  justify-content: start;
+  width: 100%;
+}
+
+#cfxlsft-general .more-tools-plugins .plugin-item .plugin-item-description {
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  justify-content: start;
+  margin-right: 20px;
+}
+#cfxlsft-general .more-tools-plugins .plugin-item img {
+  width: 128px;
+  height: 128px;
+  margin-right: 20px;
+}
+.more-tools-plugins hr { 
+  border: 0; 
+  border-top: 1px solid #ccd0d4; 
+  margin: 16px 0; 
+}
