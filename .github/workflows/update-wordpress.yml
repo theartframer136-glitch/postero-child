@@ -6,7 +6,8 @@ name: Update WordPress
 # those"). tools/wp-update.sh does the work on the server and says what each
 # stage covers:
 #
-#   plan          read-only: what is installed, and what each stage would update
+#   plan          read-only: the server, what is installed, and what each stage would update
+#   backup        the backup alone, nothing updated
 #   plugins-low   the plugins nothing else is built on
 #   core          WordPress itself, then its database
 #   woocommerce   WooCommerce, Square, Google Listings, the currency switcher, swatches
@@ -24,7 +25,7 @@ on:
   workflow_dispatch:
     inputs:
       stage:
-        description: 'plan | plugins-low | core | woocommerce | elementor | rollback | rollback-db'
+        description: 'plan | backup | plugins-low | core | woocommerce | elementor | rollback | rollback-db'
         required: true
         default: 'plan'
       backup:
@@ -65,7 +66,7 @@ jobs:
           BACKUP: ${{ inputs.backup }}
         run: |
           set -uo pipefail
-          case "$STAGE" in plan|plugins-low|core|woocommerce|elementor|rollback|rollback-db) ;; *) echo "Unknown stage: $STAGE"; exit 2;; esac
+          case "$STAGE" in plan|backup|plugins-low|core|woocommerce|elementor|rollback|rollback-db) ;; *) echo "Unknown stage: $STAGE"; exit 2;; esac
           [[ "$BACKUP" =~ ^[0-9A-Za-z-]*$ ]] || { echo "Bad backup stamp"; exit 2; }
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ServerAliveInterval=30 -i ~/.ssh/id_ed25519 \
@@ -75,7 +76,7 @@ jobs:
           grep -E "^(BACKUP|DONE|PLAN ONLY|Nothing to update|WordPress is up to date)" /tmp/stage.txt >> "$GITHUB_STEP_SUMMARY"
           exit "$rc"
       - name: The shop's key pages, from outside
-        if: ${{ always() && inputs.stage != 'plan' }}
+        if: ${{ always() && inputs.stage != 'plan' && inputs.stage != 'backup' }}
         run: |
           set +e
           sleep 20
