@@ -33,7 +33,8 @@ $t = get_site_transient('update_plugins');
 if ($t && isset($t->response['elementor-pro/elementor-pro.php'])) {
     $u = $t->response['elementor-pro/elementor-pro.php'];
     $p = isset($u->package) ? wp_parse_url((string) $u->package) : array();
-    echo "  update offered: " . (isset($u->new_version) ? $u->new_version : '?') . ' from ' . (isset($p['host']) ? $p['host'] : '(no download address)') . (isset($p['path']) ? preg_replace('#/[A-Za-z0-9_\-]{20,}#', '/[masked]', $p['path']) : '') . "\n";
+    // Host only: the path carries a signed download token (dots and all).
+    echo "  update offered: " . (isset($u->new_version) ? $u->new_version : '?') . ' from ' . (isset($p['host']) ? $p['host'] : '(no download address)') . (isset($p['path']) ? ' (path not shown)' : '') . "\n";
 }
 
 $key = (string) get_option('elementor_pro_license_key');
