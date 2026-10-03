@@ -88,7 +88,9 @@ async function snap(out) {
     results[key] = { url: u, w, status: r ? r.status() : 0, ...data, assets: [...new Set(assets)].sort(), errs, shot: file };
     await p.close();
   };
-  for (const u of pages) for (const w of WIDTHS) { try { await visit(u, w, u + '@' + w); } catch (e) { results[u + '@' + w] = { url: u, w, status: 0, error: String(e.message).slice(0, 120) }; } }
+  // three pages at a time: the whole site in about a third of the time
+  const pool = async (jobs, n) => { let i = 0; await Promise.all(Array.from({ length: n }, async () => { while (i < jobs.length) { const j = jobs[i++]; try { await visit(j[0], j[1], j[0] + '@' + j[1]); } catch (e) { results[j[0] + '@' + j[1]] = { url: j[0], w: j[1], status: 0, error: String(e.message).slice(0, 120) }; } } })); };
+  await pool(pages.flatMap(u => WIDTHS.map(w => [u, w])), 3);
   // basket pages: one canvas in the basket
   try {
     const p = await ctx.newPage(); await p.setViewport({ width: 1366, height: 900 });
@@ -96,10 +98,10 @@ async function snap(out) {
     await p.select('#af-size-select', '3×4 ft (36×48 in)').catch(() => {}); await sleep(600);
     await Promise.all([p.waitForNavigation({ timeout: 45000 }).catch(() => {}), p.evaluate(() => { const b = document.querySelector('form.cart .single_add_to_cart_button'); if (b) b.click(); })]);
     await sleep(1500); await p.close();
-    for (const u of ['/cart/', '/checkout/']) for (const w of WIDTHS) { try { await visit(u, w, u + '@' + w); } catch (e) { results[u + '@' + w] = { url: u, w, status: 0, error: String(e.message).slice(0, 120) }; } }
+    await pool(['/cart/', '/checkout/'].flatMap(u => WIDTHS.map(w => [u, w])), 2);
   } catch (e) { console.log('basket pages failed: ' + e.message); }
   fs.writeFileSync(path.join(out, 'snap.json'), JSON.stringify(results));
-  console.log(`snap: ${Object.keys(results).length} page views into ${out}`);
+  console.log(`snap: ${Object.keys(results).length} page views (${pages.length} pages) into ${out}`);
   await b.close();
 }
 
