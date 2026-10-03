@@ -1,0 +1,42 @@
+name: Run Diagnostic
+# Read-only. Sends one tools/diag-*.php up to the server and runs it with
+# wp eval-file. Each diag script masks credentials itself and refuses web
+# access (CLI only).
+on:
+  workflow_dispatch:
+    inputs:
+      script:
+        description: 'File in tools/, e.g. diag-elementor-addons.php'
+        required: true
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      SCRIPT: ${{ github.event.inputs.script }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the name
+        run: |
+          set -euo pipefail
+          case "$SCRIPT" in diag-*.php) ;; *) echo "only tools/diag-*.php"; exit 1;; esac
+          case "$SCRIPT" in *[!a-z0-9.-]*) echo "bad name"; exit 1;; esac
+          test -f "tools/$SCRIPT"
+          grep -q "AF-WEB-GUARD" "tools/$SCRIPT" || { echo "the script must carry the AF-WEB-GUARD line"; exit 1; }
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Run (read-only)
+        run: |
+          set +e
+          for i in 1 2 3; do
+            scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+              "tools/$SCRIPT" "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/$SCRIPT" \
+            && ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+              "cd ~/websites/OPu0sKi4J/public_html && timeout 300 wp eval-file wp-content/themes/postero-child/tools/$SCRIPT --allow-root 2>&1" && break
+            echo "  attempt $i failed"; sleep 20
+          done
