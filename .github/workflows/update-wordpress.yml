@@ -1,0 +1,94 @@
+name: Update WordPress
+# Owner, 3 Oct: "update WordPress to the latest versions and all the plugins to
+# the latest version". In stages (the owner's choice), each behind a fresh
+# backup and followed by a look at the live shop; the six plugins another piece
+# of work is replacing with theme code are left alone (the owner: "Skip
+# those"). tools/wp-update.sh does the work on the server and says what each
+# stage covers:
+#
+#   plan          read-only: what is installed, and what each stage would update
+#   plugins-low   the plugins nothing else is built on
+#   core          WordPress itself, then its database
+#   woocommerce   WooCommerce, Square, Google Listings, the currency switcher, swatches
+#   elementor     Elementor, Elementor Pro and the Elementor add-ons
+#   rollback      put back the plugin folder (and WordPress, after a core stage)
+#                 from the backup named in 'backup'; the database is left alone
+#   rollback-db   the same, and the database too: anything written since the
+#                 backup is lost, orders included. Only on the owner's word.
+#
+# After any stage that changes something it asks the shop's key pages for
+# their status and for a fatal-error message, from outside, the way a visitor
+# would. The full shopper checks (tools/qa-personas.mjs, tools/qa-purchase.mjs)
+# run separately from qa-personas.yml and qa-purchase.yml.
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: 'plan | plugins-low | core | woocommerce | elementor | rollback | rollback-db'
+        required: true
+        default: 'plan'
+      backup:
+        description: 'rollback only: the backup stamp to restore (printed as "BACKUP <stamp>" by the stage)'
+        required: false
+        default: ''
+# One plugin change at a time: tools/diag-plugin-switch.mjs switches plugins
+# off and on under this group, and must not have them updated under it.
+concurrency:
+  group: switch-plugins
+  cancel-in-progress: false
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    # Nor while a deploy is running its catalogue passes.
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Send the script up
+        run: |
+          set -uo pipefail
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/wp-update.sh \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/af-wp-update.sh"
+      - name: Run the stage
+        env:
+          STAGE: ${{ inputs.stage }}
+          BACKUP: ${{ inputs.backup }}
+        run: |
+          set -uo pipefail
+          case "$STAGE" in plan|plugins-low|core|woocommerce|elementor|rollback|rollback-db) ;; *) echo "Unknown stage: $STAGE"; exit 2;; esac
+          [[ "$BACKUP" =~ ^[0-9A-Za-z-]*$ ]] || { echo "Bad backup stamp"; exit 2; }
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ServerAliveInterval=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+              "cd ~/websites/OPu0sKi4J/public_html && bash ~/af-wp-update.sh '$STAGE' '$BACKUP'" 2>&1 | tee /tmp/stage.txt
+          rc=${PIPESTATUS[0]}
+          grep -E "^(BACKUP|DONE|PLAN ONLY|Nothing to update|WordPress is up to date)" /tmp/stage.txt >> "$GITHUB_STEP_SUMMARY"
+          exit "$rc"
+      - name: The shop's key pages, from outside
+        if: ${{ always() && inputs.stage != 'plan' }}
+        run: |
+          set +e
+          sleep 20
+          BAD=0
+          for u in / /shop/ /product-category/digital-canvas-prints/ \
+                   /product/radha-krishna-moonlit-melody-canvas-wall-art-3x4-feet-floating-frame-premium-digital-canvas-print-living-room-home-spiritual-wall-decor/ \
+                   /cart/ /checkout/ /my-account/ '/wp-json/wc/store/v1/products?per_page=1'; do
+            body=$(curl -sSL -m 40 -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36" \
+                   -w '\n%{http_code}' "https://theartframer.us$u" 2>&1)
+            code=$(printf '%s' "$body" | tail -1)
+            note=""
+            printf '%s' "$body" | grep -qiE "critical error|Fatal error|There has been a critical|Briefly unavailable for scheduled maintenance" && note="  <- ERROR PAGE" && BAD=1
+            [ "$code" = 200 ] || { [ -z "$note" ] && note="  <- not 200"; BAD=1; }
+            printf '  %-4s %s%s\n' "$code" "$u" "$note"
+          done
+          [ "$BAD" = 0 ] && echo "All key pages answer 200 with no error page." || { echo "A KEY PAGE IS BROKEN: roll back with stage=rollback and the BACKUP stamp above."; exit 1; }
