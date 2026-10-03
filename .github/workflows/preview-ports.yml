@@ -1,0 +1,94 @@
+name: Preview Ports
+# Shows what pages would look like with some plugins switched off and their
+# theme ports doing the work — without switching anything off for visitors.
+#
+# For the length of this run a tiny must-use plugin (tools/port-preview-mu.php)
+# sits in wp-content/mu-plugins with a one-time secret made for this run. Only
+# requests carrying that secret leave the named plugins unloaded (and are never
+# cached); every visitor's request is untouched. The file is removed at the end
+# of the run, whatever happens.
+#
+# For each page it fetches the HTML twice (plugins as they are, and with the
+# named plugins unloaded) and prints the status, size, the markup markers, and
+# the classes/ids that appear in one and not the other.
+on:
+  workflow_dispatch:
+    inputs:
+      skip:
+        description: 'Plugin folders to leave unloaded (comma separated)'
+        required: true
+      urls:
+        description: 'Pages (paths), space separated'
+        required: true
+        default: '/'
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      SKIP: ${{ github.event.inputs.skip }}
+      URLS: ${{ github.event.inputs.urls }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the inputs
+        run: |
+          set -euo pipefail
+          case "$SKIP" in *[!a-z0-9,-]*|'') echo "bad skip list"; exit 1;; esac
+          for u in $URLS; do case "$u" in /*) ;; *) echo "paths only"; exit 1;; esac; done
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Put the preview file in place (this run only)
+        run: |
+          set -euo pipefail
+          TOKEN=$(openssl rand -hex 24); echo "::add-mask::$TOKEN"; echo "TOKEN=$TOKEN" >> "$GITHUB_ENV"
+          sed "s/__AF_PREVIEW_TOKEN__/$TOKEN/" tools/port-preview-mu.php > /tmp/af-port-preview.php
+          for i in 1 2 3; do
+            scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+              /tmp/af-port-preview.php "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/mu-plugins/af-port-preview.php" && break
+            echo "  attempt $i failed"; sleep 15
+          done
+          rm -f /tmp/af-port-preview.php
+      - name: Fetch each page both ways
+        run: |
+          set +e
+          cat > /tmp/cmp.py <<'EOS'
+          import re, sys
+          a = open(sys.argv[1], encoding='utf-8', errors='replace').read()
+          b = open(sys.argv[2], encoding='utf-8', errors='replace').read()
+          def toks(h):
+              t = {}
+              for m in re.finditer(r'\b(?:class|id)="([^"]+)"', h):
+                  for w in m.group(1).split():
+                      if re.search(r'\d{3,}|[0-9a-f]{7,}', w): continue
+                      t[w] = t.get(w, 0) + 1
+              return t
+          ta, tb = toks(a), toks(b)
+          gone = sorted((k, ta[k], tb.get(k, 0)) for k in ta if tb.get(k, 0) < ta[k])
+          new = sorted((k, ta.get(k, 0), tb[k]) for k in tb if ta.get(k, 0) < tb[k])
+          print('    classes/ids fewer with ports: ' + (', '.join('%s %d->%d' % g for g in gone[:40]) or 'none'))
+          print('    classes/ids more with ports : ' + (', '.join('%s %d->%d' % g for g in new[:40]) or 'none'))
+          for n in ('instagram-gallery-feed', 'g-review', 'sr7-module', 'eael-', 'hfe-', 'premium-wrapper-link-yes', 'lsft', 'cr-', 'There has been a critical error'):
+              x, y = a.count(n), b.count(n)
+              if x or y: print('    %-32s %5d -> %5d%s' % (n, x, y, '' if x == y else '   <-- differs'))
+          EOS
+          for u in $URLS; do
+            q="afpv=$RANDOM$RANDOM"; case "$u" in *\?*) url="https://theartframer.us$u&$q";; *) url="https://theartframer.us$u?$q";; esac
+            A=$(curl -sS -m 90 -A 'Mozilla/5.0 Chrome/124' -H "X-AF-Port-Preview: $TOKEN" -o /tmp/a.html -w '%{http_code} %{size_download}' "$url")
+            B=$(curl -sS -m 90 -A 'Mozilla/5.0 Chrome/124' -H "X-AF-Port-Preview: $TOKEN" -H "X-AF-Port-Skip: $SKIP" -D /tmp/b.h -o /tmp/b.html -w '%{http_code} %{size_download}' "$url&b=1")
+            echo "=== $u   plugins on: $A   with ports: $B   (preview header: $(grep -ci 'x-af-port-preview: on' /tmp/b.h))"
+            python3 /tmp/cmp.py /tmp/a.html /tmp/b.html
+            grep -o 'There has been a critical error[^<]*' /tmp/b.html | head -2
+          done
+      - name: Remove the preview file (always)
+        if: always()
+        run: |
+          for i in 1 2 3 4; do
+            ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+              "rm -f ~/websites/OPu0sKi4J/public_html/wp-content/mu-plugins/af-port-preview.php; ls ~/websites/OPu0sKi4J/public_html/wp-content/mu-plugins/ | grep -c af-port-preview || true" && break
+            echo "  attempt $i failed"; sleep 15
+          done
