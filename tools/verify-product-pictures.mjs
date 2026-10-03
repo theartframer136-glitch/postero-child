@@ -10,7 +10,7 @@
 //   - the Store API's first picture (the main one) is, or is not, the file
 //   - its page opens (HTTP 200), and the picture the page leads with (the
 //     first gallery picture) and its og:image are, or are not, the file
-//   - how many pictures the page shows
+//   - how many pictures the page shows, and the file name of each
 //
 // Read-only. Nothing goes in a cart.
 //
@@ -71,6 +71,7 @@ for (const p of CHECK) {
   console.log('         page HTTP ' + status + ', leads with : ' + (base(d.lead) || '(none)') + (leadOk ? '' : '   <- want ' + (p.shows ? '' : 'not ') + p.file));
   console.log('         og:image                : ' + (base(d.og) || '(none)') + (ogOk ? '' : '   <- want ' + (p.shows ? '' : 'not ') + p.file));
   console.log('         pictures on the page    : ' + d.count + ' (Store API lists ' + a.images.length + ')');
+  a.images.forEach((s, i) => console.log('           ' + (i === 0 ? 'main   ' : 'gallery') + ' ' + base(s)));
 }
 console.log('\nright picture: ' + good + ' of ' + CHECK.length);
 console.log('done ' + new Date().toISOString());
