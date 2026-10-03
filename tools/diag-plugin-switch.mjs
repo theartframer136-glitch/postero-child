@@ -151,6 +151,19 @@ function compare(fa, fb, fc) {
     const sigd = [];
     for (const s of keys) { const x = sa[s] || 0, y = sb[s] || 0, z = sc[s] || 0; if (x === y && z !== x) sigd.push(`${s} ${x}->${z}`); }
     if (sigd.length) { out.push(`elements changed (${sigd.length}): ` + sigd.slice(0, 12).join(', ')); if (sigd.length > 6 && verdict !== 'FAIL') verdict = 'REVIEW'; }
+    // a kind of element that was on the page in both befores and is gone
+    // completely after (not just restyled: no element of that tag and first
+    // class / id is left at all) is a section that stopped rendering
+    const vanished = [];
+    for (const s of keys) {
+      const x = sa[s] || 0, y = sb[s] || 0, z = sc[s] || 0;
+      if (!(x > 0 && x === y && z === 0)) continue;
+      const m = s.match(/^([a-z0-9]+)(#[^.]+)?(?:\.([^.]+))?/); if (!m) continue;
+      const base = m[1] + (m[2] || '') , cls = m[3] || '';
+      const still = Object.keys(sc).some(k => (sc[k] || 0) > 0 && k.startsWith(base) && (cls === '' || k.split('.').includes(cls)));
+      if (!still) vanished.push(s);
+    }
+    if (vanished.length) { out.push(`gone entirely (${vanished.length}): ` + vanished.slice(0, 8).join(', ')); verdict = 'FAIL'; }
     if ((a.bodyClass || '') !== (c.bodyClass || '') && (a.bodyClass || '') === (b.bodyClass || '')) { const x = new Set((a.bodyClass || '').split(/\s+/)), z = new Set((c.bodyClass || '').split(/\s+/)); out.push(`body classes: -[${[...x].filter(q => !z.has(q)).join(' ')}] +[${[...z].filter(q => !x.has(q)).join(' ')}]`); }
     const newErr = (c.errs || []).filter(e => !(a.errs || []).includes(e) && !(b.errs || []).includes(e));
     if (newErr.length) { out.push('new errors: ' + newErr.slice(0, 4).join(' | ')); verdict = 'FAIL'; }
