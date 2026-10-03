@@ -71,7 +71,7 @@ jobs:
           new = sorted((k, ta.get(k, 0), tb[k]) for k in tb if ta.get(k, 0) < tb[k])
           print('    classes/ids fewer with ports: ' + (', '.join('%s %d->%d' % g for g in gone[:40]) or 'none'))
           print('    classes/ids more with ports : ' + (', '.join('%s %d->%d' % g for g in new[:40]) or 'none'))
-          for n in ('instagram-gallery-feed', 'g-review', 'sr7-module', 'eael-', 'hfe-', 'premium-wrapper-link-yes', 'lsft', 'cr-', 'There has been a critical error'):
+          for n in ('assets/ports/', 'plugins/insta-gallery', 'plugins/embedder-for-google-reviews', 'plugins/header-footer-elementor', 'plugins/essential-addons', 'plugins/revslider', 'plugins/customer-reviews', 'plugins/premium-addons', 'plugins/language-switcher', 'instagram-gallery-feed', 'g-review', 'sr7-module', 'eael-', 'hfe-', 'premium-wrapper-link-yes', 'lsft', 'cr-', 'There has been a critical error'):
               x, y = a.count(n), b.count(n)
               if x or y: print('    %-32s %5d -> %5d%s' % (n, x, y, '' if x == y else '   <-- differs'))
           EOS
