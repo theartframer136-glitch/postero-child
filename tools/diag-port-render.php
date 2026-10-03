@@ -55,8 +55,14 @@ foreach ($docs as $id => $label) {
         return class_exists('\Elementor\Plugin') ? \Elementor\Plugin::instance()->frontend->get_builder_content($id, true) : 'no elementor';
     });
     $found = array();
-    foreach (array('g-review', 'qligg', 'sr7-module', 'eael-', 'hfe-', 'premium-wrapper-link-yes', 'lsft', 'wpcsm') as $needle) if ($n = substr_count($html, $needle)) $found[] = "$needle x$n";
+    foreach (array('g-review', 'instagram-gallery-feed', 'sr7-module', 'eael-', 'hfe-', 'premium-wrapper-link-yes', 'lsft', 'wpcsm') as $needle) if ($n = substr_count($html, $needle)) $found[] = "$needle x$n";
     echo '  markers: ' . ($found ? implode(', ', $found) : '-') . "\n";
     wp_reset_postdata();
 }
+echo "=== shortcodes stored in the home page\n";
+preg_match_all('/\\[(insta-gallery|google-reviews|rev_slider|sr7|lsft_[a-z_]+)[^\\]]*\\]/', (string) get_post_meta(75, '_elementor_data', true), $m);
+foreach (array_unique($m[0]) as $sc) echo "  $sc\n";
+$feeds = get_option('insta_gallery_feeds');
+echo '  insta feed ids: ' . implode(',', array_map(function ($f) { return is_array($f) && isset($f['id']) ? $f['id'] : '?'; }, (array) $feeds)) . "\n";
+if (class_exists('QuadLayers\\IGG\\Models\\Feeds')) { $f = \QuadLayers\IGG\Models\Feeds::instance()->get(0); echo '  Models_Feeds::get(0) layout: ' . (is_array($f) && isset($f['layout']) ? $f['layout'] : '(none)') . "\n"; }
 echo "=== END\n";
