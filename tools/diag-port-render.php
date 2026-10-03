@@ -21,7 +21,7 @@ set_error_handler(function ($no, $str, $file, $line) {
     return false;
 });
 echo "=== ports\n";
-foreach (array('AF_GRWP_PORT' => 'google-reviews', 'QLIGG_PLUGIN_VERSION' => 'instagram (constant)', 'AF_EAEL_PORT' => 'essential-addons', 'AF_HFE_PORT' => 'header-footer-elementor') as $c => $n) echo "  $n: " . (defined($c) ? 'defined' : 'no') . "\n";
+foreach (array('AF_GRWP_PORT' => 'google-reviews', 'AF_EAEL_PORT' => 'essential-addons', 'AF_HFE_PORT' => 'header-footer-elementor', 'AF_PA_PORT_VERSION' => 'premium-addons', 'LSFT_PLUGIN' => 'language-switcher (constant)', 'AF_CUSREV_VERSION' => 'customer-reviews') as $c => $n) echo "  $n: " . (defined($c) ? 'defined' : 'no') . "\n";
 echo '  grwp plugin loaded: ' . (class_exists('Freemius', false) ? 'yes (Freemius present)' : 'no') . "\n";
 echo '  insta plugin file loaded: ' . (defined('QLIGG_PLUGIN_FILE') ? QLIGG_PLUGIN_FILE : '-') . "\n";
 
@@ -41,13 +41,22 @@ $try = function ($label, $fn) {
         return '';
     }
 };
-$try('[google-reviews]', function () { return do_shortcode('[google-reviews]'); });
-$try('[insta-gallery id="0"]', function () { return do_shortcode('[insta-gallery id="0"]'); });
-$GLOBALS['wp_query'] = new WP_Query(array('page_id' => 75));
-$GLOBALS['wp_the_query'] = $GLOBALS['wp_query'];
-if (have_posts()) the_post();
-$html = $try('home (Elementor #75)', function () {
-    return class_exists('\Elementor\Plugin') ? \Elementor\Plugin::instance()->frontend->get_builder_content(75, true) : 'no elementor';
-});
-foreach (array('g-review', 'qligg', 'insta-gallery', 'sr7-module', 'eael-woo-product-carousel') as $needle) echo "  contains $needle: " . substr_count($html, $needle) . "\n";
+foreach (array('[google-reviews]', '[insta-gallery id="0"]', '[lsft_custom_dropdown_names]', '[lsft_horizontal_flags]', '[rev_slider alias="slider-1"]', '[hfe_template id="2592"]') as $sc) {
+    $try($sc, function () use ($sc) { return do_shortcode($sc); });
+}
+// every Elementor document that carries a plugin's widget: home, headers,
+// footers, login and sign-up, the mega-menu tabs and the product loop card
+$docs = array(75 => 'home', 443 => 'header (visitors)', 6147 => 'header (logged in)', 20 => 'footer', 2592 => 'footer bar', 6030 => 'login', 6032 => 'sign-up', 7411 => 'mega menu tabs', 9012 => 'loop item');
+foreach ($docs as $id => $label) {
+    $GLOBALS['wp_query'] = new WP_Query(array('p' => $id, 'post_type' => 'any'));
+    $GLOBALS['wp_the_query'] = $GLOBALS['wp_query'];
+    if (have_posts()) the_post();
+    $html = $try("#$id $label", function () use ($id) {
+        return class_exists('\Elementor\Plugin') ? \Elementor\Plugin::instance()->frontend->get_builder_content($id, true) : 'no elementor';
+    });
+    $found = array();
+    foreach (array('g-review', 'qligg', 'sr7-module', 'eael-', 'hfe-', 'premium-wrapper-link-yes', 'lsft', 'wpcsm') as $needle) if ($n = substr_count($html, $needle)) $found[] = "$needle x$n";
+    echo '  markers: ' . ($found ? implode(', ', $found) : '-') . "\n";
+    wp_reset_postdata();
+}
 echo "=== END\n";
