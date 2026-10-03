@@ -1,0 +1,29 @@
+name: Check Port Data
+# Read-only. The live settings each plugin port must reproduce
+# (tools/diag-port-data.php), read while the plugins are still active.
+# Credentials are masked by the tool.
+on:
+  workflow_dispatch:
+jobs:
+  read:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Read (read-only)
+        run: |
+          set +e
+          for i in 1 2 3; do
+            scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+              tools/diag-port-data.php "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-port-data.php" \
+            && ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+              "cd ~/websites/OPu0sKi4J/public_html && timeout 300 wp eval-file wp-content/themes/postero-child/tools/diag-port-data.php --allow-root 2>&1" && break
+            echo "  attempt $i failed"; sleep 20
+          done
