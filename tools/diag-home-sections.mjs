@@ -32,12 +32,16 @@ for (const [label, w, h] of [['phone', 390, 844], ['desktop', 1440, 900]]) {
       const b = s.getBoundingClientRect();
       const ws = [...s.querySelectorAll('.elementor-widget')];
       const types = [...new Set(ws.map(x => (x.getAttribute('data-widget_type') || '?').replace('.default', '')))];
-      const hiddenHere = el => /elementor-hidden-(mobile|phone)/.test(el.className) || !!el.closest('[class*="elementor-hidden-mobile"]');
+      // Elementor's own class per screen it hides on: elementor-hidden-mobile is
+      // the phone; elementor-hidden-mobile_extra is the larger "mobile extra"
+      // size, which a 390px phone is not, so match whole class names only.
+      const hiddenHere = el => !!el.closest('.elementor-hidden-mobile');
+      const hidesOn = el => [...el.classList].filter(c => c.startsWith('elementor-hidden-')).map(c => c.slice(17));
       const empty = ws.filter(x => { const r = x.getBoundingClientRect(); return r.height < 2 && !hiddenHere(x); })
         .map(x => (x.getAttribute('data-widget_type') || '?').replace('.default', '') + '#' + x.getAttribute('data-id'));
       const text = (s.innerText || '').trim().replace(/\s+/g, ' ').slice(0, 60);
       return { id: s.getAttribute('data-id'), h: Math.round(b.height), types: types.join(','), widgets: ws.length,
-               hiddenMobile: /elementor-hidden-mobile/.test(s.className), empty, text,
+               hiddenMobile: s.classList.contains('elementor-hidden-mobile'), hidesOn: hidesOn(s), empty, text,
                imgs: [...s.querySelectorAll('img')].filter(i => i.getBoundingClientRect().height > 2).length };
     }) };
   });
@@ -50,7 +54,8 @@ let sum = 0;
 for (const s of out.phone.secs || []) {
   sum += s.h;
   const d = D[s.id] || {};
-  console.log('\nsection ' + s.id + '  phone ' + s.h + 'px' + (s.hiddenMobile ? ' (set to hide on phones)' : '') + '  desktop ' + (d.h ?? '?') + 'px  widgets ' + s.widgets + '  pictures shown ' + s.imgs + ' / ' + (d.imgs ?? '?'));
+  console.log('\nsection ' + s.id + '  phone ' + s.h + 'px' + (s.hiddenMobile ? ' (set to hide on phones)' : '') + '  desktop ' + (d.h ?? '?') + 'px  widgets ' + s.widgets + '  pictures shown ' + s.imgs + ' / ' + (d.imgs ?? '?')
+    + (s.hidesOn.length ? '  hides on: ' + s.hidesOn.join(', ') : ''));
   console.log('   kinds: ' + s.types);
   console.log('   text:  ' + s.text);
   if (s.empty.length) console.log('   TAKES NO ROOM ON THE PHONE (not set to hide): ' + s.empty.join(' '));
