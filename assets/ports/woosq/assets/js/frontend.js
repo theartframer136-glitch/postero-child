@@ -91,16 +91,21 @@ var woosq_ids = [], woosq_products = [];
 
         // add redirect
         if (!$('#woosq-popup .woosq-redirect').length) {
+            // Use DOM property assignment (not HTML string concatenation) to prevent DOM XSS.
+            var $redirectInput = $('<input>', {
+                'class': 'woosq-redirect',
+                'name': 'woosq-redirect',
+                'type': 'hidden'
+            });
+
             if ((woosq_vars.cart_redirect === 'yes') &&
                 (woosq_vars.cart_url !== '')) {
-                $('#woosq-popup form').prepend(
-                    '<input class="woosq-redirect" name="woosq-redirect" type="hidden" value="' +
-                    woosq_vars.cart_url + '"/>');
+                $redirectInput.val(woosq_vars.cart_url);
             } else {
-                $('#woosq-popup form').prepend(
-                    '<input class="woosq-redirect" name="woosq-redirect" type="hidden" value="' +
-                    window.location.href + '"/>');
+                $redirectInput.val(window.location.href);
             }
+
+            $('#woosq-popup form').prepend($redirectInput);
         }
     });
 

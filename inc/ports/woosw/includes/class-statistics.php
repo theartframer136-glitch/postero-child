@@ -38,13 +38,16 @@ if ( ! class_exists( 'Woosw_Statistics' ) ) {
             $enable_statistics = Woosw_Helper::get_setting( 'enable_statistics', 'yes' );
 
             if ( $enable_statistics === 'yes' ) {
+                add_action( 'woosw_add', [ $this, 'track_add' ], 10, 2 );
+                add_action( 'woosw_remove', [ $this, 'track_remove' ], 10, 2 );
+                add_action( 'woosw_empty', [ $this, 'track_empty' ] );
                 add_action( 'wp_ajax_woosw_get_stats', [ $this, 'ajax_get_stats' ] );
             }
         }
 
         public function enqueue_assets() {
             wp_enqueue_style( 'woosw-statistics', WOOSW_URI . 'assets/css/statistics.css', [], WOOSW_VERSION );
-            wp_enqueue_script( 'chart-js', 'https://cdn.jsdelivr.net/npm/chart.js', [], '4.4.1', true );
+            wp_enqueue_script( 'chart-js', WOOSW_URI . 'assets/libs/chart.js/chart.umd.min.js', [], '4.5.1', true );
             wp_enqueue_script( 'woosw-statistics', WOOSW_URI . 'assets/js/statistics.js', [
                     'jquery',
                     'chart-js'
@@ -58,6 +61,60 @@ if ( ! class_exists( 'Woosw_Statistics' ) ) {
             ] );
         }
 
+        public function track_add( $product_id, $key ) {
+            global $wpdb;
+
+            if ( ! empty( $product_id ) ) {
+                $wpdb->insert(
+                        $wpdb->prefix . 'wpc_wishlist_stats',
+                        [
+                                'product_id' => $product_id,
+                                'user_id'    => get_current_user_id(),
+                                'action'     => 'add',
+                                'created_at' => current_time( 'mysql' ),
+                        ],
+                        [ '%d', '%d', '%s', '%s' ]
+                );
+            }
+        }
+
+        public function track_remove( $product_id, $key ) {
+            global $wpdb;
+
+            if ( ! empty( $product_id ) ) {
+                $wpdb->insert(
+                        $wpdb->prefix . 'wpc_wishlist_stats',
+                        [
+                                'product_id' => $product_id,
+                                'user_id'    => get_current_user_id(),
+                                'action'     => 'remove',
+                                'created_at' => current_time( 'mysql' ),
+                        ],
+                        [ '%d', '%d', '%s', '%s' ]
+                );
+            }
+        }
+
+        public function track_empty( $key ) {
+            global $wpdb;
+            $products = Woosw_Helper::get_ids( $key );
+
+            if ( ! empty( $products ) ) {
+                foreach ( array_keys( $products ) as $product_id ) {
+                    $wpdb->insert(
+                            $wpdb->prefix . 'wpc_wishlist_stats',
+                            [
+                                    'product_id' => $product_id,
+                                    'user_id'    => get_current_user_id(),
+                                    'action'     => 'remove',
+                                    'created_at' => current_time( 'mysql' ),
+                            ],
+                            [ '%d', '%d', '%s', '%s' ]
+                    );
+                }
+            }
+        }
+
         public function ajax_get_stats() {
             check_ajax_referer( 'woosw-stats', 'nonce' );
 
@@ -67,30 +124,31 @@ if ( ! class_exists( 'Woosw_Statistics' ) ) {
 
             global $wpdb;
             $table_name = $wpdb->prefix . 'wpc_wishlist_stats';
-            $period     = $_POST['period'] ?? '7days';
-            $from       = $_POST['from'] ?? '';
-            $to         = $_POST['to'] ?? '';
+            $period     = sanitize_text_field( wp_unslash( $_POST['period'] ?? '7days' ) );
+            $from       = sanitize_text_field( wp_unslash( $_POST['from'] ?? '' ) );
+            $to         = sanitize_text_field( wp_unslash( $_POST['to'] ?? '' ) );
 
             $start_date = '';
             $end_date   = current_time( 'mysql' );
 
             if ( $period === '7days' ) {
-                $start_date = date( 'Y-m-d 00:00:00', strtotime( '-6 days' ) );
+                $start_date = gmdate( 'Y-m-d 00:00:00', strtotime( '-6 days' ) );
             } elseif ( $period === '30days' ) {
-                $start_date = date( 'Y-m-d 00:00:00', strtotime( '-29 days' ) );
+                $start_date = gmdate( 'Y-m-d 00:00:00', strtotime( '-29 days' ) );
             } elseif ( $period === 'custom' && ! empty( $from ) && ! empty( $to ) ) {
                 $start_date = $from . ' 00:00:00';
                 $end_date   = $to . ' 23:59:59';
             } else {
-                $start_date = date( 'Y-m-d 00:00:00', strtotime( '-6 days' ) );
+                $start_date = gmdate( 'Y-m-d 00:00:00', strtotime( '-6 days' ) );
             }
 
             $results = $wpdb->get_results( $wpdb->prepare(
                     "SELECT action, DATE(created_at) as date, COUNT(*) as count 
-                        FROM $table_name 
+                        FROM %i 
                         WHERE created_at BETWEEN %s AND %s 
                         GROUP BY action, DATE(created_at) 
                         ORDER BY date ASC",
+                    $table_name,
                     $start_date,
                     $end_date
             ) );
@@ -105,7 +163,7 @@ if ( ! class_exists( 'Woosw_Statistics' ) ) {
             $last    = strtotime( $end_date );
 
             while ( $current <= $last ) {
-                $date             = date( 'Y-m-d', $current );
+                $date             = gmdate( 'Y-m-d', $current );
                 $labels[]         = $date;
                 $added[ $date ]   = 0;
                 $removed[ $date ] = 0;
@@ -125,11 +183,12 @@ if ( ! class_exists( 'Woosw_Statistics' ) ) {
             // top added
             $top_added_results = $wpdb->get_results( $wpdb->prepare(
                     "SELECT product_id, COUNT(*) as count 
-                        FROM $table_name 
+                        FROM %i 
                         WHERE action = 'add' AND created_at BETWEEN %s AND %s 
                         GROUP BY product_id 
                         ORDER BY count DESC 
                         LIMIT 5",
+                    $table_name,
                     $start_date,
                     $end_date
             ) );
@@ -147,11 +206,12 @@ if ( ! class_exists( 'Woosw_Statistics' ) ) {
             // top removed
             $top_removed_results = $wpdb->get_results( $wpdb->prepare(
                     "SELECT product_id, COUNT(*) as count 
-                        FROM $table_name 
+                        FROM %i 
                         WHERE action = 'remove' AND created_at BETWEEN %s AND %s 
                         GROUP BY product_id 
                         ORDER BY count DESC 
                         LIMIT 5",
+                    $table_name,
                     $start_date,
                     $end_date
             ) );
@@ -182,9 +242,12 @@ if ( ! class_exists( 'Woosw_Statistics' ) ) {
 
             if ( $enable_statistics !== 'yes' ) {
                 ?>
-                <div class="wpclever_settings_page_content_text woosw-statistics-disabled">
+                <div class="woosw-card woosw-statistics-disabled">
                     <div class="woosw-notice-info">
-                        <p><?php printf( esc_html__( 'Statistics is currently disabled. Please enable it in %s to start tracking and viewing data.', 'woo-smart-wishlist' ), '<a href="' . admin_url( 'admin.php?page=wpclever-woosw' ) . '">' . esc_html__( 'Settings', 'woo-smart-wishlist' ) . '</a>' ); ?></p>
+                        <p><?php
+                                // translators: %s is a link to the Settings page.
+                                printf( esc_html__( 'Statistics is currently disabled. Please enable it in %s to start tracking and viewing data.', 'woo-smart-wishlist' ), '<a href="' . esc_url( admin_url( 'admin.php?page=wpclever-woosw' ) ) . '">' . esc_html__( 'Settings', 'woo-smart-wishlist' ) . '</a>' );
+                            ?></p>
                     </div>
                 </div>
                 <?php
@@ -201,7 +264,7 @@ if ( ! class_exists( 'Woosw_Statistics' ) ) {
                             <option value="30days"><?php esc_html_e( 'Last 30 days', 'woo-smart-wishlist' ); ?></option>
                             <option value="custom"><?php esc_html_e( 'Custom range', 'woo-smart-wishlist' ); ?></option>
                         </select>
-                        <div id="woosw-stats-custom-range" style="display: none;">
+                        <div id="woosw-stats-custom-range">
                             <input type="date" id="woosw-stats-from">
                             <input type="date" id="woosw-stats-to">
                             <button type="button" class="button"

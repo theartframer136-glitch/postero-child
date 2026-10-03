@@ -1,6 +1,6 @@
 <?php
 /**
- * Quick view: the plugin "WPC Smart Quick View for WooCommerce" 4.3.1, moved
+ * Quick view: the plugin "WPC Smart Quick View for WooCommerce" 4.4.1, moved
  * into the theme.
  *
  * inc/ports/woosq/wpc-smart-quick-view.php is the plugin's own code, copied
@@ -24,11 +24,11 @@ if (function_exists('woosq_init') || class_exists('WPCleverWoosq', false) || def
 }
 
 if (!defined('WOOSQ_VERSION')) {
-    define('WOOSQ_VERSION', '4.3.1');
+    define('WOOSQ_VERSION', '4.4.1');
     define('WOOSQ_FILE', __DIR__ . '/woosq/wpc-smart-quick-view.php');
     define('WOOSQ_URI', get_stylesheet_directory_uri() . '/assets/ports/woosq/');
     define('WOOSQ_DIR', get_stylesheet_directory() . '/assets/ports/woosq/');
-    define('WOOSQ_SUPPORT', 'https://wpclever.net/support?utm_source=support&utm_medium=woosq&utm_campaign=wporg');
+    define('WOOSQ_SUPPORT', 'https://wpclever.net/support/?utm_source=support&utm_medium=woosq&utm_campaign=wporg');
     define('WOOSQ_REVIEWS', 'https://wordpress.org/support/plugin/woo-smart-quick-view/reviews/');
     define('WOOSQ_CHANGELOG', 'https://wordpress.org/plugins/woo-smart-quick-view/#developers');
     define('WOOSQ_DISCUSSION', 'https://wordpress.org/support/plugin/woo-smart-quick-view');

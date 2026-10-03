@@ -61,23 +61,134 @@ if ( ! class_exists( 'Woosw_Helper' ) ) {
 			return apply_filters( 'woosw_generate_key', $key );
 		}
 
-		public static function can_edit( $key ) {
+		public static function is_note_enabled() {
+			return false;
+		}
+
+		public static function is_multiple_enabled() {
+			return false;
+		}
+
+		public static function is_follow_enabled() {
+			return false;
+		}
+
+		public static function is_collabable_enabled() {
+			return false;
+		}
+
+		public static function is_collabable( $key ) {
+			return false;
+		}
+
+		public static function set_collabable( $key, $status = 'yes' ) {
+			if ( empty( $key ) ) {
+				return false;
+			}
+
+			$val = ( $status === 'yes' || $status === '1' || $status === true || $status === 1 ) ? 'yes' : 'no';
+
+			return update_option( 'woosw_collabable_' . $key, $val, false );
+		}
+
+		public static function is_owner( $key ) {
+			if ( empty( $key ) ) {
+				return false;
+			}
+
 			if ( is_user_logged_in() ) {
-				if ( get_user_meta( get_current_user_id(), 'woosw_key', true ) === $key ) {
+				$user_id = get_current_user_id();
+				$keys    = self::get_user_keys( $user_id );
+
+				// Exclude collab wishlists from owner check
+				if ( is_array( $keys ) && isset( $keys[ $key ] ) ) {
+					if ( isset( $keys[ $key ]['type'] ) && in_array( $keys[ $key ]['type'], [
+							'collab',
+							'follow'
+						], true ) ) {
+						return false;
+					}
+
 					return true;
 				}
 
-				if ( ( $keys = get_user_meta( get_current_user_id(), 'woosw_keys', true ) ) && isset( $keys[ $key ] ) ) {
+				if ( get_user_meta( $user_id, 'woosw_key', true ) === $key ) {
 					return true;
 				}
 			} else {
-				if ( isset( $_COOKIE['woosw_key'] ) && ( sanitize_text_field( $_COOKIE['woosw_key'] ) === $key ) ) {
+				if ( isset( $_COOKIE['woosw_key'] ) && ( sanitize_text_field( wp_unslash( $_COOKIE['woosw_key'] ) ) === $key ) ) {
 					return true;
 				}
 			}
 
 			return false;
 		}
+
+		public static function can_edit( $key ) {
+			if ( self::is_owner( $key ) ) {
+				return true;
+			}
+
+			if ( self::is_collabable_enabled() && self::is_collabable( $key ) ) {
+				return true;
+			}
+
+			return false;
+		}
+
+		public static function get_user_keys( $user_id = null ) {
+			if ( ! $user_id ) {
+				$user_id = get_current_user_id();
+			}
+
+			if ( ! $user_id ) {
+				return [];
+			}
+
+			$keys = get_user_meta( $user_id, 'woosw_keys', true );
+
+			if ( ! is_array( $keys ) || empty( $keys ) ) {
+				return [];
+			}
+
+			$updated = false;
+
+			foreach ( $keys as $k => $wl ) {
+				// Remove the lazy cleanup logic for disabled collab wishlists.
+				// We keep them in the user's list but they won't be able to edit (enforced by can_edit()).
+			}
+
+			if ( $updated ) {
+				update_user_meta( $user_id, 'woosw_keys', $keys );
+
+				// If current default key was the removed collab wishlist, reset to primary
+				$current_key = get_user_meta( $user_id, 'woosw_key', true );
+				if ( ! empty( $current_key ) && ! isset( $keys[ $current_key ] ) ) {
+					$new_key = '';
+					foreach ( $keys as $remaining_k => $remaining_wl ) {
+						if ( isset( $remaining_wl['type'] ) && ( $remaining_wl['type'] === 'primary' ) ) {
+							$new_key = $remaining_k;
+							break;
+						}
+					}
+					if ( empty( $new_key ) ) {
+						reset( $keys );
+						$new_key = key( $keys ) ?: '';
+					}
+					if ( ! empty( $new_key ) ) {
+						update_user_meta( $user_id, 'woosw_key', $new_key );
+
+						// Update cookie
+						$secure   = apply_filters( 'woosw_cookie_secure', wc_site_is_https() && is_ssl() );
+						$httponly = apply_filters( 'woosw_cookie_httponly', false );
+						wc_setcookie( 'woosw_key', $new_key, time() + 604800, $secure, $httponly );
+					}
+				}
+			}
+
+			return $keys;
+		}
+
 
 		public static function get_page_id() {
 			if ( self::get_setting( 'page_id' ) ) {
@@ -107,6 +218,7 @@ if ( ! class_exists( 'Woosw_Helper' ) ) {
 				}
 
 				if ( is_user_logged_in() && ( ( $user_id = get_current_user_id() ) > 0 ) ) {
+					self::get_user_keys( $user_id );
 					$key = get_user_meta( $user_id, 'woosw_key', true );
 
 					if ( empty( $key ) ) {
@@ -118,6 +230,7 @@ if ( ! class_exists( 'Woosw_Helper' ) ) {
 
 						// set a new key
 						update_user_meta( $user_id, 'woosw_key', $key );
+						update_option( 'woosw_list_' . $key, [], false );
 
 						// multiple wishlist
 						update_user_meta( $user_id, 'woosw_keys', [
@@ -133,7 +246,7 @@ if ( ! class_exists( 'Woosw_Helper' ) ) {
 				}
 
 				if ( isset( $_COOKIE['woosw_key'] ) ) {
-					return self::$key = sanitize_text_field( $_COOKIE['woosw_key'] );
+					return self::$key = sanitize_text_field( wp_unslash( $_COOKIE['woosw_key'] ) );
 				}
 
 				return self::$key = 'WOOSW';
@@ -208,6 +321,137 @@ if ( ! class_exists( 'Woosw_Helper' ) ) {
 			$count    = count( $products );
 
 			return esc_html( apply_filters( 'woosw_wishlist_count', $count, $key ) );
+		}
+
+		public static function is_primary( $key ) {
+			if ( empty( $key ) ) {
+				return false;
+			}
+
+			$keys = [];
+
+			// try current user first
+			if ( is_user_logged_in() ) {
+				$keys = get_user_meta( get_current_user_id(), 'woosw_keys', true ) ?: [];
+			}
+
+			// fallback: find user by key from DB
+			if ( ! isset( $keys[ $key ] ) ) {
+				global $wpdb;
+
+				$user = $wpdb->get_results( $wpdb->prepare(
+					'SELECT user_id FROM `' . $wpdb->usermeta . '` WHERE `meta_key` = "woosw_keys" AND `meta_value` LIKE %s LIMIT 1',
+					'%"' . $key . '"%'
+				) );
+
+				if ( ! empty( $user ) ) {
+					$keys = get_user_meta( $user[0]->user_id, 'woosw_keys', true ) ?: [];
+				}
+			}
+
+			return isset( $keys[ $key ]['type'] ) && $keys[ $key ]['type'] === 'primary';
+		}
+
+		public static function get_owner_id( $key ) {
+			if ( empty( $key ) ) {
+				return 0;
+			}
+
+			global $wpdb;
+
+			$result = $wpdb->get_results( $wpdb->prepare(
+				'SELECT user_id FROM `' . $wpdb->usermeta . '` WHERE `meta_key` = "woosw_keys" AND `meta_value` LIKE %s LIMIT 10',
+				'%"' . $key . '"%'
+			) );
+
+			foreach ( $result as $row ) {
+				$owner_keys = get_user_meta( (int) $row->user_id, 'woosw_keys', true ) ?: [];
+				if ( isset( $owner_keys[ $key ] ) && ( ! isset( $owner_keys[ $key ]['type'] ) || ! in_array( $owner_keys[ $key ]['type'], [
+							'collab',
+							'follow'
+						], true ) ) ) {
+					return (int) $row->user_id;
+				}
+			}
+
+			return 0;
+		}
+
+		public static function get_name( $key ) {
+			if ( empty( $key ) ) {
+				return '';
+			}
+
+			// Fast path for guest wishlists
+			$guest_name = get_option( 'woosw_name_' . $key );
+			if ( ! empty( $guest_name ) ) {
+				return $guest_name;
+			}
+
+			// Check if current user has this key as a collab wishlist
+			// If so, always read the name from the owner's data (not from collab entry)
+			if ( is_user_logged_in() ) {
+				$current_keys = get_user_meta( get_current_user_id(), 'woosw_keys', true ) ?: [];
+
+				if ( isset( $current_keys[ $key ] ) && isset( $current_keys[ $key ]['type'] ) && in_array( $current_keys[ $key ]['type'], [
+						'collab',
+						'follow'
+					], true ) ) {
+					// Resolve name from owner using stored owner_id or DB lookup
+					$owner_id = isset( $current_keys[ $key ]['owner_id'] ) ? (int) $current_keys[ $key ]['owner_id'] : self::get_owner_id( $key );
+
+					if ( $owner_id ) {
+						$owner_keys = get_user_meta( $owner_id, 'woosw_keys', true ) ?: [];
+
+						if ( isset( $owner_keys[ $key ] ) ) {
+							$wl = $owner_keys[ $key ];
+
+							if ( isset( $wl['type'] ) && $wl['type'] === 'primary' ) {
+								return ! empty( $wl['name'] ) ? $wl['name'] : self::localization( 'primary_name', esc_html__( 'Wishlist', 'woo-smart-wishlist' ) );
+							}
+							if ( ! empty( $wl['name'] ) ) {
+								return $wl['name'];
+							}
+						}
+					}
+
+					return self::localization( 'primary_name', esc_html__( 'Wishlist', 'woo-smart-wishlist' ) );
+				}
+			}
+
+			$keys = [];
+
+			// try current user first (non-collab)
+			if ( is_user_logged_in() ) {
+				$keys = get_user_meta( get_current_user_id(), 'woosw_keys', true ) ?: [];
+			}
+
+			// fallback: find owner by key from DB
+			if ( ! isset( $keys[ $key ] ) ) {
+				global $wpdb;
+
+				$user = $wpdb->get_results( $wpdb->prepare(
+					'SELECT user_id FROM `' . $wpdb->usermeta . '` WHERE `meta_key` = "woosw_keys" AND `meta_value` LIKE %s LIMIT 1',
+					'%"' . $key . '"%'
+				) );
+
+				if ( ! empty( $user ) ) {
+					$keys = get_user_meta( $user[0]->user_id, 'woosw_keys', true ) ?: [];
+				}
+			}
+
+			if ( isset( $keys[ $key ] ) ) {
+				$wl = $keys[ $key ];
+
+				if ( isset( $wl['type'] ) && $wl['type'] === 'primary' ) {
+					return ! empty( $wl['name'] ) ? $wl['name'] : self::localization( 'primary_name', esc_html__( 'Wishlist', 'woo-smart-wishlist' ) );
+				}
+				if ( ! empty( $wl['name'] ) ) {
+					return $wl['name'];
+				}
+			}
+
+			return self::localization( 'primary_name', esc_html__( 'Wishlist', 'woo-smart-wishlist' ) );
 		}
 
 		public static function sanitize_array( $arr ) {

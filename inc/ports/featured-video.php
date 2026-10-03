@@ -1,6 +1,6 @@
 <?php
 /**
- * Featured video: the plugin "YITH WooCommerce Featured Video" 1.54.0, moved
+ * Featured video: the plugin "YITH WooCommerce Featured Video" 1.58.0, moved
  * into the theme (3 products show a YouTube video in place of the main image).
  *
  * inc/ports/ywcfav/ holds the plugin's own files, copied unchanged: the
@@ -26,7 +26,7 @@ if (defined('YWCFAV_VERSION') || function_exists('YITH_Featured_Audio_Video_Init
     return; // the plugin is active and does the work
 }
 
-define('YWCFAV_VERSION', '1.54.0');
+define('YWCFAV_VERSION', '1.58.0');
 define('YWCFAV_ASSETS_URL', get_stylesheet_directory_uri() . '/assets/ports/ywcfav/assets/');
 define('YWCFAV_TEMPLATE_PATH', __DIR__ . '/ywcfav/templates/');
 

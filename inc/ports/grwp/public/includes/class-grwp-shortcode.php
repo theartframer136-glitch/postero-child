@@ -187,6 +187,9 @@ class GRWP_Shortcode {
             else if ( version_compare( $activation_version, '1.7.6', '<=') ) {
                 $txt = 'Google Reviews WordPress Plugin';
             }
+            else if ( version_compare( $activation_version, '2.1.2', '>=') ) {
+                $txt = 'Google Reviews WordPress Plugin';
+            }
         }
 
         if ( $widget_type === 'slider' ) {

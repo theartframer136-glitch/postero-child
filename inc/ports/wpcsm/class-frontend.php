@@ -20,13 +20,17 @@ if ( ! class_exists( 'Wpcsm_Frontend' ) ) {
 
 			add_action( 'init', [ $this, 'init' ] );
 			add_action( 'wp_enqueue_scripts', [ $this, 'scripts' ], 99 );
-
-			self::process_messages();
 		}
 
 		function init() {
 			add_shortcode( 'wpcsm', [ $this, 'shortcode' ] );
 			add_shortcode( 'wpc_smart_message', [ $this, 'shortcode' ] );
+
+			// Process messages on init so that other plugins (e.g. woosc, woosq, woosw)
+			// have had a chance to load their text domains before the wpcsm_locations
+			// filter is applied. Calling this earlier (in the constructor) triggers
+			// _load_textdomain_just_in_time notices in WordPress 6.7+.
+			self::process_messages();
 		}
 
 		function shortcode( $attrs ) {
@@ -578,11 +582,11 @@ if ( ! class_exists( 'Wpcsm_Frontend' ) ) {
 
 		function scripts() {
 			// simple-text-rotator
-			wp_enqueue_style( 'simple-text-rotator', WPCSM_URI . 'assets/libs/simple-text-rotator/simpletextrotator.css' );
+			wp_enqueue_style( 'simple-text-rotator', WPCSM_URI . 'assets/libs/simple-text-rotator/simpletextrotator.css', [], WPCSM_VERSION );
 			wp_enqueue_script( 'simple-text-rotator', WPCSM_URI . 'assets/libs/simple-text-rotator/jquery.simple-text-rotator.js', [ 'jquery' ], WPCSM_VERSION, true );
 
 			// wpcsm
-			wp_enqueue_style( 'wpcsm-frontend', WPCSM_URI . 'assets/css/frontend.css' );
+			wp_enqueue_style( 'wpcsm-frontend', WPCSM_URI . 'assets/css/frontend.css', [], WPCSM_VERSION );
 			wp_enqueue_script( 'wpcsm-frontend', WPCSM_URI . 'assets/js/frontend.js', [ 'jquery' ], WPCSM_VERSION, true );
 			wp_add_inline_style( 'wpcsm-frontend', self::inline_css() );
 		}

@@ -1,7 +1,7 @@
 <?php
 /**
  * Smart messages: the storefront half of the plugin
- * "WPC Smart Messages for WooCommerce" 4.2.7, moved into the theme.
+ * "WPC Smart Messages for WooCommerce" 4.3.4, moved into the theme.
  *
  * inc/ports/wpcsm/class-frontend.php and class-shortcode.php are the plugin's
  * own files, copied unchanged; class-backend.php keeps only the post type and
@@ -23,7 +23,7 @@ if (function_exists('wpcsm_init') || class_exists('Wpcsm_Frontend', false) || de
 }
 
 if (!defined('WPCSM_VERSION')) {
-    define('WPCSM_VERSION', '4.2.7');
+    define('WPCSM_VERSION', '4.3.4');
     define('WPCSM_URI', get_stylesheet_directory_uri() . '/assets/ports/wpcsm/');
     define('WPCSM_DIR', get_stylesheet_directory() . '/assets/ports/wpcsm/');
 }

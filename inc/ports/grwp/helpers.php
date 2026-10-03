@@ -1,5 +1,5 @@
 <?php
-/* Embedder for Google Reviews 2.1.1: the helper functions from google-reviews.php
+/* Embedder for Google Reviews 2.1.3: the helper functions from google-reviews.php
    (lines 78-231), unchanged. Loaded by inc/ports/google-reviews.php. */
 
 if ( !defined( 'ABSPATH' ) ) {

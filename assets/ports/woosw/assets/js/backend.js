@@ -4,6 +4,7 @@
   $(function() {
     woosw_button_icon();
     woosw_button_action();
+    woosw_enable_multiple();
     $('.woosw_color_picker').wpColorPicker();
     $('.woosw_icon_picker').fontIconPicker();
     $('#woosw_settings_cats, #woosw_page_items').selectWoo();
@@ -133,6 +134,10 @@
     woosw_button_icon();
   });
 
+  $(document).on('change', 'select.woosw_enable_multiple', function() {
+    woosw_enable_multiple();
+  });
+
   function woosw_button_icon() {
     var button_icon = $('select.woosw_button_icon').val();
 
@@ -140,6 +145,15 @@
       $('.woosw-show-if-button-icon').show();
     } else {
       $('.woosw-show-if-button-icon').hide();
+    }
+  }
+
+  function woosw_enable_multiple() {
+    var enable = $('select.woosw_enable_multiple').val();
+    if (enable === 'yes') {
+      $('.woosw_multiple_row').show();
+    } else {
+      $('.woosw_multiple_row').hide();
     }
   }
 

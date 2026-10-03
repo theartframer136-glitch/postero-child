@@ -1,6 +1,6 @@
 <?php
 /**
- * Wishlist: the plugin "WPC Smart Wishlist for WooCommerce" 6.0.0, moved into
+ * Wishlist: the plugin "WPC Smart Wishlist for WooCommerce" 6.2.0, moved into
  * the theme.
  *
  * inc/ports/woosw/ is the plugin's own code, copied unchanged: woosw_init(),
@@ -26,11 +26,11 @@ if (function_exists('woosw_init') || class_exists('WPCleverWoosw', false) || def
 }
 
 if (!defined('WOOSW_VERSION')) {
-    define('WOOSW_VERSION', '6.0.0');
+    define('WOOSW_VERSION', '6.2.0');
     define('WOOSW_FILE', __DIR__ . '/woosw/wpc-smart-wishlist.php');
     define('WOOSW_URI', get_stylesheet_directory_uri() . '/assets/ports/woosw/');
     define('WOOSW_DIR', get_stylesheet_directory() . '/assets/ports/woosw/');
-    define('WOOSW_SUPPORT', 'https://wpclever.net/support?utm_source=support&utm_medium=woosw&utm_campaign=wporg');
+    define('WOOSW_SUPPORT', 'https://wpclever.net/support/?utm_source=support&utm_medium=woosw&utm_campaign=wporg');
     define('WOOSW_REVIEWS', 'https://wordpress.org/support/plugin/woo-smart-wishlist/reviews/');
     define('WOOSW_CHANGELOG', 'https://wordpress.org/plugins/woo-smart-wishlist/#developers');
     define('WOOSW_DISCUSSION', 'https://wordpress.org/support/plugin/woo-smart-wishlist');

@@ -456,7 +456,7 @@ if ( ! class_exists( 'Wpcsm_Shortcode' ) ) {
 				'animation' => 'dissolve' //dissolve (default), fade, flip, flipUp, flipCube, flipCubeUp and spin
 			], $attrs );
 
-			$output .= '<span class="wpcsm-text-rotator" data-animation="' . esc_attr( $attrs['animation'] ) . '" data-speed="' . esc_attr( $attrs['speed'] ) . '">' . $attrs['text'] . '</span>';
+			$output .= '<span class="wpcsm-text-rotator" data-animation="' . esc_attr( $attrs['animation'] ) . '" data-speed="' . esc_attr( $attrs['speed'] ) . '">' . esc_html( wp_strip_all_tags( $attrs['text'] ) ) . '</span>';
 
 			return apply_filters( 'wpcsm_shortcode_live_number', $output, $attrs );
 		}
@@ -484,11 +484,11 @@ if ( ! class_exists( 'Wpcsm_Shortcode' ) ) {
 				}
 
 				$output .= '<span class="wpcsm-number-rotator">';
-				$output .= sprintf( $attrs['text'], '<span class="wpcsm-number-rotator-value wpcsm-text-rotator" data-animation="' . esc_attr( $attrs['animation'] ) . '" data-speed="' . esc_attr( $attrs['duration'] ) . '">' . implode( ', ', $rand_values ) . '</span>' );
+				$output .= sprintf( esc_html( $attrs['text'] ), '<span class="wpcsm-number-rotator-value wpcsm-text-rotator" data-animation="' . esc_attr( $attrs['animation'] ) . '" data-speed="' . esc_attr( $attrs['duration'] ) . '">' . implode( ', ', $rand_values ) . '</span>' );
 				$output .= '</span>';
 			} else {
 				$output .= '<span class="wpcsm-live-number" data-val="' . esc_attr( $rand ) . '" data-min="' . esc_attr( $attrs['min'] ) . '" data-max="' . esc_attr( $attrs['max'] ) . '" data-step="' . esc_attr( $attrs['step'] ) . '" data-duration="' . esc_attr( $attrs['duration'] ) . '" data-text="' . esc_attr( $attrs['text'] ) . '">';
-				$output .= sprintf( $attrs['text'], '<span class="wpcsm-live-number-value">' . $rand . '</span>' );
+				$output .= sprintf( esc_html( $attrs['text'] ), '<span class="wpcsm-live-number-value">' . $rand . '</span>' );
 				$output .= '</span>';
 			}
 

@@ -1,6 +1,6 @@
 <?php
 /**
- * Instagram feed: the plugin "Social Feed Gallery" (insta-gallery) 5.0.7,
+ * Instagram feed: the plugin "Social Feed Gallery" (insta-gallery) 5.0.9,
  * moved into the theme (the [insta-gallery] feed on the home page, its REST
  * endpoints that fetch the posts, the token-renewal cron, the settings page).
  *
@@ -26,7 +26,7 @@ if (defined('QLIGG_PLUGIN_VERSION') || class_exists('QuadLayers\IGG\Plugin', fal
 
 // insta-gallery.php, the same constants; FILE/DIR point at the asset copy.
 define('QLIGG_PLUGIN_NAME', 'Social Feed Gallery');
-define('QLIGG_PLUGIN_VERSION', '5.0.7');
+define('QLIGG_PLUGIN_VERSION', '5.0.9');
 define('QLIGG_PLUGIN_FILE', get_stylesheet_directory() . '/assets/ports/qligg/insta-gallery.php');
 define('QLIGG_PLUGIN_BASENAME', 'insta-gallery/insta-gallery.php');
 define('QLIGG_PLUGIN_DIR', get_stylesheet_directory() . '/assets/ports/qligg/');

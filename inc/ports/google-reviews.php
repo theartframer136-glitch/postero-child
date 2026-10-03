@@ -1,7 +1,7 @@
 <?php
 /**
  * Google reviews: the storefront half of the plugin "Embedder for Google
- * Reviews" 2.1.1, moved into the theme ([google-reviews] slider on the home
+ * Reviews" 2.1.3, moved into the theme ([google-reviews] slider on the home
  * page).
  *
  * inc/ports/grwp/public/includes/ is the plugin's own front-end code, copied
@@ -29,7 +29,7 @@ if (defined('GRWP_GOOGLE_REVIEWS_VERSION') || function_exists('grwp_fs')) {
 }
 
 define('AF_GRWP_PORT', true);
-define('GRWP_GOOGLE_REVIEWS_VERSION', '2.1.1');
+define('GRWP_GOOGLE_REVIEWS_VERSION', '2.1.3');
 define('GR_BASE_PATH', get_stylesheet_directory() . '/assets/ports/grwp/');
 define('GR_BASE_PATH_PUBLIC', __DIR__ . '/grwp/public/');
 define('GR_PLUGIN_DIR_URL', get_stylesheet_directory_uri() . '/assets/ports/grwp/');
