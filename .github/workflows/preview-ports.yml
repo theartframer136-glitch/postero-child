@@ -76,10 +76,10 @@ jobs:
               if x or y: print('    %-32s %5d -> %5d%s' % (n, x, y, '' if x == y else '   <-- differs'))
           EOS
           for u in $URLS; do
-            q="afpv=$RANDOM$RANDOM"; case "$u" in *\?*) url="https://theartframer.us$u&$q";; *) url="https://theartframer.us$u?$q";; esac
-            A=$(curl -sS -m 90 -A 'Mozilla/5.0 Chrome/124' -H "X-AF-Port-Preview: $TOKEN" -o /tmp/a.html -w '%{http_code} %{size_download}' "$url")
-            B=$(curl -sS -m 90 -A 'Mozilla/5.0 Chrome/124' -H "X-AF-Port-Preview: $TOKEN" -H "X-AF-Port-Skip: $SKIP" -D /tmp/b.h -o /tmp/b.html -w '%{http_code} %{size_download}' "$url&b=1")
-            echo "=== $u   plugins on: $A   with ports: $B   (preview header: $(grep -ci 'x-af-port-preview: on' /tmp/b.h))"
+            q="afr=$RANDOM$RANDOM&af_pv=$TOKEN"; case "$u" in *\?*) url="https://theartframer.us$u&$q";; *) url="https://theartframer.us$u?$q";; esac
+            A=$(curl -sS -m 90 -A 'Mozilla/5.0 Chrome/124' -o /tmp/a.html -w '%{http_code} %{size_download}' "$url&af_skip=none")
+            B=$(curl -sS -m 90 -A 'Mozilla/5.0 Chrome/124' -D /tmp/b.h -o /tmp/b.html -w '%{http_code} %{size_download}' "$url&af_skip=$SKIP")
+            echo "=== $u   plugins on: $A   with ports: $B   (preview marker: on $(grep -c 'af-port-preview\" content=\"none' /tmp/a.html), ports $(grep -c "af-port-preview\" content=\"$SKIP" /tmp/b.html); header $(grep -ci 'x-af-port-preview: on' /tmp/b.h))"
             python3 /tmp/cmp.py /tmp/a.html /tmp/b.html
             case "$u" in /wp-json/*|*wc-ajax*|*admin-ajax*)
               echo "    plugins on : $(head -c 300 /tmp/a.html | tr '\n' ' ')"
