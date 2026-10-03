@@ -426,7 +426,7 @@ add_action('wp_ajax_nopriv_af_yt_feed', 'af_yt_feed_handler');
 function af_yt_feed_handler() {
     // Rate limit: 30 requests/hour per IP — this endpoint is nopriv and each
     // distinct id writes a transient, so cap it to prevent DB/cache bloat.
-    $af_yt_ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '';
+    $af_yt_ip = af_visitor_ip();
     $af_yt_rl = 'af_yt_rl_' . md5($af_yt_ip);
     $af_yt_n  = (int) get_transient($af_yt_rl);
     if ($af_yt_n >= 30) { wp_send_json_error('rate limited'); return; }
@@ -12088,7 +12088,7 @@ function af_nl_subscribe_handler() {
     check_ajax_referer('af_nl_subscribe', 'nonce');
     // Rate limit: 10 attempts/hour per IP — each new subscriber triggers an
     // admin wp_mail and grows the af_newsletter_subscribers option.
-    $af_nl_ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '';
+    $af_nl_ip = af_visitor_ip();
     $af_nl_rl = 'af_nl_rl_' . md5($af_nl_ip);
     $af_nl_n  = (int) get_transient($af_nl_rl);
     if ($af_nl_n >= 10) {
@@ -12109,7 +12109,7 @@ function af_nl_subscribe_handler() {
             wp_send_json_success(array('message' => 'You are already on the list — thank you!'));
         }
     }
-    $subs[] = array('email' => $email, 'time' => current_time('mysql'), 'ip' => isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '');
+    $subs[] = array('email' => $email, 'time' => current_time('mysql'), 'ip' => af_visitor_ip());
     if (count($subs) > 5000) $subs = array_slice($subs, -5000);
     update_option('af_newsletter_subscribers', $subs, false);
     wp_mail(get_option('admin_email'), '[The Art Framer] New newsletter subscriber', "New subscriber: {$email}\nTotal subscribers: " . count($subs));
@@ -12272,7 +12272,7 @@ function af_contact_submit_handler() {
     if (!empty($_POST['af_hp'])) { // honeypot: pretend success
         wp_send_json_success(array('message' => 'Thank you! Your message has been sent.'));
     }
-    $ip = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '';
+    $ip = af_visitor_ip();
     // Rate limit: 5 messages per hour per IP
     $rl_key = 'af_ct_rl_' . md5($ip);
     $count  = (int) get_transient($rl_key);
@@ -14604,7 +14604,7 @@ add_action('template_redirect', function() {
         'phone'      => '',
         'subject'    => $subject,
         'message'    => $body,
-        'ip'         => isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '',
+        'ip'         => af_visitor_ip(),
         'status'     => 'new',
         'user_id'    => $user->ID,
         'parent_id'  => $parent,
@@ -19621,23 +19621,58 @@ function af_activity_device_label($kind) {
     return isset($map[$kind]) ? $map[$kind] : 'Unknown';
 }
 
-// Best-effort client IP. Honours the proxy headers this host / Cloudflare set,
-// falls back to REMOTE_ADDR, and validates the result so a spoofed header can't
-// store junk.
+// The address ranges Cloudflare's proxy connects to a site from, as published
+// at https://www.cloudflare.com/ips-v4 and /ips-v6 (read 3 Oct 2026; the API at api.cloudflare.com/client/v4/ips gave the same).
+function af_cloudflare_ranges() {
+    return array(
+        '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22',
+        '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20',
+        '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13',
+        '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
+        '2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32',
+        '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32',
+    );
+}
+
+// Whether $ip lies in the range $cidr ("173.245.48.0/20", "2400:cb00::/32").
+function af_ip_in_cidr($ip, $cidr) {
+    $parts = explode('/', (string) $cidr, 2);
+    $a = @inet_pton((string) $ip);
+    $b = @inet_pton($parts[0]);
+    if ($a === false || $b === false || strlen($a) !== strlen($b)) return false;
+    $bits = isset($parts[1]) ? (int) $parts[1] : strlen($a) * 8;
+    $whole = intdiv($bits, 8);
+    if (substr($a, 0, $whole) !== substr($b, 0, $whole)) return false;
+    $rest = $bits % 8;
+    if ($rest === 0) return true;
+    $mask = (0xFF << (8 - $rest)) & 0xFF;
+    return (ord($a[$whole]) & $mask) === (ord($b[$whole]) & $mask);
+}
+
+// The visitor's address. Behind Cloudflare's proxy every connection comes
+// from one of Cloudflare's servers, and the visitor's own address arrives in
+// the CF-Connecting-IP header. That header is believed only when the
+// connection really comes from Cloudflare: anyone reaching the server
+// directly could send it with any address they liked, and the per-address
+// limits on the contact form, the chatbot and the newsletter rely on it.
+// Without Cloudflare, or where the host already puts the visitor's address in
+// REMOTE_ADDR, this is REMOTE_ADDR.
+function af_visitor_ip() {
+    $remote = isset($_SERVER['REMOTE_ADDR']) ? trim((string) $_SERVER['REMOTE_ADDR']) : '';
+    $cf = isset($_SERVER['HTTP_CF_CONNECTING_IP']) ? trim((string) $_SERVER['HTTP_CF_CONNECTING_IP']) : '';
+    if ($cf !== '' && filter_var($cf, FILTER_VALIDATE_IP)) {
+        foreach (af_cloudflare_ranges() as $range) {
+            if (af_ip_in_cidr($remote, $range)) return $cf;
+        }
+    }
+    return filter_var($remote, FILTER_VALIDATE_IP) ? $remote : '';
+}
+
+// The address the activity log records: the visitor's, as af_visitor_ip()
+// reads it. (It used to take CF-Connecting-IP, X-Forwarded-For or X-Real-IP
+// from anyone, so a visitor could write any address into the log.)
 function af_activity_client_ip() {
-    $candidates = array();
-    if (!empty($_SERVER['HTTP_CF_CONNECTING_IP'])) $candidates[] = $_SERVER['HTTP_CF_CONNECTING_IP'];
-    if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
-        $parts = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']);
-        $candidates[] = $parts[0];
-    }
-    if (!empty($_SERVER['HTTP_X_REAL_IP'])) $candidates[] = $_SERVER['HTTP_X_REAL_IP'];
-    if (!empty($_SERVER['REMOTE_ADDR']))    $candidates[] = $_SERVER['REMOTE_ADDR'];
-    foreach ($candidates as $ip) {
-        $ip = trim($ip);
-        if (filter_var($ip, FILTER_VALIDATE_IP)) return $ip;
-    }
-    return '';
+    return af_visitor_ip();
 }
 
 // Write one entry. Only ever called for logged-in users.
