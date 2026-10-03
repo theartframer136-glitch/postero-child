@@ -12,7 +12,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-foreach (array('code-snippets', 'hfcm', 'classic-editor', 'delivery-date', 'click-to-chat', 'mas-brands', 'smart-messages', 'featured-video', 'quick-view', 'wishlist', 'google-reviews') as $af_port) {
+foreach (array('code-snippets', 'hfcm', 'classic-editor', 'delivery-date', 'click-to-chat', 'mas-brands', 'smart-messages', 'featured-video', 'quick-view', 'wishlist', 'google-reviews', 'language-switcher') as $af_port) {
     $af_port_file = __DIR__ . '/ports/' . $af_port . '.php';
     if (is_readable($af_port_file)) require_once $af_port_file;
 }

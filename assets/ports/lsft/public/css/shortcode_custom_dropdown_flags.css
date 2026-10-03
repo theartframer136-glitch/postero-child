@@ -1,0 +1,11 @@
+
+#shortcode_custom_dropdown_flags li:first-child:hover #lsft_custom_dropdown_flags_submenu{
+    display: block;
+  }
+  #shortcode_custom_dropdown_flags ul{
+    display: none;
+  }
+ #shortcode_custom_dropdown_flags ul li{
+    margin-left: -20px;
+  }
+  
