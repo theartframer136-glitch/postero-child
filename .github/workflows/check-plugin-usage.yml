@@ -1,0 +1,86 @@
+name: Check Plugin Usage
+# Read-only on the site. What every plugin is used for (shortcodes, Elementor
+# widgets, storefront hooks, its data and settings), and a copy of the small
+# plugins' own source code, carried on the 'plugin-src' branch (a delivery
+# channel, force-pushed, never deployed), so each one can be rebuilt as the
+# theme's own code that behaves exactly the same.
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: 'Also copy the small plugins source to the plugin-src branch'
+        required: false
+        default: 'yes'
+permissions:
+  contents: write
+jobs:
+  usage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Send the tool up
+        run: |
+          set -uo pipefail
+          for i in 1 2 3; do
+            scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+                -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+                tools/diag-plugin-usage.php \
+                "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-plugin-usage.php" && break
+            echo "  scp attempt $i failed"; sleep 15
+          done
+      - name: What each plugin is used for (read-only)
+        run: |
+          set +e
+          for i in 1 2 3; do
+            ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+                -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+                "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+              "cd ~/websites/OPu0sKi4J/public_html && timeout 600 wp eval-file wp-content/themes/postero-child/tools/diag-plugin-usage.php --allow-root 2>&1" && break
+            echo "  attempt $i failed"; sleep 20
+          done
+  source:
+    if: ${{ github.event.inputs.source != 'no' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Copy the small plugins' code (read-only on the server)
+        run: |
+          set -uo pipefail
+          P="click-to-chat-for-whatsapp wpc-estimated-delivery-date wpc-smart-messages mas-woocommerce-brands yith-woocommerce-featured-video woo-variation-swatches woo-smart-quick-view woo-smart-wishlist contact-form-7 mailchimp-for-wp embedder-for-google-reviews insta-gallery custom-payment-gateways-woocommerce dynamic-visibility-for-elementor language-switcher-for-transposh header-footer-code-manager classic-editor af-crawl-guard"
+          for i in 1 2 3; do
+            ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+                -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+                "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+              "cd ~/websites/OPu0sKi4J/public_html/wp-content/plugins && tar czf - --exclude='*.mo' --exclude='*.po' --exclude='*.pot' --exclude='*.l10n.php' --exclude='*.map' --exclude='node_modules' --exclude='*.zip' $P 2>/dev/null" > /tmp/plugins.tgz && break
+            echo "  attempt $i failed"; sleep 20
+          done
+          ls -la /tmp/plugins.tgz
+          mkdir -p /tmp/src && tar xzf /tmp/plugins.tgz -C /tmp/src && du -sh /tmp/src/* | sort -h
+      - name: Carry it on the plugin-src branch (never deployed)
+        run: |
+          set -uo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          rm -rf /tmp/wt && git worktree add --detach /tmp/wt >/dev/null
+          cd /tmp/wt
+          git checkout --orphan plugin-src >/dev/null 2>&1
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          find . -maxdepth 1 -mindepth 1 ! -name '.git' -exec rm -rf {} + 2>/dev/null || true
+          cp -r /tmp/src/* .
+          printf '%s\n' "Source of the small plugins as installed on the live site, copied read-only by" "Check Plugin Usage run ${GITHUB_RUN_NUMBER}, for rebuilding what each does as the theme's own code." "A delivery channel, not history: force-pushed each run, never deployed." > README.txt
+          git add -A && git commit -q -m "Plugin source from the live site (run ${GITHUB_RUN_NUMBER})" && git push --force origin plugin-src
+          git log --oneline -1
