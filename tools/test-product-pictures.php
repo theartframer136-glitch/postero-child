@@ -8,7 +8,8 @@
  * code and picture too", for #33294 only. #33294 takes the file as its main
  * picture while it carries TMP-1166 or CO-240006-0000; the old main picture
  * leaves the gallery but stays in the media library; it happens once per
- * revision, and never twice for one product.
+ * revision, and never twice for one product. Revision 2: the four room scenes
+ * of the old photo leave the gallery too ("Remove them"), and nothing else.
  *
  * Runs the REAL file with WordPress and WooCommerce stubbed, and the REAL
  * picture in assets/product-pictures/. Plain `php`:
@@ -68,11 +69,20 @@ function check($what, $got, $want) {
     if ($got === $want) { $pass++; echo "  OK    $what\n"; }
     else { $fail++; echo "  FAIL  $what: got " . var_export($got, true) . ", want " . var_export($want, true) . "\n"; }
 }
-/** A fresh site: #33294 with the given code, main picture 900, gallery 900 and 901; then one request. */
-function request($code, $opt = array(), $extra = array()) {
+/**
+ * A fresh site: #33294 with the given code, main picture $main, the given
+ * gallery (901-904 are the old photo's room scenes, 905 another picture);
+ * then one request.
+ */
+function request($code, $opt = array(), $extra = array(), $main = 900, $gallery = array(900, 901, 902, 903, 904, 905)) {
     $GLOBALS['OPT'] = $opt; $GLOBALS['FIRED'] = array(); $GLOBALS['UPLOADS'] = array(); $GLOBALS['ATT'] = array();
-    $GLOBALS['P'] = array(33294 => array('name' => 'Dance Duet On Stage Canvas Wall Art 3x4 Feet &amp; More', 'gallery' => array(900, 901)));
-    $GLOBALS['META'] = array(33294 => array('_taf_art_code' => $code, '_thumbnail_id' => 900));
+    $GLOBALS['P'] = array(33294 => array('name' => 'Dance Duet On Stage Canvas Wall Art 3x4 Feet &amp; More', 'gallery' => $gallery));
+    $GLOBALS['META'] = array(33294 => array('_taf_art_code' => $code, '_thumbnail_id' => $main),
+        900 => array('_wp_attached_file' => '2025/08/Dance-Duet-On-Stage-Gold-Foiled-UV-Canvas-Art-3x4-Feet.jpg'),
+        905 => array('_wp_attached_file' => '2025/08/Dance-Duet-On-Stage-detail.jpg'));
+    foreach (array(901, 902, 903, 904) as $n => $g) {
+        $GLOBALS['META'][$g] = array('_wp_attached_file' => '2025/08/Dance-Duet-On-Stage-Gold-Foiled-UV-Canvas-Art-3x4-Feet-scene' . ($n + 1) . '-1.jpg');
+    }
     foreach ($extra as $id => $m) { $GLOBALS['META'][$id] = $m + (isset($GLOBALS['META'][$id]) ? $GLOBALS['META'][$id] : array()); }
     foreach ($GLOBALS['HOOKS']['wp_loaded'] as $cb) { $cb(); }
     return (string) get_option('af_product_pictures', '');
@@ -84,23 +94,41 @@ echo "=== the list: #33294 only, the owner's file ===\n";
 $list = af_product_pictures();
 check('one product', array_keys($list), array(33294));
 check('while it carries TMP-1166 or CO-240006-0000', $list[33294]['codes'], array('TMP-1166', 'CO-240006-0000'));
+check('revision 2', AF_PRODUCT_PICTURES_REV, '2');
+check("the old photo's room scenes leave the gallery", $list[33294]['drop'], array('Dance-Duet-On-Stage-Gold-Foiled-UV-Canvas-Art-3x4-Feet-scene'));
 $s = getimagesize($file);
 check('the picture is in the theme, a JPEG', $s['mime'], 'image/jpeg');
 check('635 x 952, portrait like the photo it replaces', array($s[0], $s[1]), array(635, 952));
 
-echo "\n=== the deploy that carries it, before the corrections pass (TMP-1166) ===\n";
+echo "\n=== a site that never ran revision 1, before the corrections pass (TMP-1166) ===\n";
 $log = request('TMP-1166');
 $att = get_post_thumbnail_id(33294);
 check('one upload, the file itself', $GLOBALS['UPLOADS'], array(array('co-240006-0000.jpg', filesize($file))));
 check('a new attachment of #33294 is its main picture', isset($GLOBALS['ATT'][$att]) ? $GLOBALS['ATT'][$att]['parent'] : null, 33294);
 check('the old main picture is kept in _af_picture_before', get_post_meta(33294, '_af_picture_before'), 900);
-check('the old main picture leaves the gallery; the rest stays', $GLOBALS['P'][33294]['gallery'], array(901));
+check('the old main picture and the 4 scenes leave the gallery; the other stays', $GLOBALS['P'][33294]['gallery'], array(905));
+check('the gallery as it was is kept in _af_gallery_before', get_post_meta(33294, '_af_gallery_before'), '900,901,902,903,904,905');
 check('alt text is the product name, decoded', get_post_meta($att, '_wp_attachment_image_alt'), 'Dance Duet On Stage Canvas Wall Art 3x4 Feet & More');
 check('the attachment remembers the file it came from', get_post_meta($att, '_af_picture_source'), $src);
 check('its sizes are made', get_post_meta($att, '_wp_attachment_metadata')['width'], 635);
 check('the product page and the shop are purged', array_values(array_intersect(array('litespeed_purge_post', 'litespeed_purge_posttype', 'litespeed_purge_url'), $GLOBALS['FIRED'])), array('litespeed_purge_post', 'litespeed_purge_posttype', 'litespeed_purge_url'));
 check('the revision is recorded', get_option('af_product_pictures_rev'), AF_PRODUCT_PICTURES_REV);
-check('the log says what it did', strpos($log, '33294 main picture 900 -> ' . $att . ' (co-240006-0000.jpg, 635x952); gallery 2 -> 1') !== false, true);
+check('the log says what it did', strpos($log, '33294 main picture 900 -> ' . $att . ' (co-240006-0000.jpg, 635x952); gallery 6 -> 1 (took out 900, 901, 902, 903, 904)') !== false, true);
+
+echo "\n=== the live site: revision 1 set the picture, the 4 scenes are still in the gallery ===\n";
+$log = request('CO-240006-0000', array('af_product_pictures_rev' => '1', 'af_product_pictures_claim_1' => 'x'),
+    array(777 => array('_af_picture_source' => $src)), 777, array(901, 902, 903, 904));
+check('no second copy of the picture', $GLOBALS['UPLOADS'], array());
+check('the main picture stays', get_post_thumbnail_id(33294), 777);
+check('the 4 scenes leave the gallery', $GLOBALS['P'][33294]['gallery'], array());
+check('kept in _af_gallery_before', get_post_meta(33294, '_af_gallery_before'), '901,902,903,904');
+check('purged', in_array('litespeed_purge_post', $GLOBALS['FIRED'], true), true);
+check('the log says so', strpos($log, '33294 already shows co-240006-0000.jpg; gallery 4 -> 0 (took out 901, 902, 903, 904)') !== false, true);
+
+echo "\n=== a later revision with nothing left to do ===\n";
+$log = request('CO-240006-0000', array(), array(777 => array('_af_picture_source' => $src)), 777, array(905));
+check('nothing saved or purged', array($GLOBALS['P'][33294]['gallery'], $GLOBALS['FIRED']), array(array(905), array()));
+check('the log says so', strpos($log, '33294 already shows co-240006-0000.jpg; gallery unchanged (1)') !== false, true);
 
 echo "\n=== after the corrections pass (CO-240006-0000, however it is spaced) ===\n";
 request('CO - 240006–0000');
@@ -118,10 +146,6 @@ echo "\n=== a request arriving while another holds the claim ===\n";
 request('TMP-1166', array('af_product_pictures_claim_' . AF_PRODUCT_PICTURES_REV => '2026-10-03 08:00:00'));
 check('does nothing', array(get_post_thumbnail_id(33294), $GLOBALS['UPLOADS']), array(900, array()));
 
-echo "\n=== a later revision, the product already showing the same file ===\n";
-$log = request('CO-240006-0000', array(), array(900 => array('_af_picture_source' => $src)));
-check('no second copy', $GLOBALS['UPLOADS'], array());
-check('the log says so', strpos($log, '33294 already shows co-240006-0000.jpg') !== false, true);
 
 echo "\n=== the theme still arriving: the picture not there yet ===\n";
 $GLOBALS['THEME'] = sys_get_temp_dir() . '/af-no-theme-' . getmypid();

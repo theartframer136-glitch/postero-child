@@ -26,17 +26,29 @@
  *   - keeps the old picture's id in _af_picture_before; nothing is deleted,
  *     the old picture stays in the media library
  *   - purges the product page and the shop
+ *   - takes out of the gallery any picture whose file name begins with one
+ *     of the 'drop' names, and keeps the gallery as it was in
+ *     _af_gallery_before (the pictures stay in the media library)
  * and writes what it did to the option af_product_pictures.
+ *
+ * Revision 2, 3 Oct: #33294's gallery held four room scenes of its OLD
+ * two-dancer photo ("Dance-Duet-On-Stage-Gold-Foiled-UV-Canvas-Art-3x4-Feet-
+ * scene1-1.jpg" to "-scene4-1.jpg", read live by tools/verify-product-
+ * pictures.mjs). Asked whether they should stay beside the new picture, the
+ * owner chose "Remove them": they leave the gallery, so the page shows only
+ * the new picture. Revision 1 set the main picture; this revision finds it
+ * already there and only takes the scenes out.
  */
 if (!defined('ABSPATH')) exit;
 
-define('AF_PRODUCT_PICTURES_REV', '1');
+define('AF_PRODUCT_PICTURES_REV', '2');
 
 /**
  * id => array(
  *   'codes' => the art codes it may carry (the code it has before this
  *              deploy's corrections pass, and the one it has after),
  *   'file'  => the picture, in assets/product-pictures/
+ *   'drop'  => file-name beginnings of gallery pictures to take out (optional)
  * )
  */
 function af_product_pictures() {
@@ -44,6 +56,7 @@ function af_product_pictures() {
         33294 => array(
             'codes' => array('TMP-1166', 'CO-240006-0000'),
             'file'  => 'co-240006-0000.jpg',
+            'drop'  => array('Dance-Duet-On-Stage-Gold-Foiled-UV-Canvas-Art-3x4-Feet-scene'),
         ),
     );
 }
@@ -57,15 +70,20 @@ function af_product_pictures_dir() {
     return get_stylesheet_directory() . '/assets/product-pictures/';
 }
 
-/** One product: make $file its main picture. Returns one line for the log. */
-function af_product_picture_apply($id, array $codes, $file) {
+/**
+ * One product: make $p['file'] its main picture, and take the 'drop' pictures
+ * out of its gallery. Returns one line for the log.
+ */
+function af_product_picture_apply($id, array $p) {
+    $file = $p['file'];
+    $drop = isset($p['drop']) ? (array) $p['drop'] : array();
     $product = wc_get_product($id);
     if (!$product) {
         return $id . ' not found';
     }
     $has = (string) get_post_meta($id, '_taf_art_code', true);
     $ok = false;
-    foreach ($codes as $c) {
+    foreach ($p['codes'] as $c) {
         if (af_product_pictures_key($c) === af_product_pictures_key($has)) { $ok = true; }
     }
     if (!$ok) {
@@ -78,39 +96,66 @@ function af_product_picture_apply($id, array $codes, $file) {
     }
     $source = $file . ' ' . md5($data);
     $old = (int) get_post_thumbnail_id($id);
+    $main = $old;
+    $did = array();
+
     if ($old && get_post_meta($old, '_af_picture_source', true) === $source) {
-        return $id . ' already shows ' . $file;
+        $did[] = 'already shows ' . $file;
+    } else {
+        $up = wp_upload_bits($file, null, $data);
+        if (!empty($up['error'])) {
+            return $id . ' upload failed: ' . $up['error'];
+        }
+        $type = wp_check_filetype($up['file']);
+        $name = html_entity_decode(wp_strip_all_tags($product->get_name()), ENT_QUOTES, 'UTF-8');
+        $att = wp_insert_attachment(array(
+            'post_mime_type' => $type['type'] ? $type['type'] : 'image/jpeg',
+            'post_title'     => $name,
+            'post_content'   => '',
+            'post_status'    => 'inherit',
+        ), $up['file'], $id, true);
+        if (is_wp_error($att) || !$att) {
+            return $id . ' attachment failed: ' . (is_wp_error($att) ? $att->get_error_message() : 'no id');
+        }
+        if (!function_exists('wp_generate_attachment_metadata')) {
+            require_once ABSPATH . 'wp-admin/includes/image.php';
+        }
+        $meta = wp_generate_attachment_metadata($att, $up['file']);
+        wp_update_attachment_metadata($att, $meta);
+        update_post_meta($att, '_wp_attachment_image_alt', $name);
+        update_post_meta($att, '_af_picture_source', $source);
+        if ($old && get_post_meta($id, '_af_picture_before', true) === '') {
+            update_post_meta($id, '_af_picture_before', $old);
+        }
+        $main = (int) $att;
+        $did[] = sprintf('main picture %d -> %d (%s, %dx%d)', $old, $main, $file,
+            isset($meta['width']) ? (int) $meta['width'] : 0, isset($meta['height']) ? (int) $meta['height'] : 0);
     }
 
-    $up = wp_upload_bits($file, null, $data);
-    if (!empty($up['error'])) {
-        return $id . ' upload failed: ' . $up['error'];
-    }
-    $type = wp_check_filetype($up['file']);
-    $name = html_entity_decode(wp_strip_all_tags($product->get_name()), ENT_QUOTES, 'UTF-8');
-    $att = wp_insert_attachment(array(
-        'post_mime_type' => $type['type'] ? $type['type'] : 'image/jpeg',
-        'post_title'     => $name,
-        'post_content'   => '',
-        'post_status'    => 'inherit',
-    ), $up['file'], $id, true);
-    if (is_wp_error($att) || !$att) {
-        return $id . ' attachment failed: ' . (is_wp_error($att) ? $att->get_error_message() : 'no id');
-    }
-    if (!function_exists('wp_generate_attachment_metadata')) {
-        require_once ABSPATH . 'wp-admin/includes/image.php';
-    }
-    $meta = wp_generate_attachment_metadata($att, $up['file']);
-    wp_update_attachment_metadata($att, $meta);
-    update_post_meta($att, '_wp_attachment_image_alt', $name);
-    update_post_meta($att, '_af_picture_source', $source);
-
-    if ($old && get_post_meta($id, '_af_picture_before', true) === '') {
-        update_post_meta($id, '_af_picture_before', $old);
-    }
+    // The gallery: the old main picture leaves it, and so does any picture
+    // whose file name begins with a 'drop' name. Everything else stays, in
+    // its order.
     $gallery = array_map('intval', (array) $product->get_gallery_image_ids());
-    $keep = array_values(array_diff($gallery, array($old, (int) $att)));
-    $product->set_image_id($att);
+    $keep = array();
+    $out = array();
+    foreach ($gallery as $g) {
+        if ($g === $main) { $out[] = $g; continue; }
+        if ($main !== $old && $g === $old) { $out[] = $g; continue; }
+        $name = basename((string) get_post_meta($g, '_wp_attached_file', true));
+        foreach ($drop as $begin) {
+            if ($begin !== '' && stripos($name, $begin) === 0) { $out[] = $g; continue 2; }
+        }
+        $keep[] = $g;
+    }
+    if ($main === $old && !$out) {
+        return $id . ' ' . implode('; ', $did) . '; gallery unchanged (' . count($gallery) . ')';
+    }
+    if ($out && get_post_meta($id, '_af_gallery_before', true) === '') {
+        update_post_meta($id, '_af_gallery_before', implode(',', $gallery));
+    }
+    if ($main !== $old) {
+        $product->set_image_id($main);
+    }
     $product->set_gallery_image_ids($keep);
     $product->save();
 
@@ -120,10 +165,8 @@ function af_product_picture_apply($id, array $codes, $file) {
     if (function_exists('wc_get_page_permalink')) {
         do_action('litespeed_purge_url', wc_get_page_permalink('shop'));
     }
-    return sprintf('%d main picture %d -> %d (%s, %dx%d); gallery %d -> %d',
-        $id, $old, $att, $file,
-        isset($meta['width']) ? (int) $meta['width'] : 0, isset($meta['height']) ? (int) $meta['height'] : 0,
-        count($gallery), count($keep));
+    return sprintf('%d %s; gallery %d -> %d%s', $id, implode('; ', $did), count($gallery), count($keep),
+        $out ? ' (took out ' . implode(', ', $out) . ')' : '');
 }
 
 add_action('wp_loaded', function () {
@@ -150,7 +193,7 @@ add_action('wp_loaded', function () {
         update_option('af_product_pictures_rev', AF_PRODUCT_PICTURES_REV, true);
         $log = array();
         foreach (af_product_pictures() as $id => $p) {
-            $log[] = af_product_picture_apply($id, $p['codes'], $p['file']);
+            $log[] = af_product_picture_apply($id, $p);
         }
         update_option('af_product_pictures', gmdate('Y-m-d H:i:s') . ' UTC, revision ' . AF_PRODUCT_PICTURES_REV . ': ' . implode('; ', $log), false);
     } catch (\Throwable $e) {

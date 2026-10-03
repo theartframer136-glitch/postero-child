@@ -11,6 +11,8 @@
 //   - its page opens (HTTP 200), and the picture the page leads with (the
 //     first gallery picture) and its og:image are, or are not, the file
 //   - how many pictures the page shows, and the file name of each
+//   - none of them is one of the old photo's room scenes, where 'gone' names
+//     them (the owner, 3 Oct: "Remove them")
 //
 // Read-only. Nothing goes in a cart.
 //
@@ -20,7 +22,8 @@ import { chromium } from 'playwright';
 
 const SITE = (process.argv[2] || process.env.AF_QA_URL || 'https://theartframer.us').replace(/\/$/, '');
 const CHECK = [
-  { id: 33294, file: 'co-240006-0000', shows: true,  what: 'takes the file as its main picture' },
+  { id: 33294, file: 'co-240006-0000', shows: true,  what: 'takes the file as its main picture, without the old room scenes',
+    gone: 'dance-duet-on-stage-gold-foiled-uv-canvas-art-3x4-feet-scene' },
   { id: 28778, file: 'co-240006-0000', shows: false, what: 'keeps its own red-stage photo' },
 ];
 
@@ -64,7 +67,8 @@ for (const p of CHECK) {
   const apiOk = has(main) === p.shows && main !== '';
   const leadOk = has(d.lead) === p.shows && d.lead !== '';
   const ogOk = d.og === '' ? true : has(d.og) === p.shows;
-  const ok = status === 200 && apiOk && leadOk && ogOk;
+  const left = p.gone ? a.images.filter(s => base(s).toLowerCase().startsWith(p.gone)) : [];
+  const ok = status === 200 && apiOk && leadOk && ogOk && left.length === 0;
   if (ok) good++;
   console.log((ok ? '  OK   ' : '  FAIL ') + ('#' + p.id).padEnd(8) + p.what);
   console.log('         Store API main picture : ' + (base(main) || '(none)') + (apiOk ? '' : '   <- want ' + (p.shows ? '' : 'not ') + p.file));
@@ -72,6 +76,7 @@ for (const p of CHECK) {
   console.log('         og:image                : ' + (base(d.og) || '(none)') + (ogOk ? '' : '   <- want ' + (p.shows ? '' : 'not ') + p.file));
   console.log('         pictures on the page    : ' + d.count + ' (Store API lists ' + a.images.length + ')');
   a.images.forEach((s, i) => console.log('           ' + (i === 0 ? 'main   ' : 'gallery') + ' ' + base(s)));
+  if (p.gone) console.log('         old room scenes left    : ' + left.length + (left.length ? '   <- want 0' : ''));
 }
 console.log('\nright picture: ' + good + ' of ' + CHECK.length);
 console.log('done ' + new Date().toISOString());
