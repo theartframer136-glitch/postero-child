@@ -4,10 +4,12 @@
 // Sheet > Personal Pic) files six pictures as CO-240001 to CO-240006. On 1 Oct
 // it holds 25: CO-240007 to CO-240024 are new, and 17 of those 18 are the
 // picture of a product on the website (CO-240010 is a picture no product shows).
+// On 3 Oct it holds 29: CO-240025 to CO-240028 are new, four of the five event
+// photos (a print shown on a stand), each its own picture, so its own code.
 // Each was matched by picture to its product, all on temporary codes until then
 // (tools/artcode-corrections.csv). CO codes are outside the art-code book, like
 // AC and CP, so every pass leaves them as written and the SKU is the code.
-// This checks, as a first-time visitor, for all 23:
+// This checks, as a first-time visitor, for all 27:
 //   - its page opens (HTTP 200)
 //   - its own "Art Code:" line reads the CO code (not a card's)
 //   - its SKU, from the Store API, is the CO code
@@ -45,6 +47,11 @@ const CHANGED = [
   { id: 24094, code: 'CO-240022-0000', sku: 'CO-240022-0000', was: 'TMP-1237' },
   { id: 24714, code: 'CO-240023-0000', sku: 'CO-240023-0000', was: 'TMP-1241' },
   { id: 22686, code: 'CO-240024-0000', sku: 'CO-240024-0000', was: 'TMP-1232' },
+  // 3 Oct: four event photos
+  { id: 33292, code: 'CO-240025-0000', sku: 'CO-240025-0000', was: 'TMP-1165' },
+  { id: 33298, code: 'CO-240026-0000', sku: 'CO-240026-0000', was: 'TMP-1168' },
+  { id: 33300, code: 'CO-240027-0000', sku: 'CO-240027-0000', was: 'TMP-1169' },
+  { id: 33296, code: 'CO-240028-0000', sku: 'CO-240028-0000', was: 'TMP-1167' },
 ];
 // The line may read "RK - 010044-5030" or "RK – 010044-5030": compare without
 // spaces and with one kind of dash.
