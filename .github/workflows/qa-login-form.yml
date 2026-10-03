@@ -1,0 +1,15 @@
+name: QA Login Form
+# Read-only: the Login and Sign-up pages as a guest. A wrong login is tried
+# (a username that does not exist) to see the form answer; nothing is created.
+on:
+  workflow_dispatch:
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afh/node_modules node tools/qa-login-form.mjs || true
