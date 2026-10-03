@@ -6,10 +6,13 @@
 // picture of a product on the website (CO-240010 is a picture no product shows).
 // On 3 Oct it holds 29: CO-240025 to CO-240028 are new, four of the five event
 // photos (a print shown on a stand), each its own picture, so its own code.
+// Then CO-240006-0000.jpg itself, "update the code and picture too", for
+// #33294 only: it shares #28778's code with a letter on its SKU, and takes the
+// file as its picture (inc/product-pictures.php, tools/verify-product-pictures.mjs).
 // Each was matched by picture to its product, all on temporary codes until then
 // (tools/artcode-corrections.csv). CO codes are outside the art-code book, like
 // AC and CP, so every pass leaves them as written and the SKU is the code.
-// This checks, as a first-time visitor, for all 27:
+// This checks, as a first-time visitor, for all 28:
 //   - its page opens (HTTP 200)
 //   - its own "Art Code:" line reads the CO code (not a card's)
 //   - its SKU, from the Store API, is the CO code
@@ -52,6 +55,8 @@ const CHANGED = [
   { id: 33298, code: 'CO-240026-0000', sku: 'CO-240026-0000', was: 'TMP-1168' },
   { id: 33300, code: 'CO-240027-0000', sku: 'CO-240027-0000', was: 'TMP-1169' },
   { id: 33296, code: 'CO-240028-0000', sku: 'CO-240028-0000', was: 'TMP-1167' },
+  // 3 Oct: shares CO-240006-0000 with #28778, which keeps the plain SKU
+  { id: 33294, code: 'CO-240006-0000', sku: 'CO-240006-0000A', was: 'TMP-1166' },
 ];
 // The line may read "RK - 010044-5030" or "RK – 010044-5030": compare without
 // spaces and with one kind of dash.
