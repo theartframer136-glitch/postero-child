@@ -21,6 +21,11 @@ register_shutdown_function(function () {
 });
 foreach (array('/' => 'home') as $path => $label) {
     $_SERVER['REQUEST_URI'] = $path; $_SERVER['REQUEST_METHOD'] = 'GET';
+    $_SERVER['HTTP_HOST'] = $_SERVER['SERVER_NAME'] = parse_url(home_url(), PHP_URL_HOST);
+    $_SERVER['HTTPS'] = 'on'; $_SERVER['SERVER_PORT'] = '443';
+    $_SERVER['HTTP_USER_AGENT'] = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36';
+    remove_action('template_redirect', 'redirect_canonical');
+    add_filter('wp_redirect', function ($to) { echo "  (redirect to $to suppressed)\n"; return false; }, 1);
     $GLOBALS['wp']->main();
     if (!defined('WP_USE_THEMES')) define('WP_USE_THEMES', true);
     ob_start();
