@@ -81,6 +81,10 @@ jobs:
             B=$(curl -sS -m 90 -A 'Mozilla/5.0 Chrome/124' -H "X-AF-Port-Preview: $TOKEN" -H "X-AF-Port-Skip: $SKIP" -D /tmp/b.h -o /tmp/b.html -w '%{http_code} %{size_download}' "$url&b=1")
             echo "=== $u   plugins on: $A   with ports: $B   (preview header: $(grep -ci 'x-af-port-preview: on' /tmp/b.h))"
             python3 /tmp/cmp.py /tmp/a.html /tmp/b.html
+            case "$u" in /wp-json/*|*wc-ajax*|*admin-ajax*)
+              echo "    plugins on : $(head -c 300 /tmp/a.html | tr '\n' ' ')"
+              echo "    with ports : $(head -c 300 /tmp/b.html | tr '\n' ' ')";;
+            esac
             grep -o 'There has been a critical error[^<]*' /tmp/b.html | head -2
           done
       - name: Remove the preview file (always)
