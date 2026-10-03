@@ -3,7 +3,7 @@
 /** Read-only. Which header/footer templates Header Footer Elementor (plugin or theme port) picks for a visitor and for a logged-in customer, and the size of the rendered header. */
 if (!defined('ABSPATH')) exit(1);
 echo 'HFE plugin active: ' . (in_array('header-footer-elementor/header-footer-elementor.php', (array) get_option('active_plugins'), true) ? 'yes' : 'no') . ', theme port: ' . (defined('AF_HFE_PORT') ? 'yes' : 'no') . "\n";
-$customer = get_users(array('role' => 'customer', 'number' => 1, 'fields' => 'ID'));
+$customer = get_users(array('number' => 1, 'fields' => 'ID', 'orderby' => 'ID'));
 foreach (array('visitor' => 0, 'customer' => $customer ? (int) $customer[0] : 0) as $label => $uid) {
     wp_set_current_user($uid);
     $GLOBALS['wp_query'] = new WP_Query(array('page_id' => (int) get_option('page_on_front')));
