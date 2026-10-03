@@ -255,7 +255,7 @@ function af_bot_reply_handler() {
     if ($msg === '') wp_send_json_error();
 
     // light rate limit: this endpoint is public
-    $ip  = isset($_SERVER['REMOTE_ADDR']) ? sanitize_text_field($_SERVER['REMOTE_ADDR']) : '';
+    $ip  = af_visitor_ip();
     $key = 'af_bot_rl_' . md5($ip);
     $n   = (int) get_transient($key);
     if ($n > 40) wp_send_json_error(array('reply' => 'Let’s slow down a moment — try again shortly, or email the studio.'));
