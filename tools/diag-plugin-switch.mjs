@@ -88,7 +88,18 @@ async function snap(out) {
         sig[k] = (sig[k] || 0) + 1;
       }
       const text = document.body.innerText.split('\n').map(s => s.replace(/\s+/g, ' ').trim()).filter(Boolean);
-      return { title: document.title, sig, n, text, bodyClass: document.body.className, h: document.documentElement.scrollHeight, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+      // what search engines read: title, meta tags, canonical/alternate links, JSON-LD
+      const head = [];
+      head.push('title=' + document.title);
+      document.querySelectorAll('meta[name], meta[property], meta[itemprop]').forEach(m => {
+        const k = m.getAttribute('name') || m.getAttribute('property') || m.getAttribute('itemprop');
+        if (/^(viewport|generator|csrf|google-site-verification|msapplication|theme-color|af-port-preview)$/i.test(k)) return;
+        head.push('meta ' + k + '=' + (m.getAttribute('content') || '').replace(/\s+/g, ' ').trim());
+      });
+      document.querySelectorAll('link[rel="canonical"], link[rel="alternate"], link[rel="prev"], link[rel="next"], link[rel="shortlink"]').forEach(l => head.push('link ' + l.rel + (l.hreflang ? '[' + l.hreflang + ']' : '') + (l.type ? '(' + l.type + ')' : '') + '=' + l.getAttribute('href')));
+      document.querySelectorAll('script[type="application/ld+json"]').forEach(sc => head.push('ld+json ' + sc.textContent.replace(/\s+/g, ' ').trim()));
+      head.sort();
+      return { title: document.title, head, sig, n, text, bodyClass: document.body.className, h: document.documentElement.scrollHeight, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
     }).catch(e => ({ error: e.message }));
     const file = path.join(out, key.replace(/[^a-z0-9]+/gi, '_') + '.png');
     try { await p.screenshot({ path: file, fullPage: true, captureBeyondViewport: true }); } catch {}
@@ -107,6 +118,11 @@ async function snap(out) {
     await sleep(1500); await p.close();
     await pool(['/cart/', '/checkout/'].flatMap(u => WIDTHS.map(w => [u, w])), 2);
   } catch (e) { console.log('basket pages failed: ' + e.message); }
+  // what search engines fetch besides pages: robots.txt and the XML sitemaps
+  for (const u of ['/robots.txt', '/sitemap_index.xml', '/page-sitemap.xml', '/post-sitemap.xml', '/product-sitemap.xml', '/product_cat-sitemap.xml', '/category-sitemap.xml']) {
+    try { const r = await fetch(S + u + '?afsw=' + Date.now(), { headers: { 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) Chrome/124 Safari/537.36' } }); results['raw ' + u] = { url: u, w: 0, raw: true, status: r.status, body: (await r.text()).replace(/\?afsw=\d+/g, '') }; }
+    catch (e) { results['raw ' + u] = { url: u, w: 0, raw: true, status: 0, body: '' }; }
+  }
   fs.writeFileSync(path.join(out, 'snap.json'), JSON.stringify(results));
   console.log(`snap: ${Object.keys(results).length} page views (${pages.length} pages) into ${out}`);
   await b.close();
@@ -136,6 +152,21 @@ function compare(fa, fb, fc) {
     const out = [];
     let verdict = 'PASS';
     if (c.status !== a.status) { out.push(`status ${a.status} -> ${c.status}`); verdict = 'FAIL'; }
+    if (a.raw) {
+      // robots.txt / sitemaps: identical in both befores but different after = FAIL
+      if ((a.body || '') === (b.body || '') && (a.body || '') !== (c.body || '')) {
+        const la = (a.body || '').split('\n'), lc = (c.body || '').split('\n');
+        const gone = la.filter(x => !lc.includes(x)).slice(0, 4), added = lc.filter(x => !la.includes(x)).slice(0, 4);
+        out.push('content changed: -' + JSON.stringify(gone).slice(0, 300) + ' +' + JSON.stringify(added).slice(0, 300)); verdict = 'FAIL';
+      }
+      if (verdict === 'FAIL') fail++; lines.push(`${verdict} ${k}` + (out.length ? '\n    ' + out.join('\n    ') : '')); continue;
+    }
+    // head tags search engines read: stable in both befores but different after = FAIL
+    if (a.head && b.head && c.head) {
+      const ha = new Set(a.head), hb = new Set(b.head), hc = new Set(c.head);
+      const hg = [...ha].filter(x => hb.has(x) && !hc.has(x)), hn = [...hc].filter(x => !ha.has(x) && !hb.has(x));
+      if (hg.length || hn.length) { out.push('head (SEO) changed: -' + JSON.stringify(hg.slice(0, 4)).slice(0, 400) + ' +' + JSON.stringify(hn.slice(0, 4)).slice(0, 400)); verdict = 'FAIL'; }
+    }
     // text: lines present in both befores but gone after, or new after (not in either before)
     const ta = new Set(a.text || []), tb = new Set(b.text || []), tc = new Set(c.text || []);
     const gone = [...ta].filter(t => tb.has(t) && !tc.has(t));
