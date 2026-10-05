@@ -72,14 +72,20 @@ foreach ($ids as $id) {
     $b = $rules($new);
     $onlyOld = array_diff_key($a, $b);
     $onlyNew = array_diff_key($b, $a);
-    $totalOnlyOld += count($onlyOld); $totalOnlyNew += count($onlyNew);
     $title = mb_substr($post->post_title, 0, 30);
-    $head = "#$id {$post->post_type} \"$title\": today's file " . ($old === null ? 'none' : count($a) . ' rules') . ', rebuilt ' . count($b) . ' rules';
-    if (!$onlyOld && !$onlyNew) { echo "SAME  $head\n"; continue; }
-    echo "\nDIFF  $head\n";
-    foreach (array_slice(array_keys($onlyOld), 0, 25) as $r) echo "   only today:   " . substr($r, 0, 300) . "\n";
-    if (count($onlyOld) > 25) echo '   … ' . (count($onlyOld) - 25) . " more only today\n";
-    foreach (array_slice(array_keys($onlyNew), 0, 25) as $r) echo "   only rebuilt: " . substr($r, 0, 300) . "\n";
-    if (count($onlyNew) > 25) echo '   … ' . (count($onlyNew) - 25) . " more only rebuilt\n";
+    $keys = array_keys($b); sort($keys);
+    $fp = substr(md5(implode("\n", $keys)), 0, 8);
+    $line = "#$id {$post->post_type} \"$title\": rebuilt " . count($b) . " rules, fingerprint $fp, ";
+    if ($old === null) { echo "NOFILE $line" . "no file today (built on first view)\n"; continue; }
+    $line .= "today's file " . count($a) . ' rules';
+    $totalOnlyOld += count($onlyOld); $totalOnlyNew += count($onlyNew);
+    if (!$onlyOld && !$onlyNew) { echo "SAME   $line\n"; continue; }
+    echo "DIFF   $line, only today " . count($onlyOld) . ', only rebuilt ' . count($onlyNew) . "\n";
+    // Rules visitors have today that the rebuild would lose matter most;
+    // the port's own pages are shown in full.
+    $detail = $onlyOld || in_array($id, array(75, 2592, 1853, 3014, 3377, 3425, 5660, 5661), true);
+    if (!$detail) continue;
+    foreach (array_slice(array_keys($onlyOld), 0, 30) as $r) echo "         only today:   " . substr($r, 0, 260) . "\n";
+    foreach (array_slice(array_keys($onlyNew), 0, 30) as $r) echo "         only rebuilt: " . substr($r, 0, 260) . "\n";
 }
-echo "\n$pages pages: $totalOnlyOld rules only in today's files, $totalOnlyNew only in the rebuild\ndone\n";
+echo "\n$pages pages; on the pages with a file today: $totalOnlyOld rules only in today's files, $totalOnlyNew only in the rebuild\ndone\n";
