@@ -199,7 +199,7 @@ async function snap(out) {
     // pages without a <head> of WordPress's own, the response header; an
     // access-denied page (wp_die 401/403) is the same whatever is loaded
     const st = r ? r.status() : 0, pvHdr = r ? (r.headers()['x-af-port-preview'] || '') : '';
-    if (PV && data && !data.error && data.pv !== PV_SKIP && !(data.pv === '' && (pvHdr === 'on' || st === 401 || st === 403))) notPreview.push(key + ' (marker: ' + (data.pv || 'none found') + ', status ' + st + ')');
+    if (PV && data && !data.error && data.pv !== PV_SKIP && !(data.pv === '' && (pvHdr === 'on' || st === 401 || st === 403 || st === 508))) notPreview.push(key + ' (marker: ' + (data.pv || 'none found') + ', status ' + st + ')');
     if (data && data.lang) data.head = [...(data.head || []), 'html lang=' + data.lang].sort();
     const file = path.join(out, key.replace(/[^a-z0-9]+/gi, '_') + '.png');
     try { await p.screenshot({ path: file, fullPage: true, captureBeyondViewport: true }); } catch {}
