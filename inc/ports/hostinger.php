@@ -51,7 +51,10 @@
  * Settings stay where the plugin keeps them (hostinger_tools,
  * hostinger_first_login_at, hts_new_installation), untouched. Only
  * disable_authentication_password is read here; to change any setting, switch
- * the plugin back on (this file then steps aside again).
+ * the plugin back on (this file then steps aside again). Switch it on with
+ * Plugins > Activate or WP-CLI (switch-plugins.yml), not through the REST
+ * plugins endpoint with an application password: the loader leaves this file
+ * out of that one request, so over plain http the password is refused (401).
  *
  * Admin: the Tools screen is gone. A bookmark or hPanel link to its pages
  * (admin.php?page=hostinger, ?page=hostinger-tools) now opens the dashboard
