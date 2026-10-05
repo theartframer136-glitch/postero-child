@@ -51,8 +51,23 @@
     if (opts.loop) opts.loopedSlides = count;
     if (opts.effect === 'fade') opts.fadeEffect = { crossFade: true };
 
+    // As Elementor Pro: the active slide's picture box carries
+    // elementor-ken-burns--active (the zoom itself only runs where a slide
+    // has Ken Burns on, which gives its box elementor-ken-burns). Marked once
+    // the slider is up (so the copies a looping slider makes stay unmarked),
+    // then on each change.
+    var kenBurnsBg = null;
+    function kenBurns(swiper) {
+      if (kenBurnsBg) kenBurnsBg.classList.remove('elementor-ken-burns--active');
+      var slide = swiper.slides[swiper.activeIndex];
+      kenBurnsBg = slide ? slide.querySelector(':scope > .swiper-slide-bg') : null;
+      if (kenBurnsBg) kenBurnsBg.classList.add('elementor-ken-burns--active');
+    }
+    opts.on = { slideChange: function () { kenBurns(this); } };
+
     Promise.resolve(new window.elementorFrontend.utils.swiper(wrap, opts)).then(function (swiper) {
       if (!swiper) return;
+      kenBurns(swiper);
       if (s.pause_on_hover === 'yes' && opts.autoplay && swiper.autoplay) {
         wrap.addEventListener('mouseenter', function () { swiper.autoplay.stop(); });
         wrap.addEventListener('mouseleave', function () { swiper.autoplay.start(); });

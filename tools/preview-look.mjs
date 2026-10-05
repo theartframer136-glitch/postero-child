@@ -71,6 +71,15 @@ function diffShare(a, b) {
 async function look(browser, label, w, h, path, skip, cache = '') {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, isMobile: label === 'phone', hasTouch: label === 'phone' });
   const page = await ctx.newPage();
+  // Who moves the page: every scroll call, focus and scrollIntoView while
+  // window.__afWatch is on, with the script line that made it.
+  await page.addInitScript(() => {
+    window.__afCalls = [];
+    const where = () => { const l = (new Error().stack || '').split('\n').slice(1).find(x => /^\s*at /.test(x) && !/<anonymous>/.test(x)) || ''; return l.replace(/^\s*at\s*/, '').replace(location.origin, '').replace(/\?\S*?(?=:\d+:\d+\)?$)/, '').replace(/\?\S*/, '').slice(0, 140); };
+    const wrap = (obj, name, label) => { const f = obj[name]; if (typeof f !== 'function') return; obj[name] = function () { if (window.__afWatch) window.__afCalls.push(label + '(' + [...arguments].map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(',').slice(0, 60) + ') ' + where()); return f.apply(this, arguments); }; };
+    wrap(window, 'scrollTo', 'scrollTo'); wrap(window, 'scroll', 'scroll'); wrap(window, 'scrollBy', 'scrollBy');
+    wrap(Element.prototype, 'scrollIntoView', 'scrollIntoView'); wrap(HTMLElement.prototype, 'focus', 'focus');
+  });
   const errs = [], logs = [], failed = [];
   page.on('pageerror', e => errs.push(String(e.message || e).slice(0, 140)));
   page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') logs.push(m.type() + ': ' + m.text().slice(0, 160)); });
@@ -139,8 +148,28 @@ async function look(browser, label, w, h, path, skip, cache = '') {
       s.click = clicked;
     }
   }
+  // The whole-site switch check's routine (tools/diag-plugin-switch.mjs):
+  // scroll down in 700px steps to let lazy parts load, back to the top, wait.
+  // Where the page then sits, the header's state, the page's exact height and
+  // anything sticky; and every script call that moved the page after the
+  // return to the top.
+  const scroll = await page.evaluate(async () => {
+    for (let y = 0; y < document.body.scrollHeight; y += 700) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 120)); }
+    window.scrollTo(0, 0);
+    window.__afWatch = true; window.__afCalls = [];
+    const ys = [];
+    const onScroll = () => ys.push(Math.round(window.scrollY));
+    window.addEventListener('scroll', onScroll, { passive: true });
+    await new Promise(r => setTimeout(r, 1500));
+    window.removeEventListener('scroll', onScroll);
+    window.__afWatch = false;
+    const header = document.querySelector('#masthead, header.site-header');
+    const sticky = [...document.querySelectorAll('[class*="sticky"]')].slice(0, 8).map(e => e.tagName.toLowerCase() + '.' + [...e.classList].filter(c => /sticky|header/.test(c)).join('.') + ' ' + Math.round(e.getBoundingClientRect().height) + 'px ' + getComputedStyle(e).position);
+    return { y: Math.round(window.scrollY), moves: ys.slice(0, 12), calls: window.__afCalls.slice(0, 10), height: document.documentElement.scrollHeight,
+      header: header ? ([...header.classList].includes('af-header-stuck') ? 'stuck ' : 'not stuck ') + getComputedStyle(header).position + ' ' + Math.round(header.getBoundingClientRect().height) + 'px' : 'none', sticky };
+  }).catch(e => ({ fail: String(e).slice(0, 120) }));
   await ctx.close();
-  return { status: r ? r.status() : 0, marker, pvHeader, logs: [...new Set(logs)].slice(0, 12), failed: failed.slice(0, 12), errs: [...new Set(errs)], shotBuf: shot, shot: shot ? readPng(shot) : null, ...d };
+  return { status: r ? r.status() : 0, scroll, marker, pvHeader, logs: [...new Set(logs)].slice(0, 12), failed: failed.slice(0, 12), errs: [...new Set(errs)], shotBuf: shot, shot: shot ? readPng(shot) : null, ...d };
 }
 
 const browser = await chromium.launch({ headless: true });
@@ -179,6 +208,17 @@ for (const path of URLS) {
       }
     }
     row('footer bar', a.bar, b.bar);
+    // after the switch check's scroll down and back to the top
+    const sa = a.scroll || {}, sb = b.scroll || {};
+    row('back at the top', sa.y === 0 ? 'yes' : 'no (' + sa.y + 'px)', sb.y === 0 ? 'yes' : 'no (' + sb.y + 'px)');
+    row('header then', sa.header, sb.header);
+    row('exact height', sa.height, sb.height);
+    if (sa.y !== sb.y || sa.header !== sb.header || sa.height !== sb.height) {
+      for (const [name, x] of [['now', sa], [SKIP + ' off', sb]]) {
+        console.log('    after the scroll, ' + name + ': page moved ' + JSON.stringify(x.moves) + '; calls ' + JSON.stringify(x.calls));
+        console.log('      sticky things: ' + JSON.stringify(x.sticky));
+      }
+    }
     if (a.shot && b.shot) {
       const share = diffShare(a.shot, b.shot);
       console.log('  ' + (share < 0.02 ? 'SAME   ' : 'DIFFERS') + ' first screen     ' + (share * 100).toFixed(2) + '% of pixels differ');

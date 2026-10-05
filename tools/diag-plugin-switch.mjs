@@ -121,6 +121,20 @@ async function snap(out) {
     // Related, upsell and cross-sell carousels show other random products on
     // every build: not part of the comparison (hidden before measuring).
     await p.evaluate(() => document.querySelectorAll('section.related, .related.products, .up-sells, .upsells, .cross-sells, .af-wl-related').forEach(e => e.style.setProperty('display', 'none', 'important'))).catch(() => {});
+    // back at the top for real before measuring: on a long page and a busy
+    // server the page can still be on its way back (5 Oct, phone home page:
+    // header still stuck, more of the page lazy-loaded, screenshot from
+    // further down), so it is asked again until it stays at 0 and a frame
+    // has been drawn (the page's own scroll handlers have seen it). Where it
+    // will not stay, the comparison says so.
+    const top = await p.evaluate(async () => {
+      const frame = () => Promise.race([new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))), new Promise(r => setTimeout(r, 500))]);
+      for (let i = 0; i < 10; i++) {
+        if (window.scrollY === 0) { await frame(); if (window.scrollY === 0) break; }
+        window.scrollTo(0, 0); await new Promise(r => setTimeout(r, 200));
+      }
+      return Math.round(window.scrollY);
+    }).catch(() => -1);
     const data = await p.evaluate(() => {
       const vis = (el) => { const s = getComputedStyle(el); if (s.display === 'none' || s.visibility === 'hidden' || +s.opacity === 0) return false; const b = el.getBoundingClientRect(); return b.width > 0 && b.height > 0; };
       const sig = {};
@@ -161,7 +175,7 @@ async function snap(out) {
     if (data && data.lang) data.head = [...(data.head || []), 'html lang=' + data.lang].sort();
     const file = path.join(out, key.replace(/[^a-z0-9]+/gi, '_') + '.png');
     try { await p.screenshot({ path: file, fullPage: true, captureBeyondViewport: true }); } catch {}
-    results[key] = unPv({ url: u, w, status: r ? r.status() : 0, ...data, assets: [...new Set(assets)].sort(), errs: [...errs], shot: file });
+    results[key] = unPv({ url: u, w, status: r ? r.status() : 0, top, ...data, assets: [...new Set(assets)].sort(), errs: [...errs], shot: file });
     await p.close();
   };
   // three pages at a time: the whole site in about a third of the time
@@ -276,6 +290,9 @@ function compare(fa, fb, fc) {
       if (!still) vanished.push(s);
     }
     if (vanished.length) { out.push(`gone entirely (${vanished.length}): ` + vanished.slice(0, 8).join(', ')); verdict = 'FAIL'; }
+    // a page that would not stay at the top when measured: its element and
+    // screenshot differences may be that, not the plugins
+    if ([a.top, b.top, c.top].some(t => t)) { out.push(`not at the top when measured (before, before, after): ${[a.top, b.top, c.top].map(t => t === -1 ? '?' : (t || 0) + 'px').join(', ')}`); if (verdict === 'PASS') verdict = 'REVIEW'; }
     if ((a.bodyClass || '') !== (c.bodyClass || '') && (a.bodyClass || '') === (b.bodyClass || '')) { const x = new Set((a.bodyClass || '').split(/\s+/)), z = new Set((c.bodyClass || '').split(/\s+/)); out.push(`body classes: -[${[...x].filter(q => !z.has(q)).join(' ')}] +[${[...z].filter(q => !x.has(q)).join(' ')}]`); }
     const newErr = (c.errs || []).filter(e => !(a.errs || []).includes(e) && !(b.errs || []).includes(e));
     if (newErr.length) { out.push('new errors: ' + newErr.slice(0, 4).join(' | ')); verdict = 'FAIL'; }
