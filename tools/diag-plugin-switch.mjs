@@ -164,7 +164,16 @@ async function snap(out) {
       // a server file path in the page (a URL built from a path that did not map)
       const leak = (document.documentElement.outerHTML.match(/\/home\/u\d+\/[^"' <)]*/) || [''])[0].slice(0, 120);
       const pvm = document.querySelector('meta[name="af-port-preview"]');
-      return { pv: pvm ? pvm.getAttribute('content') : '', title: document.title, head, sig, n, text, leak, lang: document.documentElement.getAttribute('lang') || '', bodyClass: document.body.className, h: document.documentElement.scrollHeight, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+      // each top-level page section shown (Elementor containers and
+      // sections, header and footer templates included): where it is, how
+      // tall, how many pictures, which widgets, so a change can be placed
+      const sections = [...document.querySelectorAll('.elementor-element.e-parent, .elementor-top-section')].filter(vis).map(e => {
+        const b = e.getBoundingClientRect();
+        return { id: e.getAttribute('data-id') || '', y: Math.round(b.top + window.scrollY), h: Math.round(b.height),
+          img: [...e.querySelectorAll('img')].filter(vis).length,
+          w: [...new Set([...e.querySelectorAll('[data-widget_type]')].filter(vis).map(x => x.getAttribute('data-widget_type').replace(/\.default$/, '')))].sort().join(',').slice(0, 160) };
+      });
+      return { pv: pvm ? pvm.getAttribute('content') : '', title: document.title, head, sig, n, text, leak, sections, lang: document.documentElement.getAttribute('lang') || '', bodyClass: document.body.className, h: document.documentElement.scrollHeight, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
     }).catch(e => ({ error: e.message }));
     if (data && data.leak) errs.push('server path in page: ' + data.leak);
     // a preview is marked by the meta tag (naming what was unloaded) or, on
@@ -274,6 +283,22 @@ function compare(fa, fb, fc) {
     const sigd = [];
     for (const s of keys) { const x = sa[s] || 0, y = sb[s] || 0, z = sc[s] || 0; if (x === y && z !== x) sigd.push(`${s} ${x}->${z}`); }
     if (sigd.length) { out.push(`elements changed (${sigd.length}): ` + sigd.slice(0, 12).join(', ')); if (sigd.length > 6 && verdict !== 'FAIL') verdict = 'REVIEW'; }
+    // which page sections those are: same in both befores, different after
+    // (height, pictures shown, widgets shown), or shown only on one side
+    const secOf = (x) => new Map((x.sections || []).filter(q => q.id).map(q => [q.id, q]));
+    const ma = secOf(a), mb = secOf(b), mc = secOf(c), secd = [];
+    for (const [id, x] of ma) {
+      const y = mb.get(id), z = mc.get(id);
+      if (!y || x.h !== y.h || x.img !== y.img || x.w !== y.w) continue;
+      if (!z) { secd.push(`#${id} at y=${x.y} (${x.h}px, ${x.w || 'no widgets'}) not shown after`); continue; }
+      const ch = [];
+      if (z.h !== x.h) ch.push(`height ${x.h}->${z.h}`);
+      if (z.img !== x.img) ch.push(`pictures ${x.img}->${z.img}`);
+      if (z.w !== x.w) { const wa = new Set(x.w.split(',')), wz = new Set(z.w.split(',')); ch.push(`widgets -[${[...wa].filter(q => q && !wz.has(q)).join(' ')}] +[${[...wz].filter(q => q && !wa.has(q)).join(' ')}]`); }
+      if (ch.length) secd.push(`#${id} at y=${z.y}: ${ch.join(', ')} (${z.w || 'no widgets'})`);
+    }
+    for (const [id, z] of mc) if (!ma.has(id) && !mb.has(id)) secd.push(`#${id} at y=${z.y} (${z.h}px, ${z.w || 'no widgets'}) shown only after`);
+    if (secd.length) out.push(`sections changed (${secd.length}): ` + secd.slice(0, 6).join(' | '));
     // a kind of element that was on the page in both befores and is gone
     // completely after (not just restyled: no element of that tag and first
     // class / id is left at all) is a section that stopped rendering
