@@ -109,6 +109,20 @@ async function snap(out) {
     // even though the console line for it ("404 ()") is filtered above
     p.on('response', r => { try { const t = r.request().resourceType(); if ((t === 'stylesheet' || t === 'script') && r.url().startsWith(S) && r.status() >= 400) errs.push(`asset ${r.status()}: ` + r.url().replace(S, '').replace(/\?.*$/, '')); } catch {} });
     p.on('requestfailed', r => { try { const t = r.resourceType(); if ((t === 'stylesheet' || t === 'script') && r.url().startsWith(S) && !/ERR_ABORTED/.test((r.failure() || {}).errorText || '')) errs.push('asset failed: ' + r.url().replace(S, '').replace(/\?.*$/, '')); } catch {} });
+    // the checkout's order-summary request itself (wc-ajax=update_order_review):
+    // what the server sent back, so a summary that does not refresh says why
+    // (a broken answer) or shows it did and only the page's signal was missed
+    const review = [];
+    p.on('response', r => {
+      if (!/[?&]wc-ajax=update_order_review/.test(r.url())) return;
+      const st = r.status();
+      r.text().then(body => {
+        let ok = false, note = '';
+        try { const j = JSON.parse(body); ok = !!(j && j.fragments) && j.result !== 'failure'; if (!ok) note = 'answer without the summary: ' + body.replace(/\s+/g, ' ').slice(0, 160); }
+        catch { note = 'answer is not JSON: ' + body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200); }
+        review.push({ st, ok, note });
+      }).catch(() => review.push({ st, ok: false, note: 'answer unreadable' }));
+    });
     // WooCommerce's checkout refreshes its order summary by itself once the
     // page is up (updated_checkout): counted, so a checkout that never does
     // with the plugins unloaded shows
@@ -137,6 +151,14 @@ async function snap(out) {
       for (let i = 0; i < 40 && (shade() || (isCheckout && !window.__afWc)); i++) await new Promise(r => setTimeout(r, 500));
       return { refreshed: isCheckout ? window.__afWc || 0 : null, shade: shade() };
     }).catch(() => null);
+    if (checkout && checkout.refreshed !== null) {
+      await sleep(300);
+      const okN = review.filter(x => x.ok).length, bad = review.find(x => !x.ok);
+      checkout.asked = review.length; checkout.answered = okN;
+      if (bad) checkout.bad = (bad.st !== 200 ? 'HTTP ' + bad.st + ', ' : '') + bad.note;
+      // the server sent the refreshed summary: the page's signal was only missed
+      if (!checkout.refreshed && okN) checkout.refreshed = okN;
+    }
     // Related, upsell and cross-sell carousels show other random products on
     // every build: not part of the comparison (hidden before measuring).
     await p.evaluate(() => document.querySelectorAll('section.related, .related.products, .up-sells, .upsells, .cross-sells, .af-wl-related').forEach(e => e.style.setProperty('display', 'none', 'important'))).catch(() => {});
@@ -346,7 +368,8 @@ function compare(fa, fb, fc) {
     // the checkout's order summary: refreshed itself in both befores, not after;
     // or the loading shade still up after 20s where it had lifted before
     if (a.checkout && b.checkout && c.checkout) {
-      if (a.checkout.refreshed && b.checkout.refreshed && !c.checkout.refreshed) { out.push('the checkout\'s order summary did not refresh (it did in both befores)'); verdict = 'FAIL'; }
+      if (a.checkout.refreshed && b.checkout.refreshed && !c.checkout.refreshed) { out.push('the checkout\'s order summary did not refresh (it did in both befores)' + (c.checkout.asked === undefined ? '' : !c.checkout.asked ? ': the page never asked the server for it' : c.checkout.bad ? ': the server\'s answer: ' + c.checkout.bad : ': the server answered ' + c.checkout.answered + ' of ' + c.checkout.asked + ' times')); verdict = 'FAIL'; }
+      else if (c.checkout.bad && !a.checkout.bad && !b.checkout.bad) out.push('one order-summary answer was not usable (the summary still refreshed): ' + c.checkout.bad);
       if (!a.checkout.shade && !b.checkout.shade && c.checkout.shade) { out.push('WooCommerce\'s loading shade still up after 20s (it had lifted in both befores)'); verdict = 'FAIL'; }
     } else if (a.checkout && b.checkout && !c.checkout && c.status === 200) { out.push('no checkout or basket form after (there was before)'); verdict = 'FAIL'; }
     if ((a.bodyClass || '') !== (c.bodyClass || '') && (a.bodyClass || '') === (b.bodyClass || '')) { const x = new Set((a.bodyClass || '').split(/\s+/)), z = new Set((c.bodyClass || '').split(/\s+/)); out.push(`body classes: -[${[...x].filter(q => !z.has(q)).join(' ')}] +[${[...z].filter(q => !x.has(q)).join(' ')}]`); }
