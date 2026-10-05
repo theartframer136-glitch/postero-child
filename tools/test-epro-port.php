@@ -101,6 +101,13 @@ namespace {
     check('fresh render (port stylesheet): handler added', $runFooter(array('af-epro-slides')), array('af-epro-slides'));
     check('slides.css exists', is_readable($root . '/assets/ports/epro/slides.css'), true);
     check('slides.js exists', is_readable($root . '/assets/ports/epro/slides.js'), true);
+    // As Pro's page: the slide showing is marked elementor-ken-burns--active
+    // once the slider is up (the whole-site check of 5 Oct counted 17 plain
+    // slide pictures plus that one, and the port's 18 copies match Pro's).
+    $js = (string) @file_get_contents($root . '/assets/ports/epro/slides.js');
+    check('slides.js: marks the slide showing (Ken Burns marker)', strpos($js, "classList.add('elementor-ken-burns--active')") !== false && strpos($js, 'slideChange: function () { kenBurns(this); }') !== false, true);
+    check('slides.js: marks once the slider is up, not before', (bool) preg_match('/if \(!swiper\) return;\s*kenBurns\(swiper\);/', $js), true);
+    check('slides.js: looping copies as Pro (loopedSlides = slide count)', strpos($js, 'if (opts.loop) opts.loopedSlides = count;') !== false, true);
 
     $registered = array();
     $mgr = new class($registered) { public $w = array(); function register($w) { $this->w[$w->get_name()] = $w; } };
