@@ -54,6 +54,13 @@ define('AF_EPRO_PORT_VERSION', '1');
 define('AF_EPRO_PORT_URL', get_stylesheet_directory_uri() . '/assets/ports/epro/');
 
 // The two widgets, under Elementor Pro's names, so the saved pages use them.
+// Registered last: a name registered again replaces the earlier one, and
+// with Elementor Pro off two others claim these names on the same hook
+// after the child theme (tools/diag-elementor-widget-owners.php, 5 Oct):
+// Elementor's Promotions module puts a "get Pro" placeholder under every Pro
+// widget name ("slides" among them), and the parent theme registers its own
+// "woocommerce-breadcrumb" ("Home Page", an arrow icon, a page title). Its
+// last widget hook runs at 99.
 add_action('elementor/widgets/register', function ($widgets_manager) {
     require_once __DIR__ . '/epro/slides.php';
     require_once __DIR__ . '/epro/woo-breadcrumb.php';
@@ -61,7 +68,7 @@ add_action('elementor/widgets/register', function ($widgets_manager) {
     if (function_exists('woocommerce_breadcrumb')) {
         $widgets_manager->register(new AF_EPro_Woo_Breadcrumb());
     }
-});
+}, 1000);
 
 // The slides' stylesheet and handler; Elementor loads them on the pages that
 // carry the widget (get_style_depends / get_script_depends).
