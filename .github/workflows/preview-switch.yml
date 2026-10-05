@@ -20,6 +20,10 @@ on:
       plugins:
         description: 'Plugin folders to leave unloaded in the preview (comma separated)'
         required: true
+      only:
+        description: 'Optional: only these page views, space separated, as the results name them (e.g. "/@390 /@1366 /?lang=hi@390"); empty = the whole site'
+        required: false
+        default: ''
 # One preview file at a time: Preview Ports and Preview Look share it.
 concurrency:
   group: port-preview
@@ -30,12 +34,14 @@ jobs:
     timeout-minutes: 100
     env:
       SKIP: ${{ github.event.inputs.plugins }}
+      ONLY: ${{ github.event.inputs.only }}
     steps:
       - uses: actions/checkout@v4
       - name: Check the inputs
         run: |
           set -euo pipefail
           case "$SKIP" in *[!a-z0-9,-]*|''|none) echo "bad plugin list"; exit 1;; esac
+          case "$ONLY" in *[!A-Za-z0-9/_.?=\&@\ -]*) echo "bad page list"; exit 1;; esac
       - name: Setup SSH
         run: |
           set -euo pipefail
@@ -56,6 +62,7 @@ jobs:
         run: |
           set +e
           export NODE_PATH=/tmp/afh/node_modules
+          if [ -n "$ONLY" ]; then python3 -c 'import json, os; print(json.dumps(os.environ["ONLY"].split()))' > /tmp/only.json; export AF_ONLY=/tmp/only.json; echo "only these page views: $(cat /tmp/only.json)"; fi
           AF_PV=$TOKEN AF_SKIP=none node tools/diag-plugin-switch.mjs snap /tmp/snapA || { echo "before A failed (exit $?)"; exit 3; }
           AF_PV=$TOKEN AF_SKIP=none node tools/diag-plugin-switch.mjs snap /tmp/snapB || { echo "before B failed (exit $?)"; exit 3; }
           AF_PV=$TOKEN AF_SKIP=$SKIP node tools/diag-plugin-switch.mjs snap /tmp/snapC || { echo "after failed (exit $?)"; exit 3; }
