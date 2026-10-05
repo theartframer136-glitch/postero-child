@@ -11,6 +11,9 @@
 # put:
 #   - fills the run's secret and an end time (now + 45 min) into a copy and
 #     checks it parses
+#   - checks the home page answers this runner normally before anything is
+#     put in place (a firewall or rate limit refusing the runner is then
+#     told apart from the file), and says who answered when it does not
 #   - refuses if a wp-content/db.php is there that is not ours: a real
 #     database drop-in is never touched
 #   - writes the copy next to it and moves it into place
@@ -27,6 +30,13 @@ F="$WP/wp-content/db.php"
 MARK=AF-PORT-PREVIEW-DROPIN
 TTL=${AF_PV_TTL:-2700}
 UA='Mozilla/5.0 Chrome/124'
+
+# Who answered, when a check fails: status, the server / cache / firewall
+# headers and the start of the page's text (all public).
+show_answer() {
+  grep -iE '^(HTTP/|server:|x-litespeed|x-hcdn|x-turbo|x-cache|cf-|via:|x-sucuri|x-firewall|retry-after:|location:)' "$1" 2>/dev/null | tr -d '\r' | head -12 | sed 's/^/    /'
+  printf '    page: %s\n' "$(sed -e 's/<[^>]*>/ /g' "$2" 2>/dev/null | tr -s ' \n\t' ' ' | head -c 300)"
+}
 
 ssh_run() {
   ssh -p "$SSH_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 "$SSH_DEST" "$@"
@@ -51,6 +61,16 @@ put() {
   if ! grep -q "$MARK" "$tmp" || grep -q '__AF_PREVIEW_' "$tmp"; then echo "the filled copy is wrong"; rm -f "$tmp"; return 2; fi
   if command -v php >/dev/null && ! php -l "$tmp" >/dev/null; then echo "the filled copy does not parse"; rm -f "$tmp"; return 2; fi
 
+  # Before anything is put in place, the site must answer this runner as it
+  # answers a visitor; otherwise a refusal (a firewall, a rate limit) would
+  # be blamed on the preview file.
+  code=$(curl -sS -m 60 -A "$UA" -D /tmp/af-before.h -o /tmp/af-before.html -w '%{http_code}' "$SITE/?afr=$RANDOM$RANDOM")
+  if [ "$code" != 200 ]; then
+    echo "before anything was put in place the home page answered this runner HTTP $code: nothing touched"
+    show_answer /tmp/af-before.h /tmp/af-before.html
+    rm -f "$tmp"; return 1
+  fi
+
   rc=1
   for i in 1 2 3; do
     out=$(ssh_run "if [ -e $F ] && ! grep -q $MARK $F; then echo 'a wp-content/db.php is there that is not ours: not touching it'; exit 3; fi; cat > $F.af-new && mv -f $F.af-new $F && grep -c $MARK $F" < "$tmp" 2>&1); rc=$?
@@ -62,9 +82,10 @@ put() {
   rm -f "$tmp"
   [ $rc -eq 0 ] || { echo "could not put the preview file in place"; return 1; }
 
-  code=$(curl -sS -m 60 -A "$UA" -o /tmp/af-visitor.html -w '%{http_code}' "$SITE/?afr=$RANDOM$RANDOM")
+  code=$(curl -sS -m 60 -A "$UA" -D /tmp/af-visitor.h -o /tmp/af-visitor.html -w '%{http_code}' "$SITE/?afr=$RANDOM$RANDOM")
   if [ "$code" != 200 ] || grep -q 'There has been a critical error' /tmp/af-visitor.html; then
     echo "with the file in place the home page answered visitors HTTP $code: taking it away"
+    show_answer /tmp/af-visitor.h /tmp/af-visitor.html
     remove; return 1
   fi
   hdr=$(curl -sS -m 90 -A "$UA" -D - -o /tmp/af-preview.html "$SITE/?afr=$RANDOM$RANDOM&af_pv=$AF_PV&af_skip=none" | tr -d '\r')
