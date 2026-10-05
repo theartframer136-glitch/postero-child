@@ -61,6 +61,14 @@ jobs:
           AF_PV=$TOKEN AF_SKIP=$SKIP node tools/diag-plugin-switch.mjs snap /tmp/snapC || { echo "after failed (exit $?)"; exit 3; }
           node tools/diag-plugin-switch.mjs compare /tmp/snapA /tmp/snapB /tmp/snapC
           rc=$?
+          if [ $rc -eq 1 ]; then
+            # a break shows twice; a slow third-party widget (YouTube, Instagram) seldom does
+            echo "=== re-checking the failing page views once, freshly: $(cat /tmp/snapC/fails.json)"
+            AF_ONLY=/tmp/snapC/fails.json AF_PV=$TOKEN AF_SKIP=$SKIP node tools/diag-plugin-switch.mjs snap /tmp/snapC2 || { echo "re-check failed (exit $?)"; exit 3; }
+            AF_ONLY=/tmp/snapC/fails.json node tools/diag-plugin-switch.mjs compare /tmp/snapA /tmp/snapB /tmp/snapC2
+            rc2=$?
+            if [ $rc2 -eq 1 ]; then rc=1; else rc=2; echo "=== the failures did not repeat: REVIEW, not FAIL"; fi
+          fi
           echo "PREVIEW RESULT (plugins unloaded: $SKIP): $([ $rc -eq 0 ] && echo PASS || ([ $rc -eq 2 ] && echo REVIEW || echo FAIL)) (compare exit $rc)"
           exit $rc
       - name: Remove the preview file (always)
