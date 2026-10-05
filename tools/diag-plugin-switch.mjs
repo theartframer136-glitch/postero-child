@@ -109,6 +109,15 @@ async function snap(out) {
     // even though the console line for it ("404 ()") is filtered above
     p.on('response', r => { try { const t = r.request().resourceType(); if ((t === 'stylesheet' || t === 'script') && r.url().startsWith(S) && r.status() >= 400) errs.push(`asset ${r.status()}: ` + r.url().replace(S, '').replace(/\?.*$/, '')); } catch {} });
     p.on('requestfailed', r => { try { const t = r.resourceType(); if ((t === 'stylesheet' || t === 'script') && r.url().startsWith(S) && !/ERR_ABORTED/.test((r.failure() || {}).errorText || '')) errs.push('asset failed: ' + r.url().replace(S, '').replace(/\?.*$/, '')); } catch {} });
+    // WooCommerce's checkout refreshes its order summary by itself once the
+    // page is up (updated_checkout): counted, so a checkout that never does
+    // with the plugins unloaded shows
+    await p.evaluateOnNewDocument(() => {
+      window.__afWc = 0;
+      let n = 0;
+      const hook = () => { if (window.jQuery) { window.jQuery(document.body).on('updated_checkout', () => { window.__afWc++; }); return; } if (++n < 400) setTimeout(hook, 50); };
+      hook();
+    }).catch(() => {});
     const r = await go(p, S + u);
     await sleep(1500);
     // the Instagram feed fills itself from two REST calls after load (slow on
@@ -118,6 +127,16 @@ async function snap(out) {
     // let lazy parts load, then come back to the top
     try { await p.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 700) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 120)); } window.scrollTo(0, 0); }); await sleep(800); } catch {}
     await feedDone();
+    // a checkout or basket still behind WooCommerce's grey loading shade is
+    // measured once it has lifted (and the checkout once its order summary
+    // has refreshed); one that never does is recorded as such
+    const checkout = await p.evaluate(async () => {
+      if (!document.querySelector('form.checkout, form.woocommerce-cart-form')) return null;
+      const shade = () => [...document.querySelectorAll('.blockUI.blockOverlay')].filter(e => e.getBoundingClientRect().width > 0).length;
+      const isCheckout = !!document.querySelector('form.checkout');
+      for (let i = 0; i < 40 && (shade() || (isCheckout && !window.__afWc)); i++) await new Promise(r => setTimeout(r, 500));
+      return { refreshed: isCheckout ? window.__afWc || 0 : null, shade: shade() };
+    }).catch(() => null);
     // Related, upsell and cross-sell carousels show other random products on
     // every build: not part of the comparison (hidden before measuring).
     await p.evaluate(() => document.querySelectorAll('section.related, .related.products, .up-sells, .upsells, .cross-sells, .af-wl-related').forEach(e => e.style.setProperty('display', 'none', 'important'))).catch(() => {});
@@ -184,7 +203,7 @@ async function snap(out) {
     if (data && data.lang) data.head = [...(data.head || []), 'html lang=' + data.lang].sort();
     const file = path.join(out, key.replace(/[^a-z0-9]+/gi, '_') + '.png');
     try { await p.screenshot({ path: file, fullPage: true, captureBeyondViewport: true }); } catch {}
-    results[key] = unPv({ url: u, w, status: r ? r.status() : 0, top, ...data, assets: [...new Set(assets)].sort(), errs: [...errs], shot: file });
+    results[key] = unPv({ url: u, w, status: r ? r.status() : 0, top, checkout, ...data, assets: [...new Set(assets)].sort(), errs: [...errs], shot: file });
     await p.close();
   };
   // three pages at a time: the whole site in about a third of the time
@@ -308,7 +327,7 @@ function compare(fa, fb, fc) {
       if (!(x > 0 && x === y && z === 0)) continue;
       // scroll position and carousel state, not page content: a stuck header,
       // the back-to-top button, slider arrows and dots, screen-reader labels
-      if (/stuck|sticky|af-qp|swiper-button|swiper-pagination|slick-|elementor-screen-only|chevron|lightbox|tooltip/.test(s)) continue;
+      if (/stuck|sticky|blockUI|blockOverlay|blockMsg|af-qp|swiper-button|swiper-pagination|slick-|elementor-screen-only|chevron|lightbox|tooltip/.test(s)) continue;
       const m = s.match(/^([a-z0-9]+)(#[^.]+)?(?:\.([^.]+))?/); if (!m) continue;
       const base = m[1] + (m[2] || '') , cls = m[3] || '';
       const still = Object.keys(sc).some(k => (sc[k] || 0) > 0 && k.startsWith(base) && (cls === '' || k.split('.').includes(cls)));
@@ -317,7 +336,19 @@ function compare(fa, fb, fc) {
     if (vanished.length) { out.push(`gone entirely (${vanished.length}): ` + vanished.slice(0, 8).join(', ')); verdict = 'FAIL'; }
     // a page that would not stay at the top when measured: its element and
     // screenshot differences may be that, not the plugins
-    if ([a.top, b.top, c.top].some(t => t)) { out.push(`not at the top when measured (before, before, after): ${[a.top, b.top, c.top].map(t => t === -1 ? '?' : (t || 0) + 'px').join(', ')}`); if (verdict === 'PASS') verdict = 'REVIEW'; }
+    // (a few pixels is the page settling, not moving: left out)
+    const tops = [a.top, b.top, c.top].map(t => t || 0);
+    if (tops.some(t => t === -1 || t > 20)) {
+      const far = t => t === -1 || t > 120, before = far(tops[0]) || far(tops[1]), after = far(tops[2]);
+      out.push(`not at the top when measured (before, before, after): ${tops.map(t => t === -1 ? '?' : t + 'px').join(', ')}` + (before && after ? ' (the page moves itself down either way)' : ''));
+      if (after && !before && verdict === 'PASS') verdict = 'REVIEW';
+    }
+    // the checkout's order summary: refreshed itself in both befores, not after;
+    // or the loading shade still up after 20s where it had lifted before
+    if (a.checkout && b.checkout && c.checkout) {
+      if (a.checkout.refreshed && b.checkout.refreshed && !c.checkout.refreshed) { out.push('the checkout\'s order summary did not refresh (it did in both befores)'); verdict = 'FAIL'; }
+      if (!a.checkout.shade && !b.checkout.shade && c.checkout.shade) { out.push('WooCommerce\'s loading shade still up after 20s (it had lifted in both befores)'); verdict = 'FAIL'; }
+    } else if (a.checkout && b.checkout && !c.checkout && c.status === 200) { out.push('no checkout or basket form after (there was before)'); verdict = 'FAIL'; }
     if ((a.bodyClass || '') !== (c.bodyClass || '') && (a.bodyClass || '') === (b.bodyClass || '')) { const x = new Set((a.bodyClass || '').split(/\s+/)), z = new Set((c.bodyClass || '').split(/\s+/)); out.push(`body classes: -[${[...x].filter(q => !z.has(q)).join(' ')}] +[${[...z].filter(q => !x.has(q)).join(' ')}]`); }
     const newErr = (c.errs || []).filter(e => !(a.errs || []).includes(e) && !(b.errs || []).includes(e));
     if (newErr.length) { out.push('new errors: ' + newErr.slice(0, 4).join(' | ')); verdict = 'FAIL'; }

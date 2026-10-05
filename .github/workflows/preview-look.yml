@@ -24,6 +24,10 @@ on:
         description: 'Pages (paths), space separated'
         required: true
         default: '/ /shop/ /product-category/digital-canvas-prints/'
+      styles:
+        description: 'Also compare every element''s size and styles (yes/no)'
+        required: false
+        default: 'no'
 concurrency:
   group: port-preview
   cancel-in-progress: false
@@ -67,6 +71,7 @@ jobs:
         env:
           AF_SKIP: ${{ github.event.inputs.skip }}
           AF_URLS: ${{ github.event.inputs.urls }}
+          AF_STYLES: ${{ github.event.inputs.styles == 'yes' && '1' || '' }}
         run: node tools/preview-look.mjs
       - name: Remove the preview file (always)
         if: always()
