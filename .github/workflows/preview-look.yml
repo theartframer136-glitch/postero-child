@@ -7,9 +7,12 @@ name: Preview Look
 # screenshot of the first screen, at desktop and phone width.
 #
 # The same one-run secret as Preview Ports: for the length of the run
-# tools/port-preview-mu.php sits in wp-content/mu-plugins with a secret made
-# for this run, and only requests carrying it leave the named plugins
-# unloaded (never cached). It is removed at the end, whatever happens.
+# tools/port-preview-dropin.php sits in as wp-content/db.php (loaded before any
+# plugin; tools/port-preview-ctl.sh) with a secret made for this run, and only
+# requests carrying it leave the named plugins unloaded (never cached, nothing
+# kept). It is removed at the end, whatever happens, and does nothing after
+# 45 minutes in any case. The run fails, rather than reporting SAME, when the
+# file cannot be put in place or a page is not answered as a preview.
 on:
   workflow_dispatch:
     inputs:
@@ -53,30 +56,24 @@ jobs:
           printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
       - name: Put the preview file in place (this run only)
+        env:
+          SSH_PORT: ${{ secrets.HOSTINGER_PORT }}
+          SSH_DEST: ${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}
         run: |
           set -euo pipefail
-          TOKEN=$(openssl rand -hex 24); echo "::add-mask::$TOKEN"; echo "AF_PV=$TOKEN" >> "$GITHUB_ENV"
-          sed "s/__AF_PREVIEW_TOKEN__/$TOKEN/" tools/port-preview-mu.php > /tmp/af-port-preview.php
-          for i in 1 2 3; do
-            scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
-              /tmp/af-port-preview.php "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/mu-plugins/af-port-preview.php" && break
-            echo "  attempt $i failed"; sleep 15
-          done
-          rm -f /tmp/af-port-preview.php
+          AF_PV=$(openssl rand -hex 24); echo "::add-mask::$AF_PV"; echo "AF_PV=$AF_PV" >> "$GITHUB_ENV"
+          AF_PV=$AF_PV bash tools/port-preview-ctl.sh put
       - name: Look at each page both ways
         env:
           AF_SKIP: ${{ github.event.inputs.skip }}
           AF_URLS: ${{ github.event.inputs.urls }}
-        run: node tools/preview-look.mjs || true
+        run: node tools/preview-look.mjs
       - name: Remove the preview file (always)
         if: always()
-        run: |
-          for i in 1 2 3 4; do
-            ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
-              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-              "rm -f ~/websites/OPu0sKi4J/public_html/wp-content/mu-plugins/af-port-preview.php; ls ~/websites/OPu0sKi4J/public_html/wp-content/mu-plugins/ | grep -c af-port-preview || true" && break
-            echo "  attempt $i failed"; sleep 15
-          done
+        env:
+          SSH_PORT: ${{ secrets.HOSTINGER_PORT }}
+          SSH_DEST: ${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}
+        run: bash tools/port-preview-ctl.sh remove
       - name: Keep the screenshots
         if: always()
         uses: actions/upload-artifact@v4
