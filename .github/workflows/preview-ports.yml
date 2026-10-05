@@ -2,11 +2,15 @@ name: Preview Ports
 # Shows what pages would look like with some plugins switched off and their
 # theme ports doing the work — without switching anything off for visitors.
 #
-# For the length of this run a tiny must-use plugin (tools/port-preview-mu.php)
-# sits in wp-content/mu-plugins with a one-time secret made for this run. Only
+# For the length of this run a tiny file (tools/port-preview-dropin.php) sits
+# in as wp-content/db.php, which WordPress loads before any plugin
+# (tools/port-preview-ctl.sh), with a one-time secret made for this run. Only
 # requests carrying that secret leave the named plugins unloaded (and are never
-# cached); every visitor's request is untouched. The file is removed at the end
-# of the run, whatever happens.
+# cached, nothing kept); every visitor's request is untouched. The file is
+# removed at the end of the run, whatever happens, and does nothing after 45
+# minutes in any case. (Until 5 Oct it went to wp-content/mu-plugins, which on
+# this host is Hostinger's read-only folder: the upload failed and the run
+# compared the live site with itself. Now the run fails instead.)
 #
 # For each page it fetches the HTML twice (plugins as they are, and with the
 # named plugins unloaded) and prints the status, size, the markup markers, and
@@ -21,6 +25,10 @@ on:
         description: 'Pages (paths), space separated'
         required: true
         default: '/'
+# One preview file at a time: Preview Look shares it.
+concurrency:
+  group: port-preview
+  cancel-in-progress: false
 jobs:
   preview:
     runs-on: ubuntu-latest
@@ -42,19 +50,17 @@ jobs:
           printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
       - name: Put the preview file in place (this run only)
+        env:
+          SSH_PORT: ${{ secrets.HOSTINGER_PORT }}
+          SSH_DEST: ${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}
         run: |
           set -euo pipefail
           TOKEN=$(openssl rand -hex 24); echo "::add-mask::$TOKEN"; echo "TOKEN=$TOKEN" >> "$GITHUB_ENV"
-          sed "s/__AF_PREVIEW_TOKEN__/$TOKEN/" tools/port-preview-mu.php > /tmp/af-port-preview.php
-          for i in 1 2 3; do
-            scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
-              /tmp/af-port-preview.php "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/mu-plugins/af-port-preview.php" && break
-            echo "  attempt $i failed"; sleep 15
-          done
-          rm -f /tmp/af-port-preview.php
+          AF_PV=$TOKEN bash tools/port-preview-ctl.sh put
       - name: Fetch each page both ways
         run: |
           set +e
+          NOTPV=0
           cat > /tmp/cmp.py <<'EOS'
           import re, sys
           a = open(sys.argv[1], encoding='utf-8', errors='replace').read()
@@ -77,9 +83,15 @@ jobs:
           EOS
           for u in $URLS; do
             q="afr=$RANDOM$RANDOM&af_pv=$TOKEN"; case "$u" in *\?*) url="https://theartframer.us$u&$q";; *) url="https://theartframer.us$u?$q";; esac
-            A=$(curl -sS -m 90 -A 'Mozilla/5.0 Chrome/124' -o /tmp/a.html -w '%{http_code} %{size_download}' "$url&af_skip=none")
+            A=$(curl -sS -m 90 -A 'Mozilla/5.0 Chrome/124' -D /tmp/a.h -o /tmp/a.html -w '%{http_code} %{size_download}' "$url&af_skip=none")
             B=$(curl -sS -m 90 -A 'Mozilla/5.0 Chrome/124' -D /tmp/b.h -o /tmp/b.html -w '%{http_code} %{size_download}' "$url&af_skip=$SKIP")
-            echo "=== $u   plugins on: $A   with ports: $B   (preview marker: on $(grep -c 'af-port-preview\" content=\"none' /tmp/a.html), ports $(grep -c "af-port-preview\" content=\"$SKIP" /tmp/b.html); header $(grep -ci 'x-af-port-preview: on' /tmp/b.h))"
+            echo "=== $u   plugins on: $A   with ports: $B   (preview marker: on $(grep -c 'af-port-preview\" content=\"none' /tmp/a.html), ports $(grep -c "af-port-preview\" content=\"$SKIP" /tmp/b.html); header $(grep -ci 'x-af-port-preview: on' /tmp/a.h) $(grep -ci 'x-af-port-preview: on' /tmp/b.h))"
+            # both answers must come from the preview, or the comparison means nothing
+            pa=$(grep -ci 'x-af-port-preview: on' /tmp/a.h; grep -c 'af-port-preview" content="none"' /tmp/a.html)
+            pb=$(grep -ci 'x-af-port-preview: on' /tmp/b.h; grep -c "af-port-preview\" content=\"$SKIP\"" /tmp/b.html)
+            if [ "$(echo $pa | tr -d ' 0')" = '' ] || [ "$(echo $pb | tr -d ' 0')" = '' ]; then
+              echo "    NOT A PREVIEW: an answer did not come through the preview file; nothing below is a comparison"; NOTPV=1
+            fi
             python3 /tmp/cmp.py /tmp/a.html /tmp/b.html
             case "$u" in /wp-json/*|*wc-ajax*|*admin-ajax*)
               echo "    plugins on : $(head -c 300 /tmp/a.html | tr '\n' ' ')"
@@ -87,12 +99,10 @@ jobs:
             esac
             grep -o 'There has been a critical error[^<]*' /tmp/b.html | head -2
           done
+          [ "$NOTPV" = 0 ] || { echo "the preview was not active for every answer: this run compared nothing"; exit 2; }
       - name: Remove the preview file (always)
         if: always()
-        run: |
-          for i in 1 2 3 4; do
-            ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
-              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-              "rm -f ~/websites/OPu0sKi4J/public_html/wp-content/mu-plugins/af-port-preview.php; ls ~/websites/OPu0sKi4J/public_html/wp-content/mu-plugins/ | grep -c af-port-preview || true" && break
-            echo "  attempt $i failed"; sleep 15
-          done
+        env:
+          SSH_PORT: ${{ secrets.HOSTINGER_PORT }}
+          SSH_DEST: ${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}
+        run: bash tools/port-preview-ctl.sh remove

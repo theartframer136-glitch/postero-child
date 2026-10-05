@@ -1,8 +1,13 @@
 // How pages LOOK and BEHAVE with some plugins unloaded and their theme ports
 // doing the work, in a real browser, next to the same pages as they are now,
 // without switching anything off for visitors. Run by preview-look.yml, which
-// puts tools/port-preview-mu.php in place for the run with a one-time secret
-// (AF_PV): only requests carrying it leave the plugins in AF_SKIP unloaded.
+// puts tools/port-preview-dropin.php in place (as wp-content/db.php) for the
+// run with a one-time secret (AF_PV): only requests carrying it leave the
+// plugins in AF_SKIP unloaded. Every page must come back marked as a preview
+// (the meta tag naming what was unloaded; the X-AF-Port-Preview header is
+// shown too, but a CDN may strip it);
+// otherwise it stops, exit 2, rather than compare the live site with itself.
+// Exit 1 when something differs, 0 when all is the same.
 //
 // Written for Elementor Pro (owner, 5 Oct: "keep everything free"), whose
 // visible work on this site is the home page hero slideshow, the WooCommerce
@@ -23,7 +28,7 @@ import { chromium } from 'playwright';
 import fs from 'fs';
 import zlib from 'zlib';
 
-const SITE = 'https://theartframer.us';
+const SITE = (process.env.AF_SITE || 'https://theartframer.us').replace(/\/$/, '');
 const PV = process.env.AF_PV || '';
 const SKIP = (process.env.AF_SKIP || '').replace(/[^a-z0-9,-]/g, '');
 const URLS = (process.env.AF_URLS || '/').split(/\s+/).filter(Boolean);
@@ -71,6 +76,7 @@ async function look(browser, label, w, h, path, skip) {
   const r = await page.goto(url, { waitUntil: 'load', timeout: 90000 }).catch(() => null);
   await page.waitForTimeout(3500);
   const marker = await page.evaluate(() => (document.querySelector('meta[name="af-port-preview"]') || {}).content || '');
+  const pvHeader = r ? (r.headers()['x-af-port-preview'] || '') : '';
   const shot = await page.screenshot({ fullPage: false }).catch(() => null);
   const d = await page.evaluate(async () => {
     const vis = el => { if (!el) return false; const b = el.getBoundingClientRect(), s = getComputedStyle(el); return b.width > 0 && b.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && +s.opacity > 0; };
@@ -118,7 +124,7 @@ async function look(browser, label, w, h, path, skip) {
     }
   }
   await ctx.close();
-  return { status: r ? r.status() : 0, marker, errs: [...new Set(errs)], shotBuf: shot, shot: shot ? readPng(shot) : null, ...d };
+  return { status: r ? r.status() : 0, marker, pvHeader, errs: [...new Set(errs)], shotBuf: shot, shot: shot ? readPng(shot) : null, ...d };
 }
 
 const browser = await chromium.launch({ headless: true });
@@ -128,6 +134,12 @@ for (const path of URLS) {
     const a = await look(browser, label, w, h, path, 'none');
     const b = await look(browser, label, w, h, path, SKIP);
     console.log('\n=== ' + path + ' [' + label + ']   now: HTTP ' + a.status + ' (preview ' + a.marker + ')   ' + SKIP + ' off: HTTP ' + b.status + ' (preview ' + b.marker + ')');
+    if (a.marker !== 'none' || b.marker !== SKIP) {
+      console.log('  NOT A PREVIEW: the pages did not come through the preview file (header ' + JSON.stringify(a.pvHeader) + '/' + JSON.stringify(b.pvHeader)
+        + ', marker ' + JSON.stringify(a.marker) + '/' + JSON.stringify(b.marker) + '); stopping rather than compare the live site with itself');
+      await browser.close();
+      process.exit(2);
+    }
     const row = (what, x, y) => { const same = JSON.stringify(x) === JSON.stringify(y); if (!same) differs++; console.log('  ' + (same ? 'SAME   ' : 'DIFFERS') + ' ' + what.padEnd(16) + (same ? JSON.stringify(x) : JSON.stringify(x) + '  ->  ' + JSON.stringify(y))); };
     row('error page', a.error, b.error);
     row('page height', a.height, b.height);
@@ -156,3 +168,4 @@ for (const path of URLS) {
 }
 console.log('\n' + (differs ? differs + ' difference(s): read them above before switching anything off' : 'no differences'));
 await browser.close();
+process.exit(differs ? 1 : 0);
