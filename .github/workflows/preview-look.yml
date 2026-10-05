@@ -1,0 +1,86 @@
+name: Preview Look
+# How pages LOOK and BEHAVE, in a real browser, with some plugins unloaded and
+# their theme ports doing the work - next to the same pages as they are now -
+# without switching anything off for visitors. Preview Ports (preview-ports.yml)
+# compares the HTML; this drives Chromium (tools/preview-look.mjs): slideshows
+# started and moving, pictures, arrows, dots, breadcrumbs, the footer bar, a
+# screenshot of the first screen, at desktop and phone width.
+#
+# The same one-run secret as Preview Ports: for the length of the run
+# tools/port-preview-mu.php sits in wp-content/mu-plugins with a secret made
+# for this run, and only requests carrying it leave the named plugins
+# unloaded (never cached). It is removed at the end, whatever happens.
+on:
+  workflow_dispatch:
+    inputs:
+      skip:
+        description: 'Plugin folders to leave unloaded (comma separated)'
+        required: true
+        default: 'elementor-pro'
+      urls:
+        description: 'Pages (paths), space separated'
+        required: true
+        default: '/ /shop/ /product-category/digital-canvas-prints/'
+concurrency:
+  group: port-preview
+  cancel-in-progress: false
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SKIP: ${{ github.event.inputs.skip }}
+      URLS: ${{ github.event.inputs.urls }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the inputs
+        run: |
+          set -euo pipefail
+          case "$SKIP" in *[!a-z0-9,-]*|'') echo "bad skip list"; exit 1;; esac
+          for u in $URLS; do case "$u" in /*) ;; *) echo "paths only"; exit 1;; esac; case "$u" in *[!A-Za-z0-9/_.?=\&-]*) echo "bad path: $u"; exit 1;; esac; done
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install Playwright Chromium
+        run: |
+          npm init -y >/dev/null
+          npm i playwright@1.56 >/dev/null
+          npx playwright install --with-deps chromium
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Put the preview file in place (this run only)
+        run: |
+          set -euo pipefail
+          TOKEN=$(openssl rand -hex 24); echo "::add-mask::$TOKEN"; echo "AF_PV=$TOKEN" >> "$GITHUB_ENV"
+          sed "s/__AF_PREVIEW_TOKEN__/$TOKEN/" tools/port-preview-mu.php > /tmp/af-port-preview.php
+          for i in 1 2 3; do
+            scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+              /tmp/af-port-preview.php "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/mu-plugins/af-port-preview.php" && break
+            echo "  attempt $i failed"; sleep 15
+          done
+          rm -f /tmp/af-port-preview.php
+      - name: Look at each page both ways
+        env:
+          AF_SKIP: ${{ github.event.inputs.skip }}
+          AF_URLS: ${{ github.event.inputs.urls }}
+        run: node tools/preview-look.mjs || true
+      - name: Remove the preview file (always)
+        if: always()
+        run: |
+          for i in 1 2 3 4; do
+            ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+              "rm -f ~/websites/OPu0sKi4J/public_html/wp-content/mu-plugins/af-port-preview.php; ls ~/websites/OPu0sKi4J/public_html/wp-content/mu-plugins/ | grep -c af-port-preview || true" && break
+            echo "  attempt $i failed"; sleep 15
+          done
+      - name: Keep the screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: preview-look-screenshots
+          path: persona-look-*.png
+          if-no-files-found: ignore
