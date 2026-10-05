@@ -17,7 +17,9 @@ namespace {
     $GLOBALS['HOOKS'] = array(); $GLOBALS['REG'] = array(); $GLOBALS['RTL'] = false;
     function add_action($h, $cb, $prio = 10, $n = 1) { $GLOBALS['HOOKS'][$h][] = $cb; $GLOBALS['PRIO'][$h][] = $prio; }
     function get_stylesheet_directory_uri() { return 'https://theartframer.us/wp-content/themes/postero-child'; }
-    function wp_register_style($h, $src, $deps = array(), $ver = false) { $GLOBALS['REG']['style'][$h] = $src; }
+    function wp_register_style($h, $src, $deps = array(), $ver = false) { $GLOBALS['REG']['style'][$h] = $src; $GLOBALS['STYLEDEPS'][$h] = $deps; }
+    function wp_style_is($h, $list = 'enqueued') { return $list === 'registered' ? array_key_exists($h, $GLOBALS['REG']['style'] ?? array()) : in_array($h, $GLOBALS['QSTYLE'] ?? array(), true); }
+    function wp_enqueue_script($h) { $GLOBALS['QSCRIPT'][] = $h; }
     function wp_register_script($h, $src, $deps = array(), $ver = false, $foot = false) { $GLOBALS['REG']['script'][$h] = array($src, $deps); }
     function esc_attr($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
     function esc_html($s) { return htmlspecialchars((string) $s, ENT_QUOTES); }
@@ -84,6 +86,19 @@ namespace {
     foreach ($GLOBALS['HOOKS']['elementor/frontend/after_register_scripts'] as $cb) $cb();
     check('slides stylesheet registered', $GLOBALS['REG']['style']['af-epro-slides'] ?? '', 'https://theartframer.us/wp-content/themes/postero-child/assets/ports/epro/slides.css');
     check('slides script registered after elementor-frontend', $GLOBALS['REG']['script']['af-epro-slides'][1] ?? array(), array('elementor-frontend'));
+    // Pages served from Elementor's element cache load only the stored asset
+    // list, which names Pro's "widget-slides" style: a stand-in brings ours.
+    check('"widget-slides" stand-in: no file of its own', array_key_exists('widget-slides', $GLOBALS['REG']['style']) ? $GLOBALS['REG']['style']['widget-slides'] : 'missing', false);
+    check('"widget-slides" stand-in brings the port stylesheet', $GLOBALS['STYLEDEPS']['widget-slides'] ?? null, array('af-epro-slides'));
+    $GLOBALS['REG']['style'] = array('widget-slides' => 'pro.css'); $GLOBALS['STYLEDEPS'] = array();
+    foreach ($GLOBALS['HOOKS']['elementor/frontend/after_register_styles'] as $cb) $cb();
+    check('a "widget-slides" already registered is left alone', $GLOBALS['REG']['style']['widget-slides'], 'pro.css');
+    $footer = $GLOBALS['HOOKS']['wp_footer'] ?? array();
+    check('handler hook in the footer, before footer scripts print (20)', count($footer) === 1 && ($GLOBALS['PRIO']['wp_footer'][0] ?? 99) < 20, true);
+    $runFooter = function ($queued) use ($footer) { $GLOBALS['QSTYLE'] = $queued; $GLOBALS['QSCRIPT'] = array(); foreach ($footer as $cb) $cb(); return $GLOBALS['QSCRIPT']; };
+    check('no slides style on the page: no handler', $runFooter(array('widget-heading')), array());
+    check('stored list (Pro\'s "widget-slides"): handler added', $runFooter(array('widget-slides')), array('af-epro-slides'));
+    check('fresh render (port stylesheet): handler added', $runFooter(array('af-epro-slides')), array('af-epro-slides'));
     check('slides.css exists', is_readable($root . '/assets/ports/epro/slides.css'), true);
     check('slides.js exists', is_readable($root . '/assets/ports/epro/slides.js'), true);
 
