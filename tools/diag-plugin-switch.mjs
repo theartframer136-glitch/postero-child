@@ -105,9 +105,11 @@ async function snap(out) {
     await sleep(1500);
     // the Instagram feed fills itself from two REST calls after load (slow on
     // a freshly purged cache): wait until it says it is done before measuring
-    await p.waitForFunction(() => [...document.querySelectorAll('[id^="instagram-gallery-feed-"]')].every(e => e.classList.contains('loaded') || e.querySelector('.instagram-gallery__alert, [class*="alert"]')), { timeout: 20000 }).catch(() => {});
+    const feedDone = () => p.waitForFunction(() => [...document.querySelectorAll('[id^="instagram-gallery-feed-"]')].every(e => e.classList.contains('loaded') || e.querySelector('.instagram-gallery__alert, [class*="alert"]')), { timeout: 30000 }).catch(() => {});
+    await feedDone();
     // let lazy parts load, then come back to the top
     try { await p.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 700) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 120)); } window.scrollTo(0, 0); }); await sleep(800); } catch {}
+    await feedDone();
     // Related, upsell and cross-sell carousels show other random products on
     // every build: not part of the comparison (hidden before measuring).
     await p.evaluate(() => document.querySelectorAll('section.related, .related.products, .up-sells, .upsells, .cross-sells, .af-wl-related').forEach(e => e.style.setProperty('display', 'none', 'important'))).catch(() => {});
@@ -131,7 +133,7 @@ async function snap(out) {
       head.push('title=' + document.title);
       document.querySelectorAll('meta[name], meta[property], meta[itemprop]').forEach(m => {
         const k = m.getAttribute('name') || m.getAttribute('property') || m.getAttribute('itemprop');
-        if (/^(viewport|generator|csrf|google-site-verification|msapplication|theme-color|af-port-preview)$/i.test(k)) return;
+        if (/^(viewport|generator|csrf|google-site-verification|msapplication|theme-color|af-port-preview|translation-stats)$/i.test(k)) return;
         head.push('meta ' + k + '=' + (m.getAttribute('content') || '').replace(/\s+/g, ' ').trim());
       });
       document.querySelectorAll('link[rel="canonical"], link[rel="alternate"], link[rel="prev"], link[rel="next"], link[rel="shortlink"]').forEach(l => head.push('link ' + l.rel + (l.hreflang ? '[' + l.hreflang + ']' : '') + (l.type ? '(' + l.type + ')' : '') + '=' + l.getAttribute('href')));
