@@ -289,6 +289,7 @@ function af_fx_rate() {
 function af_active_currency() {
     static $cur = null;
     if ($cur !== null) return $cur;
+    if (defined('AF_WOOCS_PORT_FAILED')) return $cur = 'USD'; // nothing converts: inc/ports/woocs/failed.php
     $allowed = af_allowed_currencies();
     $c = '';
     if (isset($_GET['currency'])) {
