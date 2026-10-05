@@ -21,6 +21,15 @@
  * Exits 1 (FAIL) when a page breaks (status, errors, lost text or elements),
  * 2 (REVIEW) when only small differences remain, 0 (PASS) otherwise.
  * Read-only: a fresh guest basket, no order.
+ *
+ * Preview mode (preview-switch.yml): with AF_PV (the run's one-time secret)
+ * and AF_SKIP (plugin folders, comma separated, or "none") set, every request
+ * the browser and this script make to the site carries ?af_pv=&af_skip=, so
+ * tools/port-preview-dropin.php (in place as wp-content/db.php for that run)
+ * answers it with those plugins unloaded and their theme copies doing the
+ * work - for these requests only, never cached; visitors are untouched. A
+ * page that does not come back marked as a preview stops the run (exit 4)
+ * rather than compare the live site with itself.
  */
 import { createRequire } from 'module';
 import fs from 'fs'; import path from 'path';
@@ -49,6 +58,10 @@ const REDIRECTS = ['/sitemap.xml', '/wp-sitemap.xml', '/hi/', '/hi/shop/', '/202
 // fetched as they are: robots.txt, sitemaps, the currency switcher's public API
 const RAW = ['/robots.txt', '/sitemap_index.xml', '/page-sitemap.xml', '/post-sitemap.xml', '/product-sitemap.xml', '/product_cat-sitemap.xml', '/category-sitemap.xml', '/main-sitemap.xsl', '/wp-json/woocs/v3/currency'];
 const withQ = (u, q) => u + (u.includes('?') ? '&' : '?') + q;
+const PV = process.env.AF_PV || '', PV_SKIP = process.env.AF_SKIP || 'none';
+const pvUrl = (u) => (PV && u.startsWith(S) && !u.includes('af_pv=')) ? withQ(u, 'af_pv=' + PV + '&af_skip=' + PV_SKIP) : u;
+// the secret and the skip list never count as a difference
+const unPv = (x) => JSON.parse(JSON.stringify(x).replace(/[?&]af_pv=[0-9a-f]+(&af_skip=[a-z0-9,-]+)?/g, '').replace(/af_skip=[a-z0-9,-]+/g, ''));
 
 async function snap(out) {
   const puppeteer = req('puppeteer-core');
@@ -57,6 +70,11 @@ async function snap(out) {
   const ctx = await b.createBrowserContext();
   const go = async (p, u) => {
     let r = null;
+    if (PV && !p.__afPv) {
+      p.__afPv = true;
+      await p.setRequestInterception(true);
+      p.on('request', q => { const u2 = pvUrl(q.url()); if (u2 !== q.url()) q.continue({ url: u2 }).catch(() => {}); else q.continue().catch(() => {}); });
+    }
     for (let i = 0; i < 3; i++) { try { r = await p.goto(u, { waitUntil: 'networkidle2', timeout: 90000 }); break; } catch { await sleep(3000); } }
     for (let i = 0; i < 6; i++) { let bl = false; try { bl = await p.evaluate(() => /Checking your browser/.test(document.body.innerText) || !document.querySelector('header, #masthead, .site-header, footer')); } catch {} if (!bl) break; await sleep(4000); try { r = await p.reload({ waitUntil: 'networkidle2', timeout: 60000 }); } catch {} }
     return r;
@@ -71,6 +89,7 @@ async function snap(out) {
   } catch (e) { console.log('page list failed: ' + e.message); }
   pages = [...new Set(['/', ...pages.filter(u => !SKIP.test(u)), ...EXTRA])];
   const results = {};
+  const notPreview = [];
   const visit = async (u, w, key, c = ctx) => {
     const p = await c.newPage(); await p.setViewport({ width: w, height: 900 });
     const errs = [];
@@ -120,13 +139,15 @@ async function snap(out) {
       head.sort();
       // a server file path in the page (a URL built from a path that did not map)
       const leak = (document.documentElement.outerHTML.match(/\/home\/u\d+\/[^"' <)]*/) || [''])[0].slice(0, 120);
-      return { title: document.title, head, sig, n, text, leak, lang: document.documentElement.getAttribute('lang') || '', bodyClass: document.body.className, h: document.documentElement.scrollHeight, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+      const pvm = document.querySelector('meta[name="af-port-preview"]');
+      return { pv: pvm ? pvm.getAttribute('content') : '', title: document.title, head, sig, n, text, leak, lang: document.documentElement.getAttribute('lang') || '', bodyClass: document.body.className, h: document.documentElement.scrollHeight, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
     }).catch(e => ({ error: e.message }));
     if (data && data.leak) errs.push('server path in page: ' + data.leak);
+    if (PV && data && !data.error && data.pv !== PV_SKIP) notPreview.push(key + ' (marker: ' + (data.pv || 'none found') + ')');
     if (data && data.lang) data.head = [...(data.head || []), 'html lang=' + data.lang].sort();
     const file = path.join(out, key.replace(/[^a-z0-9]+/gi, '_') + '.png');
     try { await p.screenshot({ path: file, fullPage: true, captureBeyondViewport: true }); } catch {}
-    results[key] = { url: u, w, status: r ? r.status() : 0, ...data, assets: [...new Set(assets)].sort(), errs: [...errs], shot: file };
+    results[key] = unPv({ url: u, w, status: r ? r.status() : 0, ...data, assets: [...new Set(assets)].sort(), errs: [...errs], shot: file });
     await p.close();
   };
   // three pages at a time: the whole site in about a third of the time
@@ -154,18 +175,19 @@ async function snap(out) {
   // what search engines and apps fetch besides pages
   const UA = { 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) Chrome/124 Safari/537.36' };
   for (const u of RAW) {
-    try { const r = await fetch(S + withQ(u, 'afsw=' + Date.now()), { headers: UA }); results['raw ' + u] = { url: u, w: 0, raw: true, status: r.status, body: (await r.text()).replace(/[?&]afsw=\d+/g, '') }; }
+    try { const r = await fetch(pvUrl(S + withQ(u, 'afsw=' + Date.now())), { headers: UA }); results['raw ' + u] = unPv({ url: u, w: 0, raw: true, status: r.status, body: (await r.text()).replace(/[?&]afsw=\d+/g, '') }); }
     catch (e) { results['raw ' + u] = { url: u, w: 0, raw: true, status: 0, body: '' }; }
   }
   for (const u of REDIRECTS) {
     try {
-      const r = await fetch(S + u, { headers: UA, redirect: 'manual' });
-      results['redirect ' + u] = { url: u, w: 0, raw: true, status: r.status, body: [r.headers.get('location') || '', r.headers.get('x-redirect-by') || ''].join(' | ') };
+      const r = await fetch(pvUrl(S + u), { headers: UA, redirect: 'manual' });
+      results['redirect ' + u] = unPv({ url: u, w: 0, raw: true, status: r.status, body: [r.headers.get('location') || '', r.headers.get('x-redirect-by') || ''].join(' | ') });
     } catch (e) { results['redirect ' + u] = { url: u, w: 0, raw: true, status: 0, body: '' }; }
   }
   fs.writeFileSync(path.join(out, 'snap.json'), JSON.stringify(results));
-  console.log(`snap: ${Object.keys(results).length} page views (${pages.length} pages) into ${out}`);
+  console.log(`snap: ${Object.keys(results).length} page views (${pages.length} pages) into ${out}` + (PV ? ` (preview, plugins unloaded: ${PV_SKIP})` : ''));
   await b.close();
+  if (PV && notPreview.length) { console.log(`NOT A PREVIEW (${notPreview.length}): ` + notPreview.slice(0, 10).join(', ')); process.exit(4); }
 }
 
 function pixels(fa, fb) {

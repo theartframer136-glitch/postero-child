@@ -1,0 +1,71 @@
+name: Preview Switch
+# The whole-site before/after check of Switch Plugins (tools/diag-plugin-switch.mjs:
+# every published page, the shop pages, cart and checkout with a canvas in the
+# basket, the Hindi and Canadian-dollar views, robots.txt, sitemaps, redirects;
+# 1366 and 390 wide, in Chromium), but WITHOUT switching anything off for
+# visitors: the "after" is a preview in which only this run's requests have
+# the named plugins unloaded and their theme copies doing the work.
+#
+# For the length of the run tools/port-preview-dropin.php sits in as
+# wp-content/db.php (tools/port-preview-ctl.sh) with a one-time secret; only
+# requests carrying it are previews (never cached, nothing kept). It is removed
+# at the end whatever happens, and does nothing after 90 minutes in any case.
+# Two "before" snapshots (previews with nothing unloaded) measure what changes
+# by itself; the third has the plugins unloaded. Same verdicts as Switch
+# Plugins: FAIL (exit 1), REVIEW (exit 2), PASS (exit 0). A page that is not
+# answered as a preview fails the run instead of comparing the site with itself.
+on:
+  workflow_dispatch:
+    inputs:
+      plugins:
+        description: 'Plugin folders to leave unloaded in the preview (comma separated)'
+        required: true
+# One preview file at a time: Preview Ports and Preview Look share it.
+concurrency:
+  group: port-preview
+  cancel-in-progress: false
+jobs:
+  preview:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    env:
+      SKIP: ${{ github.event.inputs.plugins }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the inputs
+        run: |
+          set -euo pipefail
+          case "$SKIP" in *[!a-z0-9,-]*|''|none) echo "bad plugin list"; exit 1;; esac
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Browser tools
+        run: npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 pngjs@7 pixelmatch@5 > /dev/null 2>&1 || true
+      - name: Put the preview file in place (this run only)
+        env:
+          SSH_PORT: ${{ secrets.HOSTINGER_PORT }}
+          SSH_DEST: ${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}
+        run: |
+          set -euo pipefail
+          TOKEN=$(openssl rand -hex 24); echo "::add-mask::$TOKEN"; echo "TOKEN=$TOKEN" >> "$GITHUB_ENV"
+          AF_PV=$TOKEN AF_PV_TTL=5400 bash tools/port-preview-ctl.sh put
+      - name: Before (two previews with nothing unloaded), after (the plugins unloaded), compare
+        run: |
+          set +e
+          export NODE_PATH=/tmp/afh/node_modules
+          AF_PV=$TOKEN AF_SKIP=none node tools/diag-plugin-switch.mjs snap /tmp/snapA || { echo "before A failed (exit $?)"; exit 3; }
+          AF_PV=$TOKEN AF_SKIP=none node tools/diag-plugin-switch.mjs snap /tmp/snapB || { echo "before B failed (exit $?)"; exit 3; }
+          AF_PV=$TOKEN AF_SKIP=$SKIP node tools/diag-plugin-switch.mjs snap /tmp/snapC || { echo "after failed (exit $?)"; exit 3; }
+          node tools/diag-plugin-switch.mjs compare /tmp/snapA /tmp/snapB /tmp/snapC
+          rc=$?
+          echo "PREVIEW RESULT (plugins unloaded: $SKIP): $([ $rc -eq 0 ] && echo PASS || ([ $rc -eq 2 ] && echo REVIEW || echo FAIL)) (compare exit $rc)"
+          exit $rc
+      - name: Remove the preview file (always)
+        if: always()
+        env:
+          SSH_PORT: ${{ secrets.HOSTINGER_PORT }}
+          SSH_DEST: ${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}
+        run: bash tools/port-preview-ctl.sh remove
