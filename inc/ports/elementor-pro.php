@@ -70,14 +70,29 @@ add_action('elementor/widgets/register', function ($widgets_manager) {
     }
 }, 1000);
 
-// The slides' stylesheet and handler; Elementor loads them on the pages that
-// carry the widget (get_style_depends / get_script_depends).
+// The slides' stylesheet and handler. A page Elementor renders afresh loads
+// them through the widget (get_style_depends / get_script_depends). A page
+// served from Elementor's element cache (on here, 24 hours; the home page
+// among them) runs no widget code: it loads only the handles in the page's
+// stored asset list (_elementor_page_assets), which for the home page was
+// written with Elementor Pro and names Pro's "widget-slides" style
+// (tools/diag-elementor-page-assets.php, 5 Oct). So "widget-slides" is
+// registered here as a stand-in that brings the port's stylesheet, and the
+// handler is added in the footer whenever either style is on the page.
 add_action('elementor/frontend/after_register_styles', function () {
     wp_register_style('af-epro-slides', AF_EPRO_PORT_URL . 'slides.css', array(), AF_EPRO_PORT_VERSION);
+    if (!wp_style_is('widget-slides', 'registered')) {
+        wp_register_style('widget-slides', false, array('af-epro-slides'), AF_EPRO_PORT_VERSION);
+    }
 });
 add_action('elementor/frontend/after_register_scripts', function () {
     wp_register_script('af-epro-slides', AF_EPRO_PORT_URL . 'slides.js', array('elementor-frontend'), AF_EPRO_PORT_VERSION, true);
 });
+add_action('wp_footer', function () {
+    if (wp_style_is('af-epro-slides', 'enqueued') || wp_style_is('widget-slides', 'enqueued')) {
+        wp_enqueue_script('af-epro-slides');
+    }
+}, 5);
 
 // Elementor Pro's Custom CSS (modules/custom-css): each element's custom_css,
 // with "selector" made the element's own, appended to its document's CSS.

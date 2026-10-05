@@ -44,12 +44,23 @@ add_filter('option_active_plugins', function ($plugins) use ($af_preview_skip) {
         return !in_array(strtok((string) $file, '/'), $af_preview_skip, true);
     }));
 }, 1);
-// Elementor's element cache can hand back a widget's HTML (and the scripts it
-// asked for) as rendered while the skipped plugins were still loaded; for a
-// preview request every element is rendered afresh.
-add_filter('pre_option_elementor_experiment-e_element_cache', function () {
-    return 'inactive';
-});
+// Elementor's element cache hands back a page as rendered earlier, while
+// the skipped plugins were still loaded (and without the scripts their
+// replacements ask for); for a preview request every element is rendered
+// afresh. In Elementor 4.x the cache is on unless its "Element Cache"
+// setting reads "disable" (core/base/document.php; the old experiment
+// option no longer counts: tools/diag-elementor-element-cache.php, 5 Oct).
+// X-AF-Port-Cache: keep / ?af_cache=keep instead serves the copy as visitors
+// would get it just after a switch-off (read only: writes are stopped below).
+$af_preview_cache = isset($_SERVER['HTTP_X_AF_PORT_CACHE']) ? (string) $_SERVER['HTTP_X_AF_PORT_CACHE'] : (isset($_GET['af_cache']) ? (string) $_GET['af_cache'] : '');
+if ($af_preview_cache !== 'keep') {
+    add_filter('pre_option_elementor_element_cache_ttl', function () {
+        return 'disable';
+    });
+    add_filter('pre_option_elementor_experiment-e_element_cache', function () {
+        return 'inactive';
+    });
+}
 // Nothing a preview request works out is kept for visitors. Elementor
 // rebuilds a page's CSS during a page view only when its record is empty
 // (after a CSS flush; core/files/css/base.php enqueue()). For a preview
