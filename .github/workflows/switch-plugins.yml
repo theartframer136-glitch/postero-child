@@ -114,9 +114,11 @@ jobs:
           echo "=== switching off: $PLUGINS"
           if [ "$SILENT" = "yes" ]; then
             # deactivate_plugins(..., silent = true): the plugin's deactivation
-            # hook and the deactivated_plugin action do not run
+            # hook and the deactivated_plugin action do not run; Elementor's
+            # CSS and element cache, which that action would have cleared, are
+            # cleared by hand
             W=$(printf '"%s",' $PLUGINS); W="${W%,}"
-            /tmp/remote.sh "wp eval 'require_once ABSPATH . \"wp-admin/includes/plugin.php\"; \$w = array($W); \$f = array(); foreach (array_keys(get_plugins()) as \$p) if (in_array(dirname(\$p), \$w, true)) \$f[] = \$p; deactivate_plugins(\$f, true); echo \"silently switched off: \" . implode(\" \", \$f) . PHP_EOL;' --allow-root 2>&1; wp litespeed-purge all --allow-root 2>&1"
+            /tmp/remote.sh "wp eval 'require_once ABSPATH . \"wp-admin/includes/plugin.php\"; \$w = array($W); \$f = array(); foreach (array_keys(get_plugins()) as \$p) if (in_array(dirname(\$p), \$w, true)) \$f[] = \$p; deactivate_plugins(\$f, true); echo \"silently switched off: \" . implode(\" \", \$f) . PHP_EOL;' --allow-root 2>&1; wp elementor flush-css --allow-root 2>&1; wp litespeed-purge all --allow-root 2>&1"
           else
             /tmp/remote.sh "wp plugin deactivate $PLUGINS --allow-root 2>&1; wp litespeed-purge all --allow-root 2>&1"
           fi
