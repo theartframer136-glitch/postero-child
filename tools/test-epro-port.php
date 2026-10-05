@@ -15,7 +15,7 @@ namespace {
     /* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
     define('ABSPATH', '/nowhere/');
     $GLOBALS['HOOKS'] = array(); $GLOBALS['REG'] = array(); $GLOBALS['RTL'] = false;
-    function add_action($h, $cb, $prio = 10, $n = 1) { $GLOBALS['HOOKS'][$h][] = $cb; }
+    function add_action($h, $cb, $prio = 10, $n = 1) { $GLOBALS['HOOKS'][$h][] = $cb; $GLOBALS['PRIO'][$h][] = $prio; }
     function get_stylesheet_directory_uri() { return 'https://theartframer.us/wp-content/themes/postero-child'; }
     function wp_register_style($h, $src, $deps = array(), $ver = false) { $GLOBALS['REG']['style'][$h] = $src; }
     function wp_register_script($h, $src, $deps = array(), $ver = false, $foot = false) { $GLOBALS['REG']['script'][$h] = array($src, $deps); }
@@ -77,6 +77,8 @@ namespace {
     echo "\nWith Elementor Pro off\n";
     require $root . '/inc/ports/elementor-pro.php';
     check('it hooks widget registration', count($GLOBALS['HOOKS']['elementor/widgets/register'] ?? array()), 1);
+    // after Elementor's Pro placeholders and the parent theme's widgets (its last widget hook is at 99)
+    check('it registers after everything else (priority above 99)', ($GLOBALS['PRIO']['elementor/widgets/register'][0] ?? 0) > 99, true);
     check('it hooks element CSS (custom CSS)', count($GLOBALS['HOOKS']['elementor/element/parse_css'] ?? array()), 1);
     foreach ($GLOBALS['HOOKS']['elementor/frontend/after_register_styles'] as $cb) $cb();
     foreach ($GLOBALS['HOOKS']['elementor/frontend/after_register_scripts'] as $cb) $cb();

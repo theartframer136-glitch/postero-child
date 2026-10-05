@@ -69,8 +69,10 @@ function diffShare(a, b) {
 async function look(browser, label, w, h, path, skip) {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, isMobile: label === 'phone', hasTouch: label === 'phone' });
   const page = await ctx.newPage();
-  const errs = [];
+  const errs = [], logs = [], failed = [];
   page.on('pageerror', e => errs.push(String(e.message || e).slice(0, 140)));
+  page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') logs.push(m.type() + ': ' + m.text().slice(0, 160)); });
+  page.on('requestfailed', q => failed.push(q.url().replace(SITE, '').replace(/[?&]af_pv=[^&]*/, '').slice(0, 140) + ' ' + ((q.failure() || {}).errorText || '')));
   const sep = path.includes('?') ? '&' : '?';
   const url = SITE + path + sep + 'afr=' + Date.now() + Math.random().toString(36).slice(2, 7) + '&af_pv=' + PV + '&af_skip=' + skip;
   const r = await page.goto(url, { waitUntil: 'load', timeout: 90000 }).catch(() => null);
@@ -102,7 +104,19 @@ async function look(browser, label, w, h, path, skip) {
       text: n.innerText.replace(/\s+/g, ' ').trim(), colour: getComputedStyle(n).color, link: n.querySelector('a') ? getComputedStyle(n.querySelector('a')).color : '' }));
     const bar = document.querySelector('.elementor-element-bec7134');
     const barInfo = bar ? (vis(bar) ? getComputedStyle(bar).position + ' bottom ' + Math.round(window.innerHeight - bar.getBoundingClientRect().bottom) + 'px' : 'hidden') : 'missing';
-    return { sliders, crumbs, bar: barInfo, height: Math.round(document.documentElement.scrollHeight / 100) * 100,
+    // Evidence for when a slideshow does not start or the breadcrumbs differ.
+    const short = u => u.replace(location.origin, '').replace(/[?&]ver=[^&]*/, '');
+    const f = window.elementorFrontend;
+    const evidence = {
+      scripts: [...document.querySelectorAll('script[src]')].map(x => short(x.src)).filter(u => /swiper|slides|ports\/epro|elementor(-pro)?\/assets\/js\/(frontend|webpack)|litespeed/.test(u)),
+      styles: [...document.querySelectorAll('link[rel=stylesheet]')].map(x => short(x.href)).filter(u => /swiper|slides|ports\/epro/.test(u)),
+      delayed: document.querySelectorAll('script[type="litespeed/javascript"], script[data-src]').length,
+      elementor: f ? { hooks: !!f.hooks, utilsSwiper: typeof (f.utils && f.utils.swiper), version: (f.config && f.config.version) || '' } : 'none',
+      Swiper: typeof window.Swiper,
+      slides: [...document.querySelectorAll('.elementor-widget-slides')].map(el => ({ id: el.getAttribute('data-id'), afStarted: !!el.__afSlides, html: el.outerHTML.replace(/\s+/g, ' ').slice(0, 500) })),
+      crumbs: [...document.querySelectorAll('.elementor-widget-woocommerce-breadcrumb')].map(el => el.outerHTML.replace(/\s+/g, ' ').slice(0, 700)),
+    };
+    return { sliders, crumbs, bar: barInfo, evidence, height: Math.round(document.documentElement.scrollHeight / 100) * 100,
       error: /There has been a critical error/.test(document.body ? document.body.innerText : '') };
   }).catch(e => ({ fail: String(e).slice(0, 120) }));
   // does each started slider move on its own, and on an arrow click?
@@ -124,7 +138,7 @@ async function look(browser, label, w, h, path, skip) {
     }
   }
   await ctx.close();
-  return { status: r ? r.status() : 0, marker, pvHeader, errs: [...new Set(errs)], shotBuf: shot, shot: shot ? readPng(shot) : null, ...d };
+  return { status: r ? r.status() : 0, marker, pvHeader, logs: [...new Set(logs)].slice(0, 12), failed: failed.slice(0, 12), errs: [...new Set(errs)], shotBuf: shot, shot: shot ? readPng(shot) : null, ...d };
 }
 
 const browser = await chromium.launch({ headless: true });
@@ -154,6 +168,14 @@ for (const path of URLS) {
       }
     }
     row('breadcrumbs', a.crumbs, b.crumbs);
+    const stalled = side => (side.sliders || []).some(x => x.shown && !x.started);
+    if (stalled(a) || stalled(b) || JSON.stringify(a.crumbs) !== JSON.stringify(b.crumbs)) {
+      for (const [name, side] of [['now', a], [SKIP + ' off', b]]) {
+        console.log('    evidence, ' + name + ':');
+        for (const [k, v] of Object.entries(side.evidence || {})) console.log('      ' + k + ': ' + JSON.stringify(v));
+        console.log('      console: ' + JSON.stringify(side.logs) + '\n      failed requests: ' + JSON.stringify(side.failed));
+      }
+    }
     row('footer bar', a.bar, b.bar);
     if (a.shot && b.shot) {
       const share = diffShare(a.shot, b.shot);
