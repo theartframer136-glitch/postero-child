@@ -34,6 +34,7 @@ if (isset($argv[1]) && $argv[1] === 'case') {
     if ($GLOBALS['hooks']) {
         $out['active'] = apply('option_active_plugins', array('elementor/elementor.php', 'elementor-pro/elementor-pro.php', 'woocommerce/woocommerce.php', 'elementor-pro-extra/x.php'));
         $out['element_cache'] = apply('pre_option_elementor_experiment-e_element_cache', false);
+        $out['element_cache_ttl'] = apply('pre_option_elementor_element_cache_ttl', false);
         $out['print_method'] = apply('pre_option_elementor_css_print_method', false);
         $out['meta_css'] = apply('update_post_metadata', null, 75, '_elementor_css', array());
         $out['meta_cache'] = apply('add_post_metadata', null, 75, '_elementor_element_cache', 'x');
@@ -89,7 +90,8 @@ $check('secret: no $wpdb set (WordPress opens its own)', $r['wpdb'] === false);
 $check('secret: elementor-pro left out, and only it', ($r['active'] ?? null) === array('elementor/elementor.php', 'woocommerce/woocommerce.php', 'elementor-pro-extra/x.php'));
 $check('secret: the marker names it', ($r['head'] ?? '') === '<meta name="af-port-preview" content="elementor-pro">');
 $check('secret: never cached', !empty($r['donotcache']));
-$check('secret: element cache off', ($r['element_cache'] ?? '') === 'inactive');
+$check('secret: element cache off (Elementor 4: its setting reads "disable")', ($r['element_cache_ttl'] ?? '') === 'disable');
+$check('secret: element cache off (the old experiment option too)', ($r['element_cache'] ?? '') === 'inactive');
 $check('secret: Elementor prints CSS inline (writes no file)', ($r['print_method'] ?? '') === 'internal');
 $check('secret: the CSS record is not written', ($r['meta_css'] ?? null) === false);
 $check('secret: the element cache is not written', ($r['meta_cache'] ?? null) === false);
@@ -97,6 +99,11 @@ $check('secret: the CSS record is not deleted', ($r['meta_del'] ?? null) === fal
 $check('secret: other post meta goes through', array_key_exists('meta_other', $r) && $r['meta_other'] === null);
 $check('secret: Elementor options keep their value', ($r['opt_el'] ?? '') === 'old' && ($r['opt_el2'] ?? '') === 'old');
 $check('secret: other options go through', ($r['opt_other'] ?? '') === 'new');
+
+$r = $run($live, array('af_pv' => $TOKEN, 'af_skip' => 'elementor-pro', 'af_cache' => 'keep'));
+$check('secret, af_cache=keep: the element cache is left as visitors get it', ($r['element_cache_ttl'] ?? null) === false && ($r['element_cache'] ?? null) === false);
+$check('secret, af_cache=keep: still nothing written', ($r['meta_cache'] ?? null) === false && ($r['meta_css'] ?? null) === false && ($r['print_method'] ?? '') === 'internal');
+$check('secret, af_cache=keep: plugins still left out', ($r['active'] ?? null) === array('elementor/elementor.php', 'woocommerce/woocommerce.php', 'elementor-pro-extra/x.php'));
 
 $r = $run($live, array('af_pv' => $TOKEN, 'af_skip' => 'none'));
 $check('secret, skip none: every plugin stays', ($r['active'] ?? null) === array('elementor/elementor.php', 'elementor-pro/elementor-pro.php', 'woocommerce/woocommerce.php', 'elementor-pro-extra/x.php'));

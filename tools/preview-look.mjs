@@ -21,7 +21,9 @@
 //   - breadcrumbs: text and colours
 //   - the footer bar container bec7134: position and where it sits
 //   - a screenshot of the first screen, and how many pixels differ
-// and says SAME or DIFFERS for each.
+// and says SAME or DIFFERS for each. A third load per page keeps Elementor's
+// element cache on (af_cache=keep: the stored copy, as visitors get it just
+// after a switch-off) and compares its slideshows and breadcrumbs too.
 //
 // Run (by the workflow): AF_PV=<secret> AF_SKIP=elementor-pro AF_URLS="/ /shop/" node tools/preview-look.mjs
 import { chromium } from 'playwright';
@@ -66,7 +68,7 @@ function diffShare(a, b) {
   return n / (a.w * a.h);
 }
 
-async function look(browser, label, w, h, path, skip) {
+async function look(browser, label, w, h, path, skip, cache = '') {
   const ctx = await browser.newContext({ viewport: { width: w, height: h }, isMobile: label === 'phone', hasTouch: label === 'phone' });
   const page = await ctx.newPage();
   const errs = [], logs = [], failed = [];
@@ -74,7 +76,7 @@ async function look(browser, label, w, h, path, skip) {
   page.on('console', m => { if (m.type() === 'error' || m.type() === 'warning') logs.push(m.type() + ': ' + m.text().slice(0, 160)); });
   page.on('requestfailed', q => failed.push(q.url().replace(SITE, '').replace(/[?&]af_pv=[^&]*/, '').slice(0, 140) + ' ' + ((q.failure() || {}).errorText || '')));
   const sep = path.includes('?') ? '&' : '?';
-  const url = SITE + path + sep + 'afr=' + Date.now() + Math.random().toString(36).slice(2, 7) + '&af_pv=' + PV + '&af_skip=' + skip;
+  const url = SITE + path + sep + 'afr=' + Date.now() + Math.random().toString(36).slice(2, 7) + '&af_pv=' + PV + '&af_skip=' + skip + (cache ? '&af_cache=' + cache : '');
   const r = await page.goto(url, { waitUntil: 'load', timeout: 90000 }).catch(() => null);
   await page.waitForTimeout(3500);
   const marker = await page.evaluate(() => (document.querySelector('meta[name="af-port-preview"]') || {}).content || '');
@@ -185,6 +187,32 @@ for (const path of URLS) {
       const name = 'persona-look-' + label + '-' + (path.replace(/[^a-z0-9]+/gi, '-').replace(/^-|-$/g, '') || 'home');
       fs.writeFileSync(name + '-now.png', a.shotBuf);
       fs.writeFileSync(name + '-' + SKIP.replace(/,/g, '+') + '-off.png', b.shotBuf);
+    }
+    // The same with Elementor's element cache left on: what visitors get
+    // just after a switch-off, from the copy Elementor stored earlier (the
+    // preview file reads it, never writes it). Slideshows and breadcrumbs
+    // only, against the page as it is now.
+    const c = await look(browser, label, w, h, path, SKIP, 'keep');
+    if (c.marker !== SKIP) {
+      console.log('  NOT A PREVIEW (stored copy): marker ' + JSON.stringify(c.marker) + '; stopping');
+      await browser.close();
+      process.exit(2);
+    }
+    console.log('  -- ' + SKIP + ' off, served from Elementor\'s stored copy:');
+    row('stored: errors', [a.error, a.errs], [c.error, c.errs]);
+    for (const id of ids) {
+      const x = (a.sliders || []).find(s => s.id === id) || {}, y = (c.sliders || []).find(s => s.id === id) || {};
+      if (!x.shown && !y.shown) continue;
+      for (const k of ['started', 'picture', 'next', 'dots', 'moves', 'click']) {
+        const xv = k === 'moves' ? String(x[k] || '').split(' ')[0] : x[k], yv = k === 'moves' ? String(y[k] || '').split(' ')[0] : y[k];
+        row('stored: ' + k, xv, yv);
+      }
+    }
+    row('stored: crumbs', a.crumbs, c.crumbs);
+    if (stalled(c)) {
+      console.log('    evidence, stored copy:');
+      for (const [k, v] of Object.entries(c.evidence || {})) console.log('      ' + k + ': ' + JSON.stringify(v));
+      console.log('      console: ' + JSON.stringify(c.logs) + '\n      failed requests: ' + JSON.stringify(c.failed));
     }
   }
 }
