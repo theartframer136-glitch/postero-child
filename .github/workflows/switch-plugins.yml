@@ -25,6 +25,10 @@ on:
         description: 'Keep the switch when only small differences remain (yes/no)'
         required: false
         default: 'no'
+      silent:
+        description: "Switch off without running the plugin's own deactivation code (yes/no): Rank Math (it would disconnect the site from its account), Transposh (it would flush the rewrite rules)"
+        required: false
+        default: 'no'
 concurrency:
   group: switch-plugins
   cancel-in-progress: false
@@ -36,6 +40,7 @@ jobs:
       PLUGINS: ${{ github.event.inputs.plugins }}
       MODE: ${{ github.event.inputs.mode }}
       KEEP: ${{ github.event.inputs.keep_on_review }}
+      SILENT: ${{ github.event.inputs.silent }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup SSH
@@ -107,7 +112,14 @@ jobs:
         run: |
           set +e
           echo "=== switching off: $PLUGINS"
-          /tmp/remote.sh "wp plugin deactivate $PLUGINS --allow-root 2>&1; wp litespeed-purge all --allow-root 2>&1"
+          if [ "$SILENT" = "yes" ]; then
+            # deactivate_plugins(..., silent = true): the plugin's deactivation
+            # hook and the deactivated_plugin action do not run
+            W=$(printf '"%s",' $PLUGINS); W="${W%,}"
+            /tmp/remote.sh "wp eval 'require_once ABSPATH . \"wp-admin/includes/plugin.php\"; \$w = array($W); \$f = array(); foreach (array_keys(get_plugins()) as \$p) if (in_array(dirname(\$p), \$w, true)) \$f[] = \$p; deactivate_plugins(\$f, true); echo \"silently switched off: \" . implode(\" \", \$f) . PHP_EOL;' --allow-root 2>&1; wp litespeed-purge all --allow-root 2>&1"
+          else
+            /tmp/remote.sh "wp plugin deactivate $PLUGINS --allow-root 2>&1; wp litespeed-purge all --allow-root 2>&1"
+          fi
           sleep 20
           NODE_PATH=/tmp/afh/node_modules node tools/diag-plugin-switch.mjs snap /tmp/snapC
           NODE_PATH=/tmp/afh/node_modules node tools/diag-plugin-switch.mjs compare /tmp/snapA /tmp/snapB /tmp/snapC

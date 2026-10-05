@@ -37,6 +37,18 @@ const EXTRA = [
   '/?p=7802', '/?p=7811', '/?p=8301',
 ];
 const SKIP = /\/(cart|checkout|my-account|order-received|dashboard)\/?$/;
+// Hindi (Transposh) and Canadian-dollar (currency switcher) views of the
+// same shop pages, each in a browser session of its own so their cookies
+// never reach the English / US-dollar pages
+const VARIANTS = [
+  { tag: 'hi', q: 'lang=hi', pages: ['/', '/shop/', EXTRA[0], EXTRA[2]] },
+  { tag: 'cad', q: 'currency=CAD', pages: ['/', '/shop/', EXTRA[0], EXTRA[2]] },
+];
+// fetched without following redirects: status, Location and who redirected
+const REDIRECTS = ['/sitemap.xml', '/wp-sitemap.xml', '/hi/', '/hi/shop/', '/2025/', '/2026/'];
+// fetched as they are: robots.txt, sitemaps, the currency switcher's public API
+const RAW = ['/robots.txt', '/sitemap_index.xml', '/page-sitemap.xml', '/post-sitemap.xml', '/product-sitemap.xml', '/product_cat-sitemap.xml', '/category-sitemap.xml', '/main-sitemap.xsl', '/wp-json/woocs/v3/currency'];
+const withQ = (u, q) => u + (u.includes('?') ? '&' : '?') + q;
 
 async function snap(out) {
   const puppeteer = req('puppeteer-core');
@@ -59,15 +71,22 @@ async function snap(out) {
   } catch (e) { console.log('page list failed: ' + e.message); }
   pages = [...new Set(['/', ...pages.filter(u => !SKIP.test(u)), ...EXTRA])];
   const results = {};
-  const visit = async (u, w, key) => {
-    const p = await ctx.newPage(); await p.setViewport({ width: w, height: 900 });
+  const visit = async (u, w, key, c = ctx) => {
+    const p = await c.newPage(); await p.setViewport({ width: w, height: 900 });
     const errs = [];
     p.on('pageerror', e => errs.push('pageerror: ' + String(e.message).slice(0, 140)));
     p.on('console', m => { if (m.type() === 'error' && !/favicon|google|facebook|doubleclick|clarity|gtag|404 \(\)/i.test(m.text())) errs.push('console: ' + m.text().slice(0, 140)); });
     const assets = [];
     p.on('requestfinished', r => { const t = r.resourceType(); if (t === 'stylesheet' || t === 'script') assets.push(t[0] + ' ' + r.url().replace(S, '').replace(/\?.*$/, '')); });
+    // a stylesheet or script of the site's own that does not load is a break,
+    // even though the console line for it ("404 ()") is filtered above
+    p.on('response', r => { try { const t = r.request().resourceType(); if ((t === 'stylesheet' || t === 'script') && r.url().startsWith(S) && r.status() >= 400) errs.push(`asset ${r.status()}: ` + r.url().replace(S, '').replace(/\?.*$/, '')); } catch {} });
+    p.on('requestfailed', r => { try { const t = r.resourceType(); if ((t === 'stylesheet' || t === 'script') && r.url().startsWith(S) && !/ERR_ABORTED/.test((r.failure() || {}).errorText || '')) errs.push('asset failed: ' + r.url().replace(S, '').replace(/\?.*$/, '')); } catch {} });
     const r = await go(p, S + u);
     await sleep(1500);
+    // the Instagram feed fills itself from two REST calls after load (slow on
+    // a freshly purged cache): wait until it says it is done before measuring
+    await p.waitForFunction(() => [...document.querySelectorAll('[id^="instagram-gallery-feed-"]')].every(e => e.classList.contains('loaded') || e.querySelector('.instagram-gallery__alert, [class*="alert"]')), { timeout: 20000 }).catch(() => {});
     // let lazy parts load, then come back to the top
     try { await p.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 700) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 120)); } window.scrollTo(0, 0); }); await sleep(800); } catch {}
     // Related, upsell and cross-sell carousels show other random products on
@@ -99,29 +118,50 @@ async function snap(out) {
       document.querySelectorAll('link[rel="canonical"], link[rel="alternate"], link[rel="prev"], link[rel="next"], link[rel="shortlink"]').forEach(l => head.push('link ' + l.rel + (l.hreflang ? '[' + l.hreflang + ']' : '') + (l.type ? '(' + l.type + ')' : '') + '=' + l.getAttribute('href')));
       document.querySelectorAll('script[type="application/ld+json"]').forEach(sc => head.push('ld+json ' + sc.textContent.replace(/\s+/g, ' ').trim()));
       head.sort();
-      return { title: document.title, head, sig, n, text, bodyClass: document.body.className, h: document.documentElement.scrollHeight, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+      // a server file path in the page (a URL built from a path that did not map)
+      const leak = (document.documentElement.outerHTML.match(/\/home\/u\d+\/[^"' <)]*/) || [''])[0].slice(0, 120);
+      return { title: document.title, head, sig, n, text, leak, lang: document.documentElement.getAttribute('lang') || '', bodyClass: document.body.className, h: document.documentElement.scrollHeight, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
     }).catch(e => ({ error: e.message }));
+    if (data && data.leak) errs.push('server path in page: ' + data.leak);
+    if (data && data.lang) data.head = [...(data.head || []), 'html lang=' + data.lang].sort();
     const file = path.join(out, key.replace(/[^a-z0-9]+/gi, '_') + '.png');
     try { await p.screenshot({ path: file, fullPage: true, captureBeyondViewport: true }); } catch {}
-    results[key] = { url: u, w, status: r ? r.status() : 0, ...data, assets: [...new Set(assets)].sort(), errs, shot: file };
+    results[key] = { url: u, w, status: r ? r.status() : 0, ...data, assets: [...new Set(assets)].sort(), errs: [...errs], shot: file };
     await p.close();
   };
   // three pages at a time: the whole site in about a third of the time
-  const pool = async (jobs, n) => { let i = 0; await Promise.all(Array.from({ length: n }, async () => { while (i < jobs.length) { const j = jobs[i++]; try { await visit(j[0], j[1], j[0] + '@' + j[1]); } catch (e) { results[j[0] + '@' + j[1]] = { url: j[0], w: j[1], status: 0, error: String(e.message).slice(0, 120) }; } } })); };
+  const pool = async (jobs, n, c = ctx) => { let i = 0; await Promise.all(Array.from({ length: n }, async () => { while (i < jobs.length) { const j = jobs[i++]; try { await visit(j[0], j[1], j[0] + '@' + j[1], c); } catch (e) { results[j[0] + '@' + j[1]] = { url: j[0], w: j[1], status: 0, error: String(e.message).slice(0, 120) }; } } })); };
   await pool(pages.flatMap(u => WIDTHS.map(w => [u, w])), 3);
   // basket pages: one canvas in the basket
-  try {
-    const p = await ctx.newPage(); await p.setViewport({ width: 1366, height: 900 });
-    await go(p, S + EXTRA[2]);
+  const basket = async (c, q) => {
+    const p = await c.newPage(); await p.setViewport({ width: 1366, height: 900 });
+    await go(p, S + (q ? withQ(EXTRA[2], q) : EXTRA[2]));
     await p.select('#af-size-select', '3×4 ft (36×48 in)').catch(() => {}); await sleep(600);
     await Promise.all([p.waitForNavigation({ timeout: 45000 }).catch(() => {}), p.evaluate(() => { const b = document.querySelector('form.cart .single_add_to_cart_button'); if (b) b.click(); })]);
     await sleep(1500); await p.close();
-    await pool(['/cart/', '/checkout/'].flatMap(u => WIDTHS.map(w => [u, w])), 2);
-  } catch (e) { console.log('basket pages failed: ' + e.message); }
-  // what search engines fetch besides pages: robots.txt and the XML sitemaps
-  for (const u of ['/robots.txt', '/sitemap_index.xml', '/page-sitemap.xml', '/post-sitemap.xml', '/product-sitemap.xml', '/product_cat-sitemap.xml', '/category-sitemap.xml']) {
-    try { const r = await fetch(S + u + '?afsw=' + Date.now(), { headers: { 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) Chrome/124 Safari/537.36' } }); results['raw ' + u] = { url: u, w: 0, raw: true, status: r.status, body: (await r.text()).replace(/\?afsw=\d+/g, '') }; }
+    await pool(['/cart/', '/checkout/'].map(u => q ? withQ(u, q) : u).flatMap(u => WIDTHS.map(w => [u, w])), 2, c);
+  };
+  try { await basket(ctx, ''); } catch (e) { console.log('basket pages failed: ' + e.message); }
+  // the Hindi and Canadian-dollar views, each with its own cookies and basket
+  for (const v of VARIANTS) {
+    const vc = await b.createBrowserContext();
+    try {
+      await pool(v.pages.map(u => withQ(u, v.q)).flatMap(u => WIDTHS.map(w => [u, w])), 3, vc);
+      await basket(vc, v.q);
+    } catch (e) { console.log(v.tag + ' pages failed: ' + e.message); }
+    await vc.close().catch(() => {});
+  }
+  // what search engines and apps fetch besides pages
+  const UA = { 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) Chrome/124 Safari/537.36' };
+  for (const u of RAW) {
+    try { const r = await fetch(S + withQ(u, 'afsw=' + Date.now()), { headers: UA }); results['raw ' + u] = { url: u, w: 0, raw: true, status: r.status, body: (await r.text()).replace(/[?&]afsw=\d+/g, '') }; }
     catch (e) { results['raw ' + u] = { url: u, w: 0, raw: true, status: 0, body: '' }; }
+  }
+  for (const u of REDIRECTS) {
+    try {
+      const r = await fetch(S + u, { headers: UA, redirect: 'manual' });
+      results['redirect ' + u] = { url: u, w: 0, raw: true, status: r.status, body: [r.headers.get('location') || '', r.headers.get('x-redirect-by') || ''].join(' | ') };
+    } catch (e) { results['redirect ' + u] = { url: u, w: 0, raw: true, status: 0, body: '' }; }
   }
   fs.writeFileSync(path.join(out, 'snap.json'), JSON.stringify(results));
   console.log(`snap: ${Object.keys(results).length} page views (${pages.length} pages) into ${out}`);
