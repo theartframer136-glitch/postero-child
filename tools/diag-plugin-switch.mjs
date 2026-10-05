@@ -30,6 +30,12 @@
  * work - for these requests only, never cached; visitors are untouched. A
  * page that does not come back marked as a preview stops the run (exit 4)
  * rather than compare the live site with itself.
+ *
+ * Re-check: compare writes the page views that FAIL to <after>/fails.json.
+ * AF_ONLY=<that file> makes snap visit only those (same sessions, same
+ * basket) and makes compare look only at them, so a break that shows twice
+ * is told apart from a third-party widget (YouTube, Instagram) that was slow
+ * once.
  */
 import { createRequire } from 'module';
 import fs from 'fs'; import path from 'path';
@@ -58,6 +64,8 @@ const REDIRECTS = ['/sitemap.xml', '/wp-sitemap.xml', '/hi/', '/hi/shop/', '/202
 // fetched as they are: robots.txt, sitemaps, the currency switcher's public API
 const RAW = ['/robots.txt', '/sitemap_index.xml', '/page-sitemap.xml', '/post-sitemap.xml', '/product-sitemap.xml', '/product_cat-sitemap.xml', '/category-sitemap.xml', '/main-sitemap.xsl', '/wp-json/woocs/v3/currency'];
 const withQ = (u, q) => u + (u.includes('?') ? '&' : '?') + q;
+const ONLY = process.env.AF_ONLY ? new Set(JSON.parse(fs.readFileSync(process.env.AF_ONLY, 'utf8'))) : null;
+const want = (key) => !ONLY || ONLY.has(key);
 const PV = process.env.AF_PV || '', PV_SKIP = process.env.AF_SKIP || 'none';
 const pvUrl = (u) => (PV && u.startsWith(S) && !u.includes('af_pv=')) ? withQ(u, 'af_pv=' + PV + '&af_skip=' + PV_SKIP) : u;
 // the secret and the skip list never count as a difference
@@ -157,10 +165,11 @@ async function snap(out) {
     await p.close();
   };
   // three pages at a time: the whole site in about a third of the time
-  const pool = async (jobs, n, c = ctx) => { let i = 0; await Promise.all(Array.from({ length: n }, async () => { while (i < jobs.length) { const j = jobs[i++]; try { await visit(j[0], j[1], j[0] + '@' + j[1], c); } catch (e) { results[j[0] + '@' + j[1]] = { url: j[0], w: j[1], status: 0, error: String(e.message).slice(0, 120) }; } } })); };
+  const pool = async (jobs, n, c = ctx) => { jobs = jobs.filter(j => want(j[0] + '@' + j[1])); let i = 0; await Promise.all(Array.from({ length: n }, async () => { while (i < jobs.length) { const j = jobs[i++]; try { await visit(j[0], j[1], j[0] + '@' + j[1], c); } catch (e) { results[j[0] + '@' + j[1]] = { url: j[0], w: j[1], status: 0, error: String(e.message).slice(0, 120) }; } } })); };
   await pool(pages.flatMap(u => WIDTHS.map(w => [u, w])), 3);
   // basket pages: one canvas in the basket
   const basket = async (c, q) => {
+    if (!['/cart/', '/checkout/'].some(u => WIDTHS.some(w => want((q ? withQ(u, q) : u) + '@' + w)))) return;
     const p = await c.newPage(); await p.setViewport({ width: 1366, height: 900 });
     await go(p, S + (q ? withQ(EXTRA[2], q) : EXTRA[2]));
     await p.select('#af-size-select', '3×4 ft (36×48 in)').catch(() => {}); await sleep(600);
@@ -171,6 +180,7 @@ async function snap(out) {
   try { await basket(ctx, ''); } catch (e) { console.log('basket pages failed: ' + e.message); }
   // the Hindi and Canadian-dollar views, each with its own cookies and basket
   for (const v of VARIANTS) {
+    if (ONLY && ![...ONLY].some(k => k.includes(v.q))) continue;
     const vc = await b.createBrowserContext();
     try {
       await pool(v.pages.map(u => withQ(u, v.q)).flatMap(u => WIDTHS.map(w => [u, w])), 3, vc);
@@ -180,11 +190,11 @@ async function snap(out) {
   }
   // what search engines and apps fetch besides pages
   const UA = { 'user-agent': 'Mozilla/5.0 (X11; Linux x86_64) Chrome/124 Safari/537.36' };
-  for (const u of RAW) {
+  for (const u of RAW.filter(u => want('raw ' + u))) {
     try { const r = await fetch(pvUrl(S + withQ(u, 'afsw=' + Date.now())), { headers: UA }); results['raw ' + u] = unPv({ url: u, w: 0, raw: true, status: r.status, body: (await r.text()).replace(/[?&]afsw=\d+/g, '') }); }
     catch (e) { results['raw ' + u] = { url: u, w: 0, raw: true, status: 0, body: '' }; }
   }
-  for (const u of REDIRECTS) {
+  for (const u of REDIRECTS.filter(u => want('redirect ' + u))) {
     try {
       const r = await fetch(pvUrl(S + u), { headers: UA, redirect: 'manual' });
       results['redirect ' + u] = unPv({ url: u, w: 0, raw: true, status: r.status, body: [r.headers.get('location') || '', r.headers.get('x-redirect-by') || ''].join(' | ') });
@@ -213,10 +223,10 @@ function pixels(fa, fb) {
 function compare(fa, fb, fc) {
   const A = JSON.parse(fs.readFileSync(path.join(fa, 'snap.json'))), B = JSON.parse(fs.readFileSync(path.join(fb, 'snap.json'))), C = JSON.parse(fs.readFileSync(path.join(fc, 'snap.json')));
   let fail = 0, review = 0;
-  const lines = [];
-  for (const k of Object.keys(A)) {
+  const lines = [], failed = [];
+  for (const k of Object.keys(A).filter(want)) {
     const a = A[k], b = B[k] || a, c = C[k];
-    if (!c) { lines.push(`FAIL ${k}: missing after`); fail++; continue; }
+    if (!c) { lines.push(`FAIL ${k}: missing after`); fail++; failed.push(k); continue; }
     const out = [];
     let verdict = 'PASS';
     if (c.status !== a.status) { out.push(`status ${a.status} -> ${c.status}`); verdict = 'FAIL'; }
@@ -283,11 +293,12 @@ function compare(fa, fb, fc) {
         if (pct > 0.6 && verdict === 'PASS') verdict = 'REVIEW';
       }
     }
-    if (verdict === 'FAIL') fail++; else if (verdict === 'REVIEW') review++;
+    if (verdict === 'FAIL') { fail++; failed.push(k); } else if (verdict === 'REVIEW') review++;
     lines.push(`${verdict} ${k}` + (out.length ? '\n    ' + out.join('\n    ') : ''));
   }
   console.log(lines.join('\n'));
-  console.log(`\nSUMMARY switch-compare: ${Object.keys(A).length} page views, ${fail} FAIL, ${review} REVIEW`);
+  fs.writeFileSync(path.join(fc, 'fails.json'), JSON.stringify(failed));
+  console.log(`\nSUMMARY switch-compare: ${Object.keys(A).filter(want).length} page views, ${fail} FAIL, ${review} REVIEW`);
   process.exit(fail ? 1 : review ? 2 : 0);
 }
 

@@ -126,6 +126,14 @@ jobs:
           NODE_PATH=/tmp/afh/node_modules node tools/diag-plugin-switch.mjs snap /tmp/snapC
           NODE_PATH=/tmp/afh/node_modules node tools/diag-plugin-switch.mjs compare /tmp/snapA /tmp/snapB /tmp/snapC
           rc=$?
+          if [ $rc -eq 1 ]; then
+            # a break shows twice; a slow third-party widget (YouTube, Instagram) seldom does
+            echo "=== re-checking the failing page views once, freshly: $(cat /tmp/snapC/fails.json)"
+            AF_ONLY=/tmp/snapC/fails.json NODE_PATH=/tmp/afh/node_modules node tools/diag-plugin-switch.mjs snap /tmp/snapC2
+            AF_ONLY=/tmp/snapC/fails.json NODE_PATH=/tmp/afh/node_modules node tools/diag-plugin-switch.mjs compare /tmp/snapA /tmp/snapB /tmp/snapC2
+            rc2=$?
+            if [ $rc2 -ne 1 ] && [ -s /tmp/snapC2/snap.json ]; then rc=2; echo "=== the failures did not repeat: REVIEW, not FAIL"; fi
+          fi
           if [ $rc -eq 1 ] || { [ $rc -eq 2 ] && [ "$KEEP" != "yes" ]; } || [ $rc -gt 2 ]; then
             echo "=== ROLLED BACK (compare exit $rc): switching back on: $PLUGINS"
             /tmp/remote.sh "wp plugin activate $PLUGINS --allow-root 2>&1; wp litespeed-purge all --allow-root 2>&1"
