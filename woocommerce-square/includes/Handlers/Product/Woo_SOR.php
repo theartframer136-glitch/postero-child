@@ -1,0 +1,578 @@
+<?php
+/**
+ * WooCommerce Square
+ *
+ * This source file is subject to the GNU General Public License v3.0
+ * that is bundled with this package in the file license.txt.
+ * It is also available through the world-wide-web at this URL:
+ * http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0 or later
+ * If you did not receive a copy of the license and are unable to
+ * obtain it through the world-wide-web, please send an email
+ * to license@woocommerce.com so we can send you a copy immediately.
+ *
+ * DISCLAIMER
+ *
+ * Do not edit or add to this file if you wish to upgrade WooCommerce Square to newer
+ * versions in the future. If you wish to customize WooCommerce Square for your
+ * needs please refer to https://docs.woocommerce.com/document/woocommerce-square/
+ *
+ * @author    WooCommerce
+ * @copyright Copyright: (c) 2019, Automattic, Inc.
+ * @license   http://www.gnu.org/licenses/gpl-3.0.html GNU General Public License v3.0 or later
+ */
+
+namespace WooCommerce\Square\Handlers\Product;
+
+use Square\Models\CatalogObject;
+
+class Woo_SOR extends \WooCommerce\Square\Handlers\Product {
+
+	/**
+	 * Updates a Square catalog item with a WooCommerce product's data.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param CatalogObject $catalog_object Square SDK catalog object
+	 * @param \WC_Product $product WooCommerce product
+	 * @return CatalogObject
+	 * @throws \InvalidArgumentException when the catalog object is not an ITEM
+	 * @throws \Exception on Square API failures while resolving item options
+	 */
+	public static function update_catalog_item( CatalogObject $catalog_object, \WC_Product $product ) {
+
+		if ( 'ITEM' !== $catalog_object->getType() || ! $catalog_object->getItemData() ) {
+			throw new \InvalidArgumentException( 'Type of $catalog_object must be an ITEM' );
+		}
+
+		// ensure the product meta is persisted
+		self::update_product( $product, $catalog_object );
+
+		if ( ! $catalog_object->getId() ) {
+			$catalog_object->setId( self::get_square_item_id( $product ) );
+		}
+
+		$is_delete = 'trash' === $product->get_status();
+
+		$catalog_object = self::set_catalog_object_location_ids( $catalog_object, $is_delete );
+
+		$item_data = $catalog_object->getItemData();
+
+		$item_data->setName( $product->get_name() );
+		$item_data->setDescriptionHtml( $product->get_description() );
+
+		$square_categories  = array();
+		$reporting_category = null;
+
+		foreach ( $product->get_category_ids() as $category_id ) {
+
+			$map = \WooCommerce\Square\Handlers\Category::get_mapping( $category_id );
+
+			if ( ! empty( $map['square_id'] ) ) {
+
+				$square_category = new \Square\Models\CatalogObjectCategory();
+				$square_category->setId( $map['square_id'] );
+				$square_categories[] = $square_category;
+
+				if ( ! $reporting_category ) {
+					$reporting_category = $square_category;
+				}
+			}
+		}
+
+		// if categories with Square IDs were found
+		if ( ! empty( $square_categories ) ) {
+			$item_data->setCategories( $square_categories );
+
+			if ( $reporting_category ) {
+				$item_data->setReportingCategory( $reporting_category );
+			}
+		}
+
+		// Only use attributes that are used for variations.
+		$attributes = self::get_used_variation_attributes( $product );
+
+		$product_variation_ids = $product->get_children();
+		$catalog_variations    = $item_data->getVariations() ?? array();
+
+		// if dealing with a variable product, try and match the variations
+		if ( $product->is_type( 'variable' ) ) {
+
+			$options_ids = array();
+
+			/**
+			 * If there are multiple variations, it must be a considered as Dynamic Options supported product.
+			 * Create/Update and Assign Dynamic Options only if a product
+			 * has multiple attributes OR options already exists in Square.
+			 */
+			if (
+				count( $attributes ) > 1
+			) {
+				$result       = wc_square()->get_api()->retrieve_options_data();
+				$options_data = $result[1] ?? array();
+
+				// Set the product as a dynamic options product.
+				update_post_meta( $product->get_id(), '_dynamic_options', true );
+
+				// Loop through the attributes to create options and values at Square.
+				foreach ( $attributes as $attribute_id => $attribute ) {
+
+					$attribute_name = $attribute->get_name();
+					// Check if its a taxonomy-based attribute.
+					$attribute_option_values = array();
+					if ( taxonomy_exists( $attribute_id ) ) {
+						$terms                   = get_terms( $attribute_id );
+						$attribute_option_values = wp_list_pluck( $terms, 'name' );
+					} else {
+						$attribute_option_values = $attribute->get_options();
+					}
+
+					// Check if Square already has the option created with the same name.
+					// To do so, we can check if we already have the name in options/transient,
+					// if yes, use the relative Square ID.
+					$option_id = false;
+					foreach ( $options_data as $transient_option_id => $option_data_transient ) {
+						// Square treats Item Option names as case insensitive and rejects a create whose
+						// name differs from an existing one only by case, so match the same way and
+						// reuse what Square already has.
+						if ( 0 === strcasecmp( (string) $option_data_transient['name'], (string) $attribute_name ) ) {
+							$option_id = $transient_option_id;
+							break;
+						}
+					}
+
+					// If name does not exist, create a new option in Square.
+					// If name exists, check if all values are present in Square.
+					// If not, create the missing values.
+					$option        = wc_square()->get_api()->create_options_and_values( $option_id, $attribute_name, $attribute_option_values );
+					$options_ids[] = $option->getId();
+				}
+
+				// Set the item_option_id for each option to the product.
+				$product_options = array();
+
+				foreach ( $options_ids as $option_id ) {
+					$item_option = new \Square\Models\CatalogItemOptionForItem();
+					$item_option->setItemOptionId( $option_id );
+					$product_options[] = $item_option;
+				}
+
+				$catalog_object->getItemData()->setItemOptions( $product_options );
+			} else {
+				// If the product has only one attribute, it's not a dynamic options product.
+				// So, remove the dynamic options meta.
+				delete_post_meta( $product->get_id(), '_dynamic_options' );
+				$catalog_object->getItemData()->setItemOptions( null );
+			}
+
+			if ( is_array( $catalog_variations ) ) {
+
+				foreach ( $catalog_variations as $object_key => $variation_object ) {
+
+					$product_variation_id = self::get_product_id_by_square_variation_id( $variation_object->getId() );
+
+					// ID might not be set, so try the SKU
+					if ( ! $product_variation_id ) {
+						$product_variation_id = wc_get_product_id_by_sku( $variation_object->getItemVariationData()->getSku() );
+					}
+
+					// if a product was found and belongs to the parent, use it
+					if ( false !== ( $key = array_search( $product_variation_id, $product_variation_ids, false ) ) ) {
+
+						$product_variation = wc_get_product( $product_variation_id );
+
+						if ( $product_variation instanceof \WC_Product ) {
+
+							$catalog_variations[ $object_key ] = self::update_catalog_variation( $variation_object, $product_variation, $options_ids );
+
+							// consider this variation taken care of
+							unset( $product_variation_ids[ $key ] );
+						}
+					} else {
+
+						unset( $catalog_variations[ $object_key ] );
+					}
+				}
+			}
+
+			// all that's left are variations that didn't have a match, so create new variations
+			foreach ( $product_variation_ids as $product_variation_id ) {
+
+				$product_variation = wc_get_product( $product_variation_id );
+
+				if ( ! $product_variation instanceof \WC_Product ) {
+					continue;
+				}
+
+				$variation_object = new CatalogObject(
+					'ITEM_VARIATION',
+					''
+				);
+
+				$catalog_item_variation = new \Square\Models\CatalogItemVariation();
+				$catalog_item_variation->setItemId( $catalog_object->getId() );
+				$variation_object->setItemVariationData( $catalog_item_variation );
+
+				$catalog_variations[] = self::update_catalog_variation( $variation_object, $product_variation, $options_ids );
+			}
+		} else { // otherwise, we have a simple product
+
+			if ( ! empty( $catalog_variations ) ) {
+
+				$variation_object = $catalog_variations[0];
+
+			} else {
+
+				$variation_object = new CatalogObject(
+					'ITEM_VARIATION',
+					''
+				);
+
+				$catalog_item_variation = new \Square\Models\CatalogItemVariation();
+				$catalog_item_variation->setItemId( $catalog_object->getId() );
+				$variation_object->setItemVariationData( $catalog_item_variation );
+			}
+
+			$catalog_variations = array( self::update_catalog_variation( $variation_object, $product ) );
+
+			$catalog_object->getItemData()->setItemOptions( null );
+		}
+
+		$item_data->setVariations( array_values( $catalog_variations ) );
+
+		$catalog_object->setItemData( $item_data );
+
+		/**
+		 * Fires when updating  a Square catalog item with WooCommerce product data.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param CatalogObject $catalog_object Square SDK catalog object
+		 * @param \WC_Product $product WooCommerce product
+		 */
+		$catalog_object = apply_filters( 'wc_square_update_catalog_item', $catalog_object, $product );
+
+		return $catalog_object;
+	}
+
+
+	/**
+	 * Updates a Square catalog item variation with a WooCommerce product's data.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param CatalogObject $catalog_object Square SDK catalog object
+	 * @param \WC_Product   $product        WooCommerce product
+	 * @param array         $options_ids    Array of options IDs
+	 *
+	 * @return CatalogObject
+	 * @throws \InvalidArgumentException when the catalog object is not an ITEM_VARIATION
+	 * @throws \Exception on Square API failures while resolving item options
+	 */
+	public static function update_catalog_variation( CatalogObject $catalog_object, \WC_Product $product, $options_ids = array() ) {
+
+		if ( 'ITEM_VARIATION' !== $catalog_object->getType() || ! $catalog_object->getItemVariationData() ) {
+			throw new \InvalidArgumentException( 'Type of $catalog_object must be an ITEM_VARIATION' );
+		}
+
+		// ensure the variation meta is persisted
+		self::update_variation( $product, $catalog_object );
+
+		if ( ! $catalog_object->getId() ) {
+			// Use a temp ID so stale stored variation IDs do not cause Square to reject the batch.
+			$catalog_object->setId( '#item_variation_' . $product->get_id() );
+		}
+
+		if ( ! $catalog_object->getVersion() ) {
+			$catalog_object->setVersion( self::get_square_variation_version( $product ) );
+		}
+
+		$catalog_object = self::set_catalog_object_location_ids( $catalog_object, 'trash' === $product->get_status() );
+
+		$variation_data = $catalog_object->getItemVariationData();
+
+		if ( $product->get_regular_price() || $product->get_sale_price() ) {
+			$variation_data->setPriceMoney( self::price_to_money( $product->get_sale_price() ?: $product->get_regular_price() ) );
+		} else {
+			$variation_data->setPriceMoney( self::price_to_money( 0 ) );
+		}
+
+		$variation_data->setPricingType( 'FIXED_PRICING' );
+
+		/**
+		 * Simple products have only 1 variation and the name of the variation
+		 * is derived from CatalogItem::name. For variable products, each variation
+		 * can have its own name, so we put a condition to only set the name for
+		 * variation.
+		 *
+		 * @see https://github.com/woocommerce/woocommerce-square/issues/570
+		 */
+		if ( 'variation' === $product->get_type() ) {
+			$result                = wc_square()->get_api()->retrieve_options_data();
+			$options_data          = isset( $result[1] ) ? $result[1] : array();
+			$parent_product        = wc_get_product( $product->get_parent_id() );
+			$attributes            = self::get_used_variation_attributes( $parent_product );
+			$variation_items       = $product->get_attributes();
+			$variation_item_values = array();
+
+			if ( 1 === count( $attributes ) ) {
+				// Set the name of the variation if it's a single variation.
+				$variation_data->setName( reset( $variation_items ) );
+				$variation_data->setItemOptionValues( null );
+			} else {
+				// If there are multiple attributes, the name of the variation is the combination of all attribute values.
+				$variation_name  = array();
+				$variation_index = 0;
+
+				/**
+				 * Set the `item_option_values` for the variation.
+				 *
+				 * Retrieve the options data from the transient. At this point, the options data
+				 * should already be available, as we have already created the necessary options
+				 * and values in the parent product above.
+				 */
+				foreach ( $variation_items as $attribute_id => $attribute_value ) {
+					// If the attribute value is empty, set it to 'Any'.
+					$attribute_value = empty( $attribute_value ) ? WC_SQUARE_OPTION_ANY : $attribute_value;
+
+					// Check if it's a global attribute (taxonomy-based, e.g., "pa_color")
+					$taxonomy_exists = false;
+					if ( taxonomy_exists( $attribute_id ) ) {
+						// Use wc_attribute_label for global attributes
+						$attribute_name   = $attribute_id;
+						$variation_name[] = $attribute_value = WC_SQUARE_OPTION_ANY === $attribute_value ? WC_SQUARE_OPTION_ANY : get_term_by( 'slug', $attribute_value, $attribute_id )->name;
+						$taxonomy_exists  = true;
+					} else {
+						// For custom attributes, simply use the cleaned-up attribute ID
+						$attribute_name   = str_replace( '-', ' ', $attribute_id );
+						$attribute_id     = $attribute_name;
+						$variation_name[] = $attribute_value;
+					}
+
+					// Remembered so a case insensitive match below can correct this entry in place.
+					// Square builds a variation's name out of its own option value names and then
+					// refuses to let that name be edited for as long as the variation uses item
+					// options. A name carrying Woo's casing against values bound to Square's is
+					// therefore accepted on the create and rejected on every update after it, with
+					// no refresh flag and no self heal, so the product stays unsyncable for good.
+					$variation_name_index = count( $variation_name ) - 1;
+
+					// Taken from the option the parent product just created or reused, not from the
+					// cache, because the cache can legitimately not know about it yet: an unlooped
+					// read on a paginated catalogue leaves the new option in the partial cache only.
+					// Carrying the ID regardless means the create below takes the retrieve path and
+					// reuses that option, instead of asking Square for one it already has.
+					$option_id       = isset( $options_ids[ $variation_index ] ) ? $options_ids[ $variation_index ] : '';
+					$option_value_id = '';
+					if ( isset( $options_data[ $option_id ] ) ) {
+						foreach ( $options_data[ $option_id ]['value_ids'] as $value_id => $value_name ) {
+							if ( 0 === strcasecmp( (string) $value_name, (string) $attribute_value ) ) {
+								$option_value_id = $value_id;
+								// Square's spelling of the value wins, because that is the value
+								// the ID above points at and the one Square will name the variation
+								// from. Byte identical whenever the casing already agrees, so
+								// nothing that was already in sync gets renamed.
+								$variation_name[ $variation_name_index ] = $value_name;
+								break;
+							}
+						}
+					}
+
+					if ( $option_id && $option_value_id ) {
+						$option_value_object = new \Square\Models\CatalogItemOptionValueForItemVariation();
+						$option_value_object->setItemOptionId( $option_id );
+						$option_value_object->setItemOptionValueId( $option_value_id );
+
+						$variation_item_values[] = $option_value_object;
+					} else {
+
+						if ( $taxonomy_exists ) {
+							// Get all attribute terms from Woo taxonomy.
+							$attribute_option_values = get_terms( $attribute_id );
+							$attribute_option_values = wp_list_pluck( $attribute_option_values, 'name' );
+						} else {
+							// Get all attribute values from the parent product.
+							$attribute_option_values = $parent_product->get_attribute( $attribute_id );
+							$attribute_option_values = array_map( 'trim', explode( '|', $attribute_option_values ) );
+						}
+
+						// If the attribute value is 'Any', add it to the attribute option values.
+						if ( WC_SQUARE_OPTION_ANY === $attribute_value && ! in_array( WC_SQUARE_OPTION_ANY, $attribute_option_values, true ) ) {
+							$attribute_option_values[] = WC_SQUARE_OPTION_ANY;
+						}
+
+						$option    = wc_square()->get_api()->create_options_and_values( $option_id, $attribute_name, $attribute_option_values );
+						$option_id = $option->getId();
+
+						// Get the Square ID of the attribute value.
+						$updated_option_values = $option->getItemOptionData() ? $option->getItemOptionData()->getValues() : array();
+						foreach ( $updated_option_values as $option_value ) {
+							if ( 0 === strcasecmp( (string) $option_value->getItemOptionValueData()->getName(), (string) $attribute_value ) ) {
+								$option_value_id = $option_value->getId();
+								// Same rule as the cache path above: follow the bound value's own
+								// name, not the Woo attribute's.
+								$variation_name[ $variation_name_index ] = $option_value->getItemOptionValueData()->getName();
+								break;
+							}
+						}
+
+						$option_value_object = new \Square\Models\CatalogItemOptionValueForItemVariation();
+						$option_value_object->setItemOptionId( $option_id );
+						$option_value_object->setItemOptionValueId( $option_value_id );
+
+						$variation_item_values[] = $option_value_object;
+					}
+
+					++$variation_index;
+				}
+
+				// Set the name of the variation as the combination of all attribute values.
+				$variation_data->setName( implode( ', ', $variation_name ) );
+				$variation_data->setItemOptionValues( $variation_item_values );
+			}
+		}
+
+		if ( wc_square()->get_settings_handler()->is_inventory_sync_enabled() ) {
+			$track_inventory    = $variation_data->getTrackInventory();
+			$location_overrides = $variation_data->getLocationOverrides();
+
+			/*
+			 * Only update the base track_inventory if it's not set.
+			 * This will only update inventory tracking on new variations.
+			 * inventory tracking will remain the same for existing variations.
+			 */
+			if ( is_null( $track_inventory ) && is_null( $location_overrides ) ) {
+				$variation_data->setTrackInventory( $product->get_manage_stock() );
+			}
+
+			/*
+			 * For products that do not manage stock in WooCommerce, the configured location's
+			 * tracking override always follows the current WooCommerce availability:
+			 *
+			 * - out of stock: tracking on. Square's sold_out flag is read-only and only becomes
+			 *   true through a tracked count of zero, so tracking (plus the explicit zero count
+			 *   pushed by the inventory step) is the only API way to mark the item sold out.
+			 * - in stock: tracking off, which is the sellable state for an untracked item. This
+			 *   also clears the sold-out state when a product comes back in stock; previously the
+			 *   override was only ever written for new variations, so a product that went out of
+			 *   stock once stayed sold out in Square forever.
+			 *
+			 * The override is merged into any existing overrides so location price overrides are
+			 * preserved.
+			 */
+			if ( ! $product->get_manage_stock() ) {
+				$configured_location = wc_square()->get_settings_handler()->get_location_id();
+				$is_out_of_stock     = 'outofstock' === $product->get_stock_status();
+
+				$location_overrides = is_array( $location_overrides ) ? $location_overrides : array();
+				$location_override  = null;
+
+				foreach ( $location_overrides as $existing_override ) {
+					if ( $existing_override->getLocationId() === $configured_location ) {
+						$location_override = $existing_override;
+						break;
+					}
+				}
+
+				// Out of stock needs an override, created if the item has none, because tracking is the
+				// only way to reach Square's sold out state. In stock only RELEASES tracking on an
+				// override that already exists: creating one purely to say "not tracked" would
+				// overwrite a merchant's own Square side tracking for an item WooCommerce does not
+				// manage, which is not ours to decide.
+				if ( ! $location_override && $is_out_of_stock ) {
+					$location_override = new \Square\Models\ItemVariationLocationOverrides();
+					$location_override->setLocationId( $configured_location );
+					$location_overrides[] = $location_override;
+				}
+
+				if ( $location_override ) {
+					$location_override->setTrackInventory( $is_out_of_stock );
+					$variation_data->setLocationOverrides( $location_overrides );
+				}
+			}
+		}
+
+		$variation_data->setSku( $product->get_sku() );
+
+		if ( ! $variation_data->getItemId() ) {
+
+			$parent_product = $product->get_parent_id() ? wc_get_product( $product->get_parent_id() ) : $product;
+
+			if ( ! $parent_product instanceof \WC_Product ) {
+				$variation_data->setItemId( self::get_square_item_id( $parent_product ) );
+			}
+		}
+
+		$catalog_object->setItemVariationData( $variation_data );
+
+		/**
+		 * Fires when updating  a Square catalog item variation with WooCommerce product data.
+		 *
+		 * @since 2.0.0
+		 *
+		 * @param CatalogObject $catalog_object Square SDK catalog object
+		 * @param \WC_Product $product WooCommerce product
+		 */
+		$catalog_object = apply_filters( 'wc_square_update_catalog_item_variation', $catalog_object, $product );
+
+		return $catalog_object;
+	}
+
+
+	/**
+	 * Sets the present/absent location IDs to a catalog object.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param CatalogObject $catalog_object Square SDK catalog object
+	 * @param bool $is_delete whether the product is being deleted
+	 * @return CatalogObject
+	 */
+	public static function set_catalog_object_location_ids( CatalogObject $catalog_object, $is_delete = false ) {
+
+		$location_id = wc_square()->get_settings_handler()->get_location_id();
+
+		$present_location_ids = $catalog_object->getPresentAtLocationIds() ?: array();
+		$absent_location_ids  = $catalog_object->getAbsentAtLocationIds() ?: array();
+
+		// if trashed, set as absent at our location
+		if ( $is_delete ) {
+
+			$absent_location_ids[] = $location_id;
+
+			if ( false !== ( $key = array_search( $location_id, $present_location_ids, true ) ) ) {
+				unset( $present_location_ids[ $key ] );
+			}
+		} else { // otherwise, it's present
+
+			$present_location_ids[] = $location_id;
+
+			if ( false !== ( $key = array_search( $location_id, $absent_location_ids, true ) ) ) {
+				unset( $absent_location_ids[ $key ] );
+			}
+		}
+
+		$catalog_object->setAbsentAtLocationIds( array_unique( array_values( $absent_location_ids ) ) );
+		$catalog_object->setPresentAtLocationIds( array_unique( array_values( $present_location_ids ) ) );
+
+		$catalog_object->setPresentAtAllLocations( false );
+
+		return $catalog_object;
+	}
+
+	/**
+	 * Helper to get only attributes used for variations.
+	 *
+	 * @since 4.9.3
+	 *
+	 * @param WC_Product $product
+	 * @return array
+	 */
+	public static function get_used_variation_attributes( $product ) {
+		return array_filter(
+			$product->get_attributes(),
+			function ( $attribute ) {
+				return $attribute->get_variation();
+			}
+		);
+	}
+}

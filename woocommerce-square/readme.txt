@@ -1,0 +1,281 @@
+=== WooCommerce Square ===
+Contributors: woocommerce, automattic
+Tags: credit card, square, woocommerce, inventory sync
+Requires at least: 6.9
+Tested up to: 7.1
+Requires PHP: 7.4
+Stable tag: 5.5.1
+License: GPL-3.0-or-later
+License URI: https://www.gnu.org/licenses/gpl-3.0.html
+
+Securely accept payments, synchronize sales, and seamlessly manage inventory and product data between WooCommerce and Square POS.
+
+== Description ==
+
+This plugin allows you to securely accept payments, synchronize sales, and seamlessly manage inventory and product data between WooCommerce and Square POS.
+
+The Square plugin is PCI and SAQ A-level compliant.
+
+= Accept payments anywhere, anytime =
+
+- The Square plugin extends WooCommerce to allow you to accept payments via Square - including support for [Apple Pay®](https://www.apple.com/apple-pay/), [Google Pay](https://www.google.com/payments/solutions/), [WooCommerce Subscriptions](https://woocommerce.com/products/woocommerce-subscriptions/) and [WooCommerce Pre-Orders](https://woocommerce.com/products/woocommerce-pre-orders/).
+- Recurring customers can save payment methods and use them at checkout.
+- Customize payment forms with automatic formatting, mobile-friendly options, and retina card icons.
+
+= Manage your business all in one place =
+
+Sync your product and inventory information from WooCommerce to Square, or from Square to WooCommerce — set everything up once, and whenever you make a sale, your inventory automatically updates on both platforms.
+
+- If you sell mainly online, set WooCommerce as your system of record so WooCommerce pushes product name, inventory, prices, categories, and images to Square.
+- If you sell in multiple locations and online, set Square as your system of record so Square pushes product name, inventory, prices, categories, and images to WooCommerce.
+
+== Installation ==
+
+You can download an [older version of this gateway for older versions of WooCommerce from here](https://wordpress.org/plugins/woocommerce-square/developers/).
+
+= Automatic installation =
+
+Automatic installation is the easiest option as WordPress handles the file transfers itself and you don’t need to leave your web browser. To
+automatically install WooCommerce Square, log in to your WordPress dashboard, navigate to the Plugins menu, and click **Add New**.
+
+In the search field type "WooCommerce Square" and click **Search Plugins**. Once you've found our plugin you can install it by clicking **Install Now**, as well as view details about it such as the point release, rating, and description.
+
+= Manual installation =
+
+The manual installation method involves downloading our plugin and uploading it to your web server via your favorite FTP application. The WordPress codex contains [instructions on how to do this here](http://codex.wordpress.org/Managing_Plugins#Manual_Plugin_Installation).
+
+= Updating =
+
+Automatic updates should work like a charm; as always though, ensure you backup your site just in case.
+
+= Note =
+If running PHP 8.2+, you may see some deprecation notices being logged. These notices are known and do not impact any plugin functionality.
+
+== Frequently Asked Questions ==
+
+= Does this require an SSL certificate? =
+
+Yes! An SSL certificate must be installed on your site to use Square.
+
+= Where can I find documentation? =
+
+For help setting up and configuring the plugin, please refer to our [user guide](https://woo.com/document/woocommerce-square/).
+
+= Where can I get support or talk to other users? =
+
+If you get stuck, you can ask for help in the [Plugin Forum](https://wordpress.org/support/plugin/woocommerce-square/).
+
+== Screenshots ==
+
+1. The main plugin settings.
+2. The payment gateway settings.
+
+== Changelog ==
+
+= 5.5.1 - 2026-09-21 =
+* Fix - Improved handling of Apple Pay domain registration on the Square settings screen.
+* Fix - The domain registered with Square for Apple Pay is now based on the Site Address setting.
+
+= 5.5.0 - 2026-08-31 =
+* Fix - Prevent product sync from getting stuck when a product set to sync with Square is deleted.
+* Fix - Automatically detect and recover a background sync job stuck in processing, unblock the sync queue, show an admin notice prompting a re run, and prune old failed scheduler actions.
+* Fix - Skip products that Square rejects during a sync instead of failing the whole sync, and report the name, SKU and reason for each skipped product.
+* Fix - Stop Square inventory pulls from writing zero stock for items Square has no real count for, never change a product's stock management setting on a zero, and honor the per product Sync with Square setting on all automatic pulls.
+* Fix - Allow "Manage stock" to be changed on a synced product when WooCommerce is the system of record, and keep it read-only when Square is.
+* Fix - Square inventory sync errors no longer interrupt checkout or refunds for orders paid through other payment gateways.
+* Fix - Reuse the Square catalog sync idempotency key on an unchanged retry and generate a new one when the request body changes, so a rate limited sync on stores with many categories recovers instead of getting stuck.
+* Fix - Sync no longer fails when Square already holds an item option whose name differs only by case, or when a store has more than 100 item options.
+* Fix - Reuse an existing Square item option that differs only by capitalization, so variations use Square's spelling of the value instead of creating a duplicate option.
+* Dev - Bump WordPress "Tested up to" to 7.1.
+* Dev - Bump WooCommerce "tested up to" version 11.1.
+* Dev - Bump WooCommerce minimum supported version to 10.9.
+* Dev - Update PHP_CodeSniffer to 3.13.6 and WooCommerce Sniffs to 1.0.1.
+
+= 5.4.3 - 2026-08-06 =
+* Fix - Hardened validation of guest billing details submitted on the order payment page.
+* Dev - Update WordPress Coding Standards to 3.4.1.
+
+= 5.4.2 - 2026-07-22 =
+* Update - Remove deprecated beta Product Editor (`@woocommerce/product-editor`) integration.
+* Fix - Remove obsolete pre-7.6 WooCommerce compatibility code, as the minimum supported WooCommerce version is now 10.7.
+* Dev - Bump WooCommerce "tested up to" version 11.0.
+* Dev - Bump WooCommerce minimum supported version to 10.8.
+* Dev - Bump WordPress minimum supported version to 6.9.
+
+= 5.4.1 - 2026-06-24 =
+* Fix - Syncing new products to Square no longer leaves them at zero inventory if the sync fails partway through.
+* Dev - Bump WooCommerce "tested up to" version 10.9.
+* Dev - Bump WooCommerce minimum supported version to 10.7.
+
+= 5.4.0 - 2026-05-28 =
+* Add - Register seven read-only abilities with the WordPress Abilities API, gated behind the woocommerce_square_abilities_enabled filter (default off) and the WC 10.9 loader.
+* Fix - Correct button alignment in the Import Products modal on WP 7.0.
+* Fix - Allow extending the "Pay for Order" functionality via the WordPress capability system.
+* Fix - Square product syncs no longer fail entirely when one item has an outdated catalog ID.
+* Fix - Product categories are updated properly during manual sync.
+* Fix - Ensure stale category mappings are fully cleaned up when two WooCommerce categories share the same Square category ID.
+* Dev - Removed stale Action Scheduler DELETE hook from Plugin.php.
+* Dev - Bump WooCommerce "tested up to" version 10.8.
+* Dev - Bump WooCommerce minimum supported version to 10.6.
+
+= 5.3.3 - 2026-05-07 =
+* Add - Admin notice to inform merchants if a successful product sync has not occurred in a while.
+* Fix - Add SKU-based existence check before creating new Square catalog items to prevent duplicates.
+* Fix - Skip SKU-based product matching for Square variations with no SKU to prevent unrelated WooCommerce products from being overwritten during sync.
+* Fix - Push inventory now attempts SKU-based lookup for synced products missing a Square variation ID.
+* Fix - Syncs no longer crash when encountering certain malformed items in your Square catalog.
+* Fix - Add safeguard to skip disabling cards on Square when removing tokens from staging/non-production sites.
+* Fix - Ensure the debug mode admin notice link points to the correct settings page.
+* Dev - Bump WooCommerce "tested up to" version 10.7.
+* Dev - Bump WooCommerce minimum supported version to 10.5.
+
+= 5.3.2 - 2026-04-06 =
+* Fix - Prevent stale Square catalog IDs from breaking checkout while still surfacing genuine coupon redemption failures as checkout errors.
+* Fix - Ensure that the order note wordings for partial payments are translatable.
+* Dev - Replace deprecated `wc_enqueue_js` with `wp_add_inline_script`.
+* Dev - Bump WordPress "Tested up to" to 7.0.
+* Dev - Bump WordPress minimum supported to 6.8.
+* Dev - Bump WooCommerce minimum supported version to 10.4.
+
+= 5.3.1 - 2026-03-26 =
+* Fix - Improved reliability when customers change or remove an applied gift card at checkout.
+* Fix - Improved authorization handling for order-related requests in the payment flow.
+* Dev - Bump WooCommerce "tested up to" version 10.6.
+
+= 5.3.0 - 2026-03-05 =
+* Add - Initial support for Square Discount Codes (Coupons).
+* Fix - Set the "Synced with Square" taxonomy to private.
+* Fix - Ensure that there is no `DivisionByZeroError` fatal error in Square when the total amount is zero and the tax amount is non-zero.
+* Fix - Partial-Total Verification when Gift Card is used.
+* Fix - Improved data access restrictions on payment method page.
+* Dev - Bump WooCommerce "tested up to" version 10.5.
+* Dev - Bump WooCommerce minimum supported version to 10.3.
+
+= 5.2.0 - 2026-01-15 =
+* Add - A notice for the inventory sync in bulk edit screen.
+* Add - Helper text and notices to clarify the difference between "Sync Now" and "Import all Products from Square".
+* Fix - Ensure that the order is not marked as 'On Hold' when saving the card fails after a successful payment.
+* Fix - Prevent fatal errors occurring on incompatible environments.
+* Fix - Ensure default titles are displayed for payment methods if not set by the merchant.
+* Fix - Prevent images being updated from square when the "Enable to override Product images from Square" setting is turned off.
+* Fix - Improve sync settings language for better clarity.
+* Fix - CSV-imported products from Square with inventory tracking disabled are now correctly imported as "In Stock" instead of "Out of Stock" with stock management enabled.
+* Fix - Resolve fatal errors that may occur after a server migration.
+* Dev - Update `apimatic/unirest-php` package to 4.0.7.
+* Dev - Bump WooCommerce minimum supported version to 10.2.
+* Dev - Bump WordPress minimum supported version to 6.7.
+* Dev - Error logging when gift card application fails due to missing session token or Square API errors.
+* Dev - Remove application of E2E status labels from GitHub actions.
+
+= 5.1.2 - 2025-12-10 =
+* Security - Resolve CVE-2025-13457.
+* Dev - Bump WooCommerce "tested up to" version 10.4.
+* Dev - Bump WordPress "tested up to" version 6.9.
+
+= 5.1.1 - 2025-11-03 =
+* Fix - Missing attribute names after Product Import.
+* Fix - Update for PHP 8.4 compatibility.
+* Dev - Bump WooCommerce "tested up to" version 10.3.
+* Dev - Bump WooCommerce minimum supported version to 10.1.
+* Dev - Updates to our QIT GitHub Action workflow.
+* Dev - Add new deploy workflow.
+
+= 5.1.0 - 2025-09-29 =
+* Add - Support for multiple categories in WooCommerce-Square product synchronization.
+* Add - Improve debugging with more options and verbose descriptions.
+* Fix - Sync only the utilized option values.
+* Fix - Fatal error when using partial product quantities.
+* Fix - Ensure the outline is properly visible when the Google Pay button is focused.
+* Fix - Ensure users are warned that clicking “Buy with GPay” opens in a new window.
+* Dev - Bump WooCommerce "tested up to" version 10.2.
+* Dev - Bump WooCommerce minimum supported version to 10.0.
+
+= 5.0.1 - 2025-12-10 =
+* Security - Resolve CVE-2025-13457 for version 5.0.
+
+= 5.0.0 - 2025-09-10 =
+* Add - Order fulfillment sync between WooCommerce and Square orders for those that opt-in.
+* Fix - Ensure inventory sync isn’t interrupted in case of a category insert failure.
+* Fix - Accurately count attribute values – 250 values, not characters.
+
+= 4.9.9 - 2025-12-10 =
+* Security - Resolve CVE-2025-13457 for version 4.9.
+
+= 4.9.8 - 2025-08-21 =
+* Fix - Ensure there is no fatal error on the product page when the product price is blank.
+* Fix - Corrected variation option assignment logic to prevent mismatched item option IDs during manual syncs to Square.
+* Fix - Prevent mixing Production tokens when in Sandbox mode.
+* Fix - Vertical spacing on "Enable Payment Methods" step.
+* Dev - Bump WooCommerce "tested up to" version 10.1.
+* Dev - Bump WooCommerce minimum supported version to 9.9.
+* Dev - Bump WordPress minimum supported version to 6.7.
+* Dev - Update vulnerable NPM packages.
+* Dev - Remove loading translations, as it is automatically handled by WordPress since version 4.6.
+
+= 4.9.7 - 2025-07-28 =
+* Fix - Resolve `CARD_DECLINED_VERIFICATION_REQUIRED` error for 3DS-required credit card payments.
+* Fix - Unblock UI and show a generic error when buyer verification fails.
+* Dev - Update NPM packages with security issues.
+
+= 4.9.6 - 2025-07-10 =
+* Add - When importing products from Square, a new "View Progress" link on the "Update" page allows ability to more closely monitor that progress.
+* Fix - Ensure that Digital Wallet payment methods and Cash App Pay function properly in Block Checkout when using Safari.
+* Fix - Prevent the "Sync with Square" setting from getting unchecked.
+
+= 4.9.5 - 2025-06-30 =
+* Fix - Ensure the customer is created on the Square side without errors when adding a payment method.
+* Fix - Ensure that the request body is correctly logged in the debug logs.
+* Dev - Bump WooCommerce "tested up to" version 10.0.
+* Dev - Bump WooCommerce minimum supported version to 9.8.
+
+= 4.9.4 - 2025-06-13 =
+* Fix - Ensure no fatal error occurs at checkout when using a free local pickup shipping method.
+
+= 4.9.3 - 2025-06-09 =
+* Add - Support for Square's EMV 3-D Secure authentication flow to comply with countries that have 3DS mandates and improve payment security.
+* Add - Pre-sync validations for Product Variations.
+* Add - Digit handling for country-specific currencies to prevent incorrect division by 100 for currencies like Japanese Yen.
+* Add - Indicate customer initiated payments in Square API requests.
+* Fix - Only sync attributes used for variations to Square, preventing item option mismatch errors when WooCommerce products have unused attributes.
+* Fix - Ensure consistent error messages between the Block Checkout and the Shortcode Checkout.
+* Dev - Bump Square PHP SDK version from `35.1.0.20240320` to `40.0.0.20250123`.
+
+= 4.9.2 - 2025-05-27 =
+* Dev - Bump WooCommerce "tested up to" version 9.9.
+* Dev - Bump WooCommerce minimum supported version to 9.7.
+
+= 4.9.1 - 2025-05-05 =
+* Add - Set the onboarding URL for the "Complete setup" button on the new payment settings page.
+* Change - Remove the `wc_square_update_product_set_variation_name` filter.
+* Fix - Issue with Product Price override update logic.
+* Fix - Show detailed error messages on Checkout Page based on Debug Mode settings.
+* Fix - Ensure that debug logs for payment gateways are being generated as expected.
+* Dev - Add in performance logging during the checkout process.
+* Dev - Update E2E tests to accommodate payment modernization changes in WooCommerce Core.
+
+= 4.9.0 - 2025-04-07 =
+* Add - Support for syncing multiple Product Variations.
+* Add - Support for WooCommerce's new Email Improvements feature.
+* Fix - Digital Wallets and Cash App payment issues in Woo 9.8.
+* Fix - Deprecated PHP error for Gift Cards.
+* Fix - jQuery error on Cart & Checkout pages when a Subscription product is added to the cart, as Digital Wallets cannot be used for Subscription products.
+* Fix - Remove duplicate onboarding notice.
+* Dev - Bump WooCommerce "tested up to" version 9.8.
+* Dev - Bump WooCommerce minimum supported version to 9.6.
+* Dev - Bump WordPress minimum supported version to 6.6.
+* Dev - Bump WordPress "tested up to" version 6.8.
+* Dev - Updates to E2E tests setup.
+* Dev - Update all third-party actions our workflows rely on to use versions based on specific commit hashes.
+
+[View historical changelog details here](https://github.com/woocommerce/woocommerce-square/blob/trunk/changelog.txt).
+
+== Upgrade Notice ==
+
+= 5.1.2 =
+Security release affecting versions 4.2 upward, please update promptly. Minor releases are available on wordpress.org.
+
+= 3.5.0 =
+* Note that this version bumps the minimum PHP version from 7.2 to 7.4.
+
+= 1.0.25 =
+* Public Release!
