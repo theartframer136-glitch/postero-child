@@ -7,7 +7,7 @@
  *
  * GENERATED from the plugin's vendor/composer/autoload_classmap.php and
  * autoload_files.php; do not edit by hand. It keeps every entry whose file was
- * copied: 417 of the 691 classes, and 3 of the 5 files Composer
+ * copied: 417 of the 691 classes, and 4 of the 5 files Composer
  * loads at once, in Composer's order and under Composer's own identifiers in
  * $GLOBALS['__composer_autoload_files'] (the check Composer makes, so a library
  * that another Composer build has already loaded is not loaded twice).
@@ -18,7 +18,6 @@
  *  - vendor/wordpress/php-mcp-schema/: 191 classes
  *  - vendor/wp-media/mcp-oauth/: 23 classes
  *  - vendor/wp-media/apply-filters-typed/functions.php (file 6c592737b91137905268e9a0eb968869)
- *  - vendor/woocommerce/action-scheduler/action-scheduler.php (file 49628becc29116377284b725833a0b5a)
  */
 defined('ABSPATH') || exit;
 
@@ -451,6 +450,7 @@ foreach (array(
     'da5f6548f070d3d306f90eee42dd5de6' => 'vendor/donatj/phpuseragentparser/src/UserAgentParser.php',
     'bcb90d312f16e4ff52a76c5aa3f98ae0' => 'vendor/cmb2/cmb2/init.php',
     '65bb6728e4ea5a6bfba27700e81f7a00' => 'includes/template-tags.php',
+    '49628becc29116377284b725833a0b5a' => 'vendor/woocommerce/action-scheduler/action-scheduler.php',
 ) as $af_rm_id => $af_rm_file) {
     if (empty($GLOBALS['__composer_autoload_files'][$af_rm_id])) {
         $GLOBALS['__composer_autoload_files'][$af_rm_id] = true;

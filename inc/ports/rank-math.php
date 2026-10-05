@@ -6,8 +6,8 @@
  *
  * inc/ports/rank-math/ is the plugin's own code, copied unchanged with its
  * folder layout (rank-math.php, includes/, assets/, and the libraries it
- * bundles in vendor/: CMB2, wp-background-processing, the user-agent parser
- * and the Mixpanel client). Its Composer autoloader is replaced by
+ * bundles in vendor/: CMB2, wp-background-processing, the user-agent parser,
+ * the Mixpanel client and Action Scheduler 3.9.3). Its Composer autoloader is replaced by
  * vendor/autoload.php, generated from the plugin's own class map (every class
  * whose file was copied, and the files Composer loaded at once). Every file
  * the plugin links by URL (assets/ and the non-PHP files of includes/, CMB2's
@@ -35,7 +35,9 @@
  *    setup wizard, bulk editing, the SEO column, Status & Tools, Content AI,
  *    AI Visibility, SEO Analyzer, Role Manager, Instant Indexing, the admin
  *    bar menu, the SEO tab in Elementor's editor, `wp rankmath sitemap
- *    generate`.
+ *    generate`;
+ *  - the WordPress Abilities it registers (rankmath/* in the Abilities API
+ *    and the abilities REST routes).
  *
  * Left out:
  *  - The MCP OAuth server the plugin bundles (vendor/wp-media/mcp-oauth, with
@@ -47,9 +49,7 @@
  *    loaded, and WooCommerce bundles the same library, so its copy is the one
  *    started, as the plugin started its own (the mcp/mcp-adapter-default-server
  *    route stays).
- *  - The plugin's WordPress Abilities (init_abilities, removed below).
- *  - Its Action Scheduler (3.9.3): WooCommerce's newer one is the one the site
- *    runs either way. uninstall.php, wpml-config.xml.
+ *  - uninstall.php, wpml-config.xml.
  *  - Its row and links on the Plugins screen (the plugin shows as inactive).
  *    Version Control (rollback, beta, auto-update) acts on the inactive
  *    plugin folder, not on this copy.
@@ -123,6 +123,17 @@ require_once __DIR__ . '/rank-math/rank-math.php';
 af_ports_restore_order($af_rm_snap, 'seo-by-rank-math');
 unset($af_rm_snap);
 
+// Its Action Scheduler (3.9.3) registers itself on plugins_loaded@0 and the
+// newest registered copy starts at plugins_loaded@1. Normally WooCommerce's
+// newer one has started by now and nothing is needed. In a request without
+// WooCommerce (WP-CLI --skip-plugins=woocommerce, WooCommerce switched off or
+// paused) this copy's is the only one, as the plugin's was: start it now, so
+// the as_*() calls of the analytics module and the schedulers still work.
+if (!class_exists('ActionScheduler', false) && function_exists('action_scheduler_register_3_dot_9_dot_3')) {
+    action_scheduler_register_3_dot_9_dot_3();
+    ActionScheduler_Versions::initialize_latest_version();
+}
+
 // What the plugin had hooked to plugins_loaded, which has fired by the time
 // the theme loads: run now, in the plugin's order, each only where the plugin
 // hooked it in this request (init_actions(), rank-math.php:324-353, decides:
@@ -170,8 +181,6 @@ if (isset($af_rm->notification)) {
     unset($af_rm_snap, $af_rm_theme, $af_rm_copy, $af_rm_tag, $af_rm_hook, $af_rm_p, $af_rm_cbs, $af_rm_old, $af_rm_new, $af_rm_head, $af_rm_k, $af_rm_file);
 }
 
-// The plugin's WordPress Abilities (rank-math.php:337, init@0) are not carried.
-remove_action('init', array($af_rm, 'init_abilities'), 0);
 unset($af_rm, $af_rm_cb);
 
 /*
