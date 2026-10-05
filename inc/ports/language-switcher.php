@@ -2,11 +2,17 @@
 /**
  * Language switcher: the plugin "Language Switcher for Transposh" 2.0.6, moved
  * into the theme (the English / Hindi flags in the primary menu and the
- * [lsft_*] shortcodes). Transposh itself stays a plugin.
+ * [lsft_*] shortcodes). It uses Transposh's core classes: from the Transposh
+ * plugin while that is active, otherwise from its theme copy
+ * (inc/ports/transposh.php, loaded just before this file).
  *
  * inc/ports/lsft/ is the plugin's own code, copied unchanged except for the
  * four lines that built asset URLs from the plugin folder's location (they
- * now use LSFT_PLUGIN_URL / LSFT_PLUGIN_PATH, which point at the copy). Its
+ * now use LSFT_PLUGIN_URL / LSFT_PLUGIN_PATH, which point at the copy) and
+ * the lines marked "Port:", which load Transposh's core from the theme copy
+ * instead of the plugin folder (from the plugin folder only in the request
+ * that switches Transposh back on) and count the copy as "Transposh is
+ * installed" for the admin notice, the widget and the settings page. Its
  * assets (flags, styles including the saved lsft.css, public and admin CSS/JS)
  * are copied byte for byte to assets/ports/lsft/ with the plugin's layout.
  * Settings stay in the option cfxlsft_options; the settings page still works.

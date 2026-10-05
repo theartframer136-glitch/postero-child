@@ -1,0 +1,2 @@
+(t=>{t(document).on("click",".tp_help",function(e){e.preventDefault(),window.scrollTo(0,0),t("#tab-link-"+jQuery(this).attr("rel")+" a").trigger("click"),t("#contextual-help-link").hasClass("screen-meta-active")||t("#contextual-help-link").trigger("click")})})(jQuery);
+//# sourceMappingURL=contexthelp.js.map

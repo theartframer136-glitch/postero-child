@@ -1,0 +1,2 @@
+(r=>{r(function(){r.ajaxSetup({cache:!1}),r(".delete").click(function(){var c=this,e=r(this).children().attr("href");return console.log(e),r.ajax({url:e,dataType:"json",cache:!1,success:function(e){e?r(c).parents("tr").hide():r(c).parents("tr").css("background-color","red")}}),!1})})})(jQuery);
+//# sourceMappingURL=backendeditor.js.map

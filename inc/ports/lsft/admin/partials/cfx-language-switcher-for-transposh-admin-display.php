@@ -16,11 +16,13 @@
 <!-- This file should primarily consist of HTML with a little bit of PHP. -->
 <?php
 $transposh_installed = true;
-if ( ! is_plugin_active( 'transposh-translation-filter-for-wordpress/transposh.php' ) ) {
+if ( ! is_plugin_active( 'transposh-translation-filter-for-wordpress/transposh.php' ) && ! class_exists( 'transposh_plugin', false ) ) { // Port: or its theme copy is loaded
 	$transposh_installed = false;
 }
 if ( $transposh_installed ) {
-	include_once WP_PLUGIN_DIR . '/transposh-translation-filter-for-wordpress/core/constants.php';
+	if ( ! class_exists( 'transposh_consts', false ) ) { // Port: the theme copy's is already loaded
+		include_once WP_PLUGIN_DIR . '/transposh-translation-filter-for-wordpress/core/constants.php';
+	} // Port:
 
 	$lsft_default_styles = LSFT_PLUGIN_PATH . 'assets/styles';
 	$upload_dir          = wp_upload_dir();

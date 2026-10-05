@@ -149,9 +149,15 @@ class Cfx_Language_Switcher_For_Transposh_Public {
 		$this->plugin_name = $plugin_name;
 		$this->version     = isset( $version ) ? $version : '1.0.0';
 		$this->options     = get_option( 'cfxlsft_options', array() );
-		if ( file_exists( WP_PLUGIN_DIR . '/transposh-translation-filter-for-wordpress/core/utils.php' ) && file_exists( WP_PLUGIN_DIR . '/transposh-translation-filter-for-wordpress/core/constants.php' ) ) {
-			include_once WP_PLUGIN_DIR . '/transposh-translation-filter-for-wordpress/core/utils.php';
-			include_once WP_PLUGIN_DIR . '/transposh-translation-filter-for-wordpress/core/constants.php';
+		// Port: Transposh's core is already loaded when the plugin is active or its theme copy
+		// (inc/ports/transposh.php, loaded just before this) is; otherwise from the plugin folder
+		// while the plugin is being switched on in this request, else from the theme copy.
+		$tp_core = in_array( 'transposh-translation-filter-for-wordpress', (array) af_ports_activating(), true ) ? WP_PLUGIN_DIR . '/transposh-translation-filter-for-wordpress/core/' : get_stylesheet_directory() . '/inc/ports/transposh/core/'; // Port:
+		if ( ! class_exists( 'transposh_utils', false ) && file_exists( $tp_core . 'utils.php' ) && file_exists( $tp_core . 'constants.php' ) ) { // Port: was the plugin folder's files
+			include_once $tp_core . 'utils.php'; // Port:
+			include_once $tp_core . 'constants.php'; // Port:
+		} // Port:
+		if ( class_exists( 'transposh_utils', false ) && class_exists( 'transposh_consts', false ) ) { // Port: was file_exists() of the plugin folder's core/utils.php and core/constants.php
 			if ( ! defined( 'TRANSPOSH_OPTIONS' ) ) {
 				define( 'TRANSPOSH_OPTIONS', 'transposh_options' );
 			}

@@ -95,7 +95,7 @@ class Cfx_Language_Switcher_For_Transposh_Admin {
 	 * @since    1.0.0
 	 */
 	public function no_transposh_found() {
-		if ( ! is_plugin_active( 'transposh-translation-filter-for-wordpress/transposh.php' ) ) {
+		if ( ! is_plugin_active( 'transposh-translation-filter-for-wordpress/transposh.php' ) && ! class_exists( 'transposh_plugin', false ) ) { // Port: or its theme copy is loaded
 			?>
 			<div class="error notice">
 				<p>Transposh plugin has not been found! Transposh plugin is required to use Language Switcher for Transposh: please, download and install it from the <a href="https://transposh.org/download" target="_blank">official website</a>.</p>
@@ -111,7 +111,7 @@ class Cfx_Language_Switcher_For_Transposh_Admin {
 	 */
 	public function check_transposh() {
 
-		if ( ! file_exists( WP_PLUGIN_DIR . '/transposh-translation-filter-for-wordpress/core/utils.php' ) ) {
+		if ( ! class_exists( 'transposh_utils', false ) && ! file_exists( WP_PLUGIN_DIR . '/transposh-translation-filter-for-wordpress/core/utils.php' ) ) { // Port: or its theme copy is loaded
 			return false;
 		}
 		return true;
