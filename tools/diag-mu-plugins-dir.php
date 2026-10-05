@@ -24,17 +24,20 @@ $short = function ($p) use ($home) {
     if ($home !== '' && strpos($p, $home) === 0) $p = '~' . substr($p, strlen($home));
     return preg_replace('#/(u|home/u)\d+/#', '/<user>/', $p);
 };
-$me = function_exists('posix_geteuid') ? posix_geteuid() : getmyuid();
+// getmyuid() and posix_* are disabled on this host; the SSH user (the one
+// the workflows log in as) just copied this file into the theme.
+$self = get_stylesheet_directory() . '/tools/diag-mu-plugins-dir.php';
+$me = function_exists('posix_geteuid') ? posix_geteuid() : (file_exists($self) ? fileowner($self) : -1);
 $who = function ($uid) use ($me) {
     return $uid === $me ? 'this user' : ($uid === 0 ? 'root' : 'another user (uid ' . $uid . ')');
 };
-echo 'runs as: ' . ($me === 0 ? 'root' : 'uid ' . $me) . ', owner of this script ' . (getmyuid() === $me ? 'is' : 'is not') . " the same user\n";
+echo 'this user: ' . ($me === 0 ? 'root' : 'uid ' . $me) . (function_exists('posix_geteuid') ? '' : ' (owner of this file)') . "\n";
 
 $show = function ($label, $p) use ($short, $who) {
     echo "\n$label: " . $short($p) . "\n";
     if (!file_exists($p) && !is_link($p)) { echo "  does not exist\n"; return; }
-    if (is_link($p)) echo '  symlink to ' . $short(readlink($p)) . "\n";
-    $real = realpath($p);
+    if (is_link($p)) echo '  symlink to ' . (function_exists('readlink') ? $short(readlink($p)) : '?') . "\n";
+    $real = function_exists('realpath') ? realpath($p) : false;
     if ($real && $real !== $p) echo '  real path ' . $short($real) . "\n";
     $st = @stat($p);
     if ($st) echo '  owner ' . $who($st['uid']) . ', mode ' . substr(sprintf('%o', $st['mode']), -4) . "\n";
@@ -58,8 +61,8 @@ if ($items === false) echo "  (cannot list)\n";
 else foreach ($items as $f) {
     if ($f === '.' || $f === '..') continue;
     $p = WPMU_PLUGIN_DIR . '/' . $f;
-    $st = @lstat($p);
-    echo '  ' . str_pad($f, 44) . ' ' . (is_link($p) ? 'symlink to ' . $short(readlink($p)) : (is_dir($p) ? 'folder' : ($st ? $st['size'] . ' bytes' : '?')))
+    $st = function_exists('lstat') ? @lstat($p) : @stat($p);
+    echo '  ' . str_pad($f, 44) . ' ' . (is_link($p) ? 'symlink to ' . (function_exists('readlink') ? $short(readlink($p)) : '?') : (is_dir($p) ? 'folder' : ($st ? $st['size'] . ' bytes' : '?')))
         . ($st ? ', owner ' . $who($st['uid']) . ', mode ' . substr(sprintf('%o', $st['mode']), -4) : '')
         . (in_array($f, $loaded, true) ? ', loaded' : '') . "\n";
 }
