@@ -168,8 +168,37 @@ async function look(browser, label, w, h, path, skip, cache = '') {
     return { y: Math.round(window.scrollY), moves: ys.slice(0, 12), calls: window.__afCalls.slice(0, 10), height: document.documentElement.scrollHeight,
       header: header ? ([...header.classList].includes('af-header-stuck') ? 'stuck ' : 'not stuck ') + getComputedStyle(header).position + ' ' + Math.round(header.getBoundingClientRect().height) + 'px' : 'none', sticky };
   }).catch(e => ({ fail: String(e).slice(0, 120) }));
+  // What every element shown looks like (AF_STYLES=1): size and the styles
+  // that change how it looks, keyed by its place in the page (nearest
+  // Elementor element id, or the theme's own markup, then tag and classes
+  // and which one of those it is). Slides, carousels and feeds that move by
+  // themselves are left out.
+  const styles = process.env.AF_STYLES ? await page.evaluate(() => {
+    window.scrollTo(0, 0);
+    const vis = el => { const b = el.getBoundingClientRect(), s = getComputedStyle(el); return b.width > 0 && b.height > 0 && s.visibility !== 'hidden' && s.display !== 'none' && +s.opacity > 0; };
+    const PROPS = ['color', 'backgroundColor', 'backgroundImage', 'fontFamily', 'fontSize', 'fontWeight', 'fontStyle', 'lineHeight', 'letterSpacing', 'textTransform', 'textAlign', 'textDecorationLine',
+      'display', 'position', 'opacity', 'transform', 'borderTopWidth', 'borderTopColor', 'borderRadius', 'boxShadow', 'paddingTop', 'paddingLeft', 'marginTop', 'marginLeft', 'gap', 'flexDirection', 'justifyContent', 'alignItems', 'objectFit', 'zIndex'];
+    const seen = new Map(), out = [], keyOf = new Map();
+    for (const el of document.body.querySelectorAll('*')) {
+      if (['SCRIPT', 'STYLE', 'LINK', 'META', 'NOSCRIPT', 'BR', 'IFRAME'].includes(el.tagName)) continue;
+      if (el.closest('.swiper-wrapper, .slick-track, [class*="instagram"], .woosq-popup, #wpadminbar')) continue;
+      if (!vis(el)) continue;
+      const host = el.closest('[data-id]');
+      const cls = [...el.classList].filter(c => !/^(swiper-slide-|slick-|is-|active$|e-lazyloaded|lazy|loaded|animated|elementor-invisible|af-header-stuck)/.test(c) && !/\d{3,}/.test(c)).sort().join('.');
+      const base = (host ? '#' + host.getAttribute('data-id') : 'theme') + ' ' + el.tagName.toLowerCase() + (el.id && !/\d/.test(el.id) ? '#' + el.id : '') + (cls ? '.' + cls : '');
+      const n = (seen.get(base) || 0) + 1; seen.set(base, n);
+      const key = base + ' [' + n + ']';
+      keyOf.set(el, key);
+      let up = el.parentElement; while (up && !keyOf.has(up)) up = up.parentElement;
+      const b = el.getBoundingClientRect(), cs = getComputedStyle(el);
+      const st = {}; for (const k of PROPS) st[k] = k === 'fontFamily' ? cs[k].split(',')[0].trim() : cs[k];
+      const own = [...el.childNodes].filter(t => t.nodeType === 3).map(t => t.textContent).join(' ').replace(/\s+/g, ' ').trim().slice(0, 40);
+      out.push({ k: key, p: up ? keyOf.get(up) : '', y: Math.round(b.top + window.scrollY), w: Math.round(b.width), h: Math.round(b.height), st, t: own });
+    }
+    return out;
+  }).catch(() => null) : null;
   await ctx.close();
-  return { status: r ? r.status() : 0, scroll, marker, pvHeader, logs: [...new Set(logs)].slice(0, 12), failed: failed.slice(0, 12), errs: [...new Set(errs)], shotBuf: shot, shot: shot ? readPng(shot) : null, ...d };
+  return { status: r ? r.status() : 0, scroll, styles, marker, pvHeader, logs: [...new Set(logs)].slice(0, 12), failed: failed.slice(0, 12), errs: [...new Set(errs)], shotBuf: shot, shot: shot ? readPng(shot) : null, ...d };
 }
 
 const browser = await chromium.launch({ headless: true });
@@ -218,6 +247,33 @@ for (const path of URLS) {
         console.log('    after the scroll, ' + name + ': page moved ' + JSON.stringify(x.moves) + '; calls ' + JSON.stringify(x.calls));
         console.log('      sticky things: ' + JSON.stringify(x.sticky));
       }
+    }
+    // AF_STYLES=1: which elements look different, grouped by what changed;
+    // and where a size change starts (an element whose size changed while
+    // nothing inside it did)
+    if (a.styles && b.styles) {
+      const mb = new Map(b.styles.map(e => [e.k, e])), ma = new Map(a.styles.map(e => [e.k, e]));
+      const groups = new Map(), sized = [];
+      for (const x of a.styles) {
+        const y = mb.get(x.k); if (!y) continue;
+        for (const prop of Object.keys(x.st)) if (x.st[prop] !== y.st[prop]) {
+          const g = prop + ' ' + JSON.stringify(x.st[prop]).slice(0, 60) + ' -> ' + JSON.stringify(y.st[prop]).slice(0, 60);
+          if (!groups.has(g)) groups.set(g, []); groups.get(g).push(y);
+        }
+        if (x.w !== y.w || x.h !== y.h) sized.push([x, y]);
+      }
+      const label = e => e.k.replace(/ \[1\]$/, '') + ' @y=' + e.y + (e.t ? ' "' + e.t + '"' : '');
+      const gl = [...groups.entries()].sort((p, q) => q[1].length - p[1].length);
+      console.log('  ' + (gl.length ? 'DIFFERS' : 'SAME   ') + ' styles          ' + gl.length + ' kinds of change');
+      if (gl.length) differs++;
+      for (const [g, els] of gl.slice(0, 25)) console.log('    ' + String(els.length).padStart(3) + 'x ' + g + '   e.g. ' + els.slice(0, 2).map(label).join(' ; '));
+      const parents = new Set(sized.map(([, y]) => y.p));
+      const origins = sized.filter(([x]) => !parents.has(x.k));
+      if (origins.length) console.log('    size changes start at (' + origins.length + '): ' + origins.slice(0, 12).map(([x, y]) => label(y) + ' ' + x.w + 'x' + x.h + '->' + y.w + 'x' + y.h).join(' | '));
+      const only = (m, list) => { const mine = new Set(list.map(z => z.k)); return list.filter(e => !m.has(e.k) && !(e.p && !m.has(e.p) && mine.has(e.p))); };
+      const goneEls = only(mb, a.styles), newEls = only(ma, b.styles);
+      if (goneEls.length) console.log('    shown only now (' + goneEls.length + '): ' + goneEls.slice(0, 10).map(label).join(' | '));
+      if (newEls.length) console.log('    shown only with ' + SKIP + ' off (' + newEls.length + '): ' + newEls.slice(0, 10).map(label).join(' | '));
     }
     if (a.shot && b.shot) {
       const share = diffShare(a.shot, b.shot);
