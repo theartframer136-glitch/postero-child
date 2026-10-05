@@ -22,6 +22,12 @@ add_filter('option_active_plugins', function ($plugins) use ($af_preview_skip) {
         return !in_array(strtok((string) $file, '/'), $af_preview_skip, true);
     }));
 }, 1);
+// Elementor's element cache can hand back a widget's HTML (and the scripts it
+// asked for) as rendered while the skipped plugins were still loaded; for a
+// preview request every element is rendered afresh.
+add_filter('pre_option_elementor_experiment-e_element_cache', function () {
+    return 'inactive';
+});
 add_action('wp_head', function () use ($af_preview_skip) {
     echo '<meta name="af-port-preview" content="' . esc_attr(implode(',', $af_preview_skip) ?: 'none') . '">' . "\n";
 }, 1);

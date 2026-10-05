@@ -74,6 +74,7 @@ $af_ports = array(
     'header-footer-elementor' => 'header-footer-elementor',
     'customer-reviews'  => 'customer-reviews-woocommerce',
     'revslider'         => 'revslider',
+    'elementor-pro'     => 'elementor-pro',
 );
 $af_activating = af_ports_activating();
 foreach ($af_ports as $af_port => $af_port_plugin) {
