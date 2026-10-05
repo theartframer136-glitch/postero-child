@@ -158,24 +158,10 @@ add_action('init', function () {
     load_plugin_textdomain(TRANSPOSH_TEXT_DOMAIN, false, 'transposh-translation-filter-for-wordpress/langs');
 }, 0);
 
-// The gettext filters (transposh.php:228-231, 1277-1310) return the string
-// unchanged when is_special_page() || (is_default_language($this->tgl) &&
-// !enable_default_translate). tgl is set once, in the constructor, from
-// REQUEST_URI (249-252) and written nowhere else; the options object keeps
-// what it read at construction, and default_language / enable_default_translate
-// change in a request only through the settings form (update_admin_options(),
-// from admin-post.php) or a post saved with a "Set post language" value
-// (on_edit(), $_POST['transposh_tp_language']). So where the second test
-// holds now it holds for the whole request, and the filters change nothing:
-// left out on the front end, wc-ajax, REST, cron and admin-ajax, not on the
-// other wp-admin screens or under WP-CLI.
-if ((!is_admin() || wp_doing_ajax()) && !(defined('WP_CLI') && WP_CLI) && empty($_POST['transposh_tp_language']) // phpcs:ignore WordPress.Security.NonceVerification.Missing
-    && !$af_tp->options->enable_default_translate && $af_tp->options->is_default_language($af_tp->tgl)) {
-    remove_filter('gettext', array($af_tp, 'transposh_gettext_filter'), 10);
-    remove_filter('gettext_with_context', array($af_tp, 'transposh_gettext_filter'), 10);
-    remove_filter('ngettext', array($af_tp, 'transposh_ngettext_filter'), 10);
-    remove_filter('ngettext_with_context', array($af_tp, 'transposh_ngettext_filter'), 10);
-}
+// The plugin's four gettext filters stay registered on every request, as
+// with the plugin. (Leaving them out on English requests, though they return
+// the string unchanged there, coincided with the checkout's order summary not
+// refreshing in the 5 Oct preview; the copy now keeps them.)
 
 // The plugin loaded before WOOCS, Square and WooCommerce and before the
 // theme; its callbacks go back ahead of theirs at equal priority (its
