@@ -68,7 +68,9 @@ jobs:
           case "$MODE" in check|apply|activate) ;; *) echo "mode must be check, apply or activate"; exit 1;; esac
           for p in $PLUGINS; do
             case "$p" in *[!a-z0-9-]*) echo "bad plugin name: $p"; exit 1;; esac
-            case "$p" in woocommerce|elementor|elementor-pro|woocommerce-square|litespeed-cache|af-crawl-guard) echo "refusing to switch the platform plugin $p"; exit 1;; esac
+            # Elementor Pro is no longer a platform plugin: the theme carries its
+            # two widgets (inc/ports/elementor-pro.php), previewed clean on 5 Oct.
+            case "$p" in woocommerce|elementor|woocommerce-square|litespeed-cache|af-crawl-guard) echo "refusing to switch the platform plugin $p"; exit 1;; esac
           done
           /tmp/remote.sh "wp plugin list --fields=name,status,version --allow-root 2>/dev/null" | tee /tmp/plugins-before.txt
           for p in $PLUGINS; do grep -q "^$p[[:space:]]" /tmp/plugins-before.txt || { echo "no plugin named $p"; exit 1; }; done
