@@ -91,22 +91,64 @@ HT;
 
 /** Atomic write: tmp + rename so a live request never reads a partial file.
  *  On failure, stashes the real PHP error in $GLOBALS['af_guard_err'] so the
- *  caller can report *why*, not just *that*, the write failed. */
-function af_guard_write( $path, $content ) {
+ *  caller can report *why*, not just *that*, the write failed (the error is
+ *  caught as it happens: error_get_last() once handed back an unrelated
+ *  translation notice instead, 30 Sep 2026).
+ *  With $in_place_ok a refused rename falls back to rewriting the file in
+ *  place (af_guard_write_in_place). Only wp-config.php asks for that: on this
+ *  host rename() over it was refused on 30 Sep 2026 although the file and its
+ *  folder are writable (tools/diag-wpconfig-loader.php, 6 Oct). */
+function af_guard_write( $path, $content, $in_place_ok = false ) {
     if ( ! is_string( $content ) ) { return false; }
-    $tmp = $path . '.af-tmp';
-    if ( file_put_contents( $tmp, $content ) === false ) {
-        $e = error_get_last();
-        $GLOBALS['af_guard_err'] = 'write ' . $tmp . ' failed: ' . ( $e['message'] ?? 'unknown error' );
-        @unlink( $tmp ); return false;
+    $err = '';
+    set_error_handler( function ( $no, $str ) use ( &$err ) { $err = $str; return true; } );
+    try {
+        $tmp = $path . '.af-tmp';
+        if ( file_put_contents( $tmp, $content ) === false ) {
+            $GLOBALS['af_guard_err'] = 'write ' . $tmp . ' failed: ' . ( $err !== '' ? $err : 'unknown error' );
+            @unlink( $tmp ); return false;
+        }
+        @chmod( $tmp, file_exists( $path ) ? ( fileperms( $path ) & 0777 ) : 0644 );
+        $err = '';
+        if ( rename( $tmp, $path ) ) { return true; }
+        $rename_err = $err !== '' ? $err : 'unknown error';
+        @unlink( $tmp );
+        if ( ! $in_place_ok || ! file_exists( $path ) || ! is_writable( $path ) ) {
+            $GLOBALS['af_guard_err'] = 'rename ' . $tmp . ' -> ' . $path . ' failed: ' . $rename_err;
+            return false;
+        }
+        $err = '';
+        if ( af_guard_write_in_place( $path, $content, $err ) ) {
+            $GLOBALS['af_guard_note'] = 'rename refused (' . $rename_err . '), so written in place';
+            return true;
+        }
+        $GLOBALS['af_guard_err'] = 'rename ' . $tmp . ' -> ' . $path . ' failed: ' . $rename_err
+            . '; in-place write failed: ' . ( $err !== '' ? $err : 'unknown error' );
+        return false;
+    } finally {
+        restore_error_handler();
     }
-    @chmod( $tmp, file_exists( $path ) ? ( fileperms( $path ) & 0777 ) : 0644 );
-    if ( ! rename( $tmp, $path ) ) {
-        $e = error_get_last();
-        $GLOBALS['af_guard_err'] = 'rename ' . $tmp . ' -> ' . $path . ' failed: ' . ( $e['message'] ?? 'unknown error' );
-        @unlink( $tmp ); return false;
-    }
-    return true;
+}
+
+/** Rewrite $path in place under an exclusive lock, then read it back and
+ *  compare. Not atomic: a request opening the file during the microseconds of
+ *  the write could read it half-written, so this is only the fallback for a
+ *  file that rename() refuses to replace. The new bytes go in first and the
+ *  old tail is cut afterwards, so the file is never empty in between. */
+function af_guard_write_in_place( $path, $content, &$err ) {
+    $h = fopen( $path, 'c+' );
+    if ( ! $h ) { if ( $err === '' ) { $err = 'fopen failed'; } return false; }
+    $ok = false;
+    if ( flock( $h, LOCK_EX ) ) {
+        $ok = rewind( $h ) && fwrite( $h, $content ) === strlen( $content ) && ftruncate( $h, strlen( $content ) ) && fflush( $h );
+        if ( $ok ) { rewind( $h ); $ok = ( stream_get_contents( $h ) === $content ); }
+        if ( ! $ok && $err === '' ) { $err = 'read-back differs'; }
+        flock( $h, LOCK_UN );
+    } elseif ( $err === '' ) { $err = 'could not lock'; }
+    fclose( $h );
+    clearstatcache( true, $path );
+    if ( function_exists( 'opcache_invalidate' ) ) { @opcache_invalidate( $path, true ); }
+    return $ok;
 }
 
 /** Strip our .htaccess block, re-insert after the security-headers block when
@@ -235,6 +277,7 @@ foreach ( array( rtrim( ABSPATH, '/\\' ) . '/wp-config.php', dirname( rtrim( ABS
     if ( file_exists( $cand ) ) { $wpc = $cand; break; }
 }
 $loader_mode = 'none';
+$wpc_settled = false; // the wp-config loader was already there when this run began
 if ( $wpc !== null && is_writable( $wpc ) ) {
     $wpc_prev = file_get_contents( $wpc );
     $wpc_new  = ( $wpc_prev === false ) ? null : af_guard_wpc_compose( $wpc_prev, $loader_line );
@@ -242,12 +285,13 @@ if ( $wpc !== null && is_writable( $wpc ) ) {
         echo "AF-GUARD-WARN: {$wpc} has an unexpected shape — not touching it; falling back to loader plugin.\n";
     } elseif ( $wpc_new === $wpc_prev ) {
         $loader_mode = 'wp-config';
+        $wpc_settled = true;
         echo "wp-config loader already current.\n";
-    } elseif ( af_guard_write( $wpc, $wpc_new ) ) {
+    } elseif ( af_guard_write( $wpc, $wpc_new, true ) ) {
         $loader_mode = 'wp-config';
-        echo "wp-config loader installed: {$wpc}\n";
+        echo "wp-config loader installed: {$wpc}" . ( isset( $GLOBALS['af_guard_note'] ) ? " ({$GLOBALS['af_guard_note']})" : '' ) . "\n";
         $rollback[] = array( 'desc' => 'wp-config', 'fn' => function () use ( $wpc, $wpc_prev ) {
-            return af_guard_write( $wpc, $wpc_prev );
+            return af_guard_write( $wpc, $wpc_prev, true );
         } );
     } else {
         echo "AF-GUARD-WARN: could not rewrite {$wpc} (" . ( $GLOBALS['af_guard_err'] ?? 'unknown' ) . ") — falling back to loader plugin.\n";
@@ -286,6 +330,26 @@ if ( $loader_mode === 'none' ) {
         echo "loader plugin already active.\n";
     }
     $loader_mode = 'plugin';
+}
+
+// ── The loader plugin was only ever the stand-in for a wp-config.php that
+// could not be written. Once the wp-config loader was already in place when
+// this run began (so every PHP worker has long re-read wp-config.php and the
+// guard runs before WordPress on every request), the plugin is retired: taken
+// out of active_plugins, its folder kept. Until then the two loaders ran side
+// by side without harm (the guard file's AF_CRAWL_GUARD_RAN check). The
+// checks below then prove the wp-config loader alone does the work; if they
+// fail, the rollback puts the plugin back where it was. ─────────────────────
+if ( $loader_mode === 'wp-config' && $wpc_settled ) {
+    $active_prev = get_option( 'active_plugins', array() );
+    if ( is_array( $active_prev ) && in_array( $plugin_rel, $active_prev, true ) ) {
+        $active_new = array_values( array_diff( $active_prev, array( $plugin_rel ) ) );
+        update_option( 'active_plugins', $active_new );
+        echo "loader plugin retired: the wp-config loader does its work (the folder stays for rollback).\n";
+        $rollback[] = array( 'desc' => 'active_plugins', 'fn' => function () use ( $active_prev ) {
+            return update_option( 'active_plugins', $active_prev ) !== false || get_option( 'active_plugins' ) === $active_prev;
+        } );
+    }
 }
 
 /** Undo everything this run changed, in reverse order; returns failures. */
