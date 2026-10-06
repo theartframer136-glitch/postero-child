@@ -138,7 +138,11 @@ jobs:
             echo "=== ROLLED BACK (compare exit $rc): switching back on: $PLUGINS"
             /tmp/remote.sh "wp plugin activate $PLUGINS --allow-root 2>&1; wp litespeed-purge all --allow-root 2>&1"
             echo "SWITCH RESULT: rolled back"
+            RESULT=rolled-back
           else
             echo "SWITCH RESULT: kept (compare exit $rc)"
+            RESULT=kept
           fi
           /tmp/remote.sh "wp plugin list --fields=name,status --allow-root 2>/dev/null | grep -E '^($(echo $PLUGINS | tr ' ' '|'))[[:space:]]'"
+          # the run's own result says whether the switch held: a rollback fails it
+          [ "$RESULT" = kept ]
