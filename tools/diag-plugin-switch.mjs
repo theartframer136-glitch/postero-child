@@ -112,16 +112,17 @@ async function snap(out) {
     // the checkout's order-summary request itself (wc-ajax=update_order_review):
     // what the server sent back, so a summary that does not refresh says why
     // (a broken answer) or shows it did and only the page's signal was missed
-    const review = [];
+    const review = [], asked = new Map();
+    p.on('request', q => { if (/[?&]wc-ajax=update_order_review/.test(q.url())) asked.set(q, Date.now()); });
     p.on('response', r => {
       if (!/[?&]wc-ajax=update_order_review/.test(r.url())) return;
-      const st = r.status();
+      const st = r.status(), ms = Date.now() - (asked.get(r.request()) || Date.now());
       r.text().then(body => {
         let ok = false, note = '';
         try { const j = JSON.parse(body); ok = !!(j && j.fragments) && j.result !== 'failure'; if (!ok) note = 'answer without the summary: ' + body.replace(/\s+/g, ' ').slice(0, 160); }
         catch { note = 'answer is not JSON: ' + body.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 200); }
-        review.push({ st, ok, note });
-      }).catch(() => review.push({ st, ok: false, note: 'answer unreadable' }));
+        review.push({ st, ok, note, ms });
+      }).catch(() => review.push({ st, ok: false, note: 'answer unreadable', ms }));
     });
     // WooCommerce's checkout refreshes its order summary by itself once the
     // page is up (updated_checkout): counted, so a checkout that never does
@@ -154,7 +155,7 @@ async function snap(out) {
     if (checkout && checkout.refreshed !== null) {
       await sleep(300);
       const okN = review.filter(x => x.ok).length, bad = review.find(x => !x.ok);
-      checkout.asked = review.length; checkout.answered = okN;
+      checkout.asked = Math.max(asked.size, review.length); checkout.answered = okN; checkout.ms = review.map(x => x.ms);
       if (bad) checkout.bad = (bad.st !== 200 ? 'HTTP ' + bad.st + ', ' : '') + bad.note;
       // the server sent the refreshed summary: the page's signal was only missed
       if (!checkout.refreshed && okN) checkout.refreshed = okN;
@@ -368,7 +369,7 @@ function compare(fa, fb, fc) {
     // the checkout's order summary: refreshed itself in both befores, not after;
     // or the loading shade still up after 20s where it had lifted before
     if (a.checkout && b.checkout && c.checkout) {
-      if (a.checkout.refreshed && b.checkout.refreshed && !c.checkout.refreshed) { out.push('the checkout\'s order summary did not refresh (it did in both befores)' + (c.checkout.asked === undefined ? '' : !c.checkout.asked ? ': the page never asked the server for it' : c.checkout.bad ? ': the server\'s answer: ' + c.checkout.bad : ': the server answered ' + c.checkout.answered + ' of ' + c.checkout.asked + ' times')); verdict = 'FAIL'; }
+      if (a.checkout.refreshed && b.checkout.refreshed && !c.checkout.refreshed) { out.push('the checkout\'s order summary did not refresh (it did in both befores)' + (c.checkout.asked === undefined ? '' : !c.checkout.asked ? ': the page never asked the server for it' : c.checkout.bad ? ': the server\'s answer: ' + c.checkout.bad : ': the server answered ' + c.checkout.answered + ' of ' + c.checkout.asked + ' times' + (c.checkout.ms && c.checkout.ms.length ? ' (in ' + c.checkout.ms.join(', ') + ' ms)' : ''))); verdict = 'FAIL'; }
       else if (c.checkout.bad && !a.checkout.bad && !b.checkout.bad) out.push('one order-summary answer was not usable (the summary still refreshed): ' + c.checkout.bad);
       if (!a.checkout.shade && !b.checkout.shade && c.checkout.shade) { out.push('WooCommerce\'s loading shade still up after 20s (it had lifted in both befores)'); verdict = 'FAIL'; }
     } else if (a.checkout && b.checkout && !c.checkout && c.status === 200) { out.push('no checkout or basket form after (there was before)'); verdict = 'FAIL'; }
