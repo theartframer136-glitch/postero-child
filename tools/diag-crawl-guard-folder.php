@@ -28,8 +28,11 @@ $folder  = $plugdir . '/af-crawl-guard';
 $guard   = $content . '/af-crawl-guard.php';
 
 function af_cg_rel($p) {
-    global $root;
-    $p = str_replace($root . '/', '<wp-root>/', (string) $p);
+    // wp eval-file runs this file inside a function: the top-level $root is
+    // not a global here, so work it out again.
+    $r = rtrim(ABSPATH, '/\\');
+    $p = (string) $p;
+    if (strlen($r) > 1) $p = str_replace($r . '/', '<wp-root>/', $p);
     return preg_replace('#/home/[^/]+/#', '/home/…/', $p);
 }
 function af_cg_into_folder($s) {
@@ -120,13 +123,17 @@ else {
 }
 
 echo "\n=== does the guard answer today, with the plugin off?\n";
-$url = home_url('/wp-content/af-guard-probe-' . substr(md5(uniqid('', true)), 0, 10) . '.png');
-$r = wp_remote_get($url, array('timeout' => 20, 'redirection' => 0, 'headers' => array('Cache-Control' => 'no-cache')));
+// The cookieless cart-fragments call always reaches PHP and the guard answers
+// it with an empty result, never cached (ops/harden-crawl-budget.php checks the
+// same). A made-up image is no proof: the web server may answer that itself.
+$url = home_url('/?wc-ajax=get_refreshed_fragments&afv=' . substr(md5(uniqid('', true)), 0, 10));
+$r = wp_remote_get($url, array('timeout' => 30, 'redirection' => 0, 'user-agent' => 'AF-CrawlGuard-Verify'));
 if (is_wp_error($r)) { echo '  probe failed: ' . $r->get_error_message() . "\n"; }
 else {
     $mark = (string) wp_remote_retrieve_header($r, 'x-af-guard');
-    echo '  GET a made-up image under wp-content: HTTP ' . wp_remote_retrieve_response_code($r) . ', X-AF-Guard: ' . ($mark !== '' ? $mark : '(none)') . "\n";
-    echo '  ' . ($mark !== '' ? 'the guard answered before WordPress, loaded by wp-config.php' : 'no guard marker (the edge may have answered; not proof either way)') . "\n";
+    echo '  GET cart fragments with no cookie: HTTP ' . wp_remote_retrieve_response_code($r) . ', X-AF-Guard: ' . ($mark !== '' ? $mark : '(none)') . ', ' . strlen((string) wp_remote_retrieve_body($r)) . " bytes\n";
+    if ($mark === 'fragments-empty') echo "  the guard answered before WordPress, with the loader plugin off: wp-config.php loads it\n";
+    else { echo "  NO guard answer\n"; $verdict[] = 'the guard did not answer the probe'; }
 }
 
 echo "\n=== verdict\n";
