@@ -162,7 +162,10 @@ async function snap(out) {
     }
     // Related, upsell and cross-sell carousels show other random products on
     // every build: not part of the comparison (hidden before measuring).
-    await p.evaluate(() => document.querySelectorAll('section.related, .related.products, .up-sells, .upsells, .cross-sells, .af-wl-related').forEach(e => e.style.setProperty('display', 'none', 'important'))).catch(() => {});
+    // The "Recently Viewed" strip (.af-recent) lists whatever this browser
+    // session opened before, so it depends on the order the pages were visited
+    // in: hidden too.
+    await p.evaluate(() => document.querySelectorAll('section.related, .related.products, .up-sells, .upsells, .cross-sells, .af-wl-related, .af-recent').forEach(e => e.style.setProperty('display', 'none', 'important'))).catch(() => {});
     // back at the top for real before measuring: on a long page and a busy
     // server the page can still be on its way back (5 Oct, phone home page:
     // header still stuck, more of the page lazy-loaded, screenshot from
@@ -206,6 +209,9 @@ async function snap(out) {
       // a server file path in the page (a URL built from a path that did not map)
       const leak = (document.documentElement.outerHTML.match(/\/home\/u\d+\/[^"' <)]*/) || [''])[0].slice(0, 120);
       const pvm = document.querySelector('meta[name="af-port-preview"]');
+      // a page whose gallery is a YouTube video: the player is a third party
+      // and does not always come up on the test machine
+      const yt = !!document.querySelector('iframe[src*="youtube"], .ywcfav-video, [class*="ywcfav"], #ywcfav_video');
       // each top-level page section shown (Elementor containers and
       // sections, header and footer templates included): where it is, how
       // tall, how many pictures, which widgets, so a change can be placed
@@ -215,7 +221,7 @@ async function snap(out) {
           img: [...e.querySelectorAll('img')].filter(vis).length,
           w: [...new Set([...e.querySelectorAll('[data-widget_type]')].filter(vis).map(x => x.getAttribute('data-widget_type').replace(/\.default$/, '')))].sort().join(',').slice(0, 160) };
       });
-      return { pv: pvm ? pvm.getAttribute('content') : '', title: document.title, head, sig, n, text, leak, sections, lang: document.documentElement.getAttribute('lang') || '', bodyClass: document.body.className, h: document.documentElement.scrollHeight, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
+      return { pv: pvm ? pvm.getAttribute('content') : '', yt, title: document.title, head, sig, n, text, leak, sections, lang: document.documentElement.getAttribute('lang') || '', bodyClass: document.body.className, h: document.documentElement.scrollHeight, overflow: document.documentElement.scrollWidth - document.documentElement.clientWidth };
     }).catch(e => ({ error: e.message }));
     if (data && data.leak) errs.push('server path in page: ' + data.leak);
     // a preview is marked by the meta tag (naming what was unloaded) or, on
@@ -350,7 +356,10 @@ function compare(fa, fb, fc) {
       if (!(x > 0 && x === y && z === 0)) continue;
       // scroll position and carousel state, not page content: a stuck header,
       // the back-to-top button, slider arrows and dots, screen-reader labels
-      if (/stuck|sticky|blockUI|blockOverlay|blockMsg|af-qp|swiper-button|swiper-pagination|slick-|elementor-screen-only|chevron|lightbox|tooltip/.test(s)) continue;
+      if (/stuck|sticky|blockUI|blockOverlay|blockMsg|af-qp|swiper-button|swiper-pagination|slick-|elementor-screen-only|chevron|lightbox|tooltip|af-recent/.test(s)) continue;
+      // on a page with a YouTube product video the gallery box is sized by the
+      // player; when YouTube did not answer the test machine it measures 0px
+      if (a.yt && /woocommerce-product-gallery|ywcfav|^div\.images\b/.test(s)) continue;
       const m = s.match(/^([a-z0-9]+)(#[^.]+)?(?:\.([^.]+))?/); if (!m) continue;
       const base = m[1] + (m[2] || '') , cls = m[3] || '';
       const still = Object.keys(sc).some(k => (sc[k] || 0) > 0 && k.startsWith(base) && (cls === '' || k.split('.').includes(cls)));
