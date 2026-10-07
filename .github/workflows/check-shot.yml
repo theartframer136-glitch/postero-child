@@ -1,0 +1,28 @@
+name: Photograph The Card
+
+# Print a picture of the product card into the log, small enough to read back.
+# Numbers have not settled whether the buttons are on screen; a photograph
+# will. Read-only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Listing page
+        default: https://theartframer.us/product-category/digital-canvas-prints/
+      width:
+        description: Viewport width
+        default: '1280'
+
+jobs:
+  shot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Photograph a card
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afhead/node_modules node tools/diag-shot.js \
+            "${{ inputs.url }}" "${{ inputs.width }}" || true

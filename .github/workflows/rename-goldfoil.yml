@@ -1,0 +1,51 @@
+name: Rename Gold Foiled
+# Rename Gold Foiled & UV to Embossed Prints and add its three sub-categories.
+# Run with dry_run first: it prints the current children and the whole plan.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Show what would change, write nothing (run this first)
+        type: boolean
+        default: true
+      new_name:
+        description: The new category name
+        type: string
+        default: 'Embossed Prints'
+jobs:
+  rename:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Send the script up
+        run: |
+          set -uo pipefail
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/rename-goldfoil.php \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/rename-goldfoil.php"
+      - name: Report only
+        if: ${{ inputs.dry_run }}
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && DRY=1 NEW_NAME='${{ inputs.new_name }}' \
+             wp eval-file wp-content/themes/postero-child/tools/rename-goldfoil.php --allow-root 2>&1" || true
+      - name: Apply
+        if: ${{ !inputs.dry_run }}
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && NEW_NAME='${{ inputs.new_name }}' \
+             wp eval-file wp-content/themes/postero-child/tools/rename-goldfoil.php --allow-root 2>&1" || true

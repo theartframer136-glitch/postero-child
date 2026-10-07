@@ -1,0 +1,18 @@
+# Deny ALL direct web access to operational / maintenance scripts.
+# These run only via WP-CLI (wp eval-file ...) during deploy — never over HTTP.
+# The in-file `if (!defined('ABSPATH'))` guard is NOT reliable on this host
+# (ABSPATH is defined in the web SAPI), so block at the web-server layer.
+
+# Apache 2.4+ / LiteSpeed
+<IfModule mod_authz_core.c>
+    Require all denied
+</IfModule>
+
+# Apache 2.2 fallback
+<IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+</IfModule>
+
+# No directory listing even if the rule above is bypassed
+Options -Indexes

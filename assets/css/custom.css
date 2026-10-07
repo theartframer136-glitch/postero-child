@@ -1,0 +1,3007 @@
+/* =====================================================   The Art Framer - Child Theme custom.css
+   theartframer.us
+   ============================================================ */
+
+/* =====================================================   GLOBAL PRICE — one line: $sale  ~~original~~  (X% off)
+   ============================================================ */
+.woocommerce .price,
+.woocommerce-page .price,
+.price-section {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  align-items: baseline !important;
+  gap: 5px !important;
+}
+.woocommerce .price ins,
+.woocommerce-page .price ins {
+  display: inline !important;
+  text-decoration: none !important;
+  font-weight: 700 !important;
+  color: #111 !important;
+}
+.woocommerce .price del,
+.woocommerce-page .price del {
+  display: inline !important;
+  color: var(--af-was, #6b6b6b) !important;
+  font-weight: 400 !important;
+  font-size: 0.9em !important;
+}
+
+/* Hide themes widget from sidebar */
+.widget_postero_product_themes { display: none !important; }
+
+
+/* =====================================================   SHOP BY COLLECTION
+   ============================================================ */
+
+/* ---- Category buttons row + side arrows ---- */
+.top-category-container {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 10px !important;
+  width: 100% !important;
+}
+#topCatSlider,
+.top-category-slider {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 10px !important;
+  overflow-x: auto !important;
+  flex: 1 1 auto !important;
+  scrollbar-width: none !important;
+}
+#topCatSlider::-webkit-scrollbar { display: none !important; }
+#topCatSlider .top-cat-btn {
+  flex: 0 0 auto !important;
+  white-space: nowrap !important;
+  background-color: transparent !important;
+  background: transparent !important;
+  color: #222 !important;
+  border: none !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-decoration: none !important;
+  text-transform: uppercase !important;
+  font-weight: 600 !important;
+  font-size: 13px !important;
+  letter-spacing: 0.04em !important;
+  padding: 6px 4px !important;
+}
+#topCatSlider .top-cat-btn:hover,
+#topCatSlider .top-cat-btn:focus {
+  background-color: transparent !important;
+  background: transparent !important;
+  color: #222 !important;
+  border-bottom: 2px solid #c9a84c !important;
+  text-decoration: none !important;
+}
+#topCatSlider .top-cat-btn.active,
+#topCatSlider .top-cat-btn:active {
+  background-color: transparent !important;
+  background: transparent !important;
+  color: #222 !important;
+  border-bottom: 2px solid #c9a84c !important;
+  text-decoration: none !important;
+}
+.cat-nav {
+  flex: 0 0 auto !important;
+  width: 40px !important;
+  height: 40px !important;
+  min-width: 40px !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+}
+
+/* ---- Subcategory circles: single horizontal scrollable row ----
+   The parent theme renders this row two different ways depending on the
+   template: a plain #subcategorySlider / .subcategory-slider div (confirmed
+   the actual live container in most places — see functions.php "Subcategory
+   circles fix"), or a ul.postero-scroll-content. Every rule below covers
+   both so the fix lands regardless of which one a given page uses. */
+ul.postero-scroll-content,
+#subcategorySlider,
+.subcategory-slider {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  /* Fixed 16px gap between items regardless of viewport width — spacing
+     comes from the row's own gap value, not stretched to fill the page. */
+  justify-content: flex-start !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  gap: 16px !important;
+  width: 100% !important;
+  padding: 0 0 8px 0 !important;
+  margin: 0 !important;
+  list-style: none !important;
+  scrollbar-width: none !important;
+  /* Override any transform/translate the parent slider JS may apply */
+  transform: none !important;
+  transition: none !important;
+}
+ul.postero-scroll-content::-webkit-scrollbar,
+#subcategorySlider::-webkit-scrollbar,
+.subcategory-slider::-webkit-scrollbar { display: none !important; }
+
+/* ---- Click-and-drag scrolling (see custom.js initDragScroll) ---- */
+ul.postero-scroll-content.af-drag-scroll,
+#subcategorySlider.af-drag-scroll,
+.subcategory-slider.af-drag-scroll {
+  cursor: grab !important;
+  scroll-behavior: auto !important;
+  touch-action: pan-x !important;
+}
+ul.postero-scroll-content.af-drag-scroll.af-dragging,
+#subcategorySlider.af-drag-scroll.af-dragging,
+.subcategory-slider.af-drag-scroll.af-dragging {
+  cursor: grabbing !important;
+}
+ul.postero-scroll-content.af-drag-scroll.af-dragging *,
+#subcategorySlider.af-drag-scroll.af-dragging *,
+.subcategory-slider.af-drag-scroll.af-dragging * {
+  pointer-events: none !important;
+}
+
+ul.postero-scroll-content > li.cat-item,
+#subcategorySlider > .cat-item,
+#subcategorySlider > .sub-cat,
+.subcategory-slider > .cat-item,
+.subcategory-slider > .sub-cat {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+  flex: 0 0 92px !important;
+  width: 92px !important;
+  min-width: 92px !important;
+  max-width: 92px !important;
+  float: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  cursor: pointer !important;
+  position: static !important;
+  left: auto !important;
+  top: auto !important;
+}
+ul.postero-scroll-content .cat-item img,
+#subcategorySlider .cat-item img,
+#subcategorySlider .sub-cat img,
+.subcategory-slider .cat-item img,
+.subcategory-slider .sub-cat img,
+li.cat-item img {
+  width: 52px !important;
+  height: 52px !important;
+  max-width: 52px !important;
+  max-height: 52px !important;
+  min-width: 52px !important;
+  min-height: 52px !important;
+  border-radius: 50% !important;
+  object-fit: cover !important;
+  border: 3px solid #c9a84c !important;
+  margin: 0 auto 8px !important;
+  display: block !important;
+  transition: transform 0.3s ease !important;
+}
+ul.postero-scroll-content .cat-item:hover img,
+#subcategorySlider .cat-item:hover img,
+#subcategorySlider .sub-cat:hover img,
+.subcategory-slider .cat-item:hover img,
+.subcategory-slider .sub-cat:hover img { transform: scale(1.08) !important; }
+ul.postero-scroll-content .cat-item span,
+ul.postero-scroll-content .cat-item a,
+#subcategorySlider .cat-item span,
+#subcategorySlider .cat-item a,
+#subcategorySlider .sub-cat span,
+#subcategorySlider .sub-cat a,
+.subcategory-slider .cat-item span,
+.subcategory-slider .cat-item a,
+.subcategory-slider .sub-cat span,
+.subcategory-slider .sub-cat a {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #333 !important;
+  line-height: 1.3 !important;
+  white-space: normal !important;
+  word-break: break-word !important;
+  display: block !important;
+  width: 100% !important;
+}
+
+/* ---- Hide leftover subcategory nav arrows only ---- */
+.subcategory-container .sub-nav {
+  display: none !important;
+}
+
+/* ---- Shared nav button style (both .prod-nav and .af-nav) ---- */
+.product-container .prod-nav,
+.af-nav {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 44px !important;
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px !important;
+  border-radius: 50% !important;
+  background: #c9a84c !important;
+  border: none !important;
+  color: #fff !important;
+  font-size: 28px !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  z-index: 10 !important;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25) !important;
+  transition: background 0.2s !important;
+  padding: 0 !important;
+}
+.product-container .prod-nav:hover,
+.af-nav:hover { background: #a8872e !important; }
+
+/* ---- Dynamically injected wrapper ---- */
+.af-slider-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+.af-slider-viewport {
+  overflow: hidden !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+}
+
+/* ---- Product container: slider with side nav arrows ---- */
+.product-container {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+}
+
+/* ---- Viewport: clips the scrolling track ---- */
+#productGrid,
+.product-slider {
+  display: block !important;
+  overflow: hidden !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  width: auto !important;
+}
+
+/* ---- Scrolling track (WooCommerce ul.products) ---- */
+#productGrid ul.products,
+.product-slider ul.products,
+.af-slider-viewport ul.products {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  gap: 16px !important;
+  margin: 0 !important;
+  padding: 4px 0 8px !important;
+  list-style: none !important;
+  transition: transform 0.4s ease !important;
+  will-change: transform !important;
+  grid-template-columns: unset !important;
+}
+
+/* ---- Large: 5 cards ---- */
+#productGrid ul.products li.product,
+.product-slider ul.products li.product,
+.af-slider-viewport ul.products li.product {
+  flex: 0 0 calc(20% - 13px) !important;
+  width: calc(20% - 13px) !important;
+  min-width: 0 !important;
+  float: none !important;
+  margin: 0 !important;
+}
+.product-slider .product-card {
+  width: 100% !important;
+  float: none !important;
+  margin: 0 !important;
+  background: #fff !important;
+  border: 1px solid #eee !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative !important;
+}
+.product-slider .product-image,
+.product-slider .image-wrapper {
+  position: relative !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  aspect-ratio: 1 / 1 !important;
+}
+.product-slider .product-image img,
+.product-slider .image-wrapper img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+}
+.product-slider .hover-img {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  opacity: 0 !important;
+  transition: opacity 0.4s ease !important;
+  z-index: 2 !important;
+}
+.product-slider .product-card:hover .hover-img { opacity: 1 !important; }
+.product-slider .sale-ribbon {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: 3 !important;
+}
+.product-slider .wishlist-btn {
+  position: absolute !important;
+  top: 10px !important;
+  right: 10px !important;
+  z-index: 3 !important;
+}
+.product-slider .product-card .product-title,
+.product-slider .product-card h3 {
+  font-size: 14px !important;
+  line-height: 1.4 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+.product-slider .product-card .price-section,
+.product-slider .product-card .price { padding: 0 !important; }
+.product-slider .product-actions {
+  display: flex !important;
+  gap: 8px !important;
+  padding: 0 !important;
+  margin-top: auto !important;
+}
+.product-slider .product-actions .add-cart,
+.product-slider .product-actions .quick-view-btn { flex: 1 1 50% !important; }
+
+
+/* =====================================================   PRODUCT CARD — pixel-perfect match to reference screenshot
+   ============================================================ */
+
+/* ── Card shell ── */
+.af-shell-track .product-card,
+.product-slider .product-card,
+.woocommerce ul.products li.product {
+  background: #fff !important;
+  border: 1px solid #ececec !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  position: relative !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08) !important;
+  transition: box-shadow 0.25s, transform 0.25s !important;
+}
+.af-shell-track .product-card:hover,
+.product-slider .product-card:hover,
+.woocommerce ul.products li.product:hover {
+  box-shadow: 0 8px 28px rgba(0,0,0,0.14) !important;
+  transform: translateY(-2px) !important;
+}
+
+/* ── Image area ── */
+/* Custom slider cards keep the padding-bottom trick */
+.af-shell-track .product-card .product-image,
+.af-shell-track .product-card .image-wrapper,
+.af-shell-track .product-card .woocommerce-loop-product__link,
+.product-slider .product-card .product-image,
+.product-slider .product-card .image-wrapper {
+  position: relative !important;
+  width: 100% !important;
+  height: 0 !important;
+  padding-bottom: 100% !important;
+  overflow: hidden !important;
+  display: block !important;
+  background: #f5f5f5 !important;
+}
+/* WooCommerce product grid: JS controls image stacking — container just needs position+overflow */
+.woocommerce ul.products li.product .woocommerce-loop-product__link,
+.woocommerce ul.products li.product .product-thumb,
+.woocommerce ul.products li.product figure.woocommerce-loop-product__link {
+  position: relative !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  display: block !important;
+  background: #f5f5f5 !important;
+  height: auto !important;
+  padding-bottom: 0 !important;
+}
+/* Custom slider images — absolute fill the padding-bottom container */
+.af-shell-track .product-card .product-image img,
+.af-shell-track .product-card .image-wrapper img,
+.af-shell-track .product-card .woocommerce-loop-product__link img,
+.product-slider .product-card .product-image img,
+.product-slider .product-card .image-wrapper img {
+  position: absolute !important;
+  top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  transition: transform 0.4s ease, opacity 0.4s ease !important;
+  margin: 0 !important;
+}
+.af-shell-track .product-card:hover .product-image img,
+.product-slider .product-card:hover .product-image img {
+  transform: scale(1.04) !important;
+}
+/* Custom slider hover image */
+.af-shell-track .product-card .hover-img,
+.product-slider .product-card .hover-img {
+  position: absolute !important;
+  top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+  width: 100% !important; height: 100% !important;
+  object-fit: cover !important;
+  opacity: 0 !important;
+  transition: opacity 0.4s ease !important;
+  z-index: 2 !important;
+  transform: none !important;
+}
+.af-shell-track .product-card:hover .hover-img,
+.product-slider .product-card:hover .hover-img { opacity: 1 !important; }
+
+/* WooCommerce product grid — JS handles stacking; CSS just ensures images fill their parent */
+.woocommerce ul.products li.product img.af-main-img {
+  position: relative !important;
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  z-index: 1 !important;
+  margin: 0 !important;
+  object-fit: cover !important;
+}
+.woocommerce ul.products li.product img.af-hover-img {
+  position: absolute !important;
+  top: 0 !important; left: 0 !important;
+  width: 100% !important; height: 100% !important;
+  object-fit: cover !important;
+  opacity: 0 !important;
+  z-index: 2 !important;
+  transition: opacity 0.4s ease !important;
+  display: block !important;
+  margin: 0 !important;
+}
+.woocommerce ul.products li.product:hover img.af-hover-img { opacity: 1 !important; }
+
+/* ── SALE ribbon — diagonal top-left ── */
+.af-shell-track .product-card .onsale,
+.af-shell-track .product-card .sale-ribbon,
+.product-slider .product-card .onsale,
+.product-slider .product-card .sale-ribbon,
+.woocommerce ul.products li.product .onsale {
+  position: absolute !important;
+  top: 22px !important;
+  left: -26px !important;
+  z-index: 10 !important;
+  background: #c9a84c !important;
+  color: #fff !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  padding: 5px 38px !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  transform: rotate(-45deg) !important;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2) !important;
+  border-radius: 0 !important;
+  line-height: 1.4 !important;
+  min-width: 110px !important;
+  text-align: center !important;
+  margin: 0 !important;
+}
+
+/* ── Wishlist heart — white circle top-right ── */
+.af-wishlist-btn,
+.af-shell-track .product-card .af-wishlist-btn,
+.product-slider .product-card .af-wishlist-btn {
+  position: absolute !important;
+  top: 10px !important;
+  right: 10px !important;
+  z-index: 20 !important;
+  width: 36px !important; height: 36px !important;
+  border-radius: 50% !important;
+  background: rgba(255,255,255,0.95) !important;
+  border: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+  box-shadow: 0 1px 5px rgba(0,0,0,0.18) !important;
+  padding: 0 !important;
+}
+.af-wishlist-btn svg { pointer-events: none; }
+
+/* Hide duplicate wishlist plugins */
+.af-shell-track .product-card [class*="wishlist"]:not(.af-wishlist-btn),
+.product-slider .product-card [class*="wishlist"]:not(.af-wishlist-btn),
+.woocommerce ul.products li.product .yith-wcwl-add-to-wishlist { display: none !important; }
+
+/* ── Content body ── */
+.af-shell-track .product-card .product-info,
+.product-slider .product-card .product-info,
+.woocommerce ul.products li.product .product-info {
+  display: flex !important;
+  flex-direction: column !important;
+  flex: 1 1 auto !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* ── Title — 3 lines max ── */
+.af-shell-track .product-card .product-title,
+.product-slider .product-card .product-title,
+.woocommerce ul.products li.product .product-title {
+  font-size: 13.5px !important;
+  font-weight: 700 !important;
+  line-height: 1.45 !important;
+  color: #1a1a1a !important;
+  margin: 0 0 6px !important;
+  padding: 0 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 3 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  min-height: calc(1.45em * 3) !important;
+}
+
+/* ── Art Code line — functions.php now always renders this span (blank +
+   visibility:hidden when a product has no code, see .af-art-code--empty in
+   the wp_head style block), so every card reserves the same row height
+   whether or not it actually has a code. Just set its margin here. ── */
+.af-shell-track .product-card .af-art-code--card,
+.product-slider .product-card .af-art-code--card,
+.woocommerce ul.products li.product .af-art-code--card {
+  margin: 2px 0 4px !important;
+}
+
+/* ── Rating row ── */
+.af-shell-track .product-card .rating,
+.product-slider .product-card .rating,
+.woocommerce ul.products li.product .rating {
+  display: flex !important;
+  align-items: center !important;
+  flex-wrap: nowrap !important;
+  gap: 4px !important;
+  margin: 0 0 4px !important;
+  padding: 0 !important;
+  height: 22px !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+}
+.af-shell-track .product-card .rating-count,
+.product-slider .product-card .rating-count {
+  font-size: 12px !important;
+  color: #555 !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  white-space: nowrap !important;
+}
+.af-shell-track .product-card .star-rating,
+.product-slider .product-card .star-rating {
+  font-size: 12px !important;
+  color: #c9a84c !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* ── Price ── */
+.af-shell-track .product-card .price-section,
+.product-slider .product-card .price-section,
+.woocommerce ul.products li.product .price-section {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: baseline !important;
+  gap: 4px !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  color: #1a1a1a !important;
+  margin: 0 0 6px !important;
+  padding: 0 !important;
+  height: 22px !important;
+  overflow: hidden !important;
+  flex-shrink: 0 !important;
+}
+.af-shell-track .product-card .price-section ins,
+.product-slider .product-card .price-section ins {
+  text-decoration: none !important;
+  font-weight: 700 !important;
+  color: #1a1a1a !important;
+}
+.af-shell-track .product-card .price-section del,
+.af-shell-track .product-card .price-section del *,
+.product-slider .product-card .price-section del,
+.product-slider .product-card .price-section del * {
+  color: var(--af-was, #6b6b6b) !important;
+  font-weight: 400 !important;
+  font-size: 12px !important;
+  text-decoration: line-through !important;
+}
+
+/* ── Description — 2 lines ── */
+.af-shell-track .product-card .desc,
+.product-slider .product-card .desc,
+.woocommerce ul.products li.product .desc {
+  font-size: 13px !important;
+  color: #555 !important;
+  line-height: 1.55 !important;
+  margin: 0 0 10px !important;
+  padding: 0 !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  height: calc(1.55em * 2) !important;
+  flex: 0 0 auto !important;
+}
+
+/* ── Buttons row ── */
+.af-shell-track .product-card .product-actions,
+.af-shell-track .product-card .card-actions,
+.product-slider .product-card .product-actions,
+.product-card .product-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  gap: 8px !important;
+  padding: 0 14px 14px !important;
+  margin-top: auto !important;
+}
+.af-shell-track .product-card .product-actions > *,
+.product-slider .product-card .product-actions > * {
+  flex: 1 1 50% !important;
+  min-width: 0 !important;
+}
+
+/* Add to Cart — gold */
+.af-shell-track .product-card .add-cart,
+.af-shell-track .product-card .add_to_cart_button,
+.af-shell-track .product-card a.button,
+.af-shell-track .product-card button.button,
+.product-slider .product-card .add-cart,
+.product-slider .product-card .add_to_cart_button,
+.product-slider .product-card a.button,
+.product-card .add_to_cart_button,
+.product-card a.button {
+  flex: 1 1 50% !important;
+  background: #c9a84c !important;
+  color: var(--af-on-primary, #1a1206) !important;
+  border: none !important;
+  border-radius: 7px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 10px 6px !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  transition: background 0.2s !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+}
+.af-shell-track .product-card .add-cart:hover,
+.af-shell-track .product-card .add_to_cart_button:hover,
+.product-slider .product-card .add-cart:hover,
+.product-card .add_to_cart_button:hover { background: #a8872e !important; }
+
+/* Quick View — dark */
+.af-shell-track .product-card .quick-view-btn,
+.af-shell-track .product-card [class*="quick-view"],
+.af-shell-track .product-card [class*="quickview"],
+.product-slider .product-card .quick-view-btn,
+.product-slider .product-card [class*="quick-view"],
+.product-card .quick-view-btn,
+.product-card [class*="quick-view"] {
+  flex: 1 1 50% !important;
+  background: #1a1a1a !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 7px !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  padding: 10px 6px !important;
+  text-align: center !important;
+  cursor: pointer !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 5px !important;
+  transition: background 0.2s !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+  min-width: 0 !important;
+}
+.af-shell-track .product-card .quick-view-btn:hover,
+.product-slider .product-card .quick-view-btn:hover,
+.product-card .quick-view-btn:hover { background: #333 !important; }
+
+/* ── Hide broken video containers ── */
+.elementor-background-video-container video[src=""],
+.elementor-background-video-container:empty { display: none !important; }
+
+
+/* Hide compare/swap button on product cards */
+.wooscp-btn, .woosc-btn, .ti-wishlist-add-to-compare-button,
+[class*="compare-btn"], [class*="compare_btn"],
+.yith-woocompare-add-button, .compare-button,
+.add_to_compare_button { display: none !important; }
+
+
+/* =====================================================   RESPONSIVE
+   ============================================================ */
+@media (max-width: 991px) {
+  ul.postero-scroll-content .cat-item img,
+  #subcategorySlider .cat-item img,
+  .subcategory-slider .sub-cat img,
+  li.cat-item img { width: 44px !important; height: 44px !important; max-width: 44px !important; max-height: 44px !important; }
+  ul.postero-scroll-content > li.cat-item,
+  #subcategorySlider > .cat-item,
+  #subcategorySlider > .sub-cat,
+  .subcategory-slider > .cat-item,
+  .subcategory-slider > .sub-cat {
+    flex: 0 0 78px !important;
+    width: 78px !important;
+    min-width: 78px !important;
+    max-width: 78px !important;
+  }
+  .woocommerce .products.columns-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+
+/* ── collection-header: 4-icon row on mobile ── */
+@media (max-width: 600px) {
+  /* Override Elementor's --flex-direction CSS variable */
+  .collection-header,
+  .elementor-element-bd75244 {
+    --flex-direction: row !important;
+    --flex-wrap: nowrap !important;
+    --justify-content: space-evenly !important;
+    --align-items: flex-start !important;
+  }
+  .collection-header > .e-con-inner,
+  .collection-header.e-con > .e-con-inner,
+  .elementor-element-bd75244 > .e-con-inner {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-evenly !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+  .collection-header > .e-con-inner > .elementor-element,
+  .collection-header > .e-con-inner > .e-con,
+  .elementor-element-bd75244 > .e-con-inner > .elementor-element {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 25% !important;
+    text-align: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    --flex-direction: column !important;
+  }
+  .collection-header .elementor-icon-wrapper,
+  .collection-header .elementor-icon {
+    width: 54px !important; height: 54px !important; min-width: 54px !important;
+    border-radius: 50% !important; background: #c9a84c !important;
+    display: flex !important; align-items: center !important;
+    justify-content: center !important; margin: 0 auto 6px !important;
+  }
+  .collection-header .elementor-icon i,
+  .collection-header .elementor-icon svg {
+    color: #fff !important; fill: #fff !important;
+    font-size: 22px !important; width: 22px !important; height: 22px !important;
+  }
+  .collection-header .elementor-heading-title,
+  .collection-header .elementor-icon-box-title,
+  .collection-header h1,.collection-header h2,
+  .collection-header h3,.collection-header h4 {
+    font-size: 10px !important; font-weight: 600 !important;
+    color: #222 !important; text-align: center !important;
+    line-height: 1.3 !important; margin: 0 !important; padding: 0 !important;
+  }
+}
+
+/* ── Features bar: force horizontal row on all mobile sizes ── */
+@media (max-width: 480px) {
+  .features-section,
+  .features-section.e-con,
+  .elementor-element-810fb7a {
+    --flex-direction: row !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+  }
+  .features-section > .e-con-inner,
+  .features-section .e-con-inner,
+  .elementor-element-810fb7a > .e-con-inner,
+  .elementor-element-810fb7a .e-con-inner {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-evenly !important;
+    align-items: flex-start !important;
+    gap: 4px !important;
+    width: 100% !important;
+  }
+  .features-section .e-con-inner > .elementor-element,
+  .features-section .e-con-inner > .e-con,
+  .elementor-element-810fb7a .e-con-inner > .elementor-element {
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 25% !important;
+    text-align: center !important;
+    align-items: center !important;
+    --flex-direction: column !important;
+    flex-direction: column !important;
+  }
+  .features-section .elementor-icon,
+  .elementor-element-810fb7a .elementor-icon {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    border-radius: 50% !important;
+    background: #c9a84c !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto 6px !important;
+  }
+  .features-section .elementor-icon i,
+  .features-section .elementor-icon svg,
+  .elementor-element-810fb7a .elementor-icon i,
+  .elementor-element-810fb7a .elementor-icon svg {
+    color: #fff !important;
+    fill: #fff !important;
+    font-size: 22px !important;
+    width: 22px !important;
+    height: 22px !important;
+  }
+  .features-section .elementor-icon-box-title,
+  .features-section .elementor-heading-title,
+  .elementor-element-810fb7a .elementor-icon-box-title,
+  .elementor-element-810fb7a .elementor-heading-title {
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    color: #222 !important;
+    text-align: center !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    word-break: break-word !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Product slider — 2 cards on tablet */
+  .af-shell { gap: 8px !important; padding: 0 !important; }
+  .af-shell-btn { flex: 0 0 32px !important; width: 32px !important; height: 32px !important; font-size: 20px !important; }
+  .af-shell-track .product-card { min-width: 0 !important; }
+
+  /* Buttons stack gracefully */
+  .product-card .product-actions,
+  .product-card .card-actions {
+    gap: 6px !important;
+    padding: 0 8px 10px !important;
+  }
+  .product-card .add_to_cart_button,
+  .product-card a.button,
+  .product-card button.button,
+  .product-card .quick-view-btn,
+  .product-card [class*="quick-view"] {
+    font-size: 11px !important;
+    padding: 8px 4px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  ul.postero-scroll-content .cat-item img,
+  #subcategorySlider .cat-item img,
+  .subcategory-slider .sub-cat img,
+  li.cat-item img { width: 40px !important; height: 40px !important; max-width: 40px !important; max-height: 40px !important; }
+  ul.postero-scroll-content > li.cat-item,
+  #subcategorySlider > .cat-item,
+  #subcategorySlider > .sub-cat,
+  .subcategory-slider > .cat-item,
+  .subcategory-slider > .sub-cat {
+    flex: 0 0 72px !important;
+    width: 72px !important;
+    min-width: 72px !important;
+    max-width: 72px !important;
+  }
+
+  /* Product slider — 1 card on mobile */
+  .af-shell-btn { flex: 0 0 28px !important; width: 28px !important; height: 28px !important; font-size: 18px !important; }
+
+  /* Price on one line, smaller */
+  .woocommerce .price,
+  .price-section { font-size: 12px !important; gap: 3px !important; }
+
+  /* Buttons */
+  .product-card .add_to_cart_button,
+  .product-card a.button,
+  .product-card button.button,
+  .product-card .quick-view-btn,
+  .product-card [class*="quick-view"] {
+    font-size: 10px !important;
+    padding: 7px 3px !important;
+  }
+
+  /* Video circles smaller */
+  .af-vid-circle { flex: 0 0 110px !important; width: 110px !important; height: 110px !important; }
+  .af-vid-btn { flex: 0 0 30px !important; width: 30px !important; height: 30px !important; font-size: 18px !important; }
+
+  /* Prevent horizontal overflow */
+  .af-shell, .af-vid-shell { max-width: 100vw !important; overflow: hidden !important; }
+  body { overflow-x: hidden !important; }
+
+  /* Top category buttons scroll properly */
+  #topCatSlider .top-cat-btn { font-size: 11px !important; padding: 5px 3px !important; }
+}
+
+/* =====================================================   HERO SLIDER — mobile fix
+   Use full-bleed technique: margin-left + 100vw width to
+   escape any narrow parent column, no matter its width.
+   ============================================================ */
+@media (max-width: 768px) {
+
+  /* ── Step 1: strip padding/max-width from the section + container wrapping any slider ── */
+  .elementor-widget-slides,
+  .elementor-widget-slides > .elementor-widget-container {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Parent section / e-con that wraps the slides widget — remove horizontal padding */
+  .elementor-widget-slides,
+  .elementor-widget-slides ~ *,
+  .elementor-element:has(> .elementor-widget-container > .elementor-widget-slides) {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+
+  /* ── Step 2: Swiper container and track ── */
+  /* NOT the track (.swiper-wrapper): Swiper translates it to bring a slide on
+     screen, and overflow:hidden on it clips away that slide. */
+  .elementor-widget-slides .elementor-slides-wrapper,
+  .elementor-widget-slides [class*="swiper"]:not([class*="swiper-slide"]):not([class*="swiper-button"]):not([class*="swiper-pagination"]):not(.swiper-wrapper) {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow: hidden !important;
+  }
+  .elementor-widget-slides .swiper-wrapper { overflow: visible !important; }
+
+  /* ── Step 3: Each slide — override Swiper's inline px width + ensure height ── */
+  .elementor-widget-slides .swiper-slide {
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+    min-height: 420px !important;     /* slide must have height so bg image shows */
+    position: relative !important;   /* bg uses position:absolute inside */
+    flex-shrink: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+
+  /* ── Step 4: Background image — fills entire slide ── */
+  .elementor-widget-slides .swiper-slide-bg {
+    position: absolute !important;
+    top: 0 !important; left: 0 !important; right: 0 !important; bottom: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 420px !important;
+    background-size: cover !important;
+    background-position: center center !important;
+    z-index: 0 !important;
+  }
+
+  /* ── Step 5: Inner content — on top of bg, full width ── */
+  .elementor-widget-slides .swiper-slide-inner {
+    position: relative !important;
+    z-index: 1 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-height: 420px !important;
+    box-sizing: border-box !important;
+  }
+
+  /* ── Old ID-based rules (kept for backward compat) ── */
+  .elementor-element-0971963 {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+  .elementor-element-0971963 .swiper-slide {
+    width: 100vw !important;
+    min-width: 100vw !important;
+    max-width: 100vw !important;
+  }
+  .elementor-element-0971963 .swiper-slide-bg {
+    position: absolute !important;
+    inset: 0 !important;
+    width: 100% !important; height: 100% !important;
+    background-size: cover !important;
+    background-position: center center !important;
+  }
+
+  /* Override Elementor Pro's forced 30px padding on slide-inner */
+  .elementor-slides .swiper-slide-inner,
+  .elementor-widget-slides .swiper-slide-inner {
+    padding: 16px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  /* Arrows */
+  .elementor-widget-slides .elementor-swiper-button { display: flex !important; }
+}
+
+
+/* =====================================================   ADD TO CART BUTTON — gold style (matches second screenshot)
+   ============================================================ */
+.product-card .add-cart,
+.product-card .add_to_cart_button,
+.product-card a.button,
+.product-card button.button,
+.product-card .woocommerce-loop-product__link + a,
+.product-slider .product-card .add-cart,
+.product-slider .product-card .add_to_cart_button,
+.product-slider .product-card a.button,
+.af-pc-track .product-card a.button,
+.af-pc-track .product-card .add_to_cart_button,
+.af-pc-track .product-card .add-cart {
+  background: #c9a84c !important;
+  background-color: #c9a84c !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  transition: background 0.2s !important;
+}
+.product-card .add-cart:hover,
+.product-card .add_to_cart_button:hover,
+.product-card a.button:hover,
+.product-card button.button:hover,
+.product-slider .product-card a.button:hover,
+.af-pc-track .product-card a.button:hover,
+.af-pc-track .product-card .add_to_cart_button:hover,
+.af-pc-track .product-card .add-cart:hover {
+  background: #a8872e !important;
+  background-color: #a8872e !important;
+  color: #fff !important;
+}
+
+/* =====================================================   SHOP PAGE PRODUCT GRID
+   ============================================================ */
+.woocommerce .products.columns-4 {
+  display: grid !important;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 20px !important;
+}
+
+/* =====================================================   FEATURE ICONS — mobile .features-section (Elementor) + .af-features-bar (shortcode)
+   ============================================================ */
+
+/* Target mobile features section by Elementor data-id */
+.elementor-element-810fb7a > .e-con-inner,
+.elementor-element-810fb7a .e-con-inner,
+.features-section > .e-con-inner,
+.features-section .e-con-inner {
+  --flex-direction: row !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: space-evenly !important;
+  align-items: flex-start !important;
+  gap: 4px !important;
+}
+
+.elementor-element-810fb7a .elementor-element,
+.features-section .elementor-element {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: 90px !important;
+  text-align: center !important;
+}
+
+.elementor-element-810fb7a .elementor-icon,
+.features-section .elementor-icon {
+  width: 56px !important;
+  height: 56px !important;
+  min-width: 56px !important;
+  border-radius: 50% !important;
+  background: #c9a84c !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 auto 6px !important;
+}
+
+.elementor-element-810fb7a .elementor-icon i,
+.elementor-element-810fb7a .elementor-icon svg,
+.features-section .elementor-icon i,
+.features-section .elementor-icon svg {
+  color: #fff !important;
+  fill: #fff !important;
+  font-size: 24px !important;
+  width: 24px !important;
+  height: 24px !important;
+}
+
+.elementor-element-810fb7a .elementor-icon-box-title,
+.elementor-element-810fb7a .elementor-heading-title,
+.features-section .elementor-icon-box-title,
+.features-section .elementor-heading-title {
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  color: #222 !important;
+  text-align: center !important;
+  line-height: 1.3 !important;
+  margin: 0 !important;
+}
+
+/* 1. Force the Elementor features-section container into a ROW */
+.features-section.e-con,
+.features-section .e-con-inner,
+.features-section > .e-con-inner {
+  --flex-direction: row !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start !important;
+  justify-content: space-evenly !important;
+  gap: 8px !important;
+}
+
+/* 2. Each Elementor child widget inside features-section — center + shrink */
+.features-section .e-con-inner > .elementor-element,
+.features-section .e-con-inner > .e-con {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  max-width: 90px !important;
+  align-items: center !important;
+  text-align: center !important;
+}
+
+/* 3. Gold circle on Elementor icon widget inside features-section */
+.features-section .elementor-icon-wrapper,
+.features-section .elementor-icon {
+  width: 60px !important;
+  height: 60px !important;
+  border-radius: 50% !important;
+  background: #c9a84c !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 auto !important;
+}
+
+.features-section .elementor-icon i,
+.features-section .elementor-icon svg {
+  color: #fff !important;
+  fill: #fff !important;
+  font-size: 26px !important;
+  width: 26px !important;
+  height: 26px !important;
+}
+
+/* 4. Label text inside features-section */
+.features-section .elementor-icon-box-title,
+.features-section .elementor-heading-title,
+.features-section p {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #222 !important;
+  text-align: center !important;
+  line-height: 1.3 !important;
+  margin: 6px 0 0 !important;
+}
+
+/* ── Custom HTML features widget: .features-container > .feature-box ── */
+@media (max-width: 600px) {
+  .features-container {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-around !important;
+    align-items: flex-start !important;
+    width: 100% !important;
+    gap: 4px !important;
+    padding: 12px 4px !important;
+    box-sizing: border-box !important;
+  }
+  .feature-box {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    flex: 1 1 0 !important;
+    min-width: 0 !important;
+    max-width: 25% !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    gap: 6px !important;
+  }
+  .feature-box .feature-icon,
+  .feature-box img,
+  .feature-box svg,
+  .feature-box i {
+    width: 52px !important;
+    height: 52px !important;
+    min-width: 52px !important;
+    border-radius: 50% !important;
+    background: #c9a84c !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 0 auto !important;
+    font-size: 22px !important;
+    color: #fff !important;
+    fill: #fff !important;
+  }
+  .feature-box .feature-title,
+  .feature-box p,
+  .feature-box span,
+  .feature-box h3,
+  .feature-box h4 {
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    color: #222 !important;
+    text-align: center !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    word-break: break-word !important;
+  }
+}
+
+/* 5. Our shortcode bar (.af-features-bar) — same style */
+.af-features-bar {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  justify-content: space-evenly !important;
+  align-items: flex-start !important;
+  gap: 8px !important;
+  padding: 20px 8px !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+.af-features-bar .af-feature-item {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  gap: 8px !important;
+  cursor: pointer !important;
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+  text-align: center !important;
+}
+
+.af-features-bar .af-feature-icon {
+  width: 60px !important;
+  height: 60px !important;
+  min-width: 60px !important;
+  border-radius: 50% !important;
+  background: #c9a84c !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex-shrink: 0 !important;
+}
+
+.af-features-bar .af-feature-icon svg {
+  width: 28px !important;
+  height: 28px !important;
+  fill: #fff !important;
+  display: block !important;
+}
+
+.af-features-bar .af-feature-label {
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  color: #222 !important;
+  text-align: center !important;
+  line-height: 1.3 !important;
+}
+
+/* Overlay backdrop */
+.af-feat-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  z-index: 99998;
+}
+.af-feat-overlay.active { display: block; }
+
+/* Slide-up sheet */
+.af-feat-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  z-index: 99999;
+  padding: 24px 28px 36px;
+  max-height: 80vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.35s cubic-bezier(0.32,0.72,0,1);
+}
+.af-feat-sheet.open { transform: translateY(0); }
+.af-feat-sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: #ddd;
+  border-radius: 2px;
+  margin: 0 auto 18px;
+}
+.af-feat-sheet-close {
+  position: absolute;
+  top: 18px;
+  left: 20px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #555;
+  line-height: 1;
+  padding: 0;
+}
+.af-feat-sheet h3 {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0 0 10px 30px;
+}
+.af-feat-sheet p {
+  color: #555;
+  margin: 0 0 18px;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.af-feat-sheet h4 {
+  font-size: 15px;
+  font-weight: 700;
+  margin: 16px 0 8px;
+}
+.af-feat-sheet ul {
+  margin: 0 0 12px 18px;
+  padding: 0;
+  list-style: disc;
+}
+.af-feat-sheet ul li {
+  font-size: 14px;
+  color: #333;
+  margin-bottom: 4px;
+}
+
+
+/* =====================================================   Product Cards — uniform title & description height
+   ============================================================ */
+
+/* Make every card a flex column so footer buttons stay at bottom */
+.woocommerce ul.products li.product,
+.woocommerce-page ul.products li.product {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+/* Title: always exactly 2 lines, no more */
+.woocommerce ul.products li.product .woocommerce-loop-product__title,
+.woocommerce-page ul.products li.product .woocommerce-loop-product__title {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  min-height: 2.8em !important;
+  line-height: 1.4 !important;
+  margin-bottom: 6px !important;
+}
+
+/* Short description: always exactly 2 lines */
+.woocommerce ul.products li.product .woocommerce-product-details__short-description,
+.woocommerce ul.products li.product p.description,
+.woocommerce-page ul.products li.product .woocommerce-product-details__short-description,
+.woocommerce-page ul.products li.product p.description {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  min-height: 3.2em !important;
+  line-height: 1.6 !important;
+  font-size: 14px !important;
+  margin-bottom: 8px !important;
+}
+
+/* Push price + buttons to bottom of card — slider/shell only, NOT shop archive (JS handles that) */
+.af-shell-track ul.products li.product .price,
+.product-slider ul.products li.product .price {
+  margin-top: auto !important;
+}
+
+/* =====================================================   Product card: uniform title + description height
+   All cards match the last-card reference layout
+   ============================================================ */
+
+/* Title — clamp to exactly 2 lines */
+.af-shell-track .product-card .woocommerce-loop-product__title,
+.af-shell-track .product-card h2.woocommerce-loop-product__title,
+.af-shell-track .product-card h3,
+.product-slider .product-card .product-title,
+.product-slider .product-card h3,
+.woocommerce ul.products li.product .woocommerce-loop-product__title {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  min-height: calc(1.4em * 2) !important;
+  line-height: 1.4 !important;
+}
+
+/* Description (p.desc) — clamp to exactly 2 lines */
+.af-shell-track .product-card p.desc,
+.product-slider .product-card p.desc,
+.af-shell-track .product-card .desc,
+.product-slider .product-card .desc {
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  overflow: hidden !important;
+  min-height: calc(1.6em * 2) !important;
+  line-height: 1.6 !important;
+  font-size: 13px !important;
+  padding: 0 !important;
+  margin: 4px 0 8px !important;
+  color: #444 !important;
+}
+
+/* Push price & buttons to the bottom so all cards align vertically */
+.af-shell-track .product-card .product-info,
+.product-slider .product-card .product-info {
+  flex: 1 1 auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+.af-shell-track .product-card .price,
+.af-shell-track .product-card .price-section,
+.product-slider .product-card .price,
+.product-slider .product-card .price-section {
+  margin-top: auto !important;
+}
+
+/* =====================================================   SHOP / CATEGORY ARCHIVE — Premium art-store card
+   Spec: diagonal ribbon | dark hover scrim | title→rating→price
+   ============================================================ */
+
+/* Card shell — equal height via flex column */
+body.tax-product_cat ul.products li.product,
+body.woocommerce-page ul.products li.product {
+  background: #fff !important;
+  border-radius: 10px !important;
+  overflow: hidden !important;
+  box-shadow: 0 2px 16px rgba(0,0,0,.08) !important;
+  border: 1px solid #ede9e0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  transition: box-shadow .25s ease, transform .25s ease !important;
+  padding: 0 0 4px !important;
+  margin-bottom: 24px !important;
+}
+/* Equal-height cards: pin the price + swatch/from-price rows to the bottom so
+   every card in a row lines up, whether or not it has an Art Code line or a
+   longer title (removes the ragged empty space at the bottom of shorter cards). */
+body.tax-product_cat ul.products li.product .price,
+body.woocommerce-page ul.products li.product .price {
+  margin-top: auto !important;
+}
+body.tax-product_cat ul.products li.product .af-card-vars,
+body.woocommerce-page ul.products li.product .af-card-vars {
+  margin-top: 2px !important;
+}
+
+/* Image wrapper created by JS — padding-top:100% gives bulletproof 1:1 ratio */
+.af-img-wrap {
+  position: relative !important;
+  overflow: hidden !important;
+  padding-top: 100% !important;   /* height = width, immune to child content */
+  background: #f5f2ed !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+  width: 100% !important;
+}
+
+/* Product link — JS moves it inside .af-img-wrap and makes it position:absolute */
+body.tax-product_cat ul.products li.product a.woocommerce-loop-product__link,
+body.woocommerce-page ul.products li.product a.woocommerce-loop-product__link {
+  display: block !important;
+  overflow: hidden !important;
+}
+
+/* Image — fills wrapper, subtle zoom on hover via JS */
+body.tax-product_cat ul.products li.product a.woocommerce-loop-product__link img,
+body.woocommerce-page ul.products li.product a.woocommerce-loop-product__link img {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  display: block !important;
+  transition: transform .5s cubic-bezier(.25,.46,.45,.94) !important;
+}
+
+/* Sale badge — diagonal gold "SALE!" corner ribbon (clipped by the card's
+   overflow:hidden so both ends tuck neatly into the top-left corner) */
+body.tax-product_cat ul.products li.product .onsale,
+body.woocommerce-page ul.products li.product .onsale {
+  position: absolute !important;
+  top: 15px !important;
+  left: -46px !important;
+  right: auto !important;
+  bottom: auto !important;
+  width: 160px !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  background: linear-gradient(135deg,#ecc768,#cf9f2e) !important;
+  color: #fff !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  text-align: center !important;
+  padding: 7px 0 !important;
+  transform: rotate(-45deg) !important;
+  z-index: 10 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase !important;
+  text-shadow: 0 1px 2px rgba(0,0,0,.25) !important;
+  line-height: 1.3 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+  display: block !important;
+  box-shadow: 0 3px 8px rgba(0,0,0,.28) !important;
+}
+
+/* Hover overlay — absolutely positioned over image, zero layout impact */
+.af-ov {
+  position: absolute !important;
+  inset: 0 !important;
+  z-index: 2 !important;
+  display: flex !important;
+  align-items: flex-end !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  padding: 0 12px 16px !important;
+  background: rgba(12,9,5,.50) !important;
+  opacity: 0 !important;
+  transition: opacity .3s ease !important;
+  pointer-events: none !important;
+  box-sizing: border-box !important;
+}
+
+/* Add to Cart button inside hover overlay */
+.af-ov-atc {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  padding: 9px 18px !important;
+  background: #c9a84c !important;
+  color: #fff !important;
+  border-radius: 4px !important;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  white-space: nowrap !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  line-height: 1 !important;
+  transition: background .2s !important;
+}
+.af-ov-atc:hover { background: #b8922e !important; color: #fff !important; }
+
+/* Title — fixed height for equal cards across row */
+body.tax-product_cat ul.products li.product .woocommerce-loop-product__title,
+body.woocommerce-page ul.products li.product .woocommerce-loop-product__title {
+  font-size: 13.5px !important;
+  font-weight: 600 !important;
+  color: #1a1a1a !important;
+  line-height: 1.45 !important;
+  padding: 13px 16px 3px !important;
+  margin: 0 !important;
+  /* Exactly two line boxes plus the padding, not a round 56px. Two lines of
+     13.5px at 1.45 measure 39.15px, and 13 + 3 of padding makes 55.15 — so a
+     flat 56px left 0.85px of slack inside the box.
+
+     That slack is not harmless. Rendered in Chrome and counted by pixel row:
+     a clamped -webkit-box 2.75px taller than its two lines paints THREE bands
+     of ink — two full lines and a 3px strip of the next one, sliced through
+     the middle — while the same box sized to its lines exactly paints two and
+     stops. The clamp ellipsises the second line either way, which is why the
+     cards showed "Portrait Canva…" with a sliver of "Wall Art 3x4" cut in half
+     underneath it.
+
+     em resolves against this element's own font-size, so the sum stays exact
+     at whatever size a breakpoint sets. */
+  height: calc(2 * 1.45em + 16px) !important;
+  overflow: hidden !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 2 !important;
+  -webkit-box-orient: vertical !important;
+  box-sizing: border-box !important;
+}
+
+/* Rating — directly below title, never on image */
+body.tax-product_cat ul.products li.product .woocommerce-product-rating,
+body.woocommerce-page ul.products li.product .woocommerce-product-rating {
+  display: flex !important;
+  align-items: center !important;
+  padding: 3px 16px 4px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+body.tax-product_cat ul.products li.product .star-rating,
+body.woocommerce-page ul.products li.product .star-rating {
+  font-size: 12px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Price — bold current, struck-through original */
+body.tax-product_cat ul.products li.product .price,
+body.woocommerce-page ul.products li.product .price {
+  display: flex !important;
+  align-items: baseline !important;
+  gap: 6px !important;
+  padding: 2px 16px 14px !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
+}
+body.tax-product_cat ul.products li.product .price ins,
+body.woocommerce-page ul.products li.product .price ins {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #1a1a1a !important;
+  text-decoration: none !important;
+}
+body.tax-product_cat ul.products li.product .price del,
+body.woocommerce-page ul.products li.product .price del {
+  font-size: 12px !important;
+  color: var(--af-was, #6b6b6b) !important;
+  text-decoration: line-through !important;
+  font-weight: 400 !important;
+}
+
+/* Suppress old elements */
+body.tax-product_cat ul.products li.product .af-shop-discount-badge,
+body.woocommerce-page ul.products li.product .af-shop-discount-badge,
+body.tax-product_cat ul.products li.product .af-atc-btn,
+body.woocommerce-page ul.products li.product .af-atc-btn {
+  display: none !important;
+}
+
+/* ── Uniform left/right gap for EVERY card content row ──
+   Title, rating and price already inset 16px; the injected Art Code and
+   the colour-swatch / sizes row were flush (0). Align them all to 16px so
+   every element shares the same gap from the card's left and right edge. */
+/* Rating row: force a 16px left inset on the stars no matter how the theme
+   nests them (bare .star-rating, .woocommerce-product-rating wrapper, or
+   .rating). Zero the wrapper's own left padding so the offset isn't doubled. */
+body.tax-product_cat ul.products li.product .woocommerce-product-rating,
+body.woocommerce-page ul.products li.product .woocommerce-product-rating,
+body.tax-product_cat ul.products li.product .rating,
+body.woocommerce-page ul.products li.product .rating {
+  padding-left: 0 !important; padding-right: 16px !important;
+  margin: 8px 0 2px !important; box-sizing: border-box !important;
+  display: flex !important; align-items: center !important;
+}
+body.tax-product_cat ul.products li.product .star-rating,
+body.woocommerce-page ul.products li.product .star-rating {
+  margin: 0 0 0 16px !important; padding: 0 !important; float: none !important;
+}
+body.tax-product_cat ul.products li.product .af-art-code--card,
+body.woocommerce-page ul.products li.product .af-art-code--card {
+  padding: 0 16px !important; margin: 2px 0 4px !important; box-sizing: border-box !important; width: 100% !important;
+}
+body.tax-product_cat ul.products li.product .af-card-vars,
+body.woocommerce-page ul.products li.product .af-card-vars {
+  padding: 4px 16px 14px !important; margin: 2px 0 0 !important; box-sizing: border-box !important; width: 100% !important;
+}
+@media (max-width: 640px) {
+  body.tax-product_cat ul.products li.product .woocommerce-product-rating,
+  body.woocommerce-page ul.products li.product .woocommerce-product-rating,
+  body.tax-product_cat ul.products li.product .rating,
+  body.woocommerce-page ul.products li.product .rating { padding: 5px 12px 2px 0 !important; }
+  body.tax-product_cat ul.products li.product .star-rating,
+  body.woocommerce-page ul.products li.product .star-rating { margin-left: 12px !important; }
+  body.tax-product_cat ul.products li.product .af-art-code--card,
+  body.woocommerce-page ul.products li.product .af-art-code--card { padding: 0 12px !important; }
+  body.tax-product_cat ul.products li.product .af-card-vars,
+  body.woocommerce-page ul.products li.product .af-card-vars { padding: 4px 12px 12px !important; }
+}
+
+/* ── Original (pre-sale) price must be struck through on ALL card variants so
+   "$179.00  $348.00 (49% off)" reads as sale + crossed original, not a range.
+   Covers <del>, .old-price and .price-section markup on homepage sliders,
+   trending, new arrivals and archive cards. ── */
+html body .product-card .price del,
+html body .product-card .price del *,
+html body .product-card .old-price,
+html body .product-card .old-price *,
+html body .product-card .price-section del,
+html body .trending-card .old-price,
+html body .trending-card .old-price *,
+html body .trending-card .price del,
+html body .af-new-arrivals li.product .price del,
+html body li.product .price del,
+html body li.product .price del *,
+html body li.product .old-price,
+html body ul.products li.product .price del {
+  text-decoration: line-through !important;
+  text-decoration-color: var(--af-was, #6b6b6b) !important;
+  text-decoration-thickness: 1.5px !important;
+  color: var(--af-was, #6b6b6b) !important;
+  font-weight: 400 !important;
+}
+/* the sale/current price stays solid black, no strike */
+html body .product-card .price ins,
+html body .trending-card .price ins,
+html body li.product .price ins,
+html body .product-card .current-price,
+html body .trending-card .current-price {
+  text-decoration: none !important;
+  font-weight: 700 !important;
+  color: #1a1a1a !important;
+}
+/* Bulletproof: .old-price is ALWAYS the original price — strike it everywhere
+   (confirmed markup: <span class="old-price"><span class="woocommerce-Price-amount">
+   $348.00</span></span> next to the sale price and a .discount "(49% off)"). */
+html body .old-price,
+html body .old-price *,
+html body .old-price .woocommerce-Price-amount,
+html body .old-price bdi {
+  text-decoration: line-through !important;
+  text-decoration-color: var(--af-was, #6b6b6b) !important;
+  text-decoration-thickness: 1.5px !important;
+  color: var(--af-was, #6b6b6b) !important;
+  font-weight: 400 !important;
+}
+html body .discount { color: var(--af-save, #2e7d32) !important; font-weight: 600 !important; }
+
+/* Mobile */
+@media (max-width: 640px) {
+  body.tax-product_cat ul.products li.product,
+  body.woocommerce-page ul.products li.product { margin-bottom: 16px !important; }
+  body.tax-product_cat ul.products li.product .woocommerce-loop-product__title,
+  body.woocommerce-page ul.products li.product .woocommerce-loop-product__title {
+    font-size: 12.5px !important;
+    padding: 10px 10px 3px !important;
+    /* the same sum at the phone's type size: 2 x 12.5 x 1.45 = 36.25, plus
+       10 + 3 = 49.25. The flat 52px here left 2.75px — the widest leak of the
+       two, and the one a shopper on a phone was actually looking at. */
+    height: calc(2 * 1.45em + 13px) !important;
+  }
+  body.tax-product_cat ul.products li.product .price,
+  body.woocommerce-page ul.products li.product .price { padding: 2px 12px 12px !important; }
+  body.tax-product_cat ul.products li.product .woocommerce-product-rating,
+  body.woocommerce-page ul.products li.product .woocommerce-product-rating { padding: 2px 12px 3px !important; }
+  .af-ov-atc { padding: 8px 13px !important; font-size: 11px !important; }
+}
+/* Widen the theme container on TAF-designed pages only */
+body:has(.taf-page) .col-full{max-width:1260px;width:96%;}
+body:has(.taf-page) #primary{width:100%;float:none;}
+body:has(.taf-page) .site-main{max-width:none;}
+
+/* =====================================================   TAF static pages design system (.taf-page) — Phase 13
+   Used by tools/restyle-pages.php content for the 12 spec pages.
+   ============================================================ */
+.taf-page{--taf-gold:#c9a84c;--taf-gold-d:#a8872e;--taf-dark:#141414;--taf-ink:#2b2b2b;--taf-mut:#6b6b6b;--taf-cream:#faf6ec;
+  font-size:16px;line-height:1.75;color:var(--taf-ink);max-width:1200px;margin:0 auto;padding:8px 0 48px;}
+.taf-page p{margin:0 0 14px;}
+.taf-hero{background:linear-gradient(135deg,#141414 0%,#2a2318 60%,#3a2f16 100%);color:#fff;text-align:center;
+  border-radius:0;padding:58px 30px 54px;margin:10px 0 38px;position:relative;overflow:hidden;}
+.taf-hero::after{content:"";position:absolute;inset:auto -60px -60px auto;width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(201,168,76,.28),transparent 70%);}
+.taf-eyebrow{display:inline-block;color:var(--taf-gold);font-size:12.5px;font-weight:700;letter-spacing:.22em;
+  text-transform:uppercase;margin-bottom:14px;}
+.taf-hero h1{color:#fff !important;font-size:clamp(30px,4.4vw,46px);font-weight:800;line-height:1.15;margin:0 0 14px;}
+.taf-hero .taf-sub{color:#cfc8b8;font-size:clamp(15px,1.8vw,18px);max-width:640px;margin:0 auto;}
+.taf-section{margin:42px 0;}
+.taf-h2{font-size:clamp(22px,2.6vw,30px);font-weight:800;color:var(--taf-dark);margin:0 0 8px;}
+.taf-h2::after{content:"";display:block;width:56px;height:4px;border-radius:2px;background:var(--taf-gold);margin-top:10px;}
+.taf-lead{color:var(--taf-mut);margin:14px 0 26px;max-width:760px;}
+.taf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:20px;margin:26px 0 6px;}
+.taf-card{background:#fff;border:1px solid #ece5d4;border-radius:14px;padding:26px 24px;
+  box-shadow:0 3px 14px rgba(20,20,20,.05);transition:transform .22s ease,box-shadow .22s ease;}
+.taf-card:hover{transform:translateY(-4px);box-shadow:0 10px 26px rgba(20,20,20,.10);}
+.taf-ico{font-size:34px;line-height:1;display:block;margin-bottom:14px;}
+.taf-card h3{font-size:17.5px;font-weight:700;margin:0 0 8px;color:var(--taf-dark);}
+.taf-card p{font-size:14.5px;color:var(--taf-mut);margin:0;}
+.taf-steps{list-style:none;counter-reset:tafstep;margin:26px 0 8px;padding:0;display:grid;gap:16px;}
+.taf-steps li{counter-increment:tafstep;position:relative;background:var(--taf-cream);border:1px solid #efe6cf;
+  border-radius:14px;padding:20px 22px 20px 74px;font-size:15px;}
+.taf-steps li::before{content:counter(tafstep);position:absolute;left:20px;top:50%;transform:translateY(-50%);
+  width:38px;height:38px;border-radius:50%;background:var(--taf-gold);color:var(--taf-dark);
+  display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;}
+.taf-steps li b,.taf-steps li strong{color:var(--taf-dark);}
+.taf-check{list-style:none;margin:22px 0 8px;padding:0;display:grid;gap:11px;}
+.taf-check li{position:relative;padding-left:32px;font-size:15px;}
+.taf-check li::before{content:"✓";position:absolute;left:0;top:0;width:22px;height:22px;border-radius:50%;
+  background:var(--taf-gold);color:var(--taf-dark);font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;}
+.taf-two{display:grid;grid-template-columns:1fr 1fr;gap:26px;align-items:start;}
+.taf-cta{background:linear-gradient(120deg,var(--taf-gold),#e0c26a);color:var(--taf-dark);border-radius:0;
+  text-align:center;padding:44px 28px;margin:48px 0 8px;}
+.taf-cta h2{color:var(--taf-dark) !important;font-size:clamp(22px,3vw,32px);font-weight:800;margin:0 0 10px;}
+.taf-cta p{margin:0 auto 22px;max-width:560px;font-size:15.5px;}
+.taf-btn,.taf-btn-alt{display:inline-block;margin:4px 8px;padding:13px 30px;border-radius:30px;font-weight:700;
+  font-size:15px;text-decoration:none !important;transition:all .2s ease;}
+.taf-btn{background:var(--taf-dark);color:#fff !important;}
+.taf-btn:hover{background:#000;transform:translateY(-2px);}
+.taf-btn-alt{background:#fff;color:var(--taf-dark) !important;border:2px solid var(--taf-dark);}
+.taf-btn-alt:hover{background:var(--taf-dark);color:#fff !important;}
+.taf-quote{background:#fff;border:1px solid #ece5d4;border-left:5px solid var(--taf-gold);border-radius:12px;
+  padding:22px 24px;margin:0;font-size:15px;color:var(--taf-ink);}
+.taf-quote footer{margin-top:10px;font-size:13.5px;color:var(--taf-mut);font-weight:600;}
+.taf-stars{color:var(--taf-gold);letter-spacing:2px;font-size:17px;}
+.taf-badge{display:inline-block;background:var(--taf-cream);border:1px solid var(--taf-gold);color:var(--af-gold-text, #8a6d1f);
+  border-radius:20px;padding:5px 16px;font-size:13px;font-weight:700;margin:3px 4px;}
+.taf-price-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:16px;margin:26px 0 6px;}
+.taf-price{background:var(--taf-dark);color:#fff;border-radius:14px;text-align:center;padding:26px 12px;
+  border:2px solid transparent;transition:border-color .2s;}
+.taf-price:hover{border-color:var(--taf-gold);}
+.taf-price .amt{display:block;font-size:30px;font-weight:800;color:var(--taf-gold);}
+.taf-price .lbl{font-size:12.5px;color:#bdbdbd;text-transform:uppercase;letter-spacing:.08em;}
+.taf-note{font-size:13px;color:var(--taf-mut);font-style:italic;margin-top:18px;}
+.taf-legal{max-width:1200px;}
+.taf-legal h2{font-size:21px;font-weight:800;color:var(--taf-dark);margin:34px 0 10px;}
+.taf-legal h3{font-size:17px;font-weight:700;margin:24px 0 8px;}
+.taf-legal ul{margin:0 0 16px 22px;}
+.taf-legal li{margin-bottom:7px;}
+.taf-updated{font-size:13px;color:var(--taf-mut);background:var(--taf-cream);border-radius:8px;display:inline-block;padding:6px 14px;margin-bottom:8px;}
+@media(max-width:760px){
+  .taf-two{grid-template-columns:1fr;}
+  .taf-hero{padding:44px 20px 40px;}
+  .taf-steps li{padding:18px 18px 18px 66px;}
+}
+
+/* Phase 13.1 — image layouts for TAF pages */
+.taf-media{display:grid;grid-template-columns:1.05fr 1fr;gap:34px;align-items:center;margin:42px 0;}
+.taf-media img{width:100%;display:block;border:1px solid #ece5d4;box-shadow:0 4px 18px rgba(20,20,20,.08);}
+.taf-media .taf-h2{margin-top:0;}
+.taf-imgrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:18px;margin:26px 0 8px;}
+.taf-imgrow figure{margin:0;}
+.taf-imgrow img{width:100%;height:250px;object-fit:cover;display:block;border:1px solid #ece5d4;
+  box-shadow:0 3px 12px rgba(20,20,20,.07);transition:transform .25s ease;}
+.taf-imgrow figure:hover img{transform:scale(1.025);}
+.taf-imgrow figcaption{font-size:13px;color:var(--taf-mut);padding:9px 2px 0;text-align:center;font-weight:600;}
+.taf-banner-img{width:100%;height:320px;object-fit:cover;display:block;margin:36px 0;border:1px solid #ece5d4;}
+@media(max-width:760px){
+  .taf-media{grid-template-columns:1fr;gap:20px;}
+  .taf-banner-img{height:200px;}
+  .taf-imgrow img{height:200px;}
+}
+
+/* Phase 13.2 — FAQ accordion (.taf-faq) */
+.taf-faq{display:grid;gap:12px;margin:26px 0 8px;}
+.taf-faq details{background:#fff;border:1px solid #ece5d4;box-shadow:0 3px 12px rgba(20,20,20,.05);}
+.taf-faq details[open]{border-color:var(--taf-gold);}
+.taf-faq summary{cursor:pointer;list-style:none;display:flex;align-items:center;justify-content:space-between;
+  gap:14px;padding:18px 22px;font-size:16px;font-weight:700;color:var(--taf-dark);}
+.taf-faq summary::-webkit-details-marker{display:none;}
+.taf-faq summary::after{content:"+";flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--taf-cream);
+  border:1px solid var(--taf-gold);color:var(--taf-gold-d);font-size:19px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;transition:transform .2s;}
+.taf-faq details[open] summary::after{content:"−";background:var(--taf-gold);color:var(--taf-dark);}
+.taf-faq .taf-faq-a{padding:0 22px 18px;color:var(--taf-mut);font-size:15px;line-height:1.75;}
+.taf-faq .taf-faq-a p{margin:0;}
+
+/* Phase 13.3 — contact form (.taf-form) */
+.taf-form{background:#fff;border:1px solid #ece5d4;box-shadow:0 4px 18px rgba(20,20,20,.06);padding:30px 28px;display:grid;gap:18px;}
+.taf-form label{display:flex;flex-direction:column;gap:7px;font-size:13.5px;font-weight:700;color:var(--taf-dark);}
+.taf-form-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.taf-form input,.taf-form select,.taf-form textarea{border:1px solid #d9d0bd;background:#fdfcf9;padding:12px 13px;
+  font-size:15px;font-weight:400;color:var(--taf-ink);width:100%;box-sizing:border-box;font-family:inherit;}
+.taf-form input:focus,.taf-form select:focus,.taf-form textarea:focus{outline:none;border-color:var(--taf-gold);
+  box-shadow:0 0 0 3px rgba(201,168,76,.18);}
+.taf-form textarea{resize:vertical;min-height:130px;}
+.taf-form-submit{justify-self:start;background:var(--taf-dark);color:#fff;border:none;padding:14px 38px;
+  font-size:15px;font-weight:700;cursor:pointer;transition:background .2s;}
+.taf-form-submit:hover{background:var(--taf-gold);color:var(--taf-dark);}
+.taf-form-submit:disabled{opacity:.6;cursor:wait;}
+.taf-form-msg{margin:0;padding:13px 16px;font-size:14.5px;font-weight:600;}
+.taf-form-msg.ok{background:#eef7ee;color:#256d2c;border:1px solid #bfe3c2;}
+.taf-form-msg.err{background:#fbeeee;color:#a13232;border:1px solid #efc7c7;}
+@media(max-width:640px){.taf-form-row{grid-template-columns:1fr;}.taf-form{padding:22px 18px;}}
+
+/* Phase 13.4 — contact page map (.taf-map) */
+.taf-map{position:relative;border:1px solid #ece5d4;box-shadow:0 4px 18px rgba(20,20,20,.08);margin:6px 0 8px;}
+.taf-map iframe{width:100%;height:460px;border:0;display:block;filter:grayscale(.85) contrast(1.04);transition:filter .45s ease;}
+.taf-map:hover iframe,.taf-map:focus-within iframe{filter:none;}
+.taf-map-card{position:absolute;left:26px;top:26px;background:#141414;color:#e9e4d6;padding:22px 24px;max-width:290px;
+  border-top:3px solid var(--taf-gold);box-shadow:0 10px 30px rgba(0,0,0,.35);}
+.taf-map-card h3{color:#fff;font-size:17px;font-weight:800;margin:0 0 8px;}
+.taf-map-card p{margin:0 0 10px;font-size:13.5px;line-height:1.7;}
+.taf-map-card a{color:var(--taf-gold);text-decoration:none;}
+.taf-map-card a:hover{color:#fff;}
+.taf-map-btn{display:inline-block;background:var(--taf-gold);color:#141414 !important;font-weight:700;font-size:13px;
+  padding:10px 18px;margin-top:2px;transition:background .2s;}
+.taf-map-btn:hover{background:#fff;}
+@media(max-width:700px){
+  .taf-map iframe{height:320px;filter:none;}
+  .taf-map-card{position:static;max-width:none;}
+}
+
+/* Phase 13.5 — delivery checker (.taf-shipcheck) */
+.taf-shipcheck{background:#141414;color:#e9e4d6;padding:30px 28px;margin:26px 0 8px;border-top:3px solid var(--taf-gold);}
+.taf-shipcheck-head{display:flex;gap:16px;align-items:flex-start;margin-bottom:18px;}
+.taf-shipcheck-head .taf-ico{font-size:34px;margin:0;}
+.taf-shipcheck-head h3{color:#fff;font-size:19px;font-weight:800;margin:0 0 4px;}
+.taf-shipcheck-head p{margin:0;font-size:13.5px;color:#b8b2a2;}
+.taf-shipcheck-row{display:flex;gap:12px;max-width:460px;}
+.taf-shipcheck-row input{flex:1;min-width:0;padding:13px 14px;border:1px solid #3a3a3a;background:#1f1f1f;color:#fff;
+  font-size:16px;letter-spacing:.06em;}
+.taf-shipcheck-row input:focus{outline:none;border-color:var(--taf-gold);box-shadow:0 0 0 3px rgba(201,168,76,.25);}
+.taf-shipcheck-row button{background:var(--taf-gold);color:#141414;border:none;padding:13px 24px;font-weight:800;
+  font-size:14px;cursor:pointer;white-space:nowrap;transition:background .2s;}
+.taf-shipcheck-row button:hover{background:#dcb85a;}
+.taf-shipcheck-result{margin-top:16px;padding:14px 18px;font-size:14.5px;line-height:1.7;}
+.taf-shipcheck-result a{color:var(--taf-gold);}
+.taf-shipcheck-result.ok{background:rgba(126,201,143,.12);border:1px solid #3f6d4a;color:#bfe3c2;}
+.taf-shipcheck-result.mid{background:rgba(201,168,76,.12);border:1px solid #8a6d1f;color:#e6d9ae;}
+.taf-shipcheck-result.err{background:rgba(224,142,136,.12);border:1px solid #7d3b36;color:#eec6c2;}
+@media(max-width:520px){.taf-shipcheck-row{flex-direction:column;}.taf-shipcheck{padding:22px 18px;}}
+
+/* Phase 13.6 — refund page components */
+.taf-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:16px;margin:26px 0 8px;}
+.taf-stat{background:#fff;border:1px solid #ece5d4;border-top:3px solid #c9a84c;border-radius:14px;color:#1a1a1a;text-align:center;padding:26px 14px;box-shadow:0 4px 16px rgba(20,20,20,.06);transition:box-shadow .25s,transform .25s;}
+.taf-stat:hover{box-shadow:0 10px 28px rgba(20,20,20,.10);transform:translateY(-3px);}
+.taf-stat .num{display:block;font-size:34px;font-weight:800;color:#a8872e;line-height:1.1;}
+.taf-stat .lbl{display:block;margin-top:7px;font-size:12px;text-transform:uppercase;letter-spacing:.09em;color:#6b6b6b;}
+.taf-track{display:flex;justify-content:space-between;position:relative;margin:38px 0 10px;counter-reset:taftrack;}
+.taf-track::before{content:"";position:absolute;top:24px;left:7%;right:7%;height:3px;background:linear-gradient(90deg,var(--taf-gold),#e0c26a);}
+.taf-track li{list-style:none;flex:1;text-align:center;position:relative;padding:0 8px;}
+.taf-track li::before{counter-increment:taftrack;content:counter(taftrack);position:relative;z-index:1;display:flex;
+  align-items:center;justify-content:center;width:48px;height:48px;margin:0 auto 12px;border-radius:50%;
+  background:var(--taf-gold);color:var(--taf-dark);font-weight:800;font-size:19px;border:4px solid #fff;
+  box-shadow:0 3px 12px rgba(20,20,20,.18);}
+.taf-track b{display:block;font-size:14.5px;color:var(--taf-dark);margin-bottom:4px;}
+.taf-track span{font-size:12.5px;color:var(--taf-mut);line-height:1.5;display:block;}
+.taf-table{width:100%;border-collapse:collapse;margin:26px 0 8px;background:#fff;border:1px solid #ece5d4;
+  border-radius:14px;overflow:hidden;box-shadow:0 3px 14px rgba(20,20,20,.05);}
+.taf-table th{background:linear-gradient(90deg,#c9a84c,#d9bd6a);color:#241d09;text-align:left;padding:14px 18px;font-size:13px;
+  text-transform:uppercase;letter-spacing:.07em;font-weight:800;}
+.taf-table td{padding:15px 18px;border-top:1px solid #f0ead9;font-size:14.5px;vertical-align:top;}
+.taf-table tbody tr:nth-child(even) td{background:#faf6ec;}
+.taf-table tbody tr:hover td{background:#f6efdd;}
+.taf-table td:first-child{font-weight:700;color:var(--taf-dark);white-space:nowrap;}
+.taf-yes{color:#256d2c;font-weight:700;}
+.taf-no{color:#a13232;font-weight:700;}
+@media(max-width:760px){
+  .taf-track{flex-direction:column;gap:22px;}
+  .taf-track::before{display:none;}
+  /* Each step holds three boxes, not two: the numbered ::before, the <b>
+     title and the <span> description. Declaring two columns and leaving
+     placement to the grid put the number in 1/1, the title in 2/1 and then
+     wrapped the description back to column ONE — the 48px one — which is why
+     its text came down the page a word at a time. Place all three. */
+  .taf-track li{display:grid;grid-template-columns:48px 1fr;
+    column-gap:14px;row-gap:4px;text-align:left;align-items:start;}
+  .taf-track li::before{margin:0;grid-column:1;grid-row:1 / span 2;}
+  .taf-track li b{grid-column:2;grid-row:1;align-self:center;}
+  .taf-track li span{grid-column:2;grid-row:2;}
+
+  /* A four-column table cannot be read on a 420px phone, and making it
+     display:block did not even let it scroll — the cells simply squeezed
+     until the headings ran one letter per line. Each row becomes its own
+     card and each cell carries its column's name, which is the only layout
+     of this table that reads on a phone. The labels are written onto the
+     cells by inc/taf-tables.php from the table's own <th> row, so this works
+     for every .taf-table without touching page content. */
+  .taf-table,
+  .taf-table tbody,
+  .taf-table tr,
+  .taf-table td{display:block;width:100%;}
+  .taf-table{border:0;background:transparent;box-shadow:none;overflow:visible;margin:22px 0 8px;}
+  .taf-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;}
+  .taf-table tr{background:#fff;border:1px solid #ece5d4;border-top:3px solid var(--taf-gold);
+    border-radius:14px;box-shadow:0 3px 14px rgba(20,20,20,.05);padding:6px 0;margin:0 0 14px;overflow:hidden;}
+  .taf-table tbody tr:nth-child(even) td,
+  .taf-table tbody tr:hover td{background:transparent;}
+  .taf-table td{border-top:0;padding:11px 18px;font-size:14.5px;line-height:1.6;}
+  .taf-table td + td{border-top:1px solid #f4efe0;}
+  .taf-table td:first-child{white-space:normal;font-size:16px;font-weight:800;padding-top:14px;}
+  .taf-table td[data-taf-label]::before{content:attr(data-taf-label);display:block;
+    font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--af-gold-text, #8a6d1f);margin-bottom:4px;}
+  /* The first cell is the row's subject; its own heading adds nothing. */
+  .taf-table td:first-child[data-taf-label]::before{display:none;}
+}
+
+/* Phase 13.7 — dynamic artist cards */
+.taf-artists .taf-artist-card{padding:0 0 24px;overflow:hidden;display:flex;flex-direction:column;}
+.taf-artist-img{width:100%;height:230px;object-fit:cover;display:block;margin-bottom:18px;}
+.taf-artists .taf-artist-card h3{padding:0 24px;font-size:19px;}
+.taf-artists .taf-artist-card p{padding:0 24px;}
+.taf-artists .taf-artist-card .taf-badge{margin:6px 24px 10px;align-self:flex-start;}
+.taf-artist-actions{margin-top:auto;padding-top:14px !important;}
+.taf-artist-actions .taf-btn,.taf-artist-actions .taf-btn-alt{margin:4px 6px 0 0;padding:11px 22px;font-size:13.5px;}
+
+/* Phase 13.8 — dashboard greeting bar */
+.taf-dash-hi{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  background:#141414;border-top:3px solid var(--taf-gold);padding:26px 28px;margin:6px 0 26px;}
+.taf-dash-hi h2{color:#fff;font-size:24px;font-weight:800;margin:0 0 4px;}
+.taf-dash-hi p{color:#b8b2a2;margin:0;font-size:14px;}
+.taf-dash-logout{border-color:var(--taf-gold) !important;color:var(--taf-gold) !important;background:transparent !important;}
+.taf-dash-logout:hover{background:var(--taf-gold) !important;color:#141414 !important;}
+
+/* Phase 13.9 — compare products */
+.af-cmp-btn{display:inline-block;margin-top:8px;background:transparent;border:1px solid #c9a84c;color:#8a6d1f;
+  font-size:12px;font-weight:700;padding:7px 14px;cursor:pointer;transition:all .2s;}
+.af-cmp-btn:hover{background:#c9a84c;color:#141414;}
+.af-cmp-btn.on{background:#141414;border-color:#141414;color:#c9a84c;}
+
+/* Card-level Compare + Add to Cart: icon-only, no background circle. Stays
+   in its existing position — only the size/shape/label change.
+   .af-cmp-single (the single-product "Add to Compare" CTA) is untouched
+   and keeps its full-text pill style. */
+.af-cmp-btn:not(.af-cmp-single),
+.add_to_cart_button.af-icon-only{
+  display:inline-flex !important;align-items:center !important;justify-content:center !important;
+  width:36px !important;height:36px !important;min-width:0 !important;
+  padding:0 !important;margin:0 !important;border:none !important;
+  border-radius:50% !important;background:transparent !important;color:#fff !important;
+  font-size:18px !important;line-height:1 !important;
+  box-shadow:none !important;cursor:pointer !important;
+  transition:color .2s !important;white-space:nowrap !important;overflow:visible !important;
+}
+.af-cmp-btn:not(.af-cmp-single):hover,
+.af-cmp-btn:not(.af-cmp-single).on,
+.add_to_cart_button.af-icon-only:hover{color:#c9a84c !important;}
+.af-cmp-icon,
+.af-icon-glyph{
+  pointer-events:none !important;font-size:18px !important;line-height:1 !important;
+  filter:drop-shadow(0 1px 3px rgba(0,0,0,.65)) !important;
+}
+.af-icon-label{
+  position:absolute !important;width:1px !important;height:1px !important;overflow:hidden !important;
+  clip:rect(0 0 0 0) !important;clip-path:inset(50%) !important;white-space:nowrap !important;
+  border:0 !important;padding:0 !important;margin:-1px !important;
+}
+
+/* ---- Archive product cards: Add to Cart, Compare, Wishlist and Quick View
+   grouped side by side in the bottom-right corner of the image (see
+   custom.js initCardIconCorner). ---- */
+.af-icon-corner{
+  position:absolute !important;right:10px !important;bottom:10px !important;left:auto !important;top:auto !important;
+  z-index:20 !important;display:flex !important;flex-direction:row !important;
+  align-items:center !important;justify-content:flex-end !important;gap:8px !important;
+  pointer-events:none !important;
+}
+.af-icon-corner > *{
+  position:static !important;pointer-events:auto !important;flex:0 0 auto !important;margin:0 !important;
+}
+.af-cmp-single{margin:10px 0 0 8px;padding:11px 20px;font-size:13px;}
+#afCmpBar{position:fixed;left:50%;transform:translateX(-50%);bottom:18px;z-index:99990;display:flex;align-items:center;
+  gap:16px;background:#141414;color:#fff;padding:13px 22px;border-radius:40px;box-shadow:0 8px 30px rgba(0,0,0,.35);
+  border:1px solid #c9a84c;font-size:14px;}
+#afCmpBar .af-cmp-go{background:#c9a84c;color:#141414;font-weight:800;text-decoration:none;padding:9px 20px;border-radius:22px;}
+#afCmpBar .af-cmp-go:hover{background:#dcb85a;}
+#afCmpBar .af-cmp-clear{background:none;border:none;color:#999;cursor:pointer;font-size:13px;text-decoration:underline;}
+/* The compare bar is the one piece of fixed furniture on this site that never
+   got the bottom-bar treatment. bottom:18px puts it squarely inside the band
+   the fixed bottom navigation occupies on a phone, so the bar a shopper has
+   just filled sits behind the navigation and its Compare button cannot be
+   pressed. It now clears the bar at the same height as the chat launcher and
+   the quick panel, and is allowed to be as wide as the screen minus a gutter
+   rather than keeping a desktop pill's padding at 360px. */
+@media(max-width:600px){
+  #afCmpBar{bottom:calc(72px + env(safe-area-inset-bottom,0px));gap:10px;padding:11px 14px;
+    font-size:13px;max-width:calc(100vw - 20px);box-sizing:border-box;flex-wrap:wrap;
+    justify-content:center;text-align:center;}
+  #afCmpBar .af-cmp-go{padding:11px 16px;min-height:40px;display:inline-flex;align-items:center;}
+  #afCmpBar .af-cmp-clear{min-height:40px;}
+}
+.af-cmp-table td{min-width:150px;}
+.af-cmp-table .af-cmp-rm{padding:9px 16px;font-size:12.5px;cursor:pointer;margin-top:6px;}
+
+/* =====================================================   Customer Dashboard — premium redesign ([af_dashboard])
+   Self-contained .afd-* system (does not touch other pages).
+   ============================================================ */
+.afd{max-width:1080px;margin:34px auto 60px;padding:0 18px;color:#2b2b2b;
+  font-family:inherit;-webkit-font-smoothing:antialiased;}
+.afd *{box-sizing:border-box;}
+
+/* Hero */
+.afd-hero{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:space-between;
+  gap:22px;flex-wrap:wrap;border-radius:20px;padding:30px 32px;margin-bottom:26px;
+  background:radial-gradient(120% 140% at 0% 0%,#2a2118 0%,#161310 55%,#100e0b 100%);
+  box-shadow:0 18px 44px rgba(20,16,10,.30);}
+.afd-hero::after{content:"";position:absolute;right:-60px;top:-60px;width:220px;height:220px;border-radius:50%;
+  background:radial-gradient(circle,rgba(201,168,76,.30),transparent 70%);pointer-events:none;}
+.afd-hero-user{display:flex;align-items:center;gap:18px;position:relative;z-index:1;}
+.afd-avatar{width:62px;height:62px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:800;color:#1a1206;background:linear-gradient(135deg,#e7cd82,#c9a84c);
+  box-shadow:0 6px 18px rgba(201,168,76,.35);border:2px solid rgba(255,255,255,.15);}
+.afd-eyebrow{display:inline-block;color:#c9a84c;font-size:11.5px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;}
+.afd-hero-txt h2{color:#fff;font-size:clamp(21px,2.4vw,27px);font-weight:800;margin:4px 0 4px;line-height:1.15;}
+.afd-hero-txt p{color:#c3bbaa;margin:0;font-size:14px;}
+.afd-wave{display:inline-block;}
+
+/* Buttons */
+.afd-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  background:#c9a84c;color:#1a1206 !important;font-weight:800;font-size:13.5px;letter-spacing:.02em;
+  padding:12px 22px;border-radius:10px;text-decoration:none;border:1.5px solid #c9a84c;
+  transition:background .2s,transform .2s,box-shadow .2s;cursor:pointer;}
+.afd-btn:hover{background:#dcbb5c;border-color:#dcbb5c;transform:translateY(-2px);box-shadow:0 8px 20px rgba(201,168,76,.32);}
+.afd-btn-ghost{background:transparent;color:#1a1206 !important;border-color:#d9cba0;}
+.afd-btn-ghost:hover{background:#faf6ec;border-color:#c9a84c;box-shadow:none;}
+.afd-btn-outline{background:transparent;color:#f2e6c4 !important;border-color:rgba(201,168,76,.6);}
+.afd-btn-outline:hover{background:#c9a84c;color:#1a1206 !important;border-color:#c9a84c;box-shadow:none;}
+
+/* Stat cards */
+.afd-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:34px;}
+.afd-stat{position:relative;background:#fff;border:1px solid #ece5d4;border-radius:16px;padding:22px 20px;
+  box-shadow:0 4px 18px rgba(20,16,10,.05);transition:box-shadow .25s,transform .25s,border-color .25s;overflow:hidden;}
+.afd-stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:linear-gradient(#c9a84c,#a8872e);}
+.afd-stat:hover{transform:translateY(-4px);box-shadow:0 14px 32px rgba(20,16,10,.12);border-color:#e6d9b5;}
+.afd-stat-ico{font-size:24px;display:block;margin-bottom:8px;}
+.afd-num{display:block;font-size:30px;font-weight:800;color:#a8872e;line-height:1.05;}
+.afd-lbl{display:block;margin-top:6px;font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#8a8172;}
+
+/* Sections */
+.afd-block{margin-bottom:34px;}
+.afd-block-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;}
+.afd-block-head h3{font-size:19px;font-weight:800;color:#1a1a1a;margin:0;position:relative;padding-left:14px;}
+.afd-block-head h3::before{content:"";position:absolute;left:0;top:52%;transform:translateY(-50%);width:5px;height:20px;border-radius:3px;background:#c9a84c;}
+.afd-viewall{font-size:13px;font-weight:700;color:#a8872e;text-decoration:none;white-space:nowrap;}
+.afd-viewall:hover{color:#c9a84c;text-decoration:underline;}
+
+/* Recent orders */
+.afd-orders{display:flex;flex-direction:column;gap:10px;}
+.afd-order{display:grid;grid-template-columns:auto 1fr auto auto 20px;align-items:center;gap:16px;
+  background:#fff;border:1px solid #ece5d4;border-radius:13px;padding:15px 18px;text-decoration:none;color:#2b2b2b;
+  transition:box-shadow .2s,transform .2s,border-color .2s;}
+.afd-order:hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(20,16,10,.10);border-color:#e6d9b5;}
+.afd-order-id{font-weight:800;color:#1a1a1a;white-space:nowrap;}
+.afd-order-date{color:#7b7365;font-size:13.5px;}
+.afd-order-total{font-weight:800;color:#1a1a1a;white-space:nowrap;}
+.afd-order-arrow{color:#c9a84c;font-weight:800;text-align:right;}
+.afd-badge{display:inline-block;padding:4px 12px;border-radius:999px;font-size:11px;font-weight:800;
+  text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;}
+.afd-badge-completed{background:#e6f4ea;color:#1e7a34;}
+.afd-badge-processing{background:#e8f0fe;color:#1a5fb4;}
+.afd-badge-on-hold{background:#fef3e0;color:#b26a00;}
+.afd-badge-pending{background:#f0efe9;color:#6b6250;}
+.afd-badge-cancelled,.afd-badge-failed,.afd-badge-refunded{background:#fdecea;color:#b3261e;}
+
+/* Empty state */
+.afd-empty{text-align:center;background:#fff;border:1px dashed #e0d6bd;border-radius:16px;padding:40px 24px;}
+.afd-empty-ico{font-size:44px;display:block;margin-bottom:8px;}
+.afd-empty h4{font-size:18px;font-weight:800;color:#1a1a1a;margin:0 0 6px;}
+.afd-empty p{color:#7b7365;margin:0 auto;max-width:440px;font-size:14px;}
+.afd-empty-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:18px;}
+
+/* Quick access tiles */
+.afd-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.afd-tile{position:relative;display:flex;align-items:flex-start;gap:14px;background:#fff;border:1px solid #ece5d4;
+  border-radius:16px;padding:20px 18px;text-decoration:none;color:#2b2b2b;overflow:hidden;
+  transition:box-shadow .25s,transform .25s,border-color .25s;}
+.afd-tile:hover{transform:translateY(-4px);box-shadow:0 14px 32px rgba(20,16,10,.12);border-color:#c9a84c;}
+.afd-tile-ico{font-size:24px;flex-shrink:0;width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;
+  background:#faf6ec;border:1px solid #efe6cf;}
+.afd-tile-txt{display:flex;flex-direction:column;gap:3px;}
+.afd-tile-txt strong{font-size:15.5px;font-weight:800;color:#1a1a1a;}
+.afd-tile-txt span{font-size:13px;color:#7b7365;line-height:1.5;}
+.afd-tile-go{position:absolute;right:16px;top:18px;color:#d9cba0;font-weight:800;transition:color .2s,transform .2s;}
+.afd-tile:hover .afd-tile-go{color:#c9a84c;transform:translateX(3px);}
+
+/* Guest / logged-out */
+.afd-guest{max-width:640px;}
+.afd-welcome{text-align:center;background:#fff;border:1px solid #ece5d4;border-radius:20px;padding:44px 30px;
+  box-shadow:0 14px 40px rgba(20,16,10,.08);}
+.afd-welcome-ico{font-size:50px;display:block;margin-bottom:6px;}
+.afd-welcome h2{font-size:26px;font-weight:800;color:#1a1a1a;margin:8px 0 10px;}
+.afd-welcome p{color:#6b6250;max-width:460px;margin:0 auto 22px;font-size:14.5px;line-height:1.6;}
+.afd-welcome-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;}
+.afd-perks{list-style:none;padding:0;margin:28px auto 0;max-width:400px;text-align:left;display:grid;gap:10px;}
+.afd-perks li{position:relative;padding-left:30px;font-size:14px;color:#3a352c;}
+.afd-perks li::before{content:"✓";position:absolute;left:0;top:0;width:20px;height:20px;border-radius:50%;
+  background:#faf6ec;border:1px solid #e6d9b5;color:#a8872e;font-size:12px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;}
+
+/* Responsive */
+@media(max-width:820px){
+  .afd-stats{grid-template-columns:1fr 1fr;}
+  .afd-grid{grid-template-columns:1fr 1fr;}
+}
+@media(max-width:560px){
+  .afd-hero{padding:24px 22px;}
+  .afd-stats{grid-template-columns:1fr 1fr;gap:12px;}
+  .afd-grid{grid-template-columns:1fr;}
+  .afd-order{grid-template-columns:1fr auto;grid-auto-rows:auto;gap:6px 12px;}
+  .afd-order-date{grid-column:1;}
+  .afd-badge{grid-column:2;grid-row:1;justify-self:end;}
+  .afd-order-total{grid-column:1;}
+  .afd-order-arrow{display:none;}
+}
+/* Phase 15/16 — gift cards, country selector, infinite scroll, messages, RMA */
+.af-gc-fields{border:1px solid #ece5d4;background:#fdfcf9;padding:20px;margin:14px 0 18px;display:grid;gap:14px;}
+.af-gc-label{margin:0;font-weight:800;color:var(--taf-dark);font-size:14px;}
+.af-gc-amounts{display:flex;flex-wrap:wrap;gap:10px;}
+.af-gc-amt{position:relative;cursor:pointer;}
+.af-gc-amt input{position:absolute;opacity:0;}
+.af-gc-amt span{display:block;border:2px solid #e0d5b8;background:#fff;padding:11px 20px;font-weight:800;color:var(--taf-dark);transition:all .18s;}
+.af-gc-amt input:checked + span{border-color:var(--taf-gold);background:var(--taf-gold);color:#141414;}
+.af-gc-fields label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700;color:var(--taf-dark);}
+.af-gc-fields input[type=text],.af-gc-fields input[type=email],.af-gc-fields input[type=number],.af-gc-fields textarea{
+  border:1px solid #d9d0bd;background:#fff;padding:10px 12px;font-size:14px;font-weight:400;font-family:inherit;width:100%;box-sizing:border-box;}
+.af-gc-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.af-gc-note{margin:0;font-size:12.5px;color:var(--taf-mut);}
+.af-gc-redeem{padding:12px 0;}
+.af-gc-redeem-label{display:block;font-weight:700;font-size:13.5px;margin-bottom:8px;}
+.af-gc-redeem-row-inner{display:flex;gap:8px;}
+.af-gc-input{flex:1;min-width:0;border:1px solid #d9d0bd;padding:10px 12px;font-size:14px;letter-spacing:.04em;text-transform:uppercase;}
+.af-gc-apply,.af-gc-remove{background:var(--taf-dark);color:#fff;border:none;padding:10px 18px;font-weight:700;font-size:13px;cursor:pointer;}
+.af-gc-apply:hover,.af-gc-remove:hover{background:var(--taf-gold);color:#141414;}
+.af-gc-remove{padding:5px 12px;margin-left:8px;font-size:11.5px;}
+.af-gc-on{background:#eef7ee;border:1px solid #bfe3c2;color:#256d2c;padding:10px 14px;margin:0;font-size:13.5px;}
+.af-gc-msg{margin:8px 0 0;font-size:13px;padding:8px 12px;}
+.af-gc-msg.ok{background:#eef7ee;color:#256d2c;}
+.af-gc-msg.err{background:#fbeeee;color:#a13232;}
+.af-cty{position:relative;display:inline-block;}
+.af-cty-btn{display:flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(255,255,255,.28);color:inherit;
+  padding:3px 9px;font-size:12.5px;font-weight:700;cursor:pointer;border-radius:3px;}
+.af-cty-btn:hover{border-color:var(--taf-gold);}
+.af-cty-flag{font-size:14px;line-height:1;}
+.af-cty-menu{display:none;position:absolute;right:0;top:calc(100% + 8px);z-index:100000;background:#fff;min-width:290px;
+  box-shadow:0 12px 40px rgba(0,0,0,.28);border-top:3px solid var(--taf-gold);padding:10px 0;text-align:left;}
+.af-cty.open .af-cty-menu{display:block;}
+.af-cty-head{margin:0;padding:6px 16px 10px;font-size:11px;text-transform:uppercase;letter-spacing:.09em;color:#999;font-weight:800;}
+.af-cty-item{display:flex;align-items:center;gap:11px;width:100%;background:none;border:0;padding:9px 16px;cursor:pointer;text-align:left;}
+.af-cty-item:hover{background:var(--taf-cream);}
+.af-cty-item.on{background:#fbf7ec;}
+.af-cty-nm{flex:1;font-size:13.5px;font-weight:700;color:var(--taf-dark);line-height:1.3;}
+.af-cty-nm small{display:block;font-weight:400;font-size:11.5px;color:var(--taf-mut);margin-top:2px;}
+.af-cty-cur{font-size:11.5px;font-weight:800;color:var(--af-gold-text, #8a6d1f);}
+.af-cty-foot{margin:8px 0 0;padding:10px 16px 2px;border-top:1px solid #f0ead9;font-size:12px;color:var(--taf-mut);}
+.af-inf-bar{text-align:center;padding:26px 0 34px;width:100%;}
+.af-inf-btn{background:var(--taf-dark);color:#fff;border:none;padding:14px 40px;font-size:14px;font-weight:800;cursor:pointer;transition:background .2s;}
+.af-inf-btn:hover{background:var(--taf-gold);color:#141414;}
+.af-inf-status{color:var(--taf-mut);font-size:14px;}
+.af-inf-end{color:var(--af-gold-text, #8a6d1f);font-size:13px;font-weight:700;letter-spacing:.05em;}
+.af-msg-bubble{background:var(--taf-cream);border-left:3px solid #ddd;padding:11px 14px;margin:10px 0;font-size:13.5px;}
+.af-msg-bubble.studio{border-left-color:var(--taf-gold);background:#fbf7ec;}
+.af-msg-bubble b{font-size:12.5px;color:var(--taf-dark);}
+.af-msg-bubble p{margin:6px 0 0;color:var(--taf-ink);}
+.af-msg-reply{display:flex;gap:8px;margin-top:12px;}
+.af-msg-reply textarea{flex:1;border:1px solid #d9d0bd;padding:9px 11px;font-family:inherit;font-size:13.5px;}
+.af-msg-reply .taf-form-submit{padding:10px 20px;font-size:13px;}
+@media(max-width:640px){.af-gc-row{grid-template-columns:1fr;}.af-cty-menu{right:auto;left:0;min-width:250px;}}
+
+/* Phase 17 — video testimonials */
+.taf-vids{margin:22px 0 6px;}
+.taf-vids-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:16px;}
+.taf-vid{position:relative;padding:0;border:1px solid #ece5d4;background:#111;cursor:pointer;overflow:hidden;
+  box-shadow:0 3px 14px rgba(20,20,20,.08);transition:transform .25s ease;}
+.taf-vid:hover{transform:translateY(-4px);}
+.taf-vid img{width:100%;height:150px;object-fit:cover;display:block;}
+.taf-vid-play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:50px;height:50px;border-radius:50%;
+  background:rgba(20,20,20,.72);display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.taf-vid-play::after{content:"";margin-left:4px;border-style:solid;border-width:9px 0 9px 15px;
+  border-color:transparent transparent transparent var(--taf-gold);}
+.taf-vids-note{margin:14px 0 0;font-size:13px;color:var(--taf-mut);}
+.taf-vid-lb{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:99999;display:none;align-items:center;justify-content:center;padding:24px;}
+.taf-vid-lb.open{display:flex;}
+.taf-vid-lb iframe{width:min(900px,94vw);aspect-ratio:16/9;border:0;background:#000;}
+.taf-vid-x{position:absolute;top:18px;right:22px;width:42px;height:42px;border-radius:50%;background:var(--taf-gold);
+  color:#141414;border:none;font-size:22px;font-weight:800;cursor:pointer;line-height:1;}
+@media(max-width:520px){.taf-vid img{height:130px;}}
+
+/* ============================================================
+   Uniform product-card image size across product listings.
+   Both the main image and the hover/gallery image share ONE
+   fixed square box (object-fit:cover), so grid rows line up
+   regardless of the artwork's own portrait/landscape ratio.
+   ============================================================ */
+html body .woocommerce ul.products li.product .product-block .product-transition,
+html body .woocommerce ul.products li.product .woocommerce-loop-product__link{
+  position:relative !important;width:100% !important;
+  aspect-ratio:1/1 !important;height:auto !important;min-height:0 !important;
+  overflow:hidden !important;background:#f5f2ed;display:block !important;
+}
+html body .woocommerce ul.products li.product .product-block .product-transition img,
+html body .woocommerce ul.products li.product .woocommerce-loop-product__link img{
+  width:100% !important;height:100% !important;object-fit:cover !important;
+  display:block !important;max-width:none !important;
+}
+/* keep the sale ribbon pinned inside the square box */
+html body .woocommerce ul.products li.product .product-transition .onsale{
+  position:absolute !important;top:10px !important;left:10px !important;z-index:3 !important;
+}
+
+/* ============================================================
+   New Arrivals / Trending cards (.trending-card): main image and
+   hover (gallery) image locked to ONE identical box. The two imgs
+   have different natural ratios (portrait main, landscape hover),
+   so without a fixed box the card changed height on hover. Pure
+   CSS — no dependency on lazy-loaded natural sizes.
+   ============================================================ */
+.trending-card .trending-image{position:relative !important;overflow:hidden !important;background:#f5f2ed;}
+.trending-card .trending-image > a{
+  position:relative !important;display:block !important;width:100% !important;
+  height:380px !important;max-height:380px !important;overflow:hidden !important;
+}
+.trending-card .trending-image img.main-img,
+.trending-card .trending-image img.hover-img{
+  position:absolute !important;top:0 !important;left:0 !important;
+  width:100% !important;height:100% !important;max-height:380px !important;max-width:none !important;
+  object-fit:cover !important;object-position:center !important;
+  display:block !important;margin:0 !important;
+}
+@media(max-width:900px){
+  .trending-card .trending-image > a{height:300px !important;max-height:300px !important;}
+  .trending-card .trending-image img.main-img,
+  .trending-card .trending-image img.hover-img{max-height:300px !important;}
+}
+@media(max-width:560px){
+  .trending-card .trending-image > a{height:240px !important;max-height:240px !important;}
+  .trending-card .trending-image img.main-img,
+  .trending-card .trending-image img.hover-img{max-height:240px !important;}
+}
+.trending-card .trending-image img.hover-img{opacity:0 !important;transition:opacity .35s ease !important;z-index:2 !important;}
+.trending-card:hover .trending-image img.hover-img{opacity:1 !important;}
+/* wishlist heart stays pinned above the image */
+.trending-card .trending-image .custom-product-card{position:absolute !important;top:0;left:0;right:0;z-index:3;pointer-events:none;}
+.trending-card .trending-image .custom-product-card .wishlist-btn{pointer-events:auto;}
+
+/* ── .product-image-wrapper: FIXED compact image height, sized to match
+      the "Shop by Collection" cards (4:3-ish box). Fixed height keeps every
+      slider card identical; object-fit:cover fills without distortion. ── */
+.product-image-wrapper{
+  height:260px !important;
+  max-height:260px !important;
+  overflow:hidden !important;
+  position:relative !important;
+}
+.product-image-wrapper img{
+  width:100% !important;
+  height:100% !important;
+  max-height:260px !important;
+  object-fit:cover !important;
+  object-position:center !important;
+  display:block !important;
+}
+@media(max-width:900px){
+  .product-image-wrapper{height:230px !important;max-height:230px !important;}
+  .product-image-wrapper img{max-height:230px !important;}
+}
+@media(max-width:560px){
+  .product-image-wrapper{height:200px !important;max-height:200px !important;}
+  .product-image-wrapper img{max-height:200px !important;}
+}
+
+/* ============================================================
+   Category / Shop archive page polish (scoped to archives).
+   Styles the page chrome only — breadcrumb, title, result count,
+   sort dropdown, and the left "Categories" sidebar. Product cards
+   are styled elsewhere and are left untouched.
+   ============================================================ */
+body.tax-product_cat .woocommerce-breadcrumb,
+body.post-type-archive-product .woocommerce-breadcrumb{
+  font-size:13px !important;color:var(--af-note, #6f675a) !important;margin:4px 0 16px !important;letter-spacing:.01em;
+}
+body.tax-product_cat .woocommerce-breadcrumb a,
+body.post-type-archive-product .woocommerce-breadcrumb a{color:var(--af-gold-text, #8a6d1f) !important;text-decoration:none !important;}
+body.tax-product_cat .woocommerce-breadcrumb a:hover{text-decoration:underline !important;}
+
+/* Category title with gold underline accent */
+body.tax-product_cat h1.page-title,
+body.tax-product_cat .woocommerce-products-header__title,
+body.tax-product_cat .term-title,
+body.post-type-archive-product h1.page-title,
+body.post-type-archive-product .woocommerce-products-header__title{
+  font-size:clamp(24px,3vw,34px) !important;font-weight:800 !important;color:#1a1a1a !important;
+  margin:0 0 10px !important;padding-bottom:12px !important;position:relative !important;
+}
+body.tax-product_cat h1.page-title::after,
+body.tax-product_cat .woocommerce-products-header__title::after,
+body.post-type-archive-product h1.page-title::after{
+  content:"" !important;position:absolute !important;left:0;bottom:0;width:64px;height:4px;border-radius:2px;
+  background:linear-gradient(90deg,#c9a84c,#e0c26a) !important;
+}
+body.tax-product_cat .term-description,
+body.post-type-archive-product .term-description{
+  color:#6b6b6b !important;font-size:14.5px !important;line-height:1.7 !important;max-width:760px;margin:0 0 18px !important;
+}
+
+/* Result count + ordering row */
+body.tax-product_cat .woocommerce-result-count,
+body.post-type-archive-product .woocommerce-result-count{
+  color:#8a8172 !important;font-size:13.5px !important;margin:0 !important;padding:6px 0;
+}
+body.tax-product_cat .woocommerce-ordering select,
+body.post-type-archive-product .woocommerce-ordering select,
+body.tax-product_cat .woocommerce-ordering .orderby,
+body.post-type-archive-product .woocommerce-ordering .orderby{
+  border:1px solid #e6d9b5 !important;border-radius:9px !important;padding:9px 34px 9px 14px !important;
+  background:#fff !important;color:#3a352c !important;font-size:13.5px !important;font-weight:600 !important;
+  cursor:pointer !important;box-shadow:0 1px 4px rgba(20,16,10,.05) !important;
+}
+
+/* Left "Categories" sidebar */
+body.tax-product_cat .widget_product_categories,
+body.post-type-archive-product .widget_product_categories,
+body.tax-product_cat .widget.woocommerce.widget_product_categories{
+  background:#fff !important;border:1px solid #ece5d4 !important;border-radius:16px !important;
+  padding:20px 20px 8px !important;box-shadow:0 4px 18px rgba(20,16,10,.05) !important;margin-bottom:26px !important;
+}
+body.tax-product_cat .widget_product_categories .widget-title,
+body.tax-product_cat .widget_product_categories h2,
+body.tax-product_cat .widget_product_categories h3,
+body.post-type-archive-product .widget_product_categories .widget-title{
+  font-size:16px !important;font-weight:800 !important;color:#1a1a1a !important;margin:0 0 12px !important;
+  padding-bottom:10px !important;border-bottom:1px solid #f0ead9 !important;
+}
+body.tax-product_cat ul.product-categories,
+body.post-type-archive-product ul.product-categories{list-style:none !important;margin:0 !important;padding:0 !important;}
+body.tax-product_cat ul.product-categories li,
+body.post-type-archive-product ul.product-categories li{
+  list-style:none !important;margin:0 !important;border-bottom:1px solid #f5f0e4 !important;
+}
+body.tax-product_cat ul.product-categories li:last-child{border-bottom:none !important;}
+body.tax-product_cat ul.product-categories li a,
+body.post-type-archive-product ul.product-categories li a{
+  display:block !important;padding:9px 6px !important;color:#4a4438 !important;text-decoration:none !important;
+  font-size:14px !important;font-weight:600 !important;transition:color .15s,padding .15s !important;
+}
+body.tax-product_cat ul.product-categories li a:hover{color:#a8872e !important;padding-left:11px !important;}
+body.tax-product_cat ul.product-categories li.current-cat > a,
+body.post-type-archive-product ul.product-categories li.current-cat > a{color:#a8872e !important;font-weight:800 !important;}
+body.tax-product_cat ul.product-categories li .count,
+body.post-type-archive-product ul.product-categories li .count{
+  color:#a99e86 !important;font-size:12px !important;font-weight:700 !important;float:right;
+}
+/* nested subcategory list */
+body.tax-product_cat ul.product-categories ul.children{margin:0 0 6px 12px !important;padding:0 0 0 10px !important;border-left:2px solid #f0ead9 !important;}
+body.tax-product_cat ul.product-categories ul.children li a{font-size:13px !important;padding:7px 6px !important;color:#6b6250 !important;}
+
+/* a touch more breathing room in the product grid */
+body.tax-product_cat ul.products,
+body.post-type-archive-product ul.products{gap:22px 20px !important;}
+
+/* ============================================================
+   Category / Shop archive grid — clean aligned rows + uniform
+   image height (fixes staggered cards, uneven image heights,
+   big empty gaps, clipped hover button, toolbar highlight).
+   ============================================================ */
+/* Grid so rows are uniform (float layout caused the stagger/gaps) */
+body.tax-product_cat ul.products,
+body.post-type-archive-product ul.products{
+  display:grid !important;
+  grid-template-columns:repeat(3,1fr) !important;
+  gap:24px !important;
+  margin:0 !important;
+}
+body.tax-product_cat ul.products li.product,
+body.post-type-archive-product ul.products li.product{
+  width:auto !important;float:none !important;margin:0 !important;clear:none !important;
+  height:auto !important;
+}
+@media(max-width:900px){
+  body.tax-product_cat ul.products,
+  body.post-type-archive-product ul.products{grid-template-columns:1fr 1fr !important;gap:16px !important;}
+}
+/* Two across on a phone as well, not one. This catalogue runs to hundreds of
+   pieces; one card per screen turns browsing into scrolling. (These three
+   breakpoints are all outscored by the archive grid emitted from functions.php
+   — which is where the live layout is decided — but a rule that contradicts
+   the one that wins is a trap for whoever reads this next.) */
+@media(max-width:520px){
+  body.tax-product_cat ul.products,
+  body.post-type-archive-product ul.products{grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:12px !important;}
+}
+/* Uniform image height (nested product-block layout doesn't get the JS box) */
+body.tax-product_cat ul.products li.product .product-block .product-transition,
+body.post-type-archive-product ul.products li.product .product-block .product-transition{
+  position:relative !important;display:block !important;width:100% !important;
+  height:300px !important;max-height:300px !important;overflow:hidden !important;
+  background:#f5f2ed !important;flex-shrink:0 !important;
+}
+/* The loop link is EMPTY in this theme's card — it is the clickable layer that
+   belongs OVER the artwork, not a block beneath it. It used to be pinned to
+   height:300px by the rule above, which put a second empty 300px band between
+   the picture and the title on every card. Overlay it instead: same click
+   target, no height of its own. */
+body.tax-product_cat ul.products li.product a.woocommerce-loop-product__link,
+body.post-type-archive-product ul.products li.product a.woocommerce-loop-product__link{
+  position:absolute !important;inset:0 !important;display:block !important;
+  width:100% !important;height:100% !important;max-height:none !important;
+  margin:0 !important;padding:0 !important;background:transparent !important;
+  z-index:2 !important;
+}
+/* …and the action buttons sit ABOVE that overlay. A positioned element paints
+   over static siblings whatever the source order, so without this the overlay
+   would swallow every click on Add to cart, wishlist and Quick view — trading
+   a layout bug for a broken card. */
+body.tax-product_cat ul.products li.product .product-transition .group-action,
+body.post-type-archive-product ul.products li.product .product-transition .group-action{
+  position:relative !important;z-index:3 !important;
+}
+/* The sale ribbon was in this rule too, and position:relative is what put the
+   empty band above every picture. A relatively-positioned element still holds
+   its place in normal flow, so the ribbon reserved 50px at the top of the box
+   and pushed the image down by exactly that much — measured at 50px on every
+   card, with the image then overflowing 50px past the bottom of a 300px box
+   that clips it. The top of every artwork was being cut off.
+
+   It only needed relative for the z-index that keeps it above the image, and
+   absolute positioning stacks just as well. The offsets it is drawn at —
+   top:15px, left:-46px, width:160px for the diagonal corner ribbon — come
+   from the earlier .onsale rule and are unchanged, and .product-transition is
+   already a containing block, so the ribbon lands where it always did.
+
+   .group-action above keeps relative deliberately: the comment on that rule
+   records that making it anything else swallowed every click on Add to cart,
+   wishlist and Quick view. */
+body.tax-product_cat ul.products li.product .product-transition .onsale,
+body.post-type-archive-product ul.products li.product .product-transition .onsale{
+  position:absolute !important;z-index:3 !important;
+}
+body.tax-product_cat ul.products li.product .product-transition img,
+body.tax-product_cat ul.products li.product a.woocommerce-loop-product__link img,
+body.post-type-archive-product ul.products li.product .product-transition img,
+body.post-type-archive-product ul.products li.product a.woocommerce-loop-product__link img{
+  width:100% !important;height:100% !important;object-fit:cover !important;display:block !important;
+}
+/* This one only ever named .tax-product_cat, so the Shop archive — whose body
+   carries post-type-archive-product, not a category class — never got it and
+   kept the 300px desktop box at every width. On a phone card that is a picture
+   far taller than it is wide. Superseded by the aspect-ratio box in the
+   af-archive-phone block in functions.php, which scores higher and covers both
+   archives; kept here so the two do not disagree. */
+@media(max-width:520px){
+  body.tax-product_cat ul.products li.product .product-transition,
+  body.post-type-archive-product ul.products li.product .product-transition{
+    height:auto !important;max-height:none !important;aspect-ratio:3/4 !important;}
+}
+/* Hover overlay button must not clip ("SELECT OPTI…") */
+body.tax-product_cat ul.products li.product .button,
+body.tax-product_cat ul.products li.product a.add_to_cart_button,
+body.tax-product_cat ul.products li.product .product_type_variable{
+  white-space:nowrap !important;overflow:visible !important;text-overflow:clip !important;
+  width:auto !important;min-width:0 !important;max-width:none !important;
+}
+/* ...except the icon-only version: force it back to a fixed circle (higher
+   specificity than the "must not clip" rule above, which would otherwise
+   win and stretch it to an oval). */
+body.tax-product_cat ul.products li.product a.add_to_cart_button.af-icon-only,
+body.woocommerce-page ul.products li.product a.add_to_cart_button.af-icon-only{
+  width:36px !important;min-width:0 !important;max-width:36px !important;overflow:hidden !important;
+}
+/* Toolbar: remove the stray gold highlight behind result count / sort / show */
+body.tax-product_cat .woocommerce-result-count,
+body.post-type-archive-product .woocommerce-result-count{
+  background:transparent !important;box-shadow:none !important;padding:6px 0 !important;color:#7b7365 !important;
+}
+body.tax-product_cat .woocommerce-notices-wrapper + .woocommerce-result-count{background:transparent !important;}
+
+/* Category cards: BOTH the main image AND the hover/gallery image (.image-main
+   and .image-hover) must fill the exact same fixed box. The image area is
+   .product-transition > .product-img-wrap > .inner > .product-image(.image-main
+   /.image-hover) > img. Pin the box on .product-img-wrap; make .inner a relative
+   300px box and force EVERY child (both image layers) to absolutely fill it. */
+body.tax-product_cat ul.products li.product .product-img-wrap,
+body.post-type-archive-product ul.products li.product .product-img-wrap{
+  height:300px !important;max-height:300px !important;min-height:300px !important;
+  overflow:hidden !important;position:relative !important;display:block !important;width:100% !important;
+}
+body.tax-product_cat ul.products li.product .product-img-wrap .inner,
+body.post-type-archive-product ul.products li.product .product-img-wrap .inner{
+  position:relative !important;height:100% !important;width:100% !important;display:block !important;
+}
+/* every direct child of .inner = a stacked image layer -> absolutely fill box */
+body.tax-product_cat ul.products li.product .product-img-wrap .inner > *,
+body.post-type-archive-product ul.products li.product .product-img-wrap .inner > *{
+  position:absolute !important;top:0 !important;left:0 !important;right:0 !important;bottom:0 !important;
+  height:100% !important;width:100% !important;margin:0 !important;display:block !important;
+}
+body.tax-product_cat ul.products li.product .product-img-wrap img,
+body.post-type-archive-product ul.products li.product .product-img-wrap img{
+  position:absolute !important;top:0 !important;left:0 !important;
+  width:100% !important;height:100% !important;object-fit:cover !important;
+  display:block !important;max-width:none !important;max-height:100% !important;margin:0 !important;
+}
+@media(max-width:520px){
+  body.tax-product_cat ul.products li.product .product-img-wrap{height:260px !important;max-height:260px !important;min-height:260px !important;}
+}
+
+/* ============================================================
+   Shop / category toolbar row — space out the grid/list toggle,
+   result count, sorting and "Show N" controls (they were jammed
+   together with no gaps). Margin-based so it works regardless of
+   the theme's wrapper markup.
+   ============================================================ */
+/* Make the toolbar row a flex line: count on the left, sorting + "Show" on the
+   right. :has() targets whatever wrapper holds the result count. */
+body.woocommerce *:has(> .woocommerce-result-count):has(> .woocommerce-ordering),
+body.tax-product_cat *:has(> .woocommerce-result-count):has(> .woocommerce-ordering),
+body.post-type-archive-product *:has(> .woocommerce-result-count):has(> .woocommerce-ordering){
+  display:flex !important;align-items:center !important;flex-wrap:wrap !important;gap:10px 18px !important;width:100% !important;
+}
+body.woocommerce .woocommerce-result-count,
+body.tax-product_cat .woocommerce-result-count,
+body.post-type-archive-product .woocommerce-result-count{
+  display:inline-block !important;vertical-align:middle !important;
+  margin:0 auto 0 0 !important;padding:6px 0 !important;   /* margin-right:auto pushes the rest right */
+  font-size:13.5px !important;color:#7b7365 !important;line-height:1.5 !important;background:transparent !important;
+  float:left !important;
+}
+body.woocommerce .woocommerce-ordering,
+body.tax-product_cat .woocommerce-ordering,
+body.post-type-archive-product .woocommerce-ordering{
+  display:inline-block !important;vertical-align:middle !important;margin:0 0 0 auto !important;
+  float:right !important;order:9 !important;
+}
+/* the theme's "Show N" per-page control (sits after sorting) — keep it far right */
+body.woocommerce .woocommerce-ordering + *,
+body.tax-product_cat .woocommerce-ordering + *,
+body.post-type-archive-product .woocommerce-ordering + *{
+  display:inline-block !important;vertical-align:middle !important;margin-left:14px !important;
+  float:right !important;order:10 !important;
+}
+/* grid/list view switcher spacing */
+body.woocommerce .woocommerce-ordering select,
+body.tax-product_cat .woocommerce-ordering select{margin:0 !important;}
+body.woocommerce [class*="view-switch"],
+body.woocommerce [class*="grid-list"],
+body.woocommerce [class*="display-mode"]{margin-right:16px !important;vertical-align:middle !important;}
+@media(max-width:600px){
+  body.woocommerce .woocommerce-result-count{margin:6px 0 !important;float:none !important;}
+  body.woocommerce .woocommerce-ordering{margin:0 12px 8px 0 !important;float:none !important;}
+}
+
+/* ============================================================
+   Homepage product grids (New Arrivals etc.): same uniform image
+   box as category pages — 300px fixed (260px mobile). Covers the
+   li.product markup AND the JS-built .af-img-ratio wrap so main
+   and hover images always share one identical box.
+   ============================================================ */
+body.home ul.products li.product .product-img-wrap,
+body.af-front-page ul.products li.product .product-img-wrap{
+  height:300px !important;max-height:300px !important;min-height:300px !important;
+  overflow:hidden !important;position:relative !important;display:block !important;width:100% !important;
+}
+body.home ul.products li.product .product-img-wrap .inner,
+body.af-front-page ul.products li.product .product-img-wrap .inner{
+  position:relative !important;height:100% !important;width:100% !important;display:block !important;
+}
+body.home ul.products li.product .product-img-wrap .inner > *,
+body.af-front-page ul.products li.product .product-img-wrap .inner > *{
+  position:absolute !important;top:0 !important;left:0 !important;right:0 !important;bottom:0 !important;
+  height:100% !important;width:100% !important;margin:0 !important;display:block !important;
+}
+body.home ul.products li.product .product-img-wrap img,
+body.af-front-page ul.products li.product .product-img-wrap img{
+  position:absolute !important;top:0 !important;left:0 !important;
+  width:100% !important;height:100% !important;object-fit:cover !important;
+  display:block !important;max-width:none !important;max-height:100% !important;margin:0 !important;
+}
+/* JS-built wrap (all pages): enforce the same fixed box + cover images */
+.af-img-ratio{height:300px !important;max-height:300px !important;padding-bottom:0 !important;}
+.af-img-ratio img{object-fit:cover !important;}
+@media(max-width:520px){
+  body.home ul.products li.product .product-img-wrap,
+  body.af-front-page ul.products li.product .product-img-wrap{height:260px !important;max-height:260px !important;min-height:260px !important;}
+  .af-img-ratio{height:260px !important;max-height:260px !important;}
+}
+
+/* ============================================================
+   Card titles (theme AJAX cards: h3.trending-title): clean 2-line
+   clamp with ellipsis. The theme caps the title box at a fixed
+   height (~2.5 lines), so long titles showed a half-cut third
+   line colliding with the rating row below. Uniform box height
+   keeps grid rows aligned.
+   ============================================================ */
+h3.trending-title,
+.trending-content h3.trending-title,
+.product-card h3.trending-title{
+  display:-webkit-box !important;
+  -webkit-line-clamp:2 !important;
+  -webkit-box-orient:vertical !important;
+  overflow:hidden !important;
+  height:auto !important;
+  line-height:1.4 !important;
+  min-height:calc(1.4em * 2) !important;
+  max-height:calc(1.4em * 2 + 2px) !important;
+  margin:0 0 6px !important;
+}
+h3.trending-title a{display:inline !important;}
+
+/* =====================================================================
+   The CATEGORIES dropdown: icon and label alignment
+   Measured on the live menu, not guessed at:
+
+     gap between icon and label   0px on every single row
+     icon box widths              20.0, 20.0, 20.0, 20.0, 20.0, 15.0,
+                                  20.0, 22.5, 20.0, 20.0, 20.0
+     icon vs text vertical centre out by 1.4px
+
+   Two separate faults. The icons touch their labels because nothing ever
+   put a gap between them. And because the icon box sizes itself to the
+   glyph, three of the eleven rows are a different width, so their labels
+   start at three different x positions — that is the part that reads as
+   "not aligned" even though each row on its own looks fine.
+
+   The row is laid out as a flex line instead. A fixed 24px box makes every
+   label begin at the same place whatever the glyph is, centring handles the
+   1.4px, and the gap is stated once. The chevron on rows that have children
+   is pushed to the right edge with margin-left:auto, which is where it
+   already sits, so it works whether the theme draws it inside the link or
+   not.
+
+   Scoped to .primary-navigation, which is the desktop dropdown only. The
+   mobile menu is a different element and is untouched.
+   ===================================================================== */
+.primary-navigation ul.sub-menu > li.menu-item > a{
+  display:flex !important;
+  align-items:center !important;
+  gap:12px !important;
+  padding:6px 14px !important;
+}
+.primary-navigation ul.sub-menu > li.menu-item > a > i.menu-icon{
+  flex:0 0 24px !important;
+  width:24px !important;
+  margin:0 !important;
+  display:inline-flex !important;
+  align-items:center !important;
+  justify-content:center !important;
+  line-height:1 !important;
+  vertical-align:middle !important;
+}
+.primary-navigation ul.sub-menu > li.menu-item > a > span.menu-title{
+  flex:1 1 auto !important;
+  line-height:1.45 !important;
+}
+/* Rows with children draw a chevron. Whether it is a pseudo-element inside
+   the link or a real one, send it to the far edge rather than letting the
+   flex gap space it off the label. */
+.primary-navigation ul.sub-menu > li.menu-item > a::after,
+.primary-navigation ul.sub-menu > li.menu-item > a > .sub-arrow,
+.primary-navigation ul.sub-menu > li.menu-item > a > .menu-arrow{
+  margin-left:auto !important;
+  flex:0 0 auto !important;
+}
+
+/* =====================================================================
+   The corner ribbon on the "You may also like" rows
+   Everything else about these cards now matches a category card exactly.
+   The ribbon did not, and it is a specificity accident rather than a
+   missing rule.
+
+   Two rules describe .onsale. The diagonal gold corner ribbon is written
+   as "body.woocommerce-page ul.products li.product .onsale", which scores
+   four classes. A later rule pins a small badge at top:10px left:10px and
+   is written as "html body .woocommerce ul.products li.product
+   .product-transition .onsale", which scores five.
+
+   On an archive the second one never matches, because it needs an element
+   with class .woocommerce INSIDE body and there is none — body itself
+   carries that class, which "body .woocommerce" does not select. But this
+   row wraps itself in <section class="af-wl-related woocommerce">, so on
+   these pages that element exists, the five-class rule matches, and it
+   moves the ribbon to the wrong corner and drops its gradient offsets.
+
+   Matched at the same score and placed after it, so source order decides.
+   Only top and left are restated; the gradient, rotation, size and
+   typography all come from the diagonal rule, unchanged.
+   ===================================================================== */
+html body .af-wl-related ul.products li.product .product-transition .onsale,
+html body .af-xsell ul.products li.product .product-transition .onsale{
+  top:15px !important;
+  left:-46px !important;
+  right:auto !important;
+}
+
+/* ── Where the keyboard is ─────────────────────────────────────────────────
+   Measured on the live home page, 21 Sep 2026: of the first 29 tab stops,
+   ZERO changed any visual property when focused — not an outline, not a
+   shadow, not a border, not a text decoration. Anyone navigating by keyboard,
+   by switch, or with a screen magnifier was moving blind through a shop.
+
+   An audit handed to us read the computed "outline: rgb(138,109,31) none 3px"
+   on a focused element as a gold ring that had been defined and then switched
+   off, and proposed flipping outline-style to solid. That value is the browser
+   default — medium computes to 3px, currentcolor to the element's own text
+   colour, and #8a6d1f is a gold this theme does use for text. Nothing had been
+   switched off. There was no rule at all, which is why there was nothing to
+   flip and why this is an addition rather than an edit.
+
+   :focus-visible rather than :focus, so a mouse click does not leave a ring
+   behind. The colour is the brand gold already used for the chosen category
+   circle, so a keyboard user sees the same gold a mouse user does.
+
+   Deliberately not !important: the handful of rules in this theme that set
+   outline:none on a focused control — .taf-form inputs, .af-size-select, the
+   Try-On-Wall selects — all pair it with a border colour change and a
+   box-shadow, so those controls already show focus and do not need this. This
+   is for everything else, which is almost everything. */
+/* UPDATE, after the CSS was confirmed delivered and this still measured
+   0 of 29. The note above says this is "deliberately not !important",
+   reasoning that the rules setting outline:none pair it with a box-shadow so
+   those controls already show focus. That reasoning was wrong. With the file
+   verified as served — DEPLOY-CSS confirms the ring is in the CSS the browser
+   receives — nothing changed on focus, so the rule is losing the cascade to
+   something more specific or already emphatic. Plugins declare four :focus
+   outlines of their own on this page, which is the company it is keeping.
+
+   Raised on both axes: body prefix for specificity, !important for the rest.
+   A control that draws its own focus style still draws it; this adds a ring
+   on top rather than replacing it, which is the correct failure mode for the
+   one thing a keyboard user cannot do without. */
+body a:focus-visible,
+body button:focus-visible,
+body input:focus-visible,
+body select:focus-visible,
+body textarea:focus-visible,
+body summary:focus-visible,
+body [role="button"]:focus-visible,
+body [tabindex]:focus-visible {
+  outline: 3px solid #c9a84c !important;
+  outline-offset: 2px !important;
+}
+
+/* ── The words someone reads before spending money ─────────────────────────
+   Measured on the live product page, 21 Sep 2026:
+
+     "ADD TO CART"   #FFFFFF on #CA9236   2.74:1   (AA needs 4.5:1)
+
+   The fill is not declared in this repository — parent theme or Elementor —
+   and two ways out of that exist. Darken the gold until white passes, which
+   changes the brand colour on the shop's most important control. Or darken
+   the LABEL, which leaves #CA9236 exactly as it is and takes the ratio to
+   6.85:1, comfortably past AA.
+
+   The second, because the brand colour is not the defect and this theme
+   already does it elsewhere: .afd-btn-outline:hover is #1a1206 on #c9a84c.
+   Same ink, same gold, already shipped.
+
+   Scoped to the buying buttons measured, not to every gold thing on the
+   site. The audit counted 69 elements below AA on one product page — the
+   gold-on-cream text (breadcrumbs at 2.85:1, "(29% off)" at 2.81:1, "OUT OF
+   STOCK" at 2.92:1) is a separate token and a separate decision, and
+   guessing at it blind would be worse than leaving it measured and named. */
+/* UPDATE. Measured after deploy, with the stylesheet confirmed served:
+   "ADD TO CART" rgb(255,255,255) on rgb(202,146,54) = 2.74:1, unchanged. The
+   !important was already here, so what lost was specificity — an Elementor
+   button rule carrying its own !important outranks a bare class. The body
+   prefix and the element qualifier answer that without reaching for anything
+   more drastic. */
+body .woocommerce .single_add_to_cart_button,
+body .woocommerce button.single_add_to_cart_button,
+body button.single_add_to_cart_button,
+body .woocommerce .af-buynow,
+body a.af-buynow,
+body .single_add_to_cart_button {
+  color: var(--af-on-primary, #1a1206) !important;
+}
+
+/* ── M-07: text colours as tokens, each one measured against WCAG AA ─────────
+   Test Run 03 found the Add to Cart fix above working (2.74 → 6.77:1) and the
+   same failing colours still everywhere else. tools/probe-contrast.mjs (run
+   95, 23 Sep) counted the texts below AA by colour pair, and
+   tools/diag-contrast-cascade.mjs (run 96) found the rule behind each one.
+   They fall into a handful of colours, so the fix is made to those colours:
+   this theme's rules now name a token instead of a failing hex, and the parent
+   theme's own tokens are given passing values.
+
+     token             value     on white   replaces
+     --af-on-primary   #1a1206   6.77:1*    white on the gold fills (2.74:1)
+     --af-gold-text    #8a6d1f   4.90:1     #c9a84c (2.29), #a8872e (3.40)
+     --af-save         #2e7d32   5.13:1     #4caf2f (2.81), every "(x% off)"
+     --af-was          #6b6b6b   5.33:1     #9a9a9a / #999 / #aaa struck prices
+     --af-mute         #6b6b6b   5.33:1     #888 (3.54), #777 (4.48)
+     --af-note         #6f675a   5.58:1     #a49c8b (2.72), #8a8172, #8a8170
+     --text_light      #6b6b6b   5.33:1     Postero's #999999 (2.85)
+     --light           #6b6b6b   5.33:1     Postero's #909090 (3.19)
+     * on --primary #CA9236; 8.11:1 on #c9a84c.
+
+   All clear 4.5:1 on the cream backgrounds too (#faf7ef, #faf6ec, #f5f3eb).
+   html:root and html body outrank the parent theme's :root / body
+   declarations, wherever in the page those are printed. */
+html:root,
+html body {
+  /* The TAF tokens were only defined inside .taf-page, but about 80 rules
+     outside it use them: the gift card form, the currency picker, "Load More
+     Artworks", the message bubbles, the video player. Outside .taf-page each
+     var() was empty, so "Load More Artworks" and the gift card "Apply" had no
+     fill and showed white text on white, 1:1. Same values as .taf-page. */
+  --taf-gold: #c9a84c;
+  --taf-gold-d: #a8872e;
+  --taf-dark: #141414;
+  --taf-ink: #2b2b2b;
+  --taf-mut: #6b6b6b;
+  --taf-cream: #faf6ec;
+
+  --af-on-primary: #1a1206;
+  --af-gold-text: #8a6d1f;
+  --af-save: #2e7d32;
+  --af-was: #6b6b6b;
+  --af-mute: #6b6b6b;
+  --af-note: #6f675a;
+
+  /* Postero's light-text tokens: review counts, "Show" per page, filter
+     counts, the product theme tags, the price slider label. */
+  --text_light: #6b6b6b;
+  --light: #6b6b6b;
+}
+/* Elementor's global "text light" colour is a copy of the same grey, set per
+   kit on <body>: the breadcrumbs and the shop banner's description use it. */
+body[class*="elementor-kit-"] {
+  --e-global-color-text_light: #6b6b6b;
+}
+
+/* White on the brand gold. Postero paints these buttons
+   background: var(--primary); color: var(--white). --white is also the white
+   of backgrounds elsewhere, so it is changed only on the buttons that sit on
+   the gold fill: the parent's own rule then draws their labels in dark ink,
+   and there is no selector fight to lose to Elementor's !important (which is
+   what happened to the first Add to Cart fix).
+   Not on hover: there Postero fills them with --accent, black, where the ink
+   would be 1.13:1 and white is 21:1. Focused, they keep the gold, so the ink
+   stays. Both measured with probe-contrast's preview on the live pages,
+   23 Sep. The Square gift card "Apply" at the checkout is the plugin's own
+   button, painted by the same parent rule. */
+body .postero-sticky-add-to-cart__content-button:not(:hover),
+body .widget_shopping_cart .buttons a.checkout:not(:hover),
+body .woocommerce-mini-cart__buttons a.checkout:not(:hover),
+body .cart_totals a.checkout-button:not(:hover),
+body #payment #place_order:not(:hover),
+body button[name="apply_coupon"]:not(:hover),
+body button[name="update_cart"]:not(:hover),
+body .af-por-btn:not(:hover),
+body #square-gift-card-apply-btn:not(:hover) {
+  --white: var(--af-on-primary, #1a1206);
+}
+/* The Add to Cart rule above sets the ink with !important in every state,
+   so on the black hover fill it read 1.13:1. White again there. */
+body .woocommerce .single_add_to_cart_button:hover,
+body .woocommerce button.single_add_to_cart_button:hover,
+body button.single_add_to_cart_button:hover,
+body .single_add_to_cart_button:hover {
+  color: #fff !important;
+}
+/* The shop banner's "25% Off" is large text (3:1 needed) in --primary on
+   white, 2.74:1. The theme's darker gold, 3.40:1, in the banner only:
+   .c-primary is also used on dark backgrounds, where --primary is right. */
+body .elementor-cta__title .c-primary {
+  color: var(--taf-gold-d, #a8872e);
+}
+
+/* Phones and small tablets: Elementor sections overlapping the one below.
+   The home page's sections are set to stack top to bottom with "Wrap" on
+   under 768px (--flex-wrap-mobile: wrap). Chrome sizes the only block in
+   such a section before the rows inside it are laid out, so the gold-foil
+   product grid (widget 7e5b908, 3,357px of content in a 2,005px box) and the
+   Instagram feed (54e05ee, 1,004px in 322px) ran over "Follow Us" and
+   "Latest blogs" (owner's recording, 26 Sep, at 655px). A section holding a
+   single block has nothing to wrap, so turning wrap off changes nothing but
+   the measurement. Measured at 360-767px: both boxes then fit exactly. */
+.e-con.e-flex > .e-con-inner:has(> .elementor-element:only-child),
+.e-con-full.e-flex:has(> .elementor-element:only-child) {
+  flex-wrap: nowrap;
+}

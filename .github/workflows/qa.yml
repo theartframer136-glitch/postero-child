@@ -1,0 +1,87 @@
+name: QA the live site
+
+# Two passes over the real shop with a real Chromium.
+#
+#   kid      — a five-year-old: taps the biggest thing, taps it again before it
+#              has answered, types nonsense everywhere, mashes Back, on a tablet
+#   veteran  — a release checklist: the buying journey, then the boundary of
+#              every field on it, then phones, then the quiet SEO/a11y stuff
+#
+# Manual only, and deliberately so. It drives a browser over the production
+# shop, and the deploy pipeline's own comments are emphatic that piling work
+# onto this host is what takes the site to 508 — so this runs when someone asks
+# for it, not on every push.
+#
+# Neither pass can place an order or email the owner: every request that would
+# reach a person or a ledger (newsletter, contact form, saved previews, gift
+# card redemption, checkout) is intercepted at the wire and answered locally.
+# Both were validated against a fixture shop with nine planted defects and
+# caught all nine, so a clean run here means something.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Which pass to run'
+        type: choice
+        options: [both, kid, veteran]
+        default: both
+      url:
+        description: 'Site to test (blank = the live shop)'
+        type: string
+        default: ''
+      seed:
+        description: 'Kid mode walk seed — same seed reproduces the same run'
+        type: string
+        default: '1'
+      steps:
+        description: 'Kid mode: how many things to poke'
+        type: string
+        default: '60'
+
+concurrency:
+  group: qa-live
+  cancel-in-progress: true
+
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Playwright Chromium
+        run: |
+          npm init -y >/dev/null
+          npm i playwright@1.56 >/dev/null
+          npx playwright install --with-deps chromium
+
+      - name: Five-year-old
+        if: inputs.mode == 'both' || inputs.mode == 'kid'
+        env:
+          AF_QA_URL: ${{ inputs.url }}
+          AF_QA_SEED: ${{ inputs.seed }}
+          AF_QA_STEPS: ${{ inputs.steps }}
+        # `|| true` so a finding here still lets the veteran pass run — the two
+        # reports are more useful together than either is alone.
+        run: node tools/qa-kid-mode.mjs "${AF_QA_URL:-https://theartframer.us/}" || true
+
+      - name: Twenty-year tester
+        if: inputs.mode == 'both' || inputs.mode == 'veteran'
+        env:
+          AF_QA_URL: ${{ inputs.url }}
+        run: node tools/qa-veteran.mjs "${AF_QA_URL:-https://theartframer.us}"
+
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qa-screenshots
+          path: |
+            kid-mode-final.png
+            veteran-final.png
+          if-no-files-found: ignore

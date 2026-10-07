@@ -1,0 +1,15 @@
+name: Check Collection Strip
+# Read-only: the Shop by Collection tab labels, and the circle row under the
+# embossed tab, as a visitor actually receives them.
+on:
+  workflow_dispatch:
+jobs:
+  look:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afh/node_modules node tools/diag-strip-live.mjs || true

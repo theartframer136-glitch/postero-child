@@ -1,0 +1,52 @@
+name: Re-encode Images
+# Re-encode the JPEG derivatives that were written at quality 100.
+# Originals are never touched. Run with dry_run first.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Report what would change, write nothing (run this first)
+        type: boolean
+        default: true
+      limit:
+        description: How many files this run may touch (the host is CPU-bound)
+        type: string
+        default: '400'
+      quality:
+        description: JPEG quality to write
+        type: string
+        default: '92'
+
+jobs:
+  reencode:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Send the script up
+        run: |
+          set -uo pipefail
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/reencode-images.php \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/reencode-images.php" \
+            || echo "  scp failed"
+      - name: Re-encode
+        timeout-minutes: 25
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             DRY=${{ inputs.dry_run && '1' || '' }} \
+             LIMIT='${{ inputs.limit }}' QUALITY='${{ inputs.quality }}' \
+             wp eval-file wp-content/themes/postero-child/tools/reencode-images.php --allow-root 2>&1 | tail -80" \
+            || true

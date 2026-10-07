@@ -1,0 +1,208 @@
+name: Check Header
+
+# What the site's header actually is, on a phone.
+#
+# The header is built in Elementor by the parent theme, so its markup is not in
+# this repository — and a fix written against guessed class names is a fix
+# shipped to a live shop on a hope. This loads the real site in a phone-sized
+# Chrome and prints the header's tree: every element, its classes, where it
+# sits, how big it is, and the flex properties that decide whether the row
+# stacks. Then the CSS can be written against what is there.
+#
+# Read-only and dispatch-only. It loads pages and measures them; nothing is
+# written, no SSH. The script lives inline so that adding it does not touch
+# anything under the theme and therefore does not spend a deploy.
+
+on:
+  workflow_dispatch:
+    inputs:
+      width:
+        description: 'Viewport widths in px, comma separated'
+        type: string
+        default: '360,390,414,480,540,600,700,768,820,880'
+      url:
+        description: 'Page to measure'
+        type: string
+        default: 'https://theartframer.us/'
+      ua:
+        description: 'Which browser to pretend to be: android or desktop'
+        type: string
+        default: 'android'
+      shot:
+        description: 'Print a base64 PNG of the header (1 = yes)'
+        type: string
+        default: '0'
+      cart:
+        description: 'Put this many of product id (e.g. 8582x5) in the cart first, so the header renders with a full cart'
+        type: string
+        default: ''
+
+jobs:
+  header:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Measure the header at phone width
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
+          cat > /tmp/header.js <<'JS'
+          const puppeteer = require('puppeteer-core');
+          const WIDTHS = (process.env.W || '390').split(',').map((n) => parseInt(n.trim(), 10)).filter(Boolean);
+          const URL = process.env.U || 'https://theartframer.us/';
+          // the same UA tools/headless-mobile.js uses: this site's crawl guard
+          // redirects requests that do not look like a browser
+          /* The owner tests in desktop Chrome's responsive mode, which keeps a
+             DESKTOP user agent while narrowing the viewport. This site does
+             server-side device detection (the body carries wvs-mobile, and
+             there is a tools/test-device-detect.php), so a desktop agent at
+             390px can be served different markup from a real phone. Measuring
+             only with an Android agent cannot see that difference — which is
+             the most likely reason my numbers and the owner's screen disagree. */
+          const UA = (process.env.UA || 'android') === 'desktop'
+            ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
+            : 'Mozilla/5.0 (Linux; Android 13; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36';
+
+          /* One question per width: are the header's items on one line, and if
+             not, which container is stacking them. Everything else is noise. */
+          function probe(vw) {
+            const head = document.querySelector('header#masthead') || document.querySelector('header');
+            if (!head) return { error: 'no header' };
+            const vis = (el) => {
+              const cs = getComputedStyle(el);
+              const r = el.getBoundingClientRect();
+              return cs.display !== 'none' && cs.visibility !== 'hidden' && r.width > 0 && r.height > 0;
+            };
+            // the row that is actually rendering at this width
+            const rows = Array.from(head.querySelectorAll('.e-con, .elementor-element'))
+              .filter((el) => vis(el) && getComputedStyle(el).display.includes('flex')
+                           && getComputedStyle(el).flexDirection === 'row'
+                           && el.getBoundingClientRect().width > vw * 0.8);
+            const row = rows[0] || null;
+
+            // the things a shopper sees: burger, logo, currency, cart
+            /* Both headers live in the DOM at once — the mobile row and the wide
+               one — and only one is displayed. querySelector returns the FIRST
+               in document order, which is often the hidden copy, so the probe
+               was throwing away the logo, the currency and the cart and then
+               reporting "stacked" because it had one box left to compare.
+               Take the first VISIBLE match, not the first match. */
+            const pick = (sel) => Array.from(head.querySelectorAll(sel)).find(vis) || null;
+            const items = [
+              ['burger',   pick('.hfe-menu-item-space-between, .mobile_navbar_menu_dropdown')],
+              ['logo',     pick('.elementor-widget-site-logo')],
+              ['currency', pick('.postero-woocs-action-hover, [class*="woocs"]')],
+              ['cart',     pick('.elementor-widget-postero-header-group, [class*="header-group"]')],
+            ].filter(([, e]) => e);
+
+            const boxes = items.map(([n, e]) => {
+              const r = e.getBoundingClientRect();
+              return { n, x: Math.round(r.left), y: Math.round(r.top), w: Math.round(r.width), h: Math.round(r.height) };
+            });
+            // same line = their vertical centres agree within 10px
+            const mids = boxes.map((b) => b.y + b.h / 2);
+            const spread = boxes.length > 1 ? Math.round(Math.max(...mids) - Math.min(...mids)) : -1;
+            const oneLine = boxes.length > 1 && spread <= 10;
+
+            const inline = head.querySelector('.mobile_navbar_inline_items');
+            const inlineCs = inline && vis(inline) ? getComputedStyle(inline) : null;
+
+            const visRow = Array.from(head.querySelectorAll('.e-con, .elementor-element'))
+              .filter(vis).filter((el) => el.getBoundingClientRect().width > vw * 0.8)[0];
+            return {
+              which: visRow ? (String(visRow.className).match(/elementor-element-\w+/) || ['?'])[0] : '?',
+              headerH: Math.round(head.getBoundingClientRect().height),
+              rowDir: row ? getComputedStyle(row).flexDirection + '/' + getComputedStyle(row).flexWrap : 'none',
+              inlineDir: inlineCs ? inlineCs.flexDirection : 'not rendered',
+              boxes, oneLine, spread, found: boxes.length,
+              tiny: boxes.filter((b) => Math.min(b.w, b.h) < 40).map((b) => b.n + ' ' + b.w + 'x' + b.h),
+              scroll: Math.round(document.documentElement.scrollWidth) > vw ? 'SIDEWAYS' : '',
+            };
+          }
+
+          (async () => {
+            const b = await puppeteer.launch({ channel: 'chrome', headless: 'new',
+              args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+            console.log('URL ' + URL + '   agent=' + (process.env.UA || 'android'));
+            console.log('');
+            for (const w of WIDTHS) {
+              const p = await b.newPage();
+              await p.setUserAgent(UA);
+              await p.setViewport({ width: w, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 });
+              try {
+                /* The owner's header has a cart with five things in it and no
+                   Sign Up/Login control, because they are signed in. Every
+                   measurement so far was of an EMPTY, signed-out header — a
+                   different set of widgets. A cart can be filled without
+                   signing in, so do that first and measure the header the
+                   owner is actually looking at. */
+                const base = URL.replace(/\/$/, '');
+                let cartSpec = (process.env.CART || '').match(/^(\d+)x(\d+)$/);
+                if ((process.env.CART || '') === 'auto') {
+                  /* a variable product cannot be added by URL — it needs a
+                     variation — so ask the public Store API for a SIMPLE one */
+                  const res = await p.goto(base + '/wp-json/wc/store/v1/products?type=simple&per_page=1&status=publish', { timeout: 60000 });
+                  try {
+                    const list = JSON.parse(await res.text());
+                    if (list && list[0] && list[0].id) cartSpec = ['', String(list[0].id), '5'];
+                    console.log('    simple product for the cart: ' + (cartSpec ? cartSpec[1] + ' (' + (list[0].name || '') + ')' : 'none found'));
+                  } catch (e) { console.log('    store api did not answer: ' + String(e.message).slice(0, 60)); }
+                }
+                if (cartSpec) {
+                  await p.goto(base + '/?add-to-cart=' + cartSpec[1] + '&quantity=' + cartSpec[2], { waitUntil: 'domcontentloaded', timeout: 60000 });
+                  await new Promise((r) => setTimeout(r, 2500));
+                  const n = await p.evaluate(() => (document.querySelector('.site-header-cart .count, .cart-contents .count') || {}).textContent || '?');
+                  console.log('    cart now reads: ' + String(n).trim());
+                }
+                await p.goto(URL, { waitUntil: 'domcontentloaded', timeout: 60000 });
+                await new Promise((r) => setTimeout(r, 3500));
+                const o = await p.evaluate(probe, w);
+                if (o.error) { console.log(String(w).padStart(4) + 'px  ' + o.error); await p.close(); continue; }
+                const line = o.found < 2 ? 'ONLY ' + o.found + ' ITEM FOUND — probe failed, not a verdict'
+                         : o.oneLine ? 'ONE LINE (spread ' + o.spread + 'px)'
+                         : '*** STACKED *** (spread ' + o.spread + 'px)';
+                console.log(String(w).padStart(4) + 'px  header ' + String(o.headerH).padStart(3) + 'px  ' + line
+                  + '   container=' + o.which + '  row=' + o.rowDir + '  inline-items=' + o.inlineDir
+                  + (o.scroll ? '  ' + o.scroll : '')
+                  + (o.tiny.length ? '  under40: ' + o.tiny.join(', ') : ''));
+                console.log('        ' + o.boxes.map((x) => x.n + ' x' + x.x + ' y' + x.y + ' ' + x.w + 'x' + x.h).join('  |  '));
+                /* Every visible leaf in the header, not just the four this
+                   probe goes looking for. The probe has twice reported "one
+                   line" about elements the owner cannot even see, because the
+                   thing on screen was a different node than the one matched. */
+                const all = await p.evaluate(() => {
+                  const head = document.querySelector('header#masthead');
+                  const out = [];
+                  head.querySelectorAll('*').forEach((el) => {
+                    const cs = getComputedStyle(el);
+                    const r = el.getBoundingClientRect();
+                    if (cs.display === 'none' || cs.visibility === 'hidden') return;
+                    if (r.width < 8 || r.height < 8) return;
+                    if (el.children.length > 1) return;            // leaves and near-leaves only
+                    const cls = (typeof el.className === 'string' ? el.className : '').trim().split(/\s+/).slice(0,3).join('.');
+                    out.push('y' + Math.round(r.top) + ' x' + Math.round(r.left)
+                      + ' ' + Math.round(r.width) + 'x' + Math.round(r.height)
+                      + ' ' + el.tagName.toLowerCase() + (cls ? '.' + cls : '')
+                      + ' "' + (el.textContent || '').trim().slice(0, 18) + '"');
+                  });
+                  return out;
+                });
+                all.forEach((l) => console.log('          ' + l));
+
+                /* And a picture of it. Numbers have disagreed with the owner's
+                   screen three times now; this is the only way to see what
+                   they see. */
+                if (process.env.SHOT === '1') {
+                  const png = await p.screenshot({ clip: { x: 0, y: 0, width: w, height: 170 }, encoding: 'base64' });
+                  console.log('SHOT' + w + ':' + png);
+                }
+              } catch (e) {
+                console.log(String(w).padStart(4) + 'px  LOAD FAILED: ' + String(e.message).slice(0, 60));
+              }
+              await p.close();
+            }
+            await b.close();
+          })();
+          JS
+          W="${{ github.event.inputs.width }}" U="${{ github.event.inputs.url }}" UA="${{ github.event.inputs.ua }}" SHOT="${{ github.event.inputs.shot }}" CART="${{ github.event.inputs.cart }}" \
+          NODE_PATH=/tmp/afh/node_modules node /tmp/header.js || true

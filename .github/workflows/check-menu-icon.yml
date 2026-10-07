@@ -1,0 +1,62 @@
+name: Check Menu Icon
+# Create the "Corporate Printing" category under Banners & Signage and put it
+# in the header dropdown's submenu. Run with dry_run first: it prints the whole
+# plan, including how the submenu will read afterwards, and writes nothing.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Show what would change, write nothing (run this first)
+        type: boolean
+        default: true
+
+jobs:
+  add:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Send the script up
+        run: |
+          set -uo pipefail
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/diag-menu-icon.php \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-menu-icon.php" \
+            || echo "  scp failed"
+
+      # Two steps with GitHub-side conditions, never a shell test inside the
+      # remote command: a guard expanded on the far side of an ssh is a guard
+      # that does not hold, and this project has already shipped one.
+      - name: Report only
+        if: ${{ inputs.dry_run }}
+        timeout-minutes: 12
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-menu-icon.php --allow-root 2>&1" \
+            || true
+
+      - name: Unused
+        if: ${{ false }}
+        timeout-minutes: 12
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/diag-menu-icon.php --allow-root 2>&1" \
+            || true
