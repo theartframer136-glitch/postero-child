@@ -1,0 +1,70 @@
+name: Cloudflare Check
+# Read-only, before and after moving theartframer.us behind Cloudflare
+# (owner, 7 Oct: "now lets start with cloudflare"). Prints:
+#   - the domain's public DNS records, the mail ones above all, which must be
+#     copied into Cloudflare exactly or email stops;
+#   - who answers the site: Hostinger's CDN, Cloudflare, or the server itself
+#     (Hostinger: only one CDN at a time, so its CDN goes off before Cloudflare);
+#   - whether the deploys' SSH login uses a name Cloudflare's proxy would break
+#     (yes/no only: the value is a secret and is never printed);
+#   - whether Cloudflare's published address ranges still match the list in
+#     functions.php that af_visitor_ip() trusts.
+# Nothing on the site, the server or in DNS is changed.
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: DNS records (public)
+        run: |
+          D=theartframer.us
+          q() { r=$(dig +short "$2" "$1" @1.1.1.1 | tr '\n' ' '); printf '  %-30s %-5s %s\n' "$1" "$2" "${r:-(none)}"; }
+          echo "=== nameservers";  q $D NS
+          echo "=== web";          for n in $D www.$D; do q $n A; q $n AAAA; q $n CNAME; done
+          echo "=== mail";         q $D MX; q $D TXT; q _dmarc.$D TXT
+          for s in default hostingermail1 hostingermail2 hostingermail3 hostingermail-a hostingermail-b hostingermail-c google selector1 selector2 k1 s1 s2 titan1 mail dkim; do
+            r=$( (dig +short TXT $s._domainkey.$D @1.1.1.1; dig +short CNAME $s._domainkey.$D @1.1.1.1) | tr '\n' ' ')
+            [ -n "${r// /}" ] && printf '  DKIM %-24s %s\n' "$s" "$(printf '%s' "$r" | cut -c1-100)"
+          done
+          echo "=== other names (only those that exist)"
+          for n in mail webmail ftp autodiscover autoconfig smtp imap pop shop blog; do
+            for t in A AAAA CNAME; do r=$(dig +short $t $n.$D @1.1.1.1 | tr '\n' ' '); [ -n "$r" ] && printf '  %-30s %-5s %s\n' "$n.$D" "$t" "$r"; done
+          done
+          echo "=== certificate authorities allowed"; q $D CAA
+      - name: Who answers the site
+        run: |
+          for u in https://theartframer.us/ https://www.theartframer.us/ https://theartframer.us/checkout/; do
+            echo "== $u"
+            curl -sS -o /dev/null -D - -m 25 "$u" | tr -d '\r' | grep -iE '^(HTTP/|server:|location:|cf-ray:|cf-cache-status:|x-hcdn|platform:|panel:|x-litespeed-cache:)' || echo "  FAILED"
+          done
+          H=$(curl -sSI -m 25 https://theartframer.us/ | tr -d '\r')
+          if printf '%s\n' "$H" | grep -qi '^cf-ray:'; then echo "VERDICT: behind Cloudflare"
+          elif printf '%s\n' "$H" | grep -qiE '^(x-hcdn|server: hcdn)'; then echo "VERDICT: Hostinger CDN, not Cloudflare"
+          else echo "VERDICT: straight from the server (no CDN in front)"; fi
+      - name: Deploy login (yes/no only; the SSH host is a secret)
+        env:
+          H: ${{ secrets.HOSTINGER_HOST }}
+        run: |
+          if [[ "$H" =~ ^[0-9.]+$ || "$H" == *:*:* ]]; then
+            echo "The deploys log in by IP address: moving the site to Cloudflare does not affect them."
+          else
+            echo "The deploys log in by a name, not an IP address."
+            case "$H" in
+              *theartframer.us) echo "That name is under theartframer.us: in Cloudflare its record must be 'DNS only' (grey cloud), or deploys break." ;;
+              *) echo "That name is not under theartframer.us: moving the site to Cloudflare does not affect it." ;;
+            esac
+          fi
+      - name: Cloudflare's address ranges vs functions.php
+        run: |
+          node tools/print-cloudflare-ips.mjs > /tmp/cf.txt || true
+          awk '/^== api/{exit} /\/[0-9]+$/' /tmp/cf.txt | sort -u > /tmp/theirs.txt
+          sed -n '/^function af_cloudflare_ranges/,/^}/p' functions.php | grep -oE "[0-9a-f.:]+/[0-9]+" | sort -u > /tmp/ours.txt
+          echo "Cloudflare publishes $(wc -l < /tmp/theirs.txt) ranges; functions.php lists $(wc -l < /tmp/ours.txt)."
+          if [ ! -s /tmp/theirs.txt ]; then echo "Could not read Cloudflare's list this time."; cat /tmp/cf.txt
+          elif diff /tmp/ours.txt /tmp/theirs.txt; then echo "SAME: functions.php has Cloudflare's current list."
+          else echo "DIFFERENT (< functions.php, > Cloudflare): af_cloudflare_ranges() needs updating."; fi
