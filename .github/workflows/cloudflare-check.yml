@@ -12,6 +12,11 @@ name: Cloudflare Check
 # Nothing on the site, the server or in DNS is changed.
 on:
   workflow_dispatch:
+  # Also when this file changes on a Claude branch: GitHub only offers the
+  # Run button for workflows already on main, so this is how it first runs.
+  push:
+    branches: [ 'claude/**' ]
+    paths: [ '.github/workflows/cloudflare-check.yml' ]
 permissions:
   contents: read
 jobs:
