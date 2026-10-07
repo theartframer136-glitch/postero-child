@@ -1,0 +1,47 @@
+name: Price Banners
+# Price every product in Banners & Signage at $5.70 per square foot, from the
+# size in its title, its size attribute, or the corporate brochure (page 2).
+# Run with dry_run first: it lists every product and what would happen to it.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: List what would change without writing it (run this first)
+        type: boolean
+        default: true
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Send the script up
+        run: |
+          set -uo pipefail
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/price-banners.php \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/price-banners.php" \
+            || echo "  scp failed — falling back to whatever the last deploy left there"
+
+      - name: Price
+        timeout-minutes: 18
+        run: |
+          set -uo pipefail
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
+              -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             DRY=${{ inputs.dry_run == true && '1' || '0' }} \
+             wp eval-file wp-content/themes/postero-child/tools/price-banners.php --allow-root 2>&1" \
+            || true

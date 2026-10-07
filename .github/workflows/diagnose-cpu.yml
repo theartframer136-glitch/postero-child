@@ -1,0 +1,71 @@
+name: Diagnose CPU (profiling)
+
+# CPU-attribution run: the read-only pass proved page caching is healthy and
+# cron is quiet, yet CPU stays ~470%/600% — and this host exposes no access
+# logs over SSH. So this run installs a tiny request profiler plugin for
+# ~15 minutes (every request it logs is a PHP-burning request — cache HITs
+# never reach PHP), aggregates the log, then deactivates and deletes the
+# plugin and its log. The plugin self-expires after 2h and caps its file at
+# 30MB, so even a failed cleanup cannot leave anything running long-term.
+# Manual only. The push trigger did its job during the investigation; leaving
+# it armed would reinstall the profiler on the live site on every push, which
+# is itself load on a box we are trying to quieten. Re-run it from the Actions
+# tab whenever attribution is needed again.
+on:
+  workflow_dispatch:
+
+# Queue, never cancel: a push must not kill a profiling window mid-collection
+# (the run would also skip its cleanup step).
+concurrency:
+  group: diagnose-cpu
+  cancel-in-progress: false
+
+jobs:
+  profile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Profile PHP requests for 15 minutes
+        timeout-minutes: 25
+        env:
+          H_USER: ${{ secrets.HOSTINGER_USERNAME }}
+          H_HOST: ${{ secrets.HOSTINGER_HOST }}
+          H_PORT: ${{ secrets.HOSTINGER_PORT }}
+        run: |
+          set -uo pipefail
+          SSH="ssh -p ${H_PORT} -i $HOME/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=1500"
+          DOCROOT="~/websites/OPu0sKi4J/public_html"
+
+          OK=0
+          for a in 1 2 3 4; do
+            if ${SSH} "${H_USER}@${H_HOST}" "echo AF-SSH-OK" </dev/null; then OK=1; break; fi
+            echo "SSH refused (attempt $a) — waiting 60s for the throttle..."
+            sleep 60
+          done
+          [ "$OK" = "1" ] || { echo "::error::No SSH after 4 attempts."; exit 1; }
+
+          echo "Installing the temporary profiler plugin..."
+          ${SSH} "${H_USER}@${H_HOST}" "mkdir -p ${DOCROOT}/wp-content/plugins/af-req-profiler && cat > ${DOCROOT}/wp-content/plugins/af-req-profiler/af-req-profiler.php && touch ${DOCROOT}/wp-content/plugins/af-req-profiler/af-req-profiler.php" < ops/diag-profiler-plugin.php
+          ${SSH} "${H_USER}@${H_HOST}" "cd ${DOCROOT} && rm -f wp-content/uploads/af-req-log.txt && wp plugin activate af-req-profiler --allow-root 2>&1" </dev/null
+          ${SSH} "${H_USER}@${H_HOST}" "cat > /tmp/af-diag-agg.php" < ops/diag-agg.php
+
+          echo "Collecting for 15 minutes (the SSH master stays open)..."
+          sleep 900
+
+          echo "── AGGREGATE ────────────────────────────────────────"
+          ${SSH} "${H_USER}@${H_HOST}" "cd ${DOCROOT} && (php /tmp/af-diag-agg.php wp-content/uploads/af-req-log.txt 2>/dev/null || php82 /tmp/af-diag-agg.php wp-content/uploads/af-req-log.txt 2>/dev/null || /usr/bin/php /tmp/af-diag-agg.php wp-content/uploads/af-req-log.txt)" </dev/null || echo "(aggregation failed)"
+
+          echo "── CLEANUP ──────────────────────────────────────────"
+          ${SSH} "${H_USER}@${H_HOST}" "cd ${DOCROOT} && wp plugin deactivate af-req-profiler --allow-root 2>&1; rm -rf wp-content/plugins/af-req-profiler wp-content/uploads/af-req-log.txt /tmp/af-diag-agg.php; echo 'profiler removed'" </dev/null
+          ${SSH} -O exit "${H_USER}@${H_HOST}" 2>/dev/null || true
+          echo "Profiling complete."

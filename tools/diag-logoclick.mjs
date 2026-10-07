@@ -1,0 +1,101 @@
+/**
+ * Clicking the site logo opens the Digital Download modal instead of going
+ * home. This reports WHICH branch of the modal's trigger detection claims the
+ * logo: the selector match, or the "walk up four levels and compare the
+ * stripped text to digitaldownload" fallback - and what that text actually is.
+ */
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const puppeteer = require('puppeteer-core');
+
+const URL_ = process.env.AF_URL || 'https://theartframer.us/product-category/digital-downloads-2/';
+const b = await puppeteer.launch({ channel: 'chrome', headless: 'new',
+  args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] });
+const p = await b.newPage();
+await p.setViewport({ width: 1280, height: 900 });
+let ok = false;
+for (let i = 1; i <= 3 && !ok; i++) {
+  try { await p.goto(URL_, { waitUntil: 'domcontentloaded', timeout: 90000 }); ok = true; }
+  catch { await new Promise((r) => setTimeout(r, 4000)); }
+}
+if (!ok) { console.log('could not load'); await b.close(); process.exit(0); }
+await new Promise((r) => setTimeout(r, 9000));
+for (let i = 0; i < 6; i++) {
+  let blocked = false;
+  try { blocked = await p.evaluate(() => document.body.innerText.includes('Checking your browser')); } catch {}
+  if (!blocked) break;
+  await new Promise((r) => setTimeout(r, 3000));
+  try { await p.reload({ waitUntil: 'domcontentloaded', timeout: 60000 }); } catch {}
+  await new Promise((r) => setTimeout(r, 6000));
+}
+await p.evaluate(() => {
+  const a = document.getElementById('af-ck-accept'); if (a) a.click();
+  ['#afOverlay', '#af-consent', '.af-overlay'].forEach((s) => document.querySelectorAll(s).forEach((e) => e.remove()));
+});
+await new Promise((r) => setTimeout(r, 800));
+
+console.log('url: ' + p.url());
+console.log(await p.evaluate(() => {
+  const logo = document.querySelector('.custom-logo-link, .elementor-widget-site-logo a, .hfe-site-logo a, .site-logo a, [class*="site-logo"] a, header a[href$="/"], header a[href*="theartframer"]');
+  if (!logo) return 'no logo link found';
+  const label = (e) => e ? (e.tagName.toLowerCase() + (e.id ? '#' + e.id : '') + '.' + String(e.className || '').split(/\s+/).filter(Boolean).slice(0, 3).join('.')) : '(none)';
+  const target = logo.querySelector('img') || logo;     // a real click lands on the image
+  const out = { logo: label(logo), href: logo.getAttribute('href'), clickTargetWouldBe: label(target) };
+  // branch 1: the selector
+  const SEL = '.digital-download, .digital-download-btn, [class*="digital-download"], [data-digital-download]';
+  const hit = target.closest(SEL);
+  out.selectorMatch = hit ? label(hit) : '(no match)';
+  // branch 2: the four-level text walk
+  const walk = [];
+  let node = target;
+  for (let i = 0; i < 4 && node && node !== document.body; i++) {
+    const txt = (node.textContent || '').replace(/[^a-z]/gi, '').toLowerCase();
+    walk.push({ el: label(node), strippedText: txt.slice(0, 60), matches: txt === 'digitaldownload' });
+    node = node.parentElement;
+  }
+  out.textWalk = walk;
+  const CARD_SEL = '.product-card, li.product, .product, .product-block, [class*="product-block"]';
+  const trg = hit || (walk.find((w) => w.matches) ? 'text-walk' : null);
+  out.wouldTrigger = !!trg;
+  out.cardFromLogo = label(target.closest(CARD_SEL));
+  return JSON.stringify(out, null, 1).replace(/\n\s*/g, ' ');
+}));
+
+// and what actually happens
+const before = p.url();
+await p.evaluate(() => { const o = document.getElementById('af-dd-overlay'); if (o) o.classList.remove('open'); });
+// A real p.click() needs a layout box, and the header logo anchor often has
+// none in headless. Dispatch the click on the element itself and read
+// defaultPrevented - that IS the question: was the navigation cancelled?
+const clicked = await p.evaluate(() => {
+  const logo = document.querySelector('.custom-logo-link, .elementor-widget-site-logo a, .hfe-site-logo a, .site-logo a, [class*="site-logo"] a, header a[href="https://theartframer.us"]');
+  if (!logo) return { err: 'no logo' };
+  const target = logo.querySelector('img') || logo;
+  const ev = new MouseEvent('click', { bubbles: true, cancelable: true });
+  target.dispatchEvent(ev);
+  return { prevented: ev.defaultPrevented,
+    ddOpen: document.getElementById('af-dd-overlay').classList.contains('open'),
+    href: logo.getAttribute('href') };
+});
+console.log('logo click: ' + JSON.stringify(clicked));
+// A working logo really navigates, which destroys the execution context - so
+// wait for that rather than letting the next evaluate throw. The navigation IS
+// the result: it means nothing cancelled the click.
+let navigated = false;
+try { await p.waitForNavigation({ timeout: 8000, waitUntil: 'domcontentloaded' }); navigated = true; }
+catch { /* no navigation: the assertions below say whether that is a fault */ }
+await new Promise((r) => setTimeout(r, 1200));
+let after = { ddOpen: false, url: p.url() };
+try {
+  after = await p.evaluate(() => ({
+    ddOpen: !!(document.getElementById('af-dd-overlay') || {}).classList?.contains('open'),
+    url: location.href,
+  }));
+} catch { /* navigated away mid-read; p.url() above is the answer */ }
+console.log('before: ' + before);
+console.log('after clicking the logo: ' + JSON.stringify(after));
+const P = (ok2, what) => console.log((ok2 ? 'PASS' : 'FAIL') + ': ' + what);
+P(!clicked.ddOpen && !after.ddOpen, 'the Digital Download modal does not open from the logo');
+P(clicked.prevented === false, 'the logo click is not cancelled');
+P(navigated || after.url !== before, 'and the browser actually went there: ' + after.url);
+await b.close();

@@ -1,0 +1,48 @@
+name: Fix Links
+# The two content fixes from the audit: the hero slider's localhost buttons,
+# and the empty-href buttons on Login and Sign-up. Database only, no deploy.
+# Run with dry_run first.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Show what would change, write nothing (run this first)
+        type: boolean
+        default: true
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Send the scripts up
+        run: |
+          set -uo pipefail
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/fix-localhost.php tools/fix-empty-hrefs.php \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/"
+      - name: Report only
+        if: ${{ inputs.dry_run }}
+        run: |
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && DRY=1 wp eval-file wp-content/themes/postero-child/tools/fix-localhost.php --allow-root 2>&1 | grep -v _load_textdomain; echo; DRY=1 wp eval-file wp-content/themes/postero-child/tools/fix-empty-hrefs.php --allow-root 2>&1 | grep -v _load_textdomain" || true
+      - name: Apply
+        if: ${{ !inputs.dry_run }}
+        run: |
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+            "cd ~/websites/OPu0sKi4J/public_html && wp eval-file wp-content/themes/postero-child/tools/fix-localhost.php --allow-root 2>&1 | grep -v _load_textdomain; echo; wp eval-file wp-content/themes/postero-child/tools/fix-empty-hrefs.php --allow-root 2>&1 | grep -v _load_textdomain" || true
+      - name: Verify from outside
+        if: ${{ !inputs.dry_run }}
+        run: |
+          sleep 20
+          echo "localhost links on the live homepage : $(curl -sS -m 30 https://theartframer.us/ | grep -o 'localhost\\\\\?/wordpress' | wc -l)   (want 0)"
+          echo "empty hrefs on /login/               : $(curl -sS -m 30 https://theartframer.us/login/ | grep -oE 'href=\"\"' | wc -l)"
+          echo "empty hrefs on /sign-up/             : $(curl -sS -m 30 https://theartframer.us/sign-up/ | grep -oE 'href=\"\"' | wc -l)"

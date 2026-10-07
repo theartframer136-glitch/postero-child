@@ -1,0 +1,30 @@
+name: Inspect What Is Painted
+
+# Computed styles say the buttons are styled; the owner says they are not there.
+# Both can be true — an ancestor at opacity 0 lets every child report perfect
+# styles while nothing reaches the screen. This screenshots the hovered card,
+# reads the picture back through a canvas, and reports the colour actually
+# painted at each button's centre, plus any ancestor dimming it. Read-only.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Listing page to test
+        default: https://theartframer.us/product-category/digital-canvas-prints/
+      width:
+        description: Viewport width
+        default: '1280'
+
+jobs:
+  paint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Hover a card and read the pixels
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afhead/node_modules node tools/diag-paint.js \
+            "${{ inputs.url }}" "${{ inputs.width }}" || true

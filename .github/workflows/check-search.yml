@@ -1,0 +1,96 @@
+name: Check Search
+
+# Does searching an art code find the piece?
+#
+# The owner recorded "RK - 0118" returning "Nothing Found" on 2026-09-09. This
+# asks the live site the same question in the same way, in about a minute, and
+# in several spellings — because a fix that only works when the code is typed
+# with the exact spacing shown on the card is not a fix.
+#
+# Read-only: it fetches search pages. Nothing is written and no SSH is used.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  search:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Search the live site for art codes
+        run: |
+          set -uo pipefail
+          UA='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36'
+          # Codes seen on the owner's own screenshots, plus the spellings a
+          # customer would actually type for one of them.
+          # The trailing two are probes, not art codes: an explicit post_type
+          # takes a different path through the module (it leaves such a query
+          # untouched), so if those render and the plain ones redirect, the
+          # fault is in what this theme does to a plain search.
+          for q in 'RK - 0118' 'RK-0118' 'rk0118' 'PA - 1201' 'WL - 1716' 'Krishna' 'Blue' \
+                   'Krishna&post_type=product' 'Krishna&post_type=post'; do
+            # Split "term&post_type=x" into the term (encoded) and the rest
+            # (passed through), in bash — an embedded multi-line python -c
+            # breaks the YAML block this whole script lives in.
+            term="${q%%&*}"
+            rest=""
+            case "$q" in *"&"*) rest="&${q#*&}";; esac
+            enc=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote_plus(sys.argv[1]))" "$term")
+            enc="${enc}${rest}"
+            # Who issues the redirect, before following it. The plain search
+            # and the explicit post_type=product search BOTH land on the home
+            # page, and the module does not touch the second — so the redirect
+            # is not the theme's search code. The status and Location say
+            # whether it comes from WordPress or from the server in front of it.
+            curl -sS --max-time 60 -o /dev/null -D /tmp/hdr.txt \
+                 -H "User-Agent: ${UA}" "https://theartframer.us/?s=${enc}" || true
+            code=$(head -1 /tmp/hdr.txt | tr -d '\r')
+            loc=$(grep -i '^location:' /tmp/hdr.txt | head -1 | tr -d '\r' || true)
+            srv=$(grep -i '^\(server\|x-litespeed-cache\|x-redirect-by\):' /tmp/hdr.txt | tr -d '\r' | tr '\n' ' ' || true)
+            echo "               first response: ${code}  ${loc:-(no Location)}  ${srv}"
+            got=''
+            for try in 1 2 3; do
+              # -L matters more than it looks: this site redirects a search URL
+              # (trailing slash, currency cookie), and curl WITHOUT -L returns
+              # the empty body of the 301 and exits 0. Every page the previous
+              # run measured was zero bytes, which reads as "no products found"
+              # and is really "no page fetched".
+              # No cache-busting parameter on the URL. With one, every query
+              # came back as the same 956KB homepage: an unknown query arg sends
+              # this site's cache or a plugin to "/" instead of the search page.
+              # A no-cache header asks the same thing without touching the URL.
+              if curl -fsSL --max-time 60 -H "User-Agent: ${UA}" \
+                   -H 'Cache-Control: no-cache' -H 'Pragma: no-cache' \
+                   -w "               landed on: %{url_effective} (%{http_code}, %{num_redirects} redirects)\n" \
+                   -o /tmp/s.html "https://theartframer.us/?s=${enc}"; then
+                got=1; break
+              fi
+              sleep 8
+            done
+            if [ -z "$got" ]; then
+              echo "  '$q' -> host did not answer after 3 tries"
+              continue
+            fi
+            python3 - "$q" <<'PY'
+          import re, sys
+          h = open('/tmp/s.html', encoding='utf-8', errors='replace').read()
+          q = sys.argv[1]
+          nothing = 'Nothing Found' in h or 'nothing matched your search' in h.lower()
+          # Any /product/ link, however the permalink is written — absolute,
+          # protocol-relative or root-relative. The first version of this check
+          # demanded the full https://theartframer.us/ form and reported zero
+          # products for every query including ones that plainly had results,
+          # which measured the pattern rather than the page.
+          prods = set(re.findall(r'/product/([a-z0-9][a-z0-9\-]{2,})/', h))
+          heads = [re.sub(r'<[^>]+>', '', x).strip()[:60]
+                   for x in re.findall(r'<h2[^>]*>(.{0,300}?)</h2>', h, re.S)][:3]
+          print("  %-12s %-14s bytes:%-8d products:%-3d %s" % (
+              repr(q), 'NOTHING FOUND' if nothing else 'has results',
+              len(h), len(prods), ('e.g. ' + sorted(prods)[0]) if prods else ''))
+          if heads:
+              print("               headings: " + ' | '.join(h2 for h2 in heads if h2))
+          PY
+          done
+          echo ""
+          echo "A line reading NOTHING FOUND with 0 products is the bug still present."

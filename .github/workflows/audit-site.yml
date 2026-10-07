@@ -1,0 +1,41 @@
+name: Audit Site
+
+# Two read-only passes over the live shop:
+#   links — crawl it, report every dead link, redirect chain and dead href,
+#           and check the navigation menus by name
+#   perf  — load the key pages in a real Chrome and separate "the server is
+#           slow" from "the page is heavy", which need opposite fixes
+#
+# Manual only. This host is CPU-bound; the crawl runs three at a time with a
+# pause between waves for that reason.
+
+on:
+  workflow_dispatch:
+    inputs:
+      pass:
+        description: Which pass to run
+        type: choice
+        options: [both, links, perf]
+        default: both
+      max_pages:
+        description: Link crawl — how many pages at most
+        type: string
+        default: '160'
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Links and navigation
+        if: ${{ inputs.pass == 'both' || inputs.pass == 'links' }}
+        run: node tools/audit-links.mjs "https://theartframer.us" "${{ inputs.max_pages }}" || true
+
+      - name: Performance
+        if: ${{ inputs.pass == 'both' || inputs.pass == 'perf' }}
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afhead/node_modules node tools/audit-perf.mjs "https://theartframer.us" || true

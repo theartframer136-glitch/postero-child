@@ -1,0 +1,508 @@
+#!/usr/bin/env python3
+"""
+Product content generator for The Art Framer.
+
+Turns a small product spec (subject, size, price, etc.) into a full WooCommerce
+product payload — title + long HTML description in the learned house style +
+categories + SEO meta — matching STYLE_SPEC.md.
+
+Two narrative modes:
+  - If ANTHROPIC_API_KEY is set, Claude writes the unique narrative paragraphs.
+  - Otherwise a solid templated narrative is used (zero cost), so this always runs.
+
+The reusable boilerplate (spec table, care block, FAQ accordion, contact info)
+is constant across products, exactly as observed in the existing catalog.
+"""
+
+import os
+import re
+import textwrap
+
+# --- Business constants (from the existing catalog) ------------------------- #
+PHONE = "+1 (610) 470-7280"
+EMAIL = "theartframer136@gmail.com"
+LOCATION = "Delaware, USA"
+FREE_DELIVERY = "Delaware, Pennsylvania, Maryland, New Jersey & nearby areas"
+
+FRAME_OPTIONS = ["Floating Frame", "Fibre Frame", "Aluminium Frame",
+                 "Golden Frame", "Rose Gold Frame", "Silver Frame",
+                 "White Frame", "Wooden Frame"]
+COLOR_OPTIONS = ["Black", "Silver", "Gold", "Rose Gold", "White", "Wooden"]
+
+# ---- Variation options (what the customer selects) + pricing rules ---------- #
+FRAME_VARIATION = ["No Frame", "Classic Oak",
+                   "Aluminium Premium Black", "Aluminium Premium White"]
+COLOUR_VARIATION = ["Black", "Golden", "Silver", "Rose Gold"]
+FRAME_SURCHARGE = {  # USD added on top of the size base price
+    "No Frame": 0, "Classic Oak": 25, "Wooden": 25, "Floating Frame": 50,
+    "Aluminium Premium Black": 40, "Aluminium Premium Silver": 40,
+    "Aluminium Premium White": 40,
+}
+
+
+def _area_sq_inches(size):
+    nums = re.findall(r"[\d.]+", size or "")
+    if len(nums) < 2:
+        return 1728.0  # ~36x48
+    a, b = float(nums[0]), float(nums[1])
+    if "feet" in (size or "").lower() or "ft" in (size or "").lower():
+        a, b = a * 12, b * 12
+    return a * b
+
+
+def size_base_price(size):
+    """Base price by canvas area (calibrated so 36x48 in ≈ $179)."""
+    return round(49 + _area_sq_inches(size) * 0.075)
+
+
+def build_variations(spec):
+    """Every Size x Frame x Colour combination, priced by size + frame surcharge.
+    (Colour does not change price.)"""
+    import itertools
+    sizes = spec.get("sizes", [spec["size"]])
+    frames = spec.get("frames", FRAME_VARIATION)
+    colours = spec.get("colours", COLOUR_VARIATION)
+    variations = []
+    for size, frame, colour in itertools.product(sizes, frames, colours):
+        price = size_base_price(size) + FRAME_SURCHARGE.get(frame, 0)
+        variations.append({
+            "regular_price": str(price),
+            "attributes": [
+                {"name": "Size", "option": size},
+                {"name": "Frame", "option": frame},
+                {"name": "Colour", "option": colour},
+            ],
+        })
+    return variations
+
+
+# --------------------------------------------------------------------------- #
+# Title
+# --------------------------------------------------------------------------- #
+def build_title(spec):
+    """e.g. 'Ganesha Canvas Wall Art 36x48 Inches – Floating Frame – ...'"""
+    parts = [
+        f"{spec['subject']} Canvas Wall Art {spec['size']}",
+        spec.get("frame_label", "Floating Frame"),
+        spec.get("style", "Premium Digital Canvas Print"),
+        spec.get("use_case", "Pooja Room & Living Room Spiritual Wall Décor"),
+    ]
+    return " – ".join(p for p in parts if p)
+
+
+# --------------------------------------------------------------------------- #
+# Narrative — AI if available, else template
+# --------------------------------------------------------------------------- #
+def _ai_narrative(spec):
+    """Use Claude to write the unique intro/highlights/symbolism paragraphs."""
+    import anthropic  # imported lazily so the template path needs no install
+
+    client = anthropic.Anthropic()  # reads ANTHROPIC_API_KEY from env
+    prompt = textwrap.dedent(f"""
+        You are writing the unique narrative section of a product description for
+        The Art Framer, a premium Hindu/Indian devotional canvas wall-art store.
+
+        Product: {spec['subject']} canvas wall art, size {spec['size']}.
+        Voice: warm, devotional, premium, emotionally evocative; blend spiritual
+        symbolism with interior-decor and gifting angles. Match this structure and
+        return ONLY valid HTML (no markdown, no code fences):
+
+        - 2-3 <p> intro paragraphs (emotional + spiritual hook; mention colors,
+          symbolism, the subject).
+        - <h4>Product Highlights</h4> then a <ul> of 5 <li> bullets (material,
+          fade-resistant inks, gallery-wrapped/ready to hang, sizes, placement).
+        - <h4>This artwork is suitable for:</h4> then a <ul> of 4 decor styles.
+        - <h4>This artwork represents:</h4> then a <ul> of 5 symbolic meanings.
+        - <h4>Why Choose This Artwork?</h4> then 1 <p>.
+
+        Keep it ~450-550 words. Do not include FAQs, care instructions, spec
+        tables, or contact info — those are added separately.
+    """).strip()
+
+    msg = client.messages.create(
+        model="claude-opus-4-8",
+        max_tokens=2000,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    return msg.content[0].text.strip()
+
+
+def _template_narrative(spec):
+    subject = spec["subject"]
+    size = spec["size"]
+    return textwrap.dedent(f"""\
+        <p>Bring divine grace and serene beauty into your home with this {subject}
+        Canvas Wall Art. Thoughtfully designed to capture spiritual depth and
+        emotional warmth, the artwork radiates positivity and calm in any space it
+        graces.</p>
+        <p>Rich, harmonious colors and elegant detailing create an authentic
+        devotional presence, making the piece feel like a true blessing within your
+        home. It enhances meditation, prayer, and peaceful vibrations in your
+        surroundings.</p>
+        <p>Printed on premium high-definition cotton-blend canvas with fade-resistant
+        archival inks, the {subject} artwork maintains its clarity and brilliance for
+        years, arriving gallery-wrapped and ready to hang.</p>
+        <h4>Product Highlights</h4>
+        <ul>
+        <li>Premium cotton-blend canvas — soft texture, museum quality</li>
+        <li>Fade-resistant archival inks — stays vibrant for decades</li>
+        <li>Gallery-wrapped with mirrored edges — ready to hang out of the box</li>
+        <li>Available in multiple sizes including {size}</li>
+        <li>Perfect for living rooms, bedrooms, pooja rooms, and offices</li>
+        </ul>
+        <h4>This artwork is suitable for:</h4>
+        <ul>
+        <li>Modern spiritual décor</li>
+        <li>Traditional Indian interiors</li>
+        <li>Symbolic devotional artwork</li>
+        <li>Vibrant color compositions</li>
+        </ul>
+        <h4>This artwork represents:</h4>
+        <ul>
+        <li>Divine blessings</li>
+        <li>Peace and positivity</li>
+        <li>Spiritual connection</li>
+        <li>Artistic expression</li>
+        <li>Prosperity and harmony</li>
+        </ul>
+        <h4>Why Choose This Artwork?</h4>
+        <p>Choosing this {subject} canvas means selecting a piece that blends timeless
+        spiritual symbolism with premium craftsmanship — meaningful, beautiful, and
+        built to last, and a thoughtful gift for any auspicious occasion.</p>""")
+
+
+def build_narrative(spec):
+    if os.getenv("ANTHROPIC_API_KEY"):
+        try:
+            return _ai_narrative(spec)
+        except Exception as e:  # fall back rather than fail the whole run
+            print(f"  [warn] AI narrative failed ({e}); using template.")
+    return _template_narrative(spec)
+
+
+# --------------------------------------------------------------------------- #
+# Reusable boilerplate (constant)
+# --------------------------------------------------------------------------- #
+def _spec_table(spec):
+    sizes = "".join(f"<li>{s}</li>" for s in spec.get("sizes", [spec["size"]]))
+    colors = "".join(f"<li>{c}</li>" for c in COLOR_OPTIONS)
+    return textwrap.dedent(f"""\
+        <table style="width:100%;border-collapse:collapse;font-family:Arial,sans-serif;font-size:14px;">
+        <tbody>
+        <tr><td style="border:1px solid #ddd;padding:10px;font-weight:bold;width:35%;background-color:#f7f7f7;">Type</td>
+        <td style="border:1px solid #ddd;padding:10px;">Digital Canvas Printing</td></tr>
+        <tr><td style="border:1px solid #ddd;padding:10px;font-weight:bold;background-color:#f7f7f7;">Multiple Framing Options</td>
+        <td style="border:1px solid #ddd;padding:10px;">Fibre, Wooden, Aluminium</td></tr>
+        <tr><td style="border:1px solid #ddd;padding:10px;font-weight:bold;background-color:#f7f7f7;">Multiple Sizes Available</td>
+        <td style="border:1px solid #ddd;padding:10px;"><ul>{sizes}</ul></td></tr>
+        <tr><td style="border:1px solid #ddd;padding:10px;font-weight:bold;background-color:#f7f7f7;">Multiple Colours Available</td>
+        <td style="border:1px solid #ddd;padding:10px;"><ul>{colors}</ul></td></tr>
+        <tr><td style="border:1px solid #ddd;padding:10px;font-weight:bold;background-color:#f7f7f7;">DIY Collection (Easy Assembly)</td>
+        <td style="border:1px solid #ddd;padding:10px;">Includes canvas rolled print, stretcher bars, hanging accessories, screws, plier, frame &amp; accessories <em>(if ordered)</em></td></tr>
+        </tbody>
+        </table>""")
+
+
+def _frame_and_care():
+    frames = "".join(f"<li>{f}</li>" for f in FRAME_OPTIONS)
+    return textwrap.dedent(f"""\
+        <h4>Frame &amp; Finish Details</h4>
+        <p>This artwork is available with multiple premium frame options to suit
+        various interior preferences.</p>
+        <ul>{frames}</ul>
+        <h4>Finish Quality</h4>
+        <p>The canvas features a matte textured finish, which offers reduced glare,
+        enhanced color depth, realistic texture, and long-term durability.</p>
+        <h4>Care Instructions</h4>
+        <ul>
+        <li>Dust regularly with a soft, dry cloth.</li>
+        <li>Avoid continuous exposure to direct sunlight to preserve color brightness.</li>
+        <li>Keep away from moisture for long-lasting vibrancy.</li>
+        </ul>""")
+
+
+_FAQ = f"""\
+<h2>Frequently Asked Questions</h2>
+<details class="afaq-item"><summary class="afaq-question">What is canvas wall art made of?</summary>
+<p class="afaq-answer">Our canvas wall art is made using premium, high-density artist-grade canvas combined with durable wooden or metal frames, ensuring vibrant color reproduction and a premium gallery-style finish.</p></details>
+<details class="afaq-item"><summary class="afaq-question">Is digital canvas printing long-lasting?</summary>
+<p class="afaq-answer">Yes. Produced with fade-resistant pigment inks and premium canvas, our prints maintain their color vibrancy for many years under normal indoor conditions.</p></details>
+<details class="afaq-item"><summary class="afaq-question">Does canvas wall art fade over time?</summary>
+<p class="afaq-answer">Our prints use advanced fade-resistant inks. Kept away from direct sunlight and moisture, the artwork retains its richness for years.</p></details>
+<details class="afaq-item"><summary class="afaq-question">Is canvas wall art a good gift option?</summary>
+<p class="afaq-answer">Absolutely — it is an excellent choice for housewarmings, weddings, festivals, birthdays, and special occasions.</p></details>
+<details class="afaq-item"><summary class="afaq-question">What is your customer support contact number?</summary>
+<p class="afaq-answer">Reach our team at {PHONE} for product inquiries, order tracking, and customization support.</p></details>
+<details class="afaq-item"><summary class="afaq-question">What is your customer support email address?</summary>
+<p class="afaq-answer">Email us at {EMAIL} for product inquiries, bulk orders, or support questions.</p></details>
+<details class="afaq-item"><summary class="afaq-question">Do you provide WhatsApp support?</summary>
+<p class="afaq-answer">Yes — message us on WhatsApp at {PHONE} for quick assistance with product selection and orders.</p></details>
+<details class="afaq-item"><summary class="afaq-question">Where is your canvas printing business located?</summary>
+<p class="afaq-answer">We operate from {LOCATION} and deliver across multiple locations.</p></details>
+<details class="afaq-item"><summary class="afaq-question">Which areas are eligible for free delivery?</summary>
+<p class="afaq-answer">Free delivery is available in {FREE_DELIVERY}.</p></details>"""
+
+
+# --------------------------------------------------------------------------- #
+# Pricing
+# --------------------------------------------------------------------------- #
+SIZE_PRICE = {  # USD, deterministic by size; tune freely
+    "20x30": 89.0, "30x40": 129.0, "40x50": 179.0, "50x70": 249.0,
+}
+
+
+def price_for(spec):
+    if spec.get("price"):
+        return str(spec["price"])
+    return str(SIZE_PRICE.get(spec.get("size", ""), 140.0))
+
+
+# --------------------------------------------------------------------------- #
+# Assemble full product
+# --------------------------------------------------------------------------- #
+def _orientation(size):
+    """Sizes are written height x width (e.g. '36x60'); decide orientation."""
+    nums = re.findall(r"\d+", size or "")
+    if len(nums) >= 2:
+        h, w = int(nums[0]), int(nums[1])
+        return "Landscape" if w > h else ("Portrait" if h > w else "Square")
+    return "Portrait"
+
+
+def _theme(subject):
+    s = subject.lower()
+    devotional = ["krishna", "ganesh", "shiva", "ram", "buddha", "lakshmi", "balaji",
+                  "hanuman", "durga", "sai", "guru", "sikh", "venkatesw", "swaminarayan",
+                  "shiv", "vishnu", "saraswati", "kali", "ganpati", "radha"]
+    return "Spiritual / Devotional" if any(k in s for k in devotional) else "Artistic"
+
+
+_ADDITIONAL_INFO = """<strong>Additional Information </strong>
+<table style="width: 100%; border-collapse: collapse; font-family: Arial, sans-serif; font-size: 14px;">
+<tbody>
+<tr>
+<td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; width: 35%; background-color: #f7f7f7;">Manufacturer</td>
+<td style="border: 1px solid #ddd; padding: 10px;">The Art Framer</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; background-color: #f7f7f7;">Packer</td>
+<td style="border: 1px solid #ddd; padding: 10px;">The Art Framer</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; background-color: #f7f7f7;">Item Weight</td>
+<td style="border: 1px solid #ddd; padding: 10px;">Approx. 2 – 4 kg (Depending on Size &amp; Frame Type)</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; background-color: #f7f7f7;">Net Quantity</td>
+<td style="border: 1px solid #ddd; padding: 10px;">1 Piece</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; background-color: #f7f7f7;">Generic Name</td>
+<td style="border: 1px solid #ddd; padding: 10px;">Canvas Printed Wall Frame</td>
+</tr>
+<tr>
+<td style="border: 1px solid #ddd; padding: 10px; font-weight: bold; background-color: #f7f7f7;">Best Sellers Rank</td>
+<td style="border: 1px solid #ddd; padding: 10px;">#Trending in Home Decor &amp; Wall Art</td>
+</tr>
+</tbody>
+</table>"""
+
+
+def build_technical_specs(spec):
+    """HTML for the '_technical_specs' custom field — intro line + the 4-column
+    spec table + the Additional Information table, matching the catalog exactly."""
+    subject = spec["subject"]
+    size = spec.get("size", "")
+    cats = spec.get("categories", ["Digital Canvas Prints"])
+    category = next((c for c in cats if c not in
+                     ("Digital Canvas Prints", "Art Accessories")), cats[0])
+    sku = spec.get("sku", "") or "—"
+
+    intro = (f"Bring home the divine beauty of this <strong>{subject} Canvas Wall Art "
+             f"({size})</strong>. A perfect blend of devotion, style, and meaningful décor.")
+
+    pairs = [
+        ("Original", "Yes"), ("Brand", "The Art Framer"),
+        ("Category", category), ("Type", "Canvas Wall Art"),
+        ("Material", "Premium Canvas"), ("Support Base", "Canvas"),
+        ("Print Method", "XYZ Colour Digital Printing"), ("Ink Type", "Eco-Friendly Ink"),
+        ("Frame Type", "Custom Frame Available"), ("Orientation", _orientation(size)),
+        ("Shape", "Rectangular / Square"), ("Colour", "Multicolor"),
+        ("Use / Room Type", "Living Room / Bedroom / Puja Room"), ("Indoor / Outdoor", "Indoor"),
+        ("Selling Unit", "Single Piece"), ("Sample", "Provided"),
+        ("OEM / ODM", "Available"), ("Product Weight", "—"),
+        ("Product Size", size or "—"), ("Product Dimension", "—"),
+        ("Number of Items", "1"), ("Theme", _theme(subject)),
+        ("Recommended Use", "Home / Office Decoration"), ("Wall Art Form", "Canvas Wall Art"),
+        ("Style", "Modern"), ("Colour Family", "Multicolor"),
+        ("Age Range", "All Ages"), ("Pattern", "Artistic"),
+        ("Special Feature", "Fade Resistant Print"), ("Frame Material", "Wood / Fibre / Aluminium"),
+        ("Mounting Type", "Wall Mount"), ("Finish Type", "Matte / Glossy"),
+        ("Is Framed", "Yes"), ("Manufacturer", "The Art Framer"),
+        ("Country Of Origin", "India"), ("Item Part Number", sku),
+        ("ASIN", "Not Applicable"), ("", ""),
+    ]
+    lbl = "width: 25%; border: 1px solid #ddd; padding: 10px; font-weight: bold;"
+    val = "width: 25%; border: 1px solid #ddd; padding: 10px;"
+    rows = []
+    for i in range(0, len(pairs), 2):
+        bg = ' style="background: #f5f5f5;"' if (i // 2) % 2 == 0 else ""
+        cells = ""
+        for l, v in pairs[i:i + 2]:
+            if l == "":
+                cells += f'\n<td style="{val}"></td>\n<td style="{val}"></td>'
+            else:
+                cells += f'\n<td style="{lbl}">{l}</td>\n<td style="{val}">{v}</td>'
+        rows.append(f"<tr{bg}>{cells}\n</tr>")
+    table = ('<table style="width: 100%; border-collapse: collapse; table-layout: fixed; '
+             'font-family: Arial, sans-serif; font-size: 14px;">\n<tbody>\n'
+             + "\n".join(rows) + "\n</tbody>\n</table>")
+    return intro + "\n" + table + "\n" + _ADDITIONAL_INFO
+
+
+def build_tags(spec):
+    """Sensible tags derived from the subject + standard store tags."""
+    subject = spec["subject"]
+    tags = [
+        subject,
+        f"{subject} canvas",
+        f"{subject} wall art",
+        "canvas wall art",
+        "wall decor",
+        "spiritual wall art",
+        "home decor",
+    ]
+    tags += spec.get("tags", [])  # any extra tags from the CSV
+    seen, out = set(), []
+    for t in tags:                # de-dupe, preserve order
+        if t.lower() not in seen:
+            seen.add(t.lower())
+            out.append(t)
+    return out
+
+
+# Reusable images embedded in every product description (found on 43-48 products).
+CARE_IMG = "https://theartframer.us/wp-content/uploads/2026/02/wall-art-care-202604031610-69cf9a2f4de25.webp"
+COLLECTIONS_IMG = "https://theartframer.us/wp-content/uploads/2026/02/10-1-69d648860cb9e.webp"
+
+
+def _frame_showcase_block(spec):
+    """Embed a framed view (AI/mockup/composited) in the description."""
+    urls = spec.get("gallery_urls") or []
+    frame_img = urls[1] if len(urls) >= 3 else ""
+    if not frame_img:
+        return ""
+    subject = spec["subject"]
+    return (f"<h4>Frame Options</h4>\n"
+            f"<p>Choose from premium frame finishes to match your interior.</p>\n"
+            f'<p><img src="{frame_img}" alt="{subject} framed canvas wall art" '
+            f'width="1500" height="1500" /></p>')
+
+
+def _placement_block(spec):
+    """Product-specific placement image — the room scene (last gallery image)."""
+    urls = spec.get("gallery_urls") or []
+    room = urls[-1] if len(urls) >= 3 else (urls[0] if urls else "")
+    if not room:
+        return ""
+    subject = spec["subject"]
+    return (f"<h4>Placement Ideas</h4>\n"
+            f"<p>This {subject} canvas enhances living rooms, bedrooms, pooja rooms, "
+            f"and office spaces with its elegant presence.</p>\n"
+            f'<p><img src="{room}" alt="{subject} canvas wall art placement" '
+            f'width="1500" height="1500" /></p>')
+
+
+def _care_image_block():
+    return (f'<p><img src="{CARE_IMG}" alt="canvas wall art care instructions" '
+            f'width="1376" height="768" /></p>')
+
+
+def _collections_block():
+    return (f"<h3>Other Collections</h3>\n"
+            f'<p><img src="{COLLECTIONS_IMG}" alt="The Art Framer Other Canvas Collections" '
+            f'width="1536" height="839" /></p>')
+
+
+def build_product(spec):
+    """Return a WooCommerce-ready product dict (minus image URLs)."""
+    description = "\n".join(filter(None, [
+        build_narrative(spec),
+        _spec_table(spec),
+        _frame_showcase_block(spec),
+        _placement_block(spec),
+        _frame_and_care(),
+        _care_image_block(),
+        _collections_block(),
+        _FAQ,
+    ]))
+    short = (f"<p>Premium {spec['subject']} canvas wall art ({spec['size']}), "
+             f"gallery-wrapped and ready to hang. Fade-resistant archival inks, "
+             f"museum-quality canvas. Multiple frames & sizes available.</p>")
+
+    focus_kw = spec.get("focus_keyword",
+                        f"{spec['subject']} canvas wall art".lower())
+    categories = [{"name": c} for c in spec.get("categories",
+                  ["Digital Canvas Prints"])]
+    tags = [{"name": t} for t in build_tags(spec)]
+    sizes = spec.get("sizes", [spec["size"]])
+    frames = spec.get("frames", FRAME_VARIATION)
+    colours = spec.get("colours", COLOUR_VARIATION)
+    variable = spec.get("variable", True)
+
+    if variable:
+        # Size / Frame / Colour are selectable (variation=True) and drive variations.
+        attributes = [
+            {"name": "Type", "visible": True, "variation": False,
+             "options": ["Digital Canvas Printing"]},
+            {"name": "Size", "visible": True, "variation": True, "options": sizes},
+            {"name": "Frame", "visible": True, "variation": True, "options": frames},
+            {"name": "Colour", "visible": True, "variation": True, "options": colours},
+        ]
+    else:
+        attributes = [
+            {"name": "Type", "visible": True, "options": ["Digital Canvas Printing"]},
+            {"name": "Frame", "visible": True, "options": FRAME_OPTIONS},
+            {"name": "Size", "visible": True, "options": sizes},
+            {"name": "Colour", "visible": True, "options": COLOR_OPTIONS},
+        ]
+
+    product = {
+        "name": build_title(spec),
+        "type": "variable" if variable else "simple",
+        "status": spec.get("status", "draft"),
+        "description": description,
+        "short_description": short,
+        "categories": categories,
+        "tags": tags,
+        "attributes": attributes,
+        "meta_data": [
+            {"key": "_technical_specs", "value": build_technical_specs(spec)},
+            {"key": "rank_math_focus_keyword", "value": focus_kw},
+            {"key": "rank_math_title", "value": f"{build_title(spec)} | The Art Framer"},
+            {"key": "rank_math_description", "value": short.replace("<p>", "").replace("</p>", "")[:155]},
+        ],
+    }
+    if not variable:
+        # Variable products derive their price from variations, so only set a
+        # parent price for simple products.
+        product["regular_price"] = price_for(spec)
+    return product
+
+
+if __name__ == "__main__":
+    # Demo: build one sample product and print it.
+    import json
+    sample = {
+        "subject": "Lord Ganesha",
+        "size": "36x48 Inches",
+        "sizes": ["24x36 Inches", "36x48 Inches"],
+        "style": "Premium Digital Canvas Print",
+        "use_case": "Pooja Room & Living Room Spiritual Wall Décor",
+        "categories": ["Digital Canvas Prints", "Hindu Deities"],
+        "status": "draft",
+    }
+    product = build_product(sample)
+    print(json.dumps({k: v for k, v in product.items() if k != "description"}, indent=2))
+    print("\n--- DESCRIPTION HTML ---\n")
+    print(product["description"])
