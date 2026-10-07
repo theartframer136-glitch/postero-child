@@ -177,6 +177,11 @@ foreach (preg_split('/[\r\n,]+(?![0-9])/', $raw) as $cand) {
         // unused image then was a mockup or source file), so none of that
         // backlog can ever ride in on this route.
         $since = (string) get_option('af_goldfoil_fresh_since', '2026-08-22 12:00:00');
+        // Owner, 7 Oct: the 47 products this route made that morning, from
+        // pictures already in the library, were not wanted. Only pictures
+        // uploaded from here on count as new, so nothing older can come back
+        // even if those products are deleted for good.
+        if (strcmp($since, '2026-10-07 12:00:00') < 0) $since = '2026-10-07 12:00:00';
         $recent = array_map('intval', $wpdb->get_col($wpdb->prepare(
             "SELECT ID FROM {$wpdb->posts}
               WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%%'
