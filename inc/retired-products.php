@@ -22,7 +22,7 @@
  */
 if (!defined('ABSPATH')) exit;
 
-define('AF_RETIRED_PRODUCTS_REV', '3');   // bump after changing the list
+define('AF_RETIRED_PRODUCTS_REV', '4');   // bump after changing the list
 
 /** deleted product's address slug => array(its id, the id that stays) */
 function af_retired_products() {
@@ -40,7 +40,7 @@ function af_retired_products() {
         'minimalist-blossom-vase-canvas-wall-art' => array(7833, 34529),   // Minimalist Blossom Vase Canvas Wall Art 
         'radha-krishna-with-peacocks-canvas-wall-art' => array(19392, 33911),   // Radha Krishna with Peacocks Canvas Wall 
         'namaste-henna-hands-gold-foiled-uv-canvas-art-3x5-feet' => array(33285, 24714),   // Namaste Henna Hands Canvas Wall Art 3x5 
-        'rhythm-in-orange-gold-foiled-uv-canvas-art-3x2-feet' => array(33291, 28778),   // Rhythm In Orange Canvas Wall Art 3x4 Fee
+        'rhythm-in-orange-gold-foiled-uv-canvas-art-3x2-feet' => array(33291, 33294),   // Rhythm In Orange Canvas Wall Art 3x4 Fee
         // round two, owner 29 Sep 19:35: frame sizes to one product, recoloured pairs to one
         'large-canvas-wall-frame-floating-frame-canvas-printing-big-wall-art-frame' => array(8444, 8440),   // Large Canvas Wall Frame – Floating Frame
         'large-square-canvas-wall-art' => array(8447, 8440),   // Large Square Canvas Wall Art 4x4 ft | Cu
@@ -50,6 +50,9 @@ function af_retired_products() {
         'balaji-heritage-collage-canvas-wall-art' => array(30905, 31456),   // Balaji Heritage Collage Canvas Wall Art 
         'savanna-sunset-silhouettes-canvas-wall-art' => array(28839, 28962),   // Savanna Sunset Silhouettes Canvas Wall A
         'savanna-evening-dance-canvas-wall-art' => array(27695, 28962),   // Savanna Evening Dance Canvas Wall Art 3x (#28962 is the crisper of the three, so it stays)
+        // owner, 7 Oct: these two deleted; each code stays on its other listing
+        'dancer-on-stage-canvas-wall-art' => array(28778, 33294),   // Dancer on Stage
+        'sleeping-baby-krishna-canvas-wall-art' => array(7819, 22505),   // Sleeping Baby Krishna
     );
 }
 
