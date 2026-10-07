@@ -240,6 +240,13 @@ if ($media) {
         $n = $f ? basename($f) : '';
         if ($n === '') return false;
         if (preg_match('/-scene\d+/i', $n)) return false;              // room mockup
+        // Room mockups named the other way round, and the canvas range's own
+        // pictures: scene1-13.jpg, own-5.jpg and RK-010051-5030.jpg are the
+        // gallery and main images of canvas products. 7 Oct: 37 of them, left
+        // unused when duplicate canvas listings were deleted, came in here as
+        // "Gold Foiled UV" products titled with their file names.
+        if (preg_match('/^(scene\d+|own)[-_]\d+/i', $n)) return false;    // room mockup / own-wall photo
+        if (preg_match('/^[A-Z]{2}-\d{6}-\d{4}(-\d+)?\./i', $n)) return false; // a canvas product's art-code master
         if (preg_match('/-\d{2,4}x\d{2,4}\.[a-z]+$/i', $n)) return false; // resized copy
         return true;
     }));
