@@ -1,0 +1,152 @@
+name: Turnstile
+# Cloudflare Turnstile, the "Verify you are human" check, on every login,
+# sign-up and password-reset form (inc/turnstile.php). The two keys come from
+# the repository secrets TURNSTILE_SITE_KEY and TURNSTILE_SECRET_KEY (Cloudflare
+# dashboard → Turnstile → the widget for theartframer.us).
+#
+#   status   read-only: what the site has (tools/diag-turnstile.php), and the
+#            secret key checked with Cloudflare; nothing is written.
+#   enable   the secret key is checked with Cloudflare before anything is
+#            written; then both keys go into the site over SSH by standard
+#            input (never on a command line), the check is switched on, the page
+#            cache is cleared (every cached page carries the header's login
+#            popup, which must not meet the new check without its box) and the
+#            entrance pages are warmed again; then tools/qa-login-form.mjs checks
+#            every form live. If anything fails it is switched off again, the
+#            cache cleared, and the run goes red.
+#   disable  switched off and the page cache cleared: every form is as before.
+#            The keys stay stored, so enable needs nothing new.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'status, enable or disable'
+        required: true
+        default: status
+        type: choice
+        options: [status, enable, disable]
+# never alongside a deploy: both clear the page cache and write the site
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  turnstile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MODE: ${{ github.event.inputs.mode }}
+      TS_SITE: ${{ secrets.TURNSTILE_SITE_KEY }}
+      TS_SECRET: ${{ secrets.TURNSTILE_SECRET_KEY }}
+      H_USER: ${{ secrets.HOSTINGER_USERNAME }}
+      H_HOST: ${{ secrets.HOSTINGER_HOST }}
+      H_PORT: ${{ secrets.HOSTINGER_PORT }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          cat > ~/ssh-site <<'EOF'
+          #!/usr/bin/env bash
+          # one command on the server, in the site's folder (stdin passed through)
+          exec ssh -p "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+            "$H_USER@$H_HOST" "cd ~/websites/OPu0sKi4J/public_html && $1"
+          EOF
+          chmod +x ~/ssh-site
+
+      - name: The keys (present, well-formed, and the secret accepted by Cloudflare)
+        if: env.MODE != 'disable'
+        run: |
+          set -euo pipefail
+          if [ -z "$TS_SITE" ] || [ -z "$TS_SECRET" ]; then
+            echo "The repository secrets TURNSTILE_SITE_KEY and/or TURNSTILE_SECRET_KEY are not set."
+            echo "Cloudflare dashboard → Turnstile → the widget → copy Site Key and Secret Key;"
+            echo "GitHub → this repository → Settings → Secrets and variables → Actions → New repository secret."
+            [ "$MODE" = status ] && exit 0 || exit 1
+          fi
+          echo "::add-mask::$TS_SECRET"
+          for k in TS_SITE TS_SECRET; do
+            v="${!k}"
+            case "$v" in *[!A-Za-z0-9_-]*) echo "$k holds characters a Turnstile key never has (a space or a line break copied with it?)"; exit 1;; esac
+            [ ${#v} -ge 20 ] && [ ${#v} -le 120 ] || { echo "$k is ${#v} characters long: not a Turnstile key"; exit 1; }
+          done
+          [ "$TS_SITE" != "$TS_SECRET" ] || { echo "The two secrets hold the same value"; exit 1; }
+          echo "site key: ${#TS_SITE} characters, starts ${TS_SITE:0:4}…"
+          echo "secret key: ${#TS_SECRET} characters"
+          # Cloudflare's own test pair answers success: the reply format this site reads
+          T=$(curl -s -m 20 https://challenges.cloudflare.com/turnstile/v0/siteverify -d secret=1x0000000000000000000000000000000AA -d response=XXXX.DUMMY.TOKEN.XXXX)
+          echo "test pair reply: $T"
+          echo "$T" | grep -q '"success":true' || { echo "Cloudflare's siteverify did not answer as documented"; exit 1; }
+          # our secret with a dummy token: a valid secret refuses the token, a wrong one is refused itself
+          R=$(curl -s -m 20 https://challenges.cloudflare.com/turnstile/v0/siteverify --data-urlencode "secret=$TS_SECRET" -d response=XXXX.DUMMY.TOKEN.XXXX)
+          codes=$(echo "$R" | python3 -c 'import json,sys; print(",".join(json.load(sys.stdin).get("error-codes", [])))' 2>/dev/null || echo unreadable)
+          echo "our secret with a dummy token: error-codes=$codes"
+          case "$codes" in
+            *invalid-input-secret*|*missing-input-secret*) echo "Cloudflare does not accept TURNSTILE_SECRET_KEY: copy the Secret Key again (not the Site Key)."; exit 1;;
+            *invalid-input-response*) echo "the secret key is accepted by Cloudflare";;
+            *) echo "unexpected answer from Cloudflare"; exit 1;;
+          esac
+
+      - name: The site now (read-only)
+        run: |
+          set -uo pipefail
+          for i in 1 2 3; do
+            scp -P "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+              tools/diag-turnstile.php "$H_USER@$H_HOST:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-turnstile.php" && break
+            sleep 15
+          done
+          ~/ssh-site "timeout 300 wp eval-file wp-content/themes/postero-child/tools/diag-turnstile.php --allow-root 2>&1" | sed -n '/=== module/,/=== callbacks/p'
+
+      - name: Switch on
+        if: env.MODE == 'enable'
+        run: |
+          set -euo pipefail
+          ~/ssh-site "wp eval 'exit(function_exists(\"af_turnstile_active\") ? 0 : 3);' --allow-root 2>/dev/null" \
+            || { echo "inc/turnstile.php is not on the site yet: deploy it first"; exit 1; }
+          printf '%s' "$TS_SITE"   | ~/ssh-site "wp option update af_turnstile_site_key --autoload=yes --allow-root 2>&1 | tail -1"
+          printf '%s' "$TS_SECRET" | ~/ssh-site "wp option update af_turnstile_secret_key --autoload=no --allow-root 2>&1 | tail -1"
+          echo "SWITCHED=1" >> "$GITHUB_ENV"
+          ~/ssh-site "wp option update af_turnstile_mode on --autoload=yes --allow-root 2>&1 | tail -1; wp litespeed-purge all --allow-root 2>/dev/null || true; wp cache flush --allow-root 2>/dev/null || true"
+          ~/ssh-site "wp eval 'echo af_turnstile_active() ? \"switched on\" : \"NOT ON\";' --allow-root 2>/dev/null" | tee /tmp/on.txt
+          grep -q "switched on" /tmp/on.txt
+
+      - name: Switch off
+        if: env.MODE == 'disable'
+        run: |
+          set -euo pipefail
+          ~/ssh-site "wp option update af_turnstile_mode off --autoload=yes --allow-root 2>&1 | tail -1; wp litespeed-purge all --allow-root 2>/dev/null || true; wp cache flush --allow-root 2>/dev/null || true"
+          ~/ssh-site "wp eval 'echo function_exists(\"af_turnstile_active\") && af_turnstile_active() ? \"STILL ON\" : \"switched off\";' --allow-root 2>/dev/null" | tee /tmp/off.txt
+          grep -q "switched off" /tmp/off.txt
+
+      - name: Warm the entrance pages again (one at a time)
+        if: env.MODE != 'status'
+        run: |
+          set -uo pipefail
+          ~/ssh-site "wp eval 'echo home_url(\"/\"), \"\n\", wc_get_page_permalink(\"shop\"), \"\n\", home_url(\"/login/\"), \"\n\", home_url(\"/sign-up/\"), \"\n\"; foreach (get_terms(array(\"taxonomy\" => \"product_cat\", \"hide_empty\" => true, \"number\" => 12, \"orderby\" => \"count\", \"order\" => \"DESC\")) as \$t) { \$l = get_term_link(\$t); if (is_string(\$l)) echo \$l, \"\n\"; }' --allow-root 2>/dev/null" > /tmp/warm.txt || true
+          n=0
+          while read -r u; do
+            case "$u" in https://theartframer.us/*) ;; *) continue;; esac
+            code=$(curl -s -o /dev/null -m 60 -w '%{http_code}' -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36' "$u")
+            echo "  $code $u"; n=$((n+1)); sleep 1
+          done < /tmp/warm.txt
+          echo "warmed $n pages"
+
+      - name: Every form, live
+        if: env.MODE != 'status'
+        run: |
+          set -uo pipefail
+          npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
+          if [ "$MODE" = enable ]; then want=on; else want=off; fi
+          NODE_PATH=/tmp/afh/node_modules node tools/qa-login-form.mjs "$want"
+
+      - name: Something failed after switching on - switch off again
+        if: failure() && env.SWITCHED == '1'
+        run: |
+          set -uo pipefail
+          ~/ssh-site "wp option update af_turnstile_mode off --autoload=yes --allow-root 2>&1 | tail -1; wp litespeed-purge all --allow-root 2>/dev/null || true; wp cache flush --allow-root 2>/dev/null || true"
+          ~/ssh-site "wp eval 'echo af_turnstile_active() ? \"STILL ON\" : \"switched off again: every form is as before\";' --allow-root 2>/dev/null"
