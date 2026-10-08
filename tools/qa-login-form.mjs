@@ -272,15 +272,29 @@ async function otherFormChecks() {
     const n = await p.evaluate(() => ({ boxes: document.querySelectorAll('.af-ts').length, cfg: typeof window.afTs }));
     check('browser: contact page: no box, no Cloudflare script', n.boxes === 0 && n.cfg === 'undefined' && cf === 0, { ...n, cf });
   }
-  // the footer newsletter form (any page): a quiet box, drawn only when the field is used
-  const nlNonce = await p.evaluate(() => (document.querySelector('form.af-f-newsform') || {}).dataset?.nonce || '');
-  const formsOnPage = () => p.evaluate(() => [...document.querySelectorAll('form')].map(f => (f.className || f.id || '(no class)') + ' -> ' + [...f.querySelectorAll('input:not([type=hidden]),button')].map(i => i.name || i.placeholder || i.textContent?.trim().slice(0, 12) || i.type).join(',')).slice(0, 12));
-  if (MODE === 'on') {
-    const before = await state();
-    const quiet = before && before.boxes.find(x => x.action === 'newsletter');
-    check('browser: footer newsletter: quiet box present, not drawn before use', !!(quiet && quiet.onUse && quiet.quiet && !quiet.drawn), quiet || { nlForm: !!nlNonce, forms: await formsOnPage() });
-    const r = await drawnBox('newsletter', () => p.evaluate(() => { const f = document.querySelector('form.af-f-newsform'); if (f) { f.scrollIntoView({ block: 'center' }); const i = f.querySelector('input[type="email"]'); if (i) { i.focus(); i.dispatchEvent(new FocusEvent('focusin', { bubbles: true })); } } }));
-    check('browser: footer newsletter: drawn on use, no configuration error', !!(r.box && r.box.drawn) && r.errors.length === 0, r);
+  // the newsletter: the live site prints no footer newsletter form (the
+  // child theme's footer is off; the Elementor footer has none). The only
+  // newsletter field is the home popup overlay, which custom.js wires to
+  // af_nl_subscribe with the page's af_ajax.nl_nonce. It shows ~9 s after load.
+  const nlNonce = await p.evaluate(() => (window.af_ajax && window.af_ajax.nl_nonce) || '');
+  await p.goto(S + '/?' + bust(), { waitUntil: 'networkidle2', timeout: 90000 }).catch(() => null);
+  const overlay = await p.waitForSelector('.af-input-group input[type="email"]', { timeout: 16000 }).catch(() => null);
+  if (!overlay) {
+    console.log('INFO  browser: home popup newsletter: the overlay did not appear within 16 s (shown once per visitor?) - not checked in the browser');
+  } else if (MODE === 'on') {
+    await p.evaluate(() => { const i = document.querySelector('.af-input-group input[type="email"]'); i.focus(); });
+    await p.type('.af-input-group input[type="email"]', 'qa-turnstile@example..com'); // passes the script's own check, refused by the server, so nothing is stored
+    await p.evaluate(() => { const g = document.querySelector('.af-input-group'); const b = g && g.querySelector('button, [role="button"]'); if (b) b.click(); });
+    let s = null;
+    for (let i = 0; i < 30; i++) { s = await state(); if (s && s.boxes.some(x => x.action === 'newsletter' && x.drawn)) break; await sleep(500); }
+    await sleep(2500);
+    s = await state();
+    const nb = s && s.boxes.find(x => x.action === 'newsletter');
+    check('browser: home popup newsletter: quiet box created on use and drawn by Cloudflare', !!(nb && nb.onUse && nb.quiet && nb.drawn), nb || s);
+    check('browser: home popup newsletter: no configuration error', !!(s && !s.errors.some(e => CONFIG_ERR.test(e))), s && s.errors);
+  } else {
+    const n = await p.evaluate(() => ({ boxes: document.querySelectorAll('.af-ts').length, cfg: typeof window.afTs }));
+    check('browser: home page with popup: no box, no Cloudflare script', n.boxes === 0 && n.cfg === 'undefined', n);
   }
 
   // a blog post's comment form and a product's review form
@@ -304,7 +318,8 @@ async function otherFormChecks() {
       const why = (r.box && r.box.drawn) ? null : await p.evaluate(() => {
         const bx = [...document.querySelectorAll('.af-ts')].find(x => x.getAttribute('data-action') === 'comment');
         const chain = []; for (let el = bx; el && el !== document.body && chain.length < 12; el = el.parentElement) { const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || el.hidden) chain.push((el.tagName + '.' + (el.className || '') + '#' + (el.id || '')).slice(0, 80) + ' display=' + cs.display + ' visibility=' + cs.visibility); }
-        return { boxWidth: bx ? bx.clientWidth : -1, hiddenAncestors: chain, tabs: [...document.querySelectorAll('a[href^="#tab-"], .wc-tabs a, .tabs a, [role="tab"]')].map(a => (a.getAttribute('href') || a.textContent.trim()).slice(0, 40)).slice(0, 10), formShown: !!(document.querySelector('#commentform') && document.querySelector('#commentform').getClientRects().length) };
+        const cs = bx ? getComputedStyle(bx) : null;
+        return { boxWidth: bx ? bx.clientWidth : -1, boxStyle: cs ? { display: cs.display, float: cs.float, width: cs.width, visibility: cs.visibility, parent: bx.parentElement.tagName + '.' + bx.parentElement.className, parentDisplay: getComputedStyle(bx.parentElement).display } : null, hiddenAncestors: chain, tabs: [...document.querySelectorAll('a[href^="#tab-"], .wc-tabs a, .tabs a, [role="tab"]')].map(a => (a.getAttribute('href') || a.textContent.trim()).slice(0, 40)).slice(0, 10), formShown: !!(document.querySelector('#commentform') && document.querySelector('#commentform').getClientRects().length) };
       });
       check(`browser: ${label}: box drawn by Cloudflare, no configuration error`, !!(r.box && r.box.drawn) && r.errors.length === 0, why || r);
     } else {

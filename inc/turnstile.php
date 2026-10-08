@@ -282,6 +282,8 @@ function af_turnstile_enqueue() {
       . '.af-ts.af-ts-quiet:not(.af-ts-ready){border:0;background:none}'
       . '.af-ts.af-ts-quiet.af-ts-ready:not(:empty){margin:8px 0 0}'
       . '.af-f-newsform{flex-wrap:wrap}.af-f-newsform .af-ts{flex:0 0 100%}'
+      // comment and review forms: the theme floats / inlines the form's children, and an empty floated box is 0 px wide
+      . '.comment-form .af-ts,#commentform .af-ts{display:block;float:none;clear:both;width:100%;max-width:100%;box-sizing:border-box}'
       . '.af-ts iframe{max-width:100%}'
       . '.af-ts-note{margin:6px 0 0;font-size:13px;line-height:1.45;color:#555}'
       . '.af-ts-note:empty{display:none}'
