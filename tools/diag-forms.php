@@ -79,4 +79,30 @@ foreach (array('comment_form_after_fields', 'comment_form_logged_in_after', 'com
 }
 echo '  comments template in use: ' . str_replace(array(get_stylesheet_directory(), get_template_directory()), array('child', 'parent'), (string) locate_template(array('comments.php'))) . "\n";
 echo '  woocommerce single-product/review.php override: ' . (file_exists(get_stylesheet_directory() . '/woocommerce/single-product-reviews.php') ? 'child' : (file_exists(get_template_directory() . '/woocommerce/single-product-reviews.php') ? 'parent' : 'none (WooCommerce default)')) . "\n";
+echo "\n=== the forms a visitor actually gets (home page and a blog post, as served)\n";
+$post = $wpdb->get_var("SELECT ID FROM {$wpdb->posts} WHERE post_type='post' AND post_status='publish' AND comment_status='open' ORDER BY post_date DESC LIMIT 1");
+$prod = $wpdb->get_var("SELECT ID FROM {$wpdb->posts} WHERE post_type='product' AND post_status='publish' AND comment_status='open' ORDER BY ID DESC LIMIT 1");
+foreach (array('home' => home_url('/'), 'post' => $post ? get_permalink($post) : '', 'product' => $prod ? get_permalink($prod) : '') as $label => $url) {
+    if (!$url) continue;
+    $r = wp_remote_get($url, array('timeout' => 25, 'headers' => array('User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36', 'Accept' => 'text/html')));
+    if (is_wp_error($r)) { echo "  $label: " . $r->get_error_message() . "\n"; continue; }
+    $b = (string) wp_remote_retrieve_body($r);
+    echo "  $label $url HTTP " . wp_remote_retrieve_response_code($r) . ' cache=' . wp_remote_retrieve_header($r, 'x-litespeed-cache') . "\n";
+    if (preg_match_all('/<form\b[^>]*>/i', $b, $m)) foreach ($m[0] as $f) echo '    ' . substr(preg_replace('/\s+/', ' ', $f), 0, 200) . "\n";
+    foreach (array('af-f-news', 'af_nl_email', 'mc4wp', 'newsletter', 'Subscribe', 'commentform', 'comment_form', 'af-ts', 'tab-reviews', 'reviews_tab', 'woocommerce-Reviews', 'comment-respond', 'respond') as $needle) {
+        $n = substr_count($b, $needle); if ($n) echo "    '$needle' x$n\n";
+    }
+    if (preg_match('/<div id="respond".{0,300}/s', $b, $mm)) echo '    respond: ' . substr(preg_replace('/\s+/', ' ', $mm[0]), 0, 300) . "\n";
+    if (preg_match('/.{0,400}id="commentform".{0,200}/s', $b, $mm)) echo '    around commentform: ' . substr(preg_replace('/\s+/', ' ', $mm[0]), 0, 600) . "\n";
+}
+echo "\n=== the parent theme's comment and review templates (how the form is wrapped)\n";
+foreach (array('/comments.php', '/woocommerce/single-product-reviews.php', '/woocommerce/single-product/tabs/tabs.php', '/footer.php') as $f) {
+    $path = get_template_directory() . $f;
+    if (!file_exists($path)) { echo "  parent$f: none\n"; continue; }
+    $src = file($path);
+    echo "  parent$f (" . count($src) . " lines):\n";
+    foreach ($src as $i => $line) {
+        if (preg_match('/comment_form|comments_open|respond|display:\s*none|collapse|toggle|tab|get_sidebar|footer|newsletter|af_nl|do_action|get_template_part/i', $line)) echo '    ' . ($i + 1) . ': ' . trim(substr($line, 0, 150)) . "\n";
+    }
+}
 echo "=== END\n";
