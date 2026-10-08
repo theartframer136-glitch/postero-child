@@ -266,3 +266,6 @@ add_action('wp_enqueue_scripts', function () {
 add_action('login_enqueue_scripts', function () {
     if (af_turnstile_active()) af_turnstile_enqueue();
 });
+
+// Settings → Cloudflare Turnstile: the keys and the switch, for the owner.
+require_once __DIR__ . '/turnstile-admin.php';

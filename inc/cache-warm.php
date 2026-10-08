@@ -138,32 +138,39 @@ function af_warm_tick() {
     $total  = count($urls);
 
     for ($i = 0; $i < $size && $i < $total; $i++) {
-        $url = $urls[($cursor + $i) % $total];
-        wp_remote_get($url, array(
-            'timeout'     => 5,
-            'blocking'    => false,
-            'sslverify'   => false,
-            'redirection' => 0,
-            // The crawl guard turns away clients with no Sec-Fetch headers,
-            // and this host serves a different page to a bare request than to
-            // a browser — so a warm without these would fill the cache with a
-            // variant no visitor is ever served.
-            'headers'     => array(
-                'Accept'                    => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-                'Accept-Language'           => 'en-US,en;q=0.9',
-                'Sec-Fetch-Dest'            => 'document',
-                'Sec-Fetch-Mode'            => 'navigate',
-                'Sec-Fetch-Site'            => 'none',
-                'Sec-Fetch-User'            => '?1',
-                'Upgrade-Insecure-Requests' => '1',
-                'User-Agent'                => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 AF-CacheWarmer',
-            ),
-        ));
+        af_warm_request($urls[($cursor + $i) % $total]);
     }
 
     update_option('af_warm_cursor', ($cursor + $size) % $total, false);
 }
 add_action('af_warm_tick', 'af_warm_tick');
+
+/**
+ * One warming request, fire-and-forget. Also used by the Turnstile settings
+ * page after it clears the cache (inc/turnstile-admin.php).
+ */
+function af_warm_request($url) {
+    wp_remote_get($url, array(
+        'timeout'     => 5,
+        'blocking'    => false,
+        'sslverify'   => false,
+        'redirection' => 0,
+        // The crawl guard turns away clients with no Sec-Fetch headers,
+        // and this host serves a different page to a bare request than to
+        // a browser — so a warm without these would fill the cache with a
+        // variant no visitor is ever served.
+        'headers'     => array(
+            'Accept'                    => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+            'Accept-Language'           => 'en-US,en;q=0.9',
+            'Sec-Fetch-Dest'            => 'document',
+            'Sec-Fetch-Mode'            => 'navigate',
+            'Sec-Fetch-Site'            => 'none',
+            'Sec-Fetch-User'            => '?1',
+            'Upgrade-Insecure-Requests' => '1',
+            'User-Agent'                => 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 AF-CacheWarmer',
+        ),
+    ));
+}
 
 /** Five minutes — WordPress ships no schedule shorter than hourly. */
 add_filter('cron_schedules', function ($s) {

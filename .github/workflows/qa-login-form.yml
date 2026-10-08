@@ -1,8 +1,17 @@
 name: QA Login Form
-# Read-only: the Login and Sign-up pages as a guest. A wrong login is tried
-# (a username that does not exist) to see the form answer; nothing is created.
+# Read-only: every login, sign-up and password-reset form as a guest, in a
+# browser and with a direct post (tools/qa-login-form.mjs). With turnstile=on
+# every form must show Cloudflare's box and refuse a post without a token;
+# with turnstile=off no form may show it. Nothing is created, no email sent.
 on:
   workflow_dispatch:
+    inputs:
+      turnstile:
+        description: 'Is the Cloudflare Turnstile check switched on? (Settings → Cloudflare Turnstile)'
+        required: true
+        default: 'off'
+        type: choice
+        options: ['off', 'on']
 jobs:
   qa:
     runs-on: ubuntu-latest
@@ -12,4 +21,4 @@ jobs:
       - run: |
           set -uo pipefail
           npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
-          NODE_PATH=/tmp/afh/node_modules node tools/qa-login-form.mjs || true
+          NODE_PATH=/tmp/afh/node_modules node tools/qa-login-form.mjs "${{ github.event.inputs.turnstile }}"
