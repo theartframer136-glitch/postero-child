@@ -97,6 +97,8 @@
       t.id = window.turnstile.render(box, {
         sitekey: C.sitekey,
         action: box.getAttribute('data-action') || undefined,
+        // newsletter boxes stay invisible unless Cloudflare needs a tick
+        appearance: box.getAttribute('data-appearance') || 'always',
         theme: 'light',
         size: compact ? 'compact' : 'flexible',
         language: C.lang || 'auto',
@@ -213,9 +215,10 @@
   }
 
   // When to draw: a box on screen, or any field of its form used. The
-  // popup's box only on use: the popup sits in every page's header, and an
-  // unopened popup must not fetch Cloudflare's script on every page view.
-  var boxes = Array.prototype.filter.call(document.querySelectorAll('.af-ts'), function (b) { return !b.closest(POPUP); });
+  // popup's box and the newsletter boxes only on use: they sit in every
+  // page's header and footer, and a page view must not fetch Cloudflare's
+  // script for a form nobody touches.
+  var boxes = Array.prototype.filter.call(document.querySelectorAll('.af-ts'), function (b) { return !b.closest(POPUP) && !b.hasAttribute('data-on-use'); });
   if ('IntersectionObserver' in window) {
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (en) {
@@ -234,6 +237,41 @@
   document.addEventListener('focusin', onUse, true);
   document.addEventListener('pointerdown', onUse, true);
 
+  // For forms that send by themselves (the contact form, the newsletter forms):
+  //   ready(box, cb)  draws the box if needed and calls cb(token) once the
+  //                   check passed, or cb('') when it cannot run (8 s at most);
+  //   reset(formOrBox)  after each answer: a token is spent by one post;
+  //   box(parent, before, action, quiet)  a box for a form built by script.
+  window.afTsApi = {
+    want: want,
+    token: token,
+    ready: function (box, cb) {
+      if (!box || blocked()) { cb(''); return; }
+      want(box);
+      var tok = token(box);
+      if (tok) { cb(tok); return; }
+      hold(box, function () { cb(token(box)); });
+    },
+    reset: function (el) {
+      var box = el && el.classList && el.classList.contains('af-ts') ? el : boxIn(el);
+      var t = box && box.__afTs;
+      if (!t || t.id === null || !window.turnstile) return;
+      t.tok = '';
+      try { window.turnstile.reset(t.id); } catch (e) {}
+    },
+    box: function (parent, before, action, quiet) {
+      var box = document.createElement('div');
+      box.className = 'af-ts' + (quiet ? ' af-ts-quiet' : '');
+      box.setAttribute('data-action', action || 'form');
+      box.setAttribute('role', 'group');
+      box.setAttribute('aria-label', 'Security check');
+      box.setAttribute('data-on-use', '1');
+      if (quiet) box.setAttribute('data-appearance', 'interaction-only');
+      parent.insertBefore(box, before || null);
+      return box;
+    }
+  };
+
   window.afTsState = function () {
     return {
       script: state + (slow ? ' (slow)' : ''),
@@ -242,6 +280,8 @@
         return {
           action: b.getAttribute('data-action'),
           inPopup: !!b.closest(POPUP),
+          onUse: b.hasAttribute('data-on-use'),
+          quiet: b.classList.contains('af-ts-quiet'),
           drawn: t.id !== null && t.id !== undefined,
           compact: b.classList.contains('af-ts-compact'),
           token: !!token(b),

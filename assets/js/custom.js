@@ -377,12 +377,21 @@ jQuery(document).ready(function($) {
       var label = btn ? btn.textContent : '';
       if (btn) { btn.disabled = true; btn.textContent = '…'; }
 
+      // Cloudflare's "verify you are human" (inc/turnstile.php), when it is
+      // switched on: a quiet box under the field, drawn now, and the post
+      // waits for its token. Without it the server answers what is missing.
+      var box = g.__afTsBox;
+      if (!box && window.afTsApi) box = g.__afTsBox = window.afTsApi.box(g.parentNode, g.nextSibling, 'newsletter', true);
+      if (box && window.afTsApi) window.afTsApi.ready(box, send); else send('');
+
+      function send(tok) {
       var cfg = window.af_ajax || {};
       var fd = new FormData();
       fd.append('action', 'af_nl_subscribe');
       fd.append('af_nl_email', email);
       fd.append('af_nl_hp', '');                 // honeypot stays empty
       fd.append('nonce', cfg.nl_nonce || '');
+      if (tok) fd.append('cf-turnstile-response', tok);
 
       fetch(cfg.url || '/wp-admin/admin-ajax.php', {
         method: 'POST', credentials: 'same-origin', body: fd,
@@ -407,7 +416,9 @@ jQuery(document).ready(function($) {
         .then(function () {
           g.dataset[SENT] = '';
           if (btn) { btn.disabled = false; btn.textContent = label; }
+          if (box && window.afTsApi) window.afTsApi.reset(box); // a token is spent by one post
         });
+      }
     }
 
     // The input carries no name and no required flag. Both can be set from

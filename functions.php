@@ -5459,6 +5459,7 @@ add_action('wp_footer', function() {
                 <input type="email" name="af_nl_email" placeholder="Your email" required aria-label="Email for newsletter">
                 <input type="text" name="af_nl_hp" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;">
                 <button type="submit">Join</button>
+                <?php if (function_exists('af_turnstile_box')) af_turnstile_box('newsletter', true, true); // Cloudflare's check: drawn on use, shown only when a tick is needed ?>
               </form>
               <p class="af-f-newsmsg" role="status" aria-live="polite" style="display:none;margin:8px 0 0;font-size:12.5px;"></p>
             <?php endif; ?>
@@ -12099,6 +12100,7 @@ function af_nl_subscribe_handler() {
     if (!empty($_POST['af_nl_hp'])) { // honeypot
         wp_send_json_success(array('message' => 'Thanks — you are subscribed!'));
     }
+    if (function_exists('af_turnstile_require_ajax')) af_turnstile_require_ajax('newsletter'); // Cloudflare's check, when switched on
     $email = isset($_POST['af_nl_email']) ? sanitize_email(wp_unslash($_POST['af_nl_email'])) : '';
     if (!$email || !is_email($email)) {
         wp_send_json_error(array('message' => 'Please enter a valid email address.'));
@@ -12168,7 +12170,10 @@ add_action('wp_footer', function() { ?>
         .catch(function(){
           if (msg) { msg.style.display='block'; msg.style.color='#e08e88'; msg.textContent='Network error — please try again.'; }
         })
-        .finally(function(){ if (btn) { btn.disabled = false; btn.textContent = 'Join'; } });
+        .finally(function(){
+          if (btn) { btn.disabled = false; btn.textContent = 'Join'; }
+          if (window.afTsApi) window.afTsApi.reset(form); // a security-check token is spent by one post
+        });
     });
   });
 })();
@@ -12232,6 +12237,7 @@ add_shortcode('af_contact_form', function() {
   </div>
   <label>Your Message *<textarea name="af_message" rows="6" required maxlength="5000" placeholder="Tell us about your wall, your order, or your question…"></textarea></label>
   <input type="text" name="af_hp" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;">
+  <?php if (function_exists('af_turnstile_box')) af_turnstile_box('contact'); // Cloudflare's "verify you are human" (inc/turnstile.php) ?>
   <button type="submit" class="taf-form-submit">Send Message</button>
   <p class="taf-form-msg" role="status" aria-live="polite" style="display:none;"></p>
 </form>
@@ -12260,7 +12266,10 @@ add_shortcode('af_contact_form', function() {
         msg.className = 'taf-form-msg err';
         msg.textContent = 'Network error — please try again, or email us directly.';
       })
-      .finally(function(){ btn.disabled = false; btn.textContent = 'Send Message'; });
+      .finally(function(){
+        btn.disabled = false; btn.textContent = 'Send Message';
+        if (window.afTsApi) window.afTsApi.reset(form); // a security-check token is spent by one post
+      });
   });
 })();
 </script>
@@ -12273,6 +12282,7 @@ function af_contact_submit_handler() {
     if (!empty($_POST['af_hp'])) { // honeypot: pretend success
         wp_send_json_success(array('message' => 'Thank you! Your message has been sent.'));
     }
+    if (function_exists('af_turnstile_require_ajax')) af_turnstile_require_ajax('contact'); // Cloudflare's check, when switched on
     $ip = af_visitor_ip();
     // Rate limit: 5 messages per hour per IP
     $rl_key = 'af_ct_rl_' . md5($ip);

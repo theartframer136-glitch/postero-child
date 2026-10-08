@@ -151,13 +151,24 @@ function af_turnstile_in_editor() {
 }
 
 // The box a form shows. Empty until af-turnstile.js renders Cloudflare's
-// widget into it, when it comes into view or its form is used.
-function af_turnstile_box($action = 'login', $echo = true) {
+// widget into it, when it comes into view or its form is used. A "quiet" box
+// (the newsletter forms) is drawn only when the form is used and stays
+// invisible unless Cloudflare needs the visitor to tick it.
+function af_turnstile_box($action = 'login', $echo = true, $quiet = false) {
     if (!af_turnstile_active() || af_turnstile_in_editor()) return '';
-    $html = '<div class="af-ts" data-action="' . esc_attr($action) . '" role="group" aria-label="' . esc_attr__('Security check', 'postero-child') . '">'
+    $html = '<div class="af-ts' . ($quiet ? ' af-ts-quiet' : '') . '" data-action="' . esc_attr($action) . '"'
+          . ($quiet ? ' data-on-use="1" data-appearance="interaction-only"' : '')
+          . ' role="group" aria-label="' . esc_attr__('Security check', 'postero-child') . '">'
           . '<noscript><p class="af-ts-note af-ts-bad">' . esc_html__('Please turn on JavaScript to continue.', 'postero-child') . '</p></noscript></div>';
     if ($echo) echo $html;
     return $html;
+}
+
+// For the theme's own AJAX forms (contact, newsletter): answers the form's
+// script in the shape it reads, and ends the request, when the check fails.
+function af_turnstile_require_ajax($action) {
+    if (!af_turnstile_active() || af_turnstile_verify($action)) return;
+    wp_send_json_error(array('message' => af_turnstile_message(false)));
 }
 
 /* ---- the boxes ---- */
@@ -203,6 +214,22 @@ add_action('postero_ajax_verify_captcha', function () {
     if (!af_turnstile_active() || af_turnstile_verify('login')) return;
     wp_send_json(array('status' => false, 'msg' => af_turnstile_message(false)));
 });
+
+/* ---- blog comments and product reviews, from visitors who are not logged in ---- */
+// core fires comment_form_after_fields for logged-out visitors only, after the
+// name / email / website fields and before the button; WooCommerce's review
+// form is the same comment_form()
+add_action('comment_form_after_fields', function () { af_turnstile_box('comment'); });
+add_filter('preprocess_comment', function ($data) {
+    if (!af_turnstile_active() || is_user_logged_in()) return $data;
+    // only the comment and review forms, which post to wp-comments-post.php:
+    // not pingbacks, not the reviews plugin's own AJAX questions and answers
+    if (!isset($GLOBALS['pagenow']) || $GLOBALS['pagenow'] !== 'wp-comments-post.php') return $data;
+    $type = isset($data['comment_type']) ? (string) $data['comment_type'] : '';
+    if ($type !== '' && $type !== 'comment' && $type !== 'review') return $data;
+    if (af_turnstile_verify('comment')) return $data;
+    wp_die(esc_html(af_turnstile_message(false)), esc_html__('Security check', 'postero-child'), array('response' => 403, 'back_link' => true));
+}, 5);
 
 /* ---- the Login | Register widget's own settings read these ---- */
 add_filter('pre_option_eael_cloudflare_turnstile_sitekey', function () {
@@ -251,6 +278,10 @@ function af_turnstile_enqueue() {
       . '.af-ts.af-ts-compact{min-height:140px}'
       . '.af-ts:not(.af-ts-ready){border:1px solid #e4e4e4;border-radius:4px;background:#f7f7f7}'
       . '.af-ts.af-ts-compact:not(.af-ts-ready){max-width:150px}'
+      . '.af-ts.af-ts-quiet{min-height:0;margin:0}'
+      . '.af-ts.af-ts-quiet:not(.af-ts-ready){border:0;background:none}'
+      . '.af-ts.af-ts-quiet.af-ts-ready:not(:empty){margin:8px 0 0}'
+      . '.af-f-newsform{flex-wrap:wrap}.af-f-newsform .af-ts{flex:0 0 100%}'
       . '.af-ts iframe{max-width:100%}'
       . '.af-ts-note{margin:6px 0 0;font-size:13px;line-height:1.45;color:#555}'
       . '.af-ts-note:empty{display:none}'

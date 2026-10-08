@@ -160,7 +160,8 @@ async function browserChecks() {
       const { s, frames } = await boxes(p, want);
       const mine = s ? s.boxes.filter(x => !x.inPopup) : [];
       const cfgErr = s ? s.errors.filter(e => CONFIG_ERR.test(e)) : ['no afTsState'];
-      check(`browser: ${label}: ${want} box(es) drawn by Cloudflare`, mine.length >= want && mine.every(x => x.drawn) && frames >= want, { boxes: mine, frames, script: s && s.script });
+      // the Login | Register widget prints its three forms but shows one; a hidden form's box is drawn when it is shown
+      check(`browser: ${label}: ${want} box(es) drawn by Cloudflare`, mine.filter(x => x.drawn).length >= want && frames >= want, { boxes: mine, frames, script: s && s.script });
       check(`browser: ${label}: no configuration error from Cloudflare`, cfgErr.length === 0, s && s.errors);
       check(`browser: ${label}: no error from our script`, own.length === 0, own);
     } else {
@@ -240,8 +241,94 @@ async function browserChecks() {
   await b.close();
 }
 
+/* ---------- the other forms a guest can send: contact, newsletter, comments and reviews ---------- */
+async function otherFormChecks() {
+  const puppeteer = req('puppeteer-core');
+  const b = await puppeteer.launch({ channel: 'chrome', headless: 'new', args: ['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu'] });
+  const p = await b.newPage();
+  await p.setViewport({ width: 1366, height: 900 }); await p.setUserAgent(UA);
+  const own = []; let cf = 0;
+  p.on('pageerror', e => { const s = String(e && (e.stack || e.message)); if (/af-turnstile|afTs/.test(s)) own.push(s.slice(0, 200)); });
+  p.on('request', r => { if (r.url().includes('challenges.cloudflare.com')) cf++; });
+  const state = () => p.evaluate(() => window.afTsState ? window.afTsState() : null);
+  const drawnBox = async (action, prep) => {
+    if (prep) await prep();
+    await p.evaluate(a => { const bx = [...document.querySelectorAll('.af-ts')].find(x => x.getAttribute('data-action') === a); if (!bx) return; bx.scrollIntoView({ block: 'center' }); const f = bx.closest('form'); const i = f && f.querySelector('input:not([type=hidden]), textarea'); if (i) i.dispatchEvent(new FocusEvent('focusin', { bubbles: true })); }, action);
+    let s = null;
+    for (let i = 0; i < 30; i++) { s = await state(); if (s && s.boxes.some(x => x.action === action && x.drawn)) break; await sleep(500); }
+    await sleep(2000);
+    s = await state();
+    return { box: s && s.boxes.find(x => x.action === action), errors: s ? s.errors.filter(e => CONFIG_ERR.test(e)) : ['no afTsState'] };
+  };
+
+  // the contact page
+  await p.goto(S + '/contact/?' + bust(), { waitUntil: 'networkidle2', timeout: 90000 }).catch(() => null);
+  const contactNonce = await p.evaluate(() => (document.getElementById('afContactForm') || {}).dataset?.nonce || '');
+  if (MODE === 'on') {
+    const r = await drawnBox('contact');
+    check('browser: contact form: box drawn by Cloudflare', !!(r.box && r.box.drawn), r);
+    check('browser: contact form: no configuration error', r.errors.length === 0, r.errors);
+  } else {
+    const n = await p.evaluate(() => ({ boxes: document.querySelectorAll('.af-ts').length, cfg: typeof window.afTs }));
+    check('browser: contact page: no box, no Cloudflare script', n.boxes === 0 && n.cfg === 'undefined' && cf === 0, { ...n, cf });
+  }
+  // the footer newsletter form (any page): a quiet box, drawn only when the field is used
+  const nlNonce = await p.evaluate(() => (document.querySelector('form.af-f-newsform') || {}).dataset?.nonce || '');
+  if (MODE === 'on') {
+    const before = await state();
+    const quiet = before && before.boxes.find(x => x.action === 'newsletter');
+    check('browser: footer newsletter: quiet box present, not drawn before use', !!(quiet && quiet.onUse && quiet.quiet && !quiet.drawn), quiet);
+    const r = await drawnBox('newsletter', () => p.evaluate(() => { const f = document.querySelector('form.af-f-newsform'); if (f) { f.scrollIntoView({ block: 'center' }); const i = f.querySelector('input[type="email"]'); if (i) { i.focus(); i.dispatchEvent(new FocusEvent('focusin', { bubbles: true })); } } }));
+    check('browser: footer newsletter: drawn on use, no configuration error', !!(r.box && r.box.drawn) && r.errors.length === 0, r);
+  }
+
+  // a blog post's comment form and a product's review form
+  const links = await p.evaluate(async () => {
+    const out = { post: null, postId: 0, product: null };
+    try { const r = await fetch('/wp-json/wp/v2/posts?per_page=1&_fields=id,link', { headers: { Accept: 'application/json' } }).then(x => x.json()); if (r && r[0]) { out.post = r[0].link; out.postId = r[0].id; } } catch (e) {}
+    try { const r = await fetch('/wp-json/wc/store/v1/products?per_page=1', { headers: { Accept: 'application/json' } }).then(x => x.json()); if (r && r[0]) out.product = r[0].permalink; } catch (e) {}
+    return out;
+  });
+  for (const [label, url, prep] of [
+    ['blog comment form', links.post, null],
+    ['product review form', links.product, () => p.evaluate(() => { const t = document.querySelector('a[href="#tab-reviews"], .reviews_tab a, [data-tab="reviews"], a[href*="#reviews"]'); if (t) t.click(); })],
+  ]) {
+    if (!url) { check(`browser: ${label}: a page to test on`, false, links); continue; }
+    cf = 0;
+    await p.goto(url + (url.includes('?') ? '&' : '?') + bust(), { waitUntil: 'networkidle2', timeout: 90000 }).catch(() => null);
+    const hasForm = await p.evaluate(() => !!document.querySelector('#commentform, form.comment-form'));
+    if (!hasForm) { check(`browser: ${label}: form found on ${url}`, false); continue; }
+    if (MODE === 'on') {
+      const r = await drawnBox('comment', prep);
+      check(`browser: ${label}: box drawn by Cloudflare, no configuration error`, !!(r.box && r.box.drawn) && r.errors.length === 0, r);
+    } else {
+      const n = await p.evaluate(() => ({ boxes: document.querySelectorAll('.af-ts').length, cfg: typeof window.afTs }));
+      check(`browser: ${label}: no box, no Cloudflare script`, n.boxes === 0 && n.cfg === 'undefined' && cf === 0, { ...n, cf });
+    }
+  }
+  check('browser: other forms: no error from our script', own.length === 0, own);
+  await b.close();
+
+  // the server side, without a token. With the check off, the honeypot field is
+  // filled so the endpoints answer without storing anything; a comment is never posted then.
+  const jsonOf = (t) => { try { return JSON.parse(t); } catch (e) { return null; } };
+  const c = await post('/wp-admin/admin-ajax.php', { action: 'af_contact_submit', nonce: contactNonce, af_name: 'QA Turnstile', af_email: 'qa@example.com', af_subject: 'General Question', af_message: 'Automated security-check test, nothing to answer.', af_hp: MODE === 'on' ? '' : 'x' });
+  const cj = jsonOf(c.html);
+  if (MODE === 'on') check('server: contact form refuses a post without a token', !!(cj && cj.success === false && MSG.test(cj.data?.message || '')), c.html.slice(0, 200));
+  else check('server: contact form answers as before', !!(cj && cj.success === true), c.html.slice(0, 200));
+  const n = await post('/wp-admin/admin-ajax.php', { action: 'af_nl_subscribe', nonce: nlNonce, af_nl_email: 'qa-turnstile@example.com', af_nl_hp: MODE === 'on' ? '' : 'x' });
+  const nj = jsonOf(n.html);
+  if (MODE === 'on') check('server: newsletter form refuses a post without a token', !!(nj && nj.success === false && MSG.test(nj.data?.message || '')), n.html.slice(0, 200));
+  else check('server: newsletter form answers as before', !!(nj && nj.success === true), n.html.slice(0, 200));
+  if (MODE === 'on' && links.postId) {
+    const r = await post('/wp-comments-post.php', { comment: 'Automated security-check test', author: 'QA Turnstile', email: 'qa@example.com', comment_post_ID: String(links.postId), comment_parent: '0', submit: 'Post Comment' }, false);
+    check('server: comment form refuses a post without a token (403)', r.status === 403 && MSG.test(text(r.html)), { status: r.status, text: text(r.html).slice(0, 160) });
+  }
+}
+
 console.log(`=== Turnstile ${MODE.toUpperCase()}: forms checked on ${S}`);
 await serverChecks().catch(e => check('server checks ran', false, String(e && e.stack || e)));
 if (process.env.QA_ONLY !== 'server') await browserChecks().catch(e => check('browser checks ran', false, String(e && e.stack || e)));
+if (process.env.QA_ONLY !== 'server') await otherFormChecks().catch(e => check('other form checks ran', false, String(e && e.stack || e)));
 console.log(`=== ${fails ? fails + ' FAILED' : 'all passed'}`);
 process.exit(fails ? 1 : 0);

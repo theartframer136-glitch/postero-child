@@ -113,8 +113,9 @@ function af_turnstile_admin_page() {
     ?>
     <div class="wrap">
       <h1>Cloudflare Turnstile</h1>
-      <p>The "Verify you are human" check from Cloudflare, on every login, sign-up and password-reset form:
-         the Login and Sign-up pages, My Account, the checkout's returning-customer login, the header's login popup and wp-login.php.</p>
+      <p>The "Verify you are human" check from Cloudflare, on every form a visitor can send without being logged in:
+         the Login and Sign-up pages, My Account (login, register, lost password), the checkout's returning-customer login, the header's login popup,
+         wp-login.php, the contact form, the newsletter forms, blog comments and product reviews. Logged-in customers are never asked.</p>
       <?php if ($result) : ?>
         <div class="notice <?php echo $result['ok'] ? 'notice-success' : 'notice-error'; ?>"><?php foreach ($result['messages'] as $m) echo '<p>' . wp_kses($m, array('strong' => array())) . '</p>'; ?></div>
       <?php endif; ?>
@@ -146,7 +147,7 @@ function af_turnstile_admin_page() {
               <td><input type="password" id="af_ts_secret" name="af_ts_secret" class="regular-text code" value="" autocomplete="new-password" spellcheck="false" placeholder="<?php echo $k['secret'] !== '' ? 'leave blank to keep the saved key' : '0x4AAAAAAA…'; ?>">
                   <p class="description">Checked with Cloudflare before the check is switched on. Never shown again after saving.</p></td></tr>
           <tr><th scope="row">Switch</th>
-              <td><label><input type="checkbox" name="af_ts_on" value="1" <?php checked($mode === 'on'); ?>> Show the security check on every login, sign-up and password-reset form</label></td></tr>
+              <td><label><input type="checkbox" name="af_ts_on" value="1" <?php checked($mode === 'on'); ?>> Show the security check on every form a visitor can send (login, sign-up, password reset, contact, newsletter, comments and reviews)</label></td></tr>
         </table>
         <p class="submit"><button type="submit" class="button button-primary">Save</button></p>
       </form>
