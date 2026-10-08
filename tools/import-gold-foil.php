@@ -177,6 +177,11 @@ foreach (preg_split('/[\r\n,]+(?![0-9])/', $raw) as $cand) {
         // unused image then was a mockup or source file), so none of that
         // backlog can ever ride in on this route.
         $since = (string) get_option('af_goldfoil_fresh_since', '2026-08-22 12:00:00');
+        // Owner, 7 Oct: the 47 products this route made that morning, from
+        // pictures already in the library, were not wanted. Only pictures
+        // uploaded from here on count as new, so nothing older can come back
+        // even if those products are deleted for good.
+        if (strcmp($since, '2026-10-07 12:00:00') < 0) $since = '2026-10-07 12:00:00';
         $recent = array_map('intval', $wpdb->get_col($wpdb->prepare(
             "SELECT ID FROM {$wpdb->posts}
               WHERE post_type = 'attachment' AND post_mime_type LIKE 'image/%%'
@@ -240,6 +245,13 @@ if ($media) {
         $n = $f ? basename($f) : '';
         if ($n === '') return false;
         if (preg_match('/-scene\d+/i', $n)) return false;              // room mockup
+        // Room mockups named the other way round, and the canvas range's own
+        // pictures: scene1-13.jpg, own-5.jpg and RK-010051-5030.jpg are the
+        // gallery and main images of canvas products. 7 Oct: 37 of them, left
+        // unused when duplicate canvas listings were deleted, came in here as
+        // "Gold Foiled UV" products titled with their file names.
+        if (preg_match('/^(scene\d+|own)[-_]\d+/i', $n)) return false;    // room mockup / own-wall photo
+        if (preg_match('/^[A-Z]{2}-\d{6}-\d{4}(-\d+)?\./i', $n)) return false; // a canvas product's art-code master
         if (preg_match('/-\d{2,4}x\d{2,4}\.[a-z]+$/i', $n)) return false; // resized copy
         return true;
     }));

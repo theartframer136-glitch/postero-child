@@ -1,0 +1,89 @@
+name: Remove Plugins
+# Removes switched-off plugin folders from the server, each behind a backup
+# (tools/remove-plugins.sh, which says exactly what it refuses). The owner,
+# 5-6 Oct: every plugin the theme now does the work of is switched off, and
+# their folders go after three days with them off. WooCommerce, WooCommerce
+# Square, Elementor and LiteSpeed Cache stay and are refused here.
+#
+#   mode=check    read-only: what would go, sizes, what is refused
+#   mode=backup   back each folder up on the server (/tmp, this account only);
+#                 nothing removed; prints BACKUP <stamp>
+#   mode=remove   remove the folders backed up under <stamp> (never WordPress's
+#                 Delete, which runs uninstall code that can wipe data)
+#   mode=restore  put folders back from <stamp> (they stay switched off)
+#
+# Backups never leave the server: the repository is public, and not every
+# plugin here may be published.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'check | backup | remove | restore'
+        required: true
+        default: 'check'
+      plugins:
+        description: 'Plugin folders, space separated, or all (every switched-off plugin)'
+        required: true
+        default: 'all'
+      stamp:
+        description: 'remove / restore only: the backup stamp (printed as BACKUP <stamp>)'
+        required: false
+        default: ''
+# Not while plugins are being switched or updated.
+concurrency:
+  group: switch-plugins
+  cancel-in-progress: false
+jobs:
+  remove:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MODE: ${{ inputs.mode }}
+      PLUGINS: ${{ inputs.plugins }}
+      STAMP: ${{ inputs.stamp }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check the inputs
+        run: |
+          set -euo pipefail
+          case "$MODE" in check|backup|remove|restore) ;; *) echo "mode must be check, backup, remove or restore"; exit 1;; esac
+          case "$PLUGINS" in *[!a-z0-9\ -]*|'') echo "bad plugin list"; exit 1;; esac
+          case "$STAMP" in *[!0-9A-Za-z-]*) echo "bad stamp"; exit 1;; esac
+          if [ "$MODE" = remove ] || [ "$MODE" = restore ]; then [ -n "$STAMP" ] || { echo "$MODE needs the backup stamp"; exit 1; }; fi
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Send the script up
+        run: |
+          scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
+              tools/remove-plugins.sh "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/af-remove-plugins.sh"
+      - name: Run it
+        run: |
+          set -uo pipefail
+          if [ "$MODE" = remove ] || [ "$MODE" = restore ]; then ARGS="'$MODE' '$STAMP' '$PLUGINS'"; else ARGS="'$MODE' '$PLUGINS'"; fi
+          ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ServerAliveInterval=30 -i ~/.ssh/id_ed25519 \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
+              "cd ~/websites/OPu0sKi4J/public_html && bash ~/af-remove-plugins.sh $ARGS" 2>&1 | tee /tmp/out.txt
+          rc=${PIPESTATUS[0]}
+          grep -E "^(BACKUP|DONE|CHECK ONLY|Nothing to do)" /tmp/out.txt >> "$GITHUB_STEP_SUMMARY" || true
+          exit "$rc"
+      - name: The shop's key pages, from outside
+        if: ${{ always() && (inputs.mode == 'remove' || inputs.mode == 'restore') }}
+        run: |
+          set +e
+          sleep 20
+          BAD=0
+          for u in / /shop/ /product-category/digital-canvas-prints/ \
+                   /product/radha-krishna-moonlit-melody-canvas-wall-art-3x4-feet-floating-frame-premium-digital-canvas-print-living-room-home-spiritual-wall-decor/ \
+                   /cart/ /checkout/ /my-account/ '/?lang=hi' '/?currency=CAD' '/wp-json/wc/store/v1/products?per_page=1'; do
+            body=$(curl -sSL -m 40 -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0 Safari/537.36" -w '\n%{http_code}' "https://theartframer.us$u" 2>&1)
+            code=$(printf '%s' "$body" | tail -1); note=""
+            printf '%s' "$body" | grep -qiE "critical error|Fatal error|There has been a critical|Briefly unavailable for scheduled maintenance" && note="  <- ERROR PAGE" && BAD=1
+            printf '%s' "$body" | grep -qE "/wp-content/plugins/[a-z0-9-]+/" && for p in $(printf '%s' "$body" | grep -oE "/wp-content/plugins/[a-z0-9-]+/" | sort -u | cut -d/ -f4); do case " woocommerce woocommerce-square elementor litespeed-cache " in *" $p "*) ;; *) note="$note  <- loads from removed? $p"; BAD=1;; esac; done
+            [ "$code" = 200 ] || { [ -z "$note" ] && note="  <- not 200"; BAD=1; }
+            printf '  %-4s %s%s\n' "$code" "$u" "$note"
+          done
+          [ "$BAD" = 0 ] && echo "All key pages answer 200, with no error page and nothing loaded from a removed folder." || { echo "A KEY PAGE IS BROKEN: put the folders back with mode=restore and the same stamp."; exit 1; }

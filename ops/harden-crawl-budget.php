@@ -201,9 +201,12 @@ function af_guard_probe( $path, $headers = array() ) {
         // WordPress 404 template is tens of KB, a web-server or guard refusal
         // is a few hundred bytes.
         'len'     => strlen( (string) wp_remote_retrieve_body( $r ) ),
+        // Hostinger's CDN, or Cloudflare once the site moves behind it (only
+        // one of the two is ever in front: Hostinger's own rule).
         'via_cdn' => ( stripos( $server, 'hcdn' ) !== false )
                      || wp_remote_retrieve_header( $r, 'x-hcdn-request-id' ) !== ''
-                     || wp_remote_retrieve_header( $r, 'x-hcdn-cache-status' ) !== '',
+                     || wp_remote_retrieve_header( $r, 'x-hcdn-cache-status' ) !== ''
+                     || wp_remote_retrieve_header( $r, 'cf-ray' ) !== '',
     );
 }
 
