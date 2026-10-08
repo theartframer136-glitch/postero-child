@@ -8225,7 +8225,11 @@ class Login_Register extends Widget_Base {
 			}
 		}
 
-		if ( ! empty( $this->cloudflare_turnstile_sitekey ) && 'yes' === $this->get_settings_for_display( "enable_cloudflare_turnstile" ) && ( 'yes' === $this->get_settings_for_display( "enable_cloudflare_turnstile_on_{$form_type}" ) ) ) {
+		if ( function_exists( 'af_turnstile_box' ) ) {
+			// The site's Cloudflare Turnstile (inc/turnstile.php) decides for every
+			// form of every Login | Register widget: on while it is switched on.
+			af_turnstile_box( $form_type );
+		} elseif ( ! empty( $this->cloudflare_turnstile_sitekey ) && 'yes' === $this->get_settings_for_display( "enable_cloudflare_turnstile" ) && ( 'yes' === $this->get_settings_for_display( "enable_cloudflare_turnstile_on_{$form_type}" ) ) ) {
 			$id = "eael-{$form_type}-cloudflare-turnstile-" . esc_attr( $this->get_id() );
 			wp_enqueue_script( 'eael-cloudflare' );
 			echo "<div class='cf-turnstile' data-theme='" . esc_attr( $this->ds['cloudflare_turnstile_theme'] ) . "' data-sitekey='" . esc_attr( $this->cloudflare_turnstile_sitekey ) . "'></div>";

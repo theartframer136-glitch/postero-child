@@ -21,9 +21,14 @@
  * autoloaded under its own namespace exactly as the plugin's autoload.php did:
  * the four widget classes and the carousel's templates, Classes\Helper,
  * Asset_Builder and Elements_Manager, the traits they use, the eael-select2
- * control and the Custom JS page-settings control. One line differs:
+ * control and the Custom JS page-settings control. Two things differ:
  * Traits\Template_Query::get_template_dir() reads the carousel templates from
- * inc/ports/eael/includes/Template/. inc/ports/eael/class-af-eael-port.php is
+ * inc/ports/eael/includes/Template/; and the Login | Register form's Cloudflare
+ * Turnstile is the site's (inc/turnstile.php): when that is loaded,
+ * Elements\Login_Register::print_bot_protection_node() prints its box and the
+ * Traits\Login_Registration checks (login, register, lost password) ask it,
+ * whatever the widget's own Turnstile switches say (8 Oct, the owner asked for
+ * the check on every login and sign-up form). inc/ports/eael/class-af-eael-port.php is
  * Bootstrap's storefront half (forms, AJAX, widget registration, the
  * WooCommerce hooks); inc/ports/eael/config.php is config.php cut to these
  * widgets. The assets are copied byte for byte to assets/ports/eael/assets/

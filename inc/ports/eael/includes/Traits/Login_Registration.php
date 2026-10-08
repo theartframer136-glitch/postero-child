@@ -284,9 +284,9 @@ trait Login_Registration {
 			}
 		}
 
-		if( ! empty( $settings['enable_cloudflare_turnstile'] ) && 'yes' === $settings['enable_cloudflare_turnstile'] && ! empty( $settings['enable_cloudflare_turnstile_on_login'] ) && 'yes' === $settings['enable_cloudflare_turnstile_on_login'] ){
-			if( ! $this->lr_validate_cloudflare_turnstile( $settings ) ) { // pass only sanitized data
-				$err_msg = isset( $settings['err_cloudflare_turnstile'] ) ? Helper::eael_wp_kses( $settings['err_cloudflare_turnstile'] ) : __( 'You did not pass Cloudflare Turnstile challenge.', 'essential-addons-for-elementor-lite' );
+		if( $this->af_lr_turnstile_on( $settings, 'login' ) ){
+			if( ! $this->lr_validate_cloudflare_turnstile( $settings, 'login' ) ) { // pass only sanitized data
+				$err_msg = $this->af_lr_turnstile_error( $settings );
 				if ( $ajax ) {
 					wp_send_json_error( $err_msg );
 				}
@@ -738,9 +738,9 @@ trait Login_Registration {
 			}
 		}
 
-		if ( isset( $settings['enable_cloudflare_turnstile_on_register'] ) && 'yes' === $settings['enable_cloudflare_turnstile_on_register'] ) {
-			if( ! $this->lr_validate_cloudflare_turnstile( $settings ) ) { // pass only sanitized data
-				$errors['cloudflare_turnstile'] = isset( $settings['err_cloudflare_turnstile'] ) ? Helper::eael_wp_kses( $settings['err_cloudflare_turnstile'] ) : __( 'You did not pass Cloudflare Turnstile challenge.', 'essential-addons-for-elementor-lite' );
+		if ( $this->af_lr_turnstile_on( $settings, 'register' ) ) {
+			if( ! $this->lr_validate_cloudflare_turnstile( $settings, 'register' ) ) { // pass only sanitized data
+				$errors['cloudflare_turnstile'] = $this->af_lr_turnstile_error( $settings );
 			}
 		}
 
@@ -1281,9 +1281,9 @@ trait Login_Registration {
 			return;
 		}
 
-		if( ! empty( $settings['enable_cloudflare_turnstile'] ) && 'yes' === $settings['enable_cloudflare_turnstile'] && ! empty( $settings['enable_cloudflare_turnstile_on_lostpassword'] ) && 'yes' === $settings['enable_cloudflare_turnstile_on_lostpassword'] ){
-			if( ! $this->lr_validate_cloudflare_turnstile( $settings ) ) { // pass only sanitized data
-				$err_msg = isset( $settings['err_cloudflare_turnstile'] ) ? Helper::eael_wp_kses( $settings['err_cloudflare_turnstile'] ) : __( 'You did not pass Cloudflare Turnstile challenge.', 'essential-addons-for-elementor-lite' );
+		if( $this->af_lr_turnstile_on( $settings, 'lostpassword' ) ){
+			if( ! $this->lr_validate_cloudflare_turnstile( $settings, 'lostpassword' ) ) { // pass only sanitized data
+				$err_msg = $this->af_lr_turnstile_error( $settings );
 				if ( $ajax ) {
 					wp_send_json_error( $err_msg );
 				}
@@ -2102,7 +2102,33 @@ trait Login_Registration {
 		return false;
 	}
 
-	public function lr_validate_cloudflare_turnstile( $settings = [] ) {
+	/**
+	 * Whether Cloudflare Turnstile guards this form ($form: login, register or
+	 * lostpassword). With the site's Turnstile (inc/turnstile.php) loaded, the
+	 * site decides for all three forms of every widget: on while it is switched
+	 * on, off otherwise. Without it, the widget's own switches, as before.
+	 */
+	protected function af_lr_turnstile_on( $settings, $form ) {
+		if ( function_exists( 'af_turnstile_active' ) ) {
+			return af_turnstile_active();
+		}
+		if ( 'register' === $form ) {
+			return isset( $settings['enable_cloudflare_turnstile_on_register'] ) && 'yes' === $settings['enable_cloudflare_turnstile_on_register'];
+		}
+		return ! empty( $settings['enable_cloudflare_turnstile'] ) && 'yes' === $settings['enable_cloudflare_turnstile'] && ! empty( $settings[ 'enable_cloudflare_turnstile_on_' . $form ] ) && 'yes' === $settings[ 'enable_cloudflare_turnstile_on_' . $form ];
+	}
+
+	protected function af_lr_turnstile_error( $settings ) {
+		if ( function_exists( 'af_turnstile_message' ) ) {
+			return af_turnstile_message( false );
+		}
+		return isset( $settings['err_cloudflare_turnstile'] ) ? Helper::eael_wp_kses( $settings['err_cloudflare_turnstile'] ) : __( 'You did not pass Cloudflare Turnstile challenge.', 'essential-addons-for-elementor-lite' );
+	}
+
+	public function lr_validate_cloudflare_turnstile( $settings = [], $context = '' ) {
+		if ( function_exists( 'af_turnstile_verify' ) ) {
+			return af_turnstile_verify( $context );
+		}
 		if ( ! isset( $_REQUEST['cf-turnstile-response'] ) ) { //phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			return false;
 		}
