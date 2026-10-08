@@ -274,10 +274,11 @@ async function otherFormChecks() {
   }
   // the footer newsletter form (any page): a quiet box, drawn only when the field is used
   const nlNonce = await p.evaluate(() => (document.querySelector('form.af-f-newsform') || {}).dataset?.nonce || '');
+  const formsOnPage = () => p.evaluate(() => [...document.querySelectorAll('form')].map(f => (f.className || f.id || '(no class)') + ' -> ' + [...f.querySelectorAll('input:not([type=hidden]),button')].map(i => i.name || i.placeholder || i.textContent?.trim().slice(0, 12) || i.type).join(',')).slice(0, 12));
   if (MODE === 'on') {
     const before = await state();
     const quiet = before && before.boxes.find(x => x.action === 'newsletter');
-    check('browser: footer newsletter: quiet box present, not drawn before use', !!(quiet && quiet.onUse && quiet.quiet && !quiet.drawn), quiet);
+    check('browser: footer newsletter: quiet box present, not drawn before use', !!(quiet && quiet.onUse && quiet.quiet && !quiet.drawn), quiet || { nlForm: !!nlNonce, forms: await formsOnPage() });
     const r = await drawnBox('newsletter', () => p.evaluate(() => { const f = document.querySelector('form.af-f-newsform'); if (f) { f.scrollIntoView({ block: 'center' }); const i = f.querySelector('input[type="email"]'); if (i) { i.focus(); i.dispatchEvent(new FocusEvent('focusin', { bubbles: true })); } } }));
     check('browser: footer newsletter: drawn on use, no configuration error', !!(r.box && r.box.drawn) && r.errors.length === 0, r);
   }
@@ -300,7 +301,12 @@ async function otherFormChecks() {
     if (!hasForm) { check(`browser: ${label}: form found on ${url}`, false); continue; }
     if (MODE === 'on') {
       const r = await drawnBox('comment', prep);
-      check(`browser: ${label}: box drawn by Cloudflare, no configuration error`, !!(r.box && r.box.drawn) && r.errors.length === 0, r);
+      const why = (r.box && r.box.drawn) ? null : await p.evaluate(() => {
+        const bx = [...document.querySelectorAll('.af-ts')].find(x => x.getAttribute('data-action') === 'comment');
+        const chain = []; for (let el = bx; el && el !== document.body && chain.length < 12; el = el.parentElement) { const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || el.hidden) chain.push((el.tagName + '.' + (el.className || '') + '#' + (el.id || '')).slice(0, 80) + ' display=' + cs.display + ' visibility=' + cs.visibility); }
+        return { boxWidth: bx ? bx.clientWidth : -1, hiddenAncestors: chain, tabs: [...document.querySelectorAll('a[href^="#tab-"], .wc-tabs a, .tabs a, [role="tab"]')].map(a => (a.getAttribute('href') || a.textContent.trim()).slice(0, 40)).slice(0, 10), formShown: !!(document.querySelector('#commentform') && document.querySelector('#commentform').getClientRects().length) };
+      });
+      check(`browser: ${label}: box drawn by Cloudflare, no configuration error`, !!(r.box && r.box.drawn) && r.errors.length === 0, why || r);
     } else {
       const n = await p.evaluate(() => ({ boxes: document.querySelectorAll('.af-ts').length, cfg: typeof window.afTs }));
       check(`browser: ${label}: no box, no Cloudflare script`, n.boxes === 0 && n.cfg === 'undefined' && cf === 0, { ...n, cf });
