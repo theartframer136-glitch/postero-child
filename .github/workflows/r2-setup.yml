@@ -1,0 +1,131 @@
+name: R2 Setup
+# Digital downloads from Cloudflare R2 (inc/digital-masters.php). The owner
+# keeps the full-resolution files in a private R2 bucket, each named after its
+# art code; a digital buyer gets theirs straight from Cloudflare through a link
+# that works for 5 minutes. The website stays on Hostinger.
+#
+# Repository secrets (GitHub → Settings → Secrets and variables → Actions):
+#   R2_ACCOUNT_ID         Cloudflare account ID (32 hex characters)
+#   R2_ACCESS_KEY_ID      from an R2 API token with "Object Read only" on the bucket
+#   R2_SECRET_ACCESS_KEY  from the same token
+#   R2_BUCKET             the bucket's name (optional: theartframer-masters)
+#
+#   status      read-only: what the site has (tools/diag-r2.php).
+#   connect     the key is first tried from GitHub (list the bucket); only then
+#               are the settings written into the site, over SSH by standard
+#               input (never on a command line), and the file list read.
+#   refresh     read the bucket's file list again now (it is also read twice a
+#               day by itself, and from Products → Download masters).
+#   disconnect  remove the settings: every buyer gets today's files again.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'status, connect, refresh or disconnect'
+        required: true
+        default: status
+        type: choice
+        options: [status, connect, refresh, disconnect]
+# never alongside a deploy: both write the site
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  r2:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      MODE: ${{ github.event.inputs.mode }}
+      R2_ACCOUNT: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_KEY: ${{ secrets.R2_ACCESS_KEY_ID }}
+      R2_SECRET: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      R2_BUCKET_IN: ${{ secrets.R2_BUCKET }}
+      H_USER: ${{ secrets.HOSTINGER_USERNAME }}
+      H_HOST: ${{ secrets.HOSTINGER_HOST }}
+      H_PORT: ${{ secrets.HOSTINGER_PORT }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          cat > ~/ssh-site <<'EOF'
+          #!/usr/bin/env bash
+          # one command on the server, in the site's folder (stdin passed through)
+          exec ssh -p "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+            "$H_USER@$H_HOST" "cd ~/websites/OPu0sKi4J/public_html && $1"
+          EOF
+          chmod +x ~/ssh-site
+
+      - name: The key (present, well-formed, and able to read the bucket)
+        if: env.MODE == 'connect'
+        run: |
+          set -euo pipefail
+          B="${R2_BUCKET_IN:-theartframer-masters}"
+          if [ -z "$R2_ACCOUNT" ] || [ -z "$R2_KEY" ] || [ -z "$R2_SECRET" ]; then
+            echo "Repository secrets missing: R2_ACCOUNT_ID, R2_ACCESS_KEY_ID and R2_SECRET_ACCESS_KEY are all needed."
+            echo "Cloudflare → R2 → Manage API tokens → Create API token (Object Read only, this bucket);"
+            echo "GitHub → this repository → Settings → Secrets and variables → Actions → New repository secret."
+            exit 1
+          fi
+          echo "::add-mask::$R2_SECRET"
+          [[ "$R2_ACCOUNT" =~ ^[0-9a-f]{32}$ ]] || { echo "R2_ACCOUNT_ID is not a 32-character account ID (a space or line break copied with it?)"; exit 1; }
+          [[ "$R2_KEY" =~ ^[0-9a-f]{32}$ ]]     || { echo "R2_ACCESS_KEY_ID is not a 32-character R2 access key ID"; exit 1; }
+          [[ "$R2_SECRET" =~ ^[0-9a-f]{64}$ ]]  || { echo "R2_SECRET_ACCESS_KEY is not a 64-character R2 secret (the token value itself is not it)"; exit 1; }
+          [[ "$B" =~ ^[a-z0-9][a-z0-9-]{1,61}[a-z0-9]$ ]] || { echo "R2_BUCKET is not a bucket name"; exit 1; }
+          echo "account ${R2_ACCOUNT:0:6}…, bucket $B, access key ${R2_KEY:0:4}…"
+          if AWS_ACCESS_KEY_ID="$R2_KEY" AWS_SECRET_ACCESS_KEY="$R2_SECRET" AWS_DEFAULT_REGION=auto \
+             aws s3api list-objects-v2 --endpoint-url "https://$R2_ACCOUNT.r2.cloudflarestorage.com" --bucket "$B" --max-items 3 \
+             --query '{files: KeyCount, first: Contents[].Key}' --output json > /tmp/list.json 2> /tmp/list.err; then
+            echo "Cloudflare accepted the key; the bucket answers:"; cat /tmp/list.json
+          else
+            echo "Cloudflare refused: $(head -c 300 /tmp/list.err)"; exit 1
+          fi
+          echo "R2_BUCKET_NAME=$B" >> "$GITHUB_ENV"
+
+      - name: Is the module on the site?
+        if: env.MODE != 'status'
+        run: |
+          set -euo pipefail
+          ~/ssh-site "wp eval 'exit(function_exists(\"af_r2_config\") ? 0 : 3);' --allow-root 2>/dev/null" \
+            || { echo "inc/digital-masters.php is not on the site yet: deploy it first"; exit 1; }
+
+      - name: Connect (settings in by standard input) and read the file list
+        if: env.MODE == 'connect'
+        run: |
+          set -euo pipefail
+          python3 -c 'import json,os; print(json.dumps({"account": os.environ["R2_ACCOUNT"], "bucket": os.environ["R2_BUCKET_NAME"], "key": os.environ["R2_KEY"], "secret": os.environ["R2_SECRET"]}))' \
+            | ~/ssh-site "wp eval '\$c = json_decode(stream_get_contents(STDIN), true); update_option(\"af_r2_config\", \$c, false); echo af_r2_config() ? \"settings stored\" : \"NOT STORED\";' --allow-root 2>/dev/null" | tee /tmp/c.txt
+          grep -q "settings stored" /tmp/c.txt
+          ~/ssh-site "wp eval '\$i = af_r2_rebuild_index(); echo \$i === false ? \"LIST FAILED: \" . get_option(\"af_r2_last_error\") : count(\$i) . \" art codes matched\";' --allow-root 2>/dev/null" | tee /tmp/i.txt
+          ! grep -q "LIST FAILED" /tmp/i.txt
+
+      - name: Read the file list again
+        if: env.MODE == 'refresh'
+        run: |
+          set -euo pipefail
+          ~/ssh-site "wp eval '\$i = af_r2_rebuild_index(); echo \$i === false ? \"LIST FAILED: \" . get_option(\"af_r2_last_error\") : count(\$i) . \" art codes matched\";' --allow-root 2>/dev/null" | tee /tmp/i.txt
+          ! grep -q "LIST FAILED" /tmp/i.txt
+
+      - name: Disconnect
+        if: env.MODE == 'disconnect'
+        run: |
+          set -euo pipefail
+          ~/ssh-site "wp eval 'delete_option(\"af_r2_config\"); delete_option(\"af_r2_index\"); delete_option(\"af_r2_last_error\"); wp_clear_scheduled_hook(\"af_r2_refresh_index\"); echo af_r2_config() ? \"STILL CONNECTED\" : \"disconnected: buyers get the files WooCommerce had before\";' --allow-root 2>/dev/null" | tee /tmp/d.txt
+          grep -q "disconnected" /tmp/d.txt
+
+      - name: The site now (read-only)
+        if: always()
+        run: |
+          set -uo pipefail
+          for i in 1 2 3; do
+            scp -P "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+              tools/diag-r2.php "$H_USER@$H_HOST:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-r2.php" && break
+            sleep 15
+          done
+          ~/ssh-site "timeout 300 wp eval-file wp-content/themes/postero-child/tools/diag-r2.php --allow-root 2>&1" | grep -v '^Deprecated:'
