@@ -141,7 +141,9 @@ if (!function_exists('af_r2_config')) {
         if (!is_array($idx) || !isset($idx['bytes'])) return '';
         $used = (int) $idx['bytes'];
         $pct  = (int) floor($used * 100 / AF_R2_FREE_BYTES);
-        $line = sprintf('%s of the free 10 GB used (%d%%).', size_format($used, 1), $pct);
+        // GB as Cloudflare counts the free 10 GB (1,000,000,000 bytes), not
+        // size_format()'s 1024-based one: that showed "6.8 GB ... (72%)".
+        $line = sprintf('%s GB of the free 10 GB used (%d%%).', number_format($used / 1e9, 1), $pct);
         if ($used > AF_R2_FREE_BYTES) return 'OVER THE FREE 10 GB: ' . $line . ' Cloudflare charges $0.015 per GB a month above it.';
         if ($pct >= 90) return 'Nearly full: ' . $line;
         return $line;

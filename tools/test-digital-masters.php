@@ -72,6 +72,7 @@ ok(!isset($idx['CO-240006-0000']), 'a code with no file has no master');
 ok(get_option('af_r2_index')['objects'] === 6, 'folders are not counted as files');
 ok(get_option('af_r2_index')['bytes'] === 2103001505, 'the bucket\'s total size is kept');
 ok(af_r2_usage_line(get_option('af_r2_index')) === '2.1 GB of the free 10 GB used (21%).', 'shown against the free 10 GB');
+ok(af_r2_usage_line(array('bytes' => 7252569649)) === '7.3 GB of the free 10 GB used (72%).', 'the size and the share count GB the same way (not "6.8 GB ... 72%")');
 ok(strpos(af_r2_usage_line(array('bytes' => 9.5e9)), 'Nearly full') === 0, 'warns from 90%');
 ok(strpos(af_r2_usage_line(array('bytes' => 10.2e9)), 'OVER THE FREE 10 GB') === 0, 'says so plainly above 10 GB');
 
