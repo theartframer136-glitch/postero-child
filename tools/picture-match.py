@@ -2,8 +2,8 @@
 """
 Which pictures on the site show the same artwork as a Cloudflare R2 master?
 Runs on the GitHub runner (.github/workflows/picture-match.yml), never on the
-site: reads the folder tools/diag-picture-files.php filled (index.tsv, img/,
-masters/) and matches each master against every picture with SIFT features and
+site: reads what tools/diag-picture-files.php gathered (index.tsv, masters/,
+and the pictures at the paths index.tsv names) and matches each master against every picture with SIFT features and
 a RANSAC homography, so a painting shown small inside a room photo still
 counts. The score is the number of features that agree on one placement:
 about 25 and up is the same artwork; unrelated pictures stay near 0-10.
@@ -103,7 +103,7 @@ rows = []
 with open(os.path.join(root, 'index.tsv'), newline='', encoding='utf-8') as f:
     for r in csv.reader(f, delimiter='\t'):
         if len(r) >= 7:
-            rows.append(dict(idx=r[0], pid=r[1], status=r[2], role=r[3], att=r[4], code=r[5], title=r[6], file=os.path.join(root, 'img', r[0])))
+            rows.append(dict(idx=r[0], pid=r[1], status=r[2], role=r[3], att=r[4], code=r[5], title=r[6], file=os.path.join(root, r[0]) if '/' in r[0] else os.path.join(root, 'img', r[0])))
 masters = sorted(os.listdir(os.path.join(root, 'masters')))
 print(f'{len(rows)} pictures from the site, {len(masters)} masters')
 

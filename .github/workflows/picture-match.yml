@@ -1,8 +1,8 @@
 name: Picture Match
 # Read-only. Which pictures on the site show the same artwork as these
-# Cloudflare R2 masters? tools/diag-picture-files.php gathers every product
-# picture (links to WordPress's own resized copies) and a copy of each master
-# into the server's /tmp; the folder is copied here and deleted on the server;
+# Cloudflare R2 masters? tools/diag-picture-files.php lists every product
+# picture (WordPress's own resized copies) and puts a copy of each master in
+# the server's /tmp; they are copied here and the /tmp folder deleted;
 # tools/picture-match.py compares on this runner and prints the best matches
 # with a contact sheet. Nothing on the site is changed.
 #
@@ -67,9 +67,9 @@ jobs:
         run: |
           set -uo pipefail
           mkdir -p ~/m
-          ~/ssh-site "tar -chf - -C /tmp/af-match . 2>/dev/null" | tar -xf - -C ~/m || true
+          ~/ssh-site "test -f /tmp/af-match/files.txt && tar -chf - -C /tmp/af-match index.tsv masters -C / -T /tmp/af-match/files.txt 2>/dev/null" | tar -xf - -C ~/m || true
           ~/ssh-site "rm -rf /tmp/af-match" && echo "server copy deleted"
-          echo "$(ls ~/m/img 2>/dev/null | wc -l) pictures and $(ls ~/m/masters 2>/dev/null | wc -l) masters copied ($(du -sh ~/m | cut -f1))"
+          echo "$(find ~/m -type f | wc -l) files copied, $(ls ~/m/masters 2>/dev/null | wc -l) of them masters ($(du -sh ~/m | cut -f1))"
       - name: Compare
         run: |
           set -euo pipefail

@@ -3,10 +3,11 @@
 /**
  * READ-ONLY. Gathers, for tools/picture-match.py, every product picture on the
  * site and the Cloudflare R2 masters asked for, into /tmp/af-match:
- *   img/<n>.<ext>     a link to WordPress's own ~600-800 px copy of each main
- *                     and gallery picture (no new files are made for these)
+ *   files.txt         WordPress's own ~600-800 px copy of each main and gallery
+ *                     picture, as paths for tar (no copies are made of these)
  *   masters/<key>     a 1000 px copy of each master (fetched, resized, temp)
- *   index.tsv         n, product, status, main/gallery, picture ID, art code, title
+ *   index.tsv         picture, product, status, main/gallery, picture ID, art
+ *                     code, title
  * The workflow copies the folder off the server and deletes it. Nothing on the
  * site is changed. No server path is printed.
  *
@@ -19,7 +20,7 @@ if (!defined('ABSPATH')) exit(1);
 
 $dir = '/tmp/af-match';
 if (is_dir($dir)) { foreach (new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST) as $f) { $f->isDir() ? rmdir($f) : unlink($f); } rmdir($dir); }
-mkdir($dir . '/img', 0700, true); mkdir($dir . '/masters', 0700, true);
+mkdir($dir . '/masters', 0700, true);
 
 $pick = function ($att) {
     $file = get_attached_file($att);
@@ -34,6 +35,7 @@ $pick = function ($att) {
 global $wpdb;
 $ids = $wpdb->get_col("SELECT ID FROM {$wpdb->posts} WHERE post_type = 'product' AND post_status IN ('publish', 'draft', 'private', 'pending', 'future', 'trash') ORDER BY ID");
 $tsv = fopen($dir . '/index.tsv', 'w');
+$lst = fopen($dir . '/files.txt', 'w'); // relative to / (symlink() is switched off on this host)
 $n = 0; $missing = 0; $by = array();
 foreach ($ids as $pid) {
     $st = get_post_status($pid);
@@ -44,14 +46,14 @@ foreach ($ids as $pid) {
             $p = $pick($att);
             if ($p === '') { $missing++; continue; }
             $n++;
-            $name = $n . '.' . strtolower(pathinfo($p, PATHINFO_EXTENSION));
-            symlink($p, $dir . '/img/' . $name);
+            $name = ltrim($p, '/');
+            fwrite($lst, $name . "\n");
             fputcsv($tsv, array($name, $pid, $st, $role, $att, (string) get_post_meta($pid, '_taf_art_code', true), str_replace(array("\t", "\n"), ' ', html_entity_decode((string) get_post_field('post_title', $pid, 'raw'), ENT_QUOTES, 'UTF-8'))), "\t");
             $by[$st] = ($by[$st] ?? 0) + 1;
         }
     }
 }
-fclose($tsv);
+fclose($tsv); fclose($lst);
 echo count($ids) . " products, $n pictures (" . implode(', ', array_map(function ($k, $v) { return "$k $v"; }, array_keys($by), $by)) . "), $missing missing on disk\n";
 
 foreach (preg_split('/\s+/', trim((string) getenv('AF_MASTERS'))) as $key) {
