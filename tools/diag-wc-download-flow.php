@@ -25,6 +25,16 @@ foreach ($L as $i => $l) {
 echo "\n=== download_product() (lines " . ($start + 1) . "-" . $end . ")\n";
 if ($start !== null) for ($i = $start; $i < min($end ?? $start + 140, $start + 160); $i++) echo sprintf('%4d ', $i + 1) . rtrim($L[$i]) . "\n";
 
+echo "\n=== download() and download_file_redirect()\n";
+foreach ($L as $i => $l) {
+    if (preg_match('/function\s+(download|download_file_redirect|parse_file_path)\s*\(/', $l)) {
+        for ($j = $i; $j < min($i + 60, count($L)); $j++) {
+            echo sprintf('%4d ', $j + 1) . rtrim($L[$j]) . "\n";
+            if ($j > $i && preg_match('/^\t}\s*$/', $L[$j])) break;
+        }
+    }
+}
+
 echo "\n=== other places that matter\n";
 foreach ($L as $i => $l) {
     if (preg_match('/woocommerce_file_download_method|woocommerce_file_download_path|function download_file_redirect|function download\s*\(|approved|is_file_path_approved|function check_/', $l)) {
