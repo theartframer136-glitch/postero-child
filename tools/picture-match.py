@@ -6,7 +6,8 @@ site: reads what tools/diag-picture-files.php gathered (index.tsv, masters/,
 and the pictures at the paths index.tsv names) and matches each master against every picture with SIFT features and
 a RANSAC homography, so a painting shown small inside a room photo still
 counts. The score is the number of features that agree on one placement:
-about 25 and up is the same artwork; unrelated pictures stay near 0-10.
+in the first run (9 Oct) the same artwork scored 238-2031 and unrelated
+pictures up to 47, so read 100 and up as the same artwork.
 
 Prints the best matches per master and, per master, one contact sheet as
 @@IMG|label|base64 (the master, then its best matches).
@@ -127,7 +128,7 @@ print(f'{unread} pictures could not be read')
 
 for m in masters:
     best = sorted(results[m], key=lambda t: -t[0])[:TOP]
-    print(f'\n=== {m}: best matches (25 and up: same artwork)')
+    print(f'\n=== {m}: best matches (100 and up: same artwork)')
     for s, r in best:
         print(f'  {s:5d}  #{r["pid"]} {r["status"]:7s} {r["role"]:8s} att #{r["att"]:6s} {r["code"]:16s} {r["title"][:70]}')
     cells = [(os.path.join(root, 'masters', m), f'MASTER\n{m}')]

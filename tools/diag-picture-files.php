@@ -14,7 +14,9 @@
  * Products of every status but auto-drafts are included (trash too), so a
  * picture that is only on a hidden listing is found as well.
  *
- * Run: AF_MASTERS="RK-010022-3050-DD.jpg RK-010005-3050-DD.jpg" wp eval-file tools/diag-picture-files.php --allow-root
+ * AF_MASTERS takes file names in the bucket or art codes (their master).
+ *
+ * Run: AF_MASTERS="RK-010022-3050-DD.jpg RK-010005-3050" wp eval-file tools/diag-picture-files.php --allow-root
  */
 if (!defined('ABSPATH')) exit(1);
 
@@ -56,8 +58,15 @@ foreach ($ids as $pid) {
 fclose($tsv); fclose($lst);
 echo count($ids) . " products, $n pictures (" . implode(', ', array_map(function ($k, $v) { return "$k $v"; }, array_keys($by), $by)) . "), $missing missing on disk\n";
 
+$idx = get_option('af_r2_index');
 foreach (preg_split('/\s+/', trim((string) getenv('AF_MASTERS'))) as $key) {
     if ($key === '' || !function_exists('af_r2_object_url')) continue;
+    if (pathinfo($key, PATHINFO_EXTENSION) === '' || preg_match('/^[A-Z]{2,3}-\d{6}-\d{4}$/i', $key)) { // an art code: its master's file name
+        $code = strtoupper($key);
+        $key = is_array($idx) && !empty($idx['map'][$code]['key']) ? $idx['map'][$code]['key'] : '';
+        echo "art code $code: " . ($key !== '' ? "its master is $key" : 'no master in the bucket') . "\n";
+        if ($key === '') continue;
+    }
     $tmp = wp_tempnam('afm') . '.jpg';
     $r = wp_remote_get(af_r2_object_url($key, 600), array('timeout' => 300, 'stream' => true, 'filename' => $tmp));
     if (is_wp_error($r) || (int) wp_remote_retrieve_response_code($r) !== 200) {

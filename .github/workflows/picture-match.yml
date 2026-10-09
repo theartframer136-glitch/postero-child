@@ -8,12 +8,14 @@ name: Picture Match
 #
 # Owner, 9 Oct: RK-010022-3050-DD.jpg matches no art code (#19392, which had
 # it, was deleted 29 Sep as showing #33911's picture, RK-010005-3050): "check
-# the website for the same picture".
+# the website for the same picture". First run: it is #33911's picture, and
+# RK-010005-3050-DD.jpg is not a file in the bucket; so RK-010005-3050 is now
+# given as an art code, whose master the site's index names.
 on:
   workflow_dispatch:
     inputs:
       masters:
-        description: 'Master file names in the bucket, separated by spaces'
+        description: 'Master file names in the bucket, or art codes, separated by spaces'
         required: true
   push:
     branches: [ 'claude/**' ]
@@ -29,7 +31,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 40
     env:
-      MASTERS: ${{ github.event.inputs.masters || 'RK-010022-3050-DD.jpg RK-010005-3050-DD.jpg' }}
+      MASTERS: ${{ github.event.inputs.masters || 'RK-010005-3050 RK-010022-3050-DD.jpg' }}
       H_USER: ${{ secrets.HOSTINGER_USERNAME }}
       H_HOST: ${{ secrets.HOSTINGER_HOST }}
       H_PORT: ${{ secrets.HOSTINGER_PORT }}
