@@ -10,6 +10,10 @@ name: R2 Setup
 #   R2_SECRET_ACCESS_KEY  from the same token
 #   R2_BUCKET             the bucket's name (optional: theartframer-masters)
 #
+#   keytest     read-only: is the key in the repository secrets able to list
+#               the bucket (from GitHub; the site is not touched). Also what
+#               runs when this file changes on a Claude branch, since GitHub
+#               only offers the Run button for workflows already on main.
 #   status      read-only: what the site has (tools/diag-r2.php).
 #   connect     the key is first tried from GitHub (list the bucket); only then
 #               are the settings written into the site, over SSH by standard
@@ -21,11 +25,14 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'status, connect, refresh or disconnect'
+        description: 'keytest, status, connect, refresh or disconnect'
         required: true
         default: status
         type: choice
-        options: [status, connect, refresh, disconnect]
+        options: [keytest, status, connect, refresh, disconnect]
+  push:
+    branches: [ 'claude/**' ]
+    paths: [ '.github/workflows/r2-setup.yml' ]
 # never alongside a deploy: both write the site
 concurrency:
   group: deploy-production
@@ -37,7 +44,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      MODE: ${{ github.event.inputs.mode }}
+      MODE: ${{ github.event.inputs.mode || 'keytest' }}
       R2_ACCOUNT: ${{ secrets.R2_ACCOUNT_ID }}
       R2_KEY: ${{ secrets.R2_ACCESS_KEY_ID }}
       R2_SECRET: ${{ secrets.R2_SECRET_ACCESS_KEY }}
@@ -63,7 +70,7 @@ jobs:
           chmod +x ~/ssh-site
 
       - name: The key (present, well-formed, and able to read the bucket)
-        if: env.MODE == 'connect'
+        if: env.MODE == 'connect' || env.MODE == 'keytest'
         run: |
           set -euo pipefail
           B="${R2_BUCKET_IN:-theartframer-masters}"
@@ -89,7 +96,7 @@ jobs:
           echo "R2_BUCKET_NAME=$B" >> "$GITHUB_ENV"
 
       - name: Is the module on the site?
-        if: env.MODE != 'status'
+        if: env.MODE != 'status' && env.MODE != 'keytest'
         run: |
           set -euo pipefail
           ~/ssh-site "wp eval 'exit(function_exists(\"af_r2_config\") ? 0 : 3);' --allow-root 2>/dev/null" \
@@ -120,7 +127,7 @@ jobs:
           grep -q "disconnected" /tmp/d.txt
 
       - name: The site now (read-only)
-        if: always()
+        if: always() && env.MODE != 'keytest'
         run: |
           set -uo pipefail
           for i in 1 2 3; do
