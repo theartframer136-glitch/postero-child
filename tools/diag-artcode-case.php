@@ -68,6 +68,10 @@ foreach ($ids as $pid) {
     $md = $att ? wp_get_attachment_metadata($att) : array();
     echo '    main picture: ' . ($att ? '#' . $att . ' ' . basename((string) $path) . ' (' . ($md['width'] ?? '?') . 'x' . ($md['height'] ?? '?') . ')' : 'none') . "\n";
     echo "@@IMG|#$pid " . $p->post_status . '|' . $thumb($path) . "\n";
+    foreach (array_filter(array_map('intval', explode(',', (string) get_post_meta($pid, '_product_image_gallery', true)))) as $g) {
+        echo "    gallery #$g " . basename((string) get_attached_file($g)) . "\n";
+        echo "@@IMG|#$pid gallery #$g|" . $thumb(get_attached_file($g)) . "\n";
+    }
 }
 // revisions/changes logged by WooCommerce for these (who drafted #8474, and when)
 echo "\n=== recent status changes in the last 3 days (any product)\n";
