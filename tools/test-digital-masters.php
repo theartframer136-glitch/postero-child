@@ -19,7 +19,7 @@ function add_action($h, $f, $p = 10, $n = 1) { $GLOBALS['hooks'][$h][] = $f; }
 function add_filter($h, $f, $p = 10, $n = 1) { $GLOBALS['hooks'][$h][] = $f; }
 function apply($h, ...$args) { foreach ($GLOBALS['hooks'][$h] ?? array() as $f) $args[0] = $f(...$args); return $args[0]; }
 function get_post_meta($id, $k, $s = false) { return $GLOBALS['meta'][$id][$k] ?? ''; }
-function get_the_title($id) { return $GLOBALS['titles'][$id] ?? ''; }
+function get_post_field($f, $id, $ctx = 'display') { return $f === 'post_title' ? ($GLOBALS['titles'][$id] ?? '') : ''; }
 function wp_strip_all_tags($s) { return strip_tags($s); }
 function wp_next_scheduled($h) { return true; }
 function wp_remote_get($u, $a = array()) { $GLOBALS['last_url'] = $u; return $GLOBALS['remote']; }
@@ -72,6 +72,7 @@ ok(!isset($idx['CO-240006-0000']), 'a code with no file has no master');
 ok(get_option('af_r2_index')['objects'] === 6, 'folders are not counted as files');
 ok(get_option('af_r2_index')['bytes'] === 2103001505, 'the bucket\'s total size is kept');
 ok(af_r2_usage_line(get_option('af_r2_index')) === '2.1 GB of the free 10 GB used (21%).', 'shown against the free 10 GB');
+ok(af_r2_usage_line(array('bytes' => 7252569649)) === '7.3 GB of the free 10 GB used (72%).', 'the size and the share count GB the same way (not "6.8 GB ... 72%")');
 ok(strpos(af_r2_usage_line(array('bytes' => 9.5e9)), 'Nearly full') === 0, 'warns from 90%');
 ok(strpos(af_r2_usage_line(array('bytes' => 10.2e9)), 'OVER THE FREE 10 GB') === 0, 'says so plainly above 10 GB');
 
@@ -81,6 +82,11 @@ $file = apply('woocommerce_download_product_filepath', 'https://theartframer.us/
 ok(strpos($file, 'https://acc123.r2.cloudflarestorage.com/theartframer-masters/RK-010008-3040.tif?') === 0, 'step 1: the path WooCommerce hands out is the signed R2 link');
 ok(strpos($file, 'X-Amz-Expires=300') !== false, 'the link works for 5 minutes');
 ok(strpos(rawurldecode($file), 'filename="Sleeping Baby Krishna Canvas Wall Art RK-010008-3040.tif"') !== false, 'saved under the product name and art code');
+$GLOBALS['titles'][101] = 'Radha Krishna Mosaic Art Canvas Wall Art 3&#215;4 Feet &#8211; Floating Frame &amp; More';
+ok(af_r2_download_name(101, array('key' => 'RK-010018-3050-DD.jpg', 'code' => 'RK-010018-3050')) === 'Radha Krishna Mosaic Art Canvas Wall Art 3x4 Feet RK-010018-3050.jpg', 'web codes in the title are read as letters (3&#215;4 is 3x4, not 32154)');
+$GLOBALS['titles'][101] = "Krishna's Flute & Peacock 3\u{00D7}4 Feet \u{2013} Floating Frame";
+ok(strpos(rawurldecode(af_r2_object_url('a.jpg', 300, af_r2_download_name(101, array('key' => 'a.jpg', 'code' => 'RK-010008-3040')))), 'filename="Krishnas Flute Peacock 3x4 Feet RK-010008-3040.jpg"') !== false, 'a stored "\u{00D7}" is an x, and no double spaces are left behind');
+$GLOBALS['titles'][101] = 'Sleeping Baby Krishna Canvas Wall Art \u{2013} 30x40 Inches';
 // WooCommerce: checks, save, count and log happen here, between the two filters.
 ok(apply('woocommerce_file_download_method', 'force', 101, $file) === 'redirect', 'step 2: an R2 link is a redirect, never streamed by the server');
 ok(apply('woocommerce_file_download_method', 'force', 101, 'https://theartframer.us/wp-content/uploads/a.jpg') === 'force', 'other files keep the shop\'s method');

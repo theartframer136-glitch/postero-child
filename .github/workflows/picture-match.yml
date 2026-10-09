@@ -1,0 +1,79 @@
+name: Picture Match
+# Read-only. Which pictures on the site show the same artwork as these
+# Cloudflare R2 masters? tools/diag-picture-files.php lists every product
+# picture (WordPress's own resized copies) and puts a copy of each master in
+# the server's /tmp; they are copied here and the /tmp folder deleted;
+# tools/picture-match.py compares on this runner and prints the best matches
+# with a contact sheet. Nothing on the site is changed.
+#
+# Owner, 9 Oct: RK-010022-3050-DD.jpg matches no art code (#19392, which had
+# it, was deleted 29 Sep as showing #33911's picture, RK-010005-3050): "check
+# the website for the same picture". First run: it is #33911's picture, and
+# RK-010005-3050-DD.jpg is not a file in the bucket; so RK-010005-3050 is now
+# given as an art code, whose master the site's index names.
+on:
+  workflow_dispatch:
+    inputs:
+      masters:
+        description: 'Master file names in the bucket, or art codes, separated by spaces'
+        required: true
+  push:
+    branches: [ 'claude/**' ]
+    paths: [ '.github/workflows/picture-match.yml' ]
+# shares the deploy's group: same SSH host, which throttles parallel logins
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  match:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      MASTERS: ${{ github.event.inputs.masters || 'RK-010005-3050 RK-010022-3050-DD.jpg' }}
+      H_USER: ${{ secrets.HOSTINGER_USERNAME }}
+      H_HOST: ${{ secrets.HOSTINGER_HOST }}
+      H_PORT: ${{ secrets.HOSTINGER_PORT }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inputs
+        run: |
+          for m in $MASTERS; do [[ "$m" =~ ^[A-Za-z0-9._\ -]+$ ]] || { echo "bad master name"; exit 1; }; done
+          echo "masters: $MASTERS"
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          cat > ~/ssh-site <<'EOF'
+          #!/usr/bin/env bash
+          exec ssh -p "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -o ServerAliveInterval=30 -i ~/.ssh/id_ed25519 \
+            "$H_USER@$H_HOST" "$1"
+          EOF
+          chmod +x ~/ssh-site
+      - name: Gather the pictures on the server
+        run: |
+          set -uo pipefail
+          for i in 1 2 3; do
+            scp -P "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+              tools/diag-picture-files.php "$H_USER@$H_HOST:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-picture-files.php" && break
+            sleep 15
+          done
+          ~/ssh-site "cd ~/websites/OPu0sKi4J/public_html && AF_MASTERS='$MASTERS' timeout 900 wp eval-file wp-content/themes/postero-child/tools/diag-picture-files.php --allow-root 2>&1" \
+            | grep -v '^Deprecated:' | tee /tmp/g.txt
+          grep -q "=== END" /tmp/g.txt
+      - name: Copy them here, then delete them on the server
+        if: always()
+        run: |
+          set -uo pipefail
+          mkdir -p ~/m
+          ~/ssh-site "test -f /tmp/af-match/files.txt && tar -chf - -C /tmp/af-match index.tsv masters -C / -T /tmp/af-match/files.txt 2>/dev/null" | tar -xf - -C ~/m || true
+          ~/ssh-site "rm -rf /tmp/af-match" && echo "server copy deleted"
+          echo "$(find ~/m -type f | wc -l) files copied, $(ls ~/m/masters 2>/dev/null | wc -l) of them masters ($(du -sh ~/m | cut -f1))"
+      - name: Compare
+        run: |
+          set -euo pipefail
+          pip install --quiet opencv-python-headless numpy pillow
+          python3 tools/picture-match.py ~/m 15

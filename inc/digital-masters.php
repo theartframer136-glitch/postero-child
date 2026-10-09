@@ -95,7 +95,7 @@ if (!function_exists('af_r2_config')) {
         if (!$c) return '';
         $extra = array();
         if ($filename !== '') {
-            $safe = preg_replace('/[^\w .()\-]+/u', '', $filename);
+            $safe = trim(preg_replace('/\s{2,}/', ' ', preg_replace('/[^\w .()\-]+/u', '', $filename)));
             $extra['response-content-disposition'] = 'attachment; filename="' . $safe . '"';
         }
         $path = '/' . af_r2_enc($c['bucket']) . '/' . af_r2_enc($object, true);
@@ -141,7 +141,9 @@ if (!function_exists('af_r2_config')) {
         if (!is_array($idx) || !isset($idx['bytes'])) return '';
         $used = (int) $idx['bytes'];
         $pct  = (int) floor($used * 100 / AF_R2_FREE_BYTES);
-        $line = sprintf('%s of the free 10 GB used (%d%%).', size_format($used, 1), $pct);
+        // GB as Cloudflare counts the free 10 GB (1,000,000,000 bytes), not
+        // size_format()'s 1024-based one: that showed "6.8 GB ... (72%)".
+        $line = sprintf('%s GB of the free 10 GB used (%d%%).', number_format($used / 1e9, 1), $pct);
         if ($used > AF_R2_FREE_BYTES) return 'OVER THE FREE 10 GB: ' . $line . ' Cloudflare charges $0.015 per GB a month above it.';
         if ($pct >= 90) return 'Nearly full: ' . $line;
         return $line;
@@ -216,7 +218,10 @@ if (!function_exists('af_r2_config')) {
     /** The file name the buyer's download is saved as. */
     function af_r2_download_name($pid, $m) {
         $ext   = pathinfo($m['key'], PATHINFO_EXTENSION);
-        $title = wp_strip_all_tags(get_the_title((int) $pid));
+        // The stored title, not get_the_title(): that one texturizes "3x4" into
+        // "3&#215;4", whose digits survived the clean-up as "32154 Feet".
+        $title = html_entity_decode(wp_strip_all_tags((string) get_post_field('post_title', (int) $pid, 'raw')), ENT_QUOTES, 'UTF-8');
+        $title = str_replace(array("\u{00D7}", "\u{2715}"), 'x', $title); // 3×4 -> 3x4
         $title = trim(preg_replace('/\s+[–-]\s+.*$/u', '', $title)); // "Name Canvas Wall Art 3x4 Feet – ..." -> before the dash
         return trim($title . ' ' . $m['code']) . ($ext !== '' ? '.' . $ext : '');
     }
