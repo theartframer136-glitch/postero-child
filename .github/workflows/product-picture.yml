@@ -1,0 +1,70 @@
+name: Product Picture From Master
+# tools/set-picture-from-master.php: a product's main picture becomes a
+# web-size copy (1600 px) of its Cloudflare R2 master, so a digital buyer sees
+# what they will receive, and the product is published. The old main picture
+# stays in the Media Library.
+#
+#   check  read-only: what would change, with a preview of the new picture
+#   apply  make the change (owner, 9 Oct, for #8474: "#8474 + Cloudflare picture")
+#
+# Also runs when this file changes on a Claude branch (GitHub only offers the
+# Run button for workflows already on main), with PRODUCT and MODE below.
+on:
+  workflow_dispatch:
+    inputs:
+      product:
+        description: 'Product ID'
+        required: true
+      mode:
+        description: 'check or apply'
+        required: true
+        default: check
+        type: choice
+        options: [check, apply]
+  push:
+    branches: [ 'claude/**' ]
+    paths: [ '.github/workflows/product-picture.yml' ]
+# never alongside a deploy: both write the site
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+permissions:
+  contents: read
+jobs:
+  picture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PRODUCT: ${{ github.event.inputs.product || '8474' }}
+      MODE: ${{ github.event.inputs.mode || 'check' }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Inputs
+        run: |
+          [[ "$PRODUCT" =~ ^[0-9]+$ ]] || { echo "product must be a number"; exit 1; }
+          [[ "$MODE" == check || "$MODE" == apply ]] || { echo "mode must be check or apply"; exit 1; }
+          echo "product #$PRODUCT, mode $MODE"
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+      - name: Run
+        env:
+          H_USER: ${{ secrets.HOSTINGER_USERNAME }}
+          H_HOST: ${{ secrets.HOSTINGER_HOST }}
+          H_PORT: ${{ secrets.HOSTINGER_PORT }}
+        run: |
+          set -uo pipefail
+          O="-P $H_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i $HOME/.ssh/id_ed25519"
+          for i in 1 2 3; do
+            scp $O tools/set-picture-from-master.php "$H_USER@$H_HOST:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/set-picture-from-master.php" && break
+            sleep 15
+          done
+          ssh -p "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 "$H_USER@$H_HOST" \
+            "cd ~/websites/OPu0sKi4J/public_html && AF_PID=$PRODUCT AF_MODE=$MODE timeout 600 wp eval-file wp-content/themes/postero-child/tools/set-picture-from-master.php --allow-root 2>&1" \
+            | grep -v '^Deprecated:' | tee /tmp/out.txt
+          rc=${PIPESTATUS[0]}
+          grep -q "=== END" /tmp/out.txt || exit 1
+          exit "$rc"
