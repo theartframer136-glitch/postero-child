@@ -22,6 +22,7 @@ echo "\n=== the index (art code => file)\n";
 $idx = get_option('af_r2_index');
 if (!is_array($idx)) { echo "  never built\n"; } else {
     echo '  built ' . gmdate('Y-m-d H:i', (int) $idx['built']) . ' UTC: ' . (int) $idx['objects'] . ' files in the bucket, ' . count($idx['map']) . " art codes matched\n";
+    if (function_exists('af_r2_usage_line') && ($u = af_r2_usage_line($idx))) echo "  storage: $u\n";
     global $wpdb;
     $rows = $wpdb->get_results("SELECT p.ID, m.meta_value AS code FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_taf_art_code' AND m.meta_value <> '' WHERE p.post_type = 'product' AND p.post_status = 'publish'");
     $have = 0; $buyer = 0; $shown = 0;

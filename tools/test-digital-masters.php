@@ -26,6 +26,7 @@ function wp_remote_get($u, $a = array()) { $GLOBALS['last_url'] = $u; return $GL
 function is_wp_error($x) { return false; }
 function wp_remote_retrieve_response_code($r) { return $r['code']; }
 function wp_remote_retrieve_body($r) { return $r['body']; }
+function size_format($b, $d = 0) { $u = array('B', 'KB', 'MB', 'GB', 'TB'); $i = 0; while ($b >= 1000 && $i < 4) { $b /= 1000; $i++; } return number_format($b, $d) . ' ' . $u[$i]; }
 class FakeWpdb { public $postmeta = 'wp_postmeta'; public $posts = 'wp_posts'; public $codes = array();
     function get_col($q) { return $this->codes; } }
 $GLOBALS['wpdb'] = new FakeWpdb();
@@ -69,6 +70,10 @@ ok(!isset($idx['LI-190002-3050']), 'a longer number is not the code (LI-190002-3
 ok(($idx['HD-080018-5030']['key'] ?? '') === 'hd-080018-5030_v3.psd', 'lower case and "_" match; the larger file wins');
 ok(!isset($idx['CO-240006-0000']), 'a code with no file has no master');
 ok(get_option('af_r2_index')['objects'] === 6, 'folders are not counted as files');
+ok(get_option('af_r2_index')['bytes'] === 2103001505, 'the bucket\'s total size is kept');
+ok(af_r2_usage_line(get_option('af_r2_index')) === '2.1 GB of the free 10 GB used (21%).', 'shown against the free 10 GB');
+ok(strpos(af_r2_usage_line(array('bytes' => 9.5e9)), 'Nearly full') === 0, 'warns from 90%');
+ok(strpos(af_r2_usage_line(array('bytes' => 10.2e9)), 'OVER THE FREE 10 GB') === 0, 'says so plainly above 10 GB');
 
 echo "\n=== delivery, in WooCommerce 11.1.2's order ===\n";
 $GLOBALS['titles'][101] = 'Sleeping Baby Krishna Canvas Wall Art – 30x40 Inches';

@@ -131,6 +131,22 @@ if (!function_exists('af_r2_config')) {
         return $out;
     }
 
+    /**
+     * Owner, 9 Oct: R2's free plan only. It covers 10 GB stored a month and
+     * Cloudflare does not stop at it (it bills beyond), so the admin page and
+     * tools/diag-r2.php show how much of it the bucket uses.
+     */
+    if (!defined('AF_R2_FREE_BYTES')) define('AF_R2_FREE_BYTES', 10 * 1000 * 1000 * 1000);
+    function af_r2_usage_line($idx) {
+        if (!is_array($idx) || !isset($idx['bytes'])) return '';
+        $used = (int) $idx['bytes'];
+        $pct  = (int) floor($used * 100 / AF_R2_FREE_BYTES);
+        $line = sprintf('%s of the free 10 GB used (%d%%).', size_format($used, 1), $pct);
+        if ($used > AF_R2_FREE_BYTES) return 'OVER THE FREE 10 GB: ' . $line . ' Cloudflare charges $0.015 per GB a month above it.';
+        if ($pct >= 90) return 'Nearly full: ' . $line;
+        return $line;
+    }
+
     /** Normalised form for matching: upper case, no spaces around. */
     function af_r2_norm_code($code) {
         return strtoupper(trim((string) $code));
@@ -166,7 +182,7 @@ if (!function_exists('af_r2_config')) {
         }
         $index = $prefix;
         foreach ($exact as $code => $o) $index[$code] = $o;
-        update_option('af_r2_index', array('built' => time(), 'objects' => count($objects), 'map' => $index), false);
+        update_option('af_r2_index', array('built' => time(), 'objects' => count($objects), 'bytes' => array_sum($objects), 'map' => $index), false);
         return $index;
     }
 
@@ -266,6 +282,10 @@ if (!function_exists('af_r2_config')) {
         }
         echo '<p>Bucket <code>' . esc_html($c['bucket']) . '</code>. Name each file after the art code (e.g. <code>RK-010008-3040.tif</code>; words after a space, dash or underscore are allowed). ';
         echo 'Files read: ' . (int) ($idx['objects'] ?? 0) . ', last read ' . (!empty($idx['built']) ? esc_html(human_time_diff((int) $idx['built'])) . ' ago' : 'never') . '.</p>';
+        if ($u = af_r2_usage_line($idx)) {
+            $over = isset($idx['bytes']) && (int) $idx['bytes'] >= 0.9 * AF_R2_FREE_BYTES;
+            echo '<p' . ($over ? ' style="color:#b32d2e;font-weight:600"' : '') . '>Storage: ' . esc_html($u) . '</p>';
+        }
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="af_r2_refresh">';
         wp_nonce_field('af_r2_refresh');
         submit_button('Read the files again now', 'secondary', 'submit', false);
