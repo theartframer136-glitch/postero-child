@@ -4,11 +4,12 @@
  *
  * Owner, 7 Oct 2026: the full-resolution files are uploaded as a folder to a
  * private Cloudflare R2 bucket, each file named after the piece's art code
- * (e.g. "AF-RK-0147.jpg", or "AF-RK-0147 Radha Krishna.jpg"); the website is
- * not moved to Cloudflare. A buyer who paid for a digital download gets that
- * file straight from Cloudflare through a link that works for a few minutes
- * only, after WooCommerce has checked the order, the download limit and the
- * expiry, exactly as before. The server never carries the file itself.
+ * (e.g. "RK-010008-3040.tif", or "RK-010008-3040 Sleeping Krishna.tif"); the
+ * website is not moved to Cloudflare. A buyer who paid for a digital download
+ * gets that file straight from Cloudflare through a link that works for a few
+ * minutes only, after WooCommerce has checked the order, the download limit
+ * and the expiry and has counted the download, exactly as before. The server
+ * never carries the file itself.
  *
  * - Where the files are: option af_r2_config (account, bucket, access key,
  *   secret), written by .github/workflows/r2-setup.yml from GitHub secrets.
@@ -17,11 +18,17 @@
  *   option af_r2_index, art code => object, twice a day, and on demand from
  *   Products > Download masters. A file matches the art code its name is, or
  *   starts with followed by a space, "-", "_" or ".". An exact name wins.
- * - Delivery: at woocommerce_download_product, which WooCommerce fires after
- *   every check and after counting the download, the buyer is redirected to
- *   a signed R2 link (AWS Signature V4 query string, region "auto"), saved as
- *   "<product title> <art code>.<ext>". A product with no master in the
- *   bucket gets the file WooCommerce has today, unchanged.
+ * - Delivery: woocommerce_download_product_filepath hands WooCommerce a
+ *   signed R2 link (AWS Signature V4 query string, region "auto"), saved as
+ *   "<product title> <art code>.<ext>", and woocommerce_file_download_method
+ *   makes it a redirect. WooCommerce (11.1.2, checked 9 Oct) then runs its
+ *   own checks, saves the download, counts and logs it, and only then
+ *   redirects. (woocommerce_download_product, the hook first used here, fires
+ *   BEFORE the count: leaving from it would never use up a download limit.)
+ *   A product with no master in the bucket gets the file WooCommerce has
+ *   today, unchanged. Only the product that carries the art code itself (its
+ *   SKU is the code) gets the master: a product sharing the code under a
+ *   lettered SKU (the gift card #14600 shares SL-150004-5030) keeps its own.
  * - Admin: Products > Download masters lists every art code with or without a
  *   master, refreshes the index and opens any master (admins only).
  */
@@ -124,6 +131,22 @@ if (!function_exists('af_r2_config')) {
         return $out;
     }
 
+    /**
+     * Owner, 9 Oct: R2's free plan only. It covers 10 GB stored a month and
+     * Cloudflare does not stop at it (it bills beyond), so the admin page and
+     * tools/diag-r2.php show how much of it the bucket uses.
+     */
+    if (!defined('AF_R2_FREE_BYTES')) define('AF_R2_FREE_BYTES', 10 * 1000 * 1000 * 1000);
+    function af_r2_usage_line($idx) {
+        if (!is_array($idx) || !isset($idx['bytes'])) return '';
+        $used = (int) $idx['bytes'];
+        $pct  = (int) floor($used * 100 / AF_R2_FREE_BYTES);
+        $line = sprintf('%s of the free 10 GB used (%d%%).', size_format($used, 1), $pct);
+        if ($used > AF_R2_FREE_BYTES) return 'OVER THE FREE 10 GB: ' . $line . ' Cloudflare charges $0.015 per GB a month above it.';
+        if ($pct >= 90) return 'Nearly full: ' . $line;
+        return $line;
+    }
+
     /** Normalised form for matching: upper case, no spaces around. */
     function af_r2_norm_code($code) {
         return strtoupper(trim((string) $code));
@@ -159,7 +182,7 @@ if (!function_exists('af_r2_config')) {
         }
         $index = $prefix;
         foreach ($exact as $code => $o) $index[$code] = $o;
-        update_option('af_r2_index', array('built' => time(), 'objects' => count($objects), 'map' => $index), false);
+        update_option('af_r2_index', array('built' => time(), 'objects' => count($objects), 'bytes' => array_sum($objects), 'map' => $index), false);
         return $index;
     }
 
@@ -180,21 +203,40 @@ if (!function_exists('af_r2_config')) {
         }
     });
 
-    // Delivery: after WooCommerce's own checks and download count.
-    add_action('woocommerce_download_product', function ($email, $order_key, $product_id, $user_id, $download_id, $order_id) {
-        if (!af_r2_config()) return;
-        $m = af_r2_master_for_product((int) $product_id);
-        if (!$m) return; // no master in the bucket: WooCommerce serves today's file
+    /** The master a buyer of this product gets, or null (see the header). */
+    function af_r2_master_for_buyer($product) {
+        if (!af_r2_config() || !$product) return null;
+        $pid = (int) $product->get_id();
+        $m = af_r2_master_for_product($pid);
+        if (!$m) return null;
+        if (af_r2_norm_code($product->get_sku()) !== $m['code']) return null;
+        return $m;
+    }
+
+    /** The file name the buyer's download is saved as. */
+    function af_r2_download_name($pid, $m) {
         $ext   = pathinfo($m['key'], PATHINFO_EXTENSION);
-        $title = wp_strip_all_tags(get_the_title((int) $product_id));
+        $title = wp_strip_all_tags(get_the_title((int) $pid));
         $title = trim(preg_replace('/\s+[–-]\s+.*$/u', '', $title)); // "Name Canvas Wall Art 3x4 Feet – ..." -> before the dash
-        $name  = trim($title . ' ' . $m['code']) . ($ext !== '' ? '.' . $ext : '');
-        $url = af_r2_object_url($m['key'], 300, $name);
-        if ($url === '') return;
-        nocache_headers();
-        wp_redirect($url, 302, 'The Art Framer');
-        exit;
-    }, 10, 6);
+        return trim($title . ' ' . $m['code']) . ($ext !== '' ? '.' . $ext : '');
+    }
+
+    // Delivery, step 1: the file WooCommerce will hand out is the signed R2
+    // link. Its checks, the save, the count and the log all still follow.
+    add_filter('woocommerce_download_product_filepath', function ($file_path, $email, $order, $product, $download) {
+        $m = af_r2_master_for_buyer($product);
+        if (!$m) return $file_path;
+        $url = af_r2_object_url($m['key'], 300, af_r2_download_name($product->get_id(), $m));
+        return $url !== '' ? $url : $file_path;
+    }, 10, 5);
+
+    // Delivery, step 2: a signed R2 link is always a redirect (never streamed
+    // through this server, whatever the shop-wide download method is).
+    add_filter('woocommerce_file_download_method', function ($method, $product_id, $file_path) {
+        $c = af_r2_config();
+        if ($c && strpos((string) $file_path, 'https://' . af_r2_host($c) . '/') === 0) return 'redirect';
+        return $method;
+    }, 10, 3);
 
     // Admin: Products > Download masters.
     add_action('admin_menu', function () {
@@ -238,8 +280,12 @@ if (!function_exists('af_r2_config')) {
             echo '<p><strong>Not connected yet.</strong> Until it is, buyers get the files WooCommerce has today.</p></div>';
             return;
         }
-        echo '<p>Bucket <code>' . esc_html($c['bucket']) . '</code>. Name each file after the art code (e.g. <code>AF-RK-0147.jpg</code>; words after a space, dash or underscore are allowed). ';
+        echo '<p>Bucket <code>' . esc_html($c['bucket']) . '</code>. Name each file after the art code (e.g. <code>RK-010008-3040.tif</code>; words after a space, dash or underscore are allowed). ';
         echo 'Files read: ' . (int) ($idx['objects'] ?? 0) . ', last read ' . (!empty($idx['built']) ? esc_html(human_time_diff((int) $idx['built'])) . ' ago' : 'never') . '.</p>';
+        if ($u = af_r2_usage_line($idx)) {
+            $over = isset($idx['bytes']) && (int) $idx['bytes'] >= 0.9 * AF_R2_FREE_BYTES;
+            echo '<p' . ($over ? ' style="color:#b32d2e;font-weight:600"' : '') . '>Storage: ' . esc_html($u) . '</p>';
+        }
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><input type="hidden" name="action" value="af_r2_refresh">';
         wp_nonce_field('af_r2_refresh');
         submit_button('Read the files again now', 'secondary', 'submit', false);
