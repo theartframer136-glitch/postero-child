@@ -36,7 +36,7 @@ jobs:
     timeout-minutes: 20
     env:
       PRODUCT: ${{ github.event.inputs.product || '8474' }}
-      MODE: ${{ github.event.inputs.mode || 'apply' }}
+      MODE: ${{ github.event.inputs.mode || 'check' }}
     steps:
       - uses: actions/checkout@v4
       - name: Inputs
