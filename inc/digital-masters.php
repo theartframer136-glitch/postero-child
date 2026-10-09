@@ -95,7 +95,7 @@ if (!function_exists('af_r2_config')) {
         if (!$c) return '';
         $extra = array();
         if ($filename !== '') {
-            $safe = preg_replace('/[^\w .()\-]+/u', '', $filename);
+            $safe = trim(preg_replace('/\s{2,}/', ' ', preg_replace('/[^\w .()\-]+/u', '', $filename)));
             $extra['response-content-disposition'] = 'attachment; filename="' . $safe . '"';
         }
         $path = '/' . af_r2_enc($c['bucket']) . '/' . af_r2_enc($object, true);
@@ -216,7 +216,10 @@ if (!function_exists('af_r2_config')) {
     /** The file name the buyer's download is saved as. */
     function af_r2_download_name($pid, $m) {
         $ext   = pathinfo($m['key'], PATHINFO_EXTENSION);
-        $title = wp_strip_all_tags(get_the_title((int) $pid));
+        // The stored title, not get_the_title(): that one texturizes "3x4" into
+        // "3&#215;4", whose digits survived the clean-up as "32154 Feet".
+        $title = html_entity_decode(wp_strip_all_tags((string) get_post_field('post_title', (int) $pid, 'raw')), ENT_QUOTES, 'UTF-8');
+        $title = str_replace(array("\u{00D7}", "\u{2715}"), 'x', $title); // 3×4 -> 3x4
         $title = trim(preg_replace('/\s+[–-]\s+.*$/u', '', $title)); // "Name Canvas Wall Art 3x4 Feet – ..." -> before the dash
         return trim($title . ' ' . $m['code']) . ($ext !== '' ? '.' . $ext : '');
     }

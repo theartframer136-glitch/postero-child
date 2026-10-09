@@ -46,7 +46,12 @@ if (!is_array($idx)) { echo "  never built\n"; } else {
     }
     printf("  %d of %d published products have a master; %d of them deliver it to a digital buyer (SKU = art code)\n", $have, count($rows), $buyer);
     printf("  %d of those %d are set up as downloadable with a file, which WooCommerce needs before it gives a buyer any download link\n", $dl, $buyer);
-    foreach ($notbuyer as $n) echo "    master not delivered: $n: the SKU is not the art code, so a buyer of it keeps the file WooCommerce has today\n";
+    foreach ($notbuyer as $n) {
+        echo "    master not delivered: $n: the SKU is not the art code, so a buyer of it keeps the file WooCommerce has today\n";
+        $code = preg_replace('/^#\d+ (\S+).*$/', '$1', $n);
+        $all = $wpdb->get_results($wpdb->prepare("SELECT p.ID, p.post_status, p.post_title FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_taf_art_code' WHERE UPPER(TRIM(m.meta_value)) = %s AND p.post_type = 'product' ORDER BY p.ID", $code));
+        foreach ($all as $x) printf("      #%d %s, SKU %s: %s\n", $x->ID, $x->post_status, get_post_meta($x->ID, '_sku', true) ?: '(none)', mb_substr($x->post_title, 0, 60));
+    }
     foreach (array_keys($idx['map']) as $code) {
         if (isset($published[$code])) continue;
         $st = $wpdb->get_results($wpdb->prepare("SELECT p.ID, p.post_status FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = '_taf_art_code' WHERE UPPER(TRIM(m.meta_value)) = %s AND p.post_type IN ('product', 'product_variation')", $code));
@@ -68,6 +73,12 @@ if (!is_array($idx)) { echo "  never built\n"; } else {
                 if (strpos($u, $code) === 0 && preg_match('/^[ ._\-]/', substr($u, strlen($code)) . ' ')) { $why = "same art code as $uk, which is larger and is the one used"; break; }
             }
             printf("    %s (%s): %s\n", $k, size_format($size, 1), $why);
+            // the same picture number under another size or a changed code?
+            if (strpos($why, 'no art code') !== false && preg_match('/^([A-Z]{2}-\d{6})-/', $u, $mm)) {
+                $near = $wpdb->get_results($wpdb->prepare("SELECT p.ID, p.post_status, p.post_title, m.meta_key, m.meta_value FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key IN ('_taf_art_code', '_sku') WHERE UPPER(m.meta_value) LIKE %s AND p.post_type IN ('product', 'product_variation') ORDER BY p.ID", $mm[1] . '-%'));
+                if (!$near) echo "      no product's art code or SKU starts with {$mm[1]}-\n";
+                foreach ($near as $x) printf("      #%d %s, %s %s: %s\n", $x->ID, $x->post_status, $x->meta_key === '_sku' ? 'SKU' : 'art code', $x->meta_value, mb_substr($x->post_title, 0, 60));
+            }
         }
         if (!$n) echo "  none: every file is some product's master\n";
     }
