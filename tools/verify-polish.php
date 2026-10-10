@@ -43,8 +43,10 @@ $dl = $wpdb->get_var("SELECT COUNT(DISTINCT p.ID) FROM {$wpdb->posts} p JOIN {$w
 $lim = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key='_download_limit' AND meta_value NOT IN ('','-1')");
 $exp = $wpdb->get_var("SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_key='_download_expiry' AND meta_value NOT IN ('','-1')");
 af_pv('downloadable products found', (int) $dl > 0, $fail, "{$dl}");
-af_pv('download limits set',  (int) $lim >= (int) $dl, $fail, "{$lim} products");
-af_pv('download expiry set',  (int) $exp >= (int) $dl, $fail, "{$exp} products");
+// Owner, 10 Oct 2026: forever and unlimited, in the buyer's account, login only.
+af_pv('no download limit (unlimited)', (int) $lim === 0, $fail, "{$lim} products still limited");
+af_pv('no download expiry (never)',    (int) $exp === 0, $fail, "{$exp} products still expiring");
+af_pv('log in to download',           get_option('woocommerce_downloads_require_login') === 'yes', $fail);
 af_pv('watermarks enabled',   get_option('af_wm_enabled') === 'yes', $fail);
 af_pv('watermark gate is category-based', function_exists('af_wm_applies'), $fail);
 // the modal must fetch its preview from the endpoint, never reuse the card image

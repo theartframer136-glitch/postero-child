@@ -32,8 +32,13 @@ add_filter('woocommerce_downloadable_file_permission', function ($download, $pro
 
 /** A guest at checkout with a digital download in the cart: needs an account. */
 function af_checkout_needs_account() {
-    // the cart first: it is not there yet early in a request, so the login
-    // state is never asked for before WordPress has settled who is visiting
+    // Not before wp_loaded: functions.php rewrites the registration options on
+    // every init, which reads them through the filter below, and asking for
+    // the cart that early made WooCommerce load it from the session ahead of
+    // time ("get_cart should not be called before the wp_loaded action", 215
+    // times in the deploy of 10 Oct). Checkout is always later than that.
+    if (!did_action('wp_loaded')) return false;
+    // the cart first, then the login state
     if (!function_exists('af_cart_has_digital') || !af_cart_has_digital()) return false;
     return !is_user_logged_in();
 }

@@ -14,6 +14,8 @@ function add_action($h, $f, $p = 10, $n = 1) { $GLOBALS['hooks'][$h][] = $f; }
 function apply($h, ...$args) { foreach ($GLOBALS['hooks'][$h] ?? array() as $f) $args[0] = $f(...$args); return $args[0]; }
 function run($h) { ob_start(); foreach ($GLOBALS['hooks'][$h] ?? array() as $f) $f(); return ob_get_clean(); }
 function is_user_logged_in() { $GLOBALS['login_asked'] = true; return $GLOBALS['logged_in']; }
+$GLOBALS['wp_loaded'] = 1;
+function did_action($h) { return $h === 'wp_loaded' ? $GLOBALS['wp_loaded'] : 0; }
 function af_cart_has_digital() { $GLOBALS['cart_asked'] = true; return $GLOBALS['digital_cart']; }
 class FakeDownload { public $remaining = 5, $expires = 1999999999;
     function set_downloads_remaining($v) { $this->remaining = $v; } function set_access_expires($v) { $this->expires = $v; } }
@@ -50,6 +52,13 @@ echo "\n=== the login state is asked only once a digital cart is there ===\n";
 $GLOBALS['digital_cart'] = false; $GLOBALS['cart_asked'] = false; $GLOBALS['login_asked'] = false;
 apply('option_woocommerce_registration_generate_username', 'no');
 ok($GLOBALS['cart_asked'] && !$GLOBALS['login_asked'], 'no digital cart (or none yet, early in a request): the login state is not asked');
+
+echo "\n=== before wp_loaded (functions.php rewrites the registration options on init) ===\n";
+$GLOBALS['wp_loaded'] = 0; $GLOBALS['digital_cart'] = true; $GLOBALS['logged_in'] = false; $GLOBALS['cart_asked'] = false; $GLOBALS['login_asked'] = false;
+ok(apply('option_woocommerce_registration_generate_username', 'no') === 'no', 'the stored setting is read as stored');
+ok(!$GLOBALS['cart_asked'] && !$GLOBALS['login_asked'], 'and neither the cart nor the login state is asked (WooCommerce: not before wp_loaded)');
+$GLOBALS['wp_loaded'] = 1;
+ok(apply('option_woocommerce_registration_generate_username', 'no') === 'yes', 'once loaded, the same cart gets its account');
 
 echo "\n$pass passed, $fail failed\n";
 exit($fail ? 1 : 0);
