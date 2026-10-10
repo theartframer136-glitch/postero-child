@@ -43,6 +43,31 @@ $show('includes/class-wc-download-handler.php', '/function check_download_login_
 echo "\n=== My Account → Downloads (which permissions show)\n";
 $show('includes/data-stores/class-wc-customer-download-data-store.php', '/function get_downloads_for_customer|downloads_remaining|access_expires/', 2, 5);
 
+echo "\n=== whole functions\n";
+$fn = function ($rel, $name, $max = 45) {
+    $f = WC_ABSPATH . $rel; if (!is_file($f)) { echo "  $rel: not found\n"; return; }
+    $L = file($f);
+    foreach ($L as $i => $l) {
+        if (!preg_match('/function\s+' . preg_quote($name, '/') . '\s*\(/', $l)) continue;
+        echo "  $rel:" . ($i + 1) . "\n";
+        $depth = 0; $open = false;
+        for ($j = $i; $j < min($i + $max, count($L)); $j++) {
+            $line = $L[$j];
+            if (preg_match('/^\s*(\*|\/\/|\/\*)/', $line)) continue;
+            echo '    ' . rtrim($line) . "\n";
+            $depth += substr_count($line, '{') - substr_count($line, '}');
+            if (strpos($line, '{') !== false) $open = true;
+            if ($open && $depth <= 0) break;
+        }
+        return;
+    }
+    echo "  $rel: no function $name\n";
+};
+$fn('includes/class-wc-checkout.php', 'is_registration_required', 12);
+$fn('includes/class-wc-checkout.php', 'is_registration_enabled', 12);
+$fn('includes/class-wc-checkout.php', 'get_checkout_fields', 60);
+$fn('includes/wc-user-functions.php', 'wc_create_new_customer', 40);
+$fn('includes/class-wc-download-handler.php', 'check_download_login_required', 30);
 echo "\n=== the checkout billing template (where the account section is)\n";
 $tpl = function_exists('wc_locate_template') ? wc_locate_template('checkout/form-billing.php') : '';
 echo '  used: ' . ($tpl ? (strpos($tpl, WC_ABSPATH) === 0 ? 'WooCommerce\'s own' : 'the theme\'s copy (' . str_replace(get_theme_root() . '/', '', $tpl) . ')') : '?') . "\n";
