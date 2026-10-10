@@ -82,4 +82,20 @@ if (defined('WC_ABSPATH')) {
         }
     }
 }
+echo "\n=== the account-created email and express pay buttons\n";
+$na = get_option('woocommerce_customer_new_account_settings', array());
+echo '  "Your account has been created" email: ' . (is_array($na) && ($na['enabled'] ?? 'yes') === 'yes' ? 'on' : 'OFF') . "\n";
+$sq = get_option('woocommerce_square_credit_card_settings', array());
+echo '  Square express pay (Apple Pay / Google Pay): ' . (is_array($sq) && ($sq['enable_digital_wallets'] ?? 'no') === 'yes' ? 'ON' : 'off') . "\n";
+foreach ((array) WC()->payment_gateways()->get_available_payment_gateways() as $id => $g) echo "  gateway on: $id\n";
+echo '  checkout page uses: ' . (has_block('woocommerce/checkout', (int) wc_get_page_id('checkout')) ? 'the Checkout block' : 'the classic [woocommerce_checkout]') . "\n";
+
+echo "\n=== published text that promises a download limit\n";
+$hits = $wpdb->get_results("SELECT ID, post_type, post_title, post_content FROM {$wpdb->posts} WHERE post_status = 'publish' AND post_type IN ('page', 'post', 'product') AND post_content REGEXP '([0-9]+|five|ten) downloads|30 days|30-day|expire' AND post_content LIKE '%download%'");
+foreach ($hits as $h) {
+    preg_match_all('/[^.<>]{0,80}(\b\d+ downloads|five downloads|30 days|30-day|expire)[^.<>]{0,80}/i', wp_strip_all_tags($h->post_content), $m);
+    $m = array_slice(array_unique(array_map('trim', $m[0])), 0, 3);
+    if ($m) echo "  #{$h->ID} {$h->post_type} \"" . mb_substr($h->post_title, 0, 50) . '": ' . implode(' | ', $m) . "\n";
+}
+if (!$hits) echo "  none\n";
 echo "=== END\n";
