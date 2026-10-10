@@ -50,18 +50,26 @@ check('Living Room has 51', af_artcode_book_pages('LI'), 51);
 check('Radha Krishna has 100', af_artcode_book_pages('RK'), 100);
 check('an unknown prefix has none', af_artcode_book_pages('ZZ'), 0);
 
-// Page N of the book sits at Canva page 4 + N, and the sections follow one
-// another with nothing in between. Both were measured against the design.
+// The sections follow one another with nothing in between, from Canva page 5,
+// and each spans the pages it still prints: its numbers less the ones the
+// design removed. Measured against the design on 10 Oct.
 $expected_first = 5;
-$ok_pages = true; $ok_order = true;
+$ok_pages = true; $ok_order = true; $ok_removed = true;
 foreach ($book as $pre => $sec) {
     if ($sec['pages'][0] !== $expected_first) { $ok_order = false; }
-    if ($sec['pages'][1] - $sec['pages'][0] + 1 !== $sec['count']) { $ok_pages = false; }
+    if ($sec['pages'][1] - $sec['pages'][0] + 1 !== $sec['count'] - count($sec['removed'])) { $ok_pages = false; }
+    foreach ($sec['removed'] as $n) { if ($n < 1 || $n > $sec['count']) { $ok_removed = false; } }
     $expected_first = $sec['pages'][1] + 1;
 }
-check('each section spans exactly its own page count', $ok_pages, true);
-check('the sections run back to back, 5 through 394', $ok_order, true);
-check('the last page is 394', $expected_first - 1, 394);
+check('each section spans exactly the pages it still prints', $ok_pages, true);
+check('the sections run back to back, 5 through 386', $ok_order, true);
+check('the last page is 386', $expected_first - 1, 386);
+check('every removed number is one of its section\'s', $ok_removed, true);
+// 10 Oct: the design no longer prints these. Their numbers stay in the count,
+// so a code a product already holds still reads.
+check('RK 21 removed (29 Sep)',  $book['RK']['removed'], array(21));
+check('WL 21 and 22 removed',    $book['WL']['removed'], array(21, 22));
+check('KR 8-10, 13, 14 removed', $book['KR']['removed'], array(8, 9, 10, 13, 14));
 
 echo "\n=== section numbers are 1..21 in printed order ===\n";
 check('numbered in order', array_values(array_map(
@@ -234,6 +242,10 @@ check('LB page 1',   af_artcode_page_label('LB', 1),  'LB - 090001');
 check('LI page 51',  af_artcode_page_label('LI', 51), 'LI - 190051');
 check('RK page 97',  af_artcode_page_label('RK', 97), 'RK - 010097');
 check('past the end of the section', af_artcode_page_label('LI', 52), '');
+check('a removed number is no page', af_artcode_page_label('WL', 22), '');
+check('nor is KR 8',                 af_artcode_page_label('KR', 8), '');
+check('but the page after it is',    af_artcode_page_label('KR', 11), 'KR - 180011');
+check('and an old code on a removed number still reads', af_artcode_book_code('WL - 170022'), 'WL - 170022');
 check('page zero',   af_artcode_page_label('LI', 0),  '');
 check('unknown prefix', af_artcode_page_label('ZZ', 1), '');
 // It reads the book, so it reaches the 33 new pages the writing path will not.
@@ -261,7 +273,11 @@ check('HD page 33 is 6020', af_artcode_page_size('HD', 33), '6020');
 check('WL page 24 is 3060', af_artcode_page_size('WL', 24), '3060');
 check('a new page gives its whole code', af_artcode_full_code('RK-010099-5040'), 'RK-010099-5040');
 check('and RK 98 takes its new aspect', af_artcode_full_code('RK - 010098-5040'), 'RK-010098-1515');
-check('TP page 16 is 3060', af_artcode_page_size('TP', 16), '3060');
+// 10 Oct: TP 16 and 17 swapped numbers. The Kerala mural is TP 16 at 3050,
+// the Tirupati symbols panel TP 17 at 3060.
+check('TP page 16 is 3050', af_artcode_page_size('TP', 16), '3050');
+check('TP page 17 is 3060', af_artcode_page_size('TP', 17), '3060');
+check('the Kerala mural takes TP 16\'s aspect', af_artcode_full_code('TP-050016-3060'), 'TP-050016-3050');
 check('21 sections', count($sizes), 21);
 
 $bad = array();

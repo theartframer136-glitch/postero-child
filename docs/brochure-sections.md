@@ -6268,3 +6268,57 @@ they pass silently.
 That is every unclaimed page in the book except the five held back — 17 Still
 Life, 14 Wildlife, 8 Kids' Room, 26 Living / Interiors, 42 Radha Krishna and
 these 44. Not one disagreement in the whole catalogue.
+
+## Every product against every page — 2026-10-10
+
+Owner: "properly update the art code by matching products from the canva to
+website products". Canva read in view only: 411 pages, 398 printed labels. Every
+published product's main picture (416 art products; CP and CO left out, they are
+not brochure art) was matched against every page by feature points with a
+geometry check, then the doubtful ones were put side by side.
+
+**360 on their own page, 9 more on their own page at a low score** (checked by
+eye: #7765, #7815, #7816, #8504, #23008, #27078, #28595, #34214, #34529), plus
+#7800, #8144, #8398 and #22505, whose pictures are crops, low in detail or
+mirrored, and are their own pages. The 34 Art Accessories products have no
+artwork to match and keep their AC codes. The five banners are BN-250001 to
+BN-250005, a new section on pages 403-407, and match their pages.
+
+### What changed in Canva since 1 Oct
+
+* TP 16 and TP 17 swapped numbers: the Kerala mural is TP-050016-3050, the
+  Tirupati symbols panel TP-050017-3060.
+* WL 21 and WL 22 are gone (Wildlife prints 1-20, 23, 24).
+* KR 8, 9, 10, 13 and 14 are gone (Kids Room prints 17 pages).
+* Banners (BN) added after Art Accessories.
+
+No product held WL 21 or any of the five KR numbers.
+
+### Corrected (tools/artcode-corrections.csv)
+
+| Product | Was | Now | Why |
+|---|---|---|---|
+| #7803 Vaishnav Tilak Shankh Chakra | TP-050016-3060 | TP-050017-3060 | the TP swap (73 points) |
+| #26084 Kerala Mural Celebration | TP-050017-3050 | TP-050016-3050 | the TP swap (211 points) |
+| #7834 Rustic Blossom Vase | WL-170022-3050 | LI-190002-3050, shared | WL 22 is gone; same picture as #141 on page 314 |
+| #33911 Radha Krishna Peacock Garden | RK-010005-3050 | RK-010022-3050 | page 25 is its picture (419 points); page 9 is a recoloured version on a gold ground (91) |
+
+#141 keeps the plain LI-190002-3050 SKU (tools/artcode-primary.csv). #33911
+now matches the Cloudflare master RK-010022-3050-DD.jpg, the one unused file in
+the bucket, so no rename is needed. No other product's download file moves.
+
+### Not on any page, for the owner
+
+#28900 Krishna Kadamba Melody (RK-010083), #30653 Krishna Peacock Serenade
+(RK-010085) and #31334 Radha in Bridal Blooms (RK-010086) match no page of
+Canva. Pages 86, 88 and 89, which carry those codes, show other paintings that
+no product shows (a jewelled blue Krishna among lotuses, Radha Krishna at Holi
+under blossom, a four-armed deity with devotees). Left as they are until the
+owner says which side is right.
+
+### Pages no product shows
+
+RK 5 (page 9, the gold version of #33911's painting), RK 17 (21), RK 51 (54),
+RK 76 (79), RK 80 (83), RK 83 (86), RK 85 (88), RK 86 (89), SH 11 (138, a
+recoloured version of #20953's horses, which match SH 7 better: 361 against 215),
+LI 36 (348), AC 9 (399).
