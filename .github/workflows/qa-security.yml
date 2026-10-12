@@ -1,0 +1,20 @@
+name: QA Security
+# Read-only live probes for the security audit (tools/qa-security.mjs).
+# baseline: before the fixes (does not post to endpoints that would send mail);
+# full: every probe, red when one fails.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'baseline or full'
+        required: true
+        default: 'full'
+        type: choice
+        options: ['full', 'baseline']
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - run: node tools/qa-security.mjs "${{ github.event.inputs.mode == 'baseline' && 'baseline' || '' }}"
