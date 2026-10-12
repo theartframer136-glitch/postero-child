@@ -65,7 +65,26 @@ jobs:
           echo "── AGGREGATE ────────────────────────────────────────"
           ${SSH} "${H_USER}@${H_HOST}" "cd ${DOCROOT} && (php /tmp/af-diag-agg.php wp-content/uploads/af-req-log.txt 2>/dev/null || php82 /tmp/af-diag-agg.php wp-content/uploads/af-req-log.txt 2>/dev/null || /usr/bin/php /tmp/af-diag-agg.php wp-content/uploads/af-req-log.txt)" </dev/null || echo "(aggregation failed)"
 
-          echo "── CLEANUP ──────────────────────────────────────────"
-          ${SSH} "${H_USER}@${H_HOST}" "cd ${DOCROOT} && wp plugin deactivate af-req-profiler --allow-root 2>&1; rm -rf wp-content/plugins/af-req-profiler wp-content/uploads/af-req-log.txt /tmp/af-diag-agg.php; echo 'profiler removed'" </dev/null
           ${SSH} -O exit "${H_USER}@${H_HOST}" 2>/dev/null || true
           echo "Profiling complete."
+
+      # Its own step, run whatever happened above (a failure, a timeout, a
+      # cancel): the profiler logs visitors' addresses and URLs, so neither it
+      # nor its log may outlive the run (security audit, 12 Oct).
+      - name: Remove the profiler and its log
+        if: always()
+        timeout-minutes: 5
+        env:
+          H_USER: ${{ secrets.HOSTINGER_USERNAME }}
+          H_HOST: ${{ secrets.HOSTINGER_HOST }}
+          H_PORT: ${{ secrets.HOSTINGER_PORT }}
+        run: |
+          set -uo pipefail
+          SSH="ssh -p ${H_PORT} -i $HOME/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
+          DOCROOT="~/websites/OPu0sKi4J/public_html"
+          for a in 1 2 3; do
+            if ${SSH} "${H_USER}@${H_HOST}" "cd ${DOCROOT} && (wp plugin deactivate af-req-profiler --allow-root 2>&1 || true); rm -rf wp-content/plugins/af-req-profiler wp-content/uploads/af-req-log.txt /tmp/af-diag-agg.php; test ! -e wp-content/uploads/af-req-log.txt && test ! -e wp-content/plugins/af-req-profiler && echo 'profiler removed'" </dev/null; then exit 0; fi
+            echo "cleanup attempt $a failed, retrying in 30s"; sleep 30
+          done
+          echo "::error::The profiler could not be removed; it switches itself off 2 hours after install."
+          exit 1
