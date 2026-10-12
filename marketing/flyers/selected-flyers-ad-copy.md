@@ -122,3 +122,25 @@ A pack of 25 natural jute tote bags printed with your logo on a 12 x 10 in print
 Get free artwork and 2 design variations, plus a free design proof within 48 hours. Call +1 (610) 470-7280, email theartframer136@gmail.com or visit theartframer.us.
 
 #TheArtFramer #Delaware #JuteBags #ToteBags #LogoBags #BrandedMerchandise
+
+## Combined post: all 10 flyers
+
+**Event season, signage and branded gifts, now 40% off.**
+
+Getting ready for a trade show, a launch or a new storefront? The Art Framer prints it all in Delaware at 40% off our 2026 rate card:
+
+- Fabric Event Tapestry, 4 x 5 ft: $95.76 (list $159.60)
+- Step & Repeat Media Wall, 8 x 8 ft: $206.43 (list $344.05)
+- Tension Fabric Backdrop, 10 x 8 ft: $283.04 (list $471.73)
+- Slim Roll-Up Standee, 24 x 63 in: $70.27 (list $117.12)
+- Compact Roll-Up Standee, 33 x 79 in: $86.68 (list $144.47)
+- Deluxe Roll-Up Standee, 36 x 84 in: $100.55 (list $167.58)
+- Wayfinding Post Sign, 24 x 36 in: $40.73 (list $67.88)
+- Pylon Monument Sign, 3 x 7 ft: $100.55 (list $167.58)
+- Logo Jute Tote Bags, pack of 25: $199.50 (list $332.50)
+
+Send us your logo and get artwork plus 2 design variations free, with a free design proof within 48 hours. Free delivery in Delaware, Pennsylvania, Maryland and New Jersey. Prices exclude tax and installation.
+
+Call +1 (610) 470-7280, email theartframer136@gmail.com or visit theartframer.us.
+
+#TheArtFramer #Delaware #CorporatePrinting #EventBranding #RollUpBanner #Signage #TradeShow #SmallBusiness
