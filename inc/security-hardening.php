@@ -80,10 +80,25 @@ function af_login_block_keys($username) {
     );
 }
 
+// Whether $ip is one of Cloudflare's own addresses. af_visitor_ip() hands one
+// back only if a request came through Cloudflare without the visitor's
+// address header, or Cloudflare's address list in functions.php is out of
+// date. Then every visitor behind that edge shares the address, and an
+// address-wide limit would stop all of them at once, so it steps aside; the
+// limit per address + account still applies.
+function af_ip_is_cloudflare($ip) {
+    if ($ip === '' || !function_exists('af_cloudflare_ranges') || !function_exists('af_ip_in_cidr')) return false;
+    foreach (af_cloudflare_ranges() as $range) {
+        if (af_ip_in_cidr($ip, $range)) return true;
+    }
+    return false;
+}
+
 function af_login_is_blocked($username) {
     $k = af_login_block_keys($username);
     if ($k['ipv'] === '') return false;
-    return (bool) get_transient($k['ip']) || (bool) get_transient($k['name']);
+    if (!af_ip_is_cloudflare($k['ipv']) && get_transient($k['ip'])) return true;
+    return (bool) get_transient($k['name']);
 }
 
 function af_login_block_message() {
@@ -114,7 +129,7 @@ add_action('wp_login_failed', function ($username, $error = null) {
     if (af_rl_over('login-n|' . $k['name'], AF_LOGIN_PER_NAME - 1, AF_LOGIN_WINDOW)) {
         set_transient($k['name'], 1, AF_LOGIN_WINDOW);
     }
-    if (af_rl_over('login-i|' . $k['ip'], AF_LOGIN_PER_IP - 1, AF_LOGIN_WINDOW)) {
+    if (!af_ip_is_cloudflare($k['ipv']) && af_rl_over('login-i|' . $k['ip'], AF_LOGIN_PER_IP - 1, AF_LOGIN_WINDOW)) {
         set_transient($k['ip'], 1, AF_LOGIN_WINDOW);
     }
 }, 10, 2);
