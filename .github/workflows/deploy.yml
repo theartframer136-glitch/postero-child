@@ -251,7 +251,7 @@ jobs:
           HOST="$H_HOST"
           PORT="$H_PORT"
           THEME="postero-child"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
           echo "Deploying to: ${TARGET}"
 
@@ -430,7 +430,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              bash wp-content/themes/postero-child/tools/pim-fetch-on-server.sh 2>&1" \
@@ -448,7 +448,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/pim-anim-probe.php --allow-root 2>&1" \
@@ -462,7 +462,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           WEB="~/websites/OPu0sKi4J/public_html"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ${WEB} && wp eval-file wp-content/themes/postero-child/tools/pim-local-video.php --allow-root 2>&1" \
@@ -478,7 +478,7 @@ jobs:
           GF_MAX: ${{ inputs.goldfoil_max }}
         run: |
           set -uo pipefail
-          SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
 
           # "auto" means put it back to the default: no stored source, so the
           # importer finds artwork on its own — the theme's assets/gold-foil/,
@@ -538,7 +538,7 @@ jobs:
           GF_NOW: ${{ inputs.goldfoil_sync_now }}
         run: |
           set -uo pipefail
-          SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           if [ -n "${GF_WATCH}" ]; then
             # base64 so a share link's ? & and = cannot be read as shell
             W=$(printf '%s' "$GF_WATCH" | base64 -w0)
@@ -565,7 +565,7 @@ jobs:
           H_PORT: ${{ secrets.HOSTINGER_PORT }}
         run: |
           set -uo pipefail
-          SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Removing the copied pieces (artwork imported from real files is left alone)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -587,7 +587,7 @@ jobs:
           H_PORT: ${{ secrets.HOSTINGER_PORT }}
         run: |
           set -uo pipefail
-          SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Rewriting free-shipping claims held in post content and Elementor designs..."
           OUT=$(${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -623,7 +623,7 @@ jobs:
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
           THEME="postero-child"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           # Gold Foiled & UV runs FIRST: the importer creates this suite's only
@@ -904,7 +904,7 @@ jobs:
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
           THEME="postero-child"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           echo "Disabling LiteSpeed image lazy-load + JS defer/combine (keep Instagram embed + products visible)..."
@@ -1018,7 +1018,7 @@ jobs:
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
           THEME="postero-child"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           echo "Warming Products In Motion YouTube feed cache..."
@@ -1087,7 +1087,7 @@ jobs:
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
           THEME="postero-child"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           echo "Clearing caches after all updates..."
@@ -1106,7 +1106,7 @@ jobs:
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
           THEME="postero-child"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           echo "Hardening digital downloads (limits + expiry)..."
@@ -1408,7 +1408,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Keeping Gold Foiled & UV in its own section..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -1441,7 +1441,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Rebuilding product image sizes..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -1457,7 +1457,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Write the art codes that were checked against the book..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -1494,7 +1494,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Restating every art code in the numbering the book prints now..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -1520,7 +1520,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Giving every uncoded product a temporary art code..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -1538,7 +1538,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Setting product SKUs from their art codes..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -1554,7 +1554,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           # The product SKU and the order-line SKU are built in two different
           # files. This proves they still agree, and that every size the rate
           # card sells produces a distinct token — so portrait 2x3 and landscape
@@ -1573,7 +1573,7 @@ jobs:
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
           THEME="postero-child"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           # What a real browser sends, and what every probe below must send.
@@ -1795,7 +1795,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Thin-category cross-sell check (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -1813,7 +1813,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Frame + size filter out-of-stock check (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -1833,7 +1833,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Product image orientation scan (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -1851,7 +1851,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "What wording does each product carry (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -1866,7 +1866,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Does artcode-audit.csv hold corrected codes (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -1881,7 +1881,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Is the original art code list still on the server (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -1896,7 +1896,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           # Teed out so it reaches the art-sheets branch. This has been running
           # since the audit began and its answer went only to the job log, which
           # the session doing the matching cannot read.
@@ -1923,7 +1923,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           # Teed to a file for the same reason the apply report is: this is the
           # only current picture of which product holds which code, and working
           # from a stale copy of it has already produced rows whose stated reason
@@ -1943,7 +1943,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           # Tiles are large now. They used to be 220px because the log had to carry
           # them; the branch does not care, and 220px is exactly why two Rama idol
           # photographs could not be told apart.
@@ -2109,7 +2109,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Product card structure (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -2123,7 +2123,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Where the Categories menu gets its icons (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -2141,7 +2141,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Gold Foiled & UV — price ratio, icon, sidebar (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -2155,7 +2155,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Which widget builds the sidebar Categories list (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -2169,7 +2169,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           # The homepage strip is the parent theme's, and this session cannot
           # read the live site, so which of the two fixes in
           # inc/goldfoil-collection.php actually puts the tab there is only
@@ -2188,7 +2188,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Hunting for artwork already on the server (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -2206,7 +2206,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "What is already on the site that the section could be built from..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -2220,7 +2220,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Asking the live pages whether the ticker is still on them..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
@@ -2239,7 +2239,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/pim-status.php --allow-root 2>&1" \
@@ -2252,7 +2252,7 @@ jobs:
           USER="${{ secrets.HOSTINGER_USERNAME }}"
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
-          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
+          SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-custom-creations.php --allow-root 2>&1" \
