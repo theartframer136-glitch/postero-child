@@ -1443,7 +1443,7 @@ $bodies['digital-download-license'] = <<<HTML
     <p class="taf-sub">What you can — and can't — do with digital files purchased from The Art Framer.</p>
   </div>
 
-  <p><span class="taf-updated">Last updated: 16 July 2026</span></p>
+  <p><span class="taf-updated">Last updated: 10 October 2026</span></p>
   <p>When you buy a digital download from The Art Framer, you're buying a <b>personal-use license</b> to the artwork file — not the copyright. Here's what that means in plain language.</p>
 
   <h2>✓ You May</h2>
@@ -1463,8 +1463,8 @@ $bodies['digital-download-license'] = <<<HTML
     <li>Modify the artwork and distribute the result</li>
   </ul>
 
-  <h2>Download Limits</h2>
-  <p>Each purchase includes <b>5 downloads</b> of the high-resolution file, and download links remain active for <b>30 days</b> after purchase. Lost your file later? Contact us with your order number and we'll restore access.</p>
+  <h2>Your Downloads</h2>
+  <p>Your file is kept in <b>your account</b>, under <b>My Account → Downloads</b>: download it again whenever you need it, with no expiry and no download limit. It opens only while you're logged in to the account you bought it with. Can't log in? Reset your password from the login page, or contact us with your order number.</p>
 
   <h2>Commercial Licensing</h2>
   <p>Need the artwork for a business, publication, or product? Commercial licenses are available — email <a href="mailto:{$EMAIL}?subject=Commercial%20License">{$EMAIL}</a> with your use case for a quote.</p>

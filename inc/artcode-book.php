@@ -3,6 +3,31 @@
  * The Master Brochure's own numbering, and how to read a product's art code
  * against it.
  *
+ * ── 10 Oct 2026: two pages swap numbers, seven pages removed ───────────────
+ *
+ * Read out of Canva on 2026-10-10 (view only), owner: "properly update the art
+ * code by matching products from the canva to website products". 411 pages,
+ * every page's picture matched against every published product's picture.
+ * Against the reading of 1 Oct:
+ *
+ *   TP 16 and 17    swapped. The Kerala mural, which sat between TP 15 and TP
+ *                   16 in the design under the number 17, is now
+ *                   TP-050016-3050; the Tirupati symbols panel is now
+ *                   TP-050017-3060. Same two pictures, numbers and aspects
+ *                   swapped, so the two products move with them
+ *                   (tools/artcode-corrections.csv).
+ *   WL 21, 22       removed from the design. Wildlife prints 1-20, 23, 24.
+ *   KR 8-10, 13, 14 removed from the design. Kids Room prints 17 pages.
+ *   BN              a new Banners section after Art Accessories, BN-250001-0000
+ *                   to BN-250005-0000 (pages 403-407), the five banner
+ *                   products. Like AC and CP it is not art pages and is left
+ *                   out of this map.
+ *
+ * A removed page keeps its number, as RK 21 did on 29 Sep: an old code still
+ * reads, no page carries it now and no product should ('removed' below).
+ * 'pages' is now where each section is in the design today, which the 1 Oct
+ * reading had one page late from LG on (RK 21 was already gone).
+ *
  * ── 1 Oct 2026: fourteen pages added, one page's picture changed ────────────
  *
  * Read out of Canva on 2026-10-01 (view only), owner: "i made some changes in
@@ -150,9 +175,12 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
  *   no        the section number the codes carry
  *   name      what the contents page calls it
  *   pages     the first and last Canva page of the section, 1-indexed
- *   count     how many pages the section has IN THE BOOK TODAY
+ *   count     how many pages the section has IN THE BOOK TODAY: the numbers
+ *             it runs to, removed ones included
  *   legacy    how many it had when the shop's codes were last written
  *   absent    labels the OLD numbering used that never had a page
+ *   removed   numbers the design no longer prints (10 Oct): an old code still
+ *             reads, but no page carries it and no product should
  *
  * Why two counts. 'count' is the truth about the book and is what reporting
  * and matching must use. 'legacy' plus 'absent' is what the translation below
@@ -165,27 +193,27 @@ function af_artcode_book() {
 	if ( $book !== null ) { return $book; }
 
 	$book = array(
-		'RK' => array( 'no' =>  1, 'name' => 'Radha Krishna',   'pages' => array(     5, 104 ), 'count' => 100, 'legacy' => 91, 'absent' => array() ),
-		'LG' => array( 'no' =>  2, 'name' => 'Lakshmi Ganesha', 'pages' => array( 105, 107 ), 'count' =>  3, 'legacy' =>  3, 'absent' => array() ),
-		'LS' => array( 'no' =>  3, 'name' => 'Lord Shiva',      'pages' => array( 108, 128 ), 'count' => 21, 'legacy' => 15, 'absent' => array() ),
-		'SH' => array( 'no' =>  4, 'name' => 'Seven Horses',    'pages' => array( 129, 143 ), 'count' => 15, 'legacy' => 12, 'absent' => array() ),
-		'TP' => array( 'no' =>  5, 'name' => 'Tirupati Balaji', 'pages' => array( 144, 160 ), 'count' => 17, 'legacy' => 15, 'absent' => array( 4 ) ),
-		'MG' => array( 'no' =>  6, 'name' => 'Murugan',         'pages' => array( 161, 165 ), 'count' =>  5, 'legacy' =>  4, 'absent' => array() ),
-		'LR' => array( 'no' =>  7, 'name' => 'Lord Rama',       'pages' => array( 166, 176 ), 'count' => 11, 'legacy' =>  9, 'absent' => array() ),
-		'HD' => array( 'no' =>  8, 'name' => 'Hindu Deities',   'pages' => array( 177, 209 ), 'count' => 33, 'legacy' => 27, 'absent' => array( 14 ) ),
-		'LB' => array( 'no' =>  9, 'name' => 'Buddha',          'pages' => array( 210, 224 ), 'count' => 15, 'legacy' => 13, 'absent' => array() ),
-		'SA' => array( 'no' => 10, 'name' => 'Sikh Art',        'pages' => array( 225, 230 ), 'count' =>  6, 'legacy' =>  3, 'absent' => array() ),
-		'SN' => array( 'no' => 11, 'name' => 'Swaminarayan',    'pages' => array( 231, 231 ), 'count' =>  1, 'legacy' =>  1, 'absent' => array() ),
-		'PA' => array( 'no' => 12, 'name' => 'Pichwai Art',     'pages' => array( 232, 232 ), 'count' =>  1, 'legacy' =>  1, 'absent' => array() ),
-		'IC' => array( 'no' => 13, 'name' => 'Indian Culture',  'pages' => array( 233, 237 ), 'count' =>  5, 'legacy' =>  4, 'absent' => array() ),
-		'LC' => array( 'no' => 14, 'name' => 'Landscapes',      'pages' => array( 238, 247 ), 'count' => 10, 'legacy' => 10, 'absent' => array() ),
-		'SL' => array( 'no' => 15, 'name' => 'Still Life',      'pages' => array( 248, 270 ), 'count' => 23, 'legacy' => 23, 'absent' => array() ),
-		'VA' => array( 'no' => 16, 'name' => 'Vaastu Art',      'pages' => array( 271, 274 ), 'count' =>  4, 'legacy' =>  4, 'absent' => array() ),
-		'WL' => array( 'no' => 17, 'name' => 'Wildlife',        'pages' => array( 275, 298 ), 'count' => 24, 'legacy' => 19, 'absent' => array() ),
-		'KR' => array( 'no' => 18, 'name' => 'Kids Room',       'pages' => array( 299, 320 ), 'count' => 22, 'legacy' => 19, 'absent' => array() ),
-		'LI' => array( 'no' => 19, 'name' => 'Living Room',     'pages' => array( 321, 371 ), 'count' => 51, 'legacy' => 44, 'absent' => array() ),
-		'AA' => array( 'no' => 20, 'name' => 'Abstract Art',    'pages' => array( 372, 390 ), 'count' => 19, 'legacy' => 19, 'absent' => array() ),
-		'TA' => array( 'no' => 21, 'name' => 'Travel Art',      'pages' => array( 391, 394 ), 'count' =>  4, 'legacy' =>  4, 'absent' => array() ),
+		'RK' => array( 'no' =>  1, 'name' => 'Radha Krishna',   'pages' => array(   5, 103 ), 'count' => 100, 'legacy' => 91, 'absent' => array(), 'removed' => array( 21 ) ),
+		'LG' => array( 'no' =>  2, 'name' => 'Lakshmi Ganesha', 'pages' => array( 104, 106 ), 'count' =>  3, 'legacy' =>  3, 'absent' => array(), 'removed' => array() ),
+		'LS' => array( 'no' =>  3, 'name' => 'Lord Shiva',      'pages' => array( 107, 127 ), 'count' => 21, 'legacy' => 15, 'absent' => array(), 'removed' => array() ),
+		'SH' => array( 'no' =>  4, 'name' => 'Seven Horses',    'pages' => array( 128, 142 ), 'count' => 15, 'legacy' => 12, 'absent' => array(), 'removed' => array() ),
+		'TP' => array( 'no' =>  5, 'name' => 'Tirupati Balaji', 'pages' => array( 143, 159 ), 'count' => 17, 'legacy' => 15, 'absent' => array( 4 ), 'removed' => array() ),
+		'MG' => array( 'no' =>  6, 'name' => 'Murugan',         'pages' => array( 160, 164 ), 'count' =>  5, 'legacy' =>  4, 'absent' => array(), 'removed' => array() ),
+		'LR' => array( 'no' =>  7, 'name' => 'Lord Rama',       'pages' => array( 165, 175 ), 'count' => 11, 'legacy' =>  9, 'absent' => array(), 'removed' => array() ),
+		'HD' => array( 'no' =>  8, 'name' => 'Hindu Deities',   'pages' => array( 176, 208 ), 'count' => 33, 'legacy' => 27, 'absent' => array( 14 ), 'removed' => array() ),
+		'LB' => array( 'no' =>  9, 'name' => 'Buddha',          'pages' => array( 209, 223 ), 'count' => 15, 'legacy' => 13, 'absent' => array(), 'removed' => array() ),
+		'SA' => array( 'no' => 10, 'name' => 'Sikh Art',        'pages' => array( 224, 229 ), 'count' =>  6, 'legacy' =>  3, 'absent' => array(), 'removed' => array() ),
+		'SN' => array( 'no' => 11, 'name' => 'Swaminarayan',    'pages' => array( 230, 230 ), 'count' =>  1, 'legacy' =>  1, 'absent' => array(), 'removed' => array() ),
+		'PA' => array( 'no' => 12, 'name' => 'Pichwai Art',     'pages' => array( 231, 231 ), 'count' =>  1, 'legacy' =>  1, 'absent' => array(), 'removed' => array() ),
+		'IC' => array( 'no' => 13, 'name' => 'Indian Culture',  'pages' => array( 232, 236 ), 'count' =>  5, 'legacy' =>  4, 'absent' => array(), 'removed' => array() ),
+		'LC' => array( 'no' => 14, 'name' => 'Landscapes',      'pages' => array( 237, 246 ), 'count' => 10, 'legacy' => 10, 'absent' => array(), 'removed' => array() ),
+		'SL' => array( 'no' => 15, 'name' => 'Still Life',      'pages' => array( 247, 269 ), 'count' => 23, 'legacy' => 23, 'absent' => array(), 'removed' => array() ),
+		'VA' => array( 'no' => 16, 'name' => 'Vaastu Art',      'pages' => array( 270, 273 ), 'count' =>  4, 'legacy' =>  4, 'absent' => array(), 'removed' => array() ),
+		'WL' => array( 'no' => 17, 'name' => 'Wildlife',        'pages' => array( 274, 295 ), 'count' => 24, 'legacy' => 19, 'absent' => array(), 'removed' => array( 21, 22 ) ),
+		'KR' => array( 'no' => 18, 'name' => 'Kids Room',       'pages' => array( 296, 312 ), 'count' => 22, 'legacy' => 19, 'absent' => array(), 'removed' => array( 8, 9, 10, 13, 14 ) ),
+		'LI' => array( 'no' => 19, 'name' => 'Living Room',     'pages' => array( 313, 363 ), 'count' => 51, 'legacy' => 44, 'absent' => array(), 'removed' => array() ),
+		'AA' => array( 'no' => 20, 'name' => 'Abstract Art',    'pages' => array( 364, 382 ), 'count' => 19, 'legacy' => 19, 'absent' => array(), 'removed' => array() ),
+		'TA' => array( 'no' => 21, 'name' => 'Travel Art',      'pages' => array( 383, 386 ), 'count' =>  4, 'legacy' =>  4, 'absent' => array(), 'removed' => array() ),
 	);
 	return $book;
 }
@@ -259,6 +287,8 @@ function af_artcode_page_label( $prefix, $n ) {
 	if ( ! $sec ) { return ''; }
 	$n = (int) $n;
 	if ( $n < 1 || $n > $sec['count'] ) { return ''; }
+	// A number the design no longer prints is not a page of the book.
+	if ( in_array( $n, $sec['removed'], true ) ) { return ''; }
 	return sprintf( '%s - %02d%04d', strtoupper( $prefix ), $sec['no'], $n );
 }
 
@@ -425,9 +455,9 @@ function af_artcode_page_sizes() {
 		// 15 pages, Seven Horses
 		'SH' => '3050,3050,3050,3050,3050,3050,3060,3040,3040,4030,3060,5030,' .
 			'3050,3040,3040',
-		// 17 pages, Tirupati Balaji (page 16 added 29 Sep, page 17 on 1 Oct)
+		// 17 pages, Tirupati Balaji (page 16 added 29 Sep, page 17 on 1 Oct; on 10 Oct the two swapped numbers)
 		'TP' => '4030,4030,3040,5030,5030,5030,3050,5030,5030,5030,4030,5030,' .
-			'5030,6030,6030,3060,3050',
+			'5030,6030,6030,3050,3060',
 		//  5 pages, Murugan (page 5 added 1 Oct)
 		'MG' => '5030,5030,5030,5030,5030',
 		// 11 pages, Lord Rama (page 11 added 1 Oct)
@@ -454,10 +484,10 @@ function af_artcode_page_sizes() {
 			'5030,5030,4035,4030,5030,4030,5030,5030,5030,5030,5030',
 		//  4 pages, Vaastu Art
 		'VA' => '3050,3050,5030,5030',
-		// 24 pages, Wildlife (page 24 added 1 Oct)
+		// 24 pages, Wildlife (page 24 added 1 Oct; pages 21-22 removed 10 Oct, their sizes kept for old codes)
 		'WL' => '4030,5030,5030,5030,5030,5030,2540,3020,4030,5030,4040,5030,' .
 			'5030,5030,4030,5030,5030,5030,6030,3050,3050,3050,5030,3060',
-		// 22 pages, Kids Room
+		// 22 pages, Kids Room (pages 8-10, 13, 14 removed 10 Oct, their sizes kept for old codes)
 		'KR' => '3040,4030,5030,4030,5030,4030,4030,4030,3050,3050,4030,3050,' .
 			'3050,3050,4040,4040,5030,5030,6030,6030,3050,4030',
 		// 51 pages, Living Room
