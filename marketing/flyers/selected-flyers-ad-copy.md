@@ -154,3 +154,36 @@ Get 40% off list price on our 2026 Corporate Rate Card. Event backdrops from $95
 Request your free design proof: +1 (610) 470-7280 | theartframer136@gmail.com | theartframer.us
 
 #TheArtFramer #Delaware #EventBackdrops #RollUpStandees #CustomSigns #BrandedTotes
+
+## Expanded brief post: all 10 flyers
+
+**40% Off Event Backdrops, Standees, Signs and Totes**
+
+The Art Framer, a Delaware business: 40% off list price on our 2026 Corporate Rate Card.
+
+Event Backdrops
+- Fabric Event Tapestry, 4 x 5 ft: $95.76
+- Step & Repeat Media Wall, 8 x 8 ft: $206.43
+- Tension Fabric Backdrop, 10 x 8 ft: $283.04
+Tapestry and media wall: printed at 300 DPI, brass grommets included.
+
+Roll-Up Standees
+- Slim, 24 x 63 in: $70.27
+- Compact, 33 x 79 in: $86.68
+- Deluxe, 36 x 84 in: $100.55
+Reusable base, telescopic pole and carry bag included.
+
+Signs
+- Wayfinding Post Sign, 24 x 36 in: $40.73
+- Pylon Monument Sign, 3 x 7 ft: $100.55
+UV-cured inks, optional laminate rated 3 to 5 years.
+
+Logo Jute Totes
+- 25 bags, 12 x 10 in print area: $199.50
+Individual names on each bag at no extra cost.
+
+Free: artwork, 2 design variations, design proof within 48 hours, and delivery in DE, PA, MD and NJ.
+
+Request your free design proof: +1 (610) 470-7280 | theartframer136@gmail.com | theartframer.us
+
+#TheArtFramer #Delaware #EventBackdrops #RollUpStandees #CustomSigns #BrandedTotes #StepAndRepeat
