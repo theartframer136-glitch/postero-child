@@ -1,0 +1,43 @@
+name: Cloudflare Setup
+# theartframer.us behind Cloudflare (security audit, 12 Oct, Part B):
+# tools/cloudflare-setup.mjs. Tested against a stand-in for Cloudflare's API
+# by tools/test-cloudflare-setup.mjs, which runs first here.
+#   audit  reads everything, changes nothing. Without the CLOUDFLARE_API_TOKEN
+#          secret it still checks the origin's certificate and answer, and
+#          Cloudflare's address list against functions.php.
+#   apply  sets what differs (DNS only while the zone is pending, unless
+#          dns_when_live is yes), then reads everything back.
+# The token is the owner's, stored as a repository secret; it is never printed.
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'audit (read-only) or apply'
+        required: true
+        default: 'audit'
+        type: choice
+        options: ['audit', 'apply']
+      dns_when_live:
+        description: 'apply only: also correct DNS on a zone that is already live'
+        required: true
+        default: 'no'
+        type: choice
+        options: ['no', 'yes']
+permissions:
+  contents: read
+concurrency:
+  group: cloudflare-setup
+  cancel-in-progress: false
+jobs:
+  cloudflare:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test the setup script against a stand-in API
+        run: node tools/test-cloudflare-setup.mjs
+      - name: ${{ github.event.inputs.mode }}
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          APPLY_DNS: ${{ github.event.inputs.dns_when_live == 'yes' && '1' || '0' }}
+        run: node tools/cloudflare-setup.mjs "${{ github.event.inputs.mode }}"
