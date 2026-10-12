@@ -75,6 +75,11 @@ for (const [name, path, method, ok] of [
   check('?author=1 does not reveal a login name', !/\/author\/[^/]+/.test(loc) && !/author\/[a-z0-9_-]+/i.test(r.text.slice(0, 20000).match(/<link rel="canonical"[^>]*>/)?.[0] || ''), `HTTP ${r.status} ${loc}`);
 }
 
+{
+  const r = await req('/?af_debug_circles=1&qa=' + Date.now().toString(36));
+  check('the circle debug panel is not shown to visitors', r.status === 200 && !/id="af-circdbg"/.test(r.text), `HTTP ${r.status}`);
+}
+
 /* 3. files that must not be public */
 for (const [name, path] of [
   ['theme tools/ denied', `${T}/tools/diag-security.php`],

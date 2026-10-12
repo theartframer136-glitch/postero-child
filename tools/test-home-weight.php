@@ -8,6 +8,7 @@
  * elements are left out of the homepage.
  */
 namespace {
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 define('ABSPATH', __DIR__);
 
 $GLOBALS['hooks'] = array();

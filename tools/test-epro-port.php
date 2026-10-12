@@ -12,6 +12,7 @@
  *     php tools/test-epro-port.php
  */
 namespace {
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
     /* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
     define('ABSPATH', '/nowhere/');
     $GLOBALS['HOOKS'] = array(); $GLOBALS['REG'] = array(); $GLOBALS['RTL'] = false;

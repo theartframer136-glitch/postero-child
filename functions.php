@@ -3833,7 +3833,7 @@ add_action('wp_footer', function() {
         // 2) SUPPLEMENT: latest uploads from the channel RSS (best-effort)
         $resp = wp_remote_get(
             'https://www.youtube.com/feeds/videos.xml?channel_id=' . $channel,
-            ['timeout' => 8, 'sslverify' => false]
+            ['timeout' => 8]
         );
         if (!is_wp_error($resp)) {
             $xml = @simplexml_load_string(wp_remote_retrieve_body($resp));
@@ -10953,6 +10953,7 @@ add_action('woocommerce_checkout_create_order_line_item', function($item, $key, 
 function af_dd_preview_handler() {
     $pid = isset($_GET['pid']) ? absint($_GET['pid']) : 0;
     if (!$pid || get_post_type($pid) !== 'product') wp_send_json_error();
+    if ((get_post_status($pid) !== 'publish' || post_password_required($pid)) && !current_user_can('edit_post', $pid)) wp_send_json_error();
     $thumb = get_post_thumbnail_id($pid);
     if (!$thumb) wp_send_json_error();
     $price = af_digital_price_html($pid);
@@ -12334,7 +12335,9 @@ function af_contact_submit_handler() {
         get_option('admin_email'),
         '[The Art Framer] New contact message: ' . $subject,
         "From: {$name} <{$email}>" . ($phone ? " / {$phone}" : '') . "\nSubject: {$subject}\n\n{$message}\n\n— Saved in wp-admin → Contact Messages",
-        array('Reply-To: ' . $name . ' <' . $email . '>')
+        // The name goes into a mail header: no characters that could add an
+        // address or a second header to it.
+        array('Reply-To: ' . (trim(preg_replace('/[^\p{L}\p{N} .\'-]+/u', '', $name)) ?: 'Website visitor') . ' <' . $email . '>')
     );
     wp_send_json_success(array('message' => 'Thank you! Your message has been sent — we usually reply within 24 hours.'));
 }
@@ -13820,7 +13823,13 @@ function af_gc_apply_handler() {
         WC()->session->set('af_gc_code', null);
         wp_send_json_success(array('message' => 'Gift card removed.'));
     }
+    // Codes cannot be guessed by trying many: ten wrong ones an hour per address.
+    $rl = 'gc|' . (function_exists('af_visitor_ip') ? af_visitor_ip() : '');
+    if (function_exists('af_rl_over') && af_rl_over($rl, 10, HOUR_IN_SECONDS, false)) {
+        wp_send_json_error(array('message' => 'Too many gift card attempts — please try again in an hour, or contact us.'));
+    }
     $gc = af_gc_get($code);
+    if (!$gc && function_exists('af_rl_over')) af_rl_over($rl, 10, HOUR_IN_SECONDS);
     if (!$gc)                          wp_send_json_error(array('message' => 'That gift card code was not found — please check and try again.'));
     if ($gc->status !== 'active')      wp_send_json_error(array('message' => 'This gift card is no longer active.'));
     if ((float) $gc->balance <= 0)     wp_send_json_error(array('message' => 'This gift card has no remaining balance.'));
@@ -14770,6 +14779,10 @@ add_action('template_redirect', function() {
     if (empty($_POST['af_rma_submit']) || !is_user_logged_in()) return;
     if (!isset($_POST['af_rma_nonce']) || !wp_verify_nonce($_POST['af_rma_nonce'], 'af_rma_submit')) return;
     $user  = wp_get_current_user();
+    if (function_exists('af_rl_over') && af_rl_over('rma|' . (int) $user->ID, 5, HOUR_IN_SECONDS)) {
+        wc_add_notice('You have sent several return requests in the last hour — please wait a little, or email us.', 'error');
+        return;
+    }
     $oid   = (int) ($_POST['af_rma_order'] ?? 0);
     $order = wc_get_order($oid);
     if (!$order || (int) $order->get_customer_id() !== (int) $user->ID) {
@@ -15898,8 +15911,10 @@ add_filter('wp_headers', function ($headers) {
 // header added at the LiteSpeed/CDN layer (hPanel) — tracked as a manual item.
 // tools/set-security-headers.php still writes the .htaccess block in case a
 // future server config honors it. (CSP deferred — Elementor needs report-only.)
-add_action('send_headers', function () {
-    if (is_admin()) return;
+// The same five headers also go on wp-login.php, admin-ajax.php and REST
+// answers, which never reach send_headers (inc/security-hardening.php).
+function af_send_security_headers() {
+    if (headers_sent()) return;
     header('X-Frame-Options: SAMEORIGIN');
     header('X-Content-Type-Options: nosniff');
     header('Referrer-Policy: strict-origin-when-cross-origin');
@@ -15909,6 +15924,10 @@ add_action('send_headers', function () {
     if (is_ssl()) {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
     }
+}
+add_action('send_headers', function () {
+    if (is_admin()) return;
+    af_send_security_headers();
 });
 
 // 25e. Disable the in-dashboard theme/plugin file editor. If an admin
@@ -15924,7 +15943,7 @@ if (!defined('DISALLOW_FILE_EDIT')) {
 // it says nothing about the account, and the visitor needs it to know what
 // to do. WooCommerce runs its login errors through this filter as well.
 add_filter('login_errors', function ($errors = '') {
-    if (is_string($errors) && preg_match('#<span class="af-ts-msg">.*?</span>#s', $errors, $m)) return $m[0];
+    if (is_string($errors) && preg_match('#<span class="af-(?:ts|login)-msg">.*?</span>#s', $errors, $m)) return $m[0];
     return 'Invalid credentials. Please try again.';
 });
 
@@ -16835,7 +16854,8 @@ add_action('wp_footer', function() {
     "SELECT p.ID, p.post_name, m.meta_value
        FROM {$wpdb->postmeta} m
        JOIN {$wpdb->posts} p ON p.ID = m.post_id
-      WHERE m.meta_key='_taf_art_code' AND m.meta_value<>''");
+      WHERE m.meta_key='_taf_art_code' AND m.meta_value<>''
+        AND p.post_status='publish' AND p.post_password=''");
   if (!$rows) return;
   $map = array(); $slugmap = array();
   foreach ($rows as $r) {
@@ -18090,7 +18110,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'product-pictures', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings', 'retired-products', 'checkout-fixes', 'corporate-specs', 'category-display', 'turnstile', 'digital-masters', 'digital-account') as $af_mod) {
+foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'product-pictures', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings', 'retired-products', 'checkout-fixes', 'corporate-specs', 'category-display', 'turnstile', 'digital-masters', 'digital-account', 'security-hardening') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }
@@ -21505,7 +21525,7 @@ add_action('wp_footer', function () {
 // Prints nothing for normal visitors.
 // ─────────────────────────────────────────────────────────────
 add_action('wp_footer', function () {
-    if (!isset($_GET['af_debug_circles'])) return;
+    if (!isset($_GET['af_debug_circles']) || !current_user_can('manage_options')) return;
     ?>
 <style>#af-circdbg{position:fixed;left:10px;bottom:10px;z-index:99999;background:#111;color:#9f9;
 font:12px/1.5 monospace;padding:10px 14px;border-radius:8px;max-width:460px;max-height:45vh;overflow:auto}</style>

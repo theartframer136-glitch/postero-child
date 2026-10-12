@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Print the Products In Motion video ids, one per line - run by PHP directly,
  * not by wp-cli and not over HTTP.

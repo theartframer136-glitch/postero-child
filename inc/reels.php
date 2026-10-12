@@ -103,6 +103,10 @@ function af_reel_track_handler() {
     $id   = absint($_POST['reel'] ?? 0);
     $what = ($_POST['what'] ?? '') === 'click' ? '_af_reel_clicks' : '_af_reel_views';
     if (!$id || get_post_type($id) !== 'af_reel') wp_send_json_error();
+    // At most 60 counted per hour from one address, so nobody can inflate the
+    // figures or turn this into a stream of database writes. Past that the
+    // browser is still told "fine": the page has nothing to show for it.
+    if (function_exists('af_rl_over') && af_rl_over('reel|' . (function_exists('af_visitor_ip') ? af_visitor_ip() : ''), 60, HOUR_IN_SECONDS)) wp_send_json_success();
     // plain meta increment — a few lost races are fine for trend data
     update_post_meta($id, $what, (int) get_post_meta($id, $what, true) + 1);
     wp_send_json_success();

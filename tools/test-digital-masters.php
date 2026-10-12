@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Tests for inc/digital-masters.php (digital downloads from Cloudflare R2),
  * outside WordPress: the signature against AWS's own published example, the

@@ -22,10 +22,13 @@ add_action('wp_footer', function() {
     echo '<script>(function(){var f=document.getElementById("commentform");if(f){f.setAttribute("enctype","multipart/form-data");}})();</script>';
 }, 63);
 
-add_action('comment_post', function($comment_id) {
+add_action('comment_post', function($comment_id, $approved = 0) {
     if (empty($_FILES['af_review_photo']['name'])) return;
+    if ($approved === 'spam' || $approved === 'trash') return; // spam keeps no photo
     $comment = get_comment($comment_id);
     if (!$comment || get_post_type($comment->comment_post_ID) !== 'product') return;
+    // Five photos an hour from one address at most.
+    if (function_exists('af_rl_over') && af_rl_over('revphoto|' . (function_exists('af_visitor_ip') ? af_visitor_ip() : ''), 5, HOUR_IN_SECONDS)) return;
 
     $file = $_FILES['af_review_photo'];
     if (!empty($file['error']) || $file['size'] > 8 * 1024 * 1024) return;
@@ -43,7 +46,21 @@ add_action('comment_post', function($comment_id) {
         wp_update_post(array('ID' => $att, 'post_status' => 'private'));
         update_comment_meta($comment_id, 'af_review_photo', (int) $att);
     }
-});
+}, 10, 2);
+
+// A review marked as spam, or deleted for good, takes its photo with it: the
+// file would otherwise stay on the site at a public address (security audit,
+// 12 Oct). Trash keeps it, since a review can be restored from the trash;
+// emptying the trash deletes the review and so the photo.
+function af_review_photo_drop($comment_id) {
+    $att = (int) get_comment_meta($comment_id, 'af_review_photo', true);
+    if ($att && get_post_type($att) === 'attachment') {
+        wp_delete_attachment($att, true);
+        delete_comment_meta($comment_id, 'af_review_photo');
+    }
+}
+add_action('spam_comment', 'af_review_photo_drop');
+add_action('delete_comment', 'af_review_photo_drop');
 
 // show the photo inside its review
 add_filter('comment_text', function($text, $comment) {

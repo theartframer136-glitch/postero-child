@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Tests tools/port-preview-dropin.php (the preview file put in place as
  * wp-content/db.php by tools/port-preview-ctl.sh), each case in its own PHP

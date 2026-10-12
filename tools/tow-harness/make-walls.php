@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Generates the fake-camera wall clips for the harness:
  *   wall-lock.y4m — ceiling/floor lines at 0.16 / 0.84 of the frame (locks)

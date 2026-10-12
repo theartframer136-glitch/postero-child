@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Tests af_sku_belongs_to_code() — whether tools/sku-to-artcode.php leaves a
  * product's SKU alone or re-issues it from the product's current art code.

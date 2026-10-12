@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Aggregates the AF Request Profiler log (uploads/af-req-log.txt) into a
  * CPU-attribution report. Pure PHP, no WordPress needed:

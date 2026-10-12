@@ -54,7 +54,7 @@ jobs:
           cat > ~/ssh-site <<'EOF'
           #!/usr/bin/env bash
           # one command on the server, in the site's folder (stdin passed through)
-          exec ssh -p "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+          exec ssh -p "$H_PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
             "$H_USER@$H_HOST" "cd ~/websites/OPu0sKi4J/public_html && $1"
           EOF
           chmod +x ~/ssh-site
@@ -96,7 +96,7 @@ jobs:
         run: |
           set -uo pipefail
           for i in 1 2 3; do
-            scp -P "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+            scp -P "$H_PORT" -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
               tools/diag-turnstile.php "$H_USER@$H_HOST:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-turnstile.php" && break
             sleep 15
           done

@@ -15,7 +15,7 @@
  * is the hosted card field — which is to say it stops the shop taking money,
  * silently, for everyone. Report-Only blocks nothing. It cannot break
  * checkout, and it answers the question an enforcing policy has to be built
- * on: what is actually loading here. functions.php:15485 already reached the
+ * on: what is actually loading here. The security-header block in functions.php already reached the
  * same conclusion in an earlier pass ("CSP deferred — Elementor needs
  * report-only"); this is that, carried out.
  *
@@ -24,7 +24,7 @@
  * owner's, and the admin screen exists so they are possible without a deploy.
  *
  * WHY template_redirect AND NOT send_headers. The existing headers at
- * functions.php:15487 are unconditional, so send_headers suits them. This one
+ * af_send_security_headers() in functions.php are unconditional, so send_headers suits them. This one
  * has to know whether the current page is checkout, and WP::main() calls
  * send_headers() BEFORE query_posts() — conditional tags are not reliable
  * there yet. template_redirect runs after the query is resolved and before a
@@ -194,9 +194,11 @@ function af_csp_host_of($blocked) {
     foreach (array('inline', 'eval', 'data', 'blob', 'about', 'self', 'wasm-eval') as $kw) {
         if ($low === $kw || strpos($low, $kw . ':') === 0) return $kw;
     }
-    $h = wp_parse_url($b, PHP_URL_HOST);
-    if (!$h) return substr(preg_replace('/[^\x20-\x7E]/', '', $b), 0, 60);
-    return substr(strtolower($h), 0, 80);
+    $h = strtolower((string) wp_parse_url($b, PHP_URL_HOST));
+    // Only a well-formed host name goes into the store and the suggested
+    // policy; anything else a report claims is filed under one label.
+    if ($h === '' || strlen($h) > 80 || !preg_match('/^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$/', $h)) return '(other)';
+    return $h;
 }
 
 function af_csp_record($r) {
@@ -213,10 +215,11 @@ function af_csp_record($r) {
     $doc     = $pick(array('document-uri', 'documentURL'));
     if ($dir === '') return;
 
-    // Reports about somebody else's page are not ours to store.
+    // Reports about somebody else's page are not ours to store, and a report
+    // that names no page of this site is not a browser's report at all.
     $home = wp_parse_url(home_url(), PHP_URL_HOST);
     $dh   = $doc ? wp_parse_url($doc, PHP_URL_HOST) : '';
-    if ($home && $dh && strcasecmp($dh, $home) !== 0) return;
+    if (!$home || !$dh || strcasecmp($dh, $home) !== 0) return;
 
     $dir  = substr(preg_replace('/[^a-z0-9\-]/i', '', strtok($dir, ' ')), 0, 40);
     if ($dir === '') return;
@@ -362,7 +365,7 @@ function af_csp_admin_page() {
     foreach ($store as $row) {
         if (!is_array($row) || empty($row['dir'])) continue;
         $h = isset($row['host']) ? $row['host'] : '';
-        if ($h === '' || in_array($h, array('inline', 'eval', 'data', 'blob', 'self', 'about', '(empty)'), true)) continue;
+        if ($h === '' || in_array($h, array('inline', 'eval', 'data', 'blob', 'self', 'about', '(empty)', '(other)'), true)) continue;
         $by[$row['dir']][$h] = true;
     }
     if ($by) {

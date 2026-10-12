@@ -32,7 +32,11 @@ function af_fraud_assess($order) {
     $ship_country = $order->get_shipping_country();
     $total        = (float) $order->get_total();
     $email        = strtolower(trim($order->get_billing_email()));
-    $ip           = $order->get_customer_ip_address();
+    // The address the site itself saw (af_visitor_ip(), recorded at checkout)
+    // rather than WooCommerce's, which believes X-Forwarded-For and X-Real-IP
+    // headers that anyone can send (security audit, 12 Oct).
+    $ip           = (string) $order->get_meta('_af_visitor_ip');
+    if ($ip === '') $ip = $order->get_customer_ip_address();
 
     // 1. Billing and shipping in different countries
     if ($bill_country && $ship_country && $bill_country !== $ship_country) {
@@ -109,6 +113,18 @@ function af_fraud_assess($order) {
 
     return array('score' => $score, 'level' => $level, 'flags' => $flags);
 }
+
+// Recorded when the order is created, by the classic checkout and by the
+// block checkout (Store API), before the screening below reads it.
+$af_fraud_keep_ip = function ($order) {
+    if ($order instanceof WC_Order && function_exists('af_visitor_ip')) {
+        $ip = af_visitor_ip();
+        if ($ip !== '') $order->update_meta_data('_af_visitor_ip', $ip);
+    }
+};
+add_action('woocommerce_checkout_create_order', $af_fraud_keep_ip, 10, 1);
+add_action('woocommerce_store_api_checkout_update_order_meta', $af_fraud_keep_ip, 10, 1);
+unset($af_fraud_keep_ip);
 
 add_action('woocommerce_checkout_order_processed', function($order_id) {
     $order = wc_get_order($order_id);

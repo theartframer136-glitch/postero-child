@@ -49,8 +49,8 @@ foreach (array('af_contact_messages', 'af_newsletter', 'af_nl_subscribers') as $
     }
 }
 foreach ($wpdb->get_col("SHOW TABLES LIKE '{$wpdb->prefix}af_%'") as $t) echo "  theme table: $t\n";
-$nl = get_option('af_newsletter_list');
-if (is_array($nl)) echo '  af_newsletter_list option: ' . count($nl) . " entries\n";
+$nl = get_option('af_newsletter_subscribers');
+if (is_array($nl)) echo '  af_newsletter_subscribers option: ' . count($nl) . " entries\n";
 
 echo "\n=== where the forms are printed\n";
 $ids = $wpdb->get_col("SELECT ID FROM {$wpdb->posts} WHERE post_status='publish' AND post_type IN ('page','post') AND (post_content LIKE '%af_contact_form%' OR post_content LIKE '%wpcf7%' OR post_content LIKE '%contact-form-7%' OR post_content LIKE '%mc4wp%' OR post_content LIKE '%af_newsletter%')");

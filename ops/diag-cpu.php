@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Read-only WordPress-side CPU diagnostic, run via `wp eval-file` by
  * .github/workflows/diagnose-cpu.yml. Prints scheduler/queue/config state

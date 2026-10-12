@@ -39,9 +39,9 @@ jobs:
         run: |
           set +e
           for i in 1 2 3; do
-            scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+            scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
               "tools/$SCRIPT" "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/$SCRIPT" \
-            && ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+            && ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=yes -o UserKnownHostsFile=${GITHUB_WORKSPACE}/.github/known_hosts -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
               "cd ~/websites/OPu0sKi4J/public_html && timeout 300 wp eval-file wp-content/themes/postero-child/tools/$SCRIPT --allow-root ${SKIP:+--skip-plugins=$SKIP} 2>&1" && break
             echo "  attempt $i failed"; sleep 20

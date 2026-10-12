@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Tests what a shopper sees as a product's Art Code: af_get_art_code() and the
  * four places that print it (shop card, product summary, description, and the

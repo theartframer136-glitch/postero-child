@@ -1,4 +1,5 @@
 <?php
+/* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * Tests for inc/digital-account.php (a digital purchase stays in the buyer's
  * account: no expiry, no download count, an account made at checkout for a

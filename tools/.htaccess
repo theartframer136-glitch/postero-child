@@ -1,18 +1,13 @@
-# Deny ALL direct web access to operational / maintenance scripts.
-# These run only via WP-CLI (wp eval-file ...) during deploy — never over HTTP.
-# The in-file `if (!defined('ABSPATH'))` guard is NOT reliable on this host
-# (ABSPATH is defined in the web SAPI), so block at the web-server layer.
-
-# Apache 2.4+ / LiteSpeed
-<IfModule mod_authz_core.c>
-    Require all denied
+# Nothing in this folder is for the web. Its scripts run on the server from
+# the command line (wp eval-file, php, bash) during deploys and diagnostics,
+# and its data files are read from disk by those scripts.
+#
+# Closed with a rewrite rule: this host's LiteSpeed ignores "Require all
+# denied" in a folder's .htaccess (checked live on 12 Oct: every file here was
+# served), but it does follow rewrite rules there, as
+# wp-content/uploads/.htaccess shows. Each PHP script also refuses web
+# requests by itself (its AF-WEB-GUARD line).
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule ^ - [F,L]
 </IfModule>
-
-# Apache 2.2 fallback
-<IfModule !mod_authz_core.c>
-    Order allow,deny
-    Deny from all
-</IfModule>
-
-# No directory listing even if the rule above is bypassed
-Options -Indexes
