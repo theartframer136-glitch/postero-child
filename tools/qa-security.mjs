@@ -81,6 +81,11 @@ for (const [name, path] of [
   ['theme tools/ data denied', `${T}/tools/.htaccess`],
   ['theme ops/ denied', `${T}/ops/diag-agg.php`],
   ['theme ops/ guard copy denied', `${T}/ops/mu/af-crawl-guard.php`],
+  // Files that hold no guard line of their own: a 403 here can only come
+  // from the folder's deny rule (a PHP script may answer 403 by itself).
+  ['theme tools/ script (not PHP) denied', `${T}/tools/qa-security.mjs`],
+  ['theme tools/ data file denied', `${T}/tools/artcode-primary.csv`],
+  ['theme ops/ shell script denied', `${T}/ops/diag-cpu.sh`],
   ['root report APPLIED.txt not public', `${T}/APPLIED.txt`],
   ['root report SKU.txt not public', `${T}/SKU.txt`],
   ['README.md not public', `${T}/README.md`],
@@ -90,8 +95,9 @@ for (const [name, path] of [
   ['profiler request log absent', '/wp-content/uploads/af-req-log.txt'],
   ['debug.log not public', '/wp-content/debug.log'],
 ]) {
-  const r = await req(path);
-  check(name, r.status === 403 || r.status === 404 || r.status === 410, `HTTP ${r.status}${r.status === 200 ? ' (' + r.text.length + ' bytes)' : ''}`);
+  // A fresh query string each run, so no cache in front of the server answers.
+  const r = await req(path + '?qa=' + Date.now().toString(36));
+  check(name, r.status === 403 || r.status === 404 || r.status === 410, `HTTP ${r.status}${r.status === 200 ? ' (' + r.text.length + ' bytes)' : ''} server ${r.h.get('server') || '-'}`);
 }
 {
   const r = await req('/wp-content/uploads/af-php-probe.php');
