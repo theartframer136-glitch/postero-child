@@ -144,3 +144,13 @@ Send us your logo and get artwork plus 2 design variations free, with a free des
 Call +1 (610) 470-7280, email theartframer136@gmail.com or visit theartframer.us.
 
 #TheArtFramer #Delaware #CorporatePrinting #EventBranding #RollUpBanner #Signage #TradeShow #SmallBusiness
+
+## Brief post: all 10 flyers
+
+**40% Off Event Backdrops, Standees, Signs and Totes**
+
+Get 40% off list price on our 2026 Corporate Rate Card. Event backdrops from $95.76. Roll-up standees from $70.27, with reusable base, telescopic pole and carry bag included. Signs from $40.73, printed with UV-cured inks. Logo jute tote bags at $199.50 for 25. Plus free artwork with 2 design variations, a free design proof within 48 hours, and free delivery in DE, PA, MD and NJ.
+
+Request your free design proof: +1 (610) 470-7280 | theartframer136@gmail.com | theartframer.us
+
+#TheArtFramer #Delaware #EventBackdrops #RollUpStandees #CustomSigns #BrandedTotes
