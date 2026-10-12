@@ -188,6 +188,7 @@ if(!$image) continue;
 <input type="hidden" name="frame_color" id="frameColor" value="#000000">
 </div>
 
+<?php if (function_exists('af_turnstile_box')) af_turnstile_box('preview'); ?>
 <button type="submit">Confirm & Send Preview</button>
 </div>
 
@@ -262,7 +263,8 @@ towForm.onsubmit=async e=>{
  fd.append('product', productSelect.options[productSelect.selectedIndex].text);
 
  fetch('<?php echo admin_url("admin-ajax.php"); ?>',{method:'POST',body:fd})
- .then(()=>alert('Preview sent successfully!'));
+ .then(r=>r.json()).catch(()=>({}))
+ .then(res=>{ alert(res&&res.success?'Preview sent successfully!':((res&&res.data&&res.data.message)||'The preview could not be sent — please try again.')); if(window.afTsApi) window.afTsApi.reset(towForm); });
 };
 </script>
 
@@ -274,19 +276,7 @@ add_action('wp_ajax_tow_send','tow_send');
 add_action('wp_ajax_nopriv_tow_send','tow_send');
 
 function tow_send(){
- $upload=wp_upload_dir();
- $img=str_replace('data:image/png;base64,','',$_POST['preview']);
- $file=$upload['path'].'/preview-'.time().'.png';
- file_put_contents($file,base64_decode($img));
-
- wp_mail(
- "chandan99832@gmail.com",
- "New Frame Preview Request",
- "Product: {$_POST['product']}\nCategory: {$_POST['category']}\nFrame Type: {$_POST['frame_type']}\nSize: {$_POST['size']}\nFrame Color: {$_POST['frame_color']}",
- [],
- [$file]
- );
-
- wp_send_json_success();
+ // hardened, see af_snip_preview_send() in inc/ports/code-snippets.php
+ af_snip_preview_send('preview-', 'New Frame Preview Request', array('product' => 'Product', 'category' => 'Category', 'frame_type' => 'Frame Type', 'size' => 'Size', 'frame_color' => 'Frame Color'));
 }
 

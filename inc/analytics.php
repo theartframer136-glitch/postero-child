@@ -57,6 +57,12 @@ function af_ga4_page_events() {
     if (function_exists('is_order_received_page') && is_order_received_page()) {
         $oid = absint(get_query_var('order-received'));
         $order = $oid ? wc_get_order($oid) : false;
+        // Only the order this visitor owns: the ?key= WooCommerce puts in the
+        // thank-you URL must match. Without it any order number put a stranger's
+        // totals and items in the page and marked that order "reported"
+        // (security audit, 12 Oct).
+        $key = isset($_GET['key']) && is_string($_GET['key']) ? wc_clean(wp_unslash($_GET['key'])) : '';
+        if ($order && ($key === '' || !hash_equals((string) $order->get_order_key(), $key))) $order = false;
         if ($order && !$order->get_meta('_af_ga4_purchase_sent')) {
             $items = array();
             foreach ($order->get_items() as $it) {

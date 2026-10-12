@@ -43,8 +43,12 @@ if (!function_exists('af_ports_activating')) {
                 foreach (array_slice($args, 2) as $a) $found[] = strtok((string) $a, '/');
             }
         } elseif (isset($_SERVER['REQUEST_URI'], $_SERVER['REQUEST_METHOD']) && 'GET' !== $_SERVER['REQUEST_METHOD']
-            && preg_match_all('#wp/v2/plugins/([a-z0-9_-]+)#i', rawurldecode((string) $_SERVER['REQUEST_URI']), $af_m)) {
-            // REST: POST/PUT /wp-json/wp/v2/plugins/<folder>/<file> (block editor, apps)
+            && preg_match_all('#(?:^/wp-json/|[?&]rest_route=/)wp/v2/plugins/([a-z0-9_-]+)#i', rawurldecode((string) $_SERVER['REQUEST_URI']), $af_m)
+            && function_exists('current_user_can') && current_user_can('activate_plugins')) {
+            // REST: POST/PUT /wp-json/wp/v2/plugins/<folder>/<file> (block editor, apps).
+            // Only a real REST route, from someone who may activate plugins:
+            // the path anywhere in any request, from anyone, used to unload a
+            // port for that request (security audit, 12 Oct).
             foreach ($af_m[1] as $p) $found[] = strtolower($p);
         } elseif (is_admin() && isset($GLOBALS['pagenow']) && in_array($GLOBALS['pagenow'], array('plugins.php', 'update.php', 'admin-ajax.php'), true)) {
             $req = wp_unslash($_REQUEST); // phpcs:ignore WordPress.Security.NonceVerification

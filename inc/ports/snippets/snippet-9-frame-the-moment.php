@@ -116,6 +116,7 @@ button{
 </div>
 <input type="hidden" name="frame_color" id="ftmColor" value="#000000">
 
+<?php if (function_exists('af_turnstile_box')) af_turnstile_box('preview'); ?>
 <button type="submit">Confirm & Send Preview</button>
 
 </div>
@@ -176,7 +177,8 @@ ftmForm.onsubmit=async e=>{
  fd.append('action','ftm_send');
 
  fetch('<?php echo admin_url("admin-ajax.php"); ?>',{method:'POST',body:fd})
- .then(()=>alert('Preview sent successfully!'));
+ .then(r=>r.json()).catch(()=>({}))
+ .then(res=>{ alert(res&&res.success?'Preview sent successfully!':((res&&res.data&&res.data.message)||'The preview could not be sent — please try again.')); if(window.afTsApi) window.afTsApi.reset(ftmForm); });
 };
 
 });
@@ -193,20 +195,7 @@ add_action('wp_ajax_ftm_send','ftm_send');
 add_action('wp_ajax_nopriv_ftm_send','ftm_send');
 
 function ftm_send(){
-
- $upload=wp_upload_dir();
- $img=str_replace('data:image/png;base64,','',$_POST['preview']);
- $file=$upload['path'].'/frame-moment-'.time().'.png';
- file_put_contents($file,base64_decode($img));
-
- wp_mail(
- "chandan99832@gmail.com",
- "New Frame The Moment Request",
- "Category: {$_POST['category']}\nSize: {$_POST['size']}\nFrame Color: {$_POST['frame_color']}",
- [],
- [$file]
- );
-
- wp_send_json_success();
+ // hardened, see af_snip_preview_send() in inc/ports/code-snippets.php
+ af_snip_preview_send('frame-moment-', 'New Frame The Moment Request', array('category' => 'Category', 'size' => 'Size', 'frame_color' => 'Frame Color'));
 }
 

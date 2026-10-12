@@ -130,6 +130,21 @@ function af_ac_capture_handler() {
     $email = isset($_POST['email']) ? sanitize_email(wp_unslash($_POST['email'])) : '';
     $first = isset($_POST['first']) ? sanitize_text_field(wp_unslash($_POST['first'])) : '';
     if (!$email || !is_email($email)) wp_send_json_error();
+    // Each capture can lead to three reminder emails to the address typed
+    // in, so one connection may not hand in addresses without end (security
+    // audit, 12 Oct): 5 an hour per address, 3 different addresses per session.
+    $rl = 'af_ac_rl_' . md5(function_exists('af_visitor_ip') ? af_visitor_ip() : '');
+    $n  = (int) get_transient($rl);
+    if ($n >= 5) wp_send_json_error();
+    set_transient($rl, $n + 1, HOUR_IN_SECONDS);
+    if (function_exists('WC') && WC()->session) {
+        $seen = (array) WC()->session->get('af_ac_emails', array());
+        if (!in_array($email, $seen, true)) {
+            if (count($seen) >= 3) wp_send_json_error();
+            $seen[] = $email;
+            WC()->session->set('af_ac_emails', $seen);
+        }
+    }
     // kept for later captures in this session (a change made at checkout,
     // inc/checkout-upgrade.php), since checkout's own refresh never stores it
     if (function_exists('WC') && WC()->session) { WC()->session->set('af_ac_email', $email); WC()->session->set('af_ac_first', $first); }

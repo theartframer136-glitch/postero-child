@@ -195,16 +195,15 @@ class transposh_plugin {
 //        add_action('wp_ajax_nopriv_tp_gp', array(&$this, 'on_ajax_nopriv_tp_gp'));
         add_action('wp_ajax_tp_tp', array(&$this, 'on_ajax_nopriv_tp_tp')); // translate suggest proxy
         add_action('wp_ajax_nopriv_tp_tp', array(&$this, 'on_ajax_nopriv_tp_tp'));
-        add_action('wp_ajax_tp_oht', array(&$this, 'on_ajax_nopriv_tp_oht'));
-        add_action('wp_ajax_nopriv_tp_oht', array(&$this, 'on_ajax_nopriv_tp_oht'));
+        // tp_oht / tp_ohtcallback are not registered: their methods are not part
+        // of this copy, and an action pointing at a missing method is a fatal
+        // error any visitor could trigger (security audit, 12 Oct).
         // ajax actions in editor
         // TODO - remove some for non translators
         add_action('wp_ajax_tp_history', array(&$this, 'on_ajax_nopriv_tp_history'));
         add_action('wp_ajax_nopriv_tp_history', array(&$this, 'on_ajax_nopriv_tp_history'));
         add_action('wp_ajax_tp_translation', array(&$this, 'on_ajax_nopriv_tp_translation'));
         add_action('wp_ajax_nopriv_tp_translation', array(&$this, 'on_ajax_nopriv_tp_translation'));
-        add_action('wp_ajax_tp_ohtcallback', array(&$this, 'on_ajax_nopriv_tp_ohtcallback'));
-        add_action('wp_ajax_nopriv_tp_ohtcallback', array(&$this, 'on_ajax_nopriv_tp_ohtcallback'));
         add_action('wp_ajax_tp_trans_alts', array(&$this, 'on_ajax_nopriv_tp_trans_alts'));
         add_action('wp_ajax_nopriv_tp_trans_alts', array(&$this, 'on_ajax_nopriv_tp_trans_alts'));
         add_action('wp_ajax_tp_cookie', array(&$this, 'on_ajax_nopriv_tp_cookie'));
@@ -282,7 +281,9 @@ class transposh_plugin {
      */
     function tp_redirect($location, $status = 302) {
         $this->transposh_redirect = true;
-        wp_redirect($location, $status);
+        // this site only: the language links redirect to the Referer, which any
+        // page elsewhere can set (security audit, 12 Oct)
+        wp_safe_redirect($location, $status);
     }
 
     /**

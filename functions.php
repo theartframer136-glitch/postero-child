@@ -308,9 +308,15 @@ add_filter('woocommerce_currency_symbol', function($symbol, $currency) { return 
 
 // Redirect any ?currency= outside the whitelist (e.g. INR) back to USD
 add_action('template_redirect', function() {
-    if (isset($_GET['currency']) && !in_array(strtoupper($_GET['currency']), af_allowed_currencies(), true)) {
-        $url = add_query_arg('currency', 'USD', remove_query_arg('currency'));
-        wp_redirect($url, 302);
+    if (isset($_GET['currency']) && (!is_string($_GET['currency']) || !in_array(strtoupper($_GET['currency']), af_allowed_currencies(), true))) {
+        // Same-site only, and never "//other.host": the target is built from
+        // this site's address and the request's path (security audit, 12 Oct).
+        $path = '/' . ltrim((string) wp_parse_url(isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '/', PHP_URL_PATH), '/');
+        $args = $_GET;
+        unset($args['currency']);
+        $args = array_filter($args, 'is_string');
+        $args['currency'] = 'USD';
+        wp_safe_redirect(add_query_arg(array_map('rawurlencode', $args), home_url($path)), 302);
         exit;
     }
 });
@@ -10879,9 +10885,15 @@ function af_request_wants_digital() {
 }
 
 function af_sells_as_digital($pid) {
-    if (af_request_wants_digital()) return true;
     $p = wc_get_product($pid);
-    return $p ? af_is_digital_download($p) : false;
+    if (!$p) return false;
+    if (af_is_digital_download($p)) return true;
+    // The Digital Download modal and "What you receive: Digital download" sell
+    // the file of an ARTWORK. A request saying af_digital=1 on anything else
+    // (a gift card, stretcher bars, a frame) was priced at the file's ~$9 and
+    // made shipping-free (security audit, 12 Oct): only artwork honours it.
+    if (!af_request_wants_digital()) return false;
+    return af_pricing_applies($p) || (function_exists('af_kit_is_corporate') && af_kit_is_corporate($pid));
 }
 
 // Mark the cart item as a digital download with its own price/label
@@ -12665,8 +12677,9 @@ add_action('init', function () {
     if (is_ssl()) return;
     if (php_sapi_name() === 'cli' || (defined('WP_CLI') && WP_CLI) || wp_doing_cron()) return;
     if (!empty($_SERVER['HTTP_X_FORWARDED_PROTO']) && strtolower($_SERVER['HTTP_X_FORWARDED_PROTO']) === 'https') return;
-    $host = !empty($_SERVER['HTTP_HOST']) ? $_SERVER['HTTP_HOST'] : (string) parse_url(home_url('/'), PHP_URL_HOST);
-    $uri  = !empty($_SERVER['REQUEST_URI']) ? $_SERVER['REQUEST_URI'] : '/';
+    // The site's own host, not the request's Host header (security audit, 12 Oct).
+    $host = (string) parse_url(home_url('/'), PHP_URL_HOST);
+    $uri  = !empty($_SERVER['REQUEST_URI']) ? '/' . ltrim($_SERVER['REQUEST_URI'], '/') : '/';
     wp_redirect('https://' . $host . $uri, 301);
     exit;
 }, 0);
@@ -13090,7 +13103,8 @@ add_action('wp_footer', function() { ?>
   // Compare page renderer
   var wrap = document.getElementById('afCompareWrap');
   if (!wrap) return;
-  function esc(t){ var d = document.createElement('div'); d.textContent = t == null ? '' : String(t); return d.innerHTML; }
+  // quotes too: titles and URLs go inside alt="…" and href="…"
+  function esc(t){ return (t == null ? '' : String(t)).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function render(){
     var a = ids(), empty = document.getElementById('afCmpEmpty'), tbl = document.getElementById('afCmpTable');
     if (!a.length) { empty.style.display = 'block'; tbl.innerHTML = ''; return; }
@@ -14560,9 +14574,13 @@ add_action('woocommerce_account_messages_endpoint', function() {
     $user  = wp_get_current_user();
     global $wpdb;
     $t = af_contact_table();
+    // The account's own threads only. Matching on the email address as well
+    // showed anyone who registered with a guest's address that guest's
+    // contact-form messages and the studio's replies (security audit, 12 Oct);
+    // contact-form threads stay in wp-admin, and replies to them go by email.
     $threads = $wpdb->get_results($wpdb->prepare(
-        "SELECT * FROM {$t} WHERE (user_id = %d OR email = %s) AND (parent_id = 0 OR parent_id IS NULL)
-         ORDER BY id DESC LIMIT 25", $uid, $user->user_email
+        "SELECT * FROM {$t} WHERE user_id = %d AND user_id > 0 AND (parent_id = 0 OR parent_id IS NULL)
+         ORDER BY id DESC LIMIT 25", $uid
     ));
     echo '<div class="taf-page" style="padding:0;">';
     echo '<p>Messages between you and our studio team. Replies also arrive by email at <b>' . esc_html($user->user_email) . '</b>.</p>';
@@ -14608,6 +14626,16 @@ add_action('template_redirect', function() {
     $parent  = (int) ($_POST['af_msg_parent'] ?? 0);
     $subject = $parent ? 'Re: thread #' . $parent : sanitize_text_field(wp_unslash($_POST['af_msg_subject'] ?? 'Message'));
     global $wpdb;
+    // A reply goes only into a thread this account started (any thread id was
+    // accepted before), and an account sends at most 10 messages an hour.
+    if ($parent && (int) $wpdb->get_var($wpdb->prepare("SELECT user_id FROM " . af_contact_table() . " WHERE id = %d AND (parent_id = 0 OR parent_id IS NULL)", $parent)) !== (int) $user->ID) {
+        wc_add_notice('That conversation could not be found.', 'error'); return;
+    }
+    $rl = 'af_msg_rl_' . (int) $user->ID;
+    if ((int) get_transient($rl) >= 10) { wc_add_notice('Too many messages in an hour — please try again later.', 'error'); return; }
+    set_transient($rl, (int) get_transient($rl) + 1, HOUR_IN_SECONDS);
+    $body    = mb_substr($body, 0, 3000);
+    $subject = mb_substr($subject, 0, 120);
     $wpdb->insert(af_contact_table(), array(
         'created_at' => current_time('mysql'),
         'name'       => $user->display_name,
@@ -18651,12 +18679,16 @@ function af_inv_can_access() {
     if (!is_user_logged_in()) return false;
     if (current_user_can('manage_options')) return true;
 
-    $user = wp_get_current_user();
-    if (!$user || empty($user->user_email)) return false;
-
-    $email   = strtolower(trim($user->user_email));
+    // An account's email alone used to be enough (security audit, 12 Oct):
+    // registration is open and WooCommerce lets anyone sign up or change to
+    // an address without proving they own it, so an allowlisted address with
+    // no account could be claimed. The address must now belong to an account
+    // that was given the af_manage_stock capability on purpose.
+    if (!current_user_can('af_manage_stock')) return false;
+    $user    = wp_get_current_user();
+    $email   = strtolower(trim((string) $user->user_email));
     $allowed = array_map('strtolower', af_inv_allowed_emails());
-    return in_array($email, $allowed, true);
+    return $email !== '' && in_array($email, $allowed, true);
 }
 
 // Endpoint: write a new stock quantity for one product.
@@ -18786,7 +18818,7 @@ add_action('template_redirect', function(){
       var $ = function(id){ return document.getElementById(id); };
       var filter = 'all', term = '', groupBy = true, activeCat = 'all';
 
-      function esc(s){ var d=document.createElement('div'); d.textContent = s==null?'':String(s); return d.innerHTML; }
+      function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
       function money(n){ return CFG.sym + (Math.round(n*100)/100).toFixed(2); }
 
       // A product's bucket drives both the filter chips and the status pill.
@@ -19902,7 +19934,9 @@ add_action('template_redirect', function(){
       var ROWS = <?php echo wp_json_encode($rows); ?>;
       var $ = function(id){ return document.getElementById(id); };
       var term = '';
-      function esc(s){ var d=document.createElement('div'); d.textContent = s==null?'':String(s); return d.innerHTML; }
+      // Quotes too: these values land inside title="…" and other attributes,
+      // and a User-Agent is whatever the visitor's client says it is.
+      function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
 
       // One 16px glyph per kind, drawn rather than fetched: an icon font or a
       // sprite would be four more requests on a page that is one table.

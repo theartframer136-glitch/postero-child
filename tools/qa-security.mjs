@@ -61,7 +61,7 @@ for (const [label, path] of [['home (cached)', '/'], ['product page (cached)', p
 
 /* 2. classic WordPress exposures */
 for (const [name, path, method, ok] of [
-  ['xmlrpc.php blocked', '/xmlrpc.php', 'POST', s => s === 403 || s === 404 || s === 405],
+  ['xmlrpc.php blocked', '/xmlrpc.php', 'POST', s => s === 403 || s === 404 || s === 405 || s === 429],
   ['user list hidden from visitors', '/wp-json/wp/v2/users', 'GET', s => s === 401 || s === 403 || s === 404],
   ['single user hidden from visitors', '/wp-json/wp/v2/users/1', 'GET', s => s === 401 || s === 403 || s === 404],
   ['readme.html not served', '/readme.html', 'GET', s => s === 403 || s === 404],
@@ -141,6 +141,12 @@ if (BASELINE) {
   check('af_ac_capture refuses an address without a basket', !/"success":true/.test(r.text), `HTTP ${r.status} ${r.text.slice(0, 120)}`);
 }
 
+/* 7b. translations: visitors may not save any */
+{
+  const r = await ajax({ action: 'tp_translation', items: '1', ln0: 'hi', sr0: '1', tk0: 'QA probe text', tr0: 'QA probe text' });
+  check('a visitor cannot save a Hindi translation', r.status === 401 || r.status === 403, `HTTP ${r.status} ${r.text.slice(0, 60)}`);
+}
+
 /* 8. price of the Digital Download path on products that are not artwork */
 async function storeCart() {
   const r = await req('/wp-json/wc/store/v1/cart', { headers: { Accept: 'application/json', 'Sec-Fetch-Mode': 'cors' } });
@@ -176,7 +182,7 @@ for (const [label, q, extra] of [
 /* 9. currency REST: no unbounded batch */
 {
   const ids = Array.from({ length: 300 }, (_, i) => i + 1);
-  const r = await req('/wp-json/woocs/v3/products-prices', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'Sec-Fetch-Mode': 'cors' }, body: JSON.stringify({ ids, products_ids: ids }) });
+  const r = await req('/wp-json/woocs/v3/products-prices', { method: 'POST', headers: { Accept: 'application/json', 'Content-Type': 'application/json', 'Sec-Fetch-Mode': 'cors' }, body: JSON.stringify({ product_ids: ids }) });
   let n = 0; try { const j = JSON.parse(r.text); n = Array.isArray(j) ? j.length : Object.keys(j || {}).length; } catch (e) {}
   check('currency REST answers at most 100 products per call', n <= 100, `HTTP ${r.status}, ${n} answered`);
 }

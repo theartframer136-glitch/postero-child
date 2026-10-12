@@ -111,6 +111,21 @@ $af_tp_snap = af_ports_hook_snapshot();
 
 // The files transposh.php requires, in its order and by full path; its own
 // relative require_once lines then find them already loaded.
+// Visitors who are not logged in may not save translations (security audit,
+// 12 Oct). The plugin's default lets anyone do it, and its "automatic"
+// translations could be posted by anyone with any text; the machine
+// translations the Hindi pages need are saved by the server itself, in the
+// tp_tp proxy, so nothing a visitor sees changes. Editors with the
+// translator capability still translate in edit mode.
+add_filter('option_' . 'transposh_options', function ($o) {
+    if (is_array($o)) $o['allow_anonymous_translation'] = 0;
+    return $o;
+});
+add_action('wp_ajax_nopriv_tp_translation', function () {
+    status_header(401);
+    exit('Unauthorized translation');
+}, 1);
+
 require_once __DIR__ . '/transposh/core/logging.php';
 require_once __DIR__ . '/transposh/core/constants.php';
 require_once __DIR__ . '/transposh/core/utils.php';

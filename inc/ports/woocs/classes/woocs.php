@@ -6274,7 +6274,9 @@ final class WOOCS {
 		$format     = $request->get_param( 'format' );
 		$product    = wc_get_product( $product_id );
 
-		if ( ! $product ) {
+		// The theme's copy answers for products a visitor can see only: by id,
+		// draft, private and trashed products were priced too (security audit, 12 Oct).
+		if ( ! $product || ! af_woocs_rest_visible( $product ) ) {
 			return new WP_Error( 'product_not_found', esc_html__( 'Product not found', 'woocommerce-currency-switcher' ), array( 'status' => 404 ) );
 		}
 
@@ -6318,11 +6320,12 @@ final class WOOCS {
 
 		$results = array();
 
-		foreach ( $product_ids as $product_id ) {
+		// at most 100 per call, and visible products only (security audit, 12 Oct)
+		foreach ( array_slice( (array) $product_ids, 0, 100 ) as $product_id ) {
 			$product_id = intval( $product_id );
 			$product    = wc_get_product( $product_id );
 
-			if ( $product ) {
+			if ( $product && af_woocs_rest_visible( $product ) ) {
 				$results[ $product_id ] = $this->get_product_price_data( $product, $format );
 			} else {
 				$results[ $product_id ] = array(
@@ -6517,5 +6520,13 @@ final class WOOCS {
 		}
 
 		return $result;
+	}
+}
+
+/** A product a visitor may see: published, and not hidden by a password (theme addition, security audit 12 Oct). */
+if ( ! function_exists( 'af_woocs_rest_visible' ) ) {
+	function af_woocs_rest_visible( $product ) {
+		$id = $product->get_parent_id() ? $product->get_parent_id() : $product->get_id();
+		return 'publish' === get_post_status( $id ) && ! post_password_required( $id );
 	}
 }

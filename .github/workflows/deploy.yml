@@ -284,10 +284,20 @@ jobs:
           DEPLOYED=0
           for i in $(seq 1 $MAX); do
             echo "Attempt $i of $MAX..."
-            if rsync -avz --delete \
+            # Not shipped, and removed from the server if a copy is there
+            # (--delete-excluded): notes, reports and pictures in the repo root
+            # were public and showed the server path, the WordPress version and
+            # product ids (security audit, 12 Oct). Nothing on the site reads them.
+            if rsync -avz --delete --delete-excluded \
               --exclude ".git" \
               --exclude ".github" \
               --exclude "node_modules" \
+              --exclude "/*.txt" \
+              --exclude "/BATCH_*.jpg" \
+              --exclude "/docs" \
+              --exclude "*.md" \
+              --exclude "readme.txt" \
+              --exclude ".gitignore" \
               -e "${SSH} -i ~/.ssh/id_ed25519" \
               ./ \
               "${USER}@${HOST}:${TARGET}/"; then

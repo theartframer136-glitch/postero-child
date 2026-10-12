@@ -35,6 +35,20 @@ function af_mk_key() {
     return $k;
 }
 
+/**
+ * The key that may WRITE stock (security audit, 12 Oct). It used to be the
+ * feed key above, which sits in every feed URL handed to Google, Meta,
+ * Pinterest, eBay, Etsy and Amazon, so anyone holding a feed URL could set
+ * stock. Writes now need their own key, sent only as a header; no channel has
+ * ever written (the sync log holds only feed reads), so nothing has to change
+ * on their side.
+ */
+function af_mk_write_key() {
+    $k = get_option('af_mk_write_key');
+    if (!$k) { $k = wp_generate_password(32, false, false); update_option('af_mk_write_key', $k, false); }
+    return $k;
+}
+
 function af_mk_feed_url($channel) {
     return add_query_arg(array('af_feed' => $channel, 'key' => af_mk_key()), home_url('/'));
 }
@@ -385,9 +399,8 @@ add_action('rest_api_init', function() {
 });
 
 function af_mk_rest_auth($request) {
-    $key = $request->get_header('X-AF-Key');
-    if (!$key) $key = $request->get_param('key');
-    return $key && hash_equals(af_mk_key(), (string) $key);
+    $key = (string) $request->get_header('X-AF-Key');   // a header only: a key in the URL ends up in logs
+    return $key !== '' && hash_equals(af_mk_write_key(), $key);
 }
 
 /** Find a product by any identifier a channel might send back. */
@@ -540,7 +553,7 @@ function af_mk_admin_page() {
     echo '<h2>Two-way inventory sync</h2>';
     echo '<p>Channels push stock in here:</p>';
     echo '<p><code>POST ' . esc_html(rest_url('af-marketplace/v1/inventory')) . '</code><br>'
-       . '<small>Header <code>X-AF-Key: ' . esc_html(af_mk_key()) . '</code> — body '
+       . '<small>Header <code>X-AF-Key: ' . esc_html(af_mk_write_key()) . '</code> (the write key; the feed key in the URLs above cannot write) — body '
        . '<code>{"channel":"etsy","updates":[{"sku":"TAF-123","stock":4}]}</code>. '
        . 'Send <code>"sold": 1</code> instead of <code>"stock"</code> to decrement.</small></p>';
 

@@ -33,6 +33,20 @@ if (!defined('ABSPATH')) exit;
  * rest untouched — only what is genuinely new becomes a product.
  */
 
+/** Delete everything under $dir that is not a JPEG / PNG / WebP picture (by extension and by content). Returns how many files went. */
+function af_goldfoil_keep_images_only($dir) {
+    $n = 0;
+    if (!is_dir($dir)) return 0;
+    $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS), RecursiveIteratorIterator::CHILD_FIRST);
+    foreach ($it as $f) {
+        $path = $f->getPathname();
+        if ($f->isDir()) { @rmdir($path); continue; }   // only empty folders go
+        $ok = preg_match('/\.(jpe?g|png|webp)$/i', $f->getFilename()) && ($i = @getimagesize($path)) && in_array($i[2], array(IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP), true);
+        if (!$ok) { @unlink($path); $n++; }
+    }
+    return $n;
+}
+
 /* ── how often ────────────────────────────────────────────────────────── */
 add_filter('cron_schedules', function ($s) {
     if (!isset($s['af_gf_15min'])) {
@@ -211,11 +225,23 @@ function af_goldfoil_sync_run($force = false) {
             af_goldfoil_watch_note($msg);
             return $msg;
         }
+        // The folder sits in public uploads: keep pictures only. Anything else
+        // that came in the archive (a script above all) is deleted at once,
+        // before the importer or a visitor can reach it (security audit, 12 Oct).
+        $dropped = af_goldfoil_keep_images_only($into);
+        if ($dropped) af_goldfoil_watch_note('removed ' . $dropped . ' file(s) from the archive that were not pictures');
     } else {
         if (!is_dir($into)) wp_mkdir_p($into);
-        $name = basename(parse_url($used, PHP_URL_PATH));
-        if ($name === '' || strpos($name, '.') === false) $name = 'artwork.jpg';
-        @rename($got, trailingslashit($into) . sanitize_file_name($name));
+        $name = sanitize_file_name(basename((string) parse_url($used, PHP_URL_PATH)));
+        if (!preg_match('/\.(jpe?g|png|webp)$/i', $name)) $name = 'artwork.jpg';
+        // a picture under a picture's name, or nothing
+        $info = @getimagesize($got);
+        if (!$info || !in_array($info[2], array(IMAGETYPE_JPEG, IMAGETYPE_PNG, IMAGETYPE_WEBP), true)) {
+            @unlink($got);
+            af_goldfoil_watch_note('fetched a file that is not a picture; ignored');
+            return 'not a picture';
+        }
+        @rename($got, trailingslashit($into) . $name);
     }
 
     // Hand the folder to the importer that already knows how to make a product
