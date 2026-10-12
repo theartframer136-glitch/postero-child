@@ -102,12 +102,35 @@ for (const [name, path] of [
 ]) {
   // A fresh query string each run, so no cache in front of the server answers.
   const r = await req(path + '?qa=' + Date.now().toString(36));
-  check(name, r.status === 403 || r.status === 404 || r.status === 410, `HTTP ${r.status}${r.status === 200 ? ' (' + r.text.length + ' bytes)' : ''} server ${r.h.get('server') || '-'}`);
+  const info = `HTTP ${r.status}${r.status === 200 ? ' (' + r.text.length + ' bytes)' : ''} server ${r.h.get('server') || '-'}`;
+  const closed = r.status === 403 || r.status === 404 || r.status === 410;
+  // Two files cannot be closed on this host (it ignores a folder's .htaccess)
+  // and must stay deployed: the crawl guard's copy (runs, prints nothing) and
+  // the art-code CSV that inc/product-pictures.php reads. Cloudflare's edge
+  // rule closes them; until the site is behind Cloudflare they are notes.
+  const edgeOnly = /guard copy|data file/.test(name) && !/cloudflare/i.test(r.h.get('server') || '');
+  if (edgeOnly && !closed) note(`${name} (closed at Cloudflare's edge in Part B)`, info);
+  else check(name, closed, info);
 }
 {
   const r = await req('/wp-content/uploads/af-php-probe.php');
   if (r.status === 404) note('uploads PHP probe file not present (written only by the deploy that installs the uploads rule)');
   else check('PHP under uploads is not executed', !/AF-PHP-EXECUTED/.test(r.text), `HTTP ${r.status} ${r.text.slice(0, 60)}`);
+}
+
+/* 3b. image protection (uploads/.htaccess today, Cloudflare's edge in Part B) */
+{
+  const p = await req('/wp-json/wc/store/v1/products?per_page=1', { headers: { Accept: 'application/json', 'Sec-Fetch-Mode': 'cors' } });
+  let img = ''; try { img = JSON.parse(p.text)[0].images[0].src.replace(S, ''); } catch (e) {}
+  if (!img) note('image protection: no product picture found to test');
+  else {
+    const asPage = await req(img, { headers: { 'Sec-Fetch-Dest': 'document', 'Sec-Fetch-Mode': 'navigate', Referer: '' } });
+    const inPage = await req(img, { headers: { Accept: 'image/avif,image/webp,*/*', 'Sec-Fetch-Dest': 'image', 'Sec-Fetch-Mode': 'no-cors', 'Sec-Fetch-Site': 'same-origin', Referer: S + '/' } });
+    check('a product picture still loads inside a page', inPage.status === 200, `HTTP ${inPage.status} cache ${inPage.h.get('x-litespeed-cache') || inPage.h.get('cf-cache-status') || '-'}`);
+    const r = `HTTP ${asPage.status} server ${asPage.h.get('server') || '-'} cache ${asPage.h.get('cf-cache-status') || asPage.h.get('x-hcdn-cache-status') || '-'}`;
+    if (/cloudflare/i.test(asPage.h.get('server') || '')) check('a picture opened as a page is refused', asPage.status === 403, r);
+    else note('a picture opened as a page (403 = refused)', r);
+  }
 }
 
 /* 4. redirects */

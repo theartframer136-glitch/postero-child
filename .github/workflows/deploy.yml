@@ -288,6 +288,14 @@ jobs:
             # (--delete-excluded): notes, reports and pictures in the repo root
             # were public and showed the server path, the WordPress version and
             # product ids (security audit, 12 Oct). Nothing on the site reads them.
+            # The same for the parts of tools/ and ops/ that only ever run on
+            # GitHub's runners or the owner's computer (QA scripts, harnesses,
+            # PowerShell/batch/Python helpers): this host ignores the folders'
+            # .htaccess, so anything deployed there is public. What stays is
+            # what the server itself uses: the PHP tools (each refuses web
+            # requests), the CSV/HTML data they read (inc/product-pictures.php
+            # reads artcode-primary.csv), tools/artwork/ and
+            # pim-fetch-on-server.sh.
             if rsync -avz --delete --delete-excluded \
               --exclude ".git" \
               --exclude ".github" \
@@ -298,6 +306,20 @@ jobs:
               --exclude "*.md" \
               --exclude "readme.txt" \
               --exclude ".gitignore" \
+              --exclude "/tools/*.mjs" \
+              --exclude "/tools/*.js" \
+              --exclude "/tools/*.ps1" \
+              --exclude "/tools/*.bat" \
+              --exclude "/tools/*.py" \
+              --exclude "/tools/*.json" \
+              --exclude "/tools/*.css" \
+              --exclude "/tools/tow-harness" \
+              --exclude "/tools/dd-harness" \
+              --exclude "/tools/product-importer" \
+              --exclude "/tools/port-preview-ctl.sh" \
+              --exclude "/tools/remove-plugins.sh" \
+              --exclude "/tools/wp-update.sh" \
+              --exclude "/ops/*.sh" \
               -e "${SSH} -i ~/.ssh/id_ed25519" \
               ./ \
               "${USER}@${HOST}:${TARGET}/"; then
