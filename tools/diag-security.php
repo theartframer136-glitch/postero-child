@@ -156,6 +156,26 @@ if (function_exists('af_ac_table')) {
     }
 }
 
+echo "\n=== visitor addresses as the site records them (are they the visitors' own, or the CDN's?)\n";
+// Masked to the first two parts: enough to tell one shared CDN address from
+// many visitors, without printing anybody's address.
+$mask = function ($ip) { $p = preg_split('/[.:]/', (string) $ip); return (count($p) > 2 ? $p[0] . (strpos($ip, ':') !== false ? ':' : '.') . $p[1] : '?') . (strpos($ip, ':') !== false ? ':…' : '.x.x'); };
+foreach (array('af_contact_messages' => 'created_at', 'af_activity_log' => 'created_at') as $tn => $tc) {
+    $t = $wpdb->prefix . $tn;
+    if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $t)) !== $t) { echo "  {$tn}: no table\n"; continue; }
+    $cols = $wpdb->get_col("SHOW COLUMNS FROM {$t}", 0);
+    if (!in_array('ip', $cols, true)) { echo "  {$tn}: no ip column\n"; continue; }
+    $when = in_array($tc, $cols, true) ? $tc : (in_array('time', $cols, true) ? 'time' : '');
+    $where = $when ? "WHERE {$when} > DATE_SUB(NOW(), INTERVAL 60 DAY) AND ip <> ''" : "WHERE ip <> ''";
+    $n = (int) $wpdb->get_var("SELECT COUNT(*) FROM {$t} {$where}");
+    $d = (int) $wpdb->get_var("SELECT COUNT(DISTINCT ip) FROM {$t} {$where}");
+    echo "  {$tn} (last 60 days): {$n} rows, {$d} distinct addresses\n";
+    foreach ($wpdb->get_results("SELECT ip, COUNT(*) n FROM {$t} {$where} GROUP BY ip ORDER BY n DESC LIMIT 4") as $r) {
+        $cdn = preg_match('/^(2\.57\.91\.|84\.32\.84\.|10\.|127\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.)/', $r->ip) ? ' <- CDN / private address' : '';
+        echo '    ' . $mask($r->ip) . ": {$r->n}{$cdn}\n";
+    }
+}
+
 echo "\n=== checkout, Turnstile, crawl guard\n";
 $co = (int) get_option('woocommerce_checkout_page_id');
 $content = $co ? (string) get_post_field('post_content', $co) : '';
