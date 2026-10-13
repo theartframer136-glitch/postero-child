@@ -5402,10 +5402,10 @@ add_action('wp_footer', function() {
             <li>✉️ <a href="mailto:theartframer136@gmail.com">theartframer136@gmail.com</a></li>
           </ul>
           <div class="af-f-social">
-            <a href="https://www.facebook.com/" target="_blank" rel="noopener" aria-label="Facebook">
+            <a href="https://www.facebook.com/theartframer" target="_blank" rel="noopener" aria-label="Facebook">
               <svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12a10 10 0 10-11.5 9.9v-7H8v-2.9h2.5V9.8c0-2.5 1.5-3.9 3.8-3.9 1.1 0 2.2.2 2.2.2v2.5h-1.3c-1.2 0-1.6.8-1.6 1.6v1.8H16l-.4 2.9h-2.1v7A10 10 0 0022 12z"/></svg>
             </a>
-            <a href="https://www.instagram.com/" target="_blank" rel="noopener" aria-label="Instagram">
+            <a href="https://www.instagram.com/theartframer136/" target="_blank" rel="noopener" aria-label="Instagram">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>
             </a>
             <a href="https://wa.me/16104707280" target="_blank" rel="noopener" aria-label="WhatsApp">
