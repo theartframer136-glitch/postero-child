@@ -139,7 +139,8 @@ t('apply: the TXT record is untouched', S.dns.some(x => x.type === 'TXT' && x.co
 t('apply: encryption mode fixed, Full (strict)', S.settings.ssl_automatic_mode === 'custom' && S.settings.ssl === 'strict');
 t('apply: other settings', S.settings.always_use_https === 'on' && S.settings.min_tls_version === '1.2' && S.settings.email_obfuscation === 'off' && S.settings.rocket_loader === 'off');
 const custom = S.rulesets.http_request_firewall_custom || [];
-t('apply: custom rules = owner rule kept + our 4', custom.length === 5 && custom[0].id === 'r-owner' && custom[0].description === "Owner's own rule" && custom.filter(x => x.description.startsWith('AF:')).length === 4, JSON.stringify(custom.map(x => x.description)));
+t('apply: custom rules = owner rule kept + our 4 (the optional 5th left out)', custom.length === 5 && custom[0].id === 'r-owner' && custom[0].description === "Owner's own rule" && custom.filter(x => x.description.startsWith('AF:')).length === 4 && !custom.some(x => x.ref === 'af_sg_bots'), JSON.stringify(custom.map(x => x.description)));
+t('apply: the left-out rule is named', /left out, the Free plan allows 5 custom rules and 1 are the owner's: AF: bot traffic from Singapore/.test(r.out), r.out);
 t('apply: no regex anywhere', !JSON.stringify(S.rulesets).includes(' matches '));
 t('apply: /.well-known/ is never blocked', /not starts_with\(http\.request\.uri\.path, "\/\.well-known\/"\)/.test(custom.find(x => x.ref === 'af_block_private')?.expression || ''));
 t('apply: rate limit rule, path only, 10 s', (S.rulesets.http_ratelimit || []).length === 1 && !/method/.test(S.rulesets.http_ratelimit[0].expression) && S.rulesets.http_ratelimit[0].ratelimit.period === 10);
@@ -152,6 +153,19 @@ t('apply: the re-check finds everything as planned', /=== all as planned/.test(r
 S.writes = [];
 r = await run(S, 'apply');
 t('apply again: exits 0 and writes nothing', r.code === 0 && S.writes.length === 0, S.writes.join(', ') + '\n' + r.out);
+
+// 3b. without the owner's rule there is room: the Singapore rule is written too
+S.rulesets.http_request_firewall_custom = S.rulesets.http_request_firewall_custom.filter(x => x.id !== 'r-owner');
+r = await run(S, 'apply');
+t('no owner rule: our 5 written, Singapore challenge included', r.code === 0 && S.rulesets.http_request_firewall_custom.length === 5 && S.rulesets.http_request_firewall_custom.some(x => x.ref === 'af_sg_bots' && x.action === 'managed_challenge' && !('optional' in x)), JSON.stringify(S.rulesets.http_request_firewall_custom.map(x => [x.ref, x.action])));
+S.writes = [];
+r = await run(S, 'apply');
+t('no owner rule: a second apply writes nothing', r.code === 0 && S.writes.length === 0, S.writes.join(', '));
+S.rulesets.http_request_firewall_custom.unshift({ id: 'r-owner', version: '1', ref: 'owner1', description: "Owner's own rule", action: 'managed_challenge', expression: '(ip.src.country eq "T1")', enabled: true, last_updated: 'x' });
+S.rulesets.http_request_firewall_custom.push({ id: 'r-owner2', version: '1', ref: 'owner2', description: "Owner's second rule", action: 'block', expression: '(ip.src eq 192.0.2.1)', enabled: true, last_updated: 'x' });
+r = await run(S, 'apply');
+t('two owner rules: the optional rule goes, 4 required ones stay', r.code === 0 && S.rulesets.http_request_firewall_custom.filter(x => x.description.startsWith('AF:')).length === 4 && S.rulesets.http_request_firewall_custom.length === 6 - 1, JSON.stringify(S.rulesets.http_request_firewall_custom.map(x => x.ref)) + '\n' + r.out);
+S.rulesets.http_request_firewall_custom = S.rulesets.http_request_firewall_custom.filter(x => x.id !== 'r-owner2');
 
 // 4. a missing permission is named and the audit carries on
 S.deny.add('GET /zones/z1/settings/rocket_loader');

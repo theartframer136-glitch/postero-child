@@ -88,6 +88,13 @@ const RULES = {
         ` and (any(http.request.headers["sec-fetch-dest"][*] eq "document")` +
         ` or (not any(http.request.headers["sec-fetch-dest"][*] eq "image") and http.referer ne ""` +
         ` and not starts_with(http.referer, "https://${DOMAIN}/") and not starts_with(http.referer, "https://${WWW}/"))))` },
+    // Handover, 13 Oct: 14,269 of 17,516 GA4 "users" in 90 days were desktop
+    // visitors from Singapore, arriving direct on one category page. A
+    // managed challenge is invisible to a real browser and stops the script.
+    // Optional: the Free plan allows 5 custom rules in all, so when the owner
+    // keeps rules of their own this one is the first left out.
+    { ref: 'af_sg_bots', description: 'AF: bot traffic from Singapore on the living-room category (GA4, 13 Oct)', action: 'managed_challenge', optional: true,
+      expression: `(ip.src.country eq "SG" and starts_with(${p}, "/product-category/home-decor-by-space/living-room-decor/"))` },
   ],
   http_ratelimit: [
     { ref: 'af_rl_login', description: 'AF: login and sign-up pages, 10 requests per 10 s per address', action: 'block',
@@ -111,6 +118,9 @@ const RULES = {
   ],
 };
 const FREE_MANAGED = '77454fe2d30c4220b5701f6fdfb893ba';
+const CUSTOM_RULE_CAP = 5; // Free plan: custom rules in all, ours and the owner's together
+// The rule as Cloudflare should hold it (our bookkeeping fields removed).
+const toRule = (w) => { const o = { enabled: true, ...w }; delete o.optional; return o; };
 
 /* ── API ────────────────────────────────────────────────────────────── */
 
@@ -195,7 +205,7 @@ const within = (want, have) => {
   if (want && typeof want === 'object') return !!have && typeof have === 'object' && Object.keys(want).every(k => within(want[k], have[k]));
   return false;
 };
-const same = (have, want) => have.enabled !== false && within({ ...want }, have);
+const same = (have, want) => { const w = { ...want }; delete w.optional; return have.enabled !== false && within(w, have); };
 const ours = (r) => String(r.description || '').startsWith('AF:') || String(r.ref || '').startsWith('af_');
 // A rule that is not ours goes back exactly as Cloudflare returned it,
 // without the fields Cloudflare sets itself.
@@ -271,11 +281,19 @@ async function doPhase(z, phase, want) {
   const have = (g.ok && g.result && g.result.rules) || [];
   const theirs = have.filter(r => !ours(r));
   const mine = have.filter(ours);
+  if (phase === 'http_request_firewall_custom' && theirs.length + want.length > CUSTOM_RULE_CAP) {
+    const room = Math.max(0, CUSTOM_RULE_CAP - theirs.length);
+    const keep = [], dropped = [];
+    for (const w of [...want].reverse()) (w.optional && keep.length + (want.length - dropped.length - keep.length - 1) >= room) ? dropped.push(w) : keep.push(w);
+    want = keep.reverse();
+    for (const w of dropped) info(`${phase}: left out, the Free plan allows ${CUSTOM_RULE_CAP} custom rules and ${theirs.length} are the owner's: ${w.description}`);
+    if (theirs.length + want.length > CUSTOM_RULE_CAP) { bad(`${phase}: ${theirs.length} rule(s) of the owner's leave room for only ${room} of ours; ${want.length} are needed`); return false; }
+  }
   const differs = want.length !== mine.length || want.some(w => { const m = mine.find(r => r.ref === w.ref); return !m || !same(m, w); });
   for (const w of want) { const m = mine.find(r => r.ref === w.ref); (m && same(m, w)) ? ok(`${phase}: ${w.description}`) : (WRITE ? info(`${phase}: ${w.description} — to be written`) : bad(`${phase}: ${w.description} — ${m ? 'differs' : 'missing'}`)); }
   if (theirs.length) info(`${phase}: ${theirs.length} rule(s) not ours, kept: ${theirs.map(r => r.description || r.ref || r.id).join(' | ')}`);
   if (!differs || !WRITE) return true;
-  const rules = [...theirs.map(asReturned), ...want.map(w => ({ enabled: true, ...w }))];
+  const rules = [...theirs.map(asReturned), ...want.map(toRule)];
   const u = await cf('PUT', `/zones/${z.id}/rulesets/phases/${phase}/entrypoint`, { rules });
   if (!u.ok) { bad(`${phase}: write refused: ${why(u)}`); return false; }
   say(`  set   ${phase}: ${want.length} rule(s) of ours written, ${theirs.length} kept`);
