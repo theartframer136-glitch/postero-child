@@ -21246,6 +21246,39 @@ function af_cart_delivery_note() {
     return $ship['short'];
 }
 
+/**
+ * The truck row in the box under the cart total. It repeated the delivery
+ * note printed just above it word for word, so a new guest read "Shipping
+ * cost shown at checkout" twice (purchase QA, 14 Oct). It now says the one
+ * thing that note does not: how long delivery takes.
+ */
+function af_cart_delivery_time() {
+    if (function_exists('WC') && WC()->cart && !WC()->cart->needs_shipping()) return af_cart_delivery_note();
+    return apply_filters('af_cart_delivery_time', 'Made to order and delivered across the USA in 7–14 days');
+}
+
+/**
+ * The payment methods this cart can actually use. af_payment_methods() lists
+ * every gateway switched on, so the cart promised "Cash App Pay" and "Square
+ * Gift Card" while checkout offered Zelle, Credit Card and Cash on delivery
+ * (purchase QA, 14 Oct). Checkout builds its list from the available
+ * gateways, so the cart now reads the same list.
+ */
+function af_cart_payment_copy() {
+    $names = array();
+    if (function_exists('WC') && WC()->payment_gateways) {
+        foreach (WC()->payment_gateways->get_available_payment_gateways() as $gw) {
+            $t = trim(wp_strip_all_tags((string) $gw->get_title()));
+            if ($t !== '') $names[] = $t;
+        }
+    }
+    $names = array_values(array_unique($names));
+    if (!$names) return af_payment_copy();
+    if (count($names) === 1) return $names[0];
+    $last = array_pop($names);
+    return implode(', ', $names) . ' & ' . $last;
+}
+
 // Below the total: what is NOT yet in that number, said plainly. A buyer who
 // cannot tell whether $80 is the final figure abandons the cart.
 add_action('woocommerce_cart_totals_after_order_total', function () {
@@ -21275,11 +21308,11 @@ add_action('woocommerce_after_cart_totals', function () {
 <div class="af-ct-extra">
   <div class="af-ct-row">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"></rect><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"></polygon><circle cx="5.5" cy="18.5" r="2.5"></circle><circle cx="18.5" cy="18.5" r="2.5"></circle></svg>
-    <span><?php echo esc_html(af_cart_delivery_note()); ?></span>
+    <span><?php echo esc_html(af_cart_delivery_time()); ?></span>
   </div>
   <div class="af-ct-row">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-    <span>Secure SSL checkout &mdash; <?php echo esc_html(af_payment_copy()); ?></span>
+    <span>Secure SSL checkout &mdash; <?php echo esc_html(af_cart_payment_copy()); ?></span>
   </div>
   <div class="af-ct-row">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
