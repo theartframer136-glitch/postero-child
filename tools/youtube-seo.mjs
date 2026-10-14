@@ -123,6 +123,10 @@ function latestBackup() {
 }
 
 /* ── diff ─────────────────────────────────────────────────────────────── */
+// YouTube hands tags back alphabetically, whatever order they were sent in,
+// so tags compare as a set. Measured 14 Oct: an ordered comparison showed
+// 21 false "changes" after every video had been written correctly.
+const sortedTags = (tags) => (tags || []).map((t) => t.trim().toLowerCase()).sort().join(' | ');
 function show(label, before, after) {
   if (before === after) return false;
   console.log(`\n--- ${label}`);
@@ -144,7 +148,7 @@ function diff(cur) {
     console.log(`\n[${id}]`);
     if (show('title', c.snippet.title, v.title)) n++;
     if (show('description', c.snippet.description, composeDescription(v))) n++;
-    if (show('tags', (c.snippet.tags || []).join(' | '), composeTags(v).join(' | '))) n++;
+    if (show('tags', sortedTags(c.snippet.tags), sortedTags(composeTags(v)))) n++;
   }
   console.log('\n=== PLAYLISTS');
   for (const p of plan.playlists) {
@@ -164,6 +168,7 @@ function diff(cur) {
 
 /* ── apply ────────────────────────────────────────────────────────────── */
 async function apply(cur) {
+  const failures = [];
   const b = cur.channel.brandingSettings && cur.channel.brandingSettings.channel || {};
   if (!only) {
     if (cur.channel.snippet.description !== plan.channel.description || (b.keywords || '') !== plan.channel.keywords || (b.country || '') !== plan.channel.country) {
@@ -175,9 +180,18 @@ async function apply(cur) {
     if (only && !only.includes(id)) continue;
     const c = cur.videos[id]; if (!c) continue;
     const desc = composeDescription(v); const tags = composeTags(v);
-    if (c.snippet.title === v.title && c.snippet.description === desc && (c.snippet.tags || []).join('\u0000') === tags.join('\u0000')) continue;
-    await call('PUT', '/videos?part=snippet', { id, snippet: { ...c.snippet, title: v.title, description: desc, tags, categoryId: c.snippet.categoryId, defaultLanguage: c.snippet.defaultLanguage || 'en', defaultAudioLanguage: c.snippet.defaultAudioLanguage || 'en-US' } });
-    console.log(`video ${id}: updated`);
+    if (c.snippet.title === v.title && c.snippet.description === desc && sortedTags(c.snippet.tags) === sortedTags(tags)) continue;
+    try {
+      await call('PUT', '/videos?part=snippet', { id, snippet: { ...c.snippet, title: v.title, description: desc, tags, categoryId: c.snippet.categoryId, defaultLanguage: c.snippet.defaultLanguage || 'en', defaultAudioLanguage: c.snippet.defaultAudioLanguage || 'en-US' } });
+      console.log(`video ${id}: updated`);
+    } catch (e) {
+      // Measured 14 Oct: YouTube answered "Precondition check failed" for one
+      // video's title (a Studio-side title test or lock) while taking its
+      // description and tags. One refusal must not stop the other videos
+      // or the playlists; it is reported at the end instead.
+      failures.push(`video ${id}: ${mask(e.message)}`);
+      console.log(`video ${id}: REFUSED (${mask(e.message)}), continuing`);
+    }
   }
   if (!only) {
     for (const p of plan.playlists) {
@@ -190,11 +204,14 @@ async function apply(cur) {
       }
       for (const vid of wanted) {
         if (target.videos.includes(vid)) continue;
-        await call('POST', '/playlistItems?part=snippet', { snippet: { playlistId: target.id, resourceId: { kind: 'youtube#video', videoId: vid } } });
-        console.log(`playlist "${p.existing || p.title}": added ${vid}`);
+        try {
+          await call('POST', '/playlistItems?part=snippet', { snippet: { playlistId: target.id, resourceId: { kind: 'youtube#video', videoId: vid } } });
+          console.log(`playlist "${p.existing || p.title}": added ${vid}`);
+        } catch (e) { failures.push(`playlist "${p.existing || p.title}" + ${vid}: ${mask(e.message)}`); }
       }
     }
   }
+  return failures;
 }
 
 async function restore(file) {
@@ -226,8 +243,14 @@ async function restore(file) {
       console.log(`using backup ${bk}`);
       const cur = await readCurrent();
       if (diff(cur) === 0) { console.log('nothing to apply'); return; }
-      await apply(cur);
-      console.log('done. Re-run "diff" to confirm 0 changes remain.');
+      const failures = await apply(cur);
+      if (failures.length) {
+        console.log(`\ndone with ${failures.length} refusal(s):\n  ` + failures.join('\n  '));
+        console.log('Everything else was written. Re-run "diff" to see what remains.');
+        process.exitCode = 2;
+      } else {
+        console.log('done. Re-run "diff" to confirm 0 changes remain.');
+      }
     } else if (mode === 'restore') {
       const file = rest[0]; if (!file) die('restore needs the backup file path');
       await restore(file);
