@@ -15,6 +15,10 @@
 if (!defined('ABSPATH')) exit;
 if (class_exists('NNR_HFCM')) return;
 
+// inc/analytics.php sends the shop's ecommerce events to this same tag when
+// no ID is saved in its own setting, so page views are not counted twice.
+define('AF_HFCM_GA4_ID', 'G-F3PB80TT6Y');
+
 add_action('wp_head', function () {
     if (is_feed()) return;
     echo "<!-- HFCM by 99 Robots - Snippet # 1: Google Analytics -->\n"
