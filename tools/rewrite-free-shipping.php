@@ -42,6 +42,11 @@ $map = array(
     'Free delivery: Delaware, Pennsylvania, Maryland, New Jersey & nearby areas.'
         => ucfirst($short) . '.',
     'Free shipping options across our delivery areas' => 'Shipping throughout the USA',
+    // found still live on 14 Oct 2026 by tools/diag-free-shipping-list.php
+    'free delivery across Delaware, Pennsylvania, Maryland, New Jersey and nearby areas'
+        => 'shipping throughout the United States',
+    'Free Shipping Available!' => 'Shipping Across the USA!',
+    'Free Delivery In:'        => 'Fast Delivery To:',
     'Free USA Shipping' => $label,
     'Free Delivery'     => 'Shipping Throughout the USA',
     'Free Shipping'     => $label,
@@ -57,6 +62,15 @@ function af_rw_apply($text, $map, &$hits) {
         $text = str_replace($from, $to, $text);
         $hits += $n;
     }
+    // Last resort for any capitalisation the map does not list ("FREE
+    // SHIPPING", "Free shipping"): the shop never ships free, so no form of
+    // the claim may stay. Keeps the original's case style.
+    $text = preg_replace_callback('/\bfree\s+(?:usa\s+)?(shipping|delivery)\b/i', function ($m) use (&$hits) {
+        $hits++;
+        if (strtoupper($m[0]) === $m[0]) return 'SHIPPING ACROSS THE USA';
+        if (ctype_upper($m[0][0]))       return 'Shipping Across the USA';
+        return 'shipping across the USA';
+    }, $text);
     return $text === $before ? null : $text;   // null = nothing to do
 }
 
