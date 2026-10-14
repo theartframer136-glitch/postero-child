@@ -120,13 +120,13 @@ $cat_map = array(
         'i' => 'Gallery-quality prints with rich, true-to-life color — finished in the size and frame your wall calls for.',
     ),
     'digital-canvas-prints' => array(
-        't' => 'Digital Canvas Prints & Wall Art | The Art Framer',
-        'd' => 'Digital canvas prints across spiritual, abstract and nature themes — archival quality, eco-friendly inks and USA-wide delivery.',
+        't' => 'Indian Canvas Wall Art & Spiritual Paintings | The Art Framer',
+        'd' => 'Explore Hindu deity, Vastu and Indian art canvas prints: Krishna, Ganesha, Balaji, Buddha, Pichwai and more. Ready to hang and shipped across the USA.',
         'i' => 'Digital canvas prints across spiritual, abstract and nature themes — archival inks, multiple sizes, ready to hang.',
     ),
     'buddha' => array(
-        't' => 'Buddha Canvas Wall Art & Spiritual Prints | The Art Framer',
-        'd' => 'Serene Buddha canvas wall art for meditation rooms, yoga studios and calm living spaces. Premium archival prints, multiple sizes — USA shipping.',
+        't' => 'Buddha Canvas Wall Art & Paintings for Living Room',
+        'd' => 'Calm, framed Buddha wall art for living rooms, bedrooms and meditation spaces. Large canvas prints, ready to hang, shipped across the USA.',
         'i' => 'Bring calm home with Buddha canvas art — serene, gallery-quality prints for meditation corners, yoga spaces and living rooms.',
     ),
     'abstract-art' => array(
@@ -162,8 +162,8 @@ $cat_map = array(
         'i' => 'Sleek aluminum frames for a clean, modern gallery look — light, durable and cut to your size.',
     ),
     'diy-floating-frames' => array(
-        't' => 'DIY Floating Frames for Canvas | The Art Framer',
-        'd' => 'Easy DIY floating frame kits that give stretched canvas a premium gallery finish. Custom sizes, simple assembly, shipped across the USA.',
+        't' => 'Canvas Floating Frames | Floater Frame Kits for Canvas',
+        'd' => 'DIY floating frames for stretched canvas in black, gold, silver and natural wood. Easy to assemble, many sizes, shipped across the USA.',
         'i' => 'Give stretched canvas a premium gallery finish — easy-assembly floating frame kits in custom sizes.',
     ),
     'frame-colors' => array(
@@ -177,20 +177,24 @@ $cat_map = array(
     // lead with the term a shopper types ("7 horses painting", "lord shiva
     // painting"), descriptions say where the piece hangs and that it ships
     // across the USA, and intros are short indexable copy above the grid.
-    // Nothing here says free shipping.
+    // Nothing here says free shipping. Seven of these categories are also
+    // in tools/apply-seo-titles-2026-10.php (owner-approved copy, runs after
+    // this script on deploy); their title and description here are that
+    // script's exact text, so the two never disagree. The intro is this
+    // script's alone.
     'hindu-deities' => array(
         't' => 'Hindu God Paintings for Home & Pooja Room | Canvas Art',
-        'd' => 'Canvas paintings of Ganesha, Lakshmi, Shiva, Durga, Ram, Hanuman and more for the living room and pooja room. Floating frames, ready to hang, shipped across the USA.',
+        'd' => 'Canvas paintings of Ganesha, Lakshmi, Shiva, Durga, Ram and Krishna for your home mandir and walls. Ready to hang, many sizes, shipped across the USA.',
         'i' => 'Hindu god paintings for Indian homes in the USA: Ganesha, Lakshmi, Shiva, Durga, Hanuman, Ram and more on museum-grade canvas with a floating frame, ready to hang in the living room or pooja room.',
     ),
     'radha-krishna' => array(
         't' => 'Radha Krishna Painting for Home | Canvas Wall Art USA',
-        'd' => 'Radha Krishna canvas paintings for the living room, bedroom and pooja room. Museum-grade canvas, floating frames, ready to hang, shipped across the USA.',
+        'd' => 'Shop Radha Krishna canvas paintings for your living room, bedroom or pooja room. Vibrant, ready-to-hang wall art shipped across the USA. A loved Diwali gift.',
         'i' => 'Radha Krishna paintings on canvas for the living room, bedroom and pooja room: divine love in rich color, finished with a floating frame and shipped ready to hang anywhere in the USA. A favorite wedding, anniversary and Diwali gift.',
     ),
     'lakshmi-ganesha' => array(
         't' => 'Lakshmi Ganesh Painting for Diwali | Canvas Wall Art',
-        'd' => 'Lakshmi Ganesh canvas paintings for the pooja room, entrance and Diwali gifting. Floating frames, ready to hang, shipped across the USA.',
+        'd' => 'Welcome prosperity this Diwali with Lakshmi Ganesh canvas wall art for your pooja room or entrance. Ready to hang and shipped across the USA. Order early.',
         'i' => 'Lakshmi Ganesh paintings for prosperity and new beginnings: the Diwali and Griha Pravesh classic for the pooja room or entrance, on museum-grade canvas with a floating frame, shipped across the USA.',
     ),
     'seven-horses' => array(
@@ -235,7 +239,7 @@ $cat_map = array(
     ),
     'pichwai-art' => array(
         't' => 'Pichwai Painting Canvas Prints | Shrinathji Wall Art',
-        'd' => 'Traditional Pichwai art of Shrinathji, cows and lotus on premium canvas for the living room and pooja room. Ready to hang, shipped across the USA.',
+        'd' => 'Traditional Pichwai art of Shrinathji, cows and lotus on premium canvas. Bring Indian heritage to your home. Ready to hang, shipped across the USA.',
         'i' => 'Pichwai paintings of Shrinathji, cows and lotus ponds reproduced on museum-grade canvas for the living room or pooja room, shipped across the USA.',
     ),
     'indian-culture' => array(
