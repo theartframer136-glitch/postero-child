@@ -760,6 +760,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/seo-improvements.php --allow-root 2>&1" \
             || true
 
+          echo "Applying search titles for the top 10 pages (Oct 2026)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/apply-seo-titles-2026-10.php --allow-root 2>&1" \
+            || true
+
           echo "Fixing missing product featured images..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
