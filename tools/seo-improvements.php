@@ -71,11 +71,23 @@ if ($front_id) {
 
 $shop_id = function_exists('wc_get_page_id') ? (int) wc_get_page_id('shop') : 0;
 if ($shop_id > 0) {
-    $t = 'Shop Canvas Prints, Wall Art & Picture Frames | The Art Framer';
-    $d = 'Browse the full Art Framer collection — canvas prints, personalized portraits, frames and studio accessories. Made to order, delivered anywhere in the USA.';
-    $generic_title = function ($cur) { return stripos(trim($cur), 'shop') === 0 && mb_strlen(trim($cur)) < 30; };
-    if ($set_meta($shop_id, 'rank_math_title', $t, $generic_title)) $log('shop page: title set');
-    if ($set_meta($shop_id, 'rank_math_description', $d))           $log('shop page: description set');
+    $t = 'Shop Hindu God Paintings, Vastu Art & Canvas Prints | The Art Framer';
+    $d = 'Browse every canvas: Radha Krishna, Ganesha, Shiva, Balaji, 7 horses Vastu paintings, Buddha, abstract and more. Floating frames, ready to hang, shipped across the USA.';
+    // Replace an empty, generic, or this-script's-own earlier value; a
+    // hand-written title stays.
+    $ours_t = array('Shop Canvas Prints, Wall Art & Picture Frames | The Art Framer');
+    $ours_d = array('Browse the full Art Framer collection — canvas prints, personalized portraits, frames and studio accessories. Made to order, delivered anywhere in the USA.');
+    $generic_title = function ($cur) use ($ours_t) { return in_array($cur, $ours_t, true) || (stripos(trim($cur), 'shop') === 0 && mb_strlen(trim($cur)) < 30); };
+    $generic_desc  = function ($cur) use ($ours_d) { return in_array($cur, $ours_d, true); };
+    if ($set_meta($shop_id, 'rank_math_title', $t, $generic_title))      $log('shop page: title set');
+    if ($set_meta($shop_id, 'rank_math_description', $d, $generic_desc)) $log('shop page: description set');
+}
+
+// The blog hub (/blog/, inc/blog-hub.php) has a page of its own with no meta.
+$blog = get_page_by_path('blog');
+if ($blog) {
+    if ($set_meta($blog->ID, 'rank_math_title', 'Vastu & Hindu Wall Art Guides for US Homes | The Art Framer Blog')) $log('blog page: title set');
+    if ($set_meta($blog->ID, 'rank_math_description', 'Where to hang a 7 horses painting, how to set up a pooja room wall, which deity suits which room: guides for Indian families decorating homes in the USA.')) $log('blog page: description set');
 }
 
 // ── 3. Key pages / posts — description only, never overwrite ────────
@@ -159,30 +171,205 @@ $cat_map = array(
         'd' => 'Pick the perfect frame color — black, gold, rose gold, silver and more, matched to your art and your room.',
         'i' => 'Black, gold, rose gold, silver and more — find the frame color that ties the room together.',
     ),
+
+    // ── USA-market pass (Oct 2026): the devotional and Vastu categories ──
+    // The shop's real audience is the Indian community in the USA. Titles
+    // lead with the term a shopper types ("7 horses painting", "lord shiva
+    // painting"), descriptions say where the piece hangs and that it ships
+    // across the USA, and intros are short indexable copy above the grid.
+    // Nothing here says free shipping.
+    'hindu-deities' => array(
+        't' => 'Hindu God Paintings for Home & Pooja Room | Canvas Art',
+        'd' => 'Canvas paintings of Ganesha, Lakshmi, Shiva, Durga, Ram, Hanuman and more for the living room and pooja room. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Hindu god paintings for Indian homes in the USA: Ganesha, Lakshmi, Shiva, Durga, Hanuman, Ram and more on museum-grade canvas with a floating frame, ready to hang in the living room or pooja room.',
+    ),
+    'radha-krishna' => array(
+        't' => 'Radha Krishna Painting for Home | Canvas Wall Art USA',
+        'd' => 'Radha Krishna canvas paintings for the living room, bedroom and pooja room. Museum-grade canvas, floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Radha Krishna paintings on canvas for the living room, bedroom and pooja room: divine love in rich color, finished with a floating frame and shipped ready to hang anywhere in the USA. A favorite wedding, anniversary and Diwali gift.',
+    ),
+    'lakshmi-ganesha' => array(
+        't' => 'Lakshmi Ganesh Painting for Diwali | Canvas Wall Art',
+        'd' => 'Lakshmi Ganesh canvas paintings for the pooja room, entrance and Diwali gifting. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Lakshmi Ganesh paintings for prosperity and new beginnings: the Diwali and Griha Pravesh classic for the pooja room or entrance, on museum-grade canvas with a floating frame, shipped across the USA.',
+    ),
+    'seven-horses' => array(
+        't' => '7 Horses Painting as per Vastu for Living Room & Office',
+        'd' => 'Seven running horses paintings as per Vastu for the living room and office: success, speed and prosperity on floating-frame canvas, shipped across the USA.',
+        'i' => '7 running horses paintings as per Vastu Shastra: hang one on the south or east wall of the living room or office, horses running into the room, for success and forward momentum. Museum-grade canvas, floating frame, shipped across the USA.',
+    ),
+    'vaastu-art' => array(
+        't' => 'Vastu Paintings for Living Room & Office | Canvas Art',
+        'd' => 'Vastu paintings for the home and office: seven horses, sacred symbols and prosperity art on canvas. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Vastu paintings chosen for direction and meaning: seven running horses, sacred symbols and prosperity art for the living room, office and entrance, on museum-grade canvas shipped across the USA.',
+    ),
+    'lord-shiva' => array(
+        't' => 'Lord Shiva Painting for Home | Mahadev Canvas Wall Art',
+        'd' => 'Lord Shiva and Mahadev canvas paintings for the living room, meditation space and pooja room. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Lord Shiva paintings on canvas: meditating Mahadev, Nataraja and Shiva family for the living room, meditation corner or pooja room. Floating frame, ready to hang, shipped across the USA.',
+    ),
+    'tirupati-balaji' => array(
+        't' => 'Tirupati Balaji Painting for Home | Venkateswara Wall Art',
+        'd' => 'Tirupati Balaji and Lord Venkateswara canvas paintings for the pooja room and living room. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Tirupati Balaji paintings on canvas for the pooja room and living room: Lord Venkateswara in temple gold, with a floating frame, shipped ready to hang anywhere in the USA.',
+    ),
+    'lord-rama' => array(
+        't' => 'Lord Ram Painting for Home & Pooja Room | Canvas Wall Art',
+        'd' => 'Shri Ram and Ram Darbar canvas paintings for the pooja room and living room. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Lord Ram paintings on canvas, including Ram Darbar, for the pooja room, entrance and living room. Museum-grade canvas, floating frame, shipped across the USA.',
+    ),
+    'buddha' => array(
+        't' => 'Buddha Canvas Wall Art & Paintings for Living Room',
+        'd' => 'Serene Buddha canvas paintings for living rooms, meditation rooms and yoga spaces. Museum-grade canvas, floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Buddha paintings on canvas for a calm living room, meditation corner or yoga space, finished with a floating frame and shipped ready to hang anywhere in the USA.',
+    ),
+    'sikh-art' => array(
+        't' => 'Sikh Art & Guru Nanak Paintings | Canvas Wall Art USA',
+        'd' => 'Sikh canvas art for the home: Guru Nanak Dev Ji, the Golden Temple and Ik Onkar. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Sikh art on canvas: Guru Nanak Dev Ji, Harmandir Sahib and sacred symbols for the living room or prayer room, with a floating frame, shipped across the USA.',
+    ),
+    'swaminarayan' => array(
+        't' => 'Swaminarayan Painting for Home | Canvas Wall Art USA',
+        'd' => 'Swaminarayan canvas paintings for the pooja room and living room. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Swaminarayan paintings on museum-grade canvas for the home mandir and living room, with a floating frame, shipped across the USA.',
+    ),
+    'pichwai-art' => array(
+        't' => 'Pichwai Painting Canvas Prints | Shrinathji Wall Art',
+        'd' => 'Traditional Pichwai art of Shrinathji, cows and lotus on premium canvas for the living room and pooja room. Ready to hang, shipped across the USA.',
+        'i' => 'Pichwai paintings of Shrinathji, cows and lotus ponds reproduced on museum-grade canvas for the living room or pooja room, shipped across the USA.',
+    ),
+    'indian-culture' => array(
+        't' => 'Indian Culture Wall Art | Classical Dance & Heritage Canvas',
+        'd' => 'Indian culture on canvas: classical dancers, Tanjore and folk art for the living room and entrance. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Indian heritage on canvas: Bharatanatyam and Kathak dancers, Tanjore-style art and folk motifs for the living room, dining room or entrance. Floating frame, shipped across the USA.',
+    ),
+    'christian-art' => array(
+        't' => 'Christian Wall Art & Religious Canvas Paintings | USA',
+        'd' => 'Christian canvas paintings of Jesus, Mary and the saints for the living room and prayer corner. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Christian art on canvas for the home: Jesus, the Madonna and the saints, finished with a floating frame and shipped ready to hang across the USA.',
+    ),
+    'wildlife' => array(
+        't' => 'Wildlife Canvas Wall Art – Horses, Tigers, Peacocks | USA',
+        'd' => 'Wildlife canvas art for the living room and office: horses, tigers, elephants, peacocks and birds. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Wildlife on canvas: horses, tigers, elephants and peacocks for the living room, office or kids room. Museum-grade canvas, floating frame, shipped across the USA.',
+    ),
+    'landscapes' => array(
+        't' => 'Landscape Canvas Wall Art for Living Room | The Art Framer',
+        'd' => 'Landscape canvas paintings: mountains, lakes, forests and Indian scenery for the living room and bedroom. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Landscape art on canvas: mountains, lakes, forests and Indian scenery for the living room or bedroom, with a floating frame, shipped across the USA.',
+    ),
+    'still-life' => array(
+        't' => 'Still Life Canvas Wall Art – Florals & Vases | The Art Framer',
+        'd' => 'Still life canvas art: florals, vases and botanicals for the dining room, kitchen and living room. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Still life on canvas: florals, vases and botanicals for the dining room, kitchen or living room, with a floating frame, shipped across the USA.',
+    ),
+    'living-room' => array(
+        't' => 'Living Room Wall Art – Large Canvas Paintings | USA',
+        'd' => 'Large canvas wall art for the living room: statement pieces in 3×4 ft and bigger. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Living room wall art sized for the sofa wall: statement canvases from 2×3 ft to 3×5 ft with a floating frame, shipped ready to hang across the USA.',
+    ),
+    'kids-room' => array(
+        't' => 'Kids Room Wall Art – Canvas Paintings for Children | USA',
+        'd' => 'Kids room canvas art: animals, fairy tales, space and playful scenes. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Kids room wall art on canvas: animals, fairy tales and playful scenes with a floating frame, shipped ready to hang across the USA.',
+    ),
+    'travel-art' => array(
+        't' => 'Travel Canvas Wall Art – Cities & Journeys | The Art Framer',
+        'd' => 'Travel-themed canvas art of cities, coasts and journeys for the living room and office. Floating frames, ready to hang, shipped across the USA.',
+        'i' => 'Travel art on canvas: cities, coasts and journeys for the living room or office, with a floating frame, shipped across the USA.',
+    ),
+    'deals-discounts' => array(
+        't' => 'Canvas Wall Art Deals & Discounts | The Art Framer',
+        'd' => 'Current deals on canvas wall art: Hindu god paintings, Vastu art, abstract and more at reduced prices. Floating frames, ready to hang, shipped across the USA.',
+        'i' => '',
+    ),
+    'corporate-printing' => array(
+        't' => 'Corporate Printing – Banners, Signage & Certificates | USA',
+        'd' => 'Corporate printing for US businesses: banners, backdrops, stands, signage and certificates, made to order and shipped across the USA.',
+        'i' => '',
+    ),
+    'home-decor-by-space' => array(
+        't' => 'Wall Art by Room – Living Room, Kids Room, Café | USA',
+        'd' => 'Canvas wall art chosen by room: living room, kids room and café decor. Floating frames, ready to hang, shipped across the USA.',
+        'i' => '',
+    ),
+    'gifts' => array(
+        't' => 'Wall Art Gifts – Diwali, Housewarming & Wedding | USA',
+        'd' => 'Canvas wall art gifts for Diwali, Griha Pravesh and weddings: deity paintings, Vastu art and personalized canvases, shipped across the USA.',
+        'i' => '',
+    ),
 );
 
 $terms = get_terms(array('taxonomy' => 'product_cat', 'hide_empty' => false));
 $n_title = $n_desc = $n_intro = 0;
+// A value this script's own template wrote on an earlier run. It may be
+// replaced by hand-written copy from $cat_map; anything else is the owner's.
+$is_template = function ($cur, $term) {
+    $name = $term->name;
+    return $cur === sprintf('%s – Shop Online | The Art Framer', $name)
+        || $cur === sprintf('Shop the %s collection at The Art Framer — premium quality, made to order and shipped fast across the USA.', $name)
+        || $cur === sprintf('%s – Shop Online | The Art Framer', html_entity_decode($name, ENT_QUOTES | ENT_HTML5))
+        || $cur === sprintf('Shop the %s collection at The Art Framer — premium quality, made to order and shipped fast across the USA.', html_entity_decode($name, ENT_QUOTES | ENT_HTML5));
+};
+// Earlier hand-written values of this script, superseded by the USA pass.
+$superseded = array(
+    'Hindu God Paintings for Home & Pooja Room | Canvas Art',
+    'Radha Krishna Painting for Home | Canvas Wall Art USA',
+    'Lakshmi Ganesh Painting for Diwali | Canvas Wall Art',
+    'Buddha Canvas Wall Art & Spiritual Prints | The Art Framer',
+    'Buddha Canvas Wall Art & Paintings for Living Room',
+    'Pichwai Painting Canvas Prints | Shrinathji Wall Art',
+    'Serene Buddha canvas wall art for meditation rooms, yoga studios and calm living spaces. Premium archival prints, multiple sizes — USA shipping.',
+    'Bring calm home with Buddha canvas art — serene, gallery-quality prints for meditation corners, yoga spaces and living rooms.',
+);
 if (!is_wp_error($terms)) {
     foreach ($terms as $term) {
         $m = isset($cat_map[$term->slug]) ? $cat_map[$term->slug] : null;
         $t = $m ? $m['t'] : sprintf('%s – Shop Online | The Art Framer', $term->name);
         $d = $m ? $m['d'] : sprintf('Shop the %s collection at The Art Framer — premium quality, made to order and shipped fast across the USA.', $term->name);
 
-        if ((string) get_term_meta($term->term_id, 'rank_math_title', true) === '') {
+        $cur_t = (string) get_term_meta($term->term_id, 'rank_math_title', true);
+        if ($cur_t !== $t && ($cur_t === '' || ($m && ($is_template($cur_t, $term) || in_array($cur_t, $superseded, true))))) {
             update_term_meta($term->term_id, 'rank_math_title', $t);
             $n_title++;
         }
-        if ((string) get_term_meta($term->term_id, 'rank_math_description', true) === '') {
+        $cur_d = (string) get_term_meta($term->term_id, 'rank_math_description', true);
+        if ($cur_d !== $d && ($cur_d === '' || ($m && ($is_template($cur_d, $term) || in_array($cur_d, $superseded, true))))) {
             update_term_meta($term->term_id, 'rank_math_description', $d);
             $n_desc++;
         }
-        if ($m && $m['i'] !== '' && trim((string) $term->description) === '') {
+        $cur_i = trim(wp_strip_all_tags((string) $term->description));
+        if ($m && $m['i'] !== '' && ($cur_i === '' || in_array($cur_i, $superseded, true))) {
             wp_update_term($term->term_id, 'product_cat', array('description' => $m['i']));
             $n_intro++;
         }
     }
     $log("categories: $n_title titles, $n_desc descriptions, $n_intro intros set");
+}
+
+// ── 4b. Rank Math settings the category pages need ──────────────────
+// Measured 14 Oct (tools/diag-seo-inventory.php): product categories are
+// OUT of the sitemap (tax_product_cat_sitemap off) while 97 exist and the
+// deity ones are the pages that should rank; and empty categories (frame
+// sizes, colors, placeholders) are indexable thin pages. Categories go
+// into the sitemap and empty ones become noindex; both are Rank Math's
+// own switches, flipped once and left alone if the owner changes them.
+if (get_option('af_seo_rm_settings_rev') !== '1') {
+    update_option('af_seo_rm_settings_rev', '1', true);
+    $sm = get_option('rank-math-options-sitemap', array());
+    if (is_array($sm) && (!isset($sm['tax_product_cat_sitemap']) || $sm['tax_product_cat_sitemap'] !== 'on')) {
+        $sm['tax_product_cat_sitemap'] = 'on';
+        update_option('rank-math-options-sitemap', $sm);
+        $log('rank math: product categories added to the sitemap');
+    }
+    $tt = get_option('rank-math-options-titles', array());
+    $changed = false;
+    if (is_array($tt)) {
+        if (!isset($tt['noindex_empty_taxonomies']) || $tt['noindex_empty_taxonomies'] !== 'on') { $tt['noindex_empty_taxonomies'] = 'on'; $changed = true; }
+        if (isset($tt['knowledgegraph_name']) && $tt['knowledgegraph_name'] === 'The ART FRAMER') { $tt['knowledgegraph_name'] = 'The Art Framer'; $changed = true; }
+        if ($changed) { update_option('rank-math-options-titles', $tt); $log('rank math: empty categories noindexed, organization name cased'); }
+    }
+    if (is_callable(array('RankMath\\Sitemap\\Cache', 'invalidate_storage'))) { \RankMath\Sitemap\Cache::invalidate_storage(); }
 }
 
 // ── 5. Backfill missing image alt text ──────────────────────────────

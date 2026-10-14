@@ -13587,6 +13587,7 @@ add_filter('rank_math/json_ld', function ($data, $jsonld) {
             $data[$key]['sameAs'] = array(
                 'https://www.facebook.com/theartframer',
                 'https://www.instagram.com/theartframer136/',
+                'https://www.youtube.com/@theartframer136',
             );
         }
         if (empty($node['areaServed'])) {
