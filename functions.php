@@ -23774,3 +23774,34 @@ add_action('pre_get_posts', function ($q) {
     if (is_admin() || !$q->is_main_query() || !$q->is_search()) return;
     $q->set('posts_per_page', 12);
 }, 21);
+
+// ─────────────────────────────────────────────────────────────
+// Elementor's settings object on pages Elementor did not set up itself.
+// About, Blog, Try on Wall and Frame the Moment threw "elementorFrontendConfig
+// is not defined" (purchase QA smoke pass, 14 Oct): elementor-frontend.js was
+// on the page, pulled in as a dependency of the ported add-ons (Header Footer
+// Elementor, Essential Addons), but Elementor never ran its own
+// enqueue_scripts() there, which is what prints elementorFrontendConfig
+// beside the script. The only data printed with it was EAELImageMaskingConfig,
+// so the script started without its settings and Elementor's widgets did not
+// initialise.
+//
+// Just before footer scripts print, when elementor-frontend is queued and its
+// settings are not, let Elementor do what it does on its own pages. A page
+// where Elementor already printed them is left alone.
+// ─────────────────────────────────────────────────────────────
+add_action('wp_print_footer_scripts', function () {
+    if (!class_exists('\Elementor\Plugin') || empty(\Elementor\Plugin::$instance->frontend)
+        || !is_callable(array(\Elementor\Plugin::$instance->frontend, 'enqueue_scripts'))) return;
+    $s = wp_scripts();
+    if (!wp_script_is('elementor-frontend', 'enqueued') || wp_script_is('elementor-frontend', 'done')) return;
+    $data   = (string) $s->get_data('elementor-frontend', 'data');
+    $before = $s->get_data('elementor-frontend', 'before');
+    $before = is_array($before) ? implode("\n", array_filter($before, 'is_string')) : (string) $before;
+    if (strpos($data . $before, 'elementorFrontendConfig') !== false) return;
+    try {
+        \Elementor\Plugin::$instance->frontend->enqueue_scripts();
+    } catch (\Throwable $e) {
+        // leave the page as it was rather than break the footer
+    }
+}, 1);
