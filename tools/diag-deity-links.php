@@ -45,4 +45,15 @@ foreach ($pages as $label => $url) {
     $free = preg_match('/free\s+(usa?\s+)?(shipping|delivery)/i', strip_tags($body));
     echo sprintf("  %-26s HTTP %s | nav row: %s | deity links in page: %d | says free shipping: %s\n", $label, wp_remote_retrieve_response_code($r), $has ? 'YES' : 'no', $n, $free ? 'YES' : 'no');
 }
+
+echo "\n=== SITEMAP (fetched from this server)\n";
+foreach (array('sitemap_index.xml', 'product_cat-sitemap.xml') as $sm) {
+    $r = wp_remote_get(home_url('/' . $sm), array('timeout' => 40, 'sslverify' => false, 'headers' => array('User-Agent' => 'af-diag/1.0')));
+    if (is_wp_error($r)) { echo "  $sm: ERROR " . $r->get_error_message() . "\n"; continue; }
+    $b = (string) wp_remote_retrieve_body($r);
+    echo sprintf("  %-24s HTTP %s | %d bytes | product_cat-sitemap listed: %s | lakshmi-ganesha listed: %s | seven-horses listed: %s\n", $sm, wp_remote_retrieve_response_code($r), strlen($b),
+        strpos($b, 'product_cat-sitemap') !== false ? 'yes' : 'no', strpos($b, '/lakshmi-ganesha/') !== false ? 'yes' : 'no', strpos($b, '/seven-horses/') !== false ? 'yes' : 'no');
+}
+$sm = get_option('rank-math-options-sitemap', array());
+echo "  rank math tax_product_cat_sitemap: " . (isset($sm['tax_product_cat_sitemap']) ? $sm['tax_product_cat_sitemap'] : '(unset)') . "\n";
 echo "\n=== DONE ===\n";
