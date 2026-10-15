@@ -4676,8 +4676,8 @@ add_action('wp_footer', function() { ?>
       label: AF_SHIP.label,
       icon: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20 8h-3V4H3c-1.1 0-2 .9-2 2v11h2c0 1.66 1.34 3 3 3s3-1.34 3-3h6c0 1.66 1.34 3 3 3s3-1.34 3-3h2v-5l-3-4zM6 18.5c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm13.5-9l1.96 2.5H17V9.5h2.5zm-1.5 9c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5z"/></svg>',
       title: '🚚 ' + AF_SHIP.label,
-      // the old copy promised free shipping here and then listed free delivery
-      // in four states only — one claim, stated once, from af_shipping_copy()
+      // the old copy made a no-cost shipping promise here and then limited it to
+      // four states in the popup — one claim, stated once, from af_shipping_copy()
       body: '<p>' + AF_SHIP.blurb + '</p><h4>📦 How it travels:</h4><ul><li>Smaller unframed prints ship rolled in a protective tube</li><li>Framed and larger pieces ship flat in a corner-protected crate</li><li>Oversize handling, where it applies, is shown at checkout</li></ul><p>Everything is made to order, so allow a few days for production before it ships. Tracking follows by email.</p>'
     },
     {
@@ -12423,7 +12423,7 @@ function af_contact_admin_page() {
 
 // ── 12g. [af_delivery_checker] — ZIP-based delivery estimate ──
 // Interactive widget for the Shipping & Delivery page: tells the visitor
-// whether their ZIP gets free delivery and computes an estimated arrival
+// whether their ZIP is in the fast-delivery area and computes an estimated arrival
 // window (production 3–5 business days + delivery 5–10 business days).
 add_shortcode('af_delivery_checker', function() {
     ob_start(); ?>
@@ -12451,7 +12451,7 @@ add_shortcode('af_delivery_checker', function() {
       out   = document.getElementById('afZipResult');
   if (!input) return;
 
-  // Free-delivery states by ZIP3 prefix: DE 197-199, PA 150-196, MD 206-219, NJ 070-089
+  // Nearby states by ZIP3 prefix: DE 197-199, PA 150-196, MD 206-219, NJ 070-089
   function zone(z3){
     if (z3 >= 197 && z3 <= 199) return 'Delaware';
     if (z3 >= 150 && z3 <= 196) return 'Pennsylvania';
@@ -12482,7 +12482,7 @@ add_shortcode('af_delivery_checker', function() {
         late  = addBiz(addBiz(today, 5), 10);  // slowest: 5d production + 10d transit
     var arrival = 'Order today and your artwork should arrive between <b>' +
                   fmt(early) + '</b> and <b>' + fmt(late) + '</b>.';
-    // The policy, not a guess. This checker promised "Free delivery" only to
+    // The policy, not a guess. This checker promised no-cost delivery only to
     // ZIPs whose prefix it recognised and "calculated at checkout" to the rest
     // — the same split claim that made the trust badge and its own popup
     // contradict each other before. Both branches now read AF_SHIP, so if
@@ -12490,14 +12490,17 @@ add_shortcode('af_delivery_checker', function() {
     // it ever stops being free neither branch can go on saying otherwise.
     if (st) {
       out.className = 'taf-shipcheck-result ok';
+      // No literal "free" in this file: the free branch takes its words from
+      // AF_SHIP too, so the page source never carries the claim while the
+      // policy says otherwise (the diag counts script text as well).
       out.innerHTML = (AF_SHIP.free
-            ? '<b>🎁 Free delivery to ' + m[1] + ' (' + st + ')!</b><br>'
+            ? '<b>🎁 ' + AF_SHIP.short + ' — delivering to ' + m[1] + ' (' + st + ').</b><br>'
             : '<b>🚚 We deliver to ' + m[1] + ' (' + st + ').</b> ' + AF_SHIP.short + '<br>')
         + arrival;
     } else if (AF_SHIP.free) {
       // A valid US ZIP whose prefix this table does not carry. Free is free.
       out.className = 'taf-shipcheck-result ok';
-      out.innerHTML = '<b>🎁 Free delivery to ' + m[1] + '.</b><br>' + arrival;
+      out.innerHTML = '<b>🎁 ' + AF_SHIP.short + ' — delivering to ' + m[1] + '.</b><br>' + arrival;
     } else {
       out.className = 'taf-shipcheck-result mid';
       out.innerHTML = '<b>🚚 We deliver to ' + m[1] + '.</b> Shipping is calculated at checkout based on artwork size.<br>' +
@@ -14024,7 +14027,7 @@ function af_gc_admin_page() {
 // ── 16a. Flag-based country selector (spec §3 Layer 1) ───────
 function af_countries() {
     return array(
-        // the note follows af_shipping_copy(); it used to promise free delivery
+        // the note follows af_shipping_copy(); it used to promise no-cost delivery
         // in four states, which is what the currency strip showed on the shop,
         // cart, about, FAQ and every product page
         'US' => array('flag' => '🇺🇸', 'name' => 'United States', 'cur' => 'USD',
