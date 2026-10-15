@@ -31,9 +31,33 @@ add_action('admin_init', function() {
     }, 'general');
 });
 
+/**
+ * Add to cart from a product page is a form post and a page load, not
+ * WooCommerce's AJAX add, so the 'added_to_cart' listener below never saw
+ * it. Note the item in the session; the next page reports it. AJAX adds are
+ * left to the listener so nothing is reported twice.
+ */
+add_action('woocommerce_add_to_cart', function ($key, $product_id, $qty, $variation_id = 0) {
+    if (wp_doing_ajax() || !empty($_REQUEST['wc-ajax']) || !function_exists('WC') || !WC()->session) return;
+    $p = wc_get_product($variation_id ?: $product_id);
+    if (!$p) return;
+    $pending = (array) WC()->session->get('af_ga4_atc', array());
+    $pending[] = array('item_id' => $p->get_sku() ?: (string) $p->get_id(), 'item_name' => $p->get_name(),
+                       'quantity' => (int) $qty, 'price' => (float) wc_get_price_to_display($p));
+    WC()->session->set('af_ga4_atc', array_slice($pending, -10));
+}, 20, 4);
+
 /** The events this page should report, decided server-side. */
 function af_ga4_page_events() {
     $ev = array();
+    if (function_exists('WC') && WC()->session && ($atc = WC()->session->get('af_ga4_atc'))) {
+        WC()->session->set('af_ga4_atc', null);
+        // this page now carries one visitor's cart event: never serve it from cache
+        do_action('litespeed_control_set_nocache', 'ga4 add_to_cart event');
+        $value = 0;
+        foreach ((array) $atc as $i) $value += $i['price'] * $i['quantity'];
+        $ev[] = array('add_to_cart', array('currency' => get_woocommerce_currency(), 'value' => round($value, 2), 'items' => array_values((array) $atc)));
+    }
     if (function_exists('is_product') && is_product()) {
         $p = af_wc_product();
         if ($p) $ev[] = array('view_item', array(
@@ -112,3 +136,22 @@ add_action('wp_head', function() {
            . '</script>' . "\n";
     }
 }, 4);
+
+/**
+ * No ID saved in the theme's setting, but the GA4 tag carried over from Header
+ * Footer Code Manager (inc/ports/hfcm.php) is on every page: send the same
+ * ecommerce events to that tag. GA4 had page views and no shop events at all
+ * in 90 days (checked 14 Oct) because the block above stays silent without
+ * an ID. Printed after the tag (wp_head 10) and, like it, outside the consent
+ * gate, so it measures the same visitors the tag already does.
+ */
+add_action('wp_head', function () {
+    if (af_ga4_id() !== '' || af_gtm_id() !== '' || !defined('AF_HFCM_GA4_ID') || is_feed()) return;
+    $events = af_ga4_page_events();
+    echo '<script>if(typeof gtag==="function"){';
+    foreach ($events as $e) {
+        echo "gtag('event'," . wp_json_encode($e[0]) . ',' . wp_json_encode($e[1]) . ');';
+    }
+    echo "if(window.jQuery){jQuery(document.body).on('added_to_cart',function(){gtag('event','add_to_cart',{currency:" . wp_json_encode(get_woocommerce_currency()) . "});});}"
+       . '}</script>' . "\n";
+}, 11);
