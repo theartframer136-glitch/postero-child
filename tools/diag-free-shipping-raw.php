@@ -60,4 +60,9 @@ $rows = $wpdb->get_results("SELECT post_id, meta_key, LENGTH(meta_value) AS len 
       AND (LOWER(meta_value) LIKE '%free shipping%' OR LOWER(meta_value) LIKE '%free delivery%') LIMIT 40");
 foreach ($rows as $r) echo "  #{$r->post_id} {$r->meta_key} ({$r->len} bytes)\n";
 echo "  rows: " . count($rows) . "\n";
+
+echo "\n=== SEO DRAFT POSTS (tools/create-seo-posts.php)\n";
+$drafts = $wpdb->get_results("SELECT p.ID, p.post_status, p.post_name FROM {$wpdb->posts} p JOIN {$wpdb->postmeta} m ON m.post_id=p.ID AND m.meta_key='_af_seo_post' WHERE p.post_type='post' ORDER BY p.ID");
+foreach ($drafts as $d) echo "  #{$d->ID} {$d->post_status} /{$d->post_name}/\n";
+echo "  count: " . count($drafts) . "\n";
 echo "\n=== DONE ===\n";
