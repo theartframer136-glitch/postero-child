@@ -286,3 +286,50 @@ a quick one. Home page H1: removed at the owner's request on 16 Jul 2026;
 a visually hidden H1 ("Hindu God Paintings & Vastu Canvas Wall Art for
 Indian Homes in the USA") would help and is a one-line change if the owner
 agrees.
+
+## 10. Live check after batch 2 (15 Oct, 10:10 to 10:30 UTC)
+
+Verified on the server after the deploy finished at 10:05 UTC:
+
+| Check | Result |
+|---|---|
+| "Shop by Deity & Vastu" row | Present on the category, shop, front and product pages fetched from the server |
+| Category sitemap | `product_cat-sitemap.xml` listed in the index; lakshmi-ganesha and seven-horses in it |
+| Eight articles | Posts 35024 to 35031 exist as drafts with Rank Math meta |
+| Free-shipping wording | **36 places still said it** (down from 49) |
+
+The free-shipping count did not reach zero because the deploy itself put the
+words back. `tools/restore-shipping-copy.php`, added on 5 Oct after the
+rewrite's `wp_update_post()` save let kses strip builder markup, ran later
+in the same deploy and restored every page and Elementor design from its
+pre-rewrite backup. Three deploy scripts (`tools/restyle-pages.php`,
+`tools/about-real-content.php`, the FAQ templates) also carried the sentences
+and re-applied them. PR 403 removes the restore step, makes the rewrite write
+straight to the table, matches the sentences as Elementor stores them (JSON
+escapes, `&amp;`, `<b>` wrappers, all capitalisations), clears Elementor's
+render caches and fixes the wording in the scripts. Expected after merge: 0.
+
+URL Inspection on the 13 deity and Vastu categories at 10:14 UTC (read-only,
+from the SB session), before Google had recrawled anything from the deploy
+(latest crawl 11 Oct):
+
+| Category | Coverage | Last crawl | In sitemap (per Google) |
+|---|---|---|---|
+| hindu-deities | Submitted and indexed | 9 Oct | yes |
+| radha-krishna | Submitted and indexed | 11 Oct | no |
+| lakshmi-ganesha | Discovered, currently not indexed | never | yes |
+| lord-shiva | Crawled, currently not indexed | 9 Jul | no |
+| seven-horses | Submitted and indexed | 6 Oct | yes |
+| vaastu-art | Submitted and indexed | 3 Oct | yes |
+| tirupati-balaji | Discovered, currently not indexed | never | yes |
+| lord-rama | Submitted and indexed | 3 Oct | yes |
+| buddha | Submitted and indexed | 28 Sep | yes |
+| sikh-art | Submitted and indexed | 23 Sep | yes |
+| swaminarayan | Crawled, currently not indexed | 24 May | no |
+| pichwai-art | Submitted and indexed | 2 Oct | yes |
+| indian-culture | Submitted and indexed | 4 Oct | no |
+
+Nine of thirteen are indexed; canonicals match on all thirteen. The four
+that are not need the owner to press Request Indexing in Search Console
+(Lakshmi Ganesha, Tirupati Balaji, Lord Shiva, Swaminarayan); the new link
+row gives Google a reason to keep them once it recrawls.
