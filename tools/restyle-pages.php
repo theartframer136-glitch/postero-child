@@ -8,7 +8,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$STYLE_VERSION = '15.0';
+$STYLE_VERSION = '16.0'; // 16.0: no free-shipping/free-delivery wording (owner: the shop does not ship free)
 $EMAIL = 'theartframer136@gmail.com';
 $PHONE = '+1 (610) 470-7280';
 $TEL   = 'tel:+16104707280';
@@ -122,7 +122,7 @@ $bodies['legal-imprint'] = <<<HTML
     <div>
       <h2 style="margin-top:0;">About Our Studio</h2>
       <p>The Art Framer is an independent print-and-frame studio. Every canvas sold on this website is printed, stretched, and framed in-house on museum-grade materials — which is also why we take full and direct responsibility for the quality of what we ship.</p>
-      <p>We serve customers across the United States with free delivery in Delaware, Pennsylvania, Maryland, New Jersey and nearby areas.</p>
+      <p>We serve customers across the United States. Shipping cost is shown at checkout before you pay.</p>
     </div>
   </div>
 
@@ -266,7 +266,7 @@ $bodies['customize-your-picture'] = <<<HTML
       <li>Digital mockup approval before printing — no surprises</li>
       <li>Colour-corrected by hand for vibrant, accurate prints</li>
       <li>Secure packaging — no broken canvas, guaranteed</li>
-      <li>Free shipping options across our delivery areas</li>
+      <li>Shipping throughout the USA — cost shown at checkout</li>
     </ul>
   </div>
 
@@ -906,7 +906,7 @@ $bodies['contact'] = <<<HTML
       <div class="taf-grid" style="grid-template-columns:1fr;">
         <div class="taf-card"><span class="taf-ico">📞</span><h3>Call or WhatsApp</h3><p><a href="{$TEL}">{$PHONE}</a><br>Quickest for sizing advice and order changes.</p></div>
         <div class="taf-card"><span class="taf-ico">✉️</span><h3>Email</h3><p><a href="mailto:{$EMAIL}">{$EMAIL}</a><br>Best for custom photo orders and attachments.</p></div>
-        <div class="taf-card"><span class="taf-ico">📍</span><h3>Studio &amp; Delivery</h3><p>Operating from Delaware, USA.<br>Free delivery: Delaware, Pennsylvania, Maryland, New Jersey &amp; nearby areas. Nationwide shipping available.</p></div>
+        <div class="taf-card"><span class="taf-ico">📍</span><h3>Studio &amp; Delivery</h3><p>Operating from Delaware, USA.<br>Shipping to every state in the USA — cost shown at checkout.</p></div>
         <div class="taf-card"><span class="taf-ico">🕘</span><h3>Response Times</h3><p>Calls &amp; WhatsApp — right away in business hours.<br>Form &amp; email — within 24 hours.</p></div>
       </div>
     </div>
@@ -914,7 +914,7 @@ $bodies['contact'] = <<<HTML
 
   <div class="taf-section">
     <h2 class="taf-h2">Find Us</h2>
-    <p class="taf-lead">Our studio operates from Delaware, USA — with free delivery across Delaware, Pennsylvania, Maryland, New Jersey and nearby areas.</p>
+    <p class="taf-lead">Our studio operates from Delaware, USA, and ships to every state in the country.</p>
     <div class="taf-map">
       <iframe src="https://www.google.com/maps?q=The%20Art%20Framer%2C%20Delaware%2C%20USA&z=9&output=embed"
               loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"
@@ -961,14 +961,14 @@ $bodies['shipping-delivery'] = <<<HTML
   <div class="taf-section">
     <h2 class="taf-h2">Shipping Charges</h2>
     <div class="taf-grid">
-      <div class="taf-card"><span class="taf-ico">🎁</span><h3>Free Delivery</h3><p>Free across major serviceable US locations — including <b>Delaware, Pennsylvania, Maryland, New Jersey</b> and nearby areas.</p></div>
-      <div class="taf-card"><span class="taf-ico">🇺🇸</span><h3>Rest of the USA</h3><p>Nationwide shipping available everywhere else — charges are calculated automatically at checkout based on size and destination.</p></div>
+      <div class="taf-card"><span class="taf-ico">🇺🇸</span><h3>Shipping Throughout the USA</h3><p>We ship to every state — the shipping cost for your size and destination is shown at checkout before you pay.</p></div>
+      <div class="taf-card"><span class="taf-ico">📦</span><h3>How It's Calculated</h3><p>Charges are calculated automatically at checkout from the artwork's size, framing and destination — nothing is added afterwards.</p></div>
       <div class="taf-card"><span class="taf-ico">🌎</span><h3>Outside the US?</h3><p>International orders are handled case by case — <a href="/contact/">contact us</a> with your address and we'll quote shipping before you pay anything.</p></div>
     </div>
   </div>
 
   <div class="taf-section">
-    <h2 class="taf-h2">Will It Be Free For You?</h2>
+    <h2 class="taf-h2">Check Delivery to Your ZIP</h2>
     [af_delivery_checker]
   </div>
 

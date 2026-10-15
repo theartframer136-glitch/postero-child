@@ -1229,15 +1229,13 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/verify-marketplace.php --allow-root 2>&1" \
             || true
 
-          # The rewrite is OFF. It saved with wp_update_post(), and WP-CLI has no
-          # logged-in user, so WordPress ran the content through kses and
-          # stripped builder markup along with the wording. Restore runs in its
-          # place; the rewrite stays out until it writes without those filters.
-          echo "Restoring pages the free-shipping rewrite altered..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/restore-shipping-copy.php --allow-root 2>&1" \
-            || true
+          # tools/restore-shipping-copy.php used to run here, undoing the
+          # free-shipping rewrite because the rewrite once saved through
+          # wp_update_post() and kses stripped builder markup. The rewrite now
+          # writes straight to the table (see the step "Clear free-shipping
+          # wording held in the database"), so the restore is manual-only; it
+          # ran here on every deploy and put the free-shipping claims back
+          # minutes after the rewrite removed them.
 
           echo "Reading stretcher bar and frame kit prices in full (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \

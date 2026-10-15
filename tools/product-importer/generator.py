@@ -22,7 +22,6 @@ import textwrap
 PHONE = "+1 (610) 470-7280"
 EMAIL = "theartframer136@gmail.com"
 LOCATION = "Delaware, USA"
-FREE_DELIVERY = "Delaware, Pennsylvania, Maryland, New Jersey & nearby areas"
 
 FRAME_OPTIONS = ["Floating Frame", "Fibre Frame", "Aluminium Frame",
                  "Golden Frame", "Rose Gold Frame", "Silver Frame",
@@ -239,8 +238,8 @@ _FAQ = f"""\
 <p class="afaq-answer">Yes — message us on WhatsApp at {PHONE} for quick assistance with product selection and orders.</p></details>
 <details class="afaq-item"><summary class="afaq-question">Where is your canvas printing business located?</summary>
 <p class="afaq-answer">We operate from {LOCATION} and deliver across multiple locations.</p></details>
-<details class="afaq-item"><summary class="afaq-question">Which areas are eligible for free delivery?</summary>
-<p class="afaq-answer">Free delivery is available in {FREE_DELIVERY}.</p></details>"""
+<details class="afaq-item"><summary class="afaq-question">Which areas do you ship to?</summary>
+<p class="afaq-answer">We ship to every state in the USA. Shipping cost is shown at checkout before you pay.</p></details>"""
 
 
 # --------------------------------------------------------------------------- #

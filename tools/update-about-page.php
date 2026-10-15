@@ -33,7 +33,7 @@ $html = <<<HTML
     <div class="taf-hero-badges">
       <span>🎨 Archival Quality</span>
       <span>🖼️ Try On Your Wall</span>
-      <span>🚚 Free USA Shipping</span>
+      <span>🚚 Ships Across the USA</span>
       <span>🔒 Secure Checkout</span>
     </div>
   </section>
@@ -41,7 +41,7 @@ $html = <<<HTML
   <section class="taf-stats">
     <div class="taf-stat"><strong>100+</strong><span>Curated Artworks</span></div>
     <div class="taf-stat"><strong>4</strong><span>Frame Options</span></div>
-    <div class="taf-stat"><strong>USA</strong><span>Free Shipping</span></div>
+    <div class="taf-stat"><strong>USA</strong><span>Nationwide Shipping</span></div>
     <div class="taf-stat"><strong>5★</strong><span>Crafted Quality</span></div>
   </section>
 
@@ -67,7 +67,7 @@ $html = <<<HTML
     <ul class="taf-list">
       <li><strong>Archival Quality</strong> — fade-resistant inks and premium canvas built to last.</li>
       <li><strong>Try It On Your Wall</strong> — preview any artwork on your own wall before you buy.</li>
-      <li><strong>Free USA Shipping</strong> — on premium canvas art to serviceable locations.</li>
+      <li><strong>Shipping Throughout the USA</strong> — cost shown at checkout before you pay.</li>
       <li><strong>Custom Sizes &amp; Frames</strong> — tailored to your space and style.</li>
       <li><strong>Secure Checkout</strong> — encrypted, PCI-compliant payments.</li>
       <li><strong>Dedicated Support</strong> — real help by phone, email, and WhatsApp.</li>
