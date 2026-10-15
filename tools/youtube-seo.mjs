@@ -46,7 +46,11 @@ const CHANNEL = plan.channel_id;
 
 function composeDescription(v) {
   const hashtags = (v.hashtags || []).join(' ');
-  return [v.hook, plan.header, v.body, plan.footer, hashtags].filter(Boolean).join('\n\n');
+  // Each video links to its own category page (its shop_url), not the home
+  // page: the deity category pages are what need visitors and links.
+  const shopUrl = v.shop_url || plan.site;
+  const header = plan.header.replace('{shop_url}', v.shop_label ? `${shopUrl} (${v.shop_label})` : shopUrl);
+  return [v.hook, header, v.body, plan.footer, hashtags].filter(Boolean).join('\n\n');
 }
 function composeTags(v) {
   const seen = new Set(); const out = [];
