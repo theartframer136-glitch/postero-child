@@ -243,3 +243,46 @@ server-rendered "Shop by Deity & Vastu" row of links to all 13 devotional and
 Vastu categories on the shop page, every category page, every product page,
 the front page and every post. The sitemap was resubmitted the same day and
 indexing requested for the eight main deity categories by hand.
+
+## 9. Batch 2 (15 Oct) and what only the owner can do
+
+Shipped in PR 402: the deity link row on every selling page; every
+remaining free-shipping claim (49 places) rewritten on every deploy; eight
+articles created as drafts with Rank Math meta; FAQPage schema for any post
+ending in a "Frequently asked questions" section (`inc/post-faq-schema.php`);
+YouTube descriptions linking to each video's category page.
+
+Left for the owner, with the text ready to use:
+
+**Publish the eight drafts.** Posts → Drafts, read, press Publish. Add a
+featured image from the matching collection to each.
+
+**Reviews, for star ratings in Google.** Email past customers once:
+
+> Subject: How does your canvas look on the wall?
+>
+> Namaste {first name}, it has been a few weeks since your {product name}
+> arrived from The Art Framer. Would you take one minute to leave a review
+> and, if you like, a photo of it on your wall? It helps other Indian
+> families in the USA choose with confidence. {review link}. Thank you,
+> The Art Framer, Hockessin, Delaware.
+
+**Backlinks and mentions**, in order of effort:
+1. List the studio on Google Business Profile with the Hockessin address
+   and the same name, address and phone as the site footer.
+2. Pinterest: one board per deity category, each pin linking to the
+   category page; the eight articles pinned with their cover images.
+3. Temple and community newsletters in Delaware, Pennsylvania, New Jersey
+   and Maryland: offer a Diwali gift guide article in exchange for a link.
+4. Indian-American lifestyle blogs and Diwali gift roundups: send the
+   Diwali gift guide and a sample image.
+
+**Two decisions.** Product names: the customer-facing names repeat
+"Canvas Wall Art 3×4 Feet – Floating Frame – Premium Digital Canvas Print –
+Living Room & Home Spiritual Wall Décor"; a shorter pattern ("Radha Krishna
+Moonlit Melody Canvas Wall Art") is better for Google and for the cart, but
+other tooling reads sizes from these names, so it is a planned change, not
+a quick one. Home page H1: removed at the owner's request on 16 Jul 2026;
+a visually hidden H1 ("Hindu God Paintings & Vastu Canvas Wall Art for
+Indian Homes in the USA") would help and is a one-line change if the owner
+agrees.
