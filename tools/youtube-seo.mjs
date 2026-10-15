@@ -46,7 +46,11 @@ const CHANNEL = plan.channel_id;
 
 function composeDescription(v) {
   const hashtags = (v.hashtags || []).join(' ');
-  return [v.hook, plan.header, v.body, plan.footer, hashtags].filter(Boolean).join('\n\n');
+  // Each video links to its own category page (its shop_url), not the home
+  // page: the deity category pages are what need visitors and links.
+  const shopUrl = v.shop_url || plan.site;
+  const header = plan.header.replace('{shop_url}', v.shop_label ? `${shopUrl} (${v.shop_label})` : shopUrl);
+  return [v.hook, header, v.body, plan.footer, hashtags].filter(Boolean).join('\n\n');
 }
 function composeTags(v) {
   const seen = new Set(); const out = [];
@@ -167,6 +171,18 @@ function diff(cur) {
 }
 
 /* ── apply ────────────────────────────────────────────────────────────── */
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// A 409 on a playlist insert is YouTube not being ready yet; one retry
+// after a short wait is enough (measured 14 Oct). Anything else is real.
+async function insertItem(playlistId, videoId) {
+  const body = { snippet: { playlistId, resourceId: { kind: 'youtube#video', videoId } } };
+  try { return await call('POST', '/playlistItems?part=snippet', body); }
+  catch (e) {
+    if (!/HTTP 409/.test(e.message)) throw e;
+    await sleep(3000);
+    return call('POST', '/playlistItems?part=snippet', body);
+  }
+}
 async function apply(cur) {
   const failures = [];
   const b = cur.channel.brandingSettings && cur.channel.brandingSettings.channel || {};
@@ -201,11 +217,16 @@ async function apply(cur) {
         if (p.existing) { console.log(`playlist "${p.existing}" not found, skipped`); continue; }
         const made = await call('POST', '/playlists?part=snippet,status', { snippet: { title: p.title, description: p.description, defaultLanguage: 'en' }, status: { privacyStatus: 'public' } });
         target = { id: made.id, videos: [] }; console.log(`playlist "${p.title}": created`);
+        // Measured 14 Oct: the first insert into a playlist created a moment
+        // earlier answered HTTP 409 "The operation was aborted" in all four
+        // new playlists, and every later insert succeeded. Give YouTube a
+        // moment before the first item.
+        await sleep(3000);
       }
       for (const vid of wanted) {
         if (target.videos.includes(vid)) continue;
         try {
-          await call('POST', '/playlistItems?part=snippet', { snippet: { playlistId: target.id, resourceId: { kind: 'youtube#video', videoId: vid } } });
+          await insertItem(target.id, vid);
           console.log(`playlist "${p.existing || p.title}": added ${vid}`);
         } catch (e) { failures.push(`playlist "${p.existing || p.title}" + ${vid}: ${mask(e.message)}`); }
       }

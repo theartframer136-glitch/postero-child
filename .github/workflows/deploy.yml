@@ -601,8 +601,11 @@ jobs:
       # The script's own output goes into the run SUMMARY, not only the log.
       # The person ticking this box is the shop's owner, and the answer they
       # want — how many pages changed — should not require opening a job log.
+      # Runs on EVERY deploy since 15 Oct 2026: the owner's rule is that nothing
+      # on the site may say free shipping, and tools/diag-free-shipping.php found
+      # 49 places still saying it while this step waited for a ticked box. The
+      # tool is idempotent and backs up every post it touches.
       - name: Clear free-shipping wording held in the database
-        if: inputs.clear_free_shipping
         env:
           H_USER: ${{ secrets.HOSTINGER_USERNAME }}
           H_HOST: ${{ secrets.HOSTINGER_HOST }}
@@ -764,6 +767,12 @@ jobs:
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/apply-seo-titles-2026-10.php --allow-root 2>&1" \
+            || true
+
+          echo "Creating the USA-market blog articles as drafts (Oct 2026)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/create-seo-posts.php --allow-root 2>&1" \
             || true
 
           echo "Fixing missing product featured images..."

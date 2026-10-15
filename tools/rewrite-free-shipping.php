@@ -26,6 +26,24 @@ $blurb = $copy['blurb'];
 // left = what the site says today, right = what it should say. Ordered longest
 // first so a broad phrase never eats a specific one.
 $map = array(
+    // Measured 15 Oct 2026 (tools/diag-free-shipping-phrases.php): the exact
+    // sentences still live after the first pass. Longest first.
+    'We offer free delivery across major cities and serviceable locations in the USA. Free delivery is available in cities such as Delaware, Pennsylvania, Maryland, New Jersey & nearby areas.'
+        => 'We ship to every state in the USA. ' . $blurb,
+    'We offer free delivery across major cities and serviceable locations in the USA. Free delivery is available in cities such as Delaware, Pennsylvania, Maryland, New Jersey &amp; nearby areas.'
+        => 'We ship to every state in the USA. ' . $blurb,
+    'We offer free delivery across major cities and serviceable locations in the USA. Free delivery is available in cities such as Delaware, Pennsylvania, Maryland, New Jersey \\u0026 nearby areas.'
+        => 'We ship to every state in the USA. ' . $blurb,
+    'Our studio operates from Delaware, USA — with free delivery across Delaware, Pennsylvania, Maryland, New Jersey and nearby areas.'
+        => 'Our studio operates from Delaware, USA, and ships to every state. ' . $blurb,
+    'We serve customers across the United States with free delivery in Delaware, Pennsylvania, Maryland, New Jersey and nearby areas.'
+        => 'We serve customers across the United States. ' . $blurb,
+    'Free USA Shipping — on premium canvas art to serviceable locations.'
+        => $label . ' — ' . $short . '.',
+    'Which areas are eligible for free delivery?' => 'Which areas do you ship to?',
+    'Free across major serviceable US locations'  => 'We ship to every state in the USA',
+    'Free Shipping Available!' => $label,
+    'Free Delivery In:'        => 'We Deliver In:',
     // product Elementor blocks and descriptions
     'Get free shipping over $65.' => $short . '.',
     'Get free shipping over $65'  => $short,
