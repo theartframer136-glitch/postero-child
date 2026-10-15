@@ -32,7 +32,7 @@ Order observed across the catalog:
 ### Reusable boilerplate (constant across products — do NOT regenerate per product)
 - FAQ accordion (~13 Q&As). Product-agnostic except subject noun.
 - Contact details: phone +1 (610) 470-7280, email theartframer136@gmail.com,
-  WhatsApp +1 (610) 470-7280, location Delaware, USA; free delivery DE/PA/MD/NJ.
+  WhatsApp +1 (610) 470-7280, location Delaware, USA; ships to every US state, cost shown at checkout (never "free delivery").
 - Care instructions block.
 - Spec table structure (values vary by product).
 
