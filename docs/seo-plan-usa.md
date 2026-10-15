@@ -225,3 +225,21 @@ fitness, fashion) and the demo post categories.
 4. Pull 16 months of Search Console queries from the SB session and give
    me the top 200 by impressions; I will adjust the keyword map and any
    title that the data contradicts.
+
+## 8. Found on 15 Oct: the deity categories were orphans
+
+URL Inspection in Search Console, the day after the titles went live:
+
+| Category | Verdict | Referring pages |
+|---|---|---|
+| seven-horses | URL is on Google | some |
+| lord-shiva | Crawled, currently not indexed | a faceted /shop/ filter URL and pichwai-art |
+| lakshmi-ganesha | URL is unknown to Google | none |
+
+The header's CATEGORIES menu lists the top level only and the sidebar hides
+the children behind a client-side "+", so most deity categories had no
+crawlable link anywhere on the site. `inc/deity-links.php` adds a
+server-rendered "Shop by Deity & Vastu" row of links to all 13 devotional and
+Vastu categories on the shop page, every category page, every product page,
+the front page and every post. The sitemap was resubmitted the same day and
+indexing requested for the eight main deity categories by hand.
