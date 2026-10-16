@@ -328,7 +328,7 @@ class="af-toggle-icon">
        class="af-panel-btn" 
        data-title="Try On Wall">🖼</a>
 
-    <a href="https://wa.me/918107236836" 
+    <a href="https://wa.me/<?php echo esc_attr(function_exists('af_studio_contact') ? af_studio_contact()['wa'] : '16104707280'); ?>" 
        target="_blank" 
        class="af-panel-btn" 
        data-title="WhatsApp">💬</a>
