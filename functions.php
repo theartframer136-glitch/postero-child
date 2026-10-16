@@ -16851,26 +16851,62 @@ add_action('wp_footer', function() {
 // Elementor product widgets don't fire the standard WooCommerce card hook, so
 // inject client-side. Runs on every front-end page; the query only executes on
 // a LiteSpeed cache-miss, and the JS no-ops where there are no product cards.
+/**
+ * The map of every product's art code used to be printed inline here: 60 KB
+ * of JSON in every page (the cart page was 950 KB of HTML, 16 Oct) and one
+ * query over all 374k postmeta rows on every uncached view. It now lives in
+ * uploads/af/art-codes.json, rebuilt when missing, older than six hours or
+ * when an art code changes, and the browser caches it. The script below is
+ * unchanged apart from loading the map before it runs.
+ */
+function af_art_code_map_file() {
+    try {
+        $up = wp_get_upload_dir();
+        $dir = $up['basedir'] . '/af'; $path = $dir . '/art-codes.json'; $url = $up['baseurl'] . '/af/art-codes.json';
+        $fresh = is_file($path) && filesize($path) > 20 && filemtime($path) > time() - 6 * HOUR_IN_SECONDS;
+        if (!$fresh) {
+            if (!wp_mkdir_p($dir)) return null;
+            global $wpdb;
+            $rows = $wpdb->get_results(
+              "SELECT p.ID, p.post_name, m.meta_value
+                 FROM {$wpdb->postmeta} m
+                 JOIN {$wpdb->posts} p ON p.ID = m.post_id
+                WHERE m.meta_key='_taf_art_code' AND m.meta_value<>''
+                  AND p.post_status='publish' AND p.post_password=''");
+            $map = array(); $slugmap = array();
+            foreach ((array) $rows as $r) {
+                $map[(string) $r->ID] = $r->meta_value;
+                if ($r->post_name) $slugmap[$r->post_name] = $r->meta_value;
+            }
+            if (!$map) return null;
+            $json = wp_json_encode(array('codes' => $map, 'slugs' => $slugmap));
+            if (!$json) return null;
+            $tmp = $path . '.' . getmypid() . '.tmp';
+            if (file_put_contents($tmp, $json) === false || !@rename($tmp, $path)) { @unlink($tmp); return null; }
+            if (!is_file($dir . '/index.html')) @file_put_contents($dir . '/index.html', '');
+        }
+        return array($path, $url, (int) @filemtime($path));
+    } catch (\Throwable $e) {
+        return null;
+    }
+}
+// an art code saved, changed or removed: the next page view rebuilds the file
+foreach (array('added_post_meta', 'updated_post_meta', 'deleted_post_meta') as $af_ac_hook) {
+    add_action($af_ac_hook, function ($mid, $pid, $key) {
+        if ($key !== '_taf_art_code') return;
+        $up = wp_get_upload_dir(); @unlink($up['basedir'] . '/af/art-codes.json');
+    }, 10, 3);
+}
+unset($af_ac_hook);
+
 add_action('wp_footer', function() {
   if (is_admin()) return;
-  global $wpdb;
-  $rows = $wpdb->get_results(
-    "SELECT p.ID, p.post_name, m.meta_value
-       FROM {$wpdb->postmeta} m
-       JOIN {$wpdb->posts} p ON p.ID = m.post_id
-      WHERE m.meta_key='_taf_art_code' AND m.meta_value<>''
-        AND p.post_status='publish' AND p.post_password=''");
-  if (!$rows) return;
-  $map = array(); $slugmap = array();
-  foreach ($rows as $r) {
-    $map[(string)$r->ID] = $r->meta_value;
-    if ($r->post_name) $slugmap[$r->post_name] = $r->meta_value;
-  }
+  $af_map = af_art_code_map_file();
+  if (!$af_map) return;
   ?>
 <script>
 (function(){
-  var CODES = <?php echo wp_json_encode($map); ?>;
-  var SLUGS = <?php echo wp_json_encode($slugmap); ?>;
+  var CODES = {}, SLUGS = {};
   function place(card, code){
     if (card.getAttribute('data-af-code')) return;
     // Dedupe at the visual-card level: if the nearest product container
@@ -16964,16 +17000,25 @@ add_action('wp_footer', function() {
     });
   }
   function run(){ inject(document); }
-  document.addEventListener('DOMContentLoaded', run);
-  window.addEventListener('load', run);
-  [400,1000,2200,4000].forEach(function(d){ setTimeout(run, d); });
-  // catch carousels / AJAX / lazy-loaded product cards
-  try {
-    var obs = new MutationObserver(function(muts){
-      for (var i=0;i<muts.length;i++){ if (muts[i].addedNodes && muts[i].addedNodes.length){ run(); break; } }
-    });
-    obs.observe(document.body, {childList:true, subtree:true});
-  } catch(e){}
+  function start(){
+    run();
+    document.addEventListener('DOMContentLoaded', run);
+    window.addEventListener('load', run);
+    [400,1000,2200,4000].forEach(function(d){ setTimeout(run, d); });
+    // catch carousels / AJAX / lazy-loaded product cards
+    try {
+      var obs = new MutationObserver(function(muts){
+        for (var i=0;i<muts.length;i++){ if (muts[i].addedNodes && muts[i].addedNodes.length){ run(); break; } }
+      });
+      obs.observe(document.body, {childList:true, subtree:true});
+    } catch(e){}
+  }
+  // the map is a cached file (see af_art_code_map_file), not 60 KB of inline JSON
+  if (!window.fetch) return;
+  fetch(<?php echo wp_json_encode($af_map[1] . '?v=' . $af_map[2]); ?>, {credentials:'omit'})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){ if (!j || !j.codes) return; CODES = j.codes; SLUGS = j.slugs || {}; start(); })
+    .catch(function(){});
 })();
 </script>
   <?php
@@ -23219,6 +23264,13 @@ function af_account_icon_selectors( $key ) {
 
 add_action( 'wp_footer', function () {
 	if ( is_admin() ) {
+		return;
+	}
+	// The icons mark the account dropdown and the My Account navigation, which
+	// only a signed-in visitor (or the account page itself) has. The 24 KB of
+	// inline SVG styles used to be printed for every guest page view as well
+	// (16 Oct page-weight profile).
+	if ( ! is_user_logged_in() && ! ( function_exists( 'is_account_page' ) && is_account_page() ) ) {
 		return;
 	}
 	$icons = af_account_icons();
