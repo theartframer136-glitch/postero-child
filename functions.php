@@ -12719,6 +12719,14 @@ function af_seo_robots_txt() {
         'Disallow: /*?*orderby=',
         'Disallow: /*?*query_type_',
         'Disallow: /*?*add-to-cart=',
+        // Every product card carries a wishlist link, so Googlebot was queueing
+        // ?add-to-wishlist= / ?add_to_wishlist= URLs (30 in the 16 Oct link
+        // crawl, 3.7-4.5s each, all 302 to /wishlist/) while the Lakshmi
+        // Ganesh category and /blog/ sat "Discovered - currently not indexed".
+        // The wishlist page is per-visitor and has nothing to rank.
+        'Disallow: /*?*add-to-wishlist=',
+        'Disallow: /*?*add_to_wishlist=',
+        'Disallow: /wishlist/',
         'Disallow: /*?*currency=',
         'Disallow: /*?*lang=',
         'Disallow: /*?*per_page=',
