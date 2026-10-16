@@ -297,6 +297,18 @@ function af_bot_reply_handler() {
 add_action('wp_ajax_af_bot_reply',        'af_bot_reply_handler');
 add_action('wp_ajax_nopriv_af_bot_reply', 'af_bot_reply_handler');
 
+// The chat is printed into cached pages, so the nonce it carries can be days
+// old; check_ajax_referer() then refused every question and the shopper read
+// "something went wrong" (QA smoke pass, 16 Oct: 6 of 6). The script asks
+// here for a current nonce once and retries, so the check itself stays.
+function af_bot_nonce_handler() {
+    nocache_headers();
+    do_action('litespeed_control_set_nocache', 'af_bot nonce');
+    wp_send_json_success(array('nonce' => wp_create_nonce('af_bot')));
+}
+add_action('wp_ajax_af_bot_nonce',        'af_bot_nonce_handler');
+add_action('wp_ajax_nopriv_af_bot_nonce', 'af_bot_nonce_handler');
+
 // ── admin: what people asked that the bot could not answer ───────────
 add_action('admin_menu', function() {
     add_submenu_page('woocommerce', 'Chatbot Questions', 'Chatbot Questions', 'manage_woocommerce', 'af-chatbot', function() {
@@ -492,12 +504,23 @@ add_action('wp_footer', function() {
         } else if (!on && t){ t.remove(); }
       }
 
+      function post(msg){
+        var body = new URLSearchParams();
+        body.set('action','af_bot_reply'); body.set('nonce', NONCE); body.set('msg', msg);
+        return fetch(AJAX, {method:'POST', credentials:'same-origin', body:body});
+      }
+      // a cached page can carry an expired nonce: fetch a current one, retry once
+      function freshNonce(){
+        var b = new URLSearchParams(); b.set('action','af_bot_nonce');
+        return fetch(AJAX, {method:'POST', credentials:'same-origin', body:b})
+          .then(function(r){ return r.json(); })
+          .then(function(j){ if (j && j.success && j.data && j.data.nonce) NONCE = j.data.nonce; });
+      }
       function ask(msg){
         bubble(msg, 'me');
         typing(true);
-        var body = new URLSearchParams();
-        body.set('action','af_bot_reply'); body.set('nonce', NONCE); body.set('msg', msg);
-        fetch(AJAX, {method:'POST', credentials:'same-origin', body:body})
+        post(msg)
+          .then(function(r){ return r.status === 403 ? freshNonce().then(function(){ return post(msg); }) : r; })
           .then(function(r){ return r.json(); })
           .then(function(j){
             // a beat of "typing" reads as considered rather than canned
