@@ -775,6 +775,18 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/create-seo-posts.php --allow-root 2>&1" \
             || true
 
+          echo "Publishing the USA-market articles with featured images (owner, 16 Oct)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/publish-seo-posts.php --allow-root 2>&1" \
+            || true
+
+          echo "Trashing the theme's 2023 demo blog posts..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/remove-demo-posts.php --allow-root 2>&1" \
+            || true
+
           echo "Fixing missing product featured images..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

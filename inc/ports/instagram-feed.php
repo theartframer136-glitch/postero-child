@@ -124,3 +124,124 @@ foreach (array('Automattic\Jetpack\Assets\Script_Data', 'Automattic\Jetpack\Asse
     if (!has_action('wp_loaded', array($af_qligg_c, 'register_assets'))) $af_qligg_c::configure();
 }
 unset($af_qligg_php, $af_qligg_fix_src, $af_qligg_snap, $af_qligg_c);
+
+/*
+ * ---- Smaller Instagram images ----------------------------------------------
+ *
+ * Measured 16 Oct 2026: the home page weighed 7.6 MB and one Instagram feed
+ * image was 4.4 MB of it. The Graph API hands the plugin each post's original
+ * file and offers no size parameter, and the feed is drawn in the browser from
+ * the plugin's REST response, so the only place to intervene is that response.
+ * Every image URL in it is swapped for a copy this site resized to at most
+ * 1080 px (JPEG, quality 80) and keeps under uploads/af-ig/. A copy is made
+ * the first time a URL is seen (at most four downloads per request, the rest
+ * queued for a cron run a minute later), then served from disk. The key is
+ * the CDN path without its signed query string, so a token refresh does not
+ * start the cache over. Video posters are shrunk the same way; videos are not
+ * touched. Anything that fails falls back to the original URL.
+ */
+function af_ig_cache_dir() {
+    $up = wp_get_upload_dir();
+    return array($up['basedir'] . '/af-ig', $up['baseurl'] . '/af-ig');
+}
+
+/** A smaller local copy of an Instagram CDN image, or the URL unchanged. */
+function af_ig_small_image($url, $force = false) {
+    static $budget = 4;
+    try {
+        if (!is_string($url) || $url === '') return $url;
+        $host = (string) parse_url($url, PHP_URL_HOST);
+        if ($host === '' || (stripos($host, 'cdninstagram.com') === false && stripos($host, 'fbcdn.net') === false)) return $url;
+        $path = (string) parse_url($url, PHP_URL_PATH);
+        if ($path === '' || !preg_match('/\.(jpe?g|png|webp|heic)$/i', $path)) return $url;
+        list($dir, $base) = af_ig_cache_dir();
+        $key  = md5($path) . '.jpg';
+        $file = $dir . '/' . $key;
+        if (is_file($file) && filesize($file) > 0) return $base . '/' . $key;
+        if (!$force) {
+            if ($budget <= 0) { af_ig_queue_warm($url); return $url; }
+            $budget--;
+        }
+        if (!wp_mkdir_p($dir)) return $url;
+        if (!is_file($dir . '/index.html')) @file_put_contents($dir . '/index.html', '');
+        if (!function_exists('download_url')) require_once ABSPATH . 'wp-admin/includes/file.php';
+        $tmp = download_url($url, 20);
+        if (is_wp_error($tmp)) return $url;
+        $ok = false;
+        $ed = wp_get_image_editor($tmp);
+        if (!is_wp_error($ed)) {
+            $ed->resize(1080, 1080, false);
+            $ed->set_quality(80);
+            $saved = $ed->save($file, 'image/jpeg');
+            if (!is_wp_error($saved) && !empty($saved['path'])) {
+                if ($saved['path'] !== $file) @rename($saved['path'], $file);
+                $ok = is_file($file) && filesize($file) > 0;
+            }
+        }
+        @unlink($tmp);
+        return $ok ? $base . '/' . $key : $url;
+    } catch (\Throwable $e) {
+        return $url;
+    }
+}
+
+/** Walk the plugin's items (and carousel children) and shrink every image URL. */
+function af_ig_shrink_items($items) {
+    if (!is_array($items)) return $items;
+    foreach ($items as &$item) {
+        if (!is_array($item)) continue;
+        if (isset($item['media']) && is_array($item['media'])) {
+            $type = isset($item['media']['type']) ? strtoupper((string) $item['media']['type']) : '';
+            if (!empty($item['media']['url']) && $type !== 'VIDEO') $item['media']['url'] = af_ig_small_image($item['media']['url']);
+            if (!empty($item['media']['thumbnail'])) $item['media']['thumbnail'] = af_ig_small_image($item['media']['thumbnail']);
+        }
+        if (!empty($item['children']) && is_array($item['children'])) $item['children'] = af_ig_shrink_items($item['children']);
+    }
+    unset($item);
+    return $items;
+}
+
+add_filter('rest_post_dispatch', function ($result, $server, $request) {
+    try {
+        if (!($result instanceof WP_REST_Response) || !($request instanceof WP_REST_Request)) return $result;
+        if (strpos((string) $request->get_route(), '/quadlayers/instagram/frontend/') === false) return $result;
+        $data = $result->get_data();
+        if (!is_array($data) || empty($data['data']) || !is_array($data['data'])) return $result;
+        $data['data'] = af_ig_shrink_items($data['data']);
+        $result->set_data($data);
+    } catch (\Throwable $e) {
+    }
+    return $result;
+}, 10, 3);
+
+/** URLs that missed the per-request budget: make their copies a minute later. */
+function af_ig_queue_warm($url) {
+    $q = get_transient('af_ig_warm_queue');
+    $q = is_array($q) ? $q : array();
+    if (in_array($url, $q, true) || count($q) >= 80) return;
+    $q[] = $url;
+    set_transient('af_ig_warm_queue', $q, HOUR_IN_SECONDS);
+    if (!wp_next_scheduled('af_ig_warm')) wp_schedule_single_event(time() + 60, 'af_ig_warm');
+}
+add_action('af_ig_warm', function () {
+    $q = get_transient('af_ig_warm_queue');
+    delete_transient('af_ig_warm_queue');
+    if (!is_array($q)) return;
+    $t0 = time();
+    foreach ($q as $u) {
+        af_ig_small_image($u, true);
+        if (time() - $t0 > 50) break;   // leave the rest for the next page view to queue again
+    }
+});
+
+// Copies nobody has asked for in 90 days are removed once a week.
+add_action('init', function () {
+    if (!wp_next_scheduled('af_ig_prune')) wp_schedule_event(time() + DAY_IN_SECONDS, 'weekly', 'af_ig_prune');
+});
+add_action('af_ig_prune', function () {
+    list($dir) = af_ig_cache_dir();
+    foreach (glob($dir . '/*.jpg') ?: array() as $f) {
+        $seen = max((int) @fileatime($f), (int) @filemtime($f));
+        if ($seen && $seen < time() - 90 * DAY_IN_SECONDS) @unlink($f);
+    }
+});

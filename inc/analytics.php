@@ -13,6 +13,20 @@ if (!defined('ABSPATH')) exit;
 function af_ga4_id() { return trim((string) get_option('af_ga4_id', '')); }
 function af_gtm_id() { return trim((string) get_option('af_gtm_id', '')); }
 
+/**
+ * A JavaScript expression that is true for the automated visitors GA4 was
+ * counting as people. Measured 16 Oct 2026: of 2,414 visits in 28 days about
+ * 2,100 were bots — a Singapore fleet on Chrome/Windows 10 with a 1280×1200
+ * screen, and US data-centre visits with an 800×600 screen; real visitors
+ * use neither size. The site is served by Hostinger's CDN, not Cloudflare,
+ * so there is no edge rule to block them; instead every tag (GA4, the Meta
+ * pixel) skips loading when this is true. A reporting choice only: nothing is
+ * blocked and the page itself is unchanged for anyone.
+ */
+function af_bot_signal_js() {
+    return "navigator.webdriver||(screen.width==800&&screen.height==600)||(screen.width==1280&&screen.height==1200)";
+}
+
 add_action('admin_init', function() {
     register_setting('general', 'af_ga4_id', array('type' => 'string', 'sanitize_callback' => function($v) {
         $v = strtoupper(trim((string) $v));
@@ -52,6 +66,7 @@ function af_ga4_page_events() {
     $ev = array();
     if (function_exists('WC') && WC()->session && ($atc = WC()->session->get('af_ga4_atc'))) {
         WC()->session->set('af_ga4_atc', null);
+        $GLOBALS['af_atc_items'] = (array) $atc;   // inc/meta-pixel.php reports the same add later in this request
         // this page now carries one visitor's cart event: never serve it from cache
         do_action('litespeed_control_set_nocache', 'ga4 add_to_cart event');
         $value = 0;
@@ -126,14 +141,15 @@ add_action('wp_head', function() {
         echo '<script type="text/plain" data-consent="analytics" src="https://www.googletagmanager.com/gtag/js?id=' . esc_attr($ga4) . '"></script>' . "\n";
         $events = af_ga4_page_events();
         echo '<script type="text/plain" data-consent="analytics">'
-           . "window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}"
+           . "window.dataLayer=window.dataLayer||[];window.gtag=window.gtag||function(){dataLayer.push(arguments);};"
+           . "if(!(" . af_bot_signal_js() . ")){"
            . "gtag('js',new Date());gtag('config'," . wp_json_encode($ga4) . ");";
         foreach ($events as $e) {
             echo "gtag('event'," . wp_json_encode($e[0]) . ',' . wp_json_encode($e[1]) . ');';
         }
         // add_to_cart fires client-side on WooCommerce's own AJAX event
         echo "if(window.jQuery){jQuery(document.body).on('added_to_cart',function(){gtag('event','add_to_cart',{currency:" . wp_json_encode(get_woocommerce_currency()) . "});});}"
-           . '</script>' . "\n";
+           . '}</script>' . "\n";
     }
 }, 4);
 

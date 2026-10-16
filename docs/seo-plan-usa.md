@@ -333,3 +333,13 @@ Nine of thirteen are indexed; canonicals match on all thirteen. The four
 that are not need the owner to press Request Indexing in Search Console
 (Lakshmi Ganesha, Tirupati Balaji, Lord Shiva, Swaminarayan); the new link
 row gives Google a reason to keep them once it recrawls.
+
+**Update 11:40 UTC.** PR 403 merged at 10:50 but did not deploy on its own:
+every file it touched sits in the deploy's `paths-ignore` (tools, docs,
+workflows). The deploy was started by hand at 11:12 and finished at 11:29.
+`tools/diag-free-shipping.php` then reported 3 places, down from 36, none of
+them content: the ZIP checker's JavaScript literal for the never-taken free
+branch (Shipping page source), a JavaScript comment that reaches the Cart
+page's inline script, and the home page's `_af_elementor_backup_col` row,
+which is a backup. PR 404 removes the two script places and stops the
+diagnostic counting backups. Expected after it deploys: 0.

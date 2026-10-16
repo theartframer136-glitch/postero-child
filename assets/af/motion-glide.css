@@ -1,0 +1,115 @@
+/* ── The other "Products In Motion" ────────────────────────────────────────
+ * A second row sits above this one: .af-pim-*, a marquee of 128 STILL images
+ * (four frames per card, cycled) built in functions.php by a parallel session
+ * while this video version was being built. Both ended up on the page, which
+ * is the "still has 2 section" the owner reported.
+ *
+ * It is hidden rather than deleted: it is someone else's code, in a file this
+ * host will not recompile anyway, and hiding is reversible in one line. The
+ * video row below it is the one the owner asked for — frame-cycled stills are
+ * exactly the "just zoom in and zoom out" that started this work.
+ *
+ * To bring it back and drop this one instead, delete this rule and this file.
+ */
+.af-pim-wrap,
+.af-pim-section-heading + .af-pim-wrap{display:none !important;}
+
+/* The row itself. The shortcode's own stylesheet no longer reaches the page,
+   so these are declared here rather than inherited from it. The existing
+   arrows and drag-scroll both call scrollBy() on this element, so it has to
+   stay a horizontal scroller for them to keep working. */
+/* !important and the doubled selector are deliberate. The plain rule was on the
+   page, nothing in the HTML or in any of the 83 bundles contradicted it, and the
+   nine tiles still wrapped into two rows — which is what the owner reported as
+   "still has 2 sections". Something outside the stylesheet reaches this element,
+   so the row is nailed down rather than argued with. */
+.elementor-shortcode .circle-gallery-slider,
+.circle-gallery-slider.circle-gallery-slider{
+  display:flex !important;
+  flex-wrap:nowrap !important;
+  flex-direction:row !important;
+  align-items:flex-start !important;
+  gap:14px;
+  /* hidden, not auto. The row is moved by a transform on .af-motion-track now,
+     not by scrolling it — see the note above the slider in the script. A
+     transformed child also changes a scroller's scrollWidth as it travels,
+     which would drag the scrollbar range about under the visitor's finger. */
+  overflow:hidden !important;
+  /* the drag below is horizontal; this leaves the vertical swipe to the page,
+     so the row cannot trap a visitor scrolling past it on a phone. */
+  touch-action:pan-y;
+  cursor:grab;
+  padding:2px 0 14px;width:100%;}
+.circle-gallery-slider.af-grabbing{cursor:grabbing;}
+/* The tiles sit in this one element so a single transform moves the whole row.
+   It is a flex row itself, AND the slider above stays one too, so if the
+   script never runs the tiles are still a row rather than a stack down the
+   left — the failure the owner reported on 2026-09-07. */
+.af-motion-track{display:flex;flex-wrap:nowrap;flex-direction:row;
+  align-items:flex-start;gap:14px;width:max-content;flex:0 0 auto;
+  /* its own compositor layer, so the transform never repaints the row */
+  will-change:transform;transform:translate3d(0,0,0);backface-visibility:hidden;}
+.circle-gallery-slider > .circle-item,
+.af-motion-track > .circle-item{flex:0 0 auto !important;}
+.circle-gallery-slider::-webkit-scrollbar{display:none;}
+/* A dragged row must not also open a clip; the script adds this for the
+   moment between the drag ending and the click it would otherwise become. */
+.circle-gallery-slider.af-dragged .af-motion-item{pointer-events:none;}
+.af-motion-shell{position:relative;}
+.af-motion-item{position:relative;flex:0 0 auto;width:clamp(180px,19vw,364px);
+  aspect-ratio:9/16;border-radius:14px;overflow:hidden;background:#0f0d0b;
+  box-shadow:0 2px 10px rgba(40,30,10,.10);cursor:pointer;}
+.af-motion-item video{width:100%;height:100%;object-fit:cover;display:block;}
+/* No play button by default: the tile is already moving, so a badge over it
+   would only be clutter. It appears on hover to say "click for sound". */
+.af-motion-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  border:0;background:rgba(0,0,0,.18);cursor:pointer;padding:0;
+  opacity:0;transition:opacity .2s;}
+.af-motion-item:hover .af-motion-play,
+.af-motion-item:focus-within .af-motion-play{opacity:1;}
+.af-motion-play span{width:52px;height:52px;border-radius:50%;background:rgba(255,255,255,.92);
+  position:relative;box-shadow:0 2px 12px rgba(0,0,0,.3);}
+.af-motion-play span:after{content:"";position:absolute;top:50%;left:56%;transform:translate(-50%,-50%);
+  border-style:solid;border-width:10px 0 10px 17px;border-color:transparent transparent transparent #1a1a1a;}
+.af-motion-item.af-open .af-motion-play{display:none;}
+/* caption on hover only, so the row reads as clean video at rest */
+.af-motion-cap{position:absolute;left:0;right:0;bottom:0;padding:26px 12px 11px;
+  font-size:12.5px;font-weight:600;color:#fff;pointer-events:none;
+  opacity:0;transition:opacity .2s;
+  background:linear-gradient(to top,rgba(0,0,0,.68),rgba(0,0,0,0));}
+.af-motion-item:hover .af-motion-cap{opacity:1;}
+/* z-index at the top of the range, because 99999 was not enough: measured
+   2026-09-09, with the player finally sized and visible at 1354x761, the
+   element actually painted at its centre was DIV.af-popup-left — a plugin's
+   own overlay stacking above this one. Nothing else is touched to achieve
+   it; that popup keeps its own behaviour, it simply no longer sits in
+   front of a video the visitor just asked to watch. */
+.af-motion-lb{position:fixed;inset:0;z-index:2147483000;background:rgba(0,0,0,.88);
+  display:none;align-items:center;justify-content:center;padding:24px;}
+.af-motion-lb.open{display:flex;}
+/* An explicit height, NOT aspect-ratio. Measured 2026-09-08 by clicking a
+   tile in a real browser: YouTube answered 200 and the player loaded into a
+   box of 0x0 — "the iframe has no size, a layout fault, not a video fault".
+   aspect-ratio needs a definite width to resolve against and something on this
+   page denies it one, so the height is stated outright and the width derived
+   from it. max-width keeps a narrow window honest; YouTube letterboxes inside
+   its own frame if that ever bites, which is a far smaller problem than a
+   popup with nothing in it. */
+.af-motion-lb-box{position:relative;
+  height:min(85vh,619px);
+  width:calc(min(85vh,619px) * 16 / 9);
+  max-width:94vw;}
+/* display and visibility are stated here for the same reason they are stated
+   in the script: a lazy loader on this site sets iframes to display:none until
+   they scroll into view, and this one is inside a popup that never scrolls. A
+   box of 1354x761 holding a player of 0x0 was measured before this line. */
+.af-motion-lb-box iframe{position:absolute;inset:0;width:100%!important;height:100%!important;
+  display:block!important;visibility:visible!important;opacity:1!important;
+  border:0;border-radius:10px;background:#000;}
+.af-motion-lb-x{position:absolute;top:16px;right:22px;z-index:2;background:none;border:0;
+  color:#fff;font-size:40px;line-height:1;cursor:pointer;padding:4px 10px;}
+@media(max-width:600px){
+  .af-motion-lb-box{width:96vw;}
+  .af-motion-item{width:60vw;}
+  .af-motion-cap{opacity:1;font-size:12px;}
+}

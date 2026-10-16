@@ -1,0 +1,261 @@
+.af-wl-head{max-width:1200px;margin:24px auto 8px;padding:0 16px}
+.af-wl-head h1{font-size:30px;margin:0 0 4px;color:#1a1a1a}
+.af-wl-head p{margin:0;color:#6b6b6b;font-size:14px}
+
+/* the plugin's table, read as a list of cards.
+   The page is rendered by WPC Smart Wishlist ([woosw_list], woosw- classes) —
+   verified from the served page; the .wishlist_table selectors are kept for
+   any template that still uses them. */
+.woosw-list table.woosw-items,
+.wishlist_table{border:0!important;border-collapse:separate!important;border-spacing:0 14px!important;width:100%!important;background:transparent!important}
+.woosw-items thead{display:none!important}
+.woosw-items tr,.woosw-item{background:#fff!important;box-shadow:0 2px 14px rgba(0,0,0,.07)!important;border-radius:14px!important}
+.woosw-items td,.woosw-item td{border:0!important;vertical-align:middle!important;padding:16px 12px!important;background:transparent!important}
+.woosw-item td:first-child{border-radius:14px 0 0 14px!important}
+.woosw-item td:last-child{border-radius:0 14px 14px 0!important;text-align:right!important}
+.woosw-item--image img,.woosw-item img{width:88px!important;height:88px!important;object-fit:cover!important;border-radius:10px!important;display:block!important}
+.woosw-item--name a,.woosw-item--info a{color:#1a1a1a!important;font-weight:600!important;font-size:15px!important;line-height:1.45!important;text-decoration:none!important}
+.woosw-item--name a:hover{color:#8b6a2b!important}
+.woosw-item--price{color:#1a1a1a!important;font-weight:700!important;white-space:nowrap!important}
+/* the date a piece was saved is noise next to the piece itself */
+.woosw-item--time,.woosw-item--date{display:none!important}
+
+/* remove ("×") */
+.woosw-item--remove span,.woosw-item-remove,.woosw-item--remove a{
+  width:30px!important;height:30px!important;line-height:28px!important;border-radius:50%!important;
+  background:#f4f4f4!important;color:#8a8a8a!important;font-size:17px!important;text-align:center!important;
+  display:inline-block!important;transition:background .2s,color .2s!important}
+.woosw-item--remove span:hover,.woosw-item-remove:hover{background:#e5c9c9!important;color:#a11!important}
+
+/* the add-to-cart control: a real button, not a bare emoji.
+   Written against every name this control ships under, plus a catch-all for
+   any add-to-cart link inside the items table — the first pass bound only to
+   .wishlist_table descendants and the live page proved that was not enough. */
+.woosw-item--add a,
+.woosw-item--actions a.button,
+.woosw-item td a[href*="add-to-cart="],
+body.woocommerce-wishlist a[href*="add-to-cart="],
+.wishlist-items a[href*="add-to-cart="],
+table a[href*="add-to-cart="].af-wl-labelled{
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;gap:8px!important;
+  background:#c9a84c!important;border:0!important;color:#fff!important;font-size:14px!important;font-weight:600!important;
+  padding:11px 20px!important;border-radius:6px!important;white-space:nowrap!important;text-decoration:none!important;
+  transition:background .2s!important}
+.woosw-item--add a:hover,
+.woosw-item td a[href*="add-to-cart="]:hover,
+table a[href*="add-to-cart="].af-wl-labelled:hover{background:#8b6a2b!important}
+.af-wl-cart-ico{width:17px;height:17px;flex:0 0 auto}
+/* The theme ships this control as a slide-in-on-hover button: parked off the
+   card's right edge, translated in when a product card is hovered. Inside the
+   wishlist table nothing hovers it, so all that showed was the sliver poking
+   past the card. Park it in the row like a normal button. */
+.woosw-item .opal-add-to-cart-button,
+.woosw-item p.add_to_cart_inline,
+.woosw-item--atc,
+.woosw-item--atc *{position:static!important;transform:none!important;opacity:1!important;
+  visibility:visible!important;margin:0!important;right:auto!important;left:auto!important}
+.woosw-item p.add_to_cart_inline{display:inline-block!important;padding:0!important}
+.woosw-item--actions{min-width:200px!important;padding-right:18px!important;text-align:right!important}
+/* an art-code placeholder escapes its card on this page — a bare
+   "ART CODE: …" line floating between sections is noise, hide it */
+.woosw-list .af-art-code,.woosw-list ~ .af-art-code,
+.entry-content > .af-art-code,.cart_totals .af-art-code{display:none!important}
+
+/* share link row */
+.yith-wcwl-share,.wishlist-title,.wishlist_table+form{max-width:1200px;margin-inline:auto}
+
+/* related products */
+.af-wl-related{max-width:1200px;margin:44px auto 56px;padding:0 16px}
+.af-wl-related h2{font-size:24px;margin:0 0 18px;color:#1a1a1a}
+.af-wl-related ul.products{display:grid!important;grid-template-columns:repeat(4,1fr)!important;gap:20px!important;margin:0!important;padding:0!important;list-style:none!important}
+.af-wl-related ul.products::before,.af-wl-related ul.products::after{display:none!important}
+/* No hover swap in the related rows (owner's recording, 30 Sep). On the shop
+   a card keeps its photo under the mouse. Here the theme's "fade" effect
+   still ran: the photo faded out and the room mockup faded in at 105%,
+   cropped to a portrait slice of a landscape photo, inside a wrapper allowed
+   to overflow - the ghosting and the off-centre picture in the recording.
+   The child theme's own hover script cannot help: it is inside a
+   window.innerWidth <= 600 guard (functions.php, the wp_head script), so it
+   never runs where a mouse exists. Scoped to these two rows; the theme's
+   selector is (0,7,1), these outrank it. */
+html body section.af-wl-related ul.products li.product .product-block .product-transition .product-img-wrap .product-image.image-main,
+html body section.af-xsell ul.products li.product .product-block .product-transition .product-img-wrap .product-image.image-main,
+html body section.af-wl-related ul.products li.product .product-block:hover .product-transition .product-img-wrap .product-image.image-main,
+html body section.af-xsell ul.products li.product .product-block:hover .product-transition .product-img-wrap .product-image.image-main{
+  opacity:1!important;transform:none!important}
+html body section.af-wl-related ul.products li.product .product-block .product-transition .product-img-wrap .product-image.second-image,
+html body section.af-xsell ul.products li.product .product-block .product-transition .product-img-wrap .product-image.second-image,
+html body section.af-wl-related ul.products li.product .product-block:hover .product-transition .product-img-wrap .product-image.second-image,
+html body section.af-xsell ul.products li.product .product-block:hover .product-transition .product-img-wrap .product-image.second-image{
+  opacity:0!important;transform:none!important;overflow:hidden!important;pointer-events:none!important}
+/* The photo's frame (.product-transition) is drawn as a square: 482x482 on a
+   546px phone, while the photo inside is a 300px box - leaving a 182px empty
+   strip under every photo (measured live, 24 Sep, after the empty grey link
+   under it was fixed). Let the frame be exactly as tall as the photo. */
+/* Scoped harder than custom.css's 'html body .woocommerce ul.products li.product
+   .product-block .product-transition{aspect-ratio:1/1!important}', which won
+   against the plain selector (measured live after #1346). */
+html body section.af-wl-related.woocommerce ul.products li.product .product-block .product-transition,
+.af-wl-related li.product .product-transition{height:auto!important;min-height:0!important;
+  aspect-ratio:auto!important;padding-bottom:0!important;overflow:hidden!important}
+/* Uniform image box, same measurement the shop uses. The card script builds a
+   fixed 300px box (260 under 520px) only for cards shipping TWO images, main
+   plus hover. A single-image card never gets that box, so it keeps the natural
+   ratio and the row goes ragged. Give those cards the same box; images already
+   inside a built box stay under the script control. */
+.af-wl-related li.product > a:first-of-type > img:not(.af-main-img):not(.af-hover-img){
+  height:300px!important;width:100%!important;object-fit:cover!important;display:block!important}
+@media (max-width:520px){
+  .af-wl-related li.product > a:first-of-type > img:not(.af-main-img):not(.af-hover-img){height:260px!important}}
+
+@media (max-width:900px){
+  .af-wl-related ul.products{grid-template-columns:repeat(2,1fr)!important}
+  .wishlist_table td{padding:12px 8px!important}
+  .wishlist_table td.product-thumbnail img{width:64px!important;height:64px!important}
+  .wishlist_table td.product-name a{font-size:14px!important}
+}
+
+/* ── PHONES AND SMALL TABLETS ───────────────────────────────────────────────
+   Measured on the live wishlist at 420px, 2026-09-14: the saved item's name
+   rendered as a link 22px wide and 1483px TALL — one character per line, all
+   the way down the page.
+
+   Same cause as the inventory table. This theme prints a global rule for every
+   page at 781px and under — table{display:block;width:100%;max-width:100%} —
+   so a wide prose table scrolls in its own box. It takes this table out of
+   table layout too, the cells collapse toward zero, and overflow-wrap:
+   break-word (set on td by the same block) then breaks the title
+   mid-character.
+
+   The rules above only ever addressed .wishlist_table, the OTHER wishlist
+   plugin's class. The plugin actually running here renders .woosw-items, which
+   had no mobile treatment at all.
+
+   A row is one saved artwork, so on a phone it becomes one card. This uses
+   flex rather than a fixed grid deliberately: the cells this plugin emits vary
+   with its settings — name, price, stock, date, add-to-cart, remove — and a
+   grid with named areas would drop any cell it had not been told about. Flex
+   lays out whatever arrives, and giving the info cell a flex-basis is what
+   actually fixes the 22px crush. ─────────────────────────────────────────── */
+@media (max-width:781px){
+  .woosw-list table.woosw-items{display:block!important;width:100%!important;
+    min-width:0!important;max-width:100%!important;border-spacing:0!important;}
+  .woosw-items thead{display:none!important;}
+  .woosw-items tbody{display:block!important;width:100%!important;}
+
+  .woosw-items tr,.woosw-items tr.woosw-item{
+    display:flex!important;flex-wrap:wrap!important;align-items:center!important;
+    gap:10px 12px!important;padding:14px!important;margin:0 0 12px!important;
+    border-radius:14px!important;width:auto!important;}
+  .woosw-items td,.woosw-item td{display:block!important;padding:0!important;
+    border:0!important;width:auto!important;border-radius:0!important;
+    text-align:left!important;vertical-align:top!important;}
+
+  .woosw-item--image,td.woosw-item--image{flex:0 0 72px!important;}
+  .woosw-item--image img,.woosw-items td img{width:72px!important;height:72px!important;}
+
+  /* The cell that was 22px wide. A flex-basis is the whole fix. */
+  .woosw-item--info,td.woosw-item--info{flex:1 1 190px!important;min-width:0!important;}
+  .woosw-item--name a,.woosw-item--info a{font-size:14px!important;line-height:1.4!important;
+    display:-webkit-box!important;-webkit-line-clamp:3;-webkit-box-orient:vertical;
+    overflow:hidden!important;word-break:normal!important;overflow-wrap:break-word!important;}
+
+  .woosw-item--price,td.woosw-item--price{flex:0 0 auto!important;font-size:14px!important;}
+  .woosw-item--stock,td.woosw-item--stock{flex:0 0 auto!important;}
+  /* Buying and removing get a line of their own, full width, so neither ends
+     up a sliver squeezed against the card's edge. */
+  .woosw-item--actions,td.woosw-item--actions,
+  .woosw-item--atc,td.woosw-item--atc,
+  .woosw-item--add,td.woosw-item--add{flex:1 1 100%!important;min-width:0!important;
+    padding-right:0!important;text-align:left!important;}
+  .woosw-items td a[href*="add-to-cart="],.woosw-item--add a{width:100%!important;
+    justify-content:center!important;}
+
+  /* The share row measured 450px in a 420px window — 77px of it off the
+     screen, taking part of the copy field with it. */
+  .woosw-copy,.woosw-actions{max-width:100%!important;width:auto!important;
+    flex-wrap:wrap!important;box-sizing:border-box!important;}
+  .woosw-copy input,.woosw-copy .woosw-copy-text{flex:1 1 100%!important;
+    min-width:0!important;max-width:100%!important;box-sizing:border-box!important;}
+  #woosw_copy_btn.button,.woosw-copy button{font-size:12px!important;
+    flex:0 0 auto!important;}
+
+  /* Under the 40px a fingertip needs. */
+  /* .af-ca-btn is sized inline by makeBtn() with !important, which no
+     stylesheet can override — it reads the width there instead. Only the
+     carousel arrows are raised here. */
+  .af-rel-nav{width:40px!important;height:40px!important;}
+
+  /* ── THE SAVED PIECE, MEASURED AT LAST ──────────────────────────────────
+     Everything above this was written without ever having seen the card.
+     A guest's wishlist lives in a cookie in their own browser, so every check
+     I ran opened /wishlist/ and was told, correctly, that there was nothing
+     saved. The rules were aimed at markup I had guessed — one of them at
+     .woosw-page, which does not exist on this page at all.
+
+     Measured at 420px, with a piece actually saved, the card lays out like
+     this and every complaint in the owner's video is visible in the numbers:
+
+       td.woosw-item--remove    30x30 at left 33   the x, loose beside the photo
+       td.woosw-item--image     88x88 at left 77
+       td.woosw-item--info      354x81             on its own line, fine
+       td.woosw-item--actions   172x63 at left 215 Add to Cart stranded right,
+                                                   180px of empty gutter beside it
+
+     So: the photograph and the words share the top line, the buying control
+     gets the full width underneath where a thumb can reach it, and the x goes
+     to the corner of the card — which is where it belongs and where it stops
+     competing with the photograph for the first line. ────────────────────── */
+  .woosw-items tr.woosw-item{
+    position:relative!important;padding:14px!important;
+    align-items:flex-start!important;}
+
+  .woosw-items tr.woosw-item > td.woosw-item--image{
+    flex:0 0 88px!important;order:1!important;}
+  .woosw-items tr.woosw-item > td.woosw-item--image img{
+    width:88px!important;height:88px!important;border-radius:10px!important;}
+
+  .woosw-items tr.woosw-item > td.woosw-item--info{
+    flex:1 1 calc(100% - 148px)!important;order:2!important;
+    padding-right:34px!important;min-width:0!important;}
+
+  /* Full width, its own line, and tall enough to hit. */
+  .woosw-items tr.woosw-item > td.woosw-item--actions{
+    flex:0 0 100%!important;width:100%!important;order:3!important;
+    min-width:0!important;padding:0!important;text-align:left!important;}
+  .woosw-items tr.woosw-item td.woosw-item--actions .opal-add-to-cart-button,
+  .woosw-items tr.woosw-item td.woosw-item--actions .woosw-item--atc{
+    width:100%!important;display:block!important;}
+  .woosw-items tr.woosw-item td.woosw-item--actions a.button,
+  .woosw-items tr.woosw-item td.woosw-item--actions a.add_to_cart_button{
+    width:100%!important;min-height:44px!important;
+    display:inline-flex!important;align-items:center!important;
+    justify-content:center!important;box-sizing:border-box!important;}
+
+  /* The x, in the corner of its own card. */
+  .woosw-items tr.woosw-item > td.woosw-item--remove{
+    position:absolute!important;top:8px!important;right:8px!important;
+    flex:0 0 auto!important;order:0!important;z-index:2!important;}
+  .woosw-items tr.woosw-item > td.woosw-item--remove span{
+    width:34px!important;height:34px!important;line-height:34px!important;
+    text-align:center!important;border-radius:50%!important;font-size:16px!important;}
+
+  /* ── THE SHARE ROW ──────────────────────────────────────────────────────
+     Measured: the label 87px, the field 265px beside it, and the Copy button
+     dropped onto a line of its own at 122x61 — a tall lopsided block sitting
+     under a field whose address it cannot fit. Give the label its own line,
+     the field the full width, and put Copy beside it at a sane height. */
+  .woosw-actions .woosw-copy{flex-wrap:wrap!important;gap:8px!important;
+    align-items:center!important;}
+  .woosw-copy .woosw-copy-label{flex:0 0 100%!important;width:100%!important;
+    font-size:13px!important;}
+  .woosw-copy .woosw-copy-url{flex:1 1 200px!important;min-width:0!important;}
+  .woosw-copy .woosw-copy-url input#woosw_copy_url{
+    width:100%!important;height:44px!important;box-sizing:border-box!important;
+    font-size:13px!important;padding:0 12px!important;}
+  .woosw-copy .woosw-copy-btn{flex:0 0 auto!important;}
+  .woosw-copy .woosw-copy-btn button#woosw_copy_btn.button{
+    height:44px!important;min-height:44px!important;padding:0 20px!important;
+    font-size:12px!important;display:inline-flex!important;
+    align-items:center!important;justify-content:center!important;}
+}
