@@ -19,7 +19,14 @@ foreach (array(array('127.0.0.1', 6379), array('localhost', 6379)) as $h) {
     $fp = @fsockopen($h[0], $h[1], $errno, $errstr, 1);
     echo "  redis at {$h[0]}:{$h[1]}: " . ($fp ? 'reachable' : "no ($errstr)") . "\n"; if ($fp) fclose($fp);
 }
-foreach (glob('/tmp/redis*.sock') ?: array() as $sock) echo "  redis socket: $sock\n";
+foreach (array_merge(glob('/tmp/redis*.sock') ?: array(), glob('/var/run/redis/*.sock') ?: array(), glob(getenv('HOME') . '/.redis/*.sock') ?: array(), glob(getenv('HOME') . '/redis/*.sock') ?: array(), glob('/tmp/*.sock') ?: array()) as $sock) echo "  socket found: $sock\n";
+$fp = @fsockopen('127.0.0.1', 11211, $errno, $errstr, 1); echo "  memcached at 127.0.0.1:11211: " . ($fp ? 'reachable' : "no ($errstr)") . "\n"; if ($fp) fclose($fp);
+foreach (array('REDIS_HOST', 'REDIS_PORT', 'REDIS_SOCKET', 'MEMCACHED_HOST', 'LSMCD_SOCK') as $e) if (getenv($e)) echo "  env $e=" . getenv($e) . "\n";
+if (file_exists(WP_CONTENT_DIR . '/object-cache.php')) { $oc = file_get_contents(WP_CONTENT_DIR . '/object-cache.php', false, null, 0, 600); echo "  object-cache.php head: " . trim(preg_replace('/\s+/', ' ', strip_tags(mb_strimwidth($oc, 0, 300)))) . "\n"; }
+global $wp_object_cache; echo "  object cache class: " . get_class($wp_object_cache) . (method_exists($wp_object_cache, 'debug') ? '' : '') . "\n";
+foreach (array('object_kind', 'object_host', 'object_port', 'object_life', 'object_persistent', 'object_admin', 'object_transients', 'object_db_id', 'object_user', 'object_pswd') as $k) { $v = get_option('litespeed.conf.' . $k, '(unset)'); if ($k === 'object_pswd') $v = $v === '(unset)' || $v === '' ? $v : '(set)'; echo "  litespeed $k = " . (is_array($v) ? json_encode($v) : $v) . "\n"; }
+$oc_ok = 'unknown'; if (function_exists('wp_cache_set')) { wp_cache_set('af_diag_probe', 'x', 'af', 60); $oc_ok = wp_cache_get('af_diag_probe', 'af') === 'x' ? 'set/get works in this process' : 'set/get FAILED'; } echo "  object cache probe: $oc_ok\n";
+if (method_exists($wp_object_cache, 'stats')) { ob_start(); $wp_object_cache->stats(); $st = trim(strip_tags(ob_get_clean())); if ($st) echo "  object cache stats: " . preg_replace('/\s+/', ' ', mb_strimwidth($st, 0, 240)) . "\n"; }
 foreach (array('object', 'object_kind', 'object_host', 'object_port', 'cache', 'cache-priv', 'esi', 'cache-mobile', 'optm-css_min', 'optm-js_min', 'optm-js_defer', 'optm-css_async', 'optm-ucss', 'media-lazy', 'media-vpi', 'img_optm-auto', 'optm-localize_js', 'optm-gm_js', 'cache-ttl_pub', 'cache-ttl_priv') as $k) {
     $v = get_option('litespeed.conf.' . $k, '(unset)'); echo "  litespeed $k = " . (is_array($v) ? json_encode($v) : $v) . "\n";
 }
@@ -42,6 +49,7 @@ add_action('all', function ($h) use (&$hook_time, &$last, &$last_hook) {
 });
 $t0 = microtime(true); $q0 = count($wpdb->queries);
 try {
+    if (!defined('WP_USE_THEMES')) define('WP_USE_THEMES', true);
     ob_start();
     $GLOBALS['wp']->main();
     $t_main = microtime(true);
