@@ -1,0 +1,347 @@
+    .af-tow-wrap{background:linear-gradient(180deg,#f6f1e6 0%,#efe7d6 100%);padding:44px 16px 70px;}
+    .af-tow-card{max-width:1300px;margin:0 auto;background:#fffdf8;border:1px solid #efe6d2;border-radius:24px;padding:34px 30px;position:relative;box-shadow:0 24px 60px rgba(70,54,26,.10);}
+    .af-tow-home{position:absolute;top:26px;left:26px;background:#1a1a1a;color:#fff;text-decoration:none;font-weight:700;font-size:12.5px;padding:10px 16px;border-radius:9px;transition:background .2s;}
+    .af-tow-home:hover{background:#c9a84c;}
+    .af-tow-badge{position:absolute;top:26px;right:26px;background:#f3ead2;color:#a8801f;font-weight:800;font-size:11px;letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;border-radius:999px;border:1px solid #e6d7ad;}
+    .af-tow-title{text-align:center;font-size:46px;font-weight:800;color:#1a1a1a;margin:14px 0 10px;letter-spacing:-.5px;font-family:'Playfair Display',Georgia,serif;}
+    .af-tow-sub{text-align:center;color:#6b6250;font-size:15.5px;max-width:640px;margin:0 auto 26px;line-height:1.6;}
+    .af-tow-grid{display:grid;grid-template-columns:360px 1fr;gap:30px;align-items:start;}
+    .af-tow-panel{background:#fff;border:1px solid #ece4cf;border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:6px;box-shadow:0 8px 26px rgba(70,54,26,.05);position:sticky;top:20px;}
+    .af-tow-step{display:flex;align-items:center;gap:10px;margin:16px 0 4px;}
+    .af-tow-step:first-child{margin-top:0;}
+    .af-tow-stepnum{width:24px;height:24px;border-radius:50%;background:#c9a84c;color:#fff;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+    .af-tow-steptitle{font-size:14px;font-weight:800;color:#1a1a1a;letter-spacing:.01em;}
+    .af-tow-panel label{font-size:11.5px;font-weight:800;color:#6b6250;text-transform:uppercase;letter-spacing:.05em;margin-top:12px;}
+    .af-tow-panel select{width:100%;padding:12px;border:1px solid #e2d9c4;border-radius:10px;font-size:14px;background:#fffdf8;color:#1a1a1a;cursor:pointer;transition:border-color .15s;}
+    .af-tow-panel select:focus{outline:none;border-color:#c9a84c;}
+    .af-tow-hiddensel{display:none;}
+    .af-tow-swatches{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px;}
+    .af-tow-sw{position:relative;width:34px;height:34px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px #d8cdb3, 0 2px 5px rgba(0,0,0,.15);cursor:pointer;padding:0;transition:transform .12s;}
+    .af-tow-sw:hover{transform:scale(1.08);}
+    .af-tow-sw.on{box-shadow:0 0 0 2px #c9a84c, 0 2px 6px rgba(0,0,0,.2);}
+    .af-tow-sw span{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;}
+    .af-tow-sw:hover span{opacity:1;}
+    .af-tow-sw-off .af-tow-sw{opacity:.35;cursor:not-allowed;transform:none;}
+    .af-tow-sw-off .af-tow-sw.on{box-shadow:0 0 0 1px #d8cdb3;}
+    .af-tow-scenes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
+    .af-tow-scene{position:relative;height:52px;border-radius:10px;border:2px solid #e2d9c4;background-size:cover;background-position:center;cursor:pointer;overflow:hidden;padding:0;transition:border-color .15s,transform .12s;}
+    .af-tow-scene:hover{transform:translateY(-1px);}
+    .af-tow-scene.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
+    .af-tow-scene span{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.6));color:#fff;font-size:10.5px;font-weight:700;padding:8px 6px 4px;text-align:center;}
+    .af-tow-upload{display:flex !important;align-items:center;justify-content:center;gap:8px;padding:13px;border:2px dashed #c9a84c;border-radius:11px;color:#a8872e;font-weight:700 !important;font-size:12.5px !important;cursor:pointer;text-transform:none !important;letter-spacing:0 !important;background:#fdfaf2;margin-top:12px;transition:background .15s;}
+    .af-tow-upload:hover{background:#faf3e0;}
+    .af-tow-panel input[type=range]{width:100%;accent-color:#c9a84c;margin-top:6px;cursor:pointer;}
+    .af-tow-price{display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid #f0e8d6;font-size:13px;color:#6b6250;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+    .af-tow-price strong{font-size:26px;color:#1a1a1a;letter-spacing:-.5px;}
+    .af-tow-actions{display:flex;gap:10px;margin-top:16px;}
+    .af-tow-btn{flex:1 1 0;min-width:0;box-sizing:border-box;height:46px;display:flex;align-items:center;justify-content:center;gap:6px;padding:0 12px;border-radius:11px;font-weight:700 !important;font-size:13px !important;line-height:1 !important;white-space:nowrap !important;text-transform:none !important;letter-spacing:0 !important;cursor:pointer;text-decoration:none;border:none;transition:transform .12s,background .2s;}
+    .af-tow-btn:hover{transform:translateY(-1px);}
+    .af-tow-btn.ghost{background:#f2ecdd;color:#5a5140;}
+    .af-tow-btn.ghost:hover{background:#e9e0cc;}
+    .af-tow-btn.solid{background:#c9a84c;color:#fff;box-shadow:0 6px 16px rgba(201,168,76,.35);}
+    .af-tow-btn.solid:hover{background:#b8973c;}
+    /* white-space:nowrap inside a stage with overflow:hidden cut every long
+       message off at the edge of the wall - on a 349px phone stage that is
+       most of them, including the one offering to put the shot in Photos. It
+       wraps and stays inside the stage now; short messages are unchanged. */
+    .af-tow-toast{position:absolute;left:50%;bottom:18px;transform:translateX(-50%) translateY(12px);background:#1a1a1a;color:#fff;font-size:13px;font-weight:600;padding:11px 18px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.28);opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:20;white-space:normal;max-width:calc(100% - 28px);width:max-content;box-sizing:border-box;text-align:center;line-height:1.45;}
+    .af-tow-toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+    /* The preview column stretches to whatever height the control rail needs
+       and the wall itself swallows the difference, so neither column can end
+       short and leave a band of empty card behind it. */
+    .af-tow-stagewrap{position:relative;display:flex;flex-direction:column;align-self:stretch;min-height:0;}
+    .af-tow-stage{position:relative;width:100%;flex:1 1 auto;min-height:470px;max-height:760px;border-radius:18px;overflow:hidden;background:#e9e4d8;display:flex;align-items:center;justify-content:center;box-shadow:inset 0 0 60px rgba(0,0,0,.10);}
+    /* room card under the wall — never sticky, it is already in view */
+    .af-tow-room{position:static;top:auto;margin-top:16px;gap:0;}
+    .af-tow-roomgrid{display:grid;grid-template-columns:1.15fr .85fr;gap:4px 26px;align-items:start;}
+    .af-tow-roomcol{display:flex;flex-direction:column;min-width:0;}
+    .af-tow-room .af-tow-scenes{grid-template-columns:repeat(4,1fr);}
+    .af-tow-room .af-tow-scene{height:84px;}
+    .af-tow-room .af-tow-cambtn{margin-top:26px;padding:16px 12px;}
+    .af-tow-room .af-tow-scalenote{margin-top:16px;}
+    .af-tow-room .af-tow-upload{padding:15px;}
+    .af-tow-wallimg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;}
+    .af-tow-ph{position:relative;z-index:2;color:#8a8170;font-size:14.5px;text-align:center;max-width:360px;line-height:1.65;padding:24px;display:flex;flex-direction:column;align-items:center;gap:12px;background:rgba(255,255,255,.78);border-radius:14px;backdrop-filter:blur(2px);}
+    .af-tow-ph-ic{font-size:34px;}
+    .af-tow-scalenote{margin:10px 0 0;font-size:11.5px;color:#8a6d1f;font-weight:600;}
+    /* Said before the camera is switched on, not after the upload has already
+       happened: the match is saved to the visitor's device and to their
+       account without another tap, and that is a photograph of their room. */
+    .af-tow-camnote{margin:8px 0 0;font-size:11px;line-height:1.5;color:#8a8170;}
+    .af-tow-framebox{position:absolute;top:42%;left:50%;transform:translate(-50%,-50%);cursor:grab;touch-action:none;z-index:5;}
+    .af-tow-framebox.dragging{cursor:grabbing;}
+    .af-tow-framebox:hover .af-tow-hint{opacity:1;}
+    /* multi-panel layouts */
+    .af-tow-panels{display:flex;gap:2.5%;align-items:flex-start;}
+    .af-tow-wpanel{flex:1 1 0;min-width:0;}
+    .af-tow-pframe{position:relative;box-sizing:border-box;}
+    .af-tow-pmat{position:relative;box-sizing:border-box;}
+    .af-tow-part{width:100%;background-repeat:no-repeat;}
+    /* layout chips */
+    .af-tow-layouts{display:flex;gap:8px;margin-top:6px;}
+    /* The chip is its label and nothing else. It used to draw the layout as
+       little bars behind the word, which read as clutter sitting under the
+       text rather than as a picture of the layout, so the bars are gone and
+       the label is centred in the chip instead of pinned below them. The
+       selected chip says so with its border and now its label colour too —
+       that was the gold bars' job. */
+    .af-tow-lay{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;height:44px;padding:7px 6px;
+      border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;cursor:pointer;transition:border-color .15s;}
+    /* "2 Panels" is one phrase and has to stay one line. The parent theme
+       uppercases and letter-spaces buttons, which the label was never sized
+       for, and on a phone that was enough to break it at its space and stack
+       "PANELS" under the "2" while "SINGLE" stayed whole — three chips, two
+       different heights. nowrap settles the break; the fluid size gives the
+       label room to shrink instead of needing it, so the row still holds
+       three chips at 360px; the ellipsis is the last resort, so a label can
+       never spill past its own border whatever it inherits. */
+    .af-tow-lay span{font-size:clamp(9.5px,2.7vw,11px);font-weight:700;color:#8a8170;text-align:center;
+      letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+    .af-tow-lay.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
+    .af-tow-lay.on span{color:#8a6d3b;}
+    /* Wall height, in the panel. Same chip as the layout row above it, so the
+       two read as one pair of choices rather than two unrelated controls.
+       "8 ft" is one line, and is held to one line here rather than trusted to
+       stay that way: the parent theme styles buttons too, and its line-height
+       and padding were enough to break the label at its space and stack the
+       number above the unit. nowrap settles it whatever the inherited value;
+       the explicit flex row, line-height and padding stop the same styles
+       spreading the two halves to the top and bottom of the chip. */
+    .af-tow-wallh{display:flex;gap:8px;margin-top:6px;}
+    .af-tow-wallh button{flex:1 1 0;min-width:0;box-sizing:border-box;
+      display:flex;flex-direction:row;align-items:center;justify-content:center;
+      white-space:nowrap;line-height:1;height:38px;padding:0 4px;overflow:hidden;text-overflow:ellipsis;
+      border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;
+      font-size:clamp(9.5px,2.7vw,11px);font-weight:700;color:#8a8170;letter-spacing:.02em;cursor:pointer;transition:border-color .15s;}
+    .af-tow-wallh button.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;color:#8a6d3b;}
+    /* live camera */
+    .af-tow-cam{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1;}
+    .af-tow-cambtn{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;margin-top:8px;padding:11px 12px;
+      border:2px solid #1a1a1a;border-radius:11px;background:#1a1a1a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;
+      text-transform:none;letter-spacing:0;transition:background .2s;}
+    .af-tow-cambtn:hover{background:#000;}
+    .af-tow-cambtn em{font-style:normal;font-weight:500;font-size:10.5px;color:#cbc2ac;}
+    /* Off everywhere by default; only the phone query below switches it on. */
+    .af-tow-camhead{display:none;}
+    .af-tow-camstop{position:absolute;top:12px;right:12px;z-index:8;background:rgba(20,20,20,.85);color:#fff;border:none;
+      border-radius:999px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+    /* This button and the calibration message have always shared the top of
+       the stage, and on a phone they collided — the button lay across the
+       message by 68-86px at 430 down to 360px, hiding the end of the very
+       sentence telling the visitor what to do. (Measured against the older
+       message geometry too: the same 68-86px, so this is not something the
+       shorter wording introduced.)
+       Two changes, both only on phones. The button keeps the ✕ and drops the
+       words: there is a full "Stop live camera" button in the panel just
+       below, so the corner control is a shortcut rather than the only way
+       out, and aria-label carries the name for a screen reader. The message
+       then stops centring itself across the full width and reserves the
+       corner instead — 56px is the compact button's 40px plus its 12px
+       offset, so the two can no longer meet whatever the label says. */
+    @media (max-width:600px){
+      /* 40px square: a corner control still wants a thumb-sized target. */
+      .af-tow-camstop{padding:0;width:40px;height:40px;line-height:40px;text-align:center;font-size:16px;}
+      .af-tow-camstop-t{display:none;}
+      /* Inert since the block below took the message off the video entirely -
+         it now styles a hidden element. Left in place because it is the record
+         of why 56px was the number, and because deleting it would change
+         nothing except make the history harder to follow. */
+      .af-tow-calmsg{left:8px;right:56px;transform:none;max-width:none;}
+
+      /* ── AND ON A PHONE, NOTHING SITS ON THE VIDEO AT ALL ──────────────
+         The paragraph above kept the instruction and the ✕ from colliding
+         with each other, but both still lay across the picture - over the
+         ceiling line the visitor is being asked to line up. On a phone the
+         stage is only ~215px tall, so anything on it is in the way.
+
+         All three overlays come off the video here. The instruction and the
+         ✕ are drawn again in .af-tow-camhead, the strip above the stage; the
+         wall-height pill is simply dropped, because the same three buttons
+         are in the panel below as #tow-wallh, where they are on screen for
+         room photos too rather than only while the camera is aligning.
+         The rectangle itself stays exactly where it was: it IS the
+         measurement. Everything here is inside this query, so a desktop sees
+         none of it. ─────────────────────────────────────────────────── */
+      .af-tow-stage .af-tow-calmsg,
+      .af-tow-stage .af-tow-camstop,
+      .af-tow-stage .af-tow-recal,
+      .af-tow-calh{ display:none !important; }
+      /* display:none, not visibility or opacity. The wall-height pill is the
+         one thing in that click-through overlay with pointer-events:auto, so
+         an invisible-but-present copy would go on swallowing taps meant for
+         the artwork underneath it. The node itself stays in the page - a
+         shipped check, tools/verify-ar-layouts.php, greps the served HTML for
+         id="tow-calh" and id="tow-camstop". */
+
+      /* No panel behind it. The strip sits on the card itself, so it takes
+         the card's own colours - #6b6250 is the same body grey as the page's
+         sub-heading - instead of a black box floating on cream. Everything in
+         here had to change colour with it: white text and a white-on-white X
+         would simply have disappeared. */
+      .af-tow-camhead{
+        display:flex; align-items:center; justify-content:space-between;
+        gap:8px; margin:0 0 6px; padding:2px 2px; min-height:40px;
+        background:none; color:#6b6250;
+      }
+      /* min-height is not decoration. The strip's text changes during a
+         session - the instruction, then the lock confirmation - and outside
+         the stage's overflow:hidden it is free to grow and shrink, which
+         moves the stage down and back and re-fires the ResizeObserver
+         watching it. A floor under the height keeps the picture still. */
+      .af-tow-camhead-msg{
+        flex:1 1 auto; font-size:11.5px; line-height:1.4; text-align:left;
+        color:#6b6250;
+      }
+      /* The page's own gold, the one the badge uses, rather than the pale
+         #efd48d that was picked to read against black. */
+      .af-tow-camhead-msg strong{ color:#a8801f; }
+      /* The strip reuses the message's own markup, so the phone wording rule
+         further down (.af-tow-calmsg-long/-short) applies to it unchanged. */
+      .af-tow-camhead-x{
+        flex:0 0 auto; width:32px; height:32px; padding:0;
+        border:1px solid #e6d7ad; border-radius:999px; background:#f3ead2;
+        color:#8a6d1f; font-size:15px; line-height:30px; text-align:center;
+        cursor:pointer;
+      }
+      .af-tow-camhead-x:hover{ background:#e9dcbb; }
+      .af-tow-camhead-recal{
+        flex:0 0 auto; padding:6px 10px; border:none; border-radius:999px;
+        background:#2fae52; color:#fff; font-size:11px; font-weight:700;
+        line-height:1.2; cursor:pointer;
+      }
+      /* Wall height, one chip instead of the row of three that used to lie
+         across the video. It reads the current value and cycles on tap. */
+      .af-tow-camhead-ft{
+        flex:0 0 auto; padding:6px 10px; border:1px solid #e6d7ad;
+        border-radius:999px; background:#f3ead2; color:#8a6d1f;
+        font-size:11px; font-weight:700; line-height:1.2; white-space:nowrap;
+        cursor:pointer;
+      }
+      .af-tow-camhead-ft:hover{ background:#e9dcbb; }
+      /* The message yields first when the row runs out of room - it is the one
+         thing here that can wrap, and the strip's min-height absorbs it. */
+      .af-tow-camhead-msg{ min-width:0; }
+    }
+    /* wall calibration: red rectangle → amber when the lines are close → green
+       at the lock; the huge shadow dims everything outside the rectangle */
+    .af-tow-cal{position:absolute;inset:0;z-index:7;pointer-events:none;}
+    .af-tow-calbox{position:absolute;left:9%;right:9%;top:16%;bottom:16%;border:3px solid #e04338;border-radius:6px;
+      color:#e04338;box-shadow:0 0 0 2000px rgba(0,0,0,.16);transition:border-color .25s,color .25s,box-shadow .3s;}
+    .af-tow-calbox.near{border-color:#e8b400;color:#e8b400;}
+    .af-tow-calbox.locked{border-color:#2fae52;color:#2fae52;box-shadow:0 0 0 2000px rgba(0,0,0,0),0 0 26px rgba(47,174,82,.85);}
+    /* Thirds grid inside the rectangle. The step being asked for is a judgement
+       about straightness — is the ceiling line level with the top edge, the
+       floor line with the bottom — and an empty rectangle gives the eye nothing
+       to measure against but its own edges. Two lines each way are enough to
+       see a tilt or an off-centre wall without hiding what the camera sees.
+       Drawn as four positioned gradients rather than a repeating one so there
+       are exactly four lines and none doubles up on the border. currentColor,
+       and a colour on each state, so the grid turns amber and then green with
+       the rectangle instead of staying red under a locked frame. */
+    .af-tow-calbox::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.4;
+      background-image:linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor),
+        linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor);
+      background-size:1px 100%,1px 100%,100% 1px,100% 1px;
+      background-position:33.333% 0,66.666% 0,0 33.333%,0 66.666%;
+      background-repeat:no-repeat;}
+    .af-tow-calcorner{position:absolute;width:20px;height:20px;border-color:inherit;border-style:solid;border-width:0;}
+    .af-tow-calcorner.tl{top:-3px;left:-3px;border-top-width:6px;border-left-width:6px;border-top-left-radius:6px;}
+    .af-tow-calcorner.tr{top:-3px;right:-3px;border-top-width:6px;border-right-width:6px;border-top-right-radius:6px;}
+    .af-tow-calcorner.bl{bottom:-3px;left:-3px;border-bottom-width:6px;border-left-width:6px;border-bottom-left-radius:6px;}
+    .af-tow-calcorner.br{bottom:-3px;right:-3px;border-bottom-width:6px;border-right-width:6px;border-bottom-right-radius:6px;}
+    .af-tow-calmsg{position:absolute;left:50%;top:4%;transform:translateX(-50%);background:rgba(16,16,16,.82);color:#fff;
+      font-size:12.5px;line-height:1.45;padding:8px 14px;border-radius:9px;max-width:78%;text-align:center;}
+    /* The rectangle's top edge sits at 16% of the stage. On a phone the stage
+       is 420px and this ran to six lines — 125px from a top of 4% — so it lay
+       across the top of the rectangle and its grid, hiding the very edge the
+       visitor is being told to line up with the ceiling. Smaller, tighter and
+       wider here, and the wording shortens too (.af-tow-calmsg em). */
+    .af-tow-calmsg-short{display:none;}
+    @media (max-width:600px){
+      .af-tow-calmsg{font-size:11px;line-height:1.35;padding:5px 9px;border-radius:7px;
+        max-width:94%;top:5px;}
+      /* Smaller type alone still left four lines over the rectangle. The
+         instruction is the same either way; the phone gets it in half the
+         words so it fits above the edge it is talking about. */
+      .af-tow-calmsg-long{display:none;}
+      .af-tow-calmsg-short{display:inline;}
+    }
+    .af-tow-calmsg strong{color:#efd48d;}
+    .af-tow-calh{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);display:flex;gap:7px;align-items:center;
+      background:rgba(16,16,16,.82);border-radius:999px;padding:6px 10px;pointer-events:auto;}
+    .af-tow-calh span{color:#cbc2ac;font-size:11px;font-weight:700;text-transform:none;letter-spacing:0;margin:0;}
+    /* One line, for the reason set out on .af-tow-wallh: the parent theme styles
+       buttons, and inside a 286px-wide stage on a phone that was enough to
+       stack "FT" under the "8". The panel's row was given nowrap; this one,
+       inside the camera overlay, was missed because on a desktop stage it
+       never ran out of room. */
+    .af-tow-calh button{background:transparent;border:1px solid #6f6a5e;color:#fff;
+      font-size:clamp(10px,2.8vw,11.5px);font-weight:700;white-space:nowrap;line-height:1;
+      border-radius:999px;padding:5px 10px;cursor:pointer;transition:background .15s;}
+    .af-tow-calh button.on{background:#c9a84c;border-color:#c9a84c;color:#1a1a1a;}
+    .af-tow-recal{position:absolute;top:12px;left:12px;z-index:8;background:rgba(24,110,52,.92);color:#fff;border:none;
+      border-radius:999px;padding:8px 13px;font-size:12px;font-weight:700;cursor:pointer;}
+    .af-tow-frame{position:relative;box-sizing:border-box;}
+    .af-tow-mat{position:relative;box-sizing:border-box;}
+    .af-tow-art{display:block;width:100%;height:auto;}
+    .af-tow-glass{position:absolute;inset:0;pointer-events:none;background:linear-gradient(125deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,.05) 22%,rgba(255,255,255,0) 42%,rgba(255,255,255,0) 100%);}
+    .af-tow-hint{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;font-size:10.5px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;opacity:0;transition:opacity .15s;pointer-events:none;}
+    .af-tow-tip{text-align:center;color:#8a8170;font-size:13px;margin:14px 0 0;}
+    .af-tow-tip strong{color:#5a5140;}
+    /* The room card stays two-up as far down as it comfortably fits: the moment
+       it stacks, the preview column grows taller than the rail and the dead
+       space reappears — on the other side. */
+    @media(max-width:1180px){
+      .af-tow-grid{grid-template-columns:330px 1fr;gap:24px;}
+      .af-tow-roomgrid{gap:4px 18px;}
+    }
+    @media(max-width:1000px){
+      .af-tow-roomgrid{grid-template-columns:1fr;gap:0;}
+      .af-tow-room .af-tow-cambtn{margin-top:12px;}
+    }
+    @media(max-width:900px){
+      .af-tow-grid{grid-template-columns:1fr;gap:16px;}
+      .af-tow-panel{position:static;}
+      .af-tow-stagewrap{align-self:auto;}
+      .af-tow-stage{flex:0 0 auto;height:440px;min-height:0;max-height:none;}
+      .af-tow-title{font-size:34px;}
+      .af-tow-card{padding:64px 20px 26px;}
+      .af-tow-room .af-tow-scenes{grid-template-columns:1fr 1fr;}
+      .af-tow-room .af-tow-scene{height:56px;}
+    }
+    @media(max-width:480px){
+      .af-tow-title{font-size:27px;}
+      .af-tow-stage{height:360px;}
+      .af-tow-badge{display:none;}
+    }
+    /* Touch targets, phones and tablets only.
+       Measured in a phone browser at 360, 390 and 412px: the frame-colour
+       swatches came out 34x34, the wall-height chips 38px tall and the Back to
+       Home link 35px. A thumb needs 44. Each of the three sits beside controls
+       that already clear it — the selects, the layout chips, Save Preview —
+       so these were the ones a finger would miss while everything around them
+       answered.
+       The swatch grows in both directions; the ring marking the chosen colour
+       is drawn with box-shadow, so a wider circle pushes nothing around it.
+       The chip and the link gain HEIGHT only: their widths come from the row
+       they sit in, and forcing those would reflow the panel.
+       min-height with inline-flex rather than more padding, because padding
+       has to be computed against the font's line box and the parent theme
+       restyles both — this lands on 44 whatever it inherits.
+       Nothing here applies above 781px: the desktop layout is untouched. */
+    @media (max-width:781px){
+      .af-tow-sw{width:44px;height:44px;}
+      .af-tow-wallh button{height:44px;}
+      .af-tow-home{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;}
+      /* Adjust Size. The native control is 16px tall, so a thumb aiming for the
+         track and landing 14px high hits the page instead and the size does not
+         move — measured, and it misses. Height alone fixes it: the whole box is
+         the slider's hit region, so 44px gives the full target.
+         Deliberately NOT appearance:none. That would hand the track and thumb
+         over to us in two vendor pseudo-elements per browser, to redraw what
+         accent-color already draws — a repaint of something that is not broken.
+         Rendered side by side at 390px, 16px and 44px are indistinguishable:
+         same track thickness, same thumb, same gold. Only the target grows. */
+      .af-tow-panel input[type=range]{height:44px;}
+    }
+    

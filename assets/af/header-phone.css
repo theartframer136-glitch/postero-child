@@ -1,0 +1,206 @@
+@media (max-width: 880px) {
+  /* the bar never becomes two bars */
+  header#masthead .elementor-element:has(> .mobile_navbar_inline_items) {
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    gap: 4px !important;
+    padding-left: 12px !important;
+    padding-right: 12px !important;
+  }
+
+  /* the logo is the only thing that gives way when the row is tight */
+  header#masthead .elementor-element:has(> .elementor-widget-site-logo) {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+  }
+  header#masthead .elementor-widget-site-logo,
+  header#masthead .elementor-widget-site-logo .elementor-widget-container { min-width: 0 !important; }
+  header#masthead .elementor-widget-site-logo img {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+
+  /* The currency and the cart travel together, against the right edge — and
+     side by side. Measured on the live page at 820px: this container is
+     flex-direction:COLUMN there, 398px wide and 88px tall, with the cart
+     sitting 48px below the currency. That is the stack in the owner's
+     screenshot, and no amount of nowrap on the row above could have fixed it:
+     the row was never the thing wrapping. The items are stacked because their
+     own container is a column at this width. It is a row at 390px, so the
+     theme switches it somewhere in between; this pins it for the whole range
+     the bar is live in. */
+  header#masthead .mobile_navbar_inline_items {
+    flex-direction: row !important;
+    align-items: center !important;
+    margin-left: auto !important;
+    width: auto !important;
+    flex: 0 0 auto !important;
+    gap: 8px !important;
+    padding: 0 !important;
+  }
+
+  /* Between 768 and 880 the three left-hand containers collapse to width:0 and
+     their contents spill out and overlap — measured at 820px, the hamburger
+     group and the logo group are both 0px wide sitting at x=12 and x=16, and
+     the logo widget itself is 0x0, so the logo does not render at all. Let
+     them size to their contents. */
+  header#masthead .elementor-element:has(> .elementor-widget-site-logo),
+  header#masthead .elementor-element:has(> .elementor-widget-html),
+  header#masthead .elementor-element:has(> .hfe-menu-item-space-between) {
+    width: auto !important;
+    flex: 0 0 auto !important;
+  }
+  header#masthead .elementor-widget-site-logo,
+  header#masthead .elementor-widget-site-logo .elementor-widget-container {
+    width: auto !important;
+  }
+  header#masthead .elementor-widget-site-logo img {
+    width: auto !important;
+    height: auto !important;
+    max-height: 44px !important;
+  }
+  /* and the dropdown widget stretched to 398px with its container */
+  header#masthead .mobile_navbar_menu_dropdown { width: auto !important; }
+
+  /* ── Everything above targets the MOBILE row by name. This block does not.
+     ─────────────────────────────────────────────────────────────────────
+     There are two headers in this document and only one is displayed. Every
+     measurement I can take says the mobile row is the one rendering and that
+     it is now a single line — and the owner is still looking at a stacked
+     bar. I cannot see their browser, so rather than keep asserting which
+     container they are getting, this makes the answer the same either way.
+
+     For ANY header container at this width: nothing wraps, nothing is wider
+     than the screen, and nothing carrying the logo, the currency or the cart
+     is allowed to be a column. The wide header needs this regardless — at
+     900px it lays out 1052px of content in a 900px viewport and its own logo
+     widget measures 0x0. */
+  header#masthead .e-con,
+  header#masthead .e-con-inner,
+  header#masthead .elementor-element {
+    max-width: 100% !important;
+  }
+  header#masthead .e-con,
+  header#masthead .e-con-inner {
+    flex-wrap: nowrap !important;
+  }
+  /* any flex box in this header that holds one of the three things the owner
+     named — logo, currency, cart — lays them out side by side */
+  header#masthead .elementor-element:has(> .elementor-widget-site-logo),
+  header#masthead .elementor-element:has(> .postero-woocs-action-hover),
+  header#masthead .elementor-element:has(> .elementor-widget-postero-header-group),
+  header#masthead .elementor-element:has(> .postero-woocs-action-hover) ,
+  header#masthead .e-con:has(.elementor-widget-postero-header-group) {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+  }
+  /* and none of them may be pinned to a width that forces a break */
+  header#masthead .elementor-widget-site-logo,
+  header#masthead .postero-woocs-action-hover,
+  header#masthead .elementor-widget-postero-header-group {
+    width: auto !important;
+    flex: 0 0 auto !important;
+  }
+
+  /* ── The insides of the currency and cart widgets ─────────────────────
+     Everything above lays out the widgets. This lays out what is INSIDE
+     them, which is the parent theme's markup and changes with state: a
+     signed-in visitor gets a different header group, and a cart with things
+     in it shows more than an empty one. The owner is signed in with five
+     items; every measurement here was signed out with none. Whatever those
+     widgets contain, it is laid out left to right on one line. */
+  header#masthead .elementor-header-group-wrapper,
+  header#masthead .site-header-cart,
+  header#masthead .site-header-cart > li,
+  header#masthead .site-header-cart .cart-contents,
+  header#masthead .postero-woocs-action-hover .elementor-widget-container,
+  header#masthead .elementor-widget-postero-header-group .elementor-widget-container,
+  header#masthead .mobile_navbar_inline_items .elementor-widget-container,
+  header#masthead .mobile_navbar_inline_items > .elementor-element {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: auto !important;
+    max-width: none !important;
+    float: none !important;
+    white-space: nowrap !important;
+  }
+  header#masthead .site-header-cart > li,
+  header#masthead .site-header-cart .count,
+  header#masthead .site-header-cart .amount {
+    display: inline-flex !important;
+    align-items: center !important;
+    margin: 0 !important;
+  }
+  /* a sub-menu that the parent theme opens on hover has no business in the
+     bar's row; it stays a dropdown */
+  header#masthead .site-header-cart .sub-menu,
+  header#masthead .site-header-cart .widget_shopping_cart {
+    display: none !important;
+  }
+
+  /* The cart's running total stays off the bar. Laying the cart's insides out
+     as one row made the amount visible where the theme had it wrapped out of
+     sight, so the cart went from 51px wide to 96px and read "(5)$300.00".
+     That pushed the logo down to 89x28 at 360px to make room. The badge says
+     how many; the total belongs in the cart, not the header. */
+  header#masthead .site-header-cart .amount,
+  header#masthead .site-header-cart .woocommerce-Price-amount,
+  header#masthead .site-header-cart bdi,
+  header#masthead .elementor-header-group-wrapper .amount,
+  header#masthead .elementor-header-group-wrapper .woocommerce-Price-amount {
+    display: none !important;
+  }
+
+  /* a fingertip's worth of everything that is pressed */
+  header#masthead .hfe-menu-item-space-between,
+  header#masthead .mobile_navbar_menu_dropdown,
+  header#masthead .postero-woocs-action-hover,
+  header#masthead .elementor-widget-postero-header-group {
+    min-height: 40px !important;
+    min-width: 40px !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+
+  /* The bar's own proportions. 14px gutters so nothing sits against the glass,
+     a 60px bar, and type that reads at arm's length — the currency was 12px,
+     which is this site's floor and looks undersized next to a 40px logo. */
+  header#masthead .elementor-element:has(> .mobile_navbar_inline_items) {
+    padding-left: 14px !important;
+    padding-right: 14px !important;
+    min-height: 60px !important;
+  }
+  header#masthead .postero-woocs-action-hover,
+  header#masthead .postero-woocs-action-hover span {
+    font-size: 13px !important;
+    letter-spacing: .01em !important;
+  }
+  header#masthead .site-header-cart .count,
+  header#masthead .elementor-header-group-wrapper .count {
+    font-size: 13px !important;
+    margin-left: 4px !important;
+  }
+  header#masthead .elementor-widget-site-logo img,
+  header#masthead .hfe-site-logo-img {
+    max-height: 40px !important;
+    width: auto !important;
+    height: auto !important;
+  }
+  /* the hamburger's widget box pushed it down with 14px of top padding; the
+     row centres it now, so that offset only makes it sit low */
+  header#masthead .hfe-menu-item-space-between .elementor-widget-container {
+    padding-top: 0 !important;
+  }
+  /* the two outer groups carried 10px of their own padding, which is what the
+     row's gutter is for */
+  header#masthead .elementor-element:has(> .mobile_navbar_menu_dropdown),
+  header#masthead .elementor-element:has(> .mobile_navbar_inline_items) > .elementor-element {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+}
