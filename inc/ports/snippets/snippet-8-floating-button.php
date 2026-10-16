@@ -354,12 +354,11 @@ class="af-toggle-icon">
             <div class="af-close" id="afCloseBtn" role="button" tabindex="0" aria-label="Close">✕</div>
 			<h2>Inaugural Offer</h2>
             <h3>Flat 40% OFF</h3>
-			<p>Become a part of our esteemed community. Share your valuable review on our GBM profile and we will be delighted to refund 15% of your first purchase as a gesture of appreciation.</p>
+			<p>Become a part of our esteemed community. Loved your art? We'd be grateful for an honest review on Google.</p>
             <div class="af-input-group">
                 <input type="email" placeholder="Enter your email">
-                <button>Save More Money*</button>				
+                <button>Save More Money</button>				
             </div>
-			<p class="short_node" style=" text-align: center;padding-top:10px; font-size:12px;">*Extra 15% OFF — T&C Apply</p>
         </div>
     </div>
 </div>
