@@ -105,16 +105,16 @@ function artframer_community_cta_shortcode() {
     </div>
 
     <script>
+        // The button promises a WhatsApp community, so it opens WhatsApp — the
+        // same number as the floating WhatsApp button. It used to open the mail
+        // client first, addressed to info@farmergmail.com, a domain that is not
+        // ours (16 Oct audit), and only then WhatsApp.
         function artframerJoinCommunity() {
-            window.location.href =
-                "mailto:info@farmergmail.com?subject=Join%20Community&body=Hello,%20I%20want%20to%20join%20your%20community.";
-
-            setTimeout(function () {
-                window.open(
-                    "https://wa.me/918107236836?text=Hello,%20I%20want%20to%20join%20your%20community.",
-                    "_blank"
-                );
-            }, 500);
+            window.open(
+                "https://wa.me/918107236836?text=Hello,%20I%20want%20to%20join%20your%20community.",
+                "_blank",
+                "noopener"
+            );
         }
     </script>
 
