@@ -10,10 +10,10 @@
  * nothing. The owner creates the pixel in Meta Events Manager (Data sources →
  * Add → Web), which takes a minute, and pastes the 15–16 digit ID.
  *
- * Consent. The script ships inert (type="text/plain" data-consent="marketing")
- * and inc/cookie-consent.php switches it on only when the visitor allows the
- * marketing category, the same gate the analytics tag uses. No noscript
- * image is printed: that would fire before consent.
+ * Loads for every visitor, owner's decision 16 Oct, the way the live GA4 tag
+ * (inc/ports/hfcm.php) already does: gated behind the cookie banner it would
+ * miss most US visitors, who never click it, and the Diwali ads could not
+ * learn from them. No noscript image: bots are filtered in the script.
  *
  * Events, all decided server-side so cached pages stay correct:
  *   PageView          every page
@@ -37,7 +37,7 @@ add_action('admin_init', function () {
     }));
     add_settings_field('af_meta_pixel_id', 'Meta Pixel ID', function () {
         echo '<input type="text" name="af_meta_pixel_id" value="' . esc_attr(af_meta_pixel_id()) . '" placeholder="15 or 16 digits" class="regular-text">'
-           . '<p class="description">From Meta Events Manager → Data sources. Loads only after the visitor allows marketing cookies. Sends PageView, ViewContent, AddToCart, InitiateCheckout and Purchase.</p>';
+           . '<p class="description">From Meta Events Manager → Data sources. Loads for every visitor (bots skipped). Sends PageView, ViewContent, AddToCart, InitiateCheckout and Purchase.</p>';
     }, 'general');
 });
 
@@ -73,6 +73,10 @@ function af_meta_pixel_page_events() {
         if (function_exists('is_order_received_page') && is_order_received_page()) {
             $order_id = absint(get_query_var('order-received'));
             $order = $order_id ? wc_get_order($order_id) : null;
+            // Only the order this visitor owns: the ?key= in the thank-you URL
+            // must match, as inc/analytics.php requires for GA4.
+            $key = isset($_GET['key']) && is_string($_GET['key']) ? wc_clean(wp_unslash($_GET['key'])) : '';
+            if ($order && ($key === '' || !hash_equals((string) $order->get_order_key(), $key))) $order = null;
             if ($order && !$order->get_meta('_af_fb_purchase_sent')) {
                 $ids = array(); $n = 0;
                 foreach ($order->get_items() as $item) {
@@ -110,5 +114,5 @@ add_action('wp_head', function () {
     foreach ($events as $e) $js .= "fbq('track'," . wp_json_encode($e[0]) . ',' . wp_json_encode($e[1]) . ');';
     $js .= "if(window.jQuery){jQuery(document.body).on('added_to_cart',function(){fbq('track','AddToCart',{currency:" . wp_json_encode($cur) . "});});}"
         . "}";
-    echo '<script type="text/plain" data-consent="marketing">' . $js . '</script>' . "\n";
+    echo '<script>' . $js . '</script>' . "\n";
 }, 12);   // after inc/analytics.php (4 and 11), which lifts the form-post add to cart out of the session
