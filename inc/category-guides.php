@@ -21,6 +21,10 @@
  *                         28.4), "buddha framed wall art" (12, 23.8), "buddha
  *                         wall art" (11, 34.3), "framed buddha prints" (7,
  *                         21.3), "buddha canvas painting" (6, 36.8)...
+ *   pichwai-art           67, 21.7. Over 90 days: "pichwai art" (39, pos ~33),
+ *                         "pichwai paintings" (5, 59.0), "pichwai frame" (4,
+ *                         16.2), "pichwai prints" (2, 37.0), "pichwai
+ *                         paintings on canvas" (2, 47.5)... Only 3 products.
  *
  * Per category: 'heading' replaces the H1 (af_archive_heading, see
  * inc/page-headings.php); 'title' replaces the Rank Math <title> (optional);
@@ -103,6 +107,28 @@ function af_cat_guides() {
             ),
             'related' => array('hindu-deities' => 'Hindu Gods', 'radha-krishna' => 'Radha Krishna', 'landscapes' => 'Landscapes',
                                'abstract-art' => 'Abstract art', 'living-room' => 'Living room', 'diy-floating-frames' => 'Floating frames'),
+        ),
+        'pichwai-art' => array(
+            'heading' => 'Pichwai Art & Paintings on Canvas',
+            'title'   => 'Pichwai Art & Pichwai Paintings on Canvas | Shrinathji Prints',
+            'intro'   => array(
+                '<strong>Pichwai art</strong> is the devotional painting tradition of Nathdwara in Rajasthan, made to hang behind the idol of Shrinathji, the child form of Lord Krishna. Our Pichwai paintings are high-resolution prints on canvas of Shrinathji, lotus and Krishna designs, for the pooja room, entrance or living room.',
+            ),
+            'faq_title' => 'Pichwai art guide &amp; FAQ',
+            'faq' => array(
+                array('What is Pichwai art?',
+                    'Pichwai, from the Hindi for "that which hangs at the back", is a centuries-old style of temple painting from Nathdwara, Rajasthan. Pichwai paintings show Shrinathji with lotuses, cows, gopis and festival scenes, in rich colors and fine detail, and were hung behind the deity in the temple.'),
+                array('Are these Pichwai paintings hand-painted?',
+                    'No. They are printed reproductions of Pichwai artwork on canvas, which keeps the detail and color of the style at a price that suits a home. Every print is made to order.'),
+                array('Where should I hang a Pichwai painting?',
+                    'Behind or beside the home mandir, as in the temple tradition, is the classic place. A large Pichwai also makes a striking focal wall in the living room or at the entrance.'),
+                array('Which size and framing can I choose?',
+                    'The designs here come in 3×4 ft and 3×2 ft; open a design to see every size. You choose how it arrives: the painting only (rolled canvas in a tube), on wooden stretcher bars with a DIY hanging kit, or stretched and finished in the frame you pick. For a Pichwai you already own, see our [[cat:diy-floating-frames|floating frames for canvas]].'),
+                array('Do you deliver across the USA?',
+                    'Yes. Every canvas is made to order and delivered across the USA; the delivery cost for your size and address is shown before you pay.'),
+            ),
+            'related' => array('radha-krishna' => 'Radha Krishna', 'hindu-deities' => 'Hindu Gods', 'indian-culture' => 'Indian Culture',
+                               'tirupati-balaji' => 'Tirupati Balaji', 'lakshmi-ganesha' => 'Lakshmi Ganesh', 'diy-floating-frames' => 'Floating frames'),
         ),
     );
 }
