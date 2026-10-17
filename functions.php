@@ -4184,6 +4184,27 @@ function af_studio_contact() {
 }
 
 /**
+ * The home page and /about/ still showed the old "+91 8107236836" and
+ * "info@farmergmail.com" (checked 17 Oct 2026). They live in an Elementor
+ * icon list in the database, not in theme code. The Google Business Profile
+ * (Hockessin, DE) is suspended and Google compares it with the website, so
+ * every Elementor render swaps them for the studio's US details. strtr()
+ * takes the longest match first, so tel:/mailto:/wa.me forms stay whole.
+ */
+add_filter('elementor/frontend/the_content', function ($html) {
+    if (strpos($html, '8107236836') === false && stripos($html, 'farmergmail') === false) return $html;
+    $c = af_studio_contact();
+    return strtr($html, array(
+        'mailto:info@farmergmail.com' => 'mailto:' . $c['email'],
+        'info@farmergmail.com'        => $c['email'],
+        'tel:+918107236836'           => $c['tel'],
+        'wa.me/918107236836'          => 'wa.me/' . $c['wa'],
+        '+91 8107236836'              => $c['phone'],
+        '+918107236836'               => $c['phone'],
+    ));
+}, 99);
+
+/**
  * How the site talks about payment — one source, for exactly the reason
  * af_shipping_copy() below has one.
  *
