@@ -25,6 +25,11 @@
  *                         "pichwai paintings" (5, 59.0), "pichwai frame" (4,
  *                         16.2), "pichwai prints" (2, 37.0), "pichwai
  *                         paintings on canvas" (2, 47.5)... Only 3 products.
+ *   abstract-art          63, 34.2. Over 90 days: "abstract canvas art" (31,
+ *                         pos 63.9), "abstract canvas print" (28, 31.9),
+ *                         "abstract canvas prints" (23, 42.3), "digital
+ *                         abstract wall art" (17, 28.2), "abstract wall art"
+ *                         (8, 57.1)... 50 products.
  *
  * Per category: 'heading' replaces the H1 (af_archive_heading, see
  * inc/page-headings.php); 'title' replaces the Rank Math <title> (optional);
@@ -129,6 +134,28 @@ function af_cat_guides() {
             ),
             'related' => array('radha-krishna' => 'Radha Krishna', 'hindu-deities' => 'Hindu Gods', 'indian-culture' => 'Indian Culture',
                                'tirupati-balaji' => 'Tirupati Balaji', 'lakshmi-ganesha' => 'Lakshmi Ganesh', 'diy-floating-frames' => 'Floating frames'),
+        ),
+        'abstract-art' => array(
+            'heading' => 'Abstract Canvas Art & Abstract Wall Art Prints',
+            'title'   => 'Abstract Canvas Art & Abstract Canvas Prints | Modern Wall Art',
+            'intro'   => array(
+                'Bold color, shape and texture for modern walls: our <strong>abstract canvas prints</strong> range from geometric and cubist designs to pop-art portraits and abstract takes on Ganesha, Radha Krishna and the Seven Horses. Order a canvas, ready to hang or framed, or, where offered, a <strong>digital abstract wall art</strong> file to print yourself.',
+            ),
+            'faq_title' => 'Abstract wall art guide &amp; FAQ',
+            'faq' => array(
+                array('What size abstract canvas should I choose?',
+                    'A good rule is art about two-thirds the width of the furniture below it. Most designs here are 3×4 ft, a statement size above a sofa, bed or desk; open a design to see every size it comes in.'),
+                array('Can I buy abstract wall art as a digital download?',
+                    'Yes, where a design offers it: choose <strong>Digital download</strong> to receive the high-resolution file and print it at home or at any print shop. Nothing is posted, so there is no delivery charge. More files are in our [[cat:printable-art|printable art]].'),
+                array('Does the canvas come framed?',
+                    'You choose on each design: the painting only (rolled canvas in a tube), on wooden stretcher bars with a DIY hanging kit, or stretched and finished in the frame you pick. For a canvas you already own, see our [[cat:diy-floating-frames|floating frames for canvas]].'),
+                array('Which abstract style suits my room?',
+                    'Geometric and teal or blue pieces suit modern living rooms and offices, warm amber and gold abstracts add energy to dining rooms and entryways, and pop-art portraits make a fun statement in a studio, game room or teen bedroom.'),
+                array('Do you deliver across the USA?',
+                    'Yes. Every canvas is made to order and delivered across the USA; the delivery cost for your size and address is shown before you pay.'),
+            ),
+            'related' => array('living-room' => 'Living room', 'landscapes' => 'Landscapes', 'wildlife' => 'Wildlife',
+                               'printable-art' => 'Printable art', 'extra-large-canvas-paintings' => 'Extra large canvas', 'diy-floating-frames' => 'Floating frames'),
         ),
     );
 }
