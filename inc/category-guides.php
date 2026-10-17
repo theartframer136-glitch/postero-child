@@ -17,6 +17,10 @@
  *                         (13, 12.4), "radha krishna art" (12, 18.5),
  *                         "radha krishna canvas" (9, 15.1), "radha krishna
  *                         print" (8, 7.9)...
+ *   buddha                107, 23.9. Over 90 days: "buddha canvas" (50, pos
+ *                         28.4), "buddha framed wall art" (12, 23.8), "buddha
+ *                         wall art" (11, 34.3), "framed buddha prints" (7,
+ *                         21.3), "buddha canvas painting" (6, 36.8)...
  *
  * Per category: 'heading' replaces the H1 (af_archive_heading, see
  * inc/page-headings.php); 'title' replaces the Rank Math <title> (optional);
@@ -77,6 +81,28 @@ function af_cat_guides() {
             ),
             'related' => array('hindu-deities' => 'Hindu Gods', 'lakshmi-ganesha' => 'Lakshmi Ganesh', 'pichwai-art' => 'Pichwai art',
                                'lord-shiva' => 'Lord Shiva', 'seven-horses' => '7 Horses (Vastu)', 'diy-floating-frames' => 'Floating frames'),
+        ),
+        'buddha' => array(
+            'heading' => 'Buddha Canvas Wall Art & Framed Prints',
+            'title'   => 'Buddha Canvas Wall Art & Framed Buddha Prints | The Art Framer',
+            'intro'   => array(
+                'Create a calm, mindful space with <strong>Buddha canvas wall art</strong>. Choose from golden, lotus, zen, waterfall and cosmic designs, mostly in a large 3×4 ft size, and pick how it arrives: rolled canvas, on stretcher bars ready to hang, or as a <strong>framed Buddha print</strong>.',
+            ),
+            'faq_title' => 'Buddha wall art guide &amp; FAQ',
+            'faq' => array(
+                array('Where should I hang Buddha wall art?',
+                    'Living rooms, bedrooms, meditation corners, yoga spaces and home offices all suit a Buddha painting. Many people hang it facing the entrance or in a quiet spot, at or above eye level, and keep it out of bathrooms and laundry areas as a mark of respect.'),
+                array('Which size Buddha canvas should I choose?',
+                    'Most designs here are 3×4 ft, a large statement piece for the wall above a sofa, bed or console. For a smaller wall or a meditation nook, open a design to see the other sizes it comes in.'),
+                array('Can I buy a framed Buddha print?',
+                    'Yes. On each design you choose how it arrives: the painting only (rolled canvas in a tube), the painting on wooden stretcher bars with a DIY hanging kit, or stretched and finished in the frame you pick. A digital download is offered too. For a canvas you already own, see our [[cat:diy-floating-frames|floating frames for canvas]].'),
+                array('Which Buddha design suits my room?',
+                    'Golden and lotus designs add warmth to living rooms and entryways, zen and soft teal pieces keep bedrooms and meditation rooms calm, and bold neon or cosmic Buddha art makes a modern statement in a studio or office.'),
+                array('Do you deliver across the USA?',
+                    'Yes. Every canvas is made to order and delivered across the USA; the delivery cost for your size and address is shown before you pay.'),
+            ),
+            'related' => array('hindu-deities' => 'Hindu Gods', 'radha-krishna' => 'Radha Krishna', 'landscapes' => 'Landscapes',
+                               'abstract-art' => 'Abstract art', 'living-room' => 'Living room', 'diy-floating-frames' => 'Floating frames'),
         ),
     );
 }
