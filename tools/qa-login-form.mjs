@@ -49,10 +49,18 @@ function keep(res) {
     if (i > 0) jar[kv.slice(0, i).trim()] = kv.slice(i + 1).trim();
   }
 }
+// redirects followed by hand, so a cookie set on the way (WooCommerce's basket
+// session on an add-to-cart redirect) is kept
 async function get(path) {
-  const res = await fetch(S + path, { headers: { 'User-Agent': UA, Cookie: cookies(), Accept: 'text/html' }, redirect: 'follow' });
-  keep(res);
-  return { status: res.status, html: await res.text() };
+  let url = S + path, res;
+  for (let hop = 0; hop < 6; hop++) {
+    res = await fetch(url, { headers: { 'User-Agent': UA, Cookie: cookies(), Accept: 'text/html' }, redirect: 'manual' });
+    keep(res);
+    const to = res.status >= 300 && res.status < 400 ? res.headers.get('location') : '';
+    if (!to) break;
+    url = new URL(to, url).toString();
+  }
+  return { status: res.status, html: await res.text(), url };
 }
 async function post(path, fields, follow = true) {
   const res = await fetch(S + path, {
@@ -229,7 +237,8 @@ async function browserChecks() {
       const before = cf;
       const has = await p.$('a.showlogin');
       if (MODE === 'on') {
-        check('browser: checkout: Cloudflare not fetched while the login form is folded', before === 0, { before });
+        if (!CO_ON) check('browser: checkout: Cloudflare not fetched while the login form is folded', before === 0, { before });
+        else check('browser: checkout: the folded login form is not drawn until opened', !!(await p.evaluate(() => { const s = window.afTsState && window.afTsState(); return s && !s.boxes.some(x => x.action === 'login' && !x.inPopup && x.drawn); })), { before });
         if (!has) check('browser: checkout: "Click here to login" link found', false);
         else {
           await p.click('a.showlogin');
@@ -248,8 +257,18 @@ async function browserChecks() {
           let s = null;
           for (let i = 0; i < 30; i++) { s = await p.evaluate(() => window.afTsState && window.afTsState()); if (s && s.boxes.some(x => x.action === 'checkout' && x.drawn)) break; await sleep(500); }
           for (let i = 0; i < 16; i++) { s = await p.evaluate(() => window.afTsState && window.afTsState()); if (s && s.boxes.some(x => x.action === 'checkout' && x.token)) break; await sleep(500); }
-          const cb = s && s.boxes.find(x => x.action === 'checkout');
-          check('browser: checkout: Place order box drawn by Cloudflare as the page opens', !!(cb && cb.drawn && cb.iframe), s);
+          // every checkout box on the page, where it sits (there must be exactly one in the checkout form;
+          // an Apple / Google Pay box appears only when someone reaches for those buttons)
+          const all = await p.evaluate(() => Array.prototype.map.call(document.querySelectorAll('.af-ts[data-action="checkout"]'), b => {
+            const par = b.parentElement, t = b.__afTs || {};
+            return { id: b.id || '', parent: par ? par.tagName.toLowerCase() + (par.id ? '#' + par.id : '') + (par.className && typeof par.className === 'string' ? '.' + par.className.trim().split(/\s+/).slice(0, 2).join('.') : '') : '', inForm: !!b.closest('form.checkout'), inSummary: !!b.closest('#order_review'), drawn: t.id !== null && t.id !== undefined, h: Math.round(b.getBoundingClientRect().height) };
+          }));
+          const page = await p.evaluate(() => ({ forms: document.querySelectorAll('form.checkout').length, summaries: document.querySelectorAll('#order_review').length, wallet: !!document.getElementById('wc-square-digital-wallet') }));
+          console.log('INFO  checkout boxes: ' + JSON.stringify(all) + ' | page: ' + JSON.stringify(page));
+          const inForm = all.filter(x => x.inForm);
+          const cb = s && s.boxes.find(x => x.action === 'checkout' && x.drawn);
+          check('browser: checkout: exactly one Place order box in the checkout form', inForm.length === 1, all);
+          check('browser: checkout: Place order box drawn by Cloudflare as the page opens', !!(inForm[0] && inForm[0].drawn && inForm[0].h >= 60), inForm[0] || all);
           check('browser: checkout: Place order box: no configuration error', !!(s && !s.errors.some(e => CONFIG_ERR.test(e))), s && s.errors);
           console.log(`INFO  headless Chrome was given a Place order token: ${cb && cb.token ? 'yes' : 'no'}${s && s.errors.length ? ' (Cloudflare codes: ' + s.errors.join(',') + ')' : ''}`);
         } else check('browser: checkout: no Place order box', !cb0, cb0);

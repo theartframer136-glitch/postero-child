@@ -444,7 +444,10 @@
   // from here.
   if (C.checkout) {
     Array.prototype.forEach.call(document.querySelectorAll('form.checkout'), function (form) {
-      var box = form.querySelector('.af-ts[data-action="checkout"]');
+      // one box only: any second copy (a theme that prints the hook twice) goes before anything is drawn
+      var found = form.querySelectorAll('.af-ts[data-action="checkout"]');
+      for (var i = 1; i < found.length; i++) if (found[i].parentNode) found[i].parentNode.removeChild(found[i]);
+      var box = found[0] || null;
       var rv = form.querySelector('#order_review');
       if (!box) box = window.afTsApi.box(rv || form, null, 'checkout', false);
       else if (rv && box.parentNode !== rv) rv.appendChild(box);

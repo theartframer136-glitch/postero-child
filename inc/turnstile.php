@@ -344,7 +344,10 @@ function af_checkout_brake_hit() {
 // is drawn as the page opens. (The script adds one there if a theme template
 // has no such hook.)
 add_action('woocommerce_checkout_after_order_review', function () {
-    if (af_turnstile_checkout_on()) af_turnstile_box('checkout', true, false, true);
+    static $done = false;   // once a page, even where a theme runs this hook twice
+    if ($done || !af_turnstile_checkout_on()) return;
+    $done = true;
+    af_turnstile_box('checkout', true, false, true);
 });
 add_action('woocommerce_after_checkout_validation', function ($data, $errors) {
     if (!is_wp_error($errors) || !af_turnstile_checkout_on()) return;
@@ -418,7 +421,10 @@ function af_turnstile_message_pay() {
         : __('The security check did not go through. Please press Pay for order again.', 'postero-child');
 }
 add_action('woocommerce_pay_order_before_submit', function () {
-    if (af_turnstile_checkout_on()) af_turnstile_box('pay', true, false, true);
+    static $done = false;
+    if ($done || !af_turnstile_checkout_on()) return;
+    $done = true;
+    af_turnstile_box('pay', true, false, true);
 });
 add_action('woocommerce_before_pay_action', function ($order) {
     if (!af_turnstile_checkout_on() || !($order instanceof WC_Order)) return;
