@@ -72,11 +72,14 @@ if ($front_id) {
 $shop_id = function_exists('wc_get_page_id') ? (int) wc_get_page_id('shop') : 0;
 if ($shop_id > 0) {
     $t = 'Shop Hindu God Paintings, Vastu Art & Canvas Prints | The Art Framer';
-    $d = 'Browse every canvas: Radha Krishna, Ganesha, Shiva, Balaji, 7 horses Vastu paintings, Buddha, abstract and more. Floating frames, ready to hang, shipped across the USA.';
+    $d = 'Browse every canvas: Radha Krishna, Ganesha, Shiva, Balaji, 7 horses Vastu paintings, Buddha, abstract and more. Rolled, stretched or framed, shipped across the USA.';
     // Replace an empty, generic, or this-script's-own earlier value; a
     // hand-written title stays.
     $ours_t = array('Shop Canvas Prints, Wall Art & Picture Frames | The Art Framer');
-    $ours_d = array('Browse the full Art Framer collection — canvas prints, personalized portraits, frames and studio accessories. Made to order, delivered anywhere in the USA.');
+    $ours_d = array(
+        'Browse the full Art Framer collection — canvas prints, personalized portraits, frames and studio accessories. Made to order, delivered anywhere in the USA.',
+        'Browse every canvas: Radha Krishna, Ganesha, Shiva, Balaji, 7 horses Vastu paintings, Buddha, abstract and more. Floating frames, ready to hang, shipped across the USA.',
+    );
     $generic_title = function ($cur) use ($ours_t) { return in_array($cur, $ours_t, true) || (stripos(trim($cur), 'shop') === 0 && mb_strlen(trim($cur)) < 30); };
     $generic_desc  = function ($cur) use ($ours_d) { return in_array($cur, $ours_d, true); };
     if ($set_meta($shop_id, 'rank_math_title', $t, $generic_title))      $log('shop page: title set');
@@ -185,57 +188,57 @@ $cat_map = array(
     'hindu-deities' => array(
         't' => 'Hindu God Paintings for Home & Pooja Room | Canvas Art',
         'd' => 'Canvas paintings of Ganesha, Lakshmi, Shiva, Durga, Ram and Krishna for your home mandir and walls. Ready to hang, many sizes, shipped across the USA.',
-        'i' => 'Hindu god paintings for Indian homes in the USA: Ganesha, Lakshmi, Shiva, Durga, Hanuman, Ram and more on museum-grade canvas with a floating frame, ready to hang in the living room or pooja room.',
+        'i' => 'Hindu god paintings for Indian homes in the USA: Ganesha, Lakshmi, Shiva, Durga, Hanuman, Ram and more on museum-grade canvas for the living room or pooja room, rolled, on stretcher bars or in a floating frame.',
     ),
     'radha-krishna' => array(
         't' => 'Radha Krishna Painting for Home | Canvas Wall Art USA',
         'd' => 'Shop Radha Krishna canvas paintings for your living room, bedroom or pooja room. Vibrant, ready-to-hang wall art shipped across the USA. A loved Diwali gift.',
-        'i' => 'Radha Krishna paintings on canvas for the living room, bedroom and pooja room: divine love in rich color, finished with a floating frame and shipped ready to hang anywhere in the USA. A favorite wedding, anniversary and Diwali gift.',
+        'i' => 'Radha Krishna paintings on canvas for the living room, bedroom and pooja room: divine love in rich color, printed to order and available rolled, on stretcher bars or in a floating frame, shipped anywhere in the USA. A favorite wedding, anniversary and Diwali gift.',
     ),
     'lakshmi-ganesha' => array(
         't' => 'Lakshmi Ganesh Painting for Diwali | Canvas Wall Art',
         'd' => 'Welcome prosperity this Diwali with Lakshmi Ganesh canvas wall art for your pooja room or entrance. Ready to hang and shipped across the USA. Order early.',
-        'i' => 'Lakshmi Ganesh paintings for prosperity and new beginnings: the Diwali and Griha Pravesh classic for the pooja room or entrance, on museum-grade canvas with a floating frame, shipped across the USA.',
+        'i' => 'Lakshmi Ganesh paintings for prosperity and new beginnings: the Diwali and Griha Pravesh classic for the pooja room or entrance, on museum-grade canvas, rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'seven-horses' => array(
         't' => '7 Horses Painting as per Vastu for Living Room & Office',
-        'd' => 'Seven running horses paintings as per Vastu for the living room and office: success, speed and prosperity on floating-frame canvas, shipped across the USA.',
-        'i' => '7 running horses paintings as per Vastu Shastra: hang one on the south or east wall of the living room or office, horses running into the room, for success and forward momentum. Museum-grade canvas, floating frame, shipped across the USA.',
+        'd' => 'Seven running horses paintings as per Vastu for the living room and office: success, speed and prosperity on canvas, rolled, stretched or framed, shipped across the USA.',
+        'i' => '7 running horses paintings as per Vastu Shastra: hang one on the south or east wall of the living room or office, horses running into the room, for success and forward momentum. Museum-grade canvas, rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'vaastu-art' => array(
         't' => 'Vastu Paintings for Living Room & Office | Canvas Art',
-        'd' => 'Vastu paintings for the home and office: seven horses, sacred symbols and prosperity art on canvas. Floating frames, ready to hang, shipped across the USA.',
+        'd' => 'Vastu paintings for the home and office: seven horses, sacred symbols and prosperity art on canvas. Rolled, stretched or framed, shipped across the USA.',
         'i' => 'Vastu paintings chosen for direction and meaning: seven running horses, sacred symbols and prosperity art for the living room, office and entrance, on museum-grade canvas shipped across the USA.',
     ),
     'lord-shiva' => array(
         't' => 'Lord Shiva Painting for Home | Mahadev Canvas Wall Art',
-        'd' => 'Lord Shiva and Mahadev canvas paintings for the living room, meditation space and pooja room. Floating frames, ready to hang, shipped across the USA.',
-        'i' => 'Lord Shiva paintings on canvas: meditating Mahadev, Nataraja and Shiva family for the living room, meditation corner or pooja room. Floating frame, ready to hang, shipped across the USA.',
+        'd' => 'Lord Shiva and Mahadev canvas paintings for the living room, meditation space and pooja room. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Lord Shiva paintings on canvas: meditating Mahadev, Nataraja and Shiva family for the living room, meditation corner or pooja room. Rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'tirupati-balaji' => array(
         't' => 'Tirupati Balaji Painting for Home | Venkateswara Wall Art',
-        'd' => 'Tirupati Balaji and Lord Venkateswara canvas paintings for the pooja room and living room. Floating frames, ready to hang, shipped across the USA.',
-        'i' => 'Tirupati Balaji paintings on canvas for the pooja room and living room: Lord Venkateswara in temple gold, with a floating frame, shipped ready to hang anywhere in the USA.',
+        'd' => 'Tirupati Balaji and Lord Venkateswara canvas paintings for the pooja room and living room. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Tirupati Balaji paintings on canvas for the pooja room and living room: Lord Venkateswara in temple gold, rolled, stretched or in a floating frame, shipped anywhere in the USA.',
     ),
     'lord-rama' => array(
         't' => 'Lord Ram Painting for Home & Pooja Room | Canvas Wall Art',
-        'd' => 'Shri Ram and Ram Darbar canvas paintings for the pooja room and living room. Floating frames, ready to hang, shipped across the USA.',
-        'i' => 'Lord Ram paintings on canvas, including Ram Darbar, for the pooja room, entrance and living room. Museum-grade canvas, floating frame, shipped across the USA.',
+        'd' => 'Shri Ram and Ram Darbar canvas paintings for the pooja room and living room. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Lord Ram paintings on canvas, including Ram Darbar, for the pooja room, entrance and living room. Museum-grade canvas, rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'buddha' => array(
         't' => 'Buddha Canvas Wall Art & Paintings for Living Room',
-        'd' => 'Serene Buddha canvas paintings for living rooms, meditation rooms and yoga spaces. Museum-grade canvas, floating frames, ready to hang, shipped across the USA.',
-        'i' => 'Buddha paintings on canvas for a calm living room, meditation corner or yoga space, finished with a floating frame and shipped ready to hang anywhere in the USA.',
+        'd' => 'Serene Buddha canvas paintings for living rooms, meditation rooms and yoga spaces. Museum-grade canvas, rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Buddha paintings on canvas for a calm living room, meditation corner or yoga space, printed to order and available rolled, on stretcher bars or in a floating frame, shipped anywhere in the USA.',
     ),
     'sikh-art' => array(
         't' => 'Sikh Art & Guru Nanak Paintings | Canvas Wall Art USA',
-        'd' => 'Sikh canvas art for the home: Guru Nanak Dev Ji, the Golden Temple and Ik Onkar. Floating frames, ready to hang, shipped across the USA.',
-        'i' => 'Sikh art on canvas: Guru Nanak Dev Ji, Harmandir Sahib and sacred symbols for the living room or prayer room, with a floating frame, shipped across the USA.',
+        'd' => 'Sikh canvas art for the home: Guru Nanak Dev Ji, the Golden Temple and Ik Onkar. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Sikh art on canvas: Guru Nanak Dev Ji, Harmandir Sahib and sacred symbols for the living room or prayer room, rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'swaminarayan' => array(
         't' => 'Swaminarayan Painting for Home | Canvas Wall Art USA',
-        'd' => 'Swaminarayan canvas paintings for the pooja room and living room. Floating frames, ready to hang, shipped across the USA.',
-        'i' => 'Swaminarayan paintings on museum-grade canvas for the home mandir and living room, with a floating frame, shipped across the USA.',
+        'd' => 'Swaminarayan canvas paintings for the pooja room and living room. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Swaminarayan paintings on museum-grade canvas for the home mandir and living room, rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'pichwai-art' => array(
         't' => 'Pichwai Painting Canvas Prints | Shrinathji Wall Art',
@@ -244,47 +247,47 @@ $cat_map = array(
     ),
     'indian-culture' => array(
         't' => 'Indian Culture Wall Art | Classical Dance & Heritage Canvas',
-        'd' => 'Indian culture on canvas: classical dancers, Tanjore and folk art for the living room and entrance. Floating frames, ready to hang, shipped across the USA.',
-        'i' => 'Indian heritage on canvas: Bharatanatyam and Kathak dancers, Tanjore-style art and folk motifs for the living room, dining room or entrance. Floating frame, shipped across the USA.',
+        'd' => 'Indian culture on canvas: classical dancers, Tanjore and folk art for the living room and entrance. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Indian heritage on canvas: Bharatanatyam and Kathak dancers, Tanjore-style art and folk motifs for the living room, dining room or entrance. Rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'christian-art' => array(
         't' => 'Christian Wall Art & Religious Canvas Paintings | USA',
-        'd' => 'Christian canvas paintings of Jesus, Mary and the saints for the living room and prayer corner. Floating frames, ready to hang, shipped across the USA.',
-        'i' => 'Christian art on canvas for the home: Jesus, the Madonna and the saints, finished with a floating frame and shipped ready to hang across the USA.',
+        'd' => 'Christian canvas paintings of Jesus, Mary and the saints for the living room and prayer corner. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Christian art on canvas for the home: Jesus, the Madonna and the saints, printed to order and available rolled, on stretcher bars or in a floating frame, shipped across the USA.',
     ),
     'wildlife' => array(
         't' => 'Wildlife Canvas Wall Art – Horses, Tigers, Peacocks | USA',
-        'd' => 'Wildlife canvas art for the living room and office: horses, tigers, elephants, peacocks and birds. Floating frames, ready to hang, shipped across the USA.',
-        'i' => 'Wildlife on canvas: horses, tigers, elephants and peacocks for the living room, office or kids room. Museum-grade canvas, floating frame, shipped across the USA.',
+        'd' => 'Wildlife canvas art for the living room and office: horses, tigers, elephants, peacocks and birds. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Wildlife on canvas: horses, tigers, elephants and peacocks for the living room, office or kids room. Museum-grade canvas, rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'landscapes' => array(
         't' => 'Landscape Canvas Wall Art for Living Room | The Art Framer',
-        'd' => 'Landscape canvas paintings: mountains, lakes, forests and Indian scenery for the living room and bedroom. Floating frames, ready to hang, shipped across the USA.',
-        'i' => 'Landscape art on canvas: mountains, lakes, forests and Indian scenery for the living room or bedroom, with a floating frame, shipped across the USA.',
+        'd' => 'Landscape canvas paintings: mountains, lakes, forests and Indian scenery for the living room and bedroom. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Landscape art on canvas: mountains, lakes, forests and Indian scenery for the living room or bedroom, rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'still-life' => array(
         't' => 'Still Life Canvas Wall Art – Florals & Vases | The Art Framer',
-        'd' => 'Still life canvas art: florals, vases and botanicals for the dining room, kitchen and living room. Floating frames, ready to hang, shipped across the USA.',
-        'i' => 'Still life on canvas: florals, vases and botanicals for the dining room, kitchen or living room, with a floating frame, shipped across the USA.',
+        'd' => 'Still life canvas art: florals, vases and botanicals for the dining room, kitchen and living room. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Still life on canvas: florals, vases and botanicals for the dining room, kitchen or living room, rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'living-room' => array(
         't' => 'Living Room Wall Art – Large Canvas Paintings | USA',
-        'd' => 'Large canvas wall art for the living room: statement pieces in 3×4 ft and bigger. Floating frames, ready to hang, shipped across the USA.',
-        'i' => 'Living room wall art sized for the sofa wall: statement canvases from 2×3 ft to 3×5 ft with a floating frame, shipped ready to hang across the USA.',
+        'd' => 'Large canvas wall art for the living room: statement pieces in 3×4 ft and bigger. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Living room wall art sized for the sofa wall: statement canvases from 2×3 ft to 3×5 ft, rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'kids-room' => array(
         't' => 'Kids Room Wall Art – Canvas Paintings for Children | USA',
-        'd' => 'Kids room canvas art: animals, fairy tales, space and playful scenes. Floating frames, ready to hang, shipped across the USA.',
-        'i' => 'Kids room wall art on canvas: animals, fairy tales and playful scenes with a floating frame, shipped ready to hang across the USA.',
+        'd' => 'Kids room canvas art: animals, fairy tales, space and playful scenes. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Kids room wall art on canvas: animals, fairy tales and playful scenes, rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'travel-art' => array(
         't' => 'Travel Canvas Wall Art – Cities & Journeys | The Art Framer',
-        'd' => 'Travel-themed canvas art of cities, coasts and journeys for the living room and office. Floating frames, ready to hang, shipped across the USA.',
-        'i' => 'Travel art on canvas: cities, coasts and journeys for the living room or office, with a floating frame, shipped across the USA.',
+        'd' => 'Travel-themed canvas art of cities, coasts and journeys for the living room and office. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Travel art on canvas: cities, coasts and journeys for the living room or office, rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'deals-discounts' => array(
         't' => 'Canvas Wall Art Deals & Discounts | The Art Framer',
-        'd' => 'Current deals on canvas wall art: Hindu god paintings, Vastu art, abstract and more at reduced prices. Floating frames, ready to hang, shipped across the USA.',
+        'd' => 'Current deals on canvas wall art: Hindu god paintings, Vastu art, abstract and more at reduced prices. Rolled, stretched or framed, shipped across the USA.',
         'i' => '',
     ),
     'corporate-printing' => array(
@@ -294,7 +297,7 @@ $cat_map = array(
     ),
     'home-decor-by-space' => array(
         't' => 'Wall Art by Room – Living Room, Kids Room, Café | USA',
-        'd' => 'Canvas wall art chosen by room: living room, kids room and café decor. Floating frames, ready to hang, shipped across the USA.',
+        'd' => 'Canvas wall art chosen by room: living room, kids room and café decor. Rolled, stretched or framed, shipped across the USA.',
         'i' => '',
     ),
     'gifts' => array(
@@ -325,6 +328,47 @@ $superseded = array(
     'Pichwai Painting Canvas Prints | Shrinathji Wall Art',
     'Serene Buddha canvas wall art for meditation rooms, yoga studios and calm living spaces. Premium archival prints, multiple sizes — USA shipping.',
     'Bring calm home with Buddha canvas art — serene, gallery-quality prints for meditation corners, yoga spaces and living rooms.',
+    // 22 Oct 2026: these said every piece comes "finished with a floating frame"
+    // and "ready to hang". A buyer can choose the painting only (shipped rolled),
+    // on stretcher bars with a DIY kit, or framed (inc/kit-choices.php), so the
+    // copy above now names all three. The old wording is listed so the next run
+    // replaces it.
+    'Hindu god paintings for Indian homes in the USA: Ganesha, Lakshmi, Shiva, Durga, Hanuman, Ram and more on museum-grade canvas with a floating frame, ready to hang in the living room or pooja room.',
+    'Radha Krishna paintings on canvas for the living room, bedroom and pooja room: divine love in rich color, finished with a floating frame and shipped ready to hang anywhere in the USA. A favorite wedding, anniversary and Diwali gift.',
+    'Lakshmi Ganesh paintings for prosperity and new beginnings: the Diwali and Griha Pravesh classic for the pooja room or entrance, on museum-grade canvas with a floating frame, shipped across the USA.',
+    'Seven running horses paintings as per Vastu for the living room and office: success, speed and prosperity on floating-frame canvas, shipped across the USA.',
+    '7 running horses paintings as per Vastu Shastra: hang one on the south or east wall of the living room or office, horses running into the room, for success and forward momentum. Museum-grade canvas, floating frame, shipped across the USA.',
+    'Vastu paintings for the home and office: seven horses, sacred symbols and prosperity art on canvas. Floating frames, ready to hang, shipped across the USA.',
+    'Lord Shiva and Mahadev canvas paintings for the living room, meditation space and pooja room. Floating frames, ready to hang, shipped across the USA.',
+    'Lord Shiva paintings on canvas: meditating Mahadev, Nataraja and Shiva family for the living room, meditation corner or pooja room. Floating frame, ready to hang, shipped across the USA.',
+    'Tirupati Balaji and Lord Venkateswara canvas paintings for the pooja room and living room. Floating frames, ready to hang, shipped across the USA.',
+    'Tirupati Balaji paintings on canvas for the pooja room and living room: Lord Venkateswara in temple gold, with a floating frame, shipped ready to hang anywhere in the USA.',
+    'Shri Ram and Ram Darbar canvas paintings for the pooja room and living room. Floating frames, ready to hang, shipped across the USA.',
+    'Lord Ram paintings on canvas, including Ram Darbar, for the pooja room, entrance and living room. Museum-grade canvas, floating frame, shipped across the USA.',
+    'Serene Buddha canvas paintings for living rooms, meditation rooms and yoga spaces. Museum-grade canvas, floating frames, ready to hang, shipped across the USA.',
+    'Buddha paintings on canvas for a calm living room, meditation corner or yoga space, finished with a floating frame and shipped ready to hang anywhere in the USA.',
+    'Sikh canvas art for the home: Guru Nanak Dev Ji, the Golden Temple and Ik Onkar. Floating frames, ready to hang, shipped across the USA.',
+    'Sikh art on canvas: Guru Nanak Dev Ji, Harmandir Sahib and sacred symbols for the living room or prayer room, with a floating frame, shipped across the USA.',
+    'Swaminarayan canvas paintings for the pooja room and living room. Floating frames, ready to hang, shipped across the USA.',
+    'Swaminarayan paintings on museum-grade canvas for the home mandir and living room, with a floating frame, shipped across the USA.',
+    'Indian culture on canvas: classical dancers, Tanjore and folk art for the living room and entrance. Floating frames, ready to hang, shipped across the USA.',
+    'Indian heritage on canvas: Bharatanatyam and Kathak dancers, Tanjore-style art and folk motifs for the living room, dining room or entrance. Floating frame, shipped across the USA.',
+    'Christian canvas paintings of Jesus, Mary and the saints for the living room and prayer corner. Floating frames, ready to hang, shipped across the USA.',
+    'Christian art on canvas for the home: Jesus, the Madonna and the saints, finished with a floating frame and shipped ready to hang across the USA.',
+    'Wildlife canvas art for the living room and office: horses, tigers, elephants, peacocks and birds. Floating frames, ready to hang, shipped across the USA.',
+    'Wildlife on canvas: horses, tigers, elephants and peacocks for the living room, office or kids room. Museum-grade canvas, floating frame, shipped across the USA.',
+    'Landscape canvas paintings: mountains, lakes, forests and Indian scenery for the living room and bedroom. Floating frames, ready to hang, shipped across the USA.',
+    'Landscape art on canvas: mountains, lakes, forests and Indian scenery for the living room or bedroom, with a floating frame, shipped across the USA.',
+    'Still life canvas art: florals, vases and botanicals for the dining room, kitchen and living room. Floating frames, ready to hang, shipped across the USA.',
+    'Still life on canvas: florals, vases and botanicals for the dining room, kitchen or living room, with a floating frame, shipped across the USA.',
+    'Large canvas wall art for the living room: statement pieces in 3×4 ft and bigger. Floating frames, ready to hang, shipped across the USA.',
+    'Living room wall art sized for the sofa wall: statement canvases from 2×3 ft to 3×5 ft with a floating frame, shipped ready to hang across the USA.',
+    'Kids room canvas art: animals, fairy tales, space and playful scenes. Floating frames, ready to hang, shipped across the USA.',
+    'Kids room wall art on canvas: animals, fairy tales and playful scenes with a floating frame, shipped ready to hang across the USA.',
+    'Travel-themed canvas art of cities, coasts and journeys for the living room and office. Floating frames, ready to hang, shipped across the USA.',
+    'Travel art on canvas: cities, coasts and journeys for the living room or office, with a floating frame, shipped across the USA.',
+    'Current deals on canvas wall art: Hindu god paintings, Vastu art, abstract and more at reduced prices. Floating frames, ready to hang, shipped across the USA.',
+    'Canvas wall art chosen by room: living room, kids room and café decor. Floating frames, ready to hang, shipped across the USA.',
 );
 if (!is_wp_error($terms)) {
     foreach ($terms as $term) {
