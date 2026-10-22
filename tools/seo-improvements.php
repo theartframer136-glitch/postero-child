@@ -114,8 +114,8 @@ foreach ($page_descs as $slug => $desc) {
 $cat_map = array(
     'all-art-prints' => array(
         't' => 'All Art Prints – Canvas Wall Art Collection | The Art Framer',
-        'd' => 'Explore every art print in one place — spiritual, abstract, nature and more, printed on premium canvas and shipped ready to hang across the USA.',
-        'i' => 'Every print in the studio, one collection — printed to order on archival canvas and shipped ready to hang anywhere in the USA.',
+        'd' => 'Explore every art print in one place — spiritual, abstract, nature and more, printed on premium canvas, rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Every print in the studio, one collection — printed to order on archival canvas, rolled, stretched or framed, shipped anywhere in the USA.',
     ),
     'gallery-prints' => array(
         't' => 'Gallery-Quality Art Prints | The Art Framer',
@@ -124,12 +124,12 @@ $cat_map = array(
     ),
     'digital-canvas-prints' => array(
         't' => 'Indian Canvas Wall Art & Spiritual Paintings | The Art Framer',
-        'd' => 'Explore Hindu deity, Vastu and Indian art canvas prints: Krishna, Ganesha, Balaji, Buddha, Pichwai and more. Ready to hang and shipped across the USA.',
-        'i' => 'Digital canvas prints across spiritual, abstract and nature themes — archival inks, multiple sizes, ready to hang.',
+        'd' => 'Explore Hindu deity, Vastu and Indian art canvas prints: Krishna, Ganesha, Balaji, Buddha, Pichwai and more. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Digital canvas prints across spiritual, abstract and nature themes — archival inks, multiple sizes, rolled, stretched or framed.',
     ),
     'buddha' => array(
         't' => 'Buddha Canvas Wall Art & Paintings for Living Room',
-        'd' => 'Calm, framed Buddha wall art for living rooms, bedrooms and meditation spaces. Large canvas prints, ready to hang, shipped across the USA.',
+        'd' => 'Calm Buddha wall art for living rooms, bedrooms and meditation spaces. Large canvas prints, rolled, stretched or framed, shipped across the USA.',
         'i' => 'Bring calm home with Buddha canvas art — serene, gallery-quality prints for meditation corners, yoga spaces and living rooms.',
     ),
     'abstract-art' => array(
@@ -187,17 +187,17 @@ $cat_map = array(
     // script's alone.
     'hindu-deities' => array(
         't' => 'Hindu God Paintings for Home & Pooja Room | Canvas Art',
-        'd' => 'Canvas paintings of Ganesha, Lakshmi, Shiva, Durga, Ram and Krishna for your home mandir and walls. Ready to hang, many sizes, shipped across the USA.',
+        'd' => 'Canvas paintings of Ganesha, Lakshmi, Shiva, Durga, Ram and Krishna for your home mandir and walls. Rolled, stretched or framed, shipped across the USA.',
         'i' => 'Hindu god paintings for Indian homes in the USA: Ganesha, Lakshmi, Shiva, Durga, Hanuman, Ram and more on museum-grade canvas for the living room or pooja room, rolled, on stretcher bars or in a floating frame.',
     ),
     'radha-krishna' => array(
         't' => 'Radha Krishna Painting for Home | Canvas Wall Art USA',
-        'd' => 'Shop Radha Krishna canvas paintings for your living room, bedroom or pooja room. Vibrant, ready-to-hang wall art shipped across the USA. A loved Diwali gift.',
+        'd' => 'Shop Radha Krishna canvas paintings for your living room, bedroom or pooja room: rolled, stretched or framed, shipped across the USA. A loved Diwali gift.',
         'i' => 'Radha Krishna paintings on canvas for the living room, bedroom and pooja room: divine love in rich color, printed to order and available rolled, on stretcher bars or in a floating frame, shipped anywhere in the USA. A favorite wedding, anniversary and Diwali gift.',
     ),
     'lakshmi-ganesha' => array(
         't' => 'Lakshmi Ganesh Painting for Diwali | Canvas Wall Art',
-        'd' => 'Welcome prosperity this Diwali with Lakshmi Ganesh canvas wall art for your pooja room or entrance. Ready to hang and shipped across the USA. Order early.',
+        'd' => 'Welcome prosperity this Diwali with Lakshmi Ganesh canvas art for your pooja room or entrance. Rolled, stretched or framed, shipped across the USA. Order early.',
         'i' => 'Lakshmi Ganesh paintings for prosperity and new beginnings: the Diwali and Griha Pravesh classic for the pooja room or entrance, on museum-grade canvas, rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'seven-horses' => array(
@@ -242,7 +242,7 @@ $cat_map = array(
     ),
     'pichwai-art' => array(
         't' => 'Pichwai Painting Canvas Prints | Shrinathji Wall Art',
-        'd' => 'Traditional Pichwai art of Shrinathji, cows and lotus on premium canvas. Bring Indian heritage to your home. Ready to hang, shipped across the USA.',
+        'd' => 'Traditional Pichwai art of Shrinathji, cows and lotus on premium canvas. Bring Indian heritage to your home. Rolled, stretched or framed, shipped across the USA.',
         'i' => 'Pichwai paintings of Shrinathji, cows and lotus ponds reproduced on museum-grade canvas for the living room or pooja room, shipped across the USA.',
     ),
     'indian-culture' => array(
@@ -369,6 +369,9 @@ $superseded = array(
     'Travel art on canvas: cities, coasts and journeys for the living room or office, with a floating frame, shipped across the USA.',
     'Current deals on canvas wall art: Hindu god paintings, Vastu art, abstract and more at reduced prices. Floating frames, ready to hang, shipped across the USA.',
     'Canvas wall art chosen by room: living room, kids room and café decor. Floating frames, ready to hang, shipped across the USA.',
+    'Explore every art print in one place — spiritual, abstract, nature and more, printed on premium canvas and shipped ready to hang across the USA.',
+    'Every print in the studio, one collection — printed to order on archival canvas and shipped ready to hang anywhere in the USA.',
+    'Digital canvas prints across spiritual, abstract and nature themes — archival inks, multiple sizes, ready to hang.',
 );
 if (!is_wp_error($terms)) {
     foreach ($terms as $term) {

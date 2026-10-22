@@ -9,6 +9,12 @@
  * Owner-approved copy, 2026-10-14. No page may promise free shipping:
  * the shop does not ship free (see af_shipping_copy()).
  *
+ * 2026-10-22, owner-approved: "ready to hang" and "framed" replaced by
+ * "rolled, stretched or framed" in the descriptions. A buyer can order the
+ * painting only (shipped rolled), on stretcher bars, or framed
+ * (inc/kit-choices.php), so the old wording promised more than every order
+ * gets. Titles are unchanged.
+ *
  * Before the first write, every target's current title and description
  * are saved once to the option af_seo_titles_2026_10_backup, so the
  * change can be undone with:
@@ -28,19 +34,19 @@ $OPT = 'af_seo_titles_2026_10_backup';
 // [kind, slug-or-path, title, description]
 $T = array(
     array('front', '', 'Hindu God Paintings & Indian Wall Art | The Art Framer',
-        'Radha Krishna, Ganesha, Balaji & 7 Horses canvas wall art for Indian homes in the USA. Ready to hang, many sizes. Perfect for Diwali & housewarming gifts.'),
+        'Radha Krishna, Ganesha, Balaji & 7 Horses canvas wall art for Indian homes in the USA. Rolled, stretched or framed. Perfect for Diwali & housewarming gifts.'),
     array('term', 'radha-krishna', 'Radha Krishna Painting for Home | Canvas Wall Art USA',
-        'Shop Radha Krishna canvas paintings for your living room, bedroom or pooja room. Vibrant, ready-to-hang wall art shipped across the USA. A loved Diwali gift.'),
+        'Shop Radha Krishna canvas paintings for your living room, bedroom or pooja room: rolled, stretched or framed, shipped across the USA. A loved Diwali gift.'),
     array('term', 'digital-canvas-prints', 'Indian Canvas Wall Art & Spiritual Paintings | The Art Framer',
-        'Explore Hindu deity, Vastu and Indian art canvas prints: Krishna, Ganesha, Balaji, Buddha, Pichwai and more. Ready to hang and shipped across the USA.'),
+        'Explore Hindu deity, Vastu and Indian art canvas prints: Krishna, Ganesha, Balaji, Buddha, Pichwai and more. Rolled, stretched or framed, shipped across the USA.'),
     array('term', 'hindu-deities', 'Hindu God Paintings for Home & Pooja Room | Canvas Art',
-        'Canvas paintings of Ganesha, Lakshmi, Shiva, Durga, Ram and Krishna for your home mandir and walls. Ready to hang, many sizes, shipped across the USA.'),
+        'Canvas paintings of Ganesha, Lakshmi, Shiva, Durga, Ram and Krishna for your home mandir and walls. Rolled, stretched or framed, shipped across the USA.'),
     array('term', 'lakshmi-ganesha', 'Lakshmi Ganesh Painting for Diwali | Canvas Wall Art',
-        'Welcome prosperity this Diwali with Lakshmi Ganesh canvas wall art for your pooja room or entrance. Ready to hang and shipped across the USA. Order early.'),
+        'Welcome prosperity this Diwali with Lakshmi Ganesh canvas art for your pooja room or entrance. Rolled, stretched or framed, shipped across the USA. Order early.'),
     array('term', 'buddha', 'Buddha Canvas Wall Art & Paintings for Living Room',
-        'Calm, framed Buddha wall art for living rooms, bedrooms and meditation spaces. Large canvas prints, ready to hang, shipped across the USA.'),
+        'Calm Buddha wall art for living rooms, bedrooms and meditation spaces. Large canvas prints, rolled, stretched or framed, shipped across the USA.'),
     array('term', 'pichwai-art', 'Pichwai Painting Canvas Prints | Shrinathji Wall Art',
-        'Traditional Pichwai art of Shrinathji, cows and lotus on premium canvas. Bring Indian heritage to your home. Ready to hang, shipped across the USA.'),
+        'Traditional Pichwai art of Shrinathji, cows and lotus on premium canvas. Bring Indian heritage to your home. Rolled, stretched or framed, shipped across the USA.'),
     array('term', 'diy-floating-frames', 'Canvas Floating Frames | Floater Frame Kits for Canvas',
         'DIY floating frames for stretched canvas in black, gold, silver and natural wood. Easy to assemble, many sizes, shipped across the USA.'),
     array('post', 'top-wall-decor-trends-in-2026', 'Top Wall Decor Trends 2026: Ideas for Every Room',
