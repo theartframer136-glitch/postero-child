@@ -117,6 +117,16 @@ echo '  orders (WooCommerce reads X-Real-IP / X-Forwarded-For first): ' . count(
 $over = 0; foreach ($cips as $ip) foreach ($oips as $oi) if ($ip !== '' && $ip === $oi) $over++;
 echo '  a guest comment address equal to an order address: ' . $over . "\n";
 
+echo "\n=== 6b. newest stored visitor addresses with their dates (af_visitor_ip at the time)\n";
+$subs = get_option('af_newsletter_subscribers', array());
+if (is_array($subs) && $subs) {
+    $tail = array_slice($subs, -15);
+    foreach (array_reverse($tail) as $x) echo '  newsletter ' . (isset($x['time']) ? $x['time'] : '?') . '  ' . $mask(isset($x['ip']) ? (string) $x['ip'] : '') . "\n";
+} else echo "  newsletter: none stored\n";
+if (function_exists('af_contact_table') && $wpdb->get_var("SHOW TABLES LIKE '" . af_contact_table() . "'")) {
+    foreach ($wpdb->get_results('SELECT created_at, ip, user_id FROM ' . af_contact_table() . ' ORDER BY id DESC LIMIT 15') as $x) echo '  contact    ' . $x->created_at . '  ' . $mask((string) $x->ip) . ($x->user_id ? ' (signed in)' : '') . "\n";
+}
+
 echo "\n=== 7. a check that does not read the cache: 11 made-up codes in a row\n";
 // the gift card box allows 10 wrong codes an hour per address; if the 11th
 // is refused as "too many", every probe was counted under ONE address (no
