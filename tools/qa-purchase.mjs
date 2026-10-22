@@ -322,9 +322,15 @@ if (MODE === 'payment') {
     await p.evaluate((id) => { const r = document.querySelector('.wc_payment_methods input[value="' + id + '"]'); if (r) { r.click(); if (window.jQuery) jQuery(r).trigger('change'); } }, m.id);
     await sleep(3500);
     const box = await p.evaluate((id) => { const li = document.querySelector('.wc_payment_methods li.payment_method_' + id) || [...document.querySelectorAll('.wc_payment_methods > li')].find(l => (l.querySelector('input') || {}).value === id);
-      const d = li ? li.querySelector('.payment_box') : null; return d ? { text: d.innerText.replace(/\s+/g, ' ').slice(0, 220), iframes: d.querySelectorAll('iframe').length, visible: d.offsetParent !== null } : null; }, m.id);
+      const d = li ? li.querySelector('.payment_box') : null;
+      // Cash App Pay has no iframe: Square draws its button inside a shadow root
+      const host = d ? d.querySelector('#cash_app_pay_v1_element > div') : null;
+      const cb = host && host.shadowRoot ? host.shadowRoot.querySelector('button') : null;
+      const cashBtn = cb ? Math.round(cb.getBoundingClientRect().width) + 'x' + Math.round(cb.getBoundingClientRect().height) : null;
+      return d ? { text: d.innerText.replace(/\s+/g, ' ').slice(0, 220), iframes: d.querySelectorAll('iframe').length, visible: d.offsetParent !== null, cashBtn } : null; }, m.id);
     console.log(`  [${m.id}] ${m.label} -> ` + JSON.stringify(box));
-    if (/square/i.test(m.id)) ok(box && box.iframes > 0, 'Square card form loads its secure card fields', box ? box.iframes + ' iframe(s)' : 'no box');
+    if (/cash_app/i.test(m.id)) ok(box && box.cashBtn && !/^0x|x0$/.test(box.cashBtn), 'Cash App Pay shows its button', box ? 'button ' + box.cashBtn : 'no box');
+    else if (/square/i.test(m.id)) ok(box && box.iframes > 0, 'Square card form loads its secure card fields', box ? box.iframes + ' iframe(s)' : 'no box');
   }
   // Square: an invalid card number must be refused in the form, never charged
   const sq = methods.find(m => /square_credit_card/i.test(m.id));
