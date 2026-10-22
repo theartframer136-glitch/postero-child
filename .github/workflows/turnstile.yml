@@ -66,7 +66,8 @@ jobs:
           chmod +x ~/ssh-site
 
       - name: The keys (present, well-formed, and the secret accepted by Cloudflare)
-        if: env.MODE != 'disable' && env.MODE != 'checkout-off'
+        # only when keys are being put on the site; the checkout switches use the keys it already has
+        if: env.MODE == 'enable' || env.MODE == 'status'
         run: |
           set -euo pipefail
           if [ -z "$TS_SITE" ] || [ -z "$TS_SECRET" ]; then
