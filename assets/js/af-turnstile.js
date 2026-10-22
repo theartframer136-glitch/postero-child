@@ -88,7 +88,18 @@
   function token(box) {
     var t = box.__afTs;
     if (!t || t.id === null || !window.turnstile) return '';
+    // a token left over from a long idle (a phone locked, a tab in the
+    // background, where the timers that renew it run late) is no token
+    try { if (window.turnstile.isExpired && window.turnstile.isExpired(t.id)) return ''; } catch (e) {}
     try { return window.turnstile.getResponse(t.id) || t.tok || ''; } catch (e) { return t.tok || ''; }
+  }
+  function expired(box) {
+    var t = box.__afTs;
+    try { return !!(t && t.id !== null && window.turnstile && window.turnstile.isExpired && window.turnstile.isExpired(t.id)); } catch (e) { return false; }
+  }
+  // a box the visitor has to tick, brought to where they can see it
+  function bring(box) {
+    try { box.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { try { box.scrollIntoView(); } catch (e2) {} }
   }
 
   function draw(box) {
@@ -113,7 +124,7 @@
         // refresh-expired: auto fetches the next one by itself
         'expired-callback': function () { t.tok = ''; },
         // a quiet box takes room only once Cloudflare shows its tick box
-        'before-interactive-callback': function () { t.interactive = true; box.classList.add('af-ts-shown'); if (t.hold) note(box, C.msg.tick); },
+        'before-interactive-callback': function () { t.interactive = true; box.classList.add('af-ts-shown'); if (t.hold) { note(box, C.msg.tick); bring(box); } },
         'after-interactive-callback': function () { t.interactive = false; },
         'error-callback': function (code) {
           t.tok = '';
@@ -141,7 +152,9 @@
   function hold(box, go) {
     var t = box.__afTs;
     t.hold = go;
+    if (expired(box)) { t.tok = ''; try { window.turnstile.reset(t.id); } catch (e) {} }
     note(box, t.interactive ? C.msg.tick : C.msg.wait);
+    if (t.interactive) bring(box);
     clearTimeout(t.timer);
     // a check still running after 8 s: send anyway and let the server answer,
     // unless the visitor is being asked to tick the box
@@ -217,6 +230,27 @@
         var r = xhr && xhr.responseJSON, msg = form.querySelector('.result-error');
         if (r && r.status === false && r.msg && msg) msg.textContent = r.msg;
       });
+    });
+  }
+
+  // Checkout (22 Oct): WooCommerce sends the order from its own jQuery submit
+  // handler, and payment methods start it with .trigger('submit') too (Square's
+  // Cash App Pay once the buyer approves in Cash App, even on the page it
+  // returns to; Square's card form once the card is read). Those never raise
+  // the native submit event above, so the wait is also asked on the event
+  // WooCommerce raises just before it posts: no token yet, nothing posted,
+  // and the order is sent by itself once the check has passed.
+  if (window.jQuery) {
+    window.jQuery('form.checkout').on('checkout_place_order', function () {
+      var form = this, box = form.querySelector('.af-ts[data-action="checkout"]');
+      if (!box || box.__afTsPass || blocked()) return true;
+      want(box);
+      if (token(box)) return true;
+      if (!box.__afTs.hold) hold(box, function () {
+        box.__afTsPass = true;
+        try { window.jQuery(form).trigger('submit'); } finally { box.__afTsPass = false; }
+      });
+      return false;
     });
   }
 
@@ -309,4 +343,14 @@
       errors: errors.slice()
     };
   };
+
+  // Checkout's box is printed after the order summary; a theme template
+  // without that hook gets one in the same place from here.
+  if (C.checkout) {
+    Array.prototype.forEach.call(document.querySelectorAll('form.checkout'), function (form) {
+      if (form.querySelector('.af-ts[data-action="checkout"]')) return;
+      var rv = form.querySelector('#order_review');
+      window.afTsApi.box(form, rv ? rv.nextSibling : null, 'checkout', true);
+    });
+  }
 })();

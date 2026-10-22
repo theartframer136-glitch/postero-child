@@ -4280,9 +4280,12 @@ function af_unavailable_gateways() {
     try {
         $available = WC()->payment_gateways->get_available_payment_gateways();
         if (!is_array($available)) return $missing;
+        $gc = function_exists('af_gc_cart_has_card') && af_gc_cart_has_card();
         foreach (WC()->payment_gateways->payment_gateways() as $id => $gw) {
             if (!isset($gw->enabled) || $gw->enabled !== 'yes') continue;
             if (isset($available[$id])) continue;
+            // left out for a gift card (said in the payment box), not because of the currency
+            if ($gc && function_exists('af_gc_offline_methods') && in_array($id, af_gc_offline_methods(), true)) continue;
             $t = trim(wp_strip_all_tags((string) $gw->get_title()));
             if ($t !== '') $missing[$t] = $t;
         }
@@ -9971,6 +9974,12 @@ add_action('woocommerce_checkout_create_order_line_item', function($item, $key, 
 // once the shop marks it Completed, after the money has arrived.
 function af_gc_offline_methods() { return array('cod', 'zelle', 'bacs', 'cheque'); }
 function af_gc_cart_has_card() {
+    // the "pay for this order" page pays an order, not the basket
+    if (function_exists('is_wc_endpoint_url') && is_wc_endpoint_url('order-pay')) {
+        $o = wc_get_order(absint(get_query_var('order-pay')));
+        if ($o) foreach ($o->get_items() as $item) { $g = $item->get_meta('_af_gc'); if (!empty($g['amount'])) return true; }
+        return false;
+    }
     if (!function_exists('WC') || !WC()->cart) return false;
     foreach (WC()->cart->get_cart() as $line) {
         if (!empty($line['af_gc']) || (int) $line['product_id'] === af_gc_product_id()) return true;
@@ -9983,6 +9992,14 @@ add_filter('woocommerce_available_payment_gateways', function ($gateways) {
     foreach (af_gc_offline_methods() as $id) unset($gateways[$id]);
     return $gateways;
 }, 20);
+// said where the payment methods are, so a buyer looking for Zelle or cash on
+// delivery knows why they are not there
+add_action('woocommerce_review_order_before_payment', function () {
+    if (!af_gc_cart_has_card()) return;
+    $off = false;
+    foreach (WC()->payment_gateways()->payment_gateways() as $id => $g) if (in_array($id, af_gc_offline_methods(), true) && $g->enabled === 'yes') $off = true;
+    if ($off) echo '<p class="af-gc-pay-note" style="margin:0 0 12px;font-size:13px;line-height:1.45;color:#555">' . esc_html__('Gift cards are paid by card or Cash App, so the code can be emailed as soon as the payment goes through. Zelle and cash on delivery are not offered for gift cards.', 'postero-child') . '</p>';
+});
 
 function af_gc_issue_for_order($order_id) {
     $order = wc_get_order($order_id);

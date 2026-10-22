@@ -285,7 +285,12 @@ function af_checkout_paused() {
     if ($ip === '' || (function_exists('af_ip_is_cloudflare') && af_ip_is_cloudflare($ip))) return false;
     return function_exists('af_rl_over') && af_rl_over(af_checkout_attempt_key($ip), 8, HOUR_IN_SECONDS, false);
 }
-add_action('woocommerce_checkout_after_customer_details', function () {
+// Right under the order summary and the Place order button, inside the
+// form but outside the parts WooCommerce redraws on every address change: if
+// Cloudflare ever asks for a tick, the box is where the buyer is looking.
+// (af-turnstile.js puts one in the same place if a theme template has no
+// such hook.)
+add_action('woocommerce_checkout_after_order_review', function () {
     if (af_turnstile_checkout_on()) af_turnstile_box('checkout', true, true);
 });
 add_action('woocommerce_after_checkout_validation', function ($data, $errors) {
@@ -307,20 +312,25 @@ add_action('woocommerce_checkout_order_processed', function () {
     af_rl_over(af_checkout_attempt_key($ip), 8, HOUR_IN_SECONDS);
 });
 
-// WooCommerce's REST checkout (/wp-json/wc/store/v1/checkout). The shop uses
-// the classic checkout and no order has ever come this way (22 Oct), so a
-// guest must send a passed token in an X-AF-Turnstile header, which today
-// nothing does: the second door to the same payment is closed to bots.
-add_filter('rest_pre_dispatch', function ($result, $server, $request) {
-    if ($result !== null || !af_turnstile_checkout_on() || is_user_logged_in()) return $result;
-    if (!in_array($request->get_method(), array('POST', 'PUT', 'PATCH'), true)) return $result;
-    if (!preg_match('#^/wc/store(?:/v\d+)?/checkout(?:/|$)#', (string) $request->get_route())) return $result;
-    $tok = trim((string) $request->get_header('x_af_turnstile'));
-    if ($tok !== '') {
-        $_POST['cf-turnstile-response'] = $tok;
-        if (af_turnstile_verify('checkout')) return $result;
+// WooCommerce's REST checkout (/wp-json/wc/store/v1/checkout, and
+// /checkout/{id}, which pays for an existing order). The shop uses the
+// classic checkout and no order has ever come this way (22 Oct), so it is
+// closed to everyone but shop managers: it was a second way to the same
+// payment with no human check, and a GET there makes a draft order and hands
+// back the key that pays for it. Recognised by the handler WordPress matched
+// (WooCommerce's own Checkout / CheckoutOrder routes), so no spelling of the
+// address (/Checkout, /CHECKOUT/12) and no /batch wrapper gets past it.
+function af_is_store_checkout_handler($handler, $request) {
+    $cb = isset($handler['callback']) ? $handler['callback'] : null;
+    $obj = is_array($cb) && isset($cb[0]) && is_object($cb[0]) ? $cb[0] : null;
+    foreach (array('Automattic\WooCommerce\StoreApi\Routes\V1\Checkout', 'Automattic\WooCommerce\StoreApi\Routes\V1\CheckoutOrder') as $c) {
+        if ($obj && class_exists($c, false) && $obj instanceof $c) return true;
     }
-    return new WP_Error('af_turnstile', af_turnstile_message(false), array('status' => 403));
+    return (bool) preg_match('#^/wc/store(?:/v\d+)?/checkout(?:/|$)#i', (string) $request->get_route());
+}
+add_filter('rest_request_before_callbacks', function ($response, $handler, $request) {
+    if (!af_turnstile_checkout_on() || !af_is_store_checkout_handler($handler, $request) || current_user_can('manage_woocommerce')) return $response;
+    return new WP_Error('af_checkout_route_closed', __('This shop takes orders on its checkout page.', 'postero-child'), array('status' => 403));
 }, 10, 3);
 
 /* ---- order tracking (/track-your-order/) ----
@@ -381,9 +391,10 @@ function af_turnstile_enqueue() {
     wp_add_inline_script('af-turnstile', 'window.afTs=' . wp_json_encode(array(
         'sitekey' => $k['site'],
         'lang'    => ($lang === '' || $lang === 'en') ? 'auto' : $lang,
+        'checkout' => af_turnstile_checkout_on(),
         'msg'     => array(
             'wait'    => __('One moment — finishing the security check…', 'postero-child'),
-            'tick'    => __('Please tick the security check above, then try again.', 'postero-child'),
+            'tick'    => __('Please tick the security check, then try again.', 'postero-child'),
             'blocked' => __('The security check could not load. Please allow challenges.cloudflare.com (an ad-blocker may be stopping it) or try another network, then reload the page.', 'postero-child'),
             'error'   => __('The security check ran into a problem. It will retry by itself; you can also reload the page.', 'postero-child'),
         ),

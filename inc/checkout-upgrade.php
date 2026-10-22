@@ -254,6 +254,27 @@ add_action('woocommerce_after_cart_table', function () {
     echo '<script>window.__afCoUpPlace&&window.__afCoUpPlace();</script>';
 }, 1);
 
+// The basket-reminder snapshot (inc/abandoned-cart.php) follows a change made
+// here, so its "return to your basket" link restores this choice, not the old
+// one beside it.
+function af_co_up_follow_capture() {
+    try {
+        if (is_user_logged_in() && function_exists('af_ac_capture_logged_in')) {
+            af_ac_capture_logged_in();
+        } elseif (function_exists('af_ac_capture') && WC()->session) {
+            // checkout's own refresh never stores the email, so the reminder
+            // capture keeps the one the guest typed in their session
+            $em = (string) WC()->session->get('af_ac_email');
+            // Only an address the capture itself took (after Cloudflare's
+            // check, inc/abandoned-cart.php) once the checkout check is on:
+            // the billing email in the session can be set by anyone without
+            // one, and reminders would then go to any address (review, 22 Oct).
+            $checked = function_exists('af_turnstile_checkout_on') && af_turnstile_checkout_on();
+            if ($em === '' && !$checked && WC()->customer) $em = (string) WC()->customer->get_billing_email();
+            if (is_email($em)) af_ac_capture($em, (string) WC()->session->get('af_ac_first'));
+        }
+    } catch (\Throwable $e) {}
+}
 // ── The request that changes the line ───────────────────────────────────────
 add_action('wc_ajax_af_co_upgrade', 'af_co_upgrade_handler');
 function af_co_upgrade_handler() {
@@ -313,20 +334,7 @@ function af_co_upgrade_handler() {
     // a signed-in shopper's saved basket (their account) follows too; WooCommerce
     // only saves it on its own add, remove and quantity changes
     if (is_user_logged_in() && method_exists($cart, 'persistent_cart_update')) $cart->persistent_cart_update();
-    // The basket-reminder snapshot (inc/abandoned-cart.php) follows the change,
-    // so its "return to your basket" link restores this choice, not the old one
-    // beside it.
-    try {
-        if (is_user_logged_in() && function_exists('af_ac_capture_logged_in')) {
-            af_ac_capture_logged_in();
-        } elseif (function_exists('af_ac_capture') && WC()->session) {
-            // checkout's own refresh never stores the email, so the reminder
-            // capture keeps the one the guest typed in their session
-            $em = (string) WC()->session->get('af_ac_email');
-            if ($em === '' && WC()->customer) $em = (string) WC()->customer->get_billing_email();
-            if (is_email($em)) af_ac_capture($em, (string) WC()->session->get('af_ac_first'));
-        }
-    } catch (\Throwable $e) {}
+    af_co_up_follow_capture();
     wp_send_json_success(array('kit' => $kit, 'key' => $new_key));
 }
 
