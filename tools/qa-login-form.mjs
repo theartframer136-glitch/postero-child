@@ -400,13 +400,20 @@ async function checkoutServerChecks() {
   await get('/?add-to-cart=' + prod.id);
   const co = await get('/checkout/?' + bust());
   const form = (co.html.match(/<form[^>]*class="[^"]*\bcheckout\b[\s\S]*?<\/form>/i) || [''])[0];
-  const box = form.match(/<div class="af-ts" data-action="checkout"[^>]*>/);
-  const after = form.indexOf('id="place_order"') > -1 && box && form.indexOf(box[0]) > form.indexOf('id="place_order"');
-  if (CO_ON) check('server: checkout: the visible box (as on the login page) in the checkout form, under Place order', !!box && !/interaction-only/.test(box[0]) && after, box ? box[0] : '(no box)');
-  else check('server: checkout: no checkout box', !/data-action="checkout"/.test(form), undefined);
+  // anywhere on the page: this theme runs the after-order-summary hook after the form closes, and the
+  // browser script moves the box under Place order before drawing it
+  const boxes = co.html.match(/<div class="af-ts" data-action="checkout"[^>]*>/g) || [];
+  const box = boxes[0] ? [boxes[0]] : null;
+  const after = co.html.indexOf('id="place_order"') > -1 && box && co.html.indexOf(box[0]) > co.html.indexOf('id="place_order"');
+  if (CO_ON) check('server: checkout: one visible box (as on the login page), printed after Place order', boxes.length === 1 && !/interaction-only/.test(box[0]) && after, { boxes: boxes.length, page: co.url ? co.url.replace(S, '') : '', form: form ? form.length : 0 });
+  else check('server: checkout: no checkout box', !/data-action="checkout"/.test(co.html), undefined);
   // Place order with every field filled but no token. "update totals": WooCommerce validates, never orders.
   const f = hidden(co.html, /class="[^"]*\bcheckout\b/) || {};
-  const pick = (re) => { const m = form.match(re); return m ? m[1] : ''; };
+  // the checkout nonce wherever it is printed (not only inside the form as extracted above)
+  const nm = co.html.match(/name="woocommerce-process-checkout-nonce"\s+value="([^"]+)"/) || co.html.match(/value="([^"]+)"\s+name="woocommerce-process-checkout-nonce"/);
+  if (nm) f['woocommerce-process-checkout-nonce'] = nm[1];
+  console.log(`INFO  server: checkout page ${co.status} ${co.url ? co.url.replace(S, '') : ''} | checkout form ${form ? form.length + ' chars' : 'not found'} | nonce ${nm ? 'found' : 'NOT found'} | cookies: ${Object.keys(jar).map(k => k.replace(/_[0-9a-f]{20,}$/, '_…')).join(', ')}`);
+  const pick = (re) => { const m = form.match(re) || co.html.match(re); return m ? m[1] : ''; };
   const fields = Object.assign({}, f, {
     billing_first_name: 'QA', billing_last_name: 'Turnstile', billing_company: '', billing_country: 'US',
     billing_address_1: '1 Main St', billing_address_2: '', billing_city: 'Wilmington', billing_state: 'DE',
@@ -416,7 +423,7 @@ async function checkoutServerChecks() {
   });
   const ship = pick(/name="shipping_method\[0\]"[^>]*value="([^"]+)"[^>]*checked/) || pick(/name="shipping_method\[0\]"[^>]*value="([^"]+)"/);
   if (ship) fields['shipping_method[0]'] = ship;
-  if (/name="terms-field"/.test(form)) { fields.terms = 'on'; fields['terms-field'] = '1'; }
+  if (/name="terms-field"/.test(co.html)) { fields.terms = 'on'; fields['terms-field'] = '1'; }
   const known = new Set(Object.keys(fields));
   const other = [...form.matchAll(/class="form-row[^"]*validate-required[^"]*" id="([a-z0-9_]+)_field"/gi)].map(m => m[1]).filter(n => !known.has(n) && !/^shipping_/.test(n));
   const r = await post('/?wc-ajax=checkout', fields);

@@ -444,13 +444,16 @@
   // from here.
   if (C.checkout) {
     Array.prototype.forEach.call(document.querySelectorAll('form.checkout'), function (form) {
-      // one box only: any second copy (a theme that prints the hook twice) goes before anything is drawn
-      var found = form.querySelectorAll('.af-ts[data-action="checkout"]');
+      // The box the server printed may be outside the form (this site's
+      // theme runs the after-order-summary hook after the form closes), so it
+      // is looked for on the whole page, the Apple / Google Pay box aside.
+      // One box only: any second copy goes before anything is drawn.
+      var found = Array.prototype.filter.call(document.querySelectorAll('.af-ts[data-action="checkout"]'), function (b) { return b.id !== 'af-ts-wallet'; });
       for (var i = 1; i < found.length; i++) if (found[i].parentNode) found[i].parentNode.removeChild(found[i]);
       var box = found[0] || null;
       var rv = form.querySelector('#order_review');
       if (!box) box = window.afTsApi.box(rv || form, null, 'checkout', false);
-      else if (rv && box.parentNode !== rv) rv.appendChild(box);
+      else if (rv ? box.parentNode !== rv : !form.contains(box)) (rv || form).appendChild(box);
       // started as the checkout page opens, so the token is ready when the
       // buyer is (a page Cash App returns to submits before anyone touches it)
       want(box);
