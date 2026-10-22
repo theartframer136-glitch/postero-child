@@ -6,7 +6,7 @@
  * Makes no changes, prints no secrets.
  */
 if (!defined('ABSPATH')) { fwrite(STDERR, "Run via wp eval-file\n"); exit(1); }
-$bad = '/^\s*(<p>)?\s*This (?:[^<]|<\/?(?:strong|b|em)>){0,500}? is a premium gallery-wrapped canvas print, handcrafted to order in our Delaware studio\.\s*(<\/p>)?\s*/u';
+$bad = '/^\s*(<p(?:\s[^>]*)?>)?\s*This (?:[^<]|<\/?(?:strong|b|em)>){0,500}? is a premium gallery-wrapped canvas print, handcrafted to order in our Delaware studio\.\s*(<\/p>)?\s*/u';
 foreach (array(8518, 8521, 8526, 8529) as $id) {
     $c = (string) get_post_field('post_content', $id);
     $pos = strpos($c, 'gallery-wrapped canvas print');
