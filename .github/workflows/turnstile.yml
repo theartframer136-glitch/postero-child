@@ -16,15 +16,19 @@ name: Turnstile
 #            cache cleared, and the run goes red.
 #   disable  switched off and the page cache cleared: every form is as before.
 #            The keys stay stored, so enable needs nothing new.
+#   checkout-off / checkout-on  (22 Oct) only the checks on checkout's Place
+#            order, the REST checkout and the email capture; every login,
+#            sign-up, contact and comment form stays checked. The quick way
+#            back if a buyer ever cannot get through checkout.
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'status, enable or disable'
+        description: 'status, enable, disable, checkout-off or checkout-on'
         required: true
         default: status
         type: choice
-        options: [status, enable, disable]
+        options: [status, enable, disable, checkout-off, checkout-on]
 # never alongside a deploy: both clear the page cache and write the site
 concurrency:
   group: deploy-production
@@ -60,7 +64,7 @@ jobs:
           chmod +x ~/ssh-site
 
       - name: The keys (present, well-formed, and the secret accepted by Cloudflare)
-        if: env.MODE != 'disable'
+        if: env.MODE != 'disable' && env.MODE != 'checkout-off'
         run: |
           set -euo pipefail
           if [ -z "$TS_SITE" ] || [ -z "$TS_SECRET" ]; then
@@ -123,8 +127,17 @@ jobs:
           ~/ssh-site "wp eval 'echo function_exists(\"af_turnstile_active\") && af_turnstile_active() ? \"STILL ON\" : \"switched off\";' --allow-root 2>/dev/null" | tee /tmp/off.txt
           grep -q "switched off" /tmp/off.txt
 
+      - name: Checkout's checks alone, off or on
+        if: env.MODE == 'checkout-off' || env.MODE == 'checkout-on'
+        run: |
+          set -euo pipefail
+          v=$([ "$MODE" = checkout-off ] && echo off || echo on)
+          ~/ssh-site "wp option update af_turnstile_checkout $v --autoload=yes --allow-root 2>&1 | tail -1"
+          ~/ssh-site "wp eval 'echo function_exists(\"af_turnstile_checkout_on\") && af_turnstile_checkout_on() ? \"checkout checked\" : \"checkout not checked\";' --allow-root 2>/dev/null" | tee /tmp/co.txt
+          if [ "$v" = on ]; then grep -q "checkout checked" /tmp/co.txt; else grep -q "checkout not checked" /tmp/co.txt; fi
+
       - name: Warm the entrance pages again (one at a time)
-        if: env.MODE != 'status'
+        if: env.MODE == 'enable' || env.MODE == 'disable'
         run: |
           set -uo pipefail
           ~/ssh-site "wp eval 'echo home_url(\"/\"), \"\n\", wc_get_page_permalink(\"shop\"), \"\n\", home_url(\"/login/\"), \"\n\", home_url(\"/sign-up/\"), \"\n\"; foreach (get_terms(array(\"taxonomy\" => \"product_cat\", \"hide_empty\" => true, \"number\" => 12, \"orderby\" => \"count\", \"order\" => \"DESC\")) as \$t) { \$l = get_term_link(\$t); if (is_string(\$l)) echo \$l, \"\n\"; }' --allow-root 2>/dev/null" > /tmp/warm.txt || true
@@ -141,7 +154,8 @@ jobs:
         run: |
           set -uo pipefail
           npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
-          if [ "$MODE" = enable ]; then want=on; else want=off; fi
+          if [ "$MODE" = disable ]; then want=off; else want=on; fi
+          export QA_CHECKOUT=$([ "$MODE" = checkout-off ] && echo off || echo on)
           NODE_PATH=/tmp/afh/node_modules node tools/qa-login-form.mjs "$want"
 
       - name: Something failed after switching on - switch off again

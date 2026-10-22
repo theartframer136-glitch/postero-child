@@ -9963,9 +9963,40 @@ add_action('woocommerce_checkout_create_order_line_item', function($item, $key, 
 }, 10, 3);
 
 // ── Issue codes when the order is paid ───────────────────────
+// Gift cards are paid before they are issued (22 Oct). WooCommerce puts a
+// cash-on-delivery order straight into "processing", and a gift card is
+// virtual, so a guest could get a real, emailed code without paying. Offline
+// methods are not offered for a cart that holds a gift card, and an order
+// paid offline (an older one, or one entered by hand) issues its codes only
+// once the shop marks it Completed, after the money has arrived.
+function af_gc_offline_methods() { return array('cod', 'zelle', 'bacs', 'cheque'); }
+function af_gc_cart_has_card() {
+    if (!function_exists('WC') || !WC()->cart) return false;
+    foreach (WC()->cart->get_cart() as $line) {
+        if (!empty($line['af_gc']) || (int) $line['product_id'] === af_gc_product_id()) return true;
+    }
+    return false;
+}
+add_filter('woocommerce_available_payment_gateways', function ($gateways) {
+    if (is_admin() && !wp_doing_ajax()) return $gateways;
+    if (!af_gc_cart_has_card()) return $gateways;
+    foreach (af_gc_offline_methods() as $id) unset($gateways[$id]);
+    return $gateways;
+}, 20);
+
 function af_gc_issue_for_order($order_id) {
     $order = wc_get_order($order_id);
     if (!$order || $order->get_meta('_af_gc_issued')) return;
+    if (in_array($order->get_payment_method(), af_gc_offline_methods(), true) && !$order->has_status('completed')) {
+        $has = false;
+        foreach ($order->get_items() as $item) { $g = $item->get_meta('_af_gc'); if (!empty($g['amount'])) { $has = true; break; } }
+        if ($has && !$order->get_meta('_af_gc_held_note')) {
+            $order->add_order_note('Gift card codes are held until payment arrives: mark this order Completed once it is paid, and the codes are generated and emailed then.');
+            $order->update_meta_data('_af_gc_held_note', 1);
+            $order->save();
+        }
+        return;
+    }
     global $wpdb;
     $issued = 0;
     foreach ($order->get_items() as $item) {

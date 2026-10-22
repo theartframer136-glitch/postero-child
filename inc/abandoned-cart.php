@@ -130,6 +130,9 @@ function af_ac_capture_handler() {
     $email = isset($_POST['email']) ? sanitize_email(wp_unslash($_POST['email'])) : '';
     $first = isset($_POST['first']) ? sanitize_text_field(wp_unslash($_POST['first'])) : '';
     if (!$email || !is_email($email)) wp_send_json_error();
+    // A capture can send three reminders to the address typed in, so guests
+    // pass Cloudflare's check first (22 Oct), with the capture's own box.
+    if (function_exists('af_turnstile_checkout_on') && af_turnstile_checkout_on() && function_exists('af_turnstile_require_ajax')) af_turnstile_require_ajax('capture');
     // Each capture can lead to three reminder emails to the address typed
     // in, so one connection may not hand in addresses without end (security
     // audit, 12 Oct): 5 an hour per address, 3 different addresses per session.
@@ -159,18 +162,44 @@ add_action('woocommerce_after_checkout_form', function() {
     <script>
     (function(){
       var sent = '', t;
+      function send(email, first, tok){
+        var body = new URLSearchParams();
+        body.set('action','af_ac_capture');
+        body.set('nonce', <?php echo wp_json_encode(wp_create_nonce('af_ac')); ?>);
+        body.set('email', email);
+        body.set('first', first);
+        if (tok) body.set('cf-turnstile-response', tok);
+        fetch(<?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>,
+              {method:'POST', credentials:'same-origin', body:body}).catch(function(){});
+      }
+      // Guests: Cloudflare's check first, in a box of its own, off-screen and
+      // outside the checkout form, so it never holds or spends Place order's
+      // token. No token (a tick wanted, or the script blocked): no capture.
+      function capBox(api){
+        var box = document.getElementById('af-ts-capture');
+        if (box) return box;
+        var wrap = document.createElement('div');
+        wrap.className = 'af-ts-offscreen';
+        wrap.setAttribute('aria-hidden', 'true');
+        document.body.appendChild(wrap);
+        box = api.box(wrap, null, 'capture', true);
+        box.id = 'af-ts-capture';
+        return box;
+      }
       function grab(){
         var e = document.getElementById('billing_email');
         var f = document.getElementById('billing_first_name');
         if (!e || !e.value || e.value === sent || e.value.indexOf('@') < 1) return;
         sent = e.value;
-        var body = new URLSearchParams();
-        body.set('action','af_ac_capture');
-        body.set('nonce', <?php echo wp_json_encode(wp_create_nonce('af_ac')); ?>);
-        body.set('email', e.value);
-        body.set('first', f ? f.value : '');
-        fetch(<?php echo wp_json_encode(admin_url('admin-ajax.php')); ?>,
-              {method:'POST', credentials:'same-origin', body:body}).catch(function(){});
+        var email = e.value, first = f ? f.value : '', api = window.afTsApi;
+        // no check on this page (logged in, or switched off): send as before
+        if (!api || !document.querySelector('form.checkout .af-ts')) { send(email, first, ''); return; }
+        var box = capBox(api);
+        api.ready(box, function(tok){
+          if (!tok) return;
+          api.reset(box);
+          send(email, first, tok);
+        });
       }
       document.addEventListener('change', function(ev){
         if (ev.target && ev.target.id === 'billing_email') { clearTimeout(t); t = setTimeout(grab, 400); }

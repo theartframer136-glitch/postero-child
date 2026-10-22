@@ -156,6 +156,10 @@ function af_turnstile_in_editor() {
 // invisible unless Cloudflare needs the visitor to tick it.
 function af_turnstile_box($action = 'login', $echo = true, $quiet = false) {
     if (!af_turnstile_active() || af_turnstile_in_editor()) return '';
+    // Logged-in customers are never asked, as the settings page promises, and
+    // the script is not loaded for them. wp-login.php is the exception: it
+    // loads the script for everyone and checks every login posted to it.
+    if (is_user_logged_in() && (isset($GLOBALS['pagenow']) ? $GLOBALS['pagenow'] : '') !== 'wp-login.php') return '';
     $html = '<div class="af-ts' . ($quiet ? ' af-ts-quiet' : '') . '" data-action="' . esc_attr($action) . '"'
           . ($quiet ? ' data-on-use="1" data-appearance="interaction-only"' : '')
           . ' role="group" aria-label="' . esc_attr__('Security check', 'postero-child') . '">'
@@ -167,7 +171,10 @@ function af_turnstile_box($action = 'login', $echo = true, $quiet = false) {
 // For the theme's own AJAX forms (contact, newsletter): answers the form's
 // script in the shape it reads, and ends the request, when the check fails.
 function af_turnstile_require_ajax($action) {
-    if (!af_turnstile_active() || af_turnstile_verify($action)) return;
+    // logged-in customers get no box and no script, so they are not asked
+    // (until 22 Oct they were refused on the contact form, the newsletters
+    // and the photo previews)
+    if (!af_turnstile_active() || is_user_logged_in() || af_turnstile_verify($action)) return;
     wp_send_json_error(array('message' => af_turnstile_message(false)));
 }
 
@@ -231,6 +238,110 @@ add_filter('preprocess_comment', function ($data) {
     wp_die(esc_html(af_turnstile_message(false)), esc_html__('Security check', 'postero-child'), array('response' => 403, 'back_link' => true));
 }, 5);
 
+/* ---- checkout: Place order (22 Oct) ----
+ * Guests only. A quiet box (invisible unless Cloudflare is unsure) inside
+ * form.checkout, after the address fields and outside the parts WooCommerce
+ * redraws on every change, so it survives address and shipping updates.
+ *
+ * Checked once per real attempt, in WooCommerce's own validation and only
+ * when every field is fine: a shopper fixing a typo keeps the same token.
+ * Tokens are single-use, so routes that run this validation without placing
+ * an order are left out: Square's card form first posts the order form to
+ * its own "checkout_handler" to validate it (it ends before any order or
+ * payment), then the real Place order follows with the same token. Square's
+ * Apple Pay / Google Pay route needs a real wallet, so it is not asked.
+ *
+ * Behind it, a brake on card testing: 8 attempts that reach payment in an
+ * hour from one address pause checkout there for an hour.
+ *
+ * Switch: option af_turnstile_checkout = off (turnstile.yml checkout-off)
+ * turns off the checkout and REST-checkout checks alone; logins stay checked.
+ */
+// The checkout box is invisible for most buyers, so "the check above the
+// button" would point at nothing: checkout says what to do instead.
+function af_turnstile_message_checkout() {
+    $missing = isset($GLOBALS['af_ts_reason']) && $GLOBALS['af_ts_reason'] === 'missing';
+    $text = $missing
+        ? __('The security check had not finished yet. Please wait a moment and press Place order again. If this keeps happening, your browser may be blocking challenges.cloudflare.com: allow it, or try another browser.', 'postero-child')
+        : __('The security check did not go through. Please press Place order again.', 'postero-child');
+    return '<span class="af-ts-msg">' . esc_html($text) . '</span>';
+}
+function af_turnstile_checkout_on() {
+    return af_turnstile_active() && get_option('af_turnstile_checkout', 'on') !== 'off';
+}
+function af_turnstile_checkout_skip_route() {
+    foreach ((array) (isset($GLOBALS['wp_current_filter']) ? $GLOBALS['wp_current_filter'] : array()) as $h) {
+        if (preg_match('/^wc_ajax_[a-z0-9_]+_checkout_handler$/', (string) $h)) return true;  // validation only
+        if ($h === 'wc_ajax_square_digital_wallet_process_checkout') return true;              // Apple / Google Pay
+    }
+    return false;
+}
+function af_checkout_attempt_key($ip) { return 'co|' . $ip; }
+function af_checkout_paused() {
+    $ip = function_exists('af_visitor_ip') ? af_visitor_ip() : '';
+    if ($ip === '' || (function_exists('af_ip_is_cloudflare') && af_ip_is_cloudflare($ip))) return false;
+    return function_exists('af_rl_over') && af_rl_over(af_checkout_attempt_key($ip), 8, HOUR_IN_SECONDS, false);
+}
+add_action('woocommerce_checkout_after_customer_details', function () {
+    if (af_turnstile_checkout_on()) af_turnstile_box('checkout', true, true);
+});
+add_action('woocommerce_after_checkout_validation', function ($data, $errors) {
+    if (!is_wp_error($errors) || af_turnstile_checkout_skip_route()) return;
+    if (af_checkout_paused()) {
+        $errors->add('af_checkout_paused', __('Several payment attempts came from this connection in the last hour, so checkout is paused here for an hour to protect cardholders. Please try again later, or contact us and we will help you place the order.', 'postero-child'));
+        return;
+    }
+    if (!af_turnstile_checkout_on() || is_user_logged_in() || $errors->has_errors()) return;
+    if (!af_turnstile_verify('checkout')) $errors->add('af_turnstile', af_turnstile_message_checkout());
+}, 20, 2);
+// every attempt that reaches payment counts, whatever the gateway answers
+add_action('woocommerce_checkout_order_processed', function () {
+    $ip = function_exists('af_visitor_ip') ? af_visitor_ip() : '';
+    if ($ip === '' || (function_exists('af_ip_is_cloudflare') && af_ip_is_cloudflare($ip)) || !function_exists('af_rl_over')) return;
+    af_rl_over(af_checkout_attempt_key($ip), 8, HOUR_IN_SECONDS);
+});
+
+// WooCommerce's REST checkout (/wp-json/wc/store/v1/checkout). The shop uses
+// the classic checkout and no order has ever come this way (22 Oct), so a
+// guest must send a passed token in an X-AF-Turnstile header, which today
+// nothing does: the second door to the same payment is closed to bots.
+add_filter('rest_pre_dispatch', function ($result, $server, $request) {
+    if ($result !== null || !af_turnstile_checkout_on() || is_user_logged_in()) return $result;
+    if (!in_array($request->get_method(), array('POST', 'PUT', 'PATCH'), true)) return $result;
+    if (!preg_match('#^/wc/store(?:/v\d+)?/checkout(?:/|$)#', (string) $request->get_route())) return $result;
+    $tok = trim((string) $request->get_header('x_af_turnstile'));
+    if ($tok !== '') {
+        $_POST['cf-turnstile-response'] = $tok;
+        if (af_turnstile_verify('checkout')) return $result;
+    }
+    return new WP_Error('af_turnstile', af_turnstile_message(false), array('status' => 403));
+}, 10, 3);
+
+/* ---- order tracking (/track-your-order/) ----
+ * Order number + billing email shows an order's items and addresses, and
+ * order numbers run in sequence. Guests pass the check; everyone gets 20
+ * lookups an hour per address. On a refusal the form comes back with what
+ * was typed and the reason, and no order is looked up.
+ */
+add_action('woocommerce_order_tracking_form', function () { af_turnstile_box('track'); });
+add_filter('pre_do_shortcode_tag', function ($out, $tag, $attr) {
+    if ($out !== false || $tag !== 'woocommerce_order_tracking' || !isset($_REQUEST['orderid'])) return $out;
+    $ip = function_exists('af_visitor_ip') ? af_visitor_ip() : '';
+    $why = '';
+    if (function_exists('af_rl_over') && $ip !== '' && af_rl_over('track|' . $ip, 20, HOUR_IN_SECONDS)) {
+        $why = __('Too many order lookups from this connection. Please try again in an hour, or contact us.', 'postero-child');
+    } elseif (af_turnstile_active() && !is_user_logged_in() && !af_turnstile_verify('track')) {
+        $why = af_turnstile_message(false);
+    }
+    if ($why === '') return $out;
+    // without its nonce WooCommerce shows the form again, filled in, and looks nothing up
+    unset($_REQUEST['woocommerce-order-tracking-nonce'], $_POST['woocommerce-order-tracking-nonce'], $_GET['woocommerce-order-tracking-nonce'], $_REQUEST['_wpnonce'], $_POST['_wpnonce'], $_GET['_wpnonce']);
+    ob_start();
+    wc_print_notice(esc_html($why), 'error');
+    echo WC_Shortcodes::order_tracking((array) $attr);
+    return ob_get_clean();
+}, 10, 3);
+
 /* ---- the Login | Register widget's own settings read these ---- */
 add_filter('pre_option_eael_cloudflare_turnstile_sitekey', function () {
     if (!af_turnstile_active()) return '';
@@ -280,7 +391,7 @@ function af_turnstile_enqueue() {
       . '.af-ts.af-ts-compact:not(.af-ts-ready){max-width:150px}'
       . '.af-ts.af-ts-quiet{min-height:0;margin:0}'
       . '.af-ts.af-ts-quiet:not(.af-ts-ready){border:0;background:none}'
-      . '.af-ts.af-ts-quiet.af-ts-ready:not(:empty){margin:8px 0 0}'
+      . '.af-ts.af-ts-quiet.af-ts-shown{margin:8px 0 0}'
       . '.af-f-newsform{flex-wrap:wrap}.af-f-newsform .af-ts{flex:0 0 100%}'
       // comment and review forms: the theme floats / inlines the form's children, and an empty floated box is 0 px wide
       . '.comment-form .af-ts,#commentform .af-ts{display:block;float:none;clear:both;width:100%;max-width:100%;box-sizing:border-box}'
@@ -289,6 +400,8 @@ function af_turnstile_enqueue() {
       . '.af-ts-note:empty{display:none}'
       . '.af-ts-note.af-ts-bad{color:#b32d2e}'
       . '#login form .af-ts{margin:6px 0 16px}'
+      // checkout's email capture: its own check, off-screen; skipped when Cloudflare would ask for a tick
+      . '.af-ts-offscreen{position:absolute!important;left:-10000px!important;top:auto!important;width:300px!important;height:1px!important;overflow:hidden!important}'
     );
 }
 add_action('wp_enqueue_scripts', function () {

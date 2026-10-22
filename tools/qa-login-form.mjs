@@ -13,6 +13,13 @@
  *   node tools/qa-login-form.mjs off   switched off: no box and no Cloudflare script anywhere,
  *                                      and the forms answer as they always did.
  *
+ * Checkout (22 Oct): Place order, WooCommerce's REST checkout, the order
+ * tracking page and the checkout's email capture. The Place order probe sends
+ * WooCommerce's "update totals" flag, with which WooCommerce runs every check
+ * but never creates an order, so no order can come of it whatever the answer.
+ * QA_CHECKOUT=off (turnstile.yml checkout-off): checkout, REST checkout and
+ * the email capture are expected open, every other form still checked.
+ *
  * Exit 1 when a check fails. Bot-detected codes from Cloudflare (300*, 600*)
  * are expected in a headless browser and do not fail a check.
  */
@@ -22,6 +29,8 @@ const S = process.env.QA_BASE || 'https://theartframer.us'; // QA_BASE: a test c
 const MODE = process.argv[2] === 'on' ? 'on' : 'off';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
 const MSG = /complete the security check above the button/i;
+const CO_MSG = /security check had not finished yet/i;
+const CO_ON = MODE === 'on' && process.env.QA_CHECKOUT !== 'off';
 const CONFIG_ERR = /^(1101|1102|4000)/; // 110100 110110 110200 400020 400021 400070
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 const bust = () => 'afqa=' + Date.now() + Math.floor(Math.random() * 1000);
@@ -231,6 +240,19 @@ async function browserChecks() {
           check('browser: checkout: box drawn when the login form opens', !!(s && s.boxes.some(x => x.action === 'login' && x.drawn)), s);
           check('browser: checkout: no configuration error from Cloudflare', s && !s.errors.some(e => CONFIG_ERR.test(e)), s && s.errors);
         }
+        // the Place order check (22 Oct): quiet, drawn when the shopper uses the form
+        const cb0 = await p.evaluate(() => { const b = document.querySelector('form.checkout .af-ts[data-action="checkout"]'); return b ? { quiet: b.classList.contains('af-ts-quiet'), inReview: !!b.closest('#order_review') } : null; });
+        if (CO_ON) {
+          check('browser: checkout: Place order box in the form, quiet, outside the order review', !!(cb0 && cb0.quiet && !cb0.inReview), cb0);
+          await p.click('#billing_first_name').catch(() => null);
+          let s = null;
+          for (let i = 0; i < 30; i++) { s = await p.evaluate(() => window.afTsState && window.afTsState()); if (s && s.boxes.some(x => x.action === 'checkout' && x.drawn)) break; await sleep(500); }
+          for (let i = 0; i < 16; i++) { s = await p.evaluate(() => window.afTsState && window.afTsState()); if (s && s.boxes.some(x => x.action === 'checkout' && x.token)) break; await sleep(500); }
+          const cb = s && s.boxes.find(x => x.action === 'checkout');
+          check('browser: checkout: Place order box drawn by Cloudflare on first use', !!(cb && cb.drawn), s);
+          check('browser: checkout: Place order box: no configuration error', !!(s && !s.errors.some(e => CONFIG_ERR.test(e))), s && s.errors);
+          console.log(`INFO  headless Chrome was given a Place order token: ${cb && cb.token ? 'yes' : 'no'}${s && s.errors.length ? ' (Cloudflare codes: ' + s.errors.join(',') + ')' : ''}`);
+        } else check('browser: checkout: no Place order box', !cb0, cb0);
       } else {
         const n = await p.evaluate(() => ({ boxes: document.querySelectorAll('.af-ts').length, cfg: typeof window.afTs }));
         check('browser: checkout: no box, no Cloudflare script', n.boxes === 0 && n.cfg === 'undefined' && cf === 0, { ...n, cf });
@@ -347,8 +369,65 @@ async function otherFormChecks() {
   }
 }
 
+/* ---------- checkout, REST checkout, order tracking, email capture (22 Oct) ---------- */
+async function checkoutServerChecks() {
+  const jsonOf = (t) => { try { return JSON.parse(t); } catch (e) { return null; } };
+  const pr = await fetch(S + '/wp-json/wc/store/v1/products?per_page=20&type=simple', { headers: { 'User-Agent': UA, Accept: 'application/json' } }).then(x => x.json()).catch(() => []);
+  const prod = (pr || []).find(x => x.is_purchasable && x.is_in_stock);
+  if (!prod) { check('server: checkout: a product to put in the basket', false); return; }
+  await get('/?add-to-cart=' + prod.id);
+  const co = await get('/checkout/?' + bust());
+  const form = (co.html.match(/<form[^>]*class="[^"]*\bcheckout\b[\s\S]*?<\/form>/i) || [''])[0];
+  const box = form.match(/<div class="af-ts[^"]*" data-action="checkout"[^>]*>/);
+  const review = (form.match(/<div id="order_review"[\s\S]*$/) || [''])[0];
+  if (CO_ON) check('server: checkout: one quiet box in the checkout form, outside the order review', !!box && /af-ts-quiet/.test(box[0]) && /data-appearance="interaction-only"/.test(box[0]) && !/data-action="checkout"/.test(review), box ? box[0] : '(no box)');
+  else check('server: checkout: no checkout box', !box, box ? box[0] : undefined);
+  // Place order with every field filled but no token. "update totals": WooCommerce validates, never orders.
+  const f = hidden(co.html, /class="[^"]*\bcheckout\b/) || {};
+  const pick = (re) => { const m = form.match(re); return m ? m[1] : ''; };
+  const fields = Object.assign({}, f, {
+    billing_first_name: 'QA', billing_last_name: 'Turnstile', billing_company: '', billing_country: 'US',
+    billing_address_1: '1 Main St', billing_address_2: '', billing_city: 'Wilmington', billing_state: 'DE',
+    billing_postcode: '19801', billing_phone: '3025550100', billing_email: 'qa-turnstile@example.com',
+    payment_method: pick(/name="payment_method"[^>]*value="([^"]+)"[^>]*checked/) || pick(/name="payment_method"[^>]*value="([^"]+)"/),
+    woocommerce_checkout_update_totals: '1',
+  });
+  const ship = pick(/name="shipping_method\[0\]"[^>]*value="([^"]+)"[^>]*checked/) || pick(/name="shipping_method\[0\]"[^>]*value="([^"]+)"/);
+  if (ship) fields['shipping_method[0]'] = ship;
+  if (/name="terms-field"/.test(form)) { fields.terms = 'on'; fields['terms-field'] = '1'; }
+  const known = new Set(Object.keys(fields));
+  const other = [...form.matchAll(/class="form-row[^"]*validate-required[^"]*" id="([a-z0-9_]+)_field"/gi)].map(m => m[1]).filter(n => !known.has(n) && !/^shipping_/.test(n));
+  const r = await post('/?wc-ajax=checkout', fields);
+  const j = jsonOf(r.html) || {};
+  const said = text(String(j.messages || '')).trim();
+  if (CO_ON) check('server: Place order without a token is refused with the checkout message (no order possible)', CO_MSG.test(said), said.slice(0, 200) || r.html.slice(0, 200) + (other.length ? ' | other required fields: ' + other.join(',') : ''));
+  else check('server: Place order without a token: no security-check message', !CO_MSG.test(said) && !MSG.test(said), said.slice(0, 200));
+  // the email capture
+  const nonce = pick(/body\.set\('nonce',\s*"([a-f0-9]+)"\)/) || (co.html.match(/body\.set\('nonce',\s*"([a-f0-9]+)"\)/) || [])[1] || '';
+  const c = await post('/wp-admin/admin-ajax.php', { action: 'af_ac_capture', nonce, email: 'qa-turnstile@example.com', first: 'QA' });
+  const cj = jsonOf(c.html);
+  if (!nonce) check('server: email capture: its nonce found on the checkout page', false);
+  else if (CO_ON) check('server: email capture refuses an address without a token', !!(cj && cj.success === false && MSG.test(cj.data?.message || '')), c.html.slice(0, 200));
+  else check('server: email capture answers without asking for the check', !!(cj && !MSG.test(cj.data?.message || '')), c.html.slice(0, 200));
+  // WooCommerce's REST checkout, as a guest with no header (refused before WooCommerce sees it)
+  const rr = await fetch(S + '/wp-json/wc/store/v1/checkout', { method: 'POST', headers: { 'User-Agent': UA, Accept: 'application/json', 'Content-Type': 'application/json', Cookie: cookies() }, body: JSON.stringify({ billing_address: { email: 'qa-turnstile@example.com' }, payment_method: 'cod' }) });
+  const rj = jsonOf(await rr.text()) || {};
+  if (CO_ON) check('server: REST checkout refuses a guest without a token (403)', rr.status === 403 && rj.code === 'af_turnstile', { status: rr.status, code: rj.code });
+  else check('server: REST checkout: not refused by the security check', rj.code !== 'af_turnstile', { status: rr.status, code: rj.code });
+  // order tracking: no such order, so even a lookup would find nothing
+  const tp = await get('/track-your-order/?' + bust());
+  const tbox = /<div class="af-ts[^"]*" data-action="track"/.test(tp.html);
+  if (MODE === 'on') {
+    check('server: order tracking: box on the form', tbox);
+    const tf = hidden(tp.html, /track_order|woocommerce-form-track-order/) || {};
+    const t = await post('/track-your-order/', Object.assign({}, tf, { orderid: '1', order_email: 'qa-turnstile@example.com', track: 'Track' }));
+    check('server: order tracking refuses a lookup without a token, form kept', MSG.test(text(t.html)) && /name="orderid"/.test(t.html), text(t.html).match(/.{0,60}security check.{0,60}/i)?.[0] || '(no message)');
+  } else check('server: order tracking: no box', !tbox);
+}
+
 console.log(`=== Turnstile ${MODE.toUpperCase()}: forms checked on ${S}`);
 await serverChecks().catch(e => check('server checks ran', false, String(e && e.stack || e)));
+await checkoutServerChecks().catch(e => check('checkout server checks ran', false, String(e && e.stack || e)));
 if (process.env.QA_ONLY !== 'server') await browserChecks().catch(e => check('browser checks ran', false, String(e && e.stack || e)));
 if (process.env.QA_ONLY !== 'server') await otherFormChecks().catch(e => check('other form checks ran', false, String(e && e.stack || e)));
 console.log(`=== ${fails ? fails + ' FAILED' : 'all passed'}`);

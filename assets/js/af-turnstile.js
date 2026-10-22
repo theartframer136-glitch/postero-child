@@ -10,6 +10,11 @@
  * and sent by itself the moment the check passes. A form is never blocked when
  * Cloudflare's script cannot load: the server then answers with its message.
  *
+ * Checkout (22 Oct): a quiet box in form.checkout; it is reset after every
+ * refused Place order. The checkout's email capture (inc/abandoned-cart.php)
+ * uses a box of its own, off-screen and outside the form, so it can never
+ * hold or spend the token Place order needs.
+ *
  * window.__afTsErrors and window.afTsState() are read by tools/qa-login-form.mjs.
  */
 (function () {
@@ -107,7 +112,8 @@
         callback: function (tok) { t.tok = tok; t.interactive = false; note(box, ''); release(box, false); },
         // refresh-expired: auto fetches the next one by itself
         'expired-callback': function () { t.tok = ''; },
-        'before-interactive-callback': function () { t.interactive = true; if (t.hold) note(box, C.msg.tick); },
+        // a quiet box takes room only once Cloudflare shows its tick box
+        'before-interactive-callback': function () { t.interactive = true; box.classList.add('af-ts-shown'); if (t.hold) note(box, C.msg.tick); },
         'after-interactive-callback': function () { t.interactive = false; },
         'error-callback': function (code) {
           t.tok = '';
@@ -210,6 +216,18 @@
         if (t && t.id !== null && window.turnstile) { t.tok = ''; try { window.turnstile.reset(t.id); } catch (e) {} }
         var r = xhr && xhr.responseJSON, msg = form.querySelector('.result-error');
         if (r && r.status === false && r.msg && msg) msg.textContent = r.msg;
+      });
+    });
+  }
+
+  // Checkout (22 Oct): after a refused Place order the next attempt needs a
+  // fresh token (each is good for one check), so the checkout box starts a
+  // new one at once; quiet boxes do this without the shopper seeing it.
+  if (window.jQuery) {
+    window.jQuery(document.body).on('checkout_error', function () {
+      Array.prototype.forEach.call(document.querySelectorAll('form.checkout .af-ts'), function (box) {
+        var t = box.__afTs;
+        if (t && t.id !== null && window.turnstile) { t.tok = ''; try { window.turnstile.reset(t.id); } catch (e) {} }
       });
     });
   }
