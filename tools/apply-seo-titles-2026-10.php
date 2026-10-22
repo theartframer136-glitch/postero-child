@@ -48,7 +48,7 @@ $T = array(
     array('term', 'pichwai-art', 'Pichwai Painting Canvas Prints | Shrinathji Wall Art',
         'Traditional Pichwai art of Shrinathji, cows and lotus on premium canvas. Bring Indian heritage to your home. Rolled, stretched or framed, shipped across the USA.'),
     array('term', 'diy-floating-frames', 'Canvas Floating Frames | Floater Frame Kits for Canvas',
-        'DIY floating frames for stretched canvas in black, gold, silver and natural wood. Easy to assemble, many sizes, shipped across the USA.'),
+        'DIY floating frames for stretched canvas in black, silver, gold and rose gold, from $24. Easy to assemble, five sizes, shipped across the USA.'),
     array('post', 'top-wall-decor-trends-in-2026', 'Top Wall Decor Trends 2026: Ideas for Every Room',
         'The biggest wall decor trends of 2026, from oversized canvas and spiritual art to gallery walls, with ideas for living rooms, bedrooms and pooja rooms.'),
     array('post', 'best-online-canvas-printing-service-near-delaware', 'Best Online Canvas Printing Near Delaware (2026 Guide)',

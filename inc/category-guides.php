@@ -45,23 +45,40 @@
 if (!defined('ABSPATH')) exit;
 
 function af_cat_guides() {
+    // Floating frame prices, read from the same rule the cart charges
+    // (inc/aluminium-frame-pricing.php), so the guide can never quote a
+    // different figure: "2×3 ft $24, … 3×5 ft $60".
+    $fp = ''; $rate = '$4';
+    if (function_exists('af_alu_size_prices') && function_exists('af_alu_rate_sqft') && function_exists('wc_price')) {
+        $rate = html_entity_decode(wp_strip_all_tags(wc_price(af_alu_rate_sqft())), ENT_QUOTES, 'UTF-8');
+        $bits = array();
+        foreach (af_alu_size_prices() as $size => $pair) {
+            $bits[] = preg_replace('/\s*\(.*$/', '', $size) . ' ' . html_entity_decode(wp_strip_all_tags(wc_price($pair[0])), ENT_QUOTES, 'UTF-8');
+        }
+        $fp = implode(', ', $bits);
+    }
+
     return array(
         'diy-floating-frames' => array(
             'heading' => 'Floating Frames for Canvas',
             'intro'   => array(
-                'A <strong>floating frame</strong> (or floater frame) holds a stretched canvas with a slim shadow gap around it, so the art seems to float inside the frame. Our DIY floating frame kits for canvas come in <strong>black, white, natural wood and gold</strong> and are made to your canvas size.',
-                'Pick a style below and press <strong>Enquire</strong> with your canvas width, height and depth for a quote.',
+                'A <strong>floating frame</strong> (or floater frame) holds a stretched canvas with a slim shadow gap around it, so the art seems to float inside the frame. Our DIY floating frame kits for canvas come in <strong>black, silver, gold and rose gold</strong>.',
+                'Priced by size' . ($fp !== '' ? ': <strong>' . esc_html($fp) . '</strong>' : '') . '. Pick a style below, choose your size and color, and add it to your cart.',
             ),
             'faq_title' => 'Floating frame guide &amp; FAQ',
             'faq' => array(
                 array('What is a floating frame for canvas?',
                     'A floating frame, also called a floater frame, holds a stretched canvas from behind and leaves a narrow shadow gap between the edge of the canvas and the frame. The painting looks as if it floats inside the frame, and the whole canvas, edges included, stays on show.'),
                 array('Which canvases does a floating frame fit?',
-                    'Floating frames are made for stretched, gallery-wrapped canvas. Measure the width, height and depth (thickness) of your canvas and send them with your enquiry so the frame is made to fit. If your canvas is not stretched yet, see our [[cat:canvas-stretcher-bars|canvas stretcher bars]].'),
+                    'Floating frames are made for stretched, gallery-wrapped canvas. Choose the size that matches your canvas: the frame size is the canvas size. If your canvas is not stretched yet, see our [[cat:canvas-stretcher-bars|canvas stretcher bars]].'),
+                array('How much does a floating frame cost?',
+                    'The price is set by the size of your canvas, at ' . $rate . ' a square foot' . ($fp !== '' ? ': ' . esc_html($fp) : '') . '. Every color costs the same, and the price is shown before you add the frame to your cart.'),
                 array('Which frame color should I choose?',
-                    'Black suits modern and colorful art, white keeps light and minimal rooms airy, natural wood adds warmth, and gold is a favorite for devotional and traditional paintings such as Radha Krishna, Lakshmi Ganesh or Pichwai art.'),
+                    'Black suits modern and colorful art, silver keeps light and minimal rooms clean, and gold or rose gold are favorites for devotional and traditional paintings such as Radha Krishna, Lakshmi Ganesh or Pichwai art.'),
                 array('How do I order a floating frame in my size?',
-                    'Choose a frame below and press <strong>Enquire</strong>, or [[contact|contact us]], with your canvas size and the color you want, and we will reply with a quote. Prefer art that arrives ready to hang? Browse our [[cat:standard-framed-canvas|framed canvas prints]] and [[cat:extra-large-canvas-paintings|extra large canvas paintings]].'),
+                    'Open a frame below, choose your canvas size and color, and add it to your cart. Need a size that is not listed? [[contact|Contact us]] with your canvas width, height and depth. Prefer art that comes framed? Browse our [[cat:standard-framed-canvas|framed canvas prints]] and [[cat:extra-large-canvas-paintings|extra large canvas paintings]].'),
+                array('Is a DIY floating frame hard to assemble?',
+                    'No. It is a do-it-yourself kit made for home assembly: put the frame together and fit your stretched canvas inside it. If anything is unclear, [[contact|contact us]] and we will help.'),
                 array('Do you deliver across the USA?',
                     'Yes. Frames are made to order and delivered across the USA; the delivery cost for your size and address is shown before you pay.'),
             ),
