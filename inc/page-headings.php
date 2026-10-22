@@ -93,6 +93,8 @@ add_action('woocommerce_archive_description', function () {
         if (is_product_taxonomy()) {
             $term = get_queried_object();
             $name = ($term && isset($term->name)) ? trim(wp_strip_all_tags($term->name)) : '';
+            // a category may ask for a heading worded the way people search (inc/floating-frames-page.php)
+            $name = trim((string) apply_filters('af_archive_heading', $name, $term));
             if ($name === '') return;
             $html = '<h1 class="af-archive-title">' . esc_html($name) . '</h1>';
         } elseif (is_search()) {

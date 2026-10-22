@@ -1,0 +1,502 @@
+    /* ── Tablets & phones (≤ 781px) ── */
+    @media (max-width: 781px){
+      html{ -webkit-text-size-adjust: 100%; }
+      /* Kill horizontal scroll without breaking the sticky header (clip keeps sticky) */
+      body{ overflow-x: clip; }
+      /* Media never overflows its container */
+      img, svg{ max-width: 100% !important; height: auto !important; }
+
+      /* ── GOLD FOILED & UV, AND EXCLUSIVELY CUSTOMISED CREATIONS ───────
+         Both bands are the same tile grid, and both were ragged on a phone:
+         one column running far below the other, rows not lining up, big
+         gaps of white between them.
+
+         That is my doing. The blanket rule above says `height: auto
+         !important` on every image, and these tiles are built the other way
+         round — a fixed tile height with object-fit: cover, so that every
+         photograph, whatever its shape, fills a box the same size as its
+         neighbour. My !important cancelled that, so each tile fell back to
+         its own proportions and the grid came apart.
+
+         Rather than hand the fixed pixel height back, the tiles get a shape:
+         4:5, applied to the width they actually have. Uniform rows at any
+         phone width, no number to go stale, and the hover photograph is given
+         the same shape so nothing jumps when it swaps. ─────────────────── */
+      .random-product-grid .random-product-item img,
+      .af-gfs-grid .random-product-item img,
+      .random-product-grid .random-product-item .hover-image{
+        width: 100% !important;
+        aspect-ratio: 4 / 5 !important;
+        height: auto !important;
+        object-fit: cover !important;
+      }
+
+      /* ── THE FIVE STARS ON "WHAT CLIENTS SAY" ──────────────────────────
+         The Google reviews plugin draws that rating as five separate <img>
+         files, one per star. The rule directly above lets each one grow to
+         the full width of its container, so on a phone they stack into a
+         column of five enormous stars instead of a rating.
+
+         The owner found the right number by hand in the browser: 17%. Five
+         of those sit in a row with room to breathe. But they found it on the
+         `img, svg` rule above, which matches EVERY picture on the site —
+         applied there it would shrink every product photo to a sixth of its
+         width. Same number, aimed only at the stars it was measured for. */
+      .grwp_stars-wrapper img,
+      #g-review .grwp_header-inner .grwp_stars-wrapper img{
+        max-width: 17% !important;
+        width: auto !important;
+        height: auto !important;
+        display: inline-block !important;
+        vertical-align: middle !important;
+      }
+      .grwp_stars-wrapper{
+        display: flex !important;
+        justify-content: center !important;
+        align-items: center !important;
+        gap: 4px !important;
+        flex-wrap: nowrap !important;
+      }
+
+      /* ── THE ROOM PHOTO ON "SEE IT ON YOUR WALL" ───────────────────────
+         Third time the blanket rule above has caught something, and the same
+         way each time: `height: auto !important` on every image cancels a
+         layout built the other way round, on a box of a fixed height with
+         object-fit: cover filling it.
+
+         Measured on the live page at 390px: the stage is 420px tall and the
+         room photograph computed to 159.6px - which is exactly its own
+         1376x768 proportions applied to the 286px it had to work with. With
+         the image pinned to top, left and right, the remaining 260px showed
+         the stage's bare cream background, and the room looked cut in half.
+         768px had the same fault at 88%, less obvious but no more correct.
+
+         The wall preview is the one place on the site where the picture MUST
+         fill its frame: the artwork is positioned over it in percentages of
+         that frame, so a photograph covering only part of it puts the piece
+         on the wrong part of the wall. The camera feed beside it is the same
+         geometry and is given the same treatment. Both are named exactly, so
+         the blanket rule keeps protecting every other image on the page. */
+      .af-tow-stage .af-tow-wallimg,
+      .af-tow-stage .af-tow-cam{
+        width: 100% !important;
+        height: 100% !important;
+        max-width: none !important;
+        object-fit: cover !important;
+      }
+      video, iframe{ max-width: 100% !important; }
+      /* Long words / URLs wrap instead of forcing width */
+      p, h1, h2, h3, h4, h5, h6, a, span, li, td, th{ overflow-wrap: break-word; word-wrap: break-word; }
+      /* Wide tables scroll inside their own box */
+      .entry-content table, .woocommerce table.shop_table, .af-faq-a table, table{ display: block; width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      /* Elementor containers go full-width on mobile (prevents fixed-width overflow) */
+      .elementor-section .elementor-container, .e-con-inner, .e-con{ max-width: 100% !important; }
+      /* Our custom sections collapse gracefully */
+      .af-pp-row{ grid-template-columns: 1fr 1fr !important; }
+      .af-hs-row{ grid-template-columns: 1fr 1fr !important; }
+      .af-rv-row, .af-blog-row{ grid-template-columns: 1fr !important; }
+      .af-trust-inner{ flex-wrap: wrap !important; }
+      .af-tow-grid{ grid-template-columns: 1fr !important; }
+      /* The wall preview's box gets the shape of a photograph rather than a
+         fixed height, and it is written HERE rather than beside the image
+         rule above, because this line used to read `height: 420px !important`
+         and sits later in the same block - written above, `height:auto` lost
+         to it. The check caught that: with the height still pinned at 420 and
+         a 4:3 ratio in force, the ratio derived the WIDTH from the height and
+         the stage came out 560px wide inside a 390px screen.
+
+         Height from width, then: a phone gets 286x215, the photograph fills
+         it, and 74% of the room survives. Filling the old 286x420 box instead
+         would have cropped the room to about a third of its width, which is
+         why both were rendered and compared before choosing. */
+      .af-tow-stage{
+        width: 100% !important;
+        height: auto !important;
+        aspect-ratio: 4 / 3 !important;
+        min-height: 0 !important;
+        max-height: none !important;
+      }
+      .af-footer-inner{ grid-template-columns: 1fr 1fr !important; }
+      .af-listing-toolbar .af-lt-controls{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      /* Hide our floating quick-access panel on mobile — it overlaps content
+         and is redundant with the theme's bottom mobile nav + Click-to-Chat. */
+      .af-quickpanel{ display: none !important; }
+    }
+    /* ── Phones (≤ 480px) ── */
+    @media (max-width: 480px){
+      .af-pp-row, .af-hs-row{ grid-template-columns: 1fr !important; }
+      .af-footer-inner{ grid-template-columns: 1fr !important; }
+      .af-tow-title{ font-size: 28px !important; }
+      .af-pp-sec h2, .af-hs-head h2{ font-size: 20px !important; }
+    }
+
+    /* ── TOUCH AND LEGIBILITY, SITE-WIDE ──────────────────────────────────
+       From a measurement of sixteen pages at 390px, 2026-09-14 — the whole
+       customer journey from the home page to checkout, plus the footer pages
+       and the staff tools.
+
+       The structural faults are gone: not one page scrolls sideways and no
+       text is crushed any more. What the audit found instead was the same
+       handful of things on every single page — links a finger cannot
+       reliably hit, and labels too small to read at arm's length:
+
+         footer links            15-19px tall
+         social icons            18x18
+         header cart link        42x24
+         mobile menu close       15x26  (fifteen pixels wide)
+         try-on-wall controls    10.5-11.7px type
+
+       A link is not "too small" because of its font: it is too small because
+       of the box around it. So these rules add room rather than shouting —
+       padding and a min-height, which grow the target without changing type
+       size, weight or colour. Nothing here paints anything new; the footer
+       simply breathes a little on a phone, which it should anyway.
+
+       Everything is inside a media query. Large screens keep the spacing they
+       were designed with. ─────────────────────────────────────────────── */
+    @media (max-width: 781px){
+      /* Footer: the biggest offender, and the easiest to fix well. Give each
+         link its own comfortable row instead of stacking 15px text.
+
+         `line-height: 40px` was a mistake here and the next audit caught it:
+         the fixed bottom navigation bar lives inside <footer> too, so the rule
+         reached it and grew the bar from 65px to 86px — a fifth of the screen
+         given to a bar nobody asked to be taller. Padding grows a target
+         without setting a line box, so it cannot do that again, and the bar is
+         put back explicitly below. */
+      .site-footer a, .af-footer a, footer .widget a, footer li a{
+        display: inline-block; padding-top: 10px; padding-bottom: 10px;
+      }
+      .site-footer li, .af-footer li, footer .widget li{ margin-bottom: 2px; }
+
+
+      /* Social and icon links: a fingertip, not a pin. The glyph inside keeps
+         its size — only the box around it grows. */
+      a.elementor-icon, .elementor-social-icon, .af-social a{
+        min-width: 40px !important; min-height: 40px !important;
+        display: inline-flex !important; align-items: center !important;
+        justify-content: center !important;
+      }
+
+      /* The header cart and account links sit in a tight bar; padding is the
+         only dimension free to grow there. */
+      a.cart-contents, .site-header-cart a{
+        display: inline-flex !important; align-items: center !important;
+        min-height: 40px !important; padding-top: 8px !important; padding-bottom: 8px !important;
+      }
+
+      /* The mobile menu's own close button measured 15px wide — the one
+         control every visitor who opens that menu has to find. */
+      a.mobile-nav-close, .mobile-nav-close, .close-cart-side{
+        min-width: 44px !important; min-height: 44px !important;
+        display: inline-flex !important; align-items: center !important;
+        justify-content: center !important;
+      }
+
+      /* Try It On Your Wall: its control strip is the most label-dense part
+         of the site, and every label was under 12px. */
+      .af-tow-sw, .af-tow-lay, #tow-saveacct, #tow-share-wa,
+      .af-tow-panel button, .af-tow-row button{
+        font-size: 12px !important; min-height: 40px !important;
+      }
+
+      /* Blog category chips and anything else that landed at 38. */
+      .af-hub-cat{ min-height: 40px !important; display: inline-flex !important;
+        align-items: center !important; }
+
+      /* ── MEASURED, NOT GUESSED ─────────────────────────────────────────
+         The audit now names the ancestors of every small target, and the
+         first thing that told me is that the "footer links" I wrote rules
+         for last time are not footer links at all: they are Elementor
+         icon-box widgets, `a` inside `h3.elementor-icon-box-title`. That is
+         why nothing moved. These are the real ones. ──────────────────── */
+      .elementor-icon-box-title a, .elementor-icon-box-content a{
+        display: inline-block !important;
+        padding-top: 9px !important; padding-bottom: 9px !important;
+      }
+
+      /* The site title in the slide-out drawer: 246x30, the widest target on
+         the page and still too short to hit confidently. */
+      .menu-scroll-mobile .site-title a{
+        display: inline-block !important;
+        padding-top: 7px !important; padding-bottom: 7px !important;
+      }
+
+      /* The dropdown arrow in the mobile navigation measured 13px wide — the
+         control that opens every submenu. */
+      a.mobile_navbar_menu_dropdown_title{
+        min-width: 44px !important; min-height: 44px !important;
+        display: inline-flex !important; align-items: center !important;
+        justify-content: center !important;
+      }
+
+      /* Product card controls on the home shelves. The cards are a fixed
+         width inside a horizontal rail, so the buttons grow downward only —
+         the rail keeps its shape. */
+      .product-card .add-cart, .product-card .quick-view-btn,
+      .product-card .digital-download-btn{
+        min-height: 40px !important;
+        display: inline-flex !important; align-items: center !important;
+        justify-content: center !important;
+      }
+      .af-wishlist-btn, .wishlist-btn .wishlist-icon{
+        min-width: 40px !important; min-height: 40px !important;
+      }
+      .product-card .product-title a{
+        display: inline-block !important; padding: 4px 0 !important;
+      }
+
+      /* Category pills on the tracking and not-found pages: 38px, two short. */
+      .af-404-cats a{ min-height: 40px !important;
+        display: inline-flex !important; align-items: center !important; }
+
+      /* Eleven-pixel labels on the home page category strip and its small
+         buttons — the smallest type on the site. */
+      button.top-cat-btn, .elementor-button.elementor-size-sm{
+        font-size: 12px !important;
+      }
+
+      /* The buying buttons. A full sweep of all sixteen pages found 10 and 11
+         pixel type on the controls that carry the whole shop: add to cart,
+         buy now, add to wishlist, return to shop, sign in, register — and the
+         product gallery's own arrows at ten. These are not decorative labels;
+         they are the words someone reads before spending money. */
+      .single_add_to_cart_button, .af-buynow, .woosw-btn,
+      .button.wc-backward, .woocommerce-form-login__submit,
+      .woocommerce-Button, .woocommerce a.button, .woocommerce button.button{
+        font-size: 12px !important;
+      }
+      .elementor-swiper-button{ font-size: 13px !important; }
+      /* And the gallery's arrows are 90x30 boxes: the type grew, the box did
+         not, so it still is not a comfortable thing to hit. */
+      .woocommerce-product-gallery .elementor-swiper-button,
+      a.woocommerce-product-gallery__trigger{
+        min-width: 40px !important; min-height: 40px !important;
+        display: inline-flex !important; align-items: center !important;
+        justify-content: center !important;
+      }
+
+      /* The category strip resisted the last pass: it stayed at 11px because
+         the parent theme sets it from an ID selector, which outranks a plain
+         class no matter how many !importants are stacked behind it. Matching
+         that ID is the only thing that wins. */
+      #topCatSlider .top-cat-btn, #topCatSlider button, #topCatSlider a,
+      .top-category-slider .top-cat-btn, .top-category-container .top-cat-btn{
+        font-size: 12px !important;
+      }
+
+      /* The size and frame chips on a product page, and the DIY kit's
+         checkboxes — ours, both of them, and both below par: 11.5px type on a
+         30px chip, and a 13px box on the list someone ticks to build a kit. */
+      .af-chip-grp, .af-chip-custom{
+        font-size: 12px !important; min-height: 40px !important;
+        display: inline-flex !important; align-items: center !important;
+        justify-content: center !important;
+      }
+      .af-kit-item input[type="checkbox"]{
+        width: 20px !important; height: 20px !important;
+      }
+      .af-kit-item{ min-height: 40px !important;
+        display: flex !important; align-items: center !important; gap: 10px !important; }
+
+      /* Add to wishlist on a product page measured 162x24 — a full-width
+         control two thirds of the height a finger needs. */
+      .woosw-btn{ min-height: 40px !important;
+        display: inline-flex !important; align-items: center !important; }
+
+      /* The review banners are fixed where the fault actually is — in the
+         slider script further up this file, which writes the slide height and
+         background-size inline. A stylesheet rule here, however specific,
+         could never have won against that; see the note there. */
+
+      /* Shop listing: the filter toggle, the theme links under each card, the
+         product name itself, and the breadcrumb trail — every one of them a
+         link someone taps to get somewhere, all between 15 and 24px. */
+      a.filter-toggle{ min-height: 40px !important;
+        display: inline-flex !important; align-items: center !important; }
+      .product-themes a, .woocommerce-loop-product__title a,
+      .product_meta a, .woocommerce-breadcrumb a{
+        display: inline-block !important; padding: 8px 0 !important;
+      }
+
+      /* Signing in: the remember-me box was 13x13 and the show-password eye
+         21x14, on the two controls of the login form itself. */
+      input.woocommerce-form__input-checkbox, input#rememberme{
+        width: 20px !important; height: 20px !important;
+      }
+      .woocommerce-form-login__rememberme{ min-height: 34px !important;
+        display: inline-flex !important; align-items: center !important; gap: 8px !important; }
+      button.show-password-input{
+        min-width: 40px !important; min-height: 40px !important;
+      }
+      .woocommerce-LostPassword a, a.woocommerce-privacy-policy-link{
+        display: inline-block !important; padding: 8px 0 !important;
+      }
+
+      /* The cookie notice is ours, and it was the worst of the lot: a 13px
+         checkbox and a 15px policy link on the one panel every first-time
+         visitor must deal with before anything else. */
+      .af-ck-opts input[type="checkbox"]{
+        width: 20px !important; height: 20px !important;
+      }
+      /* A full-width row 34px tall is a comfortable target even though the
+         box itself is 20px — the whole label is clickable. Taller rows pushed
+         the card to 450px, half the screen, which is its own fault. */
+      .af-ck-opts label{ min-height: 34px !important;
+        display: flex !important; align-items: center !important; gap: 10px !important; }
+      .af-ck-main p a{ display: inline-block !important; padding: 8px 0 !important; }
+
+      /* ── OFF-CANVAS MENU: the "Blog" item ─────────────────────────────
+         The header menu marks Blog as an Elementor "button" item. On the
+         desktop bar that is a black pill with white text; inside the phone's
+         slide-out panel HFE recolours every link black, so the pill came out
+         black-on-black — a solid bar under Deals & Discounts with nothing
+         readable in it. Phones only: draw it like the rows above it. */
+      .hfe-nav-menu li.menu-item > a.hfe-menu-item.elementor-button{
+        background: transparent !important; background-color: transparent !important;
+        background-image: none !important; color: #000 !important;
+        border-radius: 0 !important; border: 0 !important; box-shadow: none !important;
+        justify-content: flex-start !important; text-align: left !important;
+      }
+
+      /* ── HANDS OFF ANYTHING PINNED TO THE SCREEN ───────────────────────
+         This must come last, and here is why. The bottom navigation bar is
+         built out of Elementor icon boxes — the same widget as the footer
+         links — so the rule that gave those links a comfortable row reached
+         into the bar as well and grew it 86px, then 105px. An earlier reset
+         lost to it: same specificity, and the later rule wins.
+
+         A bar fixed to the bottom of the screen is sized deliberately, and
+         every pixel added to it is taken from the page the visitor came to
+         read. So it is put back here, after everything, where nothing can
+         outrank it. ──────────────────────────────────────────────────── */
+      .elementor-element-bec7134 a,
+      .elementor-element-bec7134 li,
+      .elementor-element-bec7134 .elementor-icon-box-title,
+      .elementor-element-bec7134 .elementor-icon-box-title a,
+      .elementor-element-bec7134 .elementor-icon-box-content,
+      .elementor-element-bec7134 .elementor-icon-box-wrapper,
+      .af-bottom-nav a, .af-bottom-nav li{
+        min-height: 0 !important; line-height: normal !important;
+        padding-top: 0 !important; padding-bottom: 0 !important;
+        margin-top: 0 !important; margin-bottom: 0 !important;
+      }
+
+      /* And now the thing the 360px run finally explained: the "footer links"
+         I had been chasing ARE the bottom navigation labels. Same widget, same
+         container — which is why growing them grew the bar, and why putting
+         the bar back shrank them again. They were never two problems.
+
+         So the target grows sideways instead. Each item owns a third of the
+         width; the link only wrapped its own text, about thirty pixels of it,
+         floating in the middle of a tile four times that wide. Filling the
+         tile turns a 30px target into a ~120px one without adding a single
+         pixel to the bar's height. */
+      .elementor-element-bec7134 .elementor-icon-box-title a,
+      .elementor-element-bec7134 .elementor-icon-box-icon a{
+        display: block !important; width: 100% !important;
+        text-align: center !important;
+      }
+
+      /* And the crooked look in the phone screenshot, measured rather than
+         guessed at. Each icon link is 74px wide and already carries
+         text-align:center from the rule above — but the glyph inside it is a
+         block-level <i>, only as wide as the glyph, and text-align has no say
+         over a block child. So the icon sat hard against the left edge of its
+         tile at x=15 while the label below it was centred at x=52: the icon
+         landed 28px to the left of its own word.
+
+         Centring the link's contents instead of its text fixes every cell at
+         once, because it works on the block <i> of Shop and Account, the
+         inline <svg> of Wishlist, and the search widget's icon-and-word row
+         alike. Width stays 100% so the tap target the rule above widened is
+         untouched, and nothing outside this one bar is addressed. */
+      .elementor-element-bec7134 .elementor-icon-box-icon a,
+      .elementor-element-bec7134 .elementor-icon-box-icon .elementor-icon,
+      .elementor-element-bec7134 .site-header-search .button-search-popup{
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      /* The glyph itself: a block <i> of glyph width centres as a flex item
+         only if it is not stretched to the full tile first. */
+      .elementor-element-bec7134 .elementor-icon-box-icon i,
+      .elementor-element-bec7134 .elementor-icon-box-icon svg,
+      .elementor-element-bec7134 .site-header-search .button-search-popup i{
+        flex: 0 0 auto !important; margin-left: auto !important;
+        margin-right: auto !important;
+      }
+      /* Both halves of the tile share one centre line. */
+      .elementor-element-bec7134 .elementor-icon-box-wrapper,
+      .elementor-element-bec7134 .elementor-icon-box-content,
+      .elementor-element-bec7134 .elementor-icon-box-icon{
+        text-align: center !important;
+      }
+
+      /* ── AND THE FOUR ON ONE BASELINE ──────────────────────────────────
+         Measured at 420px: three of these cells are Elementor icon boxes and
+         the fourth, Search, is a different widget entirely - the theme's own
+         search control, with its own line boxes. Its icon started 5px above
+         the others and its label 5px above theirs, so the whole cell rode
+         high. That is the "one is a little down and another a little up" in
+         the screenshot, and no amount of centring the icon inside its cell
+         could fix it, because the cells themselves were laid out differently.
+
+         So the four are given one layout instead of two: each cell centres its
+         content as a column, the icon sits in a line box of a fixed height,
+         and the same gap separates icon from label everywhere. Four different
+         widgets then produce the same two rows at the same two heights. Sizes
+         and colours are left alone - only where things sit changes. */
+      .elementor-element-bec7134 > .e-con-inner > .elementor-widget{
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+      }
+      /* And the wrapper that was actually holding Search up, found by walking
+         the chain from its icon: the search widget's .elementor-widget-container
+         is a BLOCK with 10px of padding. Its child therefore sat at the top of
+         the padding box, 660, while the icon boxes' contents were centred in
+         the 69px row at 666 - the six pixels, exactly. Centring the container's
+         contents puts all four on the same line; the padding goes, because the
+         cell is already the size it wants to be. */
+      .elementor-element-bec7134 .elementor-widget-container{
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        height: 100% !important;
+        padding: 0 !important;
+      }
+      .elementor-element-bec7134 .elementor-icon-box-wrapper,
+      .elementor-element-bec7134 .site-header-search,
+      .elementor-element-bec7134 .site-header-search .button-search-popup{
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 4px !important;
+        margin: 0 !important;
+      }
+      /* The icon's line box, not the glyph: a fixed height here is what puts
+         every label on the same line, whatever the glyph inside measures. */
+      .elementor-element-bec7134 .elementor-icon-box-icon,
+      .elementor-element-bec7134 .site-header-search .button-search-popup > i{
+        height: 20px !important; line-height: 20px !important;
+        display: flex !important;
+        align-items: center !important; justify-content: center !important;
+        margin: 0 !important; padding: 0 !important;
+      }
+      .elementor-element-bec7134 .elementor-icon-box-icon i,
+      .elementor-element-bec7134 .elementor-icon-box-icon svg,
+      .elementor-element-bec7134 .site-header-search .button-search-popup > i{
+        font-size: 18px !important; width: 18px !important; height: 18px !important;
+        line-height: 18px !important;
+      }
+      .elementor-element-bec7134 .elementor-icon-box-title,
+      .elementor-element-bec7134 .site-header-search .content{
+        display: block !important; line-height: 15px !important;
+        margin: 0 !important; padding: 0 !important;
+      }
+    }
+    

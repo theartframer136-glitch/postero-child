@@ -180,10 +180,16 @@ add_action('wp_footer', function() {
 
 .af-close {
     position: absolute;
-    top: 20px;
-    right: 25px;
+    top: 12px;
+    right: 14px;
     font-size: 22px;
     cursor: pointer;
+    /* a finger-sized target (the glyph alone was ~22px) */
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Headings */
@@ -322,7 +328,7 @@ class="af-toggle-icon">
        class="af-panel-btn" 
        data-title="Try On Wall">🖼</a>
 
-    <a href="https://wa.me/918107236836" 
+    <a href="https://wa.me/<?php echo esc_attr(function_exists('af_studio_contact') ? af_studio_contact()['wa'] : '16104707280'); ?>" 
        target="_blank" 
        class="af-panel-btn" 
        data-title="WhatsApp">💬</a>
@@ -340,20 +346,19 @@ class="af-toggle-icon">
 
 <!-- POPUP -->
 
-<div class="af-overlay active" id="afOverlay">
+<div class="af-overlay" id="afOverlay" role="dialog" aria-modal="true" aria-label="Offer">
     <div class="af-popup">
         <div class="af-popup-left"></div>
         <div class="af-popup-right">
 
-            <div class="af-close" id="afCloseBtn">✕</div>
+            <div class="af-close" id="afCloseBtn" role="button" tabindex="0" aria-label="Close">✕</div>
 			<h2>Inaugural Offer</h2>
             <h3>Flat 40% OFF</h3>
-			<p>Become a part of our esteemed community. Share your valuable review on our GBM profile and we will be delighted to refund 15% of your first purchase as a gesture of appreciation.</p>
+			<p>Become a part of our esteemed community. Loved your art? We'd be grateful for an honest review on Google.</p>
             <div class="af-input-group">
                 <input type="email" placeholder="Enter your email">
-                <button>Save More Money*</button>				
+                <button>Save More Money</button>				
             </div>
-			<p class="short_node" style=" text-align: center;padding-top:10px; font-size:12px;">*Extra 15% OFF — T&C Apply</p>
         </div>
     </div>
 </div>
@@ -366,14 +371,33 @@ document.addEventListener("DOMContentLoaded", function(){
     const closeBtn = document.getElementById("afCloseBtn");
     const giftBtn = document.getElementById("afGiftBtn");
 
+    // QA, 16 Oct: the offer opened over the whole home page on every visit,
+    // before anything else could be tapped, and only the small ✕ closed it,
+    // so the header menu button "did nothing" 23 times out of 23. It now
+    // waits 8 seconds, stays away for 7 days once closed, and closes on the
+    // backdrop or Esc. The gift button in the side panel still opens it.
+    var KEY = 'af_offer_closed_at', WEEK = 7 * 24 * 3600 * 1000;
+    function recentlyClosed(){
+        try { return Date.now() - (parseInt(localStorage.getItem(KEY), 10) || 0) < WEEK; } catch (e) { return false; }
+    }
+    function closeOffer(){
+        overlay.classList.remove("active");
+        try { localStorage.setItem(KEY, String(Date.now())); } catch (e) {}
+    }
+
     giftBtn.addEventListener("click", function(e){
         e.preventDefault();  
         overlay.classList.add("active");
     });
 
-    closeBtn.addEventListener("click", function(){
-        overlay.classList.remove("active");
-    });
+    closeBtn.addEventListener("click", closeOffer);
+    closeBtn.addEventListener("keydown", function(e){ if (e.key === "Enter" || e.key === " ") { e.preventDefault(); closeOffer(); } });
+    overlay.addEventListener("click", function(e){ if (e.target === overlay) closeOffer(); });
+    document.addEventListener("keydown", function(e){ if (e.key === "Escape" && overlay.classList.contains("active")) closeOffer(); });
+
+    if (!recentlyClosed()) {
+        setTimeout(function(){ overlay.classList.add("active"); }, 8000);
+    }
 
 });
 const toggleBtn = document.getElementById("afToggleBtn");
@@ -419,3 +443,11 @@ if (toggleBtn && panel) {
 
 <?php
 });
+
+// The header menu button (Header Footer Elementor's toggle) is on every page,
+// not only the home page this snippet draws its panel on: it measured 40x44,
+// under a fingertip on tablets (kid-mode and persona QA, 15-16 Oct). Only the
+// size changes; display stays HFE's own, so desktop still hides it.
+add_action('wp_head', function () {
+    echo '<style id="af-menu-toggle-size">.hfe-nav-menu__toggle{min-width:48px;min-height:48px;justify-content:center}</style>' . "\n";
+}, 99);

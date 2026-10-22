@@ -65,7 +65,8 @@ foreach ($needles as $n) $mwhere[] = $wpdb->prepare("LOWER(meta_value) LIKE %s",
 // design, and counting them as live claims overstates what is left to fix
 $meta = $wpdb->get_results("SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta}
     WHERE (" . implode(' OR ', $mwhere) . ")
-      AND meta_key NOT IN ('_af_shipping_copy_backup','_af_elementor_backup') LIMIT 40");
+      AND meta_key NOT IN ('_af_shipping_copy_backup','_af_elementor_backup')
+      AND meta_key NOT LIKE '%\\_backup%' LIMIT 40"); // every *_backup* row holds the old words on purpose
 if ($meta) {
     foreach ($meta as $m) {
         $total++;

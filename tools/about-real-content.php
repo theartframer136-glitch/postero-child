@@ -45,7 +45,7 @@ $SUBS = array(
 $PARAS = array(
     'The Art Framer crafts premium canvas wall art, framed prints, digital downloads and custom décor — spiritual, cultural and modern pieces made with archival, fade-resistant inks and ready to inspire your space.',
     'Born from a love of art and craftsmanship, we believe beautiful, meaningful art should be accessible to everyone. From devotional Radha Krishna and Seven Horses canvases to modern abstracts and personalised prints, every piece is produced with premium materials and a gallery-grade finish.',
-    'Operating from Delaware, USA, we serve customers nationwide with free shipping, secure checkout and dedicated support by phone, email and WhatsApp — turning everyday walls into spaces that inspire.',
+    'Operating from Delaware, USA, we serve customers nationwide with secure checkout and dedicated support by phone, email and WhatsApp — turning everyday walls into spaces that inspire.',
 );
 $pi = 0;
 

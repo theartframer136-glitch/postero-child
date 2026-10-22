@@ -1,0 +1,180 @@
+    /* The row: stars on the left, the four actions on the right. */
+    html body ul.products li.product .product-action{
+      display:flex !important;align-items:center !important;
+      justify-content:space-between !important;gap:8px !important;
+      flex-wrap:nowrap !important;overflow:visible !important;}
+    html body ul.products li.product .af-acts{
+      display:inline-flex !important;align-items:center !important;
+      gap:4px !important;margin-left:auto !important;flex:0 0 auto !important;
+      overflow:visible !important;}
+
+    /* One button. Icon only — no words, nothing to compete with the artwork.
+
+       overflow is stated as VISIBLE deliberately. The previous version set it
+       to hidden to stop stray label text showing, and that is what swallowed
+       the tooltip: the tooltip is drawn above the button, outside its box, so
+       clipping the button clips the tooltip with it. font-size:0 hides the
+       words on its own and costs nothing. */
+    html body ul.products li.product .af-acts > *{
+      width:30px !important;min-width:30px !important;max-width:30px !important;
+      height:30px !important;min-height:30px !important;max-height:30px !important;
+      padding:0 !important;margin:0 !important;border:0 !important;
+      background:transparent !important;border-radius:50% !important;
+      display:inline-flex !important;align-items:center !important;
+      justify-content:center !important;cursor:pointer !important;
+      color:#4E423D !important;line-height:1 !important;
+      font-size:0 !important;overflow:visible !important;
+      white-space:nowrap !important;
+      opacity:1 !important;visibility:visible !important;
+      position:relative !important;transform:none !important;
+      box-shadow:none !important;text-decoration:none !important;
+      transition:color .15s ease, background .15s ease !important;}
+    html body ul.products li.product .af-acts > *:hover{
+      color:#c9a84c !important;background:rgba(201,168,76,.14) !important;}
+
+    /* The cart anchor is given .af-icon-only elsewhere in this theme, and
+       assets/css/custom.css sizes that class at 36px with overflow:hidden.
+       That is the very clip this file exists to undo, and it would have eaten
+       the cart's tooltip and drawn it as an oval six pixels wider than its
+       neighbours. The class is also removed in the script; this is the belt to
+       that pair of braces. */
+    html body ul.products li.product .af-acts > a.add_to_cart_button,
+    html body ul.products li.product .af-acts > a.add_to_cart_button.af-icon-only{
+      width:30px !important;min-width:30px !important;max-width:30px !important;
+      overflow:visible !important;}
+
+    /* WooCommerce drops a "View cart" link in beside the button it was clicked
+       from. Inside this row that link would become a fifth, empty circle. */
+    html body ul.products li.product .af-acts > .added_to_cart{display:none !important;}
+    /* A click deserves an answer: the cart stays gold once the piece is in. */
+    html body ul.products li.product .af-acts > .add_to_cart_button.added{
+      color:#c9a84c !important;}
+
+    /* WooCommerce, on an AJAX add-to-cart, dims the button to 25% and paints
+       a spinner and then a tick into its ::after — the same ::after that
+       carries the tooltip here. The two collide into a squashed dark blob
+       beside a greyed-out icon, which is the "animation" the owner wants gone.
+       The button stays as it is; the answer to the click is the toast below
+       and the icon turning gold once the piece is in. */
+    html body ul.products li.product .af-acts > .add_to_cart_button.loading,
+    html body ul.products li.product .af-acts > .add_to_cart_button.added{
+      opacity:1 !important;}
+    html body ul.products li.product .af-acts > .add_to_cart_button.loading::after,
+    html body ul.products li.product .af-acts > .add_to_cart_button.added::after{
+      animation:none !important;font-family:"Instrument Sans",system-ui,sans-serif !important;
+      vertical-align:baseline !important;margin:0 !important;}
+    @media not all and (hover:hover) and (pointer:fine){
+      html body ul.products li.product .af-acts > .add_to_cart_button.loading::after,
+      html body ul.products li.product .af-acts > .add_to_cart_button.added::after{
+        display:none !important;}
+    }
+
+    /* ── THE TOAST ──────────────────────────────────────────────────────────
+       One line, bottom centre, gone in three seconds. Dark like the tooltip,
+       a gold edge like the rest of the shop. On a phone it sits above the
+       bottom navigation bar rather than under it. */
+    #af-toast{
+      position:fixed;left:50%;bottom:calc(26px + env(safe-area-inset-bottom,0px));
+      transform:translateX(-50%) translateY(14px);
+      background:#1a1a1a;color:#fff;border-left:3px solid #c9a84c;
+      padding:12px 18px;border-radius:8px;
+      font:600 13px/1.3 "Instrument Sans",system-ui,sans-serif;letter-spacing:.2px;
+      box-shadow:0 8px 28px rgba(0,0,0,.28);white-space:nowrap;
+      max-width:calc(100vw - 32px);overflow:hidden;text-overflow:ellipsis;
+      opacity:0;pointer-events:none;z-index:2147483000;
+      transition:opacity .2s ease, transform .2s ease;}
+    #af-toast.on{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto;}
+    #af-toast a{color:#c9a84c;text-decoration:none;margin-left:12px;
+      border-bottom:1px solid rgba(201,168,76,.55);}
+    #af-toast a:hover{border-bottom-color:#c9a84c;}
+    @media (max-width:781px){
+      #af-toast{bottom:calc(84px + env(safe-area-inset-bottom,0px));}
+    }
+
+    /* One icon set, drawn one way. The four arrived with three different
+       kinds of mark between them — a colour emoji bag, a bare arrows
+       character, and two glyphs from the theme's icon font — which is why the
+       row looked assembled from spare parts. They are replaced below with one
+       stroked set that takes its colour from the button. */
+    html body ul.products li.product .af-acts svg.af-ico{
+      width:19px !important;height:19px !important;display:block !important;
+      fill:none !important;stroke:currentColor !important;
+      stroke-width:1.7 !important;stroke-linecap:round !important;
+      stroke-linejoin:round !important;}
+    /* Nothing else inside a button may take up room. */
+    html body ul.products li.product .af-acts > * > *:not(svg){
+      position:absolute !important;width:1px !important;height:1px !important;
+      overflow:hidden !important;clip:rect(0 0 0 0) !important;}
+    html body ul.products li.product .af-acts > *::before{display:none !important;}
+
+    /* The tooltip, drawn by the button itself.
+
+       It hangs BELOW the icon, not above. Above is the conventional place and
+       the wrong one here: the rating row sits at the top of the caption, so a
+       tooltip above it must escape the caption's top edge — and this card has
+       overflow:hidden on div.product-block, on li.product and on div.hfeed.site.
+       Below, it opens into the caption over the title, with nothing in its way.
+
+       font-size is stated outright because the button is set to font-size 0 to
+       hide its label, and a pseudo-element inherits that. A tooltip at 0px is
+       no tooltip at all — one of the two reasons it never appeared.
+
+       Only where there is a cursor to hover with. Keying this to screen width
+       would take the tooltip away from a narrow desktop window and leave it
+       stuck, mid-card, after a tap on a large tablet. */
+    @media (hover:hover) and (pointer:fine){
+      html body ul.products li.product .af-acts [data-af-tip]::after{
+        content:attr(data-af-tip);
+        position:absolute;top:calc(100% + 7px);left:50%;
+        transform:translateX(-50%) translateY(-3px);
+        background:#1a1a1a;color:#fff;font-size:11px !important;font-weight:600;
+        font-family:"Instrument Sans",system-ui,sans-serif;letter-spacing:.2px;
+        line-height:1;padding:6px 9px;border-radius:4px;white-space:nowrap;
+        opacity:0;pointer-events:none;z-index:60;
+        box-shadow:0 3px 10px rgba(0,0,0,.22);
+        transition:opacity .15s ease, transform .15s ease;}
+      html body ul.products li.product .af-acts [data-af-tip]:hover::after{
+        opacity:1;transform:translateX(-50%) translateY(0);}
+
+      /* The last two sit within a label's width of the card's right edge, and
+         "Add to wishlist" is the longest of the four. Centred, it would hang
+         past the card and be cut off by the very overflow:hidden described
+         above. These grow inward instead. */
+      html body ul.products li.product .af-acts > *:nth-last-child(-n+2)[data-af-tip]::after{
+        left:auto;right:-2px;transform:translateY(-3px);}
+      html body ul.products li.product .af-acts > *:nth-last-child(-n+2)[data-af-tip]:hover::after{
+        transform:translateY(0);}
+    }
+
+    /* A finger needs more room than a cursor, and a touch screen never sends
+       the hover that draws the tooltip. */
+    @media (max-width:781px){
+      html body ul.products li.product .af-acts > *{
+        width:34px !important;min-width:34px !important;max-width:34px !important;
+        height:34px !important;min-height:34px !important;max-height:34px !important;}
+      html body ul.products li.product .af-acts [data-af-tip]::after{
+        display:none !important;}
+      /* A phone card is ~200px wide; stars plus four finger-sized buttons
+         need ~270px on one line and the last button fell off the card. The
+         row wraps: stars on the first line, the four buttons on the next,
+         still kept to the right. */
+      html body ul.products li.product .product-action{
+        flex-wrap:wrap !important;row-gap:6px !important;}
+      html body ul.products li.product .product-action > .count-review,
+      html body ul.products li.product .product-action > .woocommerce-product-rating{
+        flex:1 1 100% !important;min-width:0 !important;
+        display:flex !important;align-items:center !important;gap:6px !important;}
+      /* The second line is a toolbar: the four buttons spread evenly across
+         the card under a hairline, so the row reads as one designed strip
+         rather than icons huddled in a corner. */
+      html body ul.products li.product .af-acts{
+        flex:0 0 100% !important;display:flex !important;
+        justify-content:space-around !important;margin-left:0 !important;
+        padding-top:6px !important;border-top:1px solid rgba(78,66,61,.12) !important;}
+      html body ul.products li.product .af-acts > *{
+        width:32px !important;min-width:32px !important;max-width:32px !important;
+        height:32px !important;min-height:32px !important;max-height:32px !important;
+        background:rgba(78,66,61,.06) !important;}
+      html body ul.products li.product .af-acts svg.af-ico{width:18px !important;height:18px !important;}
+    }
+    

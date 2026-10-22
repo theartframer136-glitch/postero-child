@@ -601,8 +601,11 @@ jobs:
       # The script's own output goes into the run SUMMARY, not only the log.
       # The person ticking this box is the shop's owner, and the answer they
       # want — how many pages changed — should not require opening a job log.
+      # Runs on EVERY deploy since 15 Oct 2026: the owner's rule is that nothing
+      # on the site may say free shipping, and tools/diag-free-shipping.php found
+      # 49 places still saying it while this step waited for a ticked box. The
+      # tool is idempotent and backs up every post it touches.
       - name: Clear free-shipping wording held in the database
-        if: inputs.clear_free_shipping
         env:
           H_USER: ${{ secrets.HOSTINGER_USERNAME }}
           H_HOST: ${{ secrets.HOSTINGER_HOST }}
@@ -758,6 +761,30 @@ jobs:
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/seo-improvements.php --allow-root 2>&1" \
+            || true
+
+          echo "Applying search titles for the top 10 pages (Oct 2026)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/apply-seo-titles-2026-10.php --allow-root 2>&1" \
+            || true
+
+          echo "Creating the USA-market blog articles as drafts (Oct 2026)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/create-seo-posts.php --allow-root 2>&1" \
+            || true
+
+          echo "Publishing the USA-market articles with featured images (owner, 16 Oct)..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/publish-seo-posts.php --allow-root 2>&1" \
+            || true
+
+          echo "Trashing the theme's 2023 demo blog posts..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/remove-demo-posts.php --allow-root 2>&1" \
             || true
 
           echo "Fixing missing product featured images..."
@@ -1214,15 +1241,13 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/verify-marketplace.php --allow-root 2>&1" \
             || true
 
-          # The rewrite is OFF. It saved with wp_update_post(), and WP-CLI has no
-          # logged-in user, so WordPress ran the content through kses and
-          # stripped builder markup along with the wording. Restore runs in its
-          # place; the rewrite stays out until it writes without those filters.
-          echo "Restoring pages the free-shipping rewrite altered..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
-             wp eval-file wp-content/themes/postero-child/tools/restore-shipping-copy.php --allow-root 2>&1" \
-            || true
+          # tools/restore-shipping-copy.php used to run here, undoing the
+          # free-shipping rewrite because the rewrite once saved through
+          # wp_update_post() and kses stripped builder markup. The rewrite now
+          # writes straight to the table (see the step "Clear free-shipping
+          # wording held in the database"), so the restore is manual-only; it
+          # ran here on every deploy and put the free-shipping claims back
+          # minutes after the rewrite removed them.
 
           echo "Reading stretcher bar and frame kit prices in full (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \

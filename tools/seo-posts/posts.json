@@ -1,0 +1,78 @@
+{
+  "_about": "Blog articles for the USA market, created as DRAFTS by tools/create-seo-posts.php so the owner reviews each before publishing. file = the HTML body in this folder. Nothing may say free shipping.",
+  "category": {"slug": "vastu-decor-guides", "name": "Vastu & Decor Guides", "description": "Where to hang a 7 horses painting, how to set up a pooja room wall, which deity suits which room: guides for Indian families decorating homes in the USA."},
+  "posts": [
+    {
+      "slug": "7-horses-painting-vastu-direction",
+      "file": "7-horses-painting-vastu-direction.html",
+      "title": "7 Horses Painting Vastu: Direction, Wall and Room for a US Home",
+      "rm_title": "7 Horses Painting Vastu Direction: Where to Hang It at Home",
+      "rm_description": "Which wall, which direction and which room for a 7 running horses painting as per Vastu, with sizes for American living rooms and offices.",
+      "focus_keyword": "7 horses painting vastu direction",
+      "excerpt": "South or east wall, horses running into the room, never the bedroom: the complete Vastu guide to the seven running horses painting for a US home."
+    },
+    {
+      "slug": "pooja-room-wall-ideas-american-apartment",
+      "file": "pooja-room-wall-ideas-american-apartment.html",
+      "title": "Pooja Room Wall Ideas for an American Apartment",
+      "rm_title": "Pooja Room Wall Ideas for an Apartment in the USA",
+      "rm_description": "Closet mandirs, rental-friendly corners and one-canvas backdrops: pooja room wall ideas for Indian families in US apartments, with direction and sizes.",
+      "focus_keyword": "pooja room wall ideas",
+      "excerpt": "A pooja room in an American apartment is a closet, a corner or a shelf. Here is how to make its wall sacred without drilling or building a temple."
+    },
+    {
+      "slug": "which-hindu-deity-painting-for-which-room",
+      "file": "which-hindu-deity-painting-for-which-room.html",
+      "title": "Which Hindu Deity Painting Belongs in Which Room",
+      "rm_title": "Which Hindu God Painting for Which Room | Placement Guide",
+      "rm_description": "Ganesha at the entrance, Radha Krishna in the living room, Balaji in the pooja room: a room-by-room guide to Hindu deity paintings for homes in the USA.",
+      "focus_keyword": "hindu god painting for home",
+      "excerpt": "Each deity carries a meaning and tradition matches it to a room. A room-by-room guide for Indian homes in the USA."
+    },
+    {
+      "slug": "ganesha-painting-entrance-vastu-placement",
+      "file": "ganesha-painting-entrance-vastu-placement.html",
+      "title": "Ganesha Painting at the Entrance: Vastu Placement, Form and Size",
+      "rm_title": "Ganesha Painting for Home Entrance: Vastu Placement & Size",
+      "rm_description": "Where to hang a Ganesha painting at the entrance as per Vastu, which form and colour to choose, and the right size for a US foyer.",
+      "focus_keyword": "ganesha painting for home entrance",
+      "excerpt": "Inside the door, facing north or east, seated with the trunk to the left: how Vastu places Lord Ganesha at the entrance of an American home."
+    },
+    {
+      "slug": "diwali-gift-guide-deity-vastu-canvas-art",
+      "file": "diwali-gift-guide-deity-vastu-canvas-art.html",
+      "title": "Diwali Gift Guide: Deity and Vastu Canvas Art for Every Person on Your List",
+      "rm_title": "Diwali Gift Guide USA: Deity & Vastu Canvas Art by Budget",
+      "rm_description": "Lakshmi Ganesh for a new home, Radha Krishna for a couple, seven horses for a new job: Diwali gift ideas in US dollars, shipped anywhere in the USA.",
+      "focus_keyword": "diwali gift ideas",
+      "excerpt": "The right deity or Vastu canvas for each person on your Diwali list, with budgets in US dollars and the order-by dates."
+    },
+    {
+      "slug": "radha-krishna-painting-bedroom-meaning-placement",
+      "file": "radha-krishna-painting-bedroom-meaning-placement.html",
+      "title": "Radha Krishna Painting for the Bedroom: Meaning and Placement",
+      "rm_title": "Radha Krishna Painting for Bedroom: Meaning, Wall & Size",
+      "rm_description": "Why Radha Krishna is the one deity image welcome in the bedroom, which wall to hang it on, which colours suit it, and sizes for a US bedroom.",
+      "focus_keyword": "radha krishna painting for bedroom",
+      "excerpt": "Divine love, harmony and the soul's longing: what the Radha Krishna image means and where it belongs in the bedroom."
+    },
+    {
+      "slug": "canvas-size-guide-us-living-room-wall",
+      "file": "canvas-size-guide-us-living-room-wall.html",
+      "title": "Canvas Size Guide: What Fits an American Living Room Wall",
+      "rm_title": "Canvas Wall Art Size Guide for US Living Rooms & Sofas",
+      "rm_description": "The two-thirds rule, hanging height and the right canvas size for a sofa, foyer, bedroom or pooja corner, in feet and inches for American homes.",
+      "focus_keyword": "canvas wall art size guide",
+      "excerpt": "US sofas are 84 to 100 inches wide and most wall art is bought too small. The sizes that work, wall by wall."
+    },
+    {
+      "slug": "griha-pravesh-gift-ideas-indian-family-usa",
+      "file": "griha-pravesh-gift-ideas-indian-family-usa.html",
+      "title": "Griha Pravesh Gift Ideas for an Indian Family in the USA",
+      "rm_title": "Griha Pravesh Gift Ideas USA: Housewarming Art by Tradition",
+      "rm_description": "Ganesha for the entrance, Lakshmi Ganesh for the pooja room, seven horses for the office: housewarming gift ideas for Indian families in the USA.",
+      "focus_keyword": "griha pravesh gift ideas",
+      "excerpt": "The traditional first three gifts for a new home, matched to the giver, with sizes for American houses and the order-by timing."
+    }
+  ]
+}

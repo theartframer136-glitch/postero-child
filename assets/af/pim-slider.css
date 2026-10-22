@@ -1,0 +1,312 @@
+/* ── Products In Motion circular slider ── */
+.af-pim-section-heading {
+    text-align: left !important;
+    width: 100% !important;
+}
+.af-pim-section-heading .elementor-heading-title,
+.af-pim-section-heading h1,
+.af-pim-section-heading h2,
+.af-pim-section-heading h3,
+.af-pim-section-heading h4 {
+    text-align: left !important;
+}
+.af-pim-wrap {
+    width:100%;
+    padding:0 0 32px;
+    box-sizing:border-box;
+    overflow:hidden;          /* the track runs wider than the page on purpose */
+}
+/* The row scrolls by itself, continuously, in one direction. Two copies of
+   the same cards sit end to end and the track slides exactly one copy's width
+   before the animation repeats — so the seam lands where the first copy began
+   and the loop is invisible. Animating a transform keeps it on the compositor:
+   no layout per frame, which is what makes it smooth rather than steppy. */
+.af-pim-vp {
+    width:100%;
+    overflow:hidden;
+    -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 40px,#000 calc(100% - 40px),transparent 100%);
+            mask-image:linear-gradient(90deg,transparent 0,#000 40px,#000 calc(100% - 40px),transparent 100%);
+}
+.af-pim-track {
+    display:flex;
+    flex-direction:row;
+    flex-wrap:nowrap;
+    align-items:stretch;
+    width:max-content;
+    /* Spacing lives on the cards as a margin, NOT as flex `gap`. With gap the
+       track is (n × card) + (n−1 × gap), so translating -50% lands half a gap
+       short of where the second copy begins and the row twitches once per
+       loop. A margin belongs to the card, so each copy is exactly n × pitch
+       and half of it is exactly one copy. */
+    will-change:transform;
+    animation:af-pim-marquee var(--af-pim-dur,60s) linear infinite;
+}
+@keyframes af-pim-marquee {
+    from { transform:translate3d(0,0,0); }
+    /* half, because the track holds the cards twice */
+    to   { transform:translate3d(-50%,0,0); }
+}
+/* The row eases to a stop rather than freezing mid-stride — a visitor
+   reaching for a card should not be chasing a target that stops dead. The
+   easing itself is done in script, by ramping the animation's playback rate,
+   because animation-duration cannot be transitioned. This class is the
+   fallback for browsers that will not hand the animation over: a hard pause
+   is worse than an eased one and far better than none. */
+.af-pim-track.af-pim-hold { animation-play-state:paused; }
+
+.af-pim-card {
+    flex:0 0 auto;
+    margin-right:22px;
+    /* MEASURED (headless check, deploy 889): the card was sized by
+       aspect-ratio alone, and a height that comes from aspect-ratio is not a
+       DEFINITE height — so every `height:100%` child resolved to auto and
+       collapsed to its own natural shape. The poster came out 290x163 inside a
+       290x516 card, which is exactly the black band above and below that the
+       owner reported, and the player was doing the same thing.
+       Width was never affected, because a percentage width had a definite
+       width to resolve against: 290px measured, 290px expected.
+       So the card states its height outright. One custom property feeds both
+       dimensions, so they cannot drift apart. */
+    --af-pim-w: clamp(150px, 21vw, 290px);
+    --af-pim-h: calc(var(--af-pim-w) * 16 / 9);
+    width:var(--af-pim-w);
+    height:var(--af-pim-h);
+    aspect-ratio:9 / 16;          /* same shape, kept as the stated intent */
+    border-radius:14px;
+    overflow:hidden;
+    position:relative;
+    background:#111;
+    cursor:pointer;
+    box-shadow:0 6px 22px rgba(0,0,0,.28);
+    /* A long, soft curve. The card is already sliding sideways, so a quick
+       snappy lift reads as a jolt on top of motion that is already happening. */
+    transition:transform .45s cubic-bezier(.22,.61,.36,1),
+               box-shadow .45s cubic-bezier(.22,.61,.36,1);
+    transform:translate3d(0,0,0);            /* its own layer, so the lift does
+                                                not repaint the whole row */
+}
+.af-pim-card:hover {
+    transform:translate3d(0,-6px,0) scale(1.02);
+    box-shadow:0 14px 38px rgba(0,0,0,.42);
+}
+/* The poster stays underneath the player for the whole life of the card. A
+   YouTube embed shows black while it negotiates, and with several playing at
+   once the browser throttles some of them — that is exactly how this row
+   ended up a wall of black circles with spinners before. Keeping the still
+   behind means the worst case is a card that is not moving yet, never a hole. */
+.af-pim-thumb {
+    position:absolute;
+    inset:0;
+    /* !important, and it is earned. Measured (deploy 890): with the card's
+       height now definite at 516px, this image STILL came out 290x163 — which
+       is its own 1280x720 shape, not 100% of anything. Something outside this
+       stylesheet is forcing the height, and the near-universal culprit is a
+       theme's `img { max-width:100%; height:auto }` reset. That is a sensible
+       rule for content images and a wrong one for a deliberately-cropped
+       cover, so it is overridden here and nowhere else. */
+    width:100% !important;
+    height:100% !important;
+    max-width:none !important;
+    object-fit:cover;
+    object-position:center;
+    z-index:1;
+}
+/* The site's own copy of the video — the ONLY player the row ever creates.
+   The YouTube embed is gone from these cards on purpose: it paints a title
+   bar and, for looped embeds, a centre pause with previous/next INSIDE its
+   frame, and no page CSS reaches in there. (Its removal also buries an
+   embarrassment: the title-crop rule that used to sit here had a doubled
+   comment closer, so the prose became junk inside the rule and CSS error
+   recovery ate the very declaration the geometry hung on — which is why the
+   title text survived deploy after deploy.) A real <video> needs none of
+   that arithmetic: object-fit covers the 9:16 card and crops its own sides,
+   and there is no chrome because there is no player UI at all. The max-width
+   lift is the same lesson the poster taught — the theme's media reset would
+   otherwise clamp it. */
+.af-pim-card video.af-pim-video {
+    position:absolute;
+    inset:0;
+    width:100% !important;
+    height:100% !important;
+    max-width:none !important;
+    max-height:none !important;
+    object-fit:cover;
+    object-position:center;
+    /* The reels are letterboxed at source, so a local copy carries the same
+       bands as the embed and needs the same zoom past them. */
+    transform:scale(var(--af-pim-zoom));
+    border:0;
+    pointer-events:none;
+    /* Above the moving preview (2), not level with it. Both are absolutely
+       positioned, and the player is inserted as the card's FIRST child - so at
+       equal z-index the preview, being later in the document, would paint over
+       the real video. The mp4 is the better thing whenever it exists. */
+    z-index:4;
+    opacity:0;
+    transition:opacity .5s ease;
+}
+.af-pim-card.af-pim-live video.af-pim-video { opacity:1; }
+/* NO YOUTUBE PLAYER IN THE CARDS — measured twice now, and final.
+   The embed experiment (deploys 906-913) ended where the original decision
+   said it would: with parameters, sizing, a working API handshake and a
+   page-driven loop all in place, the player STILL drew a persistent centre
+   pause chip on playing cards (owner's recordings, 09:55 and 11:34 — the
+   second one after every steering fix was live). That chip is the player's
+   own UI, inside its frame, where no page CSS reaches and nothing can cover
+   it without covering the video. Only a same-origin <video> can promise a
+   card with nothing on it but the moving picture; until its file exists, the
+   drifting stills below make that same promise. */
+/* A card whose reel has not reached the site yet keeps its poster — and the
+   poster DRIFTS, a slow alternating zoom, so the card reads as alive rather
+   than stalled. Costless: it is one compositor transform, it sits underneath
+   the video whenever one is playing, and it stops for anyone who asked the
+   OS for less motion. */
+.af-pim-card .af-pim-thumb {
+    animation:af-pim-drift 16s ease-in-out infinite alternate;
+    will-change:transform;
+}
+/* The zoom that cuts the baked-in bands.
+   MEASURED, deploy 906: every image now covers its card exactly (312x556 in a
+   290x516 card, all 20 elements), and the owner's recording STILL shows black
+   above and below the picture. So the bands are not the page's fit — they are
+   painted into the source. The reels were exported letterboxed, and YouTube's
+   thumbnails inherit it, which is why no amount of object-fit removed them:
+   cover-cropping a bordered picture keeps the border.
+   The remedy is the only one available to a page that cannot re-export the
+   video: scale past them. ~12% of the height at each end, so 1.3 clears both
+   with a little to spare, and the drift rides on top of that baseline instead
+   of starting from 1. */
+:root, .af-pim-card { --af-pim-zoom: 1.30; }
+@keyframes af-pim-drift {
+    from { transform:scale(var(--af-pim-zoom)); }
+    to   { transform:scale(calc(var(--af-pim-zoom) * 1.09)); }
+}
+/* FOUR frames per card, cross-fading.
+   Every route to the actual mp4 is now measured and closed: YouTube refuses
+   downloads from GitHub runners and from the agent container, the web host
+   cannot reach its own URL, and it cannot fetch or run yt-dlp either. But
+   YouTube publishes three storyboard stills per video at hq1/hq2/hq3 — real,
+   different moments FROM the reel — alongside the cover frame. Cross-fading
+   those four, each one still drifting, is motion taken from the video itself,
+   served as plain images: instant, no player, and therefore none of the
+   chrome a player insists on drawing.
+   Staggered by one quarter of the cycle each, so exactly one frame is opaque
+   at a time and the card is never blank. */
+.af-pim-card .af-pim-f1,
+.af-pim-card .af-pim-f2,
+.af-pim-card .af-pim-f3 { opacity:0; }
+.af-pim-card .af-pim-f0 { animation:af-pim-drift 26s ease-in-out infinite alternate,
+                                    af-pim-cross 24s linear infinite -0s; }
+.af-pim-card .af-pim-f1 { animation:af-pim-drift 26s ease-in-out infinite alternate-reverse,
+                                    af-pim-cross 24s linear infinite -6s; }
+.af-pim-card .af-pim-f2 { animation:af-pim-drift 26s ease-in-out infinite alternate,
+                                    af-pim-cross 24s linear infinite -12s; }
+.af-pim-card .af-pim-f3 { animation:af-pim-drift 26s ease-in-out infinite alternate-reverse,
+                                    af-pim-cross 24s linear infinite -18s; }
+/* Opaque for a quarter of the cycle, with a short fade at each end. The cover
+   frame alone stays visible if hq1-3 ever 404: a broken <img> paints nothing,
+   and the frame beneath it is still there. */
+/* The fade-out of one frame must be exactly the fade-in of the next, or the
+   total dips and the whole card visibly darkens four times a cycle. With four
+   frames staggered by 25%: hold from 5% to 25%, fall to zero by 30% - so the
+   next frame, whose own 0-5% rise is this one's 25-30% fall, sums to 1
+   throughout. Checked numerically over the full cycle before shipping; the
+   first attempt held 3%-22% and dipped to 0.4. */
+@keyframes af-pim-cross {
+    0%    { opacity:0; }
+    5%    { opacity:1; }
+    25%   { opacity:1; }
+    30%   { opacity:0; }
+    100%  { opacity:0; }
+}
+/* The moving preview sits above the stills and hides them. onerror removes
+   the element outright rather than leaving a broken-image glyph, so a card
+   whose animation disappears later falls back to the cross-fade instead of
+   showing a torn icon - which is what one card in the owner's recording was
+   doing. */
+.af-pim-card .af-pim-anim {
+    position:absolute;
+    inset:0;
+    width:100% !important;
+    height:100% !important;
+    max-width:none !important;
+    object-fit:cover;
+    object-position:center;
+    z-index:2;
+    pointer-events:none;
+    transform:scale(var(--af-pim-zoom));
+}
+/* While a video covers the posters there is nothing to see underneath, so
+   stop paying the compositor for any of them. */
+.af-pim-card.af-pim-live .af-pim-thumb { animation-play-state:paused; }
+@media (prefers-reduced-motion: reduce){
+    /* No drift — but the zoom is not decoration, it is what hides the bands
+       burnt into the source, so it stays. */
+    .af-pim-card .af-pim-thumb { animation:none; transform:scale(var(--af-pim-zoom)); }
+    .af-pim-card .af-pim-f1,
+    .af-pim-card .af-pim-f2,
+    .af-pim-card .af-pim-f3 { display:none; }
+}
+.af-pim-overlay {
+    position:absolute;
+    inset:0;
+    /* Above every media layer, so the click target is this and never the
+       player underneath it. */
+    z-index:5;
+}
+@media (max-width:768px){
+    .af-pim-card  { margin-right:14px; }
+}
+/* Someone who has asked for less motion gets a still row they can scroll
+   themselves, rather than one that moves on its own. */
+@media (prefers-reduced-motion: reduce){
+    .af-pim-track { animation:none; }
+    .af-pim-vp    { overflow-x:auto; }
+}
+/* Lightbox */
+.af-pim-lb {
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(0,0,0,.9);
+    z-index:999999;
+    align-items:center;
+    justify-content:center;
+}
+.af-pim-lb.open { display:flex; }
+.af-pim-lb iframe {
+    width:min(88vw,960px);
+    height:min(49.5vw,540px);
+    border:none;
+    border-radius:10px;
+}
+.af-pim-lb-x {
+    position:absolute;
+    top:18px; right:26px;
+    color:#fff;
+    font-size:46px;
+    line-height:1;
+    cursor:pointer;
+    background:none;
+    border:none;
+    padding:0;
+}
+/* Hide original Elementor video/playlist widgets */
+.elementor-widget-video-playlist,
+.elementor-widget-video,
+[data-widget_type^="video-playlist"],
+[data-widget_type^="video"],
+[data-widget_type^="video-playlist"] .elementor-widget-container,
+[data-widget_type^="video"] .elementor-widget-container { display:none !important; }
+/* Hide YouTube iframes that are NOT inside our circular slider or lightbox */
+/* Instagram/elfsight/social iframes are excluded — they don't use youtube src */
+body iframe[src*="youtube.com"]:not(#afPimWrap iframe):not(#afPimLb iframe),
+body iframe[src*="youtube-nocookie.com"]:not(#afPimWrap iframe):not(#afPimLb iframe),
+body iframe[src*="youtu.be"]:not(#afPimWrap iframe):not(#afPimLb iframe) {
+  display: none !important;
+}
+/* Also hide the widget containers of those YouTube iframes so no empty space remains */
+.elementor-widget-html:has(iframe[src*="youtube.com"]:not(#afPimWrap iframe)),
+.elementor-widget-html:has(iframe[src*="youtube-nocookie.com"]:not(#afPimWrap iframe)) {
+  display: none !important;
+}

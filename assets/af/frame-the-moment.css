@@ -1,0 +1,241 @@
+    .af-ftm-wrap{background:linear-gradient(180deg,#f6f1e6 0%,#efe7d6 100%);padding:44px 16px 70px;}
+    .af-ftm-card{max-width:1300px;margin:0 auto;background:#fffdf8;border:1px solid #efe6d2;border-radius:24px;
+      padding:36px 30px 34px;position:relative;box-shadow:0 24px 60px rgba(70,54,26,.10);}
+    .af-ftm-home{position:absolute;top:26px;left:26px;background:#1a1a1a;color:#fff;text-decoration:none;font-weight:700;
+      font-size:12.5px;padding:10px 16px;border-radius:9px;transition:background .2s;}
+    .af-ftm-home:hover{background:#c9a84c;color:#fff;}
+    .af-ftm-badge{position:absolute;top:26px;right:26px;background:#f3ead2;color:#a8801f;font-weight:800;font-size:11px;
+      letter-spacing:.08em;text-transform:uppercase;padding:8px 14px;border-radius:999px;border:1px solid #e6d7ad;}
+    .af-ftm-title{text-align:center;font-size:46px;font-weight:800;color:#1a1a1a;margin:16px 0 10px;letter-spacing:-.5px;
+      font-family:'Playfair Display',Georgia,serif;}
+    .af-ftm-sub{text-align:center;color:#6b6250;font-size:15.5px;max-width:660px;margin:0 auto 26px;line-height:1.65;}
+    .af-ftm-grid{display:grid;grid-template-columns:380px 1fr;gap:30px;align-items:start;}
+    .af-ftm-panel{background:#fff;border:1px solid #ece4cf;border-radius:18px;padding:24px;display:flex;flex-direction:column;
+      gap:6px;box-shadow:0 8px 26px rgba(70,54,26,.05);position:sticky;top:20px;}
+    .af-ftm-step{display:flex;align-items:center;gap:10px;margin:18px 0 6px;}
+    .af-ftm-step:first-child{margin-top:0;}
+    .af-ftm-num{width:24px;height:24px;border-radius:50%;background:#c9a84c;color:#fff;font-weight:800;font-size:13px;
+      display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+    .af-ftm-steptitle{font-size:14px;font-weight:800;color:#1a1a1a;}
+    .af-ftm-panel label{font-size:11.5px;font-weight:800;color:#6b6250;text-transform:uppercase;letter-spacing:.05em;margin-top:12px;}
+    .af-ftm-panel select{width:100%;padding:12px;border:1px solid #e2d9c4;border-radius:10px;font-size:14px;background:#fffdf8;
+      color:#1a1a1a;cursor:pointer;transition:border-color .15s;}
+    .af-ftm-panel select:focus{outline:none;border-color:#c9a84c;}
+    .af-ftm-hidden{display:none !important;}
+    /* upload drop zone */
+    .af-ftm-drop{display:flex !important;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+      padding:26px 16px;border:2px dashed #c9a84c;border-radius:14px;background:#fdfaf2;cursor:pointer;text-align:center;
+      transition:background .15s,border-color .15s;margin-top:2px;text-transform:none !important;letter-spacing:0 !important;}
+    .af-ftm-drop:hover,.af-ftm-drop.over{background:#faf3e0;border-color:#a8872e;}
+    .af-ftm-drop.has{border-style:solid;background:#f7fdf5;border-color:#5aa85a;}
+    .af-ftm-dropic{font-size:30px;line-height:1;}
+    .af-ftm-drop strong{font-size:14px;font-weight:800;color:#1a1a1a;text-transform:none;letter-spacing:0;}
+    .af-ftm-drop small{font-size:12px;color:#8a8170;}
+    .af-ftm-hint{margin:8px 0 0;font-size:12px;font-weight:600;min-height:16px;}
+    .af-ftm-hint.ok{color:#2e7d32;} .af-ftm-hint.warn{color:#c07a12;}
+    /* swatches */
+    .af-ftm-swatches{display:flex;gap:9px;flex-wrap:wrap;margin-top:6px;}
+    .af-ftm-sw{position:relative;width:34px;height:34px;border-radius:50%;border:2px solid #fff;
+      box-shadow:0 0 0 1px #d8cdb3,0 2px 5px rgba(0,0,0,.15);cursor:pointer;padding:0;transition:transform .12s;}
+    .af-ftm-sw:hover{transform:scale(1.08);}
+    .af-ftm-sw.on{box-shadow:0 0 0 2px #c9a84c,0 2px 6px rgba(0,0,0,.2);}
+    .af-ftm-sw span{position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:#1a1a1a;color:#fff;
+      font-size:10.5px;font-weight:700;padding:4px 8px;border-radius:6px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .15s;}
+    .af-ftm-sw:hover span{opacity:1;}
+    /* price + actions */
+    .af-ftm-price{display:flex;align-items:center;justify-content:space-between;margin-top:20px;padding-top:16px;
+      border-top:1px solid #f0e8d6;font-size:13px;color:#6b6250;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+    .af-ftm-price strong{font-size:26px;color:#1a1a1a;letter-spacing:-.5px;}
+    .af-ftm-notes{margin:6px 0 0;font-size:12.5px;color:#256d2c;font-weight:600;}
+    .af-ftm-actions{display:flex;gap:10px;margin-top:16px;}
+    .af-ftm-btn{flex:1 1 0;min-width:0;box-sizing:border-box;height:46px;display:flex;align-items:center;justify-content:center;
+      gap:6px;padding:0 12px;border-radius:11px;font-weight:700 !important;font-size:13px !important;line-height:1 !important;
+      white-space:nowrap !important;text-transform:none !important;letter-spacing:0 !important;cursor:pointer;text-decoration:none;
+      border:none;transition:transform .12s,background .2s;}
+    .af-ftm-btn:hover{transform:translateY(-1px);}
+    .af-ftm-btn.ghost{background:#f2ecdd;color:#5a5140;}
+    .af-ftm-btn.ghost:hover{background:#e9e0cc;}
+    .af-ftm-btn.solid{background:#25a366;color:#fff;box-shadow:0 6px 16px rgba(37,163,102,.30);}
+    .af-ftm-btn.solid:hover{background:#1e8b56;color:#fff;}
+    .af-ftm-fine{margin:10px 0 0;font-size:11.5px;color:#8a8170;line-height:1.5;}
+    /* stage */
+    /* Same rule as Try-On-Wall: the preview column matches the rail's height and
+       the wall absorbs the difference, so no band of empty card is left over. */
+    .af-ftm-stagewrap{position:relative;display:flex;flex-direction:column;align-self:stretch;min-height:0;}
+    .af-ftm-stage{position:relative;width:100%;flex:1 1 auto;min-height:470px;max-height:760px;border-radius:18px;overflow:hidden;display:flex;
+      align-items:center;justify-content:center;box-shadow:inset 0 0 60px rgba(0,0,0,.10);background:#e9e4d8;}
+    /* the two cards under the wall — equal height so neither leaves a void */
+    .af-ftm-under{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:16px;align-items:stretch;}
+    .af-ftm-flat{position:static;top:auto;}
+    .af-ftm-under .af-ftm-scenes{grid-template-columns:repeat(4,1fr);}
+    .af-ftm-under .af-ftm-scene{height:74px;}
+    .af-ftm-under .af-ftm-cambtn{margin-top:14px;padding:15px 12px;}
+    .af-ftm-under .af-ftm-price{margin-top:0;padding-top:0;border-top:none;}
+    /* real photographic room behind the frame */
+    .af-ftm-wall{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:52% 50%;display:block;}
+    .af-ftm-empty{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;
+      background:rgba(255,255,255,.86);border-radius:14px;padding:26px 30px;max-width:340px;backdrop-filter:blur(2px);}
+    .af-ftm-emptyic{font-size:34px;}
+    .af-ftm-empty strong{font-size:15px;color:#1a1a1a;}
+    .af-ftm-empty small{font-size:13px;color:#8a8170;line-height:1.55;}
+    .af-ftm-framebox{position:absolute;top:40%;left:52%;transform:translate(-50%,-50%);z-index:5;
+      filter:drop-shadow(10px 16px 22px rgba(0,0,0,.34));}
+    /* room scene thumbnails */
+    .af-ftm-scenes{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;}
+    .af-ftm-scene{position:relative;height:52px;border-radius:10px;border:2px solid #e2d9c4;background-size:cover;
+      background-position:center;cursor:pointer;overflow:hidden;padding:0;transition:border-color .15s,transform .12s;}
+    .af-ftm-scene:hover{transform:translateY(-1px);}
+    .af-ftm-scene.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
+    .af-ftm-scene span{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(transparent,rgba(0,0,0,.6));
+      color:#fff;font-size:10.5px;font-weight:700;padding:8px 6px 4px;text-align:center;}
+    .af-ftm-moulding{position:relative;box-sizing:border-box;}
+    .af-ftm-mat{position:relative;box-sizing:border-box;}
+    .af-ftm-art{width:100%;background-size:cover;background-position:center;background-repeat:no-repeat;}
+    /* multi-panel layouts (1 / 2 / 4 prints on the wall) */
+    .af-ftm-panels{display:flex;gap:2.5%;align-items:flex-start;}
+    .af-ftm-wpanel{flex:1 1 0;min-width:0;}
+    .af-ftm-pframe{position:relative;box-sizing:border-box;}
+    .af-ftm-pmat{position:relative;box-sizing:border-box;}
+    .af-ftm-part{width:100%;background-repeat:no-repeat;}
+    /* layout chips */
+    .af-ftm-layouts{display:flex;gap:8px;margin-top:6px;}
+    /* Same as the Try On Wall chips: the label alone, centred, with the
+       selected state carried by the border and the label colour. See the note
+       on .af-tow-lay. */
+    .af-ftm-lay{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;height:44px;padding:7px 6px;
+      border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;cursor:pointer;transition:border-color .15s;}
+    /* "2 Panels" is one phrase and has to stay one line. The parent theme
+       uppercases and letter-spaces buttons, which the label was never sized
+       for, and on a phone that was enough to break it at its space and stack
+       "PANELS" under the "2" while "SINGLE" stayed whole — three chips, two
+       different heights. nowrap settles the break; the fluid size gives the
+       label room to shrink instead of needing it, so the row still holds
+       three chips at 360px; the ellipsis is the last resort, so a label can
+       never spill past its own border whatever it inherits. */
+    .af-ftm-lay span{font-size:clamp(9.5px,2.7vw,11px);font-weight:700;color:#8a8170;text-align:center;
+      letter-spacing:.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+    .af-ftm-lay.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;}
+    .af-ftm-lay.on span{color:#8a6d3b;}
+    /* Wall height, in the panel — same chip as the layout row above it, and
+       held to one line for the reason set out on .af-tow-wallh. */
+    .af-ftm-wallh{display:flex;gap:8px;margin-top:6px;}
+    .af-ftm-wallh button{flex:1 1 0;min-width:0;box-sizing:border-box;
+      display:flex;flex-direction:row;align-items:center;justify-content:center;
+      white-space:nowrap;line-height:1;height:38px;padding:0 4px;overflow:hidden;text-overflow:ellipsis;
+      border:2px solid #e2d9c4;border-radius:10px;background:#fffdf8;
+      font-size:clamp(9.5px,2.7vw,11px);font-weight:700;color:#8a8170;letter-spacing:.02em;cursor:pointer;transition:border-color .15s;}
+    .af-ftm-wallh button.on{border-color:#c9a84c;box-shadow:0 0 0 1px #c9a84c;color:#8a6d3b;}
+    /* live camera backdrop */
+    .af-ftm-camv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none;z-index:1;}
+    /* calibration overlay — same measured-scale tool as Try On Wall */
+    .af-ftm-cal{position:absolute;inset:0;z-index:7;pointer-events:none;}
+    .af-ftm-calbox{position:absolute;left:9%;right:9%;top:16%;bottom:16%;border:3px solid #e04338;border-radius:6px;
+      color:#e04338;box-shadow:0 0 0 2000px rgba(0,0,0,.16);transition:border-color .25s,color .25s,box-shadow .3s;}
+    .af-ftm-calbox.near{border-color:#e8b400;color:#e8b400;}
+    .af-ftm-calbox.locked{border-color:#2fae52;color:#2fae52;box-shadow:0 0 0 2000px rgba(0,0,0,0),0 0 26px rgba(47,174,82,.85);}
+    /* Thirds grid — see the note on .af-tow-calbox::before. */
+    .af-ftm-calbox::before{content:'';position:absolute;inset:0;pointer-events:none;opacity:.4;
+      background-image:linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor),
+        linear-gradient(currentColor,currentColor),linear-gradient(currentColor,currentColor);
+      background-size:1px 100%,1px 100%,100% 1px,100% 1px;
+      background-position:33.333% 0,66.666% 0,0 33.333%,0 66.666%;
+      background-repeat:no-repeat;}
+    .af-ftm-calcorner{position:absolute;width:20px;height:20px;border-color:inherit;border-style:solid;border-width:0;}
+    .af-ftm-calcorner.tl{top:-3px;left:-3px;border-top-width:6px;border-left-width:6px;border-top-left-radius:6px;}
+    .af-ftm-calcorner.tr{top:-3px;right:-3px;border-top-width:6px;border-right-width:6px;border-top-right-radius:6px;}
+    .af-ftm-calcorner.bl{bottom:-3px;left:-3px;border-bottom-width:6px;border-left-width:6px;border-bottom-left-radius:6px;}
+    .af-ftm-calcorner.br{bottom:-3px;right:-3px;border-bottom-width:6px;border-right-width:6px;border-bottom-right-radius:6px;}
+    .af-ftm-calmsg{position:absolute;left:50%;top:4%;transform:translateX(-50%);background:rgba(16,16,16,.82);color:#fff;
+      font-size:12.5px;line-height:1.45;padding:8px 14px;border-radius:9px;max-width:78%;text-align:center;}
+    /* The rectangle's top edge sits at 16% of the stage. On a phone the stage
+       is 420px and this ran to six lines — 125px from a top of 4% — so it lay
+       across the top of the rectangle and its grid, hiding the very edge the
+       visitor is being told to line up with the ceiling. Smaller, tighter and
+       wider here, and the wording shortens too (.af-ftm-calmsg em). */
+    .af-ftm-calmsg-short{display:none;}
+    @media (max-width:600px){
+      .af-ftm-calmsg{font-size:11px;line-height:1.35;padding:5px 9px;border-radius:7px;
+        max-width:94%;top:5px;}
+      /* Smaller type alone still left four lines over the rectangle. The
+         instruction is the same either way; the phone gets it in half the
+         words so it fits above the edge it is talking about. */
+      .af-ftm-calmsg-long{display:none;}
+      .af-ftm-calmsg-short{display:inline;}
+    }
+    .af-ftm-calmsg strong{color:#efd48d;}
+    .af-ftm-calh{position:absolute;left:50%;bottom:4%;transform:translateX(-50%);display:flex;gap:7px;align-items:center;
+      background:rgba(16,16,16,.82);border-radius:999px;padding:6px 10px;pointer-events:auto;}
+    .af-ftm-calh span{color:#cbc2ac;font-size:11px;font-weight:700;text-transform:none;letter-spacing:0;margin:0;}
+    /* One line, for the reason set out on .af-ftm-wallh: the parent theme styles
+       buttons, and inside a 286px-wide stage on a phone that was enough to
+       stack "FT" under the "8". The panel's row was given nowrap; this one,
+       inside the camera overlay, was missed because on a desktop stage it
+       never ran out of room. */
+    .af-ftm-calh button{background:transparent;border:1px solid #6f6a5e;color:#fff;
+      font-size:clamp(10px,2.8vw,11.5px);font-weight:700;white-space:nowrap;line-height:1;
+      border-radius:999px;padding:5px 10px;cursor:pointer;transition:background .15s;}
+    .af-ftm-calh button.on{background:#c9a84c;border-color:#c9a84c;color:#1a1a1a;}
+    .af-ftm-recal{position:absolute;top:12px;left:12px;z-index:8;background:rgba(24,110,52,.92);color:#fff;border:none;
+      border-radius:999px;padding:8px 13px;font-size:12px;font-weight:700;cursor:pointer;}
+    .af-ftm-cambtn{display:flex;flex-direction:column;align-items:center;gap:2px;width:100%;margin-top:8px;padding:11px 12px;
+      border:2px solid #1a1a1a;border-radius:11px;background:#1a1a1a;color:#fff;font-size:12.5px;font-weight:700;cursor:pointer;
+      text-transform:none;letter-spacing:0;transition:background .2s;}
+    .af-ftm-cambtn:hover{background:#000;}
+    .af-ftm-cambtn em{font-style:normal;font-weight:500;font-size:10.5px;color:#cbc2ac;}
+    .af-ftm-camstop{position:absolute;top:12px;right:12px;z-index:8;background:rgba(20,20,20,.85);color:#fff;border:none;
+      border-radius:999px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+    /* This button and the calibration message have always shared the top of
+       the stage, and on a phone they collided — the button lay across the
+       message by 68-86px at 430 down to 360px, hiding the end of the very
+       sentence telling the visitor what to do. (Measured against the older
+       message geometry too: the same 68-86px, so this is not something the
+       shorter wording introduced.)
+       Two changes, both only on phones. The button keeps the ✕ and drops the
+       words: there is a full "Stop live camera" button in the panel just
+       below, so the corner control is a shortcut rather than the only way
+       out, and aria-label carries the name for a screen reader. The message
+       then stops centring itself across the full width and reserves the
+       corner instead — 56px is the compact button's 40px plus its 12px
+       offset, so the two can no longer meet whatever the label says. */
+    @media (max-width:600px){
+      /* 40px square: a corner control still wants a thumb-sized target. */
+      .af-ftm-camstop{padding:0;width:40px;height:40px;line-height:40px;text-align:center;font-size:16px;}
+      .af-ftm-camstop-t{display:none;}
+      .af-ftm-calmsg{left:8px;right:56px;transform:none;max-width:none;}
+    }
+    .af-ftm-glass{position:absolute;inset:0;pointer-events:none;
+      background:linear-gradient(125deg,rgba(255,255,255,.22) 0%,rgba(255,255,255,.05) 22%,rgba(255,255,255,0) 42%);}
+    .af-ftm-tip{text-align:center;color:#8a8170;font-size:13px;margin:14px 0 0;}
+    @media(max-width:1180px){
+      .af-ftm-grid{grid-template-columns:340px 1fr;gap:24px;}
+      .af-ftm-under{gap:14px;}
+    }
+    @media(max-width:1000px){
+      .af-ftm-under{grid-template-columns:1fr;}
+      .af-ftm-under .af-ftm-scenes{grid-template-columns:1fr 1fr;}
+      .af-ftm-under .af-ftm-scene{height:56px;}
+    }
+    @media(max-width:900px){
+      .af-ftm-grid{grid-template-columns:1fr;gap:16px;}
+      .af-ftm-panel{position:static;}
+      .af-ftm-stagewrap{align-self:auto;}
+      .af-ftm-stage{flex:0 0 auto;height:440px;min-height:0;max-height:none;}
+      .af-ftm-title{font-size:34px;}
+      .af-ftm-card{padding:64px 20px 26px;}
+    }
+    @media(max-width:480px){
+      .af-ftm-title{font-size:27px;}
+      .af-ftm-stage{height:360px;}
+      .af-ftm-badge{display:none;}
+    }
+    /* Touch targets on phones and tablets — the same three controls, and the
+       same reasoning, as the block at the end of the Try On Wall stylesheet.
+       Kept beside its own page's rules rather than shared, because the two
+       stylesheets are independent and a shared block would be a fourth place
+       to look when one of these pages changes. */
+    @media (max-width:781px){
+      .af-ftm-sw{width:44px;height:44px;}
+      .af-ftm-wallh button{height:44px;}
+      .af-ftm-home{display:inline-flex;align-items:center;min-height:44px;padding:0 16px;}
+    }
+    

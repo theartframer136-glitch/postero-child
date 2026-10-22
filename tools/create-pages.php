@@ -18,7 +18,7 @@ $pages = array(
 <p>At {$BRAND}, every piece is made to order and handled with care. Below is what you can expect after placing an order.</p>
 <h3>Processing Time</h3><p>Orders are typically processed and produced within <strong>3–5 business days</strong>. Custom and large-format pieces may require additional time.</p>
 <h3>Delivery Time</h3><p>Standard delivery within the United States takes <strong>5–10 business days</strong> after dispatch. You will receive tracking details by email once your order ships.</p>
-<h3>Shipping Charges</h3><p>We offer <strong>free delivery</strong> across major serviceable locations in the USA including Delaware, Pennsylvania, Maryland, New Jersey and nearby areas. Charges for other regions are calculated at checkout.</p>
+<h3>Shipping Charges</h3><p>We ship to <strong>every state in the USA</strong>. The shipping cost for your size and destination is shown at checkout before you pay.</p></p>
 <h3>Need Help?</h3><p>For delivery questions, contact us at <a href=\"mailto:{$EMAIL}\">{$EMAIL}</a> or {$PHONE}.</p>",
     ),
     'returns-exchanges' => array(
