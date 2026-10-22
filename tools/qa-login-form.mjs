@@ -300,7 +300,8 @@ async function otherFormChecks() {
   // af_nl_subscribe with the page's af_ajax.nl_nonce. It shows ~9 s after load.
   const nlNonce = await p.evaluate(() => (window.af_ajax && window.af_ajax.nl_nonce) || '');
   await p.goto(S + '/?' + bust(), { waitUntil: 'networkidle2', timeout: 90000 }).catch(() => null);
-  const overlay = await p.waitForSelector('.af-input-group input[type="email"]', { timeout: 16000 }).catch(() => null);
+  // since 16 Oct the overlay is on the page from the start and shown after 8 s: wait until it is visible
+  const overlay = await p.waitForSelector('.af-input-group input[type="email"]', { visible: true, timeout: 20000 }).catch(() => null);
   if (!overlay) {
     console.log('INFO  browser: home popup newsletter: the overlay did not appear within 16 s (shown once per visitor?) - not checked in the browser');
   } else if (MODE === 'on') {
@@ -322,7 +323,8 @@ async function otherFormChecks() {
   // a blog post's comment form and a product's review form
   const links = await p.evaluate(async () => {
     const out = { post: null, postId: 0, product: null };
-    try { const r = await fetch('/wp-json/wp/v2/posts?per_page=1&_fields=id,link', { headers: { Accept: 'application/json' } }).then(x => x.json()); if (r && r[0]) { out.post = r[0].link; out.postId = r[0].id; } } catch (e) {}
+    // the newest post that still takes comments (older ones may be closed)
+    try { const r = await fetch('/wp-json/wp/v2/posts?per_page=20&_fields=id,link,comment_status', { headers: { Accept: 'application/json' } }).then(x => x.json()); const o = (r || []).find(x => x.comment_status === 'open'); if (o) { out.post = o.link; out.postId = o.id; } } catch (e) {}
     try { const r = await fetch('/wp-json/wc/store/v1/products?per_page=1', { headers: { Accept: 'application/json' } }).then(x => x.json()); if (r && r[0]) out.product = r[0].permalink; } catch (e) {}
     return out;
   });
@@ -330,6 +332,7 @@ async function otherFormChecks() {
     ['blog comment form', links.post, null],
     ['product review form', links.product, () => p.evaluate(() => { const t = document.querySelector('a[href="#tab-reviews"], .reviews_tab a, [data-tab="reviews"], a[href*="#reviews"]'); if (t) t.click(); })],
   ]) {
+    if (!url && label === 'blog comment form') { console.log('INFO  browser: blog comment form: no post takes comments at the moment - nothing to check'); continue; }
     if (!url) { check(`browser: ${label}: a page to test on`, false, links); continue; }
     cf = 0;
     await p.goto(url + (url.includes('?') ? '&' : '?') + bust(), { waitUntil: 'networkidle2', timeout: 90000 }).catch(() => null);
