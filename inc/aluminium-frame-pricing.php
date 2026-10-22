@@ -27,7 +27,11 @@
  */
 if (!defined('ABSPATH')) exit;
 
-function af_alu_cat_slugs() { return array('premium-aluminium-frames'); }
+// DIY floating frames joined 22 Oct 2026 (owner: "same $4/sq ft"). The four
+// kits in Art Accessories → DIY Floating Frames had no price either, so they
+// showed "Price on request" while Google sent them its most frequent searches
+// ("floating frame for canvas" and the like, position 40-50, no clicks).
+function af_alu_cat_slugs() { return array('premium-aluminium-frames', 'diy-floating-frames'); }
 
 function af_is_alu_product($product) {
     $pid = $product instanceof WC_Product ? $product->get_id() : (int) $product;

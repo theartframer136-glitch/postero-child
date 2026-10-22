@@ -166,7 +166,7 @@ $cat_map = array(
     ),
     'diy-floating-frames' => array(
         't' => 'Canvas Floating Frames | Floater Frame Kits for Canvas',
-        'd' => 'DIY floating frames for stretched canvas in black, gold, silver and natural wood. Easy to assemble, many sizes, shipped across the USA.',
+        'd' => 'DIY floating frames for stretched canvas in black, silver, gold and rose gold, from $24. Easy to assemble, five sizes, shipped across the USA.',
         'i' => 'Give stretched canvas a premium gallery finish — easy-assembly floating frame kits in custom sizes.',
     ),
     'frame-colors' => array(
@@ -372,6 +372,8 @@ $superseded = array(
     'Explore every art print in one place — spiritual, abstract, nature and more, printed on premium canvas and shipped ready to hang across the USA.',
     'Every print in the studio, one collection — printed to order on archival canvas and shipped ready to hang anywhere in the USA.',
     'Digital canvas prints across spiritual, abstract and nature themes — archival inks, multiple sizes, ready to hang.',
+    // 22 Oct 2026: floating frames now have prices (inc/aluminium-frame-pricing.php).
+    'DIY floating frames for stretched canvas in black, gold, silver and natural wood. Easy to assemble, many sizes, shipped across the USA.',
 );
 if (!is_wp_error($terms)) {
     foreach ($terms as $term) {
@@ -452,6 +454,27 @@ foreach ($q->posts as $aid) {
     }
 }
 $log("alt text backfilled for $n_alt images");
+
+// ── 5b. Accessory descriptions that call the product a canvas print ──
+// The product importer opened every description with "This <name> canvas
+// wall art is a premium gallery-wrapped canvas print, handcrafted to order in
+// our Delaware studio." On a frame, stretcher bar or tool that sentence is
+// wrong, and on the floating frame pages Google reads it first. Only that
+// generated opening sentence is removed; the hand-written text after it stays.
+$acc = get_term_by('slug', 'art-accessories', 'product_cat');
+if ($acc && function_exists('wc_get_products')) {
+    $n_acc = 0;
+    $bad = '/^(\s*(?:<p>)?\s*)This [^<]{0,400}? is a premium gallery-wrapped canvas print, handcrafted to order in our Delaware studio\.\s*/u';
+    foreach (wc_get_products(array('category' => array('art-accessories'), 'limit' => 500, 'return' => 'ids', 'status' => array('publish', 'private', 'draft'))) as $pid) {
+        $c = (string) get_post_field('post_content', $pid);
+        $new = preg_replace($bad, '$1', $c, 1);
+        if (is_string($new) && $new !== $c && trim(wp_strip_all_tags($new)) !== '') {
+            wp_update_post(array('ID' => $pid, 'post_content' => $new));
+            $n_acc++;
+        }
+    }
+    $log("accessory descriptions: canvas-print opening removed from $n_acc");
+}
 
 // ── 6. Social share image (og:image) ────────────────────────────────
 // The current og:image is a scanned business card. Build a proper
