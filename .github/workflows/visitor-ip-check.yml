@@ -1,0 +1,91 @@
+name: Visitor IP check
+# Does PHP see each visitor's own address behind the CDN in front of the site?
+# The per-address limits (logins, contact form, gift-card guesses, and the
+# checkout brake and order-tracking limit of 22 Oct) all count af_visitor_ip().
+#
+# This runner's own address is known. The server sets the gift-card guess
+# count for exactly that address to its limit (10), then this runner tries one
+# made-up gift card code through the public site. Refused as "too many" means
+# PHP counted the request under this runner's own address: the visitor's
+# address reaches PHP through the CDN. The count is removed again at the end.
+# Nothing else is written; no gift card code has ever been issued.
+on:
+  workflow_dispatch:
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      H_USER: ${{ secrets.HOSTINGER_USERNAME }}
+      H_HOST: ${{ secrets.HOSTINGER_HOST }}
+      H_PORT: ${{ secrets.HOSTINGER_PORT }}
+      SITE: https://theartframer.us
+    steps:
+      - name: Setup SSH
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.HOSTINGER_SSH_KEY }}" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          cat > ~/ssh-site <<'EOF'
+          #!/usr/bin/env bash
+          exec ssh -p "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
+            "$H_USER@$H_HOST" "cd ~/websites/OPu0sKi4J/public_html && $1"
+          EOF
+          chmod +x ~/ssh-site
+
+      - name: This runner's addresses, and a nonce for a visitor with no session
+        run: |
+          set -uo pipefail
+          v4=$(curl -4 -s -m 20 https://api.ipify.org || true)
+          v6=$(curl -6 -s -m 20 https://api6.ipify.org || true)
+          [[ "$v4" =~ ^[0-9]{1,3}(\.[0-9]{1,3}){3}$ ]] || v4=''
+          [[ "$v6" =~ ^[0-9a-fA-F:]+$ ]] || v6=''
+          echo "IPv4: ${v4%.*.*}.x.x | IPv6: ${v6:+${v6%%:*}:...}${v6:-none}"
+          n=$(~/ssh-site "wp eval 'wp_set_current_user(0); echo wp_create_nonce(\"af_gc_apply\");' --allow-root 2>/dev/null" | tail -1 | tr -cd 'a-f0-9')
+          echo "::add-mask::$n"
+          [ -n "$v4" ] && [ -n "$n" ] || { echo "no address or nonce"; exit 1; }
+          { echo "V4=$v4"; echo "V6=$v6"; echo "NONCE=$n"; } >> "$GITHUB_ENV"
+
+      - name: Count set to the limit for this runner's IPv4, then one try from here
+        run: |
+          set -uo pipefail
+          key="af_rl_\" . md5(\"gc|$V4\") . \""
+          ~/ssh-site "wp eval 'set_transient(\"$key\", array(10, time()), 600); \$v = get_transient(\"$key\"); echo is_array(\$v) ? \"count set to \" . \$v[0] : \"could not set\";' --allow-root 2>/dev/null" | tail -1
+          body=$(curl -4 -s -m 30 -A 'Mozilla/5.0 (af visitor-ip check)' -H 'Cache-Control: no-cache' -X POST "$SITE/wp-admin/admin-ajax.php" \
+            --data-urlencode action=af_gc_apply --data-urlencode "nonce=$NONCE" --data-urlencode code=TAF-QAQA-QAQA-QAQA -D /tmp/h.txt || true)
+          echo "answer: $(echo "$body" | head -c 160)"
+          echo "server: $(grep -i '^server:' /tmp/h.txt | tr -d '\r') | $(grep -i '^x-hcdn-cache-status:' /tmp/h.txt | tr -d '\r')"
+          if echo "$body" | grep -qi 'too many'; then
+            echo "RESULT v4: PHP counted this request under this runner's own IPv4: each visitor is counted under their own address."
+            echo "V4OK=1" >> "$GITHUB_ENV"
+          else
+            echo "RESULT v4: NOT counted under this runner's own IPv4."
+            echo "V4OK=0" >> "$GITHUB_ENV"
+          fi
+
+      - name: The same over IPv6 (when this runner has it)
+        if: env.V6 != ''
+        run: |
+          set -uo pipefail
+          key="af_rl_\" . md5(\"gc|$V6\") . \""
+          ~/ssh-site "wp eval 'set_transient(\"$key\", array(10, time()), 600); echo \"count set\";' --allow-root 2>/dev/null" | tail -1
+          body=$(curl -6 -s -m 30 -A 'Mozilla/5.0 (af visitor-ip check)' -H 'Cache-Control: no-cache' -X POST "$SITE/wp-admin/admin-ajax.php" \
+            --data-urlencode action=af_gc_apply --data-urlencode "nonce=$NONCE" --data-urlencode code=TAF-QAQA-QAQA-QAQA || true)
+          echo "answer: $(echo "$body" | head -c 160)"
+          if echo "$body" | grep -qi 'too many'; then echo "RESULT v6: counted under this runner's own IPv6."; else echo "RESULT v6: NOT counted under this runner's own IPv6."; fi
+
+      - name: When not, what PHP counted instead (a fresh try, then the count read back)
+        if: env.V4OK != '1'
+        run: |
+          set -uo pipefail
+          for a in "$V4" "$V6"; do [ -n "$a" ] && ~/ssh-site "wp eval 'delete_transient(\"af_rl_\" . md5(\"gc|$a\"));' --allow-root 2>/dev/null"; done
+          curl -4 -s -m 30 -A 'Mozilla/5.0 (af visitor-ip check)' -X POST "$SITE/wp-admin/admin-ajax.php" --data-urlencode action=af_gc_apply --data-urlencode "nonce=$NONCE" --data-urlencode code=TAF-QAQA-QAQA-QAQA > /dev/null || true
+          ~/ssh-site "wp eval '\$v = get_transient(\"af_rl_\" . md5(\"gc|$V4\")); echo \"count now under this runner IPv4: \" . (is_array(\$v) ? \$v[0] : 0), \"\n\", \"object cache: \" . (wp_using_ext_object_cache() ? \"yes\" : \"no\");' --allow-root 2>/dev/null"
+
+      - name: Remove the counts again
+        if: always()
+        run: |
+          set -uo pipefail
+          for a in "$V4" "$V6"; do [ -n "$a" ] && ~/ssh-site "wp eval 'delete_transient(\"af_rl_\" . md5(\"gc|$a\")); echo \"removed\";' --allow-root 2>/dev/null" | tail -1; done
+          [ "${V4OK:-0}" = 1 ]
