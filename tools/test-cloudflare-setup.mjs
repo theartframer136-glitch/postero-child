@@ -163,8 +163,9 @@ r = await run(S, 'apply');
 t('no owner rule: a second apply writes nothing', r.code === 0 && S.writes.length === 0, S.writes.join(', '));
 S.rulesets.http_request_firewall_custom.unshift({ id: 'r-owner', version: '1', ref: 'owner1', description: "Owner's own rule", action: 'managed_challenge', expression: '(ip.src.country eq "T1")', enabled: true, last_updated: 'x' });
 S.rulesets.http_request_firewall_custom.push({ id: 'r-owner2', version: '1', ref: 'owner2', description: "Owner's second rule", action: 'block', expression: '(ip.src eq 192.0.2.1)', enabled: true, last_updated: 'x' });
+S.writes = [];
 r = await run(S, 'apply');
-t('two owner rules: the optional rule goes, 4 required ones stay', r.code === 0 && S.rulesets.http_request_firewall_custom.filter(x => x.description.startsWith('AF:')).length === 4 && S.rulesets.http_request_firewall_custom.length === 6 - 1, JSON.stringify(S.rulesets.http_request_firewall_custom.map(x => x.ref)) + '\n' + r.out);
+t('two owner rules: 4 required ones cannot fit, so nothing is written and the reason is named', r.code === 1 && !S.writes.some(w => w.includes('http_request_firewall_custom')) && /leave room for only 3 of ours; 4 are needed/.test(r.out), r.out.split('=== rules')[1] || r.out);
 S.rulesets.http_request_firewall_custom = S.rulesets.http_request_firewall_custom.filter(x => x.id !== 'r-owner2');
 
 // 4. a missing permission is named and the audit carries on

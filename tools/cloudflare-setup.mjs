@@ -283,9 +283,11 @@ async function doPhase(z, phase, want) {
   const mine = have.filter(ours);
   if (phase === 'http_request_firewall_custom' && theirs.length + want.length > CUSTOM_RULE_CAP) {
     const room = Math.max(0, CUSTOM_RULE_CAP - theirs.length);
-    const keep = [], dropped = [];
-    for (const w of [...want].reverse()) (w.optional && keep.length + (want.length - dropped.length - keep.length - 1) >= room) ? dropped.push(w) : keep.push(w);
-    want = keep.reverse();
+    // required rules first; optional ones only while room remains, in order
+    const required = want.filter(w => !w.optional), optional = want.filter(w => w.optional);
+    const fits = optional.slice(0, Math.max(0, room - required.length));
+    const dropped = optional.filter(w => !fits.includes(w));
+    want = want.filter(w => !w.optional || fits.includes(w));
     for (const w of dropped) info(`${phase}: left out, the Free plan allows ${CUSTOM_RULE_CAP} custom rules and ${theirs.length} are the owner's: ${w.description}`);
     if (theirs.length + want.length > CUSTOM_RULE_CAP) { bad(`${phase}: ${theirs.length} rule(s) of the owner's leave room for only ${room} of ours; ${want.length} are needed`); return false; }
   }
