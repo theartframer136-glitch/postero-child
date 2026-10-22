@@ -116,6 +116,10 @@ function af_turnstile_admin_page() {
       <p>The "Verify you are human" check from Cloudflare, on every form a visitor can send without being logged in:
          the Login and Sign-up pages, My Account (login, register, lost password), the checkout's returning-customer login, the header's login popup,
          wp-login.php, the contact form, the newsletter forms, blog comments and product reviews. Logged-in customers are never asked.</p>
+      <p>Checkout, once switched on (the Turnstile workflow's <em>checkout-on</em>): Place order, Apple Pay / Google Pay, the pay-for-order page,
+         order tracking and the basket-reminder email, invisibly for nearly every buyer. There the check is for guests and for accounts that have
+         never paid; returning customers who have paid before, and shop staff, are never asked. Card payments also have a brake: 8 tries an hour
+         per connection or account. Status: <strong><?php echo function_exists('af_turnstile_checkout_on') && af_turnstile_checkout_on() ? 'on' : 'off'; ?></strong>.</p>
       <?php if ($result) : ?>
         <div class="notice <?php echo $result['ok'] ? 'notice-success' : 'notice-error'; ?>"><?php foreach ($result['messages'] as $m) echo '<p>' . wp_kses($m, array('strong' => array())) . '</p>'; ?></div>
       <?php endif; ?>

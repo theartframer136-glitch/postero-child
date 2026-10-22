@@ -135,11 +135,13 @@ jobs:
           set -euo pipefail
           v=$([ "$MODE" = checkout-off ] && echo off || echo on)
           ~/ssh-site "wp option update af_turnstile_checkout $v --autoload=yes --allow-root 2>&1 | tail -1"
+          # cached product and basket pages carry the switch to the browser script (the Apple / Google Pay box)
+          ~/ssh-site "wp litespeed-purge all --allow-root 2>/dev/null || true; wp cache flush --allow-root 2>/dev/null || true"
           ~/ssh-site "wp eval 'echo function_exists(\"af_turnstile_checkout_on\") && af_turnstile_checkout_on() ? \"checkout checked\" : \"checkout not checked\";' --allow-root 2>/dev/null" | tee /tmp/co.txt
           if [ "$v" = on ]; then grep -q "checkout checked" /tmp/co.txt; else grep -q "checkout not checked" /tmp/co.txt; fi
 
       - name: Warm the entrance pages again (one at a time)
-        if: env.MODE == 'enable' || env.MODE == 'disable'
+        if: env.MODE != 'status'
         run: |
           set -uo pipefail
           ~/ssh-site "wp eval 'echo home_url(\"/\"), \"\n\", wc_get_page_permalink(\"shop\"), \"\n\", home_url(\"/login/\"), \"\n\", home_url(\"/sign-up/\"), \"\n\"; foreach (get_terms(array(\"taxonomy\" => \"product_cat\", \"hide_empty\" => true, \"number\" => 12, \"orderby\" => \"count\", \"order\" => \"DESC\")) as \$t) { \$l = get_term_link(\$t); if (is_string(\$l)) echo \$l, \"\n\"; }' --allow-root 2>/dev/null" > /tmp/warm.txt || true
@@ -169,7 +171,7 @@ jobs:
         if: failure() && env.MODE == 'checkout-on'
         run: |
           set -uo pipefail
-          ~/ssh-site "wp option update af_turnstile_checkout off --autoload=yes --allow-root 2>&1 | tail -1"
+          ~/ssh-site "wp option update af_turnstile_checkout off --autoload=yes --allow-root 2>&1 | tail -1; wp litespeed-purge all --allow-root 2>/dev/null || true; wp cache flush --allow-root 2>/dev/null || true"
           ~/ssh-site "wp eval 'echo af_turnstile_checkout_on() ? \"STILL ON\" : \"checkout checks off again: checkout is as before\";' --allow-root 2>/dev/null"
 
       - name: Something failed after switching on - switch off again

@@ -156,10 +156,12 @@ function af_turnstile_in_editor() {
 // invisible unless Cloudflare needs the visitor to tick it.
 function af_turnstile_box($action = 'login', $echo = true, $quiet = false) {
     if (!af_turnstile_active() || af_turnstile_in_editor()) return '';
-    // Logged-in customers are never asked, as the settings page promises, and
+    // Logged-in customers are never asked (checkout aside: accounts that have
+    // never paid are, see af_checkout_needs_check), as the settings page says, and
     // the script is not loaded for them. wp-login.php is the exception: it
     // loads the script for everyone and checks every login posted to it.
-    if (is_user_logged_in() && (isset($GLOBALS['pagenow']) ? $GLOBALS['pagenow'] : '') !== 'wp-login.php') return '';
+    if (is_user_logged_in() && (isset($GLOBALS['pagenow']) ? $GLOBALS['pagenow'] : '') !== 'wp-login.php'
+        && !(in_array($action, array('checkout', 'pay'), true) && function_exists('af_checkout_needs_check') && af_checkout_needs_check())) return '';
     $html = '<div class="af-ts' . ($quiet ? ' af-ts-quiet' : '') . '" data-action="' . esc_attr($action) . '"'
           . ($quiet ? ' data-on-use="1" data-appearance="interaction-only"' : '')
           . ' role="group" aria-label="' . esc_attr__('Security check', 'postero-child') . '">'
@@ -240,16 +242,23 @@ add_filter('preprocess_comment', function ($data) {
 
 /* ---- checkout: Place order (22 Oct) ----
  * Guests only. A quiet box (invisible unless Cloudflare is unsure) inside
- * form.checkout, after the address fields and outside the parts WooCommerce
+ * form.checkout, after the order summary and outside the parts WooCommerce
  * redraws on every change, so it survives address and shipping updates.
  *
  * Checked once per real attempt, in WooCommerce's own validation and only
  * when every field is fine: a shopper fixing a typo keeps the same token.
- * Tokens are single-use, so routes that run this validation without placing
- * an order are left out: Square's card form first posts the order form to
- * its own "checkout_handler" to validate it (it ends before any order or
- * payment), then the real Place order follows with the same token. Square's
- * Apple Pay / Google Pay route needs a real wallet, so it is not asked.
+ * (Square's card form posts the form to its own checkout_handler only to
+ * show errors after a card could not be read; that request always ends at
+ * priority 10, before this check, so it never spends the token.)
+ *
+ * Square's Apple Pay / Google Pay route (wc-ajax=square_digital_wallet_
+ * process_checkout) runs the same checkout on its own list of fields, and
+ * the route is open whatever Square's wallet settings say. There: card only
+ * (what Square's wallet script always sends; no cash-on-delivery, Zelle or
+ * gift-card orders through it), a token checked when one is sent (the
+ * script adds the wallet box's token), and posts without one allowed only
+ * within a small hourly allowance for the whole shop, so a page from before
+ * this change still works while a bot cannot use the route without end.
  *
  * Behind it, a brake on card testing: 8 attempts that reach payment in an
  * hour from one address pause checkout there for an hour.
@@ -272,18 +281,60 @@ function af_turnstile_message_checkout() {
 function af_turnstile_checkout_on() {
     return af_turnstile_active() && get_option('af_turnstile_checkout', 'off') === 'on';
 }
-function af_turnstile_checkout_skip_route() {
-    foreach ((array) (isset($GLOBALS['wp_current_filter']) ? $GLOBALS['wp_current_filter'] : array()) as $h) {
-        if (preg_match('/^wc_ajax_[a-z0-9_]+_checkout_handler$/', (string) $h)) return true;  // validation only
-        if ($h === 'wc_ajax_square_digital_wallet_process_checkout') return true;              // Apple / Google Pay
-    }
-    return false;
+// Who is asked at checkout: guests, and signed-in accounts that have never
+// paid (an account costs one check to make, and would then skip every check
+// at checkout). Returning customers who have paid, and shop staff, are not.
+function af_checkout_needs_check() {
+    if (!is_user_logged_in()) return true;
+    if (current_user_can('manage_woocommerce')) return false;
+    return !get_user_meta(get_current_user_id(), 'paying_customer', true);
 }
-function af_checkout_attempt_key($ip) { return 'co|' . $ip; }
+function af_turnstile_wallet_route() {
+    return in_array('wc_ajax_square_digital_wallet_process_checkout', (array) (isset($GLOBALS['wp_current_filter']) ? $GLOBALS['wp_current_filter'] : array()), true);
+}
+function af_turnstile_posted_token() {
+    return isset($_POST['cf-turnstile-response']) && is_string($_POST['cf-turnstile-response']) ? trim(wp_unslash($_POST['cf-turnstile-response'])) : '';
+}
+function af_checkout_paused_message() {
+    return sprintf(
+        /* translators: 1: "connection" or "account", 2: link to the contact page */
+        __('Several card payments were tried from this %1$s in the last hour, so card payment is paused here for a while. You can choose another way to pay, try again later, or %2$s and we will help you place the order.', 'postero-child'),
+        is_user_logged_in() ? __('account', 'postero-child') : __('connection', 'postero-child'),
+        '<a href="' . esc_url(home_url('/contact/')) . '">' . esc_html__('contact us', 'postero-child') . '</a>'
+    );
+}
+// One address for the per-address limits: IPv6 by its /64 (one machine is
+// usually handed a whole /64), an IPv4 written as IPv6 as itself.
+function af_rl_ip_group($ip) {
+    $b = @inet_pton((string) $ip);
+    if ($b === false || strlen($b) !== 16) return (string) $ip;
+    if (substr($b, 0, 12) === str_repeat("\0", 10) . "\xff\xff") return inet_ntop(substr($b, 12));
+    return inet_ntop(substr($b, 0, 8) . str_repeat("\0", 8)) . '/64';
+}
+// The brake's bucket: a signed-in customer by account (they skip the human
+// check, and an account can move between addresses), a guest by address. A
+// Cloudflare server connecting with no visitor behind it is not counted; a
+// Cloudflare address given in the visitor header (a Worker) is.
+function af_checkout_attempt_key($ip = null) {
+    if (is_user_logged_in()) return 'co|u' . get_current_user_id();
+    if ($ip === null) $ip = function_exists('af_visitor_ip') ? af_visitor_ip() : '';
+    if ($ip === '') return '';
+    $remote = isset($_SERVER['REMOTE_ADDR']) ? trim((string) $_SERVER['REMOTE_ADDR']) : '';
+    if ($ip === $remote && function_exists('af_ip_is_cloudflare') && af_ip_is_cloudflare($ip)) return '';
+    return 'co|' . af_rl_ip_group($ip);
+}
+// Card payments are what card testing uses; a paused buyer can still pay
+// another way (Zelle, Cash App Pay, cash on delivery).
+function af_checkout_is_card($method) { return (string) $method === 'square_credit_card'; }
 function af_checkout_paused() {
-    $ip = function_exists('af_visitor_ip') ? af_visitor_ip() : '';
-    if ($ip === '' || (function_exists('af_ip_is_cloudflare') && af_ip_is_cloudflare($ip))) return false;
-    return function_exists('af_rl_over') && af_rl_over(af_checkout_attempt_key($ip), 8, HOUR_IN_SECONDS, false);
+    $k = af_checkout_attempt_key();
+    return $k !== '' && function_exists('af_rl_over') && af_rl_over($k, 8, HOUR_IN_SECONDS, false);
+}
+// counts this attempt and answers whether it is past the limit, in one go
+// (a separate read before the check would let parallel attempts all pass)
+function af_checkout_brake_hit() {
+    $k = af_checkout_attempt_key();
+    return $k !== '' && function_exists('af_rl_over') && af_rl_over($k, 8, HOUR_IN_SECONDS);
 }
 // Right under the order summary and the Place order button, inside the
 // form but outside the parts WooCommerce redraws on every address change: if
@@ -294,23 +345,40 @@ add_action('woocommerce_checkout_after_order_review', function () {
     if (af_turnstile_checkout_on()) af_turnstile_box('checkout', true, true);
 });
 add_action('woocommerce_after_checkout_validation', function ($data, $errors) {
-    if (!is_wp_error($errors) || !af_turnstile_checkout_on() || af_turnstile_checkout_skip_route()) return;
-    if (af_checkout_paused()) {
-        $errors->add('af_checkout_paused', __('Several payment attempts came from this connection in the last hour, so checkout is paused here for an hour to protect cardholders. Please try again later, or contact us and we will help you place the order.', 'postero-child'));
+    if (!is_wp_error($errors) || !af_turnstile_checkout_on()) return;
+    $method = isset($data['payment_method']) ? (string) $data['payment_method'] : '';
+    $wallet = af_turnstile_wallet_route();
+    if ($wallet && !af_checkout_is_card($method)) {
+        $errors->add('af_wallet_card_only', __('Please place this order with the form on the checkout page.', 'postero-child'));
         return;
     }
     // not while anything else is wrong (field errors, or notices such as the
-    // download licence): the token is kept for the attempt that can order
-    if (is_user_logged_in() || $errors->has_errors() || (function_exists('wc_notice_count') && wc_notice_count('error') > 0)) return;
-    if (!af_turnstile_verify('checkout')) $errors->add('af_turnstile', af_turnstile_message_checkout());
+    // download licence): the token is kept for the attempt that can order,
+    // and nothing is counted
+    if ($errors->has_errors() || (function_exists('wc_notice_count') && wc_notice_count('error') > 0)) return;
+    if (af_checkout_needs_check()) {
+        if ($wallet) {
+            if (af_turnstile_posted_token() !== '') {
+                if (!af_turnstile_verify('checkout')) { $errors->add('af_turnstile', esc_html__('The security check did not go through. Please try Apple Pay or Google Pay again.', 'postero-child')); return; }
+            } elseif (!is_user_logged_in() && (!empty($data['createaccount']) || (WC()->checkout() && WC()->checkout()->is_registration_required()))) {
+                // an order that would make an account (a digital item) is never placed without the check
+                $errors->add('af_wallet_card_only', __('Please place this order with the form on the checkout page.', 'postero-child'));
+                return;
+            } elseif (function_exists('af_rl_over') && af_rl_over('wallet-notoken', 20, HOUR_IN_SECONDS)) {
+                $errors->add('af_wallet_busy', esc_html__('Apple Pay and Google Pay are paused here for a short while. Please pay with the form on the checkout page.', 'postero-child'));
+                return;
+            }
+        } elseif (!af_turnstile_verify('checkout')) {
+            $errors->add('af_turnstile', af_turnstile_message_checkout());
+            return;
+        }
+    }
+    // the brake: card attempts that go ahead to payment (WooCommerce's
+    // "update totals" post never orders, so it is not one)
+    if (af_checkout_is_card($method) && empty($data['woocommerce_checkout_update_totals']) && af_checkout_brake_hit()) {
+        $errors->add('af_checkout_paused', af_checkout_paused_message());
+    }
 }, 20, 2);
-// every attempt that reaches payment counts, whatever the gateway answers
-add_action('woocommerce_checkout_order_processed', function () {
-    if (!af_turnstile_checkout_on()) return;
-    $ip = function_exists('af_visitor_ip') ? af_visitor_ip() : '';
-    if ($ip === '' || (function_exists('af_ip_is_cloudflare') && af_ip_is_cloudflare($ip)) || !function_exists('af_rl_over')) return;
-    af_rl_over(af_checkout_attempt_key($ip), 8, HOUR_IN_SECONDS);
-});
 
 // WooCommerce's REST checkout (/wp-json/wc/store/v1/checkout, and
 // /checkout/{id}, which pays for an existing order). The shop uses the
@@ -333,6 +401,55 @@ add_filter('rest_request_before_callbacks', function ($response, $handler, $requ
     return new WP_Error('af_checkout_route_closed', __('This shop takes orders on its checkout page.', 'postero-child'), array('status' => 403));
 }, 10, 3);
 
+/* ---- the "pay for this order" page (/checkout/order-pay/{id}/) ----
+ * WooCommerce takes the payment there directly (WC_Form_Handler::pay_action),
+ * with none of checkout's hooks, so a failed order's link would otherwise be
+ * a way to try card after card. The same rules, on its own: the brake by
+ * address, at most 6 attempts an hour on one order whatever the address,
+ * and Cloudflare's check for guests. A refusal is a notice: WooCommerce then
+ * takes no payment and shows the page again with it.
+ */
+function af_turnstile_message_pay() {
+    $missing = isset($GLOBALS['af_ts_reason']) && $GLOBALS['af_ts_reason'] === 'missing';
+    return $missing
+        ? __('The security check had not finished yet. Please wait a moment and press Pay for order again. If this keeps happening, your browser may be blocking challenges.cloudflare.com: allow it, or try another browser.', 'postero-child')
+        : __('The security check did not go through. Please press Pay for order again.', 'postero-child');
+}
+add_action('woocommerce_pay_order_before_submit', function () {
+    if (af_turnstile_checkout_on()) af_turnstile_box('pay', true, true);
+});
+add_action('woocommerce_before_pay_action', function ($order) {
+    if (!af_turnstile_checkout_on() || !($order instanceof WC_Order)) return;
+    if (!empty($_POST['terms-field']) && empty($_POST['terms'])) return; // WooCommerce stops this one itself
+    $per_order = 'op|' . $order->get_id();
+    $card = af_checkout_is_card(isset($_POST['payment_method']) ? wc_clean(wp_unslash($_POST['payment_method'])) : '');
+    if (!function_exists('af_rl_over')) return;
+    if (af_rl_over($per_order, 6, HOUR_IN_SECONDS, false)) {
+        wc_add_notice(__('Several payments were tried for this order in the last hour, so it is paused for a while. Please try again later, or contact us and we will help.', 'postero-child'), 'error');
+        return;
+    }
+    if (af_checkout_needs_check() && !af_turnstile_verify('pay')) {
+        wc_add_notice(esc_html(af_turnstile_message_pay()), 'error');
+        return;
+    }
+    if ($card && af_checkout_brake_hit()) {
+        wc_add_notice(af_checkout_paused_message(), 'error');
+        return;
+    }
+    af_rl_over($per_order, 6, HOUR_IN_SECONDS);
+});
+
+/* ---- My Account > Add payment method ----
+ * With saved cards on, a signed-in account could have a card checked here
+ * every 20 seconds (WooCommerce's own spacing) with no order at all. The
+ * same card brake as checkout: 8 an hour per account.
+ */
+add_filter('woocommerce_add_payment_method_form_is_valid', function ($ok) {
+    if (!$ok || !af_turnstile_checkout_on()) return $ok;
+    if (af_checkout_brake_hit()) { wc_add_notice(af_checkout_paused_message(), 'error'); return false; }
+    return $ok;
+});
+
 /* ---- order tracking (/track-your-order/) ----
  * Order number + billing email shows an order's items and addresses, and
  * order numbers run in sequence. Guests pass the check; everyone gets 20
@@ -344,7 +461,7 @@ add_filter('pre_do_shortcode_tag', function ($out, $tag, $attr) {
     if ($out !== false || $tag !== 'woocommerce_order_tracking' || !isset($_REQUEST['orderid'])) return $out;
     $ip = function_exists('af_visitor_ip') ? af_visitor_ip() : '';
     $why = '';
-    if (function_exists('af_rl_over') && $ip !== '' && af_rl_over('track|' . $ip, 20, HOUR_IN_SECONDS)) {
+    if (function_exists('af_rl_over') && $ip !== '' && af_rl_over('track|' . af_rl_ip_group($ip), 20, HOUR_IN_SECONDS)) {
         $why = __('Too many order lookups from this connection. Please try again in an hour, or contact us.', 'postero-child');
     } elseif (af_turnstile_active() && !is_user_logged_in() && !af_turnstile_verify('track')) {
         $why = af_turnstile_message(false);
@@ -385,7 +502,7 @@ add_filter('af_csp_policy', function ($policy) {
 /* ---- the script and its look ---- */
 function af_turnstile_enqueue() {
     $file = get_stylesheet_directory() . '/assets/js/af-turnstile.js';
-    wp_enqueue_script('af-turnstile', get_stylesheet_directory_uri() . '/assets/js/af-turnstile.js', array(), (string) (@filemtime($file) ?: '1'), true);
+    wp_enqueue_script('af-turnstile', get_stylesheet_directory_uri() . '/assets/js/af-turnstile.js', array('jquery'), (string) (@filemtime($file) ?: '1'), true);
     $k = af_turnstile_keys();
     $lang = function_exists('transposh_get_current_language') ? (string) transposh_get_current_language() : '';
     wp_add_inline_script('af-turnstile', 'window.afTs=' . wp_json_encode(array(
@@ -394,7 +511,7 @@ function af_turnstile_enqueue() {
         'checkout' => af_turnstile_checkout_on(),
         'msg'     => array(
             'wait'    => __('One moment — finishing the security check…', 'postero-child'),
-            'tick'    => __('Please tick the security check, then try again.', 'postero-child'),
+            'tick'    => __('Please tick the security check to continue.', 'postero-child'),
             'blocked' => __('The security check could not load. Please allow challenges.cloudflare.com (an ad-blocker may be stopping it) or try another network, then reload the page.', 'postero-child'),
             'error'   => __('The security check ran into a problem. It will retry by itself; you can also reload the page.', 'postero-child'),
         ),
@@ -423,7 +540,11 @@ function af_turnstile_enqueue() {
 }
 add_action('wp_enqueue_scripts', function () {
     // logged-in visitors have no login or sign-up form to fill
-    if (!af_turnstile_active() || is_user_logged_in() || af_turnstile_in_editor()) return;
+    if (!af_turnstile_active() || af_turnstile_in_editor()) return;
+    // signed in: only an account still asked at checkout, and only where it
+    // pays (checkout, the pay-for-order page, and the Apple / Google Pay buttons)
+    if (is_user_logged_in() && !(af_turnstile_checkout_on() && af_checkout_needs_check()
+        && ((function_exists('is_checkout') && is_checkout()) || (function_exists('is_cart') && is_cart()) || (function_exists('is_product') && is_product())))) return;
     af_turnstile_enqueue();
 }, 20);
 add_action('login_enqueue_scripts', function () {

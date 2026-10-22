@@ -2421,6 +2421,13 @@ trait Login_Registration {
 			wp_send_json_error( [ 'message' => __( 'Widget settings could not be loaded.', 'essential-addons-for-elementor-lite' ) ] );
 		}
 
+		// The Art Framer (22 Oct): at most 5 codes an hour to one address. Each
+		// resend renews the session, so one started sign-up could otherwise
+		// email someone a code every minute without end.
+		if ( function_exists( 'af_rl_over' ) && af_rl_over( 'otp|' . md5( strtolower( (string) $session['email'] ) ), 5, HOUR_IN_SECONDS ) ) {
+			wp_send_json_error( [ 'message' => __( 'Too many codes were requested for this address. Please try again in an hour.', 'essential-addons-for-elementor-lite' ) ] );
+		}
+
 		$code                  = $this->eael_otp_generate_code();
 		$session['code_hash']  = $this->eael_otp_hash_code( $code, $token );
 		$session['last_sent']  = time();

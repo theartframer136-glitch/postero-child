@@ -262,15 +262,11 @@ function af_co_up_follow_capture() {
         if (is_user_logged_in() && function_exists('af_ac_capture_logged_in')) {
             af_ac_capture_logged_in();
         } elseif (function_exists('af_ac_capture') && WC()->session) {
-            // checkout's own refresh never stores the email, so the reminder
-            // capture keeps the one the guest typed in their session
+            // only an address the capture itself took (inc/abandoned-cart.php,
+            // with its limits and Cloudflare's check): the billing email in
+            // the session can be set by anyone, and reminders would then go
+            // to any address (review, 22 Oct)
             $em = (string) WC()->session->get('af_ac_email');
-            // Only an address the capture itself took (after Cloudflare's
-            // check, inc/abandoned-cart.php) once the checkout check is on:
-            // the billing email in the session can be set by anyone without
-            // one, and reminders would then go to any address (review, 22 Oct).
-            $checked = function_exists('af_turnstile_checkout_on') && af_turnstile_checkout_on();
-            if ($em === '' && !$checked && WC()->customer) $em = (string) WC()->customer->get_billing_email();
             if (is_email($em)) af_ac_capture($em, (string) WC()->session->get('af_ac_first'));
         }
     } catch (\Throwable $e) {}

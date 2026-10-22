@@ -379,8 +379,8 @@ async function checkoutServerChecks() {
   const co = await get('/checkout/?' + bust());
   const form = (co.html.match(/<form[^>]*class="[^"]*\bcheckout\b[\s\S]*?<\/form>/i) || [''])[0];
   const box = form.match(/<div class="af-ts[^"]*" data-action="checkout"[^>]*>/);
-  const review = (form.match(/<div id="order_review"[\s\S]*$/) || [''])[0];
-  if (CO_ON) check('server: checkout: one quiet box in the checkout form, outside the order review', !!box && /af-ts-quiet/.test(box[0]) && /data-appearance="interaction-only"/.test(box[0]) && !/data-action="checkout"/.test(review), box ? box[0] : '(no box)');
+  const after = form.indexOf('id="place_order"') > -1 && box && form.indexOf(box[0]) > form.indexOf('id="place_order"');
+  if (CO_ON) check('server: checkout: one quiet box in the checkout form, under Place order', !!box && /af-ts-quiet/.test(box[0]) && /data-appearance="interaction-only"/.test(box[0]) && after, box ? box[0] : '(no box)');
   else check('server: checkout: no checkout box', !box, box ? box[0] : undefined);
   // Place order with every field filled but no token. "update totals": WooCommerce validates, never orders.
   const f = hidden(co.html, /class="[^"]*\bcheckout\b/) || {};
@@ -409,11 +409,23 @@ async function checkoutServerChecks() {
   if (!nonce) check('server: email capture: its nonce found on the checkout page', false);
   else if (CO_ON) check('server: email capture refuses an address without a token', !!(cj && cj.success === false && MSG.test(cj.data?.message || '')), c.html.slice(0, 200));
   else check('server: email capture answers without asking for the check', !!(cj && !MSG.test(cj.data?.message || '')), c.html.slice(0, 200));
-  // WooCommerce's REST checkout, as a guest with no header (refused before WooCommerce sees it)
-  const rr = await fetch(S + '/wp-json/wc/store/v1/checkout', { method: 'POST', headers: { 'User-Agent': UA, Accept: 'application/json', 'Content-Type': 'application/json', Cookie: cookies() }, body: JSON.stringify({ billing_address: { email: 'qa-turnstile@example.com' }, payment_method: 'cod' }) });
-  const rj = jsonOf(await rr.text()) || {};
-  if (CO_ON) check('server: REST checkout refuses a guest without a token (403)', rr.status === 403 && rj.code === 'af_turnstile', { status: rr.status, code: rj.code });
-  else check('server: REST checkout: not refused by the security check', rj.code !== 'af_turnstile', { status: rr.status, code: rj.code });
+  // WooCommerce's REST checkout: closed (the shop uses the classic checkout); any spelling, and GET,
+  // which would otherwise make a draft order and hand back the key that pays for it
+  for (const [how, path, method] of [['POST', '/wp-json/wc/store/v1/checkout', 'POST'], ['POST /Checkout', '/wp-json/wc/store/v1/Checkout', 'POST'], ['GET', '/wp-json/wc/store/v1/checkout', 'GET']]) {
+    const rr = await fetch(S + path, { method, headers: Object.assign({ 'User-Agent': UA, Accept: 'application/json', Cookie: cookies() }, method === 'POST' ? { 'Content-Type': 'application/json' } : {}), body: method === 'POST' ? JSON.stringify({ billing_address: { email: 'qa-turnstile@example.com' }, payment_method: 'cod' }) : undefined });
+    const rj = jsonOf(await rr.text()) || {};
+    if (CO_ON) check(`server: REST checkout (${how}) is closed to guests (403)`, rr.status === 403 && rj.code === 'af_checkout_route_closed', { status: rr.status, code: rj.code });
+    else check(`server: REST checkout (${how}): not closed by the theme`, rj.code !== 'af_checkout_route_closed', { status: rr.status, code: rj.code });
+  }
+  // Square's Apple Pay / Google Pay route takes card payments only. Sent with an invalid email, which
+  // WooCommerce refuses by itself, so no order is possible either way. (Not with "update totals": that
+  // post is taken by WooCommerce's no-script checkout before the wallet route runs.)
+  const wf = Object.assign({}, fields, { payment_method: 'cod', billing_email: 'not-an-email' });
+  delete wf.woocommerce_checkout_update_totals;
+  const w = await post('/?wc-ajax=square_digital_wallet_process_checkout', wf);
+  const wsaid = text(String((jsonOf(w.html) || {}).messages || '')).trim();
+  if (CO_ON) check('server: Apple / Google Pay route refuses a cash-on-delivery order', /form on the checkout page/i.test(wsaid), wsaid.slice(0, 160) || w.html.slice(0, 160));
+  else check('server: Apple / Google Pay route: not refused by the theme', !/form on the checkout page/i.test(wsaid), wsaid.slice(0, 160));
   // order tracking: no such order, so even a lookup would find nothing
   const tp = await get('/track-your-order/?' + bust());
   const tbox = /<div class="af-ts[^"]*" data-action="track"/.test(tp.html);

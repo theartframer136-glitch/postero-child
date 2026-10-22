@@ -9993,13 +9993,25 @@ add_filter('woocommerce_available_payment_gateways', function ($gateways) {
     return $gateways;
 }, 20);
 // said where the payment methods are, so a buyer looking for Zelle or cash on
-// delivery knows why they are not there
-add_action('woocommerce_review_order_before_payment', function () {
+// delivery knows why they are not there (checkout, and the pay-for-order page)
+function af_gc_pay_note() {
     if (!af_gc_cart_has_card()) return;
     $off = false;
     foreach (WC()->payment_gateways()->payment_gateways() as $id => $g) if (in_array($id, af_gc_offline_methods(), true) && $g->enabled === 'yes') $off = true;
     if ($off) echo '<p class="af-gc-pay-note" style="margin:0 0 12px;font-size:13px;line-height:1.45;color:#555">' . esc_html__('Gift cards are paid by card or Cash App, so the code can be emailed as soon as the payment goes through. Zelle and cash on delivery are not offered for gift cards.', 'postero-child') . '</p>';
-});
+}
+add_action('woocommerce_review_order_before_payment', 'af_gc_pay_note');
+add_action('woocommerce_pay_order_before_payment', 'af_gc_pay_note');
+// No coupon discounts a gift card: its code is worth its face value, so a
+// discount on it would be money given away (review, 22 Oct).
+add_filter('woocommerce_coupon_get_items_to_apply', function ($items) {
+    return array_values(array_filter((array) $items, function ($it) {
+        $o = isset($it->object) ? $it->object : null;
+        if (is_array($o)) return empty($o['af_gc']) && (int) ($o['product_id'] ?? 0) !== af_gc_product_id();
+        if ($o instanceof WC_Order_Item_Product) { $g = $o->get_meta('_af_gc'); return empty($g['amount']) && $o->get_product_id() !== af_gc_product_id(); }
+        return true;
+    }));
+}, 20);
 
 function af_gc_issue_for_order($order_id) {
     $order = wc_get_order($order_id);
@@ -10019,12 +10031,23 @@ function af_gc_issue_for_order($order_id) {
     foreach ($order->get_items() as $item) {
         $gc = $item->get_meta('_af_gc');
         if (empty($gc['amount'])) continue;
+        // never worth more than what was paid for it (coupons are kept off
+        // gift cards below; this holds even if one got through)
+        $value = (float) $gc['amount'];
+        if ($order->get_currency() === get_option('woocommerce_currency')) {
+            $value = min($value, round((float) $item->get_total() / max(1, $item->get_quantity()), 2));
+        }
+        if ($value <= 0) {
+            $order->add_order_note('A gift card line was not issued: nothing was paid for it.');
+            continue;
+        }
+        $gc['amount'] = $value;
         for ($i = 0; $i < max(1, $item->get_quantity()); $i++) {
             $code = af_gc_generate_code();
             $wpdb->insert(af_gc_table(), array(
                 'code'            => $code,
-                'initial_amount'  => (float) $gc['amount'],
-                'balance'         => (float) $gc['amount'],
+                'initial_amount'  => $value,
+                'balance'         => $value,
                 'currency'        => $order->get_currency(),
                 'buyer_email'     => $order->get_billing_email(),
                 'recipient_email' => !empty($gc['remail']) ? $gc['remail'] : $order->get_billing_email(),
@@ -15861,14 +15884,18 @@ function af_cart_delivery_time() {
  */
 function af_cart_payment_copy() {
     $names = array();
+    $read  = false;
     if (function_exists('WC') && WC()->payment_gateways) {
+        $read = true;
         foreach (WC()->payment_gateways->get_available_payment_gateways() as $gw) {
             $t = trim(wp_strip_all_tags((string) $gw->get_title()));
             if ($t !== '') $names[] = $t;
         }
     }
     $names = array_values(array_unique($names));
-    if (!$names) return af_payment_copy();
+    // none for this basket (a gift card in another currency): not the full
+    // list, which would promise methods the checkout will not offer
+    if (!$names) return $read ? 'see the payment options at checkout' : af_payment_copy();
     if (count($names) === 1) return $names[0];
     $last = array_pop($names);
     return implode(', ', $names) . ' & ' . $last;

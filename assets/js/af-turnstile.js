@@ -99,6 +99,7 @@
   }
   // a box the visitor has to tick, brought to where they can see it
   function bring(box) {
+    if (box.closest('.af-ts-offscreen')) return; // the email capture's own box: never scrolled to
     try { box.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { try { box.scrollIntoView(); } catch (e2) {} }
   }
 
@@ -246,12 +247,37 @@
       if (!box || box.__afTsPass || blocked()) return true;
       want(box);
       if (token(box)) return true;
+      // the payment method may have greyed the form out before it submitted
+      // (Square's Cash App Pay and card form do): lifted, so a box Cloudflare
+      // asks to be ticked can be ticked; WooCommerce greys it again on posting
+      try { window.jQuery(form).unblock(); } catch (e) {}
       if (!box.__afTs.hold) hold(box, function () {
         box.__afTsPass = true;
         try { window.jQuery(form).trigger('submit'); } finally { box.__afTsPass = false; }
       });
       return false;
     });
+  }
+
+  // The "pay for this order" page: a normal form post, but Square's Cash App
+  // Pay and card form start it with jQuery's .trigger('submit') too, which the
+  // native submit listener above never sees. Bound before their handlers.
+  if (window.jQuery) {
+    window.jQuery('form#order_review').on('submit', function (e) {
+      var form = this, box = form.querySelector('.af-ts[data-action="pay"]');
+      if (!box || box.__afTsPass || blocked()) return;
+      want(box);
+      if (token(box)) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      try { window.jQuery(form).unblock(); } catch (e2) {}
+      if (!box.__afTs.hold) hold(box, function () {
+        box.__afTsPass = true;
+        try { window.jQuery(form).trigger('submit'); } finally { box.__afTsPass = false; }
+      });
+      return false;
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('form#order_review .af-ts[data-action="pay"]'), function (b) { want(b); });
   }
 
   // Checkout (22 Oct): after a refused Place order the next attempt needs a
@@ -344,13 +370,85 @@
     };
   };
 
+  // Apple Pay / Google Pay (Square's buttons on product, basket and checkout
+  // pages): Square's script posts the order itself, with its own list of
+  // fields, once the buyer has approved in the wallet. A quiet box of its own
+  // sits under the buttons, is drawn when the buyer reaches for them, and
+  // Square's post waits for its token (as Place order does) and carries it.
+  if (C.checkout && window.jQuery) {
+    var walletBox = function () {
+      var w = document.getElementById('wc-square-digital-wallet');
+      if (!w || !w.parentNode) return null;
+      var b = document.getElementById('af-ts-wallet');
+      if (b) return b;
+      // never inside a form (on product pages the buttons sit in the add-to-
+      // cart form, whose submit would then wait for this check) nor inside the
+      // basket totals (redrawn on every basket change): just after them
+      var at = w.closest('form') || w.closest('.cart-collaterals') || w.closest('.cart_totals') || w;
+      b = window.afTsApi.box(at.parentNode, at.nextSibling, 'checkout', true);
+      b.id = 'af-ts-wallet';
+      return b;
+    };
+    var reach = function (e) {
+      if (e.target && e.target.closest && e.target.closest('#wc-square-digital-wallet')) { var b = walletBox(); if (b) want(b); }
+    };
+    ['pointerover', 'pointerdown', 'touchstart', 'focusin'].forEach(function (ev) { document.addEventListener(ev, reach, true); });
+    var wrap = function (proto) {
+      if (!proto || typeof proto.process_digital_wallet_checkout !== 'function' || proto.process_digital_wallet_checkout.__afTs) return;
+      var orig = proto.process_digital_wallet_checkout;
+      proto.process_digital_wallet_checkout = function (data) {
+        var self = this, args = arguments, b = walletBox();
+        if (!b || blocked()) return orig.apply(self, args);
+        return new Promise(function (ok, no) {
+          window.afTsApi.ready(b, function (tok) {
+            if (tok && data && typeof data === 'object') data['cf-turnstile-response'] = tok;
+            orig.apply(self, args).then(ok, no);
+          });
+        });
+      };
+      proto.process_digital_wallet_checkout.__afTs = true;
+    };
+    // Square defines its class inside its own page-ready callback, before or
+    // after this script runs: wrapped the moment it is set, and once more
+    // after every page-ready callback has run
+    var KEY = 'WC_Square_Digital_Wallet_Handler';
+    if (window[KEY]) wrap(window[KEY].prototype);
+    else {
+      try {
+        var held;
+        Object.defineProperty(window, KEY, { configurable: true, enumerable: true,
+          get: function () { return held; },
+          set: function (v) { held = v; try { wrap(v && v.prototype); } catch (e) {} } });
+      } catch (e) {}
+    }
+    window.jQuery(function () { setTimeout(function () { wrap(window[KEY] && window[KEY].prototype); }, 0); });
+    // and whatever posts to the route without that method: the token, when there is one
+    window.jQuery.ajaxPrefilter(function (opts) {
+      if (!opts || typeof opts.url !== 'string' || opts.url.indexOf('square_digital_wallet_process_checkout') < 0) return;
+      var b = document.getElementById('af-ts-wallet'), tok = b && token(b);
+      if (tok && typeof opts.data === 'string' && opts.data.indexOf('cf-turnstile-response=') < 0) opts.data += (opts.data ? '&' : '') + 'cf-turnstile-response=' + encodeURIComponent(tok);
+    });
+    // each token is good for one check
+    window.jQuery(document).on('ajaxComplete', function (ev, xhr, opts) {
+      if (!opts || typeof opts.url !== 'string' || opts.url.indexOf('square_digital_wallet_process_checkout') < 0) return;
+      var b = document.getElementById('af-ts-wallet');
+      if (b) window.afTsApi.reset(b);
+    });
+  }
+
   // Checkout's box is printed after the order summary; a theme template
   // without that hook gets one in the same place from here.
+  if (C.checkout && window.jQuery) window.jQuery(function () { if (typeof walletBox === 'function') walletBox(); });
   if (C.checkout) {
     Array.prototype.forEach.call(document.querySelectorAll('form.checkout'), function (form) {
-      if (form.querySelector('.af-ts[data-action="checkout"]')) return;
-      var rv = form.querySelector('#order_review');
-      window.afTsApi.box(form, rv ? rv.nextSibling : null, 'checkout', true);
+      var box = form.querySelector('.af-ts[data-action="checkout"]');
+      if (!box) {
+        var rv = form.querySelector('#order_review');
+        box = window.afTsApi.box(form, rv ? rv.nextSibling : null, 'checkout', true);
+      }
+      // started as the checkout page opens, so the token is ready when the
+      // buyer is (a page Cash App returns to submits before anyone touches it)
+      want(box);
     });
   }
 })();

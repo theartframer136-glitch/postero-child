@@ -105,6 +105,11 @@ function af_ac_capture($email, $first_name = '') {
         return (int) $row->id;
     }
     // a recovered / stopped cart starts a fresh row when they shop again
+    // At most 3 new reminder addresses a day per signed-in account: an
+    // account's email can be changed at will, and each new one would get its
+    // own three reminders (review, 22 Oct).
+    $uid = get_current_user_id();
+    if ($uid && function_exists('af_rl_over') && af_rl_over('ac-new|u' . $uid, 3, DAY_IN_SECONDS)) return;
     $data['token']       = wp_generate_password(32, false, false);
     $data['status']      = 'open';
     $data['emails_sent'] = 0;
@@ -130,6 +135,8 @@ function af_ac_capture_handler() {
     $email = isset($_POST['email']) ? sanitize_email(wp_unslash($_POST['email'])) : '';
     $first = isset($_POST['first']) ? sanitize_text_field(wp_unslash($_POST['first'])) : '';
     if (!$email || !is_email($email)) wp_send_json_error();
+    // signed in: their reminders go to the account's own address, never to one posted here
+    if (is_user_logged_in()) { af_ac_capture_logged_in(); wp_send_json_success(); return; }
     // A capture can send three reminders to the address typed in, so guests
     // pass Cloudflare's check first (22 Oct), with the capture's own box.
     if (function_exists('af_turnstile_checkout_on') && af_turnstile_checkout_on() && function_exists('af_turnstile_require_ajax')) af_turnstile_require_ajax('capture');
