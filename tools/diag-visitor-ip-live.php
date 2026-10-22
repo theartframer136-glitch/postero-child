@@ -10,13 +10,15 @@
  * visitor arriving through it would share one count, and 8 orders an hour
  * across the whole shop would pause checkout for everyone.
  *
- *  1. This server's own public address, as an outside service sees it.
- *  2. One request from this server to the public site, through its CDN: a
- *     made-up gift card code, which only adds 1 to the gift-card guess count
- *     of the address PHP sees (10 an hour; nothing else is written).
- *  3. Was that count written under this server's public address? Then PHP
- *     sees the visitor's own address behind the CDN.
- *  4. Did the request really go through the CDN (its response headers)?
+ *  1. This server's own public addresses (IPv4 and IPv6), as outside
+ *     services see them.
+ *  2. For each: one request from this server to the public site, forced over
+ *     that address family, through its CDN: a made-up gift card code, which
+ *     only adds 1 to the gift-card guess count of the address PHP sees (10 an
+ *     hour; nothing else is written). The response headers show the CDN.
+ *  3. Was that count written under this server's own address? Then PHP sees
+ *     the visitor's own address behind the CDN.
+ *  4. The web server's access log line for the probe, if one is readable.
  *  5. Past orders: WooCommerce's recorded address against the theme's
  *     (how many agree; no address is printed, only the first two parts).
  *
@@ -24,47 +26,70 @@
  */
 $mask = function ($ip) { $p = preg_split('/[.:]/', (string) $ip); return $ip === '' ? '(none)' : $p[0] . (isset($p[1]) ? '.' . $p[1] : '') . '.x.x'; };
 
-echo "=== 1. this server's public address\n";
-$me = '';
-foreach (array('https://api.ipify.org', 'https://icanhazip.com', 'https://ifconfig.me/ip') as $u) {
-    $r = wp_remote_get($u, array('timeout' => 15));
-    $v = is_wp_error($r) ? '' : trim(wp_remote_retrieve_body($r));
-    if (filter_var($v, FILTER_VALIDATE_IP)) { $me = $v; echo "  {$u}: {$mask($me)}\n"; break; }
-    echo "  {$u}: " . (is_wp_error($r) ? $r->get_error_message() : 'no address') . "\n";
+echo "=== 1. this server's public addresses\n";
+$fam = array('v4' => '', 'v6' => '');
+foreach (array('v4' => array('https://api.ipify.org', 'https://ipv4.icanhazip.com'), 'v6' => array('https://api6.ipify.org', 'https://ipv6.icanhazip.com')) as $f => $urls) {
+    foreach ($urls as $u) {
+        $r = wp_remote_get($u, array('timeout' => 15));
+        $v = is_wp_error($r) ? '' : trim(wp_remote_retrieve_body($r));
+        if (filter_var($v, FILTER_VALIDATE_IP)) { $fam[$f] = $v; break; }
+    }
+    echo "  IP{$f}: " . ($fam[$f] !== '' ? $mask($fam[$f]) : 'none') . "\n";
 }
-if ($me === '') { echo "  could not learn this server's public address\n=== END\n"; return; }
-echo '  is it one of Cloudflare\'s: ' . (function_exists('af_ip_is_cloudflare') && af_ip_is_cloudflare($me) ? 'yes' : 'no') . "\n";
+if ($fam['v4'] === '' && $fam['v6'] === '') { echo "  could not learn this server's public address\n=== END\n"; return; }
 
-echo "\n=== 2. one request to the public site\n";
-$key = 'af_rl_' . md5('gc|' . $me);
-$before = get_transient($key);
+// the request goes out over one address family at a time
+$force = null;
+add_action('http_api_curl', function ($h) use (&$force) {
+    if ($force === 'v4' && defined('CURL_IPRESOLVE_V4')) curl_setopt($h, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V4);
+    if ($force === 'v6' && defined('CURL_IPRESOLVE_V6')) curl_setopt($h, CURLOPT_IPRESOLVE, CURL_IPRESOLVE_V6);
+});
+$count = function ($ip) {
+    if ($ip === '') return -1;
+    $k = 'af_rl_' . md5('gc|' . $ip);
+    wp_cache_delete($k, 'transient'); wp_cache_delete('_transient_' . $k, 'options'); wp_cache_delete('alloptions', 'options');
+    $v = get_transient($k);
+    return is_array($v) ? (int) $v[0] : 0;
+};
 wp_set_current_user(0);
 $nonce = wp_create_nonce('af_gc_apply');
-$r = wp_remote_post(admin_url('admin-ajax.php'), array(
-    'timeout' => 30,
-    'headers' => array('User-Agent' => 'Mozilla/5.0 (af visitor-ip probe)', 'Cache-Control' => 'no-cache'),
-    'body'    => array('action' => 'af_gc_apply', 'nonce' => $nonce, 'code' => 'TAF-QAQA-QAQA-QAQA'),
-));
-if (is_wp_error($r)) { echo '  request failed: ' . $r->get_error_message() . "\n=== END\n"; return; }
-$body = wp_remote_retrieve_body($r);
-echo '  HTTP ' . wp_remote_retrieve_response_code($r) . ' | answer: ' . substr(preg_replace('/\s+/', ' ', $body), 0, 120) . "\n";
-$h = wp_remote_retrieve_headers($r);
-$show = array();
-foreach (array('server', 'platform', 'x-hcdn-request-id', 'x-hcdn-cache-status', 'x-hcdn-upstream-rt', 'cf-ray', 'x-litespeed-cache', 'via') as $n) if (!empty($h[$n])) $show[] = $n . ': ' . (is_array($h[$n]) ? implode(',', $h[$n]) : $h[$n]);
-echo '  response headers: ' . ($show ? implode(' | ', $show) : '(none of the CDN ones)') . "\n";
-$cdn = false;
-foreach ($show as $s) if (preg_match('/^(x-hcdn-|cf-ray|via)/', $s) || preg_match('/hcdn|cloudflare/i', $s)) $cdn = true;
-echo '  went through a CDN: ' . ($cdn ? 'yes' : 'NO (the server reached itself directly; step 3 then proves nothing about the CDN)') . "\n";
+$ua = 'Mozilla/5.0 (af visitor-ip probe ' . substr(md5((string) microtime(true)), 0, 8) . ')';
+$verdicts = array();
+foreach (array('v4', 'v6') as $f) {
+    if ($fam[$f] === '') continue;
+    echo "\n=== 2/3. one request over IP{$f}, through the public site\n";
+    $b4 = $count($fam['v4']); $b6 = $count($fam['v6']);
+    $force = $f;
+    $r = wp_remote_post(admin_url('admin-ajax.php'), array('timeout' => 30, 'headers' => array('User-Agent' => $ua, 'Cache-Control' => 'no-cache'), 'body' => array('action' => 'af_gc_apply', 'nonce' => $nonce, 'code' => 'TAF-QAQA-QAQA-QAQA')));
+    $force = null;
+    if (is_wp_error($r)) { echo '  request failed: ' . $r->get_error_message() . "\n"; continue; }
+    $h = wp_remote_retrieve_headers($r);
+    $cdn = !empty($h['x-hcdn-request-id']) || !empty($h['cf-ray']) || (isset($h['server']) && preg_match('/hcdn|cloudflare/i', (string) $h['server']));
+    echo '  HTTP ' . wp_remote_retrieve_response_code($r) . ' | through a CDN: ' . ($cdn ? 'yes (' . (isset($h['server']) ? $h['server'] : '') . ')' : 'NO') . ' | answer: ' . substr(preg_replace('/\s+/', ' ', wp_remote_retrieve_body($r)), 0, 70) . "\n";
+    $a4 = $count($fam['v4']); $a6 = $count($fam['v6']);
+    echo "  count under this server's IPv4: {$b4} -> {$a4} | under its IPv6: {$b6} -> {$a6}\n";
+    $hit = ($a4 > $b4 && $a4 >= 0) || ($a6 > $b6 && $a6 >= 0);
+    $verdicts[] = $hit;
+    echo '  RESULT: ' . ($hit ? 'PHP counted this server\'s own address: the visitor\'s address reaches PHP through the CDN.' : 'the count is under NEITHER of this server\'s addresses: PHP saw another address (the CDN\'s?).') . "\n";
+}
 
-echo "\n=== 3. whose address PHP counted\n";
-wp_cache_delete($key, 'transient');
-wp_cache_delete('_transient_' . $key, 'options');
-$after = get_transient($key);
-$b = is_array($before) ? (int) $before[0] : 0;
-$a = is_array($after) ? (int) $after[0] : 0;
-echo "  gift-card guess count for this server's public address: before {$b}, after {$a}\n";
-if ($a > $b) echo "  RESULT: PHP saw this server's own public address" . ($cdn ? ' through the CDN: each visitor is counted under their own address.' : ', but the request did not go through the CDN.') . "\n";
-else echo "  RESULT: the count is NOT under this server's address: PHP saw another address (a CDN or proxy one?). Per-address limits would be shared.\n";
+echo "\n=== 4. the web server's access log for the probe\n";
+$home = getenv('HOME') ?: (function_exists('posix_getpwuid') ? posix_getpwuid(posix_geteuid())['dir'] : '');
+$found = 0;
+foreach (array_merge((array) glob($home . '/logs/*'), (array) glob($home . '/.logs/*'), (array) glob($home . '/websites/*/logs/*'), (array) glob($home . '/domains/*/logs/*'), (array) glob(ABSPATH . '../logs/*'), (array) glob($home . '/access-logs/*')) as $lf) {
+    if (!is_file($lf) || !is_readable($lf) || filesize($lf) > 400 * 1048576) continue;
+    $tail = @file_get_contents($lf, false, null, max(0, filesize($lf) - 2 * 1048576));
+    if ($tail === false) continue;
+    foreach (preg_split('/\n/', $tail) as $line) {
+        if (strpos($line, $ua) === false) continue;
+        $found++;
+        $first = strtok($line, ' ');
+        echo '  ' . basename($lf) . ': client field ' . $mask($first) . ' | is this server: ' . (in_array($first, $fam, true) ? 'yes' : 'no') . "\n";
+    }
+}
+if (!$found) echo "  no access log line for the probe found (looked in ~/logs, ~/.logs, ~/websites/*/logs, ~/domains/*/logs)\n";
+$ls = array(); foreach (array($home . '/logs', $home . '/.logs', $home . '/access-logs') as $d) if (is_dir($d)) $ls[] = $d . ': ' . implode(', ', array_slice(array_map('basename', (array) glob($d . '/*')), 0, 8));
+if ($ls) echo '  log folders: ' . implode(' | ', $ls) . "\n";
 
 echo "\n=== 5. past orders: WooCommerce's address against the theme's\n";
 if (function_exists('wc_get_orders')) {
