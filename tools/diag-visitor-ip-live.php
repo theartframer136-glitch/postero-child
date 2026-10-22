@@ -106,6 +106,8 @@ echo '  guest comments and reviews (REMOTE_ADDR as WordPress saw it): ' . count(
 $srv = array(); foreach ($fam as $f => $ip) if ($ip !== '') $srv[] = $mask($ip);
 echo '  of them in this server\'s own prefixes (' . implode(', ', $srv) . '): ' . array_sum(array_intersect_key($t, array_flip($srv))) . "\n";
 $act = $wpdb->get_var("SHOW TABLES LIKE '{$wpdb->prefix}af_activity_log'") ? $wpdb->get_col("SELECT ip FROM {$wpdb->prefix}af_activity_log ORDER BY id DESC LIMIT 60") : array();
+if ($act) echo '  activity log entries span: ' . $wpdb->get_var("SELECT MIN(created_at) FROM (SELECT created_at FROM {$wpdb->prefix}af_activity_log ORDER BY id DESC LIMIT 60) x") . ' .. ' . $wpdb->get_var("SELECT MAX(created_at) FROM {$wpdb->prefix}af_activity_log") . "\n";
+echo '  newest guest comment: ' . $wpdb->get_var("SELECT MAX(comment_date) FROM {$wpdb->comments} WHERE user_id = 0") . "\n";
 $t2 = $tally($act);
 echo '  activity log (af_visitor_ip of signed-in users): ' . count($act) . ' | distinct prefixes: ' . count($t2) . ' | ' . substr(wp_json_encode(array_slice($t2, 0, 8)), 0, 300) . "\n";
 $oips = array();
@@ -114,6 +116,19 @@ $t3 = $tally($oips);
 echo '  orders (WooCommerce reads X-Real-IP / X-Forwarded-For first): ' . count($oips) . ' | distinct prefixes: ' . count($t3) . ' | ' . substr(wp_json_encode(array_slice($t3, 0, 8)), 0, 300) . "\n";
 $over = 0; foreach ($cips as $ip) foreach ($oips as $oi) if ($ip !== '' && $ip === $oi) $over++;
 echo '  a guest comment address equal to an order address: ' . $over . "\n";
+
+echo "\n=== 7. a check that does not read the cache: 11 made-up codes in a row\n";
+// the gift card box allows 10 wrong codes an hour per address; if the 11th
+// is refused as "too many", every probe was counted under ONE address (no
+// gift card code has ever been issued, so nobody is kept from redeeming one)
+$force = 'v4'; $when = 0;
+for ($i = 1; $i <= 11; $i++) {
+    $r = wp_remote_post(admin_url('admin-ajax.php'), array('timeout' => 30, 'headers' => array('User-Agent' => $ua, 'Cache-Control' => 'no-cache'), 'body' => array('action' => 'af_gc_apply', 'nonce' => $nonce, 'code' => 'TAF-QAQA-QAQA-QA' . sprintf('%02d', $i))));
+    $b = is_wp_error($r) ? '' : wp_remote_retrieve_body($r);
+    if (stripos($b, 'Too many') !== false) { $when = $i; break; }
+}
+$force = null;
+echo '  ' . ($when ? "refused as too many at attempt {$when}: these requests were counted together under one address" : 'never refused as too many: the 11 requests were NOT counted under one address') . "\n";
 
 echo "\n=== 5. past orders: WooCommerce's address against the theme's\n";
 if (function_exists('wc_get_orders')) {
