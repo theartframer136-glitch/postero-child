@@ -49,6 +49,7 @@ foreach (array('af_turnstile_site_key', 'af_turnstile_secret_key') as $o) {
 echo '  af_turnstile_mode = ' . json_encode(get_option('af_turnstile_mode', '(unset)')) . "\n";
 echo '  AF_TURNSTILE_OFF defined: ' . (defined('AF_TURNSTILE_OFF') ? 'YES' : 'no') . "\n";
 if ($loaded) echo '  af_turnstile_active() = ' . (af_turnstile_active() ? 'YES (switched on)' : 'no (switched off)') . "\n";
+echo '  af_turnstile_checkout = ' . json_encode(get_option('af_turnstile_checkout', '(unset)')) . (function_exists('af_turnstile_checkout_on') ? ' | checkout checked: ' . (af_turnstile_checkout_on() ? 'YES' : 'no') : '') . "\n";
 $le = get_transient('af_turnstile_last_error');
 echo '  last Cloudflare problem: ' . ($le ? json_encode($le, JSON_UNESCAPED_SLASHES) : 'none recorded') . "\n";
 foreach (array('eael_cloudflare_turnstile_sitekey', 'eael_cloudflare_turnstile_secretkey') as $o) {

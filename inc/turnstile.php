@@ -254,8 +254,11 @@ add_filter('preprocess_comment', function ($data) {
  * Behind it, a brake on card testing: 8 attempts that reach payment in an
  * hour from one address pause checkout there for an hour.
  *
- * Switch: option af_turnstile_checkout = off (turnstile.yml checkout-off)
- * turns off the checkout and REST-checkout checks alone; logins stay checked.
+ * Switch: option af_turnstile_checkout, on or off (turnstile.yml
+ * checkout-on / checkout-off), covers everything here at checkout: the box,
+ * the brake, the REST checkout and the email capture; logins stay checked.
+ * Off until switched on, so a deploy changes nothing at checkout: the
+ * checkout-on run switches it on and checks it live in the same run.
  */
 // The checkout box is invisible for most buyers, so "the check above the
 // button" would point at nothing: checkout says what to do instead.
@@ -267,7 +270,7 @@ function af_turnstile_message_checkout() {
     return '<span class="af-ts-msg">' . esc_html($text) . '</span>';
 }
 function af_turnstile_checkout_on() {
-    return af_turnstile_active() && get_option('af_turnstile_checkout', 'on') !== 'off';
+    return af_turnstile_active() && get_option('af_turnstile_checkout', 'off') === 'on';
 }
 function af_turnstile_checkout_skip_route() {
     foreach ((array) (isset($GLOBALS['wp_current_filter']) ? $GLOBALS['wp_current_filter'] : array()) as $h) {
@@ -286,16 +289,17 @@ add_action('woocommerce_checkout_after_customer_details', function () {
     if (af_turnstile_checkout_on()) af_turnstile_box('checkout', true, true);
 });
 add_action('woocommerce_after_checkout_validation', function ($data, $errors) {
-    if (!is_wp_error($errors) || af_turnstile_checkout_skip_route()) return;
+    if (!is_wp_error($errors) || !af_turnstile_checkout_on() || af_turnstile_checkout_skip_route()) return;
     if (af_checkout_paused()) {
         $errors->add('af_checkout_paused', __('Several payment attempts came from this connection in the last hour, so checkout is paused here for an hour to protect cardholders. Please try again later, or contact us and we will help you place the order.', 'postero-child'));
         return;
     }
-    if (!af_turnstile_checkout_on() || is_user_logged_in() || $errors->has_errors()) return;
+    if (is_user_logged_in() || $errors->has_errors()) return;
     if (!af_turnstile_verify('checkout')) $errors->add('af_turnstile', af_turnstile_message_checkout());
 }, 20, 2);
 // every attempt that reaches payment counts, whatever the gateway answers
 add_action('woocommerce_checkout_order_processed', function () {
+    if (!af_turnstile_checkout_on()) return;
     $ip = function_exists('af_visitor_ip') ? af_visitor_ip() : '';
     if ($ip === '' || (function_exists('af_ip_is_cloudflare') && af_ip_is_cloudflare($ip)) || !function_exists('af_rl_over')) return;
     af_rl_over(af_checkout_attempt_key($ip), 8, HOUR_IN_SECONDS);

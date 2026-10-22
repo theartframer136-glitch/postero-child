@@ -16,10 +16,12 @@ name: Turnstile
 #            cache cleared, and the run goes red.
 #   disable  switched off and the page cache cleared: every form is as before.
 #            The keys stay stored, so enable needs nothing new.
-#   checkout-off / checkout-on  (22 Oct) only the checks on checkout's Place
-#            order, the REST checkout and the email capture; every login,
-#            sign-up, contact and comment form stays checked. The quick way
-#            back if a buyer ever cannot get through checkout.
+#   checkout-on / checkout-off  (22 Oct) only checkout's own checks: Place
+#            order, the attempts brake, the REST checkout and the email
+#            capture; every login, sign-up, contact and comment form stays
+#            as it is. Off until checkout-on is run. checkout-on checks it
+#            live in the same run and switches it off again if a check fails;
+#            checkout-off is the quick way back if a buyer cannot get through.
 on:
   workflow_dispatch:
     inputs:
@@ -155,8 +157,20 @@ jobs:
           set -uo pipefail
           npm install --no-fund --no-audit --prefix /tmp/afh puppeteer-core@22 > /dev/null 2>&1 || true
           if [ "$MODE" = disable ]; then want=off; else want=on; fi
-          export QA_CHECKOUT=$([ "$MODE" = checkout-off ] && echo off || echo on)
+          # the checkout switches leave the other forms as they are: check them as they are
+          if [ "$MODE" = checkout-on ] || [ "$MODE" = checkout-off ]; then
+            ~/ssh-site "wp eval 'echo af_turnstile_active() ? \"on\" : \"off\";' --allow-root 2>/dev/null" | tail -1 > /tmp/ts-now.txt
+            grep -qx off /tmp/ts-now.txt && want=off
+          fi
+          export QA_CHECKOUT=$([ "$MODE" = checkout-off ] || [ "$want" = off ] && echo off || echo on)
           NODE_PATH=/tmp/afh/node_modules node tools/qa-login-form.mjs "$want"
+
+      - name: Checkout's checks failed live - switch them off again
+        if: failure() && env.MODE == 'checkout-on'
+        run: |
+          set -uo pipefail
+          ~/ssh-site "wp option update af_turnstile_checkout off --autoload=yes --allow-root 2>&1 | tail -1"
+          ~/ssh-site "wp eval 'echo af_turnstile_checkout_on() ? \"STILL ON\" : \"checkout checks off again: checkout is as before\";' --allow-root 2>/dev/null"
 
       - name: Something failed after switching on - switch off again
         if: failure() && env.SWITCHED == '1'
