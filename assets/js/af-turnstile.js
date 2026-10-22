@@ -385,7 +385,7 @@
       // cart form, whose submit would then wait for this check) nor inside the
       // basket totals (redrawn on every basket change): just after them
       var at = w.closest('form') || w.closest('.cart-collaterals') || w.closest('.cart_totals') || w;
-      b = window.afTsApi.box(at.parentNode, at.nextSibling, 'checkout', true);
+      b = window.afTsApi.box(at.parentNode, at.nextSibling, 'checkout', false);
       b.id = 'af-ts-wallet';
       return b;
     };
@@ -436,16 +436,18 @@
     });
   }
 
-  // Checkout's box is printed after the order summary; a theme template
-  // without that hook gets one in the same place from here.
-  if (C.checkout && window.jQuery) window.jQuery(function () { if (typeof walletBox === 'function') walletBox(); });
+  // Checkout's visible box goes right under the Place order button: into the
+  // order summary column (on wide screens a column of its own), after the
+  // payment block, which WooCommerce redraws on every address change while
+  // leaving its siblings alone. Moved before it is drawn (moving a drawn box
+  // would reload it). A theme template without the server's hook gets one
+  // from here.
   if (C.checkout) {
     Array.prototype.forEach.call(document.querySelectorAll('form.checkout'), function (form) {
       var box = form.querySelector('.af-ts[data-action="checkout"]');
-      if (!box) {
-        var rv = form.querySelector('#order_review');
-        box = window.afTsApi.box(form, rv ? rv.nextSibling : null, 'checkout', true);
-      }
+      var rv = form.querySelector('#order_review');
+      if (!box) box = window.afTsApi.box(rv || form, null, 'checkout', false);
+      else if (rv && box.parentNode !== rv) rv.appendChild(box);
       // started as the checkout page opens, so the token is ready when the
       // buyer is (a page Cash App returns to submits before anyone touches it)
       want(box);

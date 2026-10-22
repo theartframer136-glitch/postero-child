@@ -241,15 +241,15 @@ async function browserChecks() {
           check('browser: checkout: no configuration error from Cloudflare', s && !s.errors.some(e => CONFIG_ERR.test(e)), s && s.errors);
         }
         // the Place order check (22 Oct): quiet, drawn when the shopper uses the form
-        const cb0 = await p.evaluate(() => { const b = document.querySelector('form.checkout .af-ts[data-action="checkout"]'); return b ? { quiet: b.classList.contains('af-ts-quiet'), inReview: !!b.closest('#order_review') } : null; });
+        const cb0 = await p.evaluate(() => { const b = document.querySelector('form.checkout .af-ts[data-action="checkout"]'); const btn = document.getElementById('place_order'); return b ? { visible: !b.classList.contains('af-ts-quiet'), inSummary: !!b.closest('#order_review'), belowButton: !!(btn && b.getBoundingClientRect().top >= btn.getBoundingClientRect().bottom - 1), width: Math.round(b.getBoundingClientRect().width) } : null; });
         if (CO_ON) {
-          check('browser: checkout: Place order box in the form, quiet, outside the order review', !!(cb0 && cb0.quiet && !cb0.inReview), cb0);
+          check('browser: checkout: the visible box sits in the order summary, right under Place order', !!(cb0 && cb0.visible && cb0.inSummary && cb0.belowButton), cb0);
           await p.click('#billing_first_name').catch(() => null);
           let s = null;
           for (let i = 0; i < 30; i++) { s = await p.evaluate(() => window.afTsState && window.afTsState()); if (s && s.boxes.some(x => x.action === 'checkout' && x.drawn)) break; await sleep(500); }
           for (let i = 0; i < 16; i++) { s = await p.evaluate(() => window.afTsState && window.afTsState()); if (s && s.boxes.some(x => x.action === 'checkout' && x.token)) break; await sleep(500); }
           const cb = s && s.boxes.find(x => x.action === 'checkout');
-          check('browser: checkout: Place order box drawn by Cloudflare on first use', !!(cb && cb.drawn), s);
+          check('browser: checkout: Place order box drawn by Cloudflare as the page opens', !!(cb && cb.drawn && cb.iframe), s);
           check('browser: checkout: Place order box: no configuration error', !!(s && !s.errors.some(e => CONFIG_ERR.test(e))), s && s.errors);
           console.log(`INFO  headless Chrome was given a Place order token: ${cb && cb.token ? 'yes' : 'no'}${s && s.errors.length ? ' (Cloudflare codes: ' + s.errors.join(',') + ')' : ''}`);
         } else check('browser: checkout: no Place order box', !cb0, cb0);
@@ -378,10 +378,10 @@ async function checkoutServerChecks() {
   await get('/?add-to-cart=' + prod.id);
   const co = await get('/checkout/?' + bust());
   const form = (co.html.match(/<form[^>]*class="[^"]*\bcheckout\b[\s\S]*?<\/form>/i) || [''])[0];
-  const box = form.match(/<div class="af-ts[^"]*" data-action="checkout"[^>]*>/);
+  const box = form.match(/<div class="af-ts" data-action="checkout"[^>]*>/);
   const after = form.indexOf('id="place_order"') > -1 && box && form.indexOf(box[0]) > form.indexOf('id="place_order"');
-  if (CO_ON) check('server: checkout: one quiet box in the checkout form, under Place order', !!box && /af-ts-quiet/.test(box[0]) && /data-appearance="interaction-only"/.test(box[0]) && after, box ? box[0] : '(no box)');
-  else check('server: checkout: no checkout box', !box, box ? box[0] : undefined);
+  if (CO_ON) check('server: checkout: the visible box (as on the login page) in the checkout form, under Place order', !!box && !/interaction-only/.test(box[0]) && after, box ? box[0] : '(no box)');
+  else check('server: checkout: no checkout box', !/data-action="checkout"/.test(form), undefined);
   // Place order with every field filled but no token. "update totals": WooCommerce validates, never orders.
   const f = hidden(co.html, /class="[^"]*\bcheckout\b/) || {};
   const pick = (re) => { const m = form.match(re); return m ? m[1] : ''; };
