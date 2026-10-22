@@ -464,10 +464,14 @@ $log("alt text backfilled for $n_alt images");
 $acc = get_term_by('slug', 'art-accessories', 'product_cat');
 if ($acc && function_exists('wc_get_products')) {
     $n_acc = 0;
-    $bad = '/^(\s*(?:<p>)?\s*)This [^<]{0,400}? is a premium gallery-wrapped canvas print, handcrafted to order in our Delaware studio\.\s*/u';
+    // The product name inside it is wrapped in <strong> on the live pages, so
+    // inline tags are allowed; a paragraph left empty is dropped with it.
+    $bad = '/^\s*(<p>)?\s*This (?:[^<]|<\/?(?:strong|b|em)>){0,500}? is a premium gallery-wrapped canvas print, handcrafted to order in our Delaware studio\.\s*(<\/p>)?\s*/u';
     foreach (wc_get_products(array('category' => array('art-accessories'), 'limit' => 500, 'return' => 'ids', 'status' => array('publish', 'private', 'draft'))) as $pid) {
         $c = (string) get_post_field('post_content', $pid);
-        $new = preg_replace($bad, '$1', $c, 1);
+        $new = preg_replace_callback($bad, function ($m) {
+            return (!empty($m[1]) && empty($m[2])) ? '<p>' : '';
+        }, $c, 1);
         if (is_string($new) && $new !== $c && trim(wp_strip_all_tags($new)) !== '') {
             wp_update_post(array('ID' => $pid, 'post_content' => $new));
             $n_acc++;
