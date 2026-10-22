@@ -294,7 +294,9 @@ add_action('woocommerce_after_checkout_validation', function ($data, $errors) {
         $errors->add('af_checkout_paused', __('Several payment attempts came from this connection in the last hour, so checkout is paused here for an hour to protect cardholders. Please try again later, or contact us and we will help you place the order.', 'postero-child'));
         return;
     }
-    if (is_user_logged_in() || $errors->has_errors()) return;
+    // not while anything else is wrong (field errors, or notices such as the
+    // download licence): the token is kept for the attempt that can order
+    if (is_user_logged_in() || $errors->has_errors() || (function_exists('wc_notice_count') && wc_notice_count('error') > 0)) return;
     if (!af_turnstile_verify('checkout')) $errors->add('af_turnstile', af_turnstile_message_checkout());
 }, 20, 2);
 // every attempt that reaches payment counts, whatever the gateway answers
