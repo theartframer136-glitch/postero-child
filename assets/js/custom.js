@@ -378,10 +378,11 @@ jQuery(document).ready(function($) {
       if (btn) { btn.disabled = true; btn.textContent = '…'; }
 
       // Cloudflare's "verify you are human" (inc/turnstile.php), when it is
-      // switched on: a quiet box under the field, drawn now, and the post
-      // waits for its token. Without it the server answers what is missing.
+      // switched on: the visible box under the field, as on the login page,
+      // drawn now, and the post waits for its token. Without it the server
+      // answers what is missing.
       var box = g.__afTsBox;
-      if (!box && window.afTsApi) box = g.__afTsBox = window.afTsApi.box(g.parentNode, g.nextSibling, 'newsletter', true);
+      if (!box && window.afTsApi) box = g.__afTsBox = window.afTsApi.box(g.parentNode, g.nextSibling, 'newsletter', false);
       if (box && window.afTsApi) window.afTsApi.ready(box, send); else send('');
 
       function send(tok) {

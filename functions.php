@@ -2785,7 +2785,7 @@ add_action('wp_footer', function() {
                 <input type="email" name="af_nl_email" placeholder="Your email" required aria-label="Email for newsletter">
                 <input type="text" name="af_nl_hp" value="" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;">
                 <button type="submit">Join</button>
-                <?php if (function_exists('af_turnstile_box')) af_turnstile_box('newsletter', true, true); // Cloudflare's check: drawn on use, shown only when a tick is needed ?>
+                <?php if (function_exists('af_turnstile_box')) af_turnstile_box('newsletter', true, false, true); // Cloudflare's check: drawn on use, shown only when a tick is needed ?>
               </form>
               <p class="af-f-newsmsg" role="status" aria-live="polite" style="display:none;margin:8px 0 0;font-size:12.5px;"></p>
             <?php endif; ?>

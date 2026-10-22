@@ -154,7 +154,7 @@ function af_turnstile_in_editor() {
 // widget into it, when it comes into view or its form is used. A "quiet" box
 // (the newsletter forms) is drawn only when the form is used and stays
 // invisible unless Cloudflare needs the visitor to tick it.
-function af_turnstile_box($action = 'login', $echo = true, $quiet = false) {
+function af_turnstile_box($action = 'login', $echo = true, $quiet = false, $on_use = null) {
     if (!af_turnstile_active() || af_turnstile_in_editor()) return '';
     // Logged-in customers are never asked (checkout aside: accounts that have
     // never paid are, see af_checkout_needs_check), as the settings page says, and
@@ -163,7 +163,8 @@ function af_turnstile_box($action = 'login', $echo = true, $quiet = false) {
     if (is_user_logged_in() && (isset($GLOBALS['pagenow']) ? $GLOBALS['pagenow'] : '') !== 'wp-login.php'
         && !(in_array($action, array('checkout', 'pay'), true) && function_exists('af_checkout_needs_check') && af_checkout_needs_check())) return '';
     $html = '<div class="af-ts' . ($quiet ? ' af-ts-quiet' : '') . '" data-action="' . esc_attr($action) . '"'
-          . ($quiet ? ' data-on-use="1" data-appearance="interaction-only"' : '')
+          . (($on_use === null ? $quiet : $on_use) ? ' data-on-use="1"' : '')
+          . ($quiet ? ' data-appearance="interaction-only"' : '')
           . ' role="group" aria-label="' . esc_attr__('Security check', 'postero-child') . '">'
           . '<noscript><p class="af-ts-note af-ts-bad">' . esc_html__('Please turn on JavaScript to continue.', 'postero-child') . '</p></noscript></div>';
     if ($echo) echo $html;
@@ -336,13 +337,14 @@ function af_checkout_brake_hit() {
     $k = af_checkout_attempt_key();
     return $k !== '' && function_exists('af_rl_over') && af_rl_over($k, 8, HOUR_IN_SECONDS);
 }
-// Right under the order summary and the Place order button, inside the
-// form but outside the parts WooCommerce redraws on every address change: if
-// Cloudflare ever asks for a tick, the box is where the buyer is looking.
-// (af-turnstile.js puts one in the same place if a theme template has no
-// such hook.)
+// The visible "Verify you are human" box, as on the login and sign-up pages
+// (owner's choice, 22 Oct), right under the Place order button: printed after
+// the order summary, and moved by af-turnstile.js into the summary column
+// (outside the parts WooCommerce redraws on every address change), where it
+// is drawn as the page opens. (The script adds one there if a theme template
+// has no such hook.)
 add_action('woocommerce_checkout_after_order_review', function () {
-    if (af_turnstile_checkout_on()) af_turnstile_box('checkout', true, true);
+    if (af_turnstile_checkout_on()) af_turnstile_box('checkout', true, false, true);
 });
 add_action('woocommerce_after_checkout_validation', function ($data, $errors) {
     if (!is_wp_error($errors) || !af_turnstile_checkout_on()) return;
@@ -416,7 +418,7 @@ function af_turnstile_message_pay() {
         : __('The security check did not go through. Please press Pay for order again.', 'postero-child');
 }
 add_action('woocommerce_pay_order_before_submit', function () {
-    if (af_turnstile_checkout_on()) af_turnstile_box('pay', true, true);
+    if (af_turnstile_checkout_on()) af_turnstile_box('pay', true, false, true);
 });
 add_action('woocommerce_before_pay_action', function ($order) {
     if (!af_turnstile_checkout_on() || !($order instanceof WC_Order)) return;
