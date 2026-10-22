@@ -465,8 +465,10 @@ $acc = get_term_by('slug', 'art-accessories', 'product_cat');
 if ($acc && function_exists('wc_get_products')) {
     $n_acc = 0;
     // The product name inside it is wrapped in <strong> on the live pages, so
-    // inline tags are allowed; a paragraph left empty is dropped with it.
-    $bad = '/^\s*(<p>)?\s*This (?:[^<]|<\/?(?:strong|b|em)>){0,500}? is a premium gallery-wrapped canvas print, handcrafted to order in our Delaware studio\.\s*(<\/p>)?\s*/u';
+    // inline tags are allowed; a paragraph left empty is dropped with it. The
+    // stored paragraph carries a class (<p class="taf-seo-lead">, measured
+    // 22 Oct with tools/diag-frame-desc.php), so <p> may have attributes.
+    $bad = '/^\s*(<p(?:\s[^>]*)?>)?\s*This (?:[^<]|<\/?(?:strong|b|em)>){0,500}? is a premium gallery-wrapped canvas print, handcrafted to order in our Delaware studio\.\s*(<\/p>)?\s*/u';
     foreach (wc_get_products(array('category' => array('art-accessories'), 'limit' => 500, 'return' => 'ids', 'status' => array('publish', 'private', 'draft'))) as $pid) {
         $c = (string) get_post_field('post_content', $pid);
         $new = preg_replace_callback($bad, function ($m) {
