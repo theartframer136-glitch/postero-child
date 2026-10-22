@@ -69,6 +69,11 @@ if (!defined('ABSPATH')) exit;
  * 'self' plus Square, so wherever else this page talks to will report itself
  * instead of being quietly whitelisted by me.
  *
+ * kit.cash.app, measured 22 Oct: Square's Cash App Pay button frames it
+ * (Report-Only logged "Framing 'https://kit.cash.app/'" on every checkout).
+ * It is part of a payment method the shop offers, so it is permitted here
+ * before anyone switches to enforce, which would otherwise break that button.
+ *
  * Presentation is deliberately wide open. Images, styles and fonts are not
  * how a card gets skimmed, and constraining them would bury the signal.
  * 'unsafe-inline' and 'unsafe-eval' stay for scripts because 89 of the 183
@@ -86,7 +91,7 @@ function af_csp_default_policy() {
              . "https://www.googletagmanager.com "
              . "https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
          . "connect-src 'self' https://*.squarecdn.com https://*.squareup.com; "
-         . "frame-src 'self' https://*.squarecdn.com https://*.squareup.com; "
+         . "frame-src 'self' https://*.squarecdn.com https://*.squareup.com https://kit.cash.app; "
          . "form-action 'self'; "
          . "object-src 'none'; "
          . "base-uri 'self'; "
