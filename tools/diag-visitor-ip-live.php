@@ -91,6 +91,30 @@ if (!$found) echo "  no access log line for the probe found (looked in ~/logs, ~
 $ls = array(); foreach (array($home . '/logs', $home . '/.logs', $home . '/access-logs') as $d) if (is_dir($d)) $ls[] = $d . ': ' . implode(', ', array_slice(array_map('basename', (array) glob($d . '/*')), 0, 8));
 if ($ls) echo '  log folders: ' . implode(' | ', $ls) . "\n";
 
+echo "\n=== 4b. can this script see counters web requests write?\n";
+global $wpdb;
+echo '  persistent object cache: ' . (wp_using_ext_object_cache() ? 'YES (' . (defined('LSCWP_OBJECT_CACHE') ? 'LiteSpeed' : 'other') . ')' : 'no (counters live in the options table)') . "\n";
+$recent = 0; $rows = $wpdb->get_results("SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE '\\_transient\\_af\\_rl\\_%' ORDER BY option_id DESC LIMIT 400");
+foreach ($rows as $r) { $v = maybe_unserialize($r->option_value); if (is_array($v) && isset($v[1]) && (int) $v[1] > time() - 300) $recent++; }
+echo '  per-address counters in the options table: ' . count($rows) . ' | started in the last 5 minutes: ' . $recent . "\n";
+
+echo "\n=== 6. the addresses PHP recorded for real visitors (first two parts only)\n";
+$tally = function ($list) use ($mask) { $c = array(); foreach ($list as $ip) { if ($ip === '' || $ip === null) continue; $k = $mask($ip); $c[$k] = ($c[$k] ?? 0) + 1; } arsort($c); return $c; };
+$cips = $wpdb->get_col("SELECT comment_author_IP FROM {$wpdb->comments} WHERE comment_type IN ('comment','review','') AND user_id = 0 ORDER BY comment_ID DESC LIMIT 60");
+$t = $tally($cips);
+echo '  guest comments and reviews (REMOTE_ADDR as WordPress saw it): ' . count($cips) . ' | distinct prefixes: ' . count($t) . ' | ' . substr(wp_json_encode(array_slice($t, 0, 8)), 0, 300) . "\n";
+$srv = array(); foreach ($fam as $f => $ip) if ($ip !== '') $srv[] = $mask($ip);
+echo '  of them in this server\'s own prefixes (' . implode(', ', $srv) . '): ' . array_sum(array_intersect_key($t, array_flip($srv))) . "\n";
+$act = $wpdb->get_var("SHOW TABLES LIKE '{$wpdb->prefix}af_activity_log'") ? $wpdb->get_col("SELECT ip FROM {$wpdb->prefix}af_activity_log ORDER BY id DESC LIMIT 60") : array();
+$t2 = $tally($act);
+echo '  activity log (af_visitor_ip of signed-in users): ' . count($act) . ' | distinct prefixes: ' . count($t2) . ' | ' . substr(wp_json_encode(array_slice($t2, 0, 8)), 0, 300) . "\n";
+$oips = array();
+if (function_exists('wc_get_orders')) foreach (wc_get_orders(array('limit' => 40, 'type' => 'shop_order')) as $o) $oips[] = (string) $o->get_customer_ip_address();
+$t3 = $tally($oips);
+echo '  orders (WooCommerce reads X-Real-IP / X-Forwarded-For first): ' . count($oips) . ' | distinct prefixes: ' . count($t3) . ' | ' . substr(wp_json_encode(array_slice($t3, 0, 8)), 0, 300) . "\n";
+$over = 0; foreach ($cips as $ip) foreach ($oips as $oi) if ($ip !== '' && $ip === $oi) $over++;
+echo '  a guest comment address equal to an order address: ' . $over . "\n";
+
 echo "\n=== 5. past orders: WooCommerce's address against the theme's\n";
 if (function_exists('wc_get_orders')) {
     $agree = 0; $differ = 0; $only = 0; $pref = array();
