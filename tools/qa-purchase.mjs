@@ -363,8 +363,12 @@ if (MODE === 'payment') {
     if (a.email) await p.evaluate((v) => { const e = document.getElementById('billing_email'); e.value = v; }, a.email);
     if (!expect) { console.log('  ' + name + ': skipped pressing Place order (a valid address would create an order)'); continue; }
     await p.evaluate((id) => { const r = document.querySelector('.wc_payment_methods input[value="' + id + '"]'); if (r) r.click(); document.getElementById('place_order').click(); }, cod.id);
-    await sleep(7000);
-    const n = await txt(p, '.woocommerce-NoticeGroup-checkout, .woocommerce-error');
+    // Place order first waits for Cloudflare's check (up to 8 s when it cannot finish, as for this
+    // headless browser), so the answer is waited for, not read after a fixed delay
+    let n = '';
+    for (let i = 0; i < 25 && !n; i++) { await sleep(1000); n = await txt(p, '.woocommerce-NoticeGroup-checkout, .woocommerce-error'); }
+    const ts = await p.evaluate(() => { const s = window.afTsState && window.afTsState(); const b = s && s.boxes.find(x => x.action === 'checkout'); return b ? { drawn: b.drawn, token: b.token, note: (document.querySelector('form.checkout .af-ts-note') || {}).textContent || '' } : null; });
+    if (!n) console.log('  ' + name + ': no answer; the Place order check: ' + JSON.stringify(ts));
     ok(expect.test(n) && !/order-received/.test(p.url()), name + ' refused', n.slice(0, 120));
   }
   // Enter in the gift card box must apply the code, not submit the order.
