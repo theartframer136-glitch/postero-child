@@ -50,7 +50,7 @@ foreach ($drafts as $pid) {
     if (get_post_meta($pid, '_af_seo_published', true)) { $skipped++; continue; }   // unpublished again by hand: leave it
     $slug = get_post_field('post_name', $pid);
     $body = (string) get_post_field('post_content', $pid);
-    if (preg_match('/free\s+(usa?\s+)?(shipping|delivery)/i', $body)) { $log("SKIP $slug: says free shipping"); $skipped++; continue; }
+    if (preg_match('/\bfree\b/i', $body)) { $log("SKIP $slug: contains the word 'free' (owner's rule: nothing is free)"); $skipped++; continue; }
     if (!has_post_thumbnail($pid)) {
         $thumb = isset($pic[$slug]) ? $thumb_for($pic[$slug]) : 0;
         if (!$thumb) $thumb = $thumb_for('hindu-deities');

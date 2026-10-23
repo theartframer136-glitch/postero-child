@@ -27,7 +27,9 @@ $spec = json_decode((string) @file_get_contents($dir . '/posts.json'), true);
 if (!is_array($spec) || empty($spec['posts'])) { $log('posts.json missing or empty — nothing to do'); return; }
 
 // The owner's rule: nothing on the site may say free shipping.
-$says_free = function ($s) { return (bool) preg_match('/free\s+(usa?\s+)?(shipping|delivery)/i', (string) $s); };
+// Owner's rule (2026-10-23): no text on the site may contain the word "free" at all,
+// not just "free shipping".
+$says_free = function ($s) { return (bool) preg_match('/\bfree\b/i', (string) $s); };
 
 // Category.
 $cat_id = 0;
@@ -55,7 +57,7 @@ foreach ($spec['posts'] as $p) {
     $html = (string) @file_get_contents($file);
     if (trim($html) === '') { $log("SKIP $slug: body file missing"); $n_skipped++; continue; }
     if ($says_free($html) || $says_free($p['title']) || $says_free($p['rm_description']) || $says_free($p['excerpt'])) {
-        $log("SKIP $slug: says free shipping, which the owner's rule forbids"); $n_skipped++; continue;
+        $log("SKIP $slug: contains the word 'free', which the owner's rule forbids"); $n_skipped++; continue;
     }
 
     $id = wp_insert_post(array(

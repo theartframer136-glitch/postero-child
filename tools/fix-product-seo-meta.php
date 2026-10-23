@@ -209,7 +209,7 @@ foreach ($products as $pid) {
         || $d_len > 160
         || $d_len < 110
         || !in_array($d_last, array('.', '!', '?'), true) // truncated mid-word
-        || preg_match('/free\s+(us\s+|usa\s+)?(shipping|delivery)/i', $d_cur) // owner's rule
+        || preg_match('/\bfree\b/i', $d_cur) // owner's rule: the word "free" appears nowhere
         || ($d_mine && ($cat_tail !== null || !$is_art)); // ours, and a better tail now exists
     if ($d_bad && $d_cur !== $d_new) {
         update_post_meta($pid, 'rank_math_description', $d_new);

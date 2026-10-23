@@ -62,8 +62,9 @@ function composeTags(v) {
 
 function validatePlan() {
   const problems = [];
-  const saysFree = (s) => /free\s+(us\s+|usa\s+)?(shipping|delivery)/i.test(s);
-  const check = (where, s) => { if (saysFree(s)) problems.push(`${where}: says free shipping`); };
+  // Owner's rule (2026-10-23): no text may contain the word "free" at all.
+  const saysFree = (s) => /\bfree\b/i.test(s);
+  const check = (where, s) => { if (saysFree(s)) problems.push(`${where}: contains the word "free"`); };
   check('channel.description', plan.channel.description);
   check('header', plan.header); check('footer', plan.footer);
   for (const [id, v] of Object.entries(plan.videos)) {
