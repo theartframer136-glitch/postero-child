@@ -2604,7 +2604,7 @@ add_action('woocommerce_after_add_to_cart_button', function() {
     if (!$product) return;
     $url = add_query_arg('tow', $product->get_id(), home_url('/try-on-wall/'));
     ?>
-    <a href="<?php echo esc_url($url); ?>" class="af-arw-btn">
+    <a href="<?php echo esc_url($url); ?>" class="af-arw-btn" rel="nofollow">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;flex-shrink:0">
             <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
         </svg>
@@ -3284,7 +3284,7 @@ add_action('woocommerce_after_shop_loop_item', function() {
     $product = af_wc_product();
     if (!$product) return;
     $url = add_query_arg('tow', $product->get_id(), home_url('/try-on-wall/'));
-    echo '<a class="af-card-ar" href="'.esc_url($url).'" aria-label="Try on your wall">'
+    echo '<a class="af-card-ar" href="'.esc_url($url).'" rel="nofollow" aria-label="Try on your wall">'
        . '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'
        . '<span>Try on Wall</span></a>';
 }, 15);
@@ -9053,6 +9053,12 @@ function af_seo_robots_txt() {
         'Disallow: /*?*lang=',
         'Disallow: /*?*per_page=',
         'Disallow: /*?*layout=',
+        // Every product page and shop card links /try-on-wall/?tow=<id>. The
+        // 2026-10-23 full site test reached 453 of them, each the same page
+        // with one product preselected, each a 5-7 s uncached render, and
+        // they made up nearly all of the 461 pages slower than 3 s. The tool
+        // itself stays crawlable at /try-on-wall/.
+        'Disallow: /*?*tow=',
         // Deep tag pagination was the largest remaining crawl cost after the
         // filter URLs: the 2026-08-04 profile is full of /product-tag/*/page/N/
         // hits (page/22, page/13, page/11 ...) at ~2.2-4.2s each. Tag archives
