@@ -397,3 +397,78 @@ add_filter('rank_math/frontend/title', function ($title) {
         return $title;
     }
 }, 30);
+
+/* -------------------------------------- 9. addresses people guess, and 404 */
+
+/**
+ * The addresses shoppers type or other sites link to, that this shop keeps
+ * under another name. The ten-persona test of 2026-10-23 had a corporate
+ * buyer try /corporate/ and /corporate-printing/, and a 65-year-old look for
+ * the returns policy at /shipping-returns/ and WooCommerce's own default
+ * /refund_returns/; every one was a "page not found". Only an address that
+ * would otherwise be a 404 is redirected, so a real page of the same name,
+ * if one is ever made, always wins.
+ */
+function af_mf_guess_redirects() {
+    return array(
+        'corporate'          => '/wholesale-corporate/',
+        'corporate-orders'   => '/wholesale-corporate/',
+        'wholesale'          => '/wholesale-corporate/',
+        'bulk-orders'        => '/wholesale-corporate/',
+        'corporate-printing' => '/product-category/corporate-printing/',
+        'shipping-returns'   => '/shipping-delivery/',
+        'shipping'           => '/shipping-delivery/',
+        'delivery'           => '/shipping-delivery/',
+        'shipping-policy'    => '/shipping-delivery/',
+        'refund_returns'     => '/refund-policy/',
+        'refund-returns'     => '/refund-policy/',
+        'refunds'            => '/refund-policy/',
+        'return-policy'      => '/returns-exchanges/',
+        'returns-policy'     => '/returns-exchanges/',
+        'contact-us'         => '/contact/',
+        'faq'                => '/faqs/',
+        'terms'              => '/terms-conditions/',
+        'privacy'            => '/privacy-policy/',
+    );
+}
+
+add_action('template_redirect', function () {
+    try {
+        if (!is_404()) return;
+        $path = strtolower(trim((string) parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH), '/'));
+        $map  = af_mf_guess_redirects();
+        if ($path === '' || empty($map[$path])) return;
+        wp_safe_redirect(home_url($map[$path]), 301, 'The Art Framer');
+        exit;
+    } catch (\Throwable $e) {
+    }
+}, 5);
+
+/* ------------------------------------------------ 10. skip to the content */
+
+/**
+ * A "Skip to content" link, first thing on every page: keyboard users were
+ * tabbing through the whole header on every page to reach anything (persona
+ * 4, 2026-10-23). Hidden until it has focus, then shown at the top left. It
+ * targets the page's main region, whichever the template uses.
+ */
+add_action('wp_body_open', function () {
+    if (is_admin()) return;
+    echo '<a class="af-skip" href="#af-main">Skip to content</a>'
+       . '<style id="af-skip-style">.af-skip{position:absolute;left:8px;top:-60px;z-index:100000;padding:10px 16px;'
+       . 'background:#1a1a1a;color:#fff;border-radius:8px;font-weight:700;text-decoration:none}'
+       . '.af-skip:focus{top:8px;outline:3px solid #c9a84c;outline-offset:2px}</style>'
+       . '<script>(function(){function t(){var m=document.querySelector("main, #main, #primary, #content, .site-main, .elementor-location-single, .woocommerce");'
+       . 'if(m&&!document.getElementById("af-main")){if(!m.id)m.id="af-main";else{var a=document.querySelector(".af-skip");if(a)a.setAttribute("href","#"+m.id);}'
+       . 'if(!m.hasAttribute("tabindex"))m.setAttribute("tabindex","-1");}}'
+       . 'if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",t);else t();})();</script>';
+}, 1);
+
+/* The parent theme may not call wp_body_open(); then the link is added here. */
+add_action('wp_footer', function () {
+    if (is_admin()) return;
+    echo '<script>(function(){if(document.querySelector(".af-skip"))return;var a=document.createElement("a");a.className="af-skip";a.href="#af-main";a.textContent="Skip to content";'
+       . 'var st=document.createElement("style");st.textContent=".af-skip{position:absolute;left:8px;top:-60px;z-index:100000;padding:10px 16px;background:#1a1a1a;color:#fff;border-radius:8px;font-weight:700;text-decoration:none}.af-skip:focus{top:8px;outline:3px solid #c9a84c;outline-offset:2px}";'
+       . 'document.head.appendChild(st);document.body.insertBefore(a,document.body.firstChild);'
+       . 'var m=document.querySelector("main, #main, #primary, #content, .site-main, .elementor-location-single, .woocommerce");if(m){if(!m.id)m.id="af-main";else a.href="#"+m.id;if(!m.hasAttribute("tabindex"))m.setAttribute("tabindex","-1");}})();</script>';
+}, 100);
