@@ -199,7 +199,22 @@ function af_listing_empty_message() {
     }
 
     $all_url = $filters ? af_price_filter_url($path, $page) : home_url('/shop/');
-    $html  = '<div class="af-empty-filter">';
+    $html  = '';
+    // An empty category never reaches woocommerce_archive_description, where
+    // inc/page-headings.php prints the category's H1, so the page had no H1 at
+    // all (31 categories in the full site test, 2026-10-23). It gets the same
+    // visible heading here, once.
+    if (function_exists('is_product_taxonomy') && is_product_taxonomy()
+        && function_exists('af_heading_printed') && !af_heading_printed()) {
+        $qo   = get_queried_object();
+        $name = ($qo && isset($qo->name)) ? trim(wp_strip_all_tags($qo->name)) : '';
+        if ($name !== '') {
+            af_heading_printed(true);
+            $html .= (function_exists('af_heading_css') ? af_heading_css() : '')
+                   . '<h1 class="af-archive-title">' . esc_html($name) . '</h1>';
+        }
+    }
+    $html .= '<div class="af-empty-filter">';
     $html .= '<h2 class="af-ef-title">' . esc_html($title) . '</h2>';
     $html .= '<p class="af-ef-detail">' . esc_html($detail) . '</p>';
     $html .= '<div class="af-ef-actions">';
