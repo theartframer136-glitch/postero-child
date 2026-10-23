@@ -114,7 +114,9 @@ async function firstVisit(label, opts) {
     if (await closer.count()) await closer.click({ timeout: 3000 }).catch(() => {});
     await page.keyboard.press('Escape').catch(() => {});
     await page.waitForTimeout(1000);
-    const still = await measureCovers();
+    // The cookie notice asks for a choice on purpose (it is checked on its
+    // own below); anything else still covering the page is a fault.
+    const still = (await measureCovers()).filter(c => !/af-consent|af-ck\b/.test(c.sel));
     if (still.length) FAIL('something covering the page could not be closed with a close button or Escape', still.map(c => `${c.sel} ${c.pct}% "${c.text}"`).join(' | '));
     else PASS('what covered the page on arrival closes with its close button or Escape', covers.map(c => c.sel).join(', '));
   } else PASS('nothing covers the page on arrival');
@@ -226,7 +228,7 @@ async function firstVisit(label, opts) {
       await page.selectOption('#af-size-select', opts[opts.length - 1]).catch(() => {});
       await page.waitForTimeout(1200);
       const after = await page.locator('#af-live-price').innerText().catch(() => '');
-      if (before && after && before !== after) PASS('choosing a bigger size updates the price', `${before.trim()} → ${after.trim()}`);
+      if (before && after && before !== after) PASS('choosing another size updates the price', `${before.trim()} → ${after.trim()}`);
       else WARN('choosing another size did not change the shown price', `${before} / ${after}`);
     }
   }

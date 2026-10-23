@@ -78,6 +78,56 @@ if (process.env.PROBE_ONLY === 'ux') {
   process.exit(0);
 }
 
+// ── sorting a collection as a shopper does, when asked: PROBE_ONLY=sort ─────
+// The customer journey saw the address stay the same after picking "price"
+// in the sort box. Is the box wired up, hidden behind another control, or
+// waiting for a first tap before its script loads?
+if (process.env.PROBE_ONLY === 'sort') {
+  const sp = await ctx.newPage();
+  for (const path of ['/product-category/digital-canvas-prints/', '/shop/']) {
+    await sp.goto(SITE + path, { waitUntil: 'load', timeout: 60000 }).catch(() => {});
+    await sp.waitForTimeout(2500);
+    const info = await sp.evaluate(() => {
+      const sel = document.querySelector('select.orderby, select[name="orderby"]');
+      if (!sel) return { found: false };
+      const r = sel.getBoundingClientRect(), cs = getComputedStyle(sel);
+      const form = sel.closest('form');
+      const ev = window.jQuery && jQuery._data ? (jQuery._data(document.body, 'events') || {}) : null;
+      const onBody = ev && ev.change ? ev.change.map(h => h.selector || '').filter(Boolean) : null;
+      const onForm = form && window.jQuery && jQuery._data ? Object.keys(jQuery._data(form, 'events') || {}) : null;
+      const top = r.width ? document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) : null;
+      return { found: true, value: sel.value, opts: [...sel.options].map(o => o.value), visible: r.width > 0 && r.height > 0 && cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > 0.05,
+        rect: [r.left, r.top, r.width, r.height].map(Math.round), opacity: cs.opacity, coveredBy: top && top !== sel && !sel.contains(top) ? top.tagName.toLowerCase() + '.' + String(top.className).slice(0, 60) : '',
+        formAction: form ? form.getAttribute('action') : null, formMethod: form ? form.method : null, formClass: form ? form.className : null,
+        jq: !!window.jQuery, wcScript: [...document.scripts].some(s => /woocommerce(\.min)?\.js/.test(s.src || s.getAttribute('data-src') || '')),
+        delayed: [...document.scripts].filter(s => /litespeed|delay/i.test(s.type || '') ).length, onBody, onForm,
+        firstCards: [...document.querySelectorAll('li.product, .product-card, .type-product')].slice(0, 4).map(c => (c.querySelector('.price') || {}).innerText || '').map(t => t.replace(/\s+/g, ' ').slice(0, 30)) };
+    });
+    out(`=== ${path} before choosing ===`); out(JSON.stringify(info, null, 1));
+    if (info.found) {
+      const pick = info.opts.find(v => v === 'price') || info.opts.find(v => /price/.test(v)) || info.opts[1];
+      // A shopper touches the page before choosing: move, scroll a little, tap the box.
+      await sp.mouse.move(200, 300); await sp.mouse.wheel(0, 200); await sp.waitForTimeout(1500);
+      const box = sp.locator('select.orderby, select[name="orderby"]').first();
+      await box.click({ timeout: 4000 }).catch(e => out('  tap on the box failed: ' + String(e.message).split('\n')[0]));
+      await sp.keyboard.press('Escape').catch(() => {});
+      const before = sp.url();
+      await Promise.all([sp.waitForNavigation({ timeout: 12000 }).catch(() => null), box.selectOption(pick).catch(e => out('  select failed: ' + String(e.message).split('\n')[0]))]);
+      await sp.waitForTimeout(2500);
+      const after = await sp.evaluate(() => ({ url: location.href, value: (document.querySelector('select.orderby, select[name="orderby"]') || {}).value,
+        firstCards: [...document.querySelectorAll('li.product, .product-card, .type-product')].slice(0, 4).map(c => (c.querySelector('.price') || {}).innerText || '').map(t => t.replace(/\s+/g, ' ').slice(0, 30)) }));
+      out(`  chose "${pick}": address ${after.url === before ? 'UNCHANGED' : 'now ' + after.url}; box shows ${after.value}`);
+      out('  first prices before: ' + JSON.stringify(info.firstCards)); out('  first prices after:  ' + JSON.stringify(after.firstCards));
+      const direct = await sp.goto(SITE + path + '?orderby=' + pick, { waitUntil: 'load', timeout: 60000 }).catch(() => null);
+      const dc = await sp.evaluate(() => [...document.querySelectorAll('li.product, .product-card, .type-product')].slice(0, 4).map(c => (c.querySelector('.price') || {}).innerText || '').map(t => t.replace(/\s+/g, ' ').slice(0, 30))).catch(() => []);
+      out(`  opening ?orderby=${pick} directly: ${direct ? direct.status() : 'no answer'}; first prices ${JSON.stringify(dc)}`);
+    }
+    await sleep(PAUSE);
+  }
+  await browser.close();
+  process.exit(0);
+}
+
 // ── only the demo-link leak, when asked: PROBE_ONLY=demo ────────────────────
 // Each page twice: as served (maybe from the page cache) and with a unique
 // query string, which the cache has never seen, so PHP renders it now.
