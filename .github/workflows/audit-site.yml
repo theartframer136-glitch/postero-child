@@ -46,7 +46,9 @@ on:
         default: ''
 
 concurrency:
-  group: qa-live
+  # The customer pass is light and paced; on the shared qa-live queue a run
+  # queued by anyone else replaced it before it started (23 Oct). Its own queue.
+  group: ${{ inputs.pass == 'customer' && 'qa-customer' || 'qa-live' }}
   cancel-in-progress: false
 
 jobs:
