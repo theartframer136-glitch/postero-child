@@ -100,15 +100,23 @@ console.log(`veteran pass against ${SITE}\n`);
 
 // ── 2. Images: the shop is pictures, so a broken one is a lost sale ─────────
 {
+  // Broken means the browser tried and got nothing: complete with no pixels.
+  // A lazy image below the fold is simply not loaded yet (complete=false).
+  // Counting those as broken reported 246 of 331 homepage images on
+  // 2026-10-23, while a browser pass that scrolled found none.
   const imgs = await page.evaluate(() => Array.from(document.images).map(i => ({
     src: i.currentSrc || i.src, ok: i.complete && i.naturalWidth > 0,
+    failed: i.complete && i.naturalWidth === 0 && !/^data:/.test(i.currentSrc || i.src || ''),
     alt: i.getAttribute('alt'), w: i.naturalWidth, dw: i.width,
   })));
-  const broken = imgs.filter(i => !i.ok && i.src);
+  const broken = imgs.filter(i => i.failed && i.src);
   if (broken.length) FAIL('Homepage', 'broken images', `${broken.length} of ${imgs.length}: ${broken.slice(0, 3).map(b => b.src.replace(SITE, '')).join(', ')}`);
   else PASS('Homepage', 'images render', `${imgs.length} checked`);
 
-  const noAlt = imgs.filter(i => i.alt === null || i.alt.trim() === '');
+  // alt="" is the correct markup for a decorative image (the video-card
+  // stills, for one); only a missing alt attribute leaves a screen reader
+  // reading out the file name.
+  const noAlt = imgs.filter(i => i.alt === null);
   if (noAlt.length > imgs.length * 0.3 && imgs.length > 5) {
     WARN('Homepage', 'image alt text', `${noAlt.length} of ${imgs.length} have none — screen readers and image search get nothing`);
   }
