@@ -221,9 +221,10 @@ function analyse(url, html) {
   // The theme vendor's demo store, or the old staging host, anywhere in the
   // markup the server sent. The browser-side guard rewrites these after load,
   // so a crawl is the only place a leak in the server HTML shows up.
+  // Markup only: the guard's own <script> lists these hosts by name.
   for (const host of ['demo2wpopal.b-cdn.net', 'hostingersite.com']) {
-    const i = html.indexOf(host);
-    if (i >= 0) I('WARN', 'demo-link', `${host} in the server HTML: …${html.slice(Math.max(0, i - 140), i + 60).replace(/\s+/g, ' ')}…`);
+    const i = noScript.indexOf(host);
+    if (i >= 0) I('WARN', 'demo-link', `${host} in the server HTML: …${noScript.slice(Math.max(0, i - 140), i + 60).replace(/\s+/g, ' ')}…`);
   }
 
   // Links and assets
