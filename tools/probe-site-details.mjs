@@ -120,6 +120,26 @@ if (process.env.PROBE_ONLY === 'sort') {
     out('  ' + JSON.stringify(where));
     if (info.found) {
       const pick = info.opts.find(v => v === 'price') || info.opts.find(v => /price/.test(v)) || info.opts[1];
+      // What a shopper actually sees is the theme's own dropdown in front of
+      // the hidden box: open it and pick the option by its words.
+      const shown = sp.locator('.woocommerce-ordering .select-selected').first();
+      if (await shown.count()) {
+        const b0 = sp.url();
+        await shown.scrollIntoViewIfNeeded().catch(() => {});
+        await shown.click({ timeout: 5000 }).catch(e => out('  open the dropdown failed: ' + String(e.message).split('\n')[0]));
+        await sp.waitForTimeout(600);
+        const items = await sp.locator('.woocommerce-ordering .select-items div').evaluateAll(d => d.map(x => x.textContent.trim()));
+        const open = await sp.evaluate(() => { const l = document.querySelector('.woocommerce-ordering .select-items'); return l ? !l.classList.contains('select-hide') && l.getBoundingClientRect().height > 0 : false; });
+        out(`  theme dropdown: opened=${open} items=${JSON.stringify(items)}`);
+        const low = sp.locator('.woocommerce-ordering .select-items div', { hasText: /low to high/i }).first();
+        await Promise.all([sp.waitForNavigation({ timeout: 12000 }).catch(() => null), low.click({ timeout: 5000 }).catch(e => out('  pick failed: ' + String(e.message).split('\n')[0]))]);
+        await sp.waitForTimeout(2500);
+        const st = await sp.evaluate(() => ({ url: location.href, sel: (document.querySelector('select.orderby') || {}).value, shown: (document.querySelector('.woocommerce-ordering .select-selected') || {}).textContent }));
+        out(`  picked "low to high" in the theme dropdown: address ${st.url === b0 ? 'UNCHANGED' : 'now ' + st.url}; hidden box=${st.sel}; dropdown shows "${st.shown}"`);
+        const tab = await sp.evaluate(() => { const e = document.querySelector('.woocommerce-ordering .select-selected'); return e ? { tabindex: e.getAttribute('tabindex'), role: e.getAttribute('role') } : null; });
+        out('  keyboard reach of the dropdown: ' + JSON.stringify(tab));
+        if (st.url !== b0) { await sp.goto(SITE + path, { waitUntil: 'load', timeout: 60000 }).catch(() => {}); await sp.waitForTimeout(1500); }
+      }
       // A shopper touches the page before choosing: move, scroll a little, tap the box.
       await sp.mouse.move(200, 300); await sp.mouse.wheel(0, 200); await sp.waitForTimeout(1500);
       const box = sp.locator('select.orderby:visible, select[name="orderby"]:visible').first().or(sp.locator('select.orderby, select[name="orderby"]').first()).first();
