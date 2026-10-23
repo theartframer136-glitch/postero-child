@@ -34,7 +34,7 @@ on:
       pass:
         description: Which pass to run
         type: choice
-        options: [full, browser, customer, probe, probe-hooks, probe-demo, probe-ux, both, links, perf]
+        options: [full, browser, customer, probe, probe-hooks, probe-demo, probe-ux, probe-sort, both, links, perf]
         default: full
       max_pages:
         description: How many pages at most (full defaults to 2500, links to 160)
@@ -179,7 +179,7 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Probe
         env:
-          PROBE_ONLY: ${{ inputs.pass == 'probe-hooks' && 'hooks' || inputs.pass == 'probe-demo' && 'demo' || inputs.pass == 'probe-ux' && 'ux' || '' }}
+          PROBE_ONLY: ${{ inputs.pass == 'probe-hooks' && 'hooks' || inputs.pass == 'probe-demo' && 'demo' || inputs.pass == 'probe-ux' && 'ux' || inputs.pass == 'probe-sort' && 'sort' || '' }}
         run: node tools/probe-site-details.mjs "${{ inputs.url || 'https://theartframer.us' }}" || true
 
   customer:

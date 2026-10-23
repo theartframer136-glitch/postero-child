@@ -78,6 +78,90 @@ if (process.env.PROBE_ONLY === 'ux') {
   process.exit(0);
 }
 
+// ── sorting a collection as a shopper does, when asked: PROBE_ONLY=sort ─────
+// The customer journey saw the address stay the same after picking "price"
+// in the sort box. Is the box wired up, hidden behind another control, or
+// waiting for a first tap before its script loads?
+if (process.env.PROBE_ONLY === 'sort') {
+  const sp = await ctx.newPage();
+  for (const [path, vw] of [['/product-category/digital-canvas-prints/', 1366], ['/shop/', 1366], ['/product-category/digital-canvas-prints/', 390]]) {
+    await sp.setViewportSize({ width: vw, height: vw > 800 ? 900 : 844 });
+    out(`\n##### ${vw}px`);
+    await sp.goto(SITE + path, { waitUntil: 'load', timeout: 60000 }).catch(() => {});
+    await sp.waitForTimeout(2500);
+    const info = await sp.evaluate(() => {
+      const sel = document.querySelector('select.orderby, select[name="orderby"]');
+      if (!sel) return { found: false };
+      const r = sel.getBoundingClientRect(), cs = getComputedStyle(sel);
+      const form = sel.closest('form');
+      const ev = window.jQuery && jQuery._data ? (jQuery._data(document.body, 'events') || {}) : null;
+      const onBody = ev && ev.change ? ev.change.map(h => h.selector || '').filter(Boolean) : null;
+      const onForm = form && window.jQuery && jQuery._data ? Object.keys(jQuery._data(form, 'events') || {}) : null;
+      const top = r.width ? document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2) : null;
+      return { found: true, value: sel.value, opts: [...sel.options].map(o => o.value), visible: r.width > 0 && r.height > 0 && cs.display !== 'none' && cs.visibility !== 'hidden' && +cs.opacity > 0.05,
+        rect: [r.left, r.top, r.width, r.height].map(Math.round), opacity: cs.opacity, coveredBy: top && top !== sel && !sel.contains(top) ? top.tagName.toLowerCase() + '.' + String(top.className).slice(0, 60) : '',
+        formAction: form ? form.getAttribute('action') : null, formMethod: form ? form.method : null, formClass: form ? form.className : null,
+        jq: !!window.jQuery, wcScript: [...document.scripts].some(s => /woocommerce(\.min)?\.js/.test(s.src || s.getAttribute('data-src') || '')),
+        delayed: [...document.scripts].filter(s => /litespeed|delay/i.test(s.type || '') ).length, onBody, onForm,
+        firstCards: [...document.querySelectorAll('li.product, .product-card, .type-product')].slice(0, 4).map(c => { const a = c.querySelectorAll('.price ins .amount, .price > .amount, .price .amount'); return a.length ? a[a.length - 1].innerText : ''; }).map(t => t.replace(/\s+/g, ' ').slice(0, 14)) };
+    });
+    out(`=== ${path} before choosing ===`); out(JSON.stringify(info));
+    // Where the box went: the hidden ancestor, and what is shown instead.
+    const where = await sp.evaluate(() => {
+      const sel = document.querySelector('select.orderby, select[name="orderby"]'); if (!sel) return null;
+      let hid = null; for (let e = sel; e && e !== document.body; e = e.parentElement) { const cs = getComputedStyle(e); if (cs.display === 'none' || cs.visibility === 'hidden') { hid = e.tagName.toLowerCase() + '.' + String(e.className).slice(0, 80) + ' (' + (cs.display === 'none' ? 'display:none' : 'hidden') + ')'; break; } }
+      const vis = el => { const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return r.width > 0 && r.height > 0 && cs.visibility !== 'hidden'; };
+      const shown = [...document.querySelectorAll('body *')].filter(el => el.children.length < 4 && /sort|sorting/i.test(el.textContent || '') && (el.textContent || '').length < 60 && vis(el)).slice(0, 8)
+        .map(el => el.tagName.toLowerCase() + '.' + String(el.className).slice(0, 50) + ' "' + el.textContent.trim().replace(/\s+/g, ' ').slice(0, 40) + '"');
+      const all = document.querySelectorAll('select.orderby, select[name="orderby"]').length;
+      const anyVisible = [...document.querySelectorAll('select.orderby, select[name="orderby"]')].some(vis);
+      return { hiddenBy: hid, parentHtml: sel.parentElement.outerHTML.replace(/<option[\s\S]*?<\/option>/g, '').slice(0, 300), sortTextShown: shown, selects: all, anyVisible };
+    });
+    out('  ' + JSON.stringify(where));
+    if (info.found) {
+      const pick = info.opts.find(v => v === 'price') || info.opts.find(v => /price/.test(v)) || info.opts[1];
+      // What a shopper actually sees is the theme's own dropdown in front of
+      // the hidden box: open it and pick the option by its words.
+      const shown = sp.locator('.woocommerce-ordering .select-selected').first();
+      if (await shown.count()) {
+        const b0 = sp.url();
+        await shown.scrollIntoViewIfNeeded().catch(() => {});
+        await shown.click({ timeout: 5000 }).catch(e => out('  open the dropdown failed: ' + String(e.message).split('\n')[0]));
+        await sp.waitForTimeout(600);
+        const items = await sp.locator('.woocommerce-ordering .select-items div').evaluateAll(d => d.map(x => x.textContent.trim()));
+        const open = await sp.evaluate(() => { const l = document.querySelector('.woocommerce-ordering .select-items'); return l ? !l.classList.contains('select-hide') && l.getBoundingClientRect().height > 0 : false; });
+        out(`  theme dropdown: opened=${open} items=${JSON.stringify(items)}`);
+        const low = sp.locator('.woocommerce-ordering .select-items div', { hasText: /low to high/i }).first();
+        await Promise.all([sp.waitForNavigation({ timeout: 12000 }).catch(() => null), low.click({ timeout: 5000 }).catch(e => out('  pick failed: ' + String(e.message).split('\n')[0]))]);
+        await sp.waitForTimeout(2500);
+        const st = await sp.evaluate(() => ({ url: location.href, sel: (document.querySelector('select.orderby') || {}).value, shown: (document.querySelector('.woocommerce-ordering .select-selected') || {}).textContent }));
+        out(`  picked "low to high" in the theme dropdown: address ${st.url === b0 ? 'UNCHANGED' : 'now ' + st.url}; hidden box=${st.sel}; dropdown shows "${st.shown}"`);
+        const tab = await sp.evaluate(() => { const e = document.querySelector('.woocommerce-ordering .select-selected'); return e ? { tabindex: e.getAttribute('tabindex'), role: e.getAttribute('role') } : null; });
+        out('  keyboard reach of the dropdown: ' + JSON.stringify(tab));
+        if (st.url !== b0) { await sp.goto(SITE + path, { waitUntil: 'load', timeout: 60000 }).catch(() => {}); await sp.waitForTimeout(1500); }
+      }
+      // A shopper touches the page before choosing: move, scroll a little, tap the box.
+      await sp.mouse.move(200, 300); await sp.mouse.wheel(0, 200); await sp.waitForTimeout(1500);
+      const box = sp.locator('select.orderby:visible, select[name="orderby"]:visible').first().or(sp.locator('select.orderby, select[name="orderby"]').first()).first();
+      await box.click({ timeout: 4000 }).catch(e => out('  tap on the box failed: ' + String(e.message).split('\n')[0]));
+      await sp.keyboard.press('Escape').catch(() => {});
+      const before = sp.url();
+      await Promise.all([sp.waitForNavigation({ timeout: 12000 }).catch(() => null), box.selectOption(pick).catch(e => out('  select failed: ' + String(e.message).split('\n')[0]))]);
+      await sp.waitForTimeout(2500);
+      const after = await sp.evaluate(() => ({ url: location.href, value: (document.querySelector('select.orderby, select[name="orderby"]') || {}).value,
+        firstCards: [...document.querySelectorAll('li.product, .product-card, .type-product')].slice(0, 4).map(c => { const a = c.querySelectorAll('.price ins .amount, .price > .amount, .price .amount'); return a.length ? a[a.length - 1].innerText : ''; }).map(t => t.replace(/\s+/g, ' ').slice(0, 14)) }));
+      out(`  chose "${pick}": address ${after.url === before ? 'UNCHANGED' : 'now ' + after.url}; box shows ${after.value}`);
+      out('  first prices before: ' + JSON.stringify(info.firstCards)); out('  first prices after:  ' + JSON.stringify(after.firstCards));
+      const direct = await sp.goto(SITE + path + '?orderby=' + pick, { waitUntil: 'load', timeout: 60000 }).catch(() => null);
+      const dc = await sp.evaluate(() => [...document.querySelectorAll('li.product, .product-card, .type-product')].slice(0, 4).map(c => { const a = c.querySelectorAll('.price ins .amount, .price > .amount, .price .amount'); return a.length ? a[a.length - 1].innerText : ''; }).map(t => t.replace(/\s+/g, ' ').slice(0, 14))).catch(() => []);
+      out(`  opening ?orderby=${pick} directly: ${direct ? direct.status() : 'no answer'}; first prices ${JSON.stringify(dc)}`);
+    }
+    await sleep(PAUSE);
+  }
+  await browser.close();
+  process.exit(0);
+}
+
 // ── only the demo-link leak, when asked: PROBE_ONLY=demo ────────────────────
 // Each page twice: as served (maybe from the page cache) and with a unique
 // query string, which the cache has never seen, so PHP renders it now.

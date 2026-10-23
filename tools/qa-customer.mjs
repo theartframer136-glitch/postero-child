@@ -114,7 +114,9 @@ async function firstVisit(label, opts) {
     if (await closer.count()) await closer.click({ timeout: 3000 }).catch(() => {});
     await page.keyboard.press('Escape').catch(() => {});
     await page.waitForTimeout(1000);
-    const still = await measureCovers();
+    // The cookie notice asks for a choice on purpose (it is checked on its
+    // own below); anything else still covering the page is a fault.
+    const still = (await measureCovers()).filter(c => !/af-consent|af-ck\b/.test(c.sel));
     if (still.length) FAIL('something covering the page could not be closed with a close button or Escape', still.map(c => `${c.sel} ${c.pct}% "${c.text}"`).join(' | '));
     else PASS('what covered the page on arrival closes with its close button or Escape', covers.map(c => c.sel).join(', '));
   } else PASS('nothing covers the page on arrival');
@@ -151,20 +153,31 @@ async function firstVisit(label, opts) {
   if (cards) PASS(`a category shows its art (${cards} pieces on the first screen of results)`, rel(page.url()));
   else FAIL('the category opened from the menu shows no products', rel(page.url()));
 
-  // 4. Sorting.
-  const sort = page.locator('select.orderby, select[name="orderby"]').first();
-  if (await sort.count()) {
-    const before = page.url();
-    const opts = await sort.locator('option').evaluateAll(o => o.map(x => x.value));
-    const pick = opts.find(v => /price/.test(v)) || opts[1];
-    if (pick) {
-      await Promise.all([page.waitForLoadState('load').catch(() => {}), sort.selectOption(pick).catch(() => {})]);
-      await page.waitForTimeout(2500);
-      const n = await page.locator('li.product, .product-card, .type-product').count();
-      if (n && page.url() !== before) PASS(`sorting by "${pick}" works`, `${n} pieces`);
-      else if (n) WARN(`sorting by "${pick}" did not change the address; could not tell whether it re-sorted`);
-      else FAIL(`sorting by "${pick}" emptied the list`);
-    }
+  // 4. Sorting, with the dropdown the shopper sees: the theme draws its own
+  // in front of the real select, which stays hidden.
+  const shownSort = page.locator('.woocommerce-ordering .select-selected:visible').first();
+  const sort = page.locator('select.orderby:visible, select[name="orderby"]:visible').first();
+  const before = page.url();
+  let sorted = null;
+  if (await shownSort.count()) {
+    await shownSort.click({ timeout: 5000 }).catch(() => {});
+    await page.waitForTimeout(500);
+    const low = page.locator('.woocommerce-ordering .select-items div', { hasText: /low to high/i }).first();
+    await Promise.all([page.waitForNavigation({ timeout: 15000 }).catch(() => null), low.click({ timeout: 5000 }).catch(() => {})]);
+    sorted = 'price: low to high';
+  } else if (await sort.count()) {
+    await Promise.all([page.waitForNavigation({ timeout: 15000 }).catch(() => null), sort.selectOption('price').catch(() => {})]);
+    sorted = 'price';
+  }
+  if (sorted) {
+    await page.waitForTimeout(1500);
+    const prices = await page.evaluate(() => [...document.querySelectorAll('li.product, .product-card, .type-product')].slice(0, 6)
+      .map(c => { const a = c.querySelectorAll('.price ins .amount, .price .amount'); return a.length ? parseFloat(a[a.length - 1].innerText.replace(/[^0-9.]/g, '')) : NaN; }).filter(n => !isNaN(n)));
+    const inOrder = prices.length > 1 && prices.every((v, i) => i === 0 || v >= prices[i - 1] - 0.01);
+    if (page.url() === before) FAIL(`sorting by ${sorted} did nothing`);
+    else if (!prices.length) FAIL(`sorting by ${sorted} emptied the list`);
+    else if (!inOrder) FAIL(`sorted by ${sorted}, but the prices are out of order`, prices.join(', '));
+    else PASS(`sorting by ${sorted} works`, prices.join(', '));
   } else INFO('no sort control on the category page');
   reportErrors(page, 'browsing a category');
 
@@ -197,6 +210,23 @@ async function firstVisit(label, opts) {
   else PASS('price shown on the first screen', p.price.replace(/\s+/g, ' ').slice(0, 40));
   if (!p.atc) FAIL('no Add to cart button on the product page');
   else if (phone && !p.atcInView) WARN('on a phone the Add to cart button is more than a screen and a half down');
+  if (phone && p.atc) {
+    // The buy bar at the foot of a phone screen keeps price and Add to Cart in reach.
+    await page.waitForTimeout(1200);
+    const bb = await page.evaluate(() => {
+      const b = document.getElementById('af-buybar'); if (!b) return null;
+      const r = b.getBoundingClientRect(), live = document.getElementById('af-live-price');
+      const stack = document.elementsFromPoint(r.left + r.width - 40, r.top + r.height / 2);
+      return { on: b.classList.contains('af-on'), inView: r.top < innerHeight && r.bottom <= innerHeight + 1,
+        price: (b.querySelector('.af-bb-price') || {}).textContent || '', live: live ? live.textContent.trim() : '',
+        onTop: !!stack.length && b.contains(stack[0]) };
+    });
+    if (!bb) WARN('no buy bar on the phone product page');
+    else if (!bb.on || !bb.inView) WARN('the phone buy bar is not showing while Add to cart is out of sight', JSON.stringify(bb));
+    else if (!bb.onTop) WARN('something covers the phone buy bar', JSON.stringify(bb));
+    else if (bb.live && bb.price !== bb.live) FAIL('the buy bar price differs from the page price', `${bb.price} vs ${bb.live}`);
+    else PASS('a buy bar keeps price and Add to Cart in reach on a phone', bb.price);
+  }
   if (!p.img) FAIL('no product picture');
   if (!p.shipping) WARN('the product page says nothing about delivery');
   if (!p.returns) WARN('the product page says nothing about returns or refunds');
@@ -209,7 +239,7 @@ async function firstVisit(label, opts) {
       await page.selectOption('#af-size-select', opts[opts.length - 1]).catch(() => {});
       await page.waitForTimeout(1200);
       const after = await page.locator('#af-live-price').innerText().catch(() => '');
-      if (before && after && before !== after) PASS('choosing a bigger size updates the price', `${before.trim()} → ${after.trim()}`);
+      if (before && after && before !== after) PASS('choosing another size updates the price', `${before.trim()} → ${after.trim()}`);
       else WARN('choosing another size did not change the shown price', `${before} / ${after}`);
     }
   }

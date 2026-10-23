@@ -594,3 +594,66 @@ add_action('wp_footer', function () {
 </script>
     <?php
 }, 60);
+
+/* -------------------------------------- 13. the sort box by keyboard */
+
+/**
+ * The sort box on the shop and collections is the parent theme's own
+ * dropdown, drawn in plain divs in front of the real (hidden) select. Mouse
+ * and touch work; a keyboard cannot reach it at all — no tab stop, no role
+ * (sort probe, 2026-10-23). This gives it one: Tab to it, Enter, Space or
+ * Down to open, the arrows to move, Enter to choose, Escape to close. The
+ * theme's own click handlers still do the choosing, so nothing about what
+ * a choice does changes.
+ */
+add_action('wp_footer', function () {
+    if (is_admin() || !function_exists('is_woocommerce') || !(is_shop() || is_product_taxonomy() || is_search())) return;
+    ?>
+<script>
+(function(){
+  function wire(form){
+    var head = form.querySelector('.select-selected'), list = form.querySelector('.select-items');
+    if (!head || !list || head.dataset.afKb) return;
+    head.dataset.afKb = '1';
+    head.setAttribute('tabindex', '0');
+    head.setAttribute('role', 'button');
+    head.setAttribute('aria-haspopup', 'listbox');
+    list.setAttribute('role', 'listbox');
+    list.setAttribute('aria-label', 'Sort products');
+    var opts = function(){ return [].slice.call(list.children); };
+    opts().forEach(function(o){ o.setAttribute('role', 'option'); o.setAttribute('tabindex', '-1'); });
+    var isOpen = function(){ return !list.classList.contains('select-hide'); };
+    var label = function(){
+      head.setAttribute('aria-label', 'Sort products: ' + head.textContent.trim());
+      head.setAttribute('aria-expanded', isOpen() ? 'true' : 'false');
+    };
+    label();
+    new MutationObserver(label).observe(list, { attributes: true, attributeFilter: ['class'] });
+    new MutationObserver(label).observe(head, { childList: true, characterData: true, subtree: true });
+    function open(){
+      if (!isOpen()) head.click();
+      var o = opts(), cur = o.filter(function(x){ return x.classList.contains('same-as-selected'); })[0] || o[0];
+      if (cur) setTimeout(function(){ cur.focus(); }, 0);
+    }
+    function close(){ if (isOpen()) head.click(); head.focus(); }
+    head.addEventListener('keydown', function(e){
+      if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown') { e.preventDefault(); open(); }
+    });
+    list.addEventListener('keydown', function(e){
+      var o = opts(), i = o.indexOf(document.activeElement);
+      if (e.key === 'ArrowDown') { e.preventDefault(); (o[i + 1] || o[0]).focus(); }
+      else if (e.key === 'ArrowUp') { e.preventDefault(); (o[i - 1] || o[o.length - 1]).focus(); }
+      else if (e.key === 'Home') { e.preventDefault(); o[0].focus(); }
+      else if (e.key === 'End') { e.preventDefault(); o[o.length - 1].focus(); }
+      else if ((e.key === 'Enter' || e.key === ' ') && i > -1) { e.preventDefault(); o[i].click(); head.focus(); }
+      else if (e.key === 'Escape') { e.preventDefault(); close(); }
+      else if (e.key === 'Tab') { close(); }
+    });
+  }
+  function run(){ document.querySelectorAll('.woocommerce-ordering').forEach(wire); }
+  if (document.readyState === 'complete') run(); else window.addEventListener('load', run);
+  setTimeout(run, 2500);   // the theme may draw its dropdown after load
+})();
+</script>
+    <?php
+}, 60);
