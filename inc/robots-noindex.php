@@ -52,7 +52,9 @@ function af_noindex_slugs() {
         // The store directory's leftovers: a second copy of All Artists, the
         // directory's own listing page, and a per-customer orders page. Thin
         // or personal, all with no description or H1 (2026-10-23).
-        'all-artists-2', 'store-listing', 'my-orders');
+        // all-artists itself is the same directory, now redirected to
+        // /artists/ while its plugin is absent (inc/markup-fixes.php).
+        'all-artists', 'all-artists-2', 'store-listing', 'my-orders');
     return (array) apply_filters('af_noindex_slugs', $slugs);
 }
 
@@ -184,7 +186,7 @@ add_filter('rank_math/sitemap/exclude_post_type', function ($exclude, $type = ''
  * these pages. Cleared once per revision. Bump the number to clear it again.
  * The option records which method ran, or that none was available.
  */
-define('AF_NOINDEX_SITEMAP_REV', '3');
+define('AF_NOINDEX_SITEMAP_REV', '4');
 
 add_action('wp_loaded', function () {
     try {

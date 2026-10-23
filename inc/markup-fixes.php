@@ -28,6 +28,9 @@
  *      margin (or, for the dots, a larger invisible pseudo-element), so the
  *      layout does not move.
  *
+ *   6. PICTURES SAVED UNDER A NEW NAME, and 7. PAGES OF A REMOVED PLUGIN:
+ *      see their own notes below.
+ *
  *   5. NAMES FOR ICON BUTTONS. Heart, Instagram, search, wishlist and close
  *      icons had no text a screen reader could announce; product pictures in
  *      the homepage cards linked with an empty alt. They are named in the
@@ -292,3 +295,71 @@ add_action('wp_footer', function () {
 </script>
     <?php
 }, 99);
+
+/* -------------------------------------- 6. pictures saved under a new name */
+
+/**
+ * A picture linked under a name that is no longer on disk, when its re-upload
+ * sits next to it with WordPress's "-1" suffix.
+ *
+ * Full site test, 2026-10-23: the Elementor descriptions of two products
+ * (#7781, #7815) link uploads/2026/02/wall-art-care-202604031610-69cf9a2f4de25.webp.
+ * That file is gone; the same picture is on disk as ...-69cf9a2f4de25-1.webp,
+ * with all its sizes. The link is mended to the file that exists, size suffix
+ * and all. Only the content of the page being viewed is read, and only a URL
+ * whose own file is missing is touched. $exists is given the URL.
+ */
+function af_mf_mend_renamed_uploads($html, $exists) {
+    return preg_replace_callback(
+        '~(https?://[^\s"\'<>]*?/wp-content/uploads/[^\s"\'<>?#]*?)((?:-\d{2,4}x\d{2,4})?)\.(jpe?g|png|webp|gif)(?=[\s"\'<>?#,]|$)~i',
+        function ($m) use ($exists) {
+            list($url, $base, $size, $ext) = $m;
+            if (substr($base, -2) === '-1' || call_user_func($exists, $url)) return $url;
+            $alt = $base . '-1' . $size . '.' . $ext;
+            return call_user_func($exists, $alt) ? $alt : $url;
+        },
+        $html
+    );
+}
+
+add_filter('the_content', function ($content) {
+    try {
+        if (!is_string($content) || strpos($content, '/wp-content/uploads/') === false) return $content;
+        if (!is_singular() || is_admin()) return $content;
+        return af_mf_mend_renamed_uploads($content, 'af_mf_upload_exists');
+    } catch (\Throwable $e) {
+        return $content;
+    }
+}, 20);
+
+/* ------------------------------ 7. pages of a store directory that is gone */
+
+/**
+ * /all-artists/, /all-artists-2/, /store-listing/ and /my-orders/ were built
+ * for a multi-vendor plugin (Dokan) that is no longer installed: their
+ * [dokan-stores] and [dokan-my-orders] shortcodes are not registered, so they
+ * show nothing or the shortcode as text (diag-missing-picture.php,
+ * 2026-10-23). While the plugin is absent they answer 301 to the page that
+ * does the job now. If it is installed again, the shortcode is registered and
+ * the pages work as before, untouched.
+ */
+function af_mf_directory_redirects() {
+    return array(
+        'all-artists'   => '/artists/',
+        'all-artists-2' => '/artists/',
+        'store-listing' => '/artists/',
+        'my-orders'     => '/my-account/orders/',
+    );
+}
+
+add_action('template_redirect', function () {
+    try {
+        if (!is_page() || shortcode_exists('dokan-stores') || shortcode_exists('dokan-my-orders')) return;
+        $p = get_queried_object();
+        $map = af_mf_directory_redirects();
+        if (!$p || empty($map[$p->post_name])) return;
+        wp_safe_redirect(home_url($map[$p->post_name]), 301, 'The Art Framer');
+        exit;
+    } catch (\Throwable $e) {
+    }
+}, 0);

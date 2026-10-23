@@ -49,5 +49,18 @@ $logo = '<img class="hfe-site-logo-img elementor-animation-" src="https://x.us/w
 same('the logo gets a srcset and sizes', (bool) preg_match('~^<img srcset="a-300x100.png 300w, a-768x256.png 768w" sizes="[^"]+" class="hfe-site-logo-img~', af_mf_logo_srcset($logo, $set)), true);
 same('no srcset known: unchanged', af_mf_logo_srcset(str_replace('Business-Cards', 'other', $logo), $set), str_replace('Business-Cards', 'other', $logo));
 
+echo "\n=== pictures saved under a new name ===\n";
+$disk = array('https://x.us/wp-content/uploads/2026/02/wall-art-care-202604031610-69cf9a2f4de25-1.webp' => 1,
+              'https://x.us/wp-content/uploads/2026/02/wall-art-care-202604031610-69cf9a2f4de25-1-1024x572.webp' => 1,
+              'https://x.us/wp-content/uploads/2026/02/fine.jpg' => 1);
+$ex = function ($u) use ($disk) { return isset($disk[$u]); };
+$in = '<a href="https://x.us/wp-content/uploads/2026/02/wall-art-care-202604031610-69cf9a2f4de25.webp"><img src="https://x.us/wp-content/uploads/2026/02/wall-art-care-202604031610-69cf9a2f4de25-1024x572.webp" srcset="https://x.us/wp-content/uploads/2026/02/wall-art-care-202604031610-69cf9a2f4de25-1024x572.webp 1024w"></a>';
+$out = af_mf_mend_renamed_uploads($in, $ex);
+same('the full-size link is mended to the -1 file', strpos($out, 'href="https://x.us/wp-content/uploads/2026/02/wall-art-care-202604031610-69cf9a2f4de25-1.webp"') !== false, true);
+same('the sized src is mended with its size kept', strpos($out, 'src="https://x.us/wp-content/uploads/2026/02/wall-art-care-202604031610-69cf9a2f4de25-1-1024x572.webp"') !== false, true);
+same('srcset entries are mended too', strpos($out, '-1-1024x572.webp 1024w') !== false, true);
+same('a file that exists is never touched', af_mf_mend_renamed_uploads('<img src="https://x.us/wp-content/uploads/2026/02/fine.jpg">', $ex), '<img src="https://x.us/wp-content/uploads/2026/02/fine.jpg">');
+same('a missing file with no -1 twin is left as it is', af_mf_mend_renamed_uploads('<img src="https://x.us/wp-content/uploads/2026/02/gone.jpg">', $ex), '<img src="https://x.us/wp-content/uploads/2026/02/gone.jpg">');
+
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail ? 1 : 0);
