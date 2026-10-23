@@ -48,7 +48,11 @@ function af_noindex_slugs() {
         // already noindex and still submitted. icons is the parent theme's
         // icon demo page.
         'inventory-management', 'admin-console', 'activity-log', 'audit',
-        'cart-2', 'icons');
+        'cart-2', 'icons',
+        // The store directory's leftovers: a second copy of All Artists, the
+        // directory's own listing page, and a per-customer orders page. Thin
+        // or personal, all with no description or H1 (2026-10-23).
+        'all-artists-2', 'store-listing', 'my-orders');
     return (array) apply_filters('af_noindex_slugs', $slugs);
 }
 
@@ -180,7 +184,7 @@ add_filter('rank_math/sitemap/exclude_post_type', function ($exclude, $type = ''
  * these pages. Cleared once per revision. Bump the number to clear it again.
  * The option records which method ran, or that none was available.
  */
-define('AF_NOINDEX_SITEMAP_REV', '2');
+define('AF_NOINDEX_SITEMAP_REV', '3');
 
 add_action('wp_loaded', function () {
     try {
