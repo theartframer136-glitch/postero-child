@@ -33,6 +33,10 @@ const SAMPLE = process.argv[3] || '';
 const OUT = process.argv[4] || 'audit-out';
 const MAX_DESKTOP = parseInt(process.env.AF_BROWSER_PAGES || '70', 10);
 const MAX_MOBILE = parseInt(process.env.AF_BROWSER_MOBILE || '30', 10);
+// A pause between pages. Each page pulls ~200 files; without a pause the first
+// live run tripped the host's own bot protection after ~28 pages and every
+// page after that answered 403 to the test, not to shoppers.
+const PAGE_PAUSE = parseInt(process.env.AF_PAGE_PAUSE_MS || '4000', 10);
 fs.mkdirSync(path.join(OUT, 'shots'), { recursive: true });
 
 const NEVER_SEND = ['af_nl_subscribe', 'af_contact_submit', 'af_save_preview', 'af_gc_apply', 'wc-ajax=checkout', 'af_product_edit_save', 'af_inventory_save', 'action=af_chat'];
@@ -103,10 +107,18 @@ const pageSnapshot = () => ({
   h1: document.querySelectorAll('h1').length,
 });
 
+let blockedPages = 0;
 async function visit(page, url, log) {
   log.js.length = log.console.length = log.failed.length = log.http.length = 0;
   let res = null, err = '';
   try { res = await page.goto(url, { waitUntil: 'load', timeout: 60000 }); } catch (e) { err = String(e.message).split('\n')[0].slice(0, 120); }
+  // 403 on a public page is the host's bot protection throttling this test.
+  // Back off and ask once more; if it is still 403 the row is marked blocked.
+  if (res && res.status() === 403) {
+    await page.waitForTimeout(45000);
+    log.js.length = log.console.length = log.failed.length = log.http.length = 0;
+    try { res = await page.goto(url, { waitUntil: 'load', timeout: 60000 }); } catch (e) { err = String(e.message).split('\n')[0].slice(0, 120); }
+  }
   try { await page.waitForLoadState('networkidle', { timeout: 8000 }); } catch {}
   // Lazy images: scroll once so the ones near the fold load, then look.
   try { await page.evaluate(() => window.scrollTo(0, Math.min(1500, document.body.scrollHeight))); await page.waitForTimeout(600); await page.evaluate(() => window.scrollTo(0, 0)); } catch {}
@@ -125,6 +137,7 @@ async function sweep(list, mobile) {
     const row = { url, mobile, ...r };
     perPage.push(row);
     const where = `${mobile ? '[phone] ' : ''}${rel(url)}`;
+    if (r.status === 403) { blockedPages++; F('INFO', 'Blocked', `${where}`, 'the host answered 403 to this test twice, 45 s apart — page not tested'); await page.waitForTimeout(PAGE_PAUSE); n++; continue; }
     if (r.err) F('FAIL', 'Load', `${where} did not load`, r.err);
     else if (r.status >= 500) F('FAIL', 'Load', `${where} answered ${r.status}`);
     else if (r.status >= 400) F('FAIL', 'Load', `${where} answered ${r.status}`);
@@ -137,6 +150,7 @@ async function sweep(list, mobile) {
       if (mobile && r.snap.w - r.snap.cw > 8) F('FAIL', 'Mobile layout', `${where} scrolls sideways`, `${r.snap.w}px of content in a ${r.snap.cw}px screen`);
       if (!r.err && r.status < 400 && r.snap.text < 150) F('WARN', 'Empty page', `${where}`, `only ${r.snap.text} characters of visible text`);
     }
+    await page.waitForTimeout(PAGE_PAUSE);
     if (n < 6 || (mobile && n < 4)) { try { await page.screenshot({ path: path.join(OUT, 'shots', `${mobile ? 'phone' : 'desktop'}-${n}-${rel(url).replace(/[^a-z0-9]+/gi, '_').slice(0, 40)}.png`) }); } catch {} }
     n++;
   }
@@ -152,14 +166,14 @@ async function flows() {
   // Search
   await step('Search', 'search for "canvas"', async () => {
     await page.goto(`${SITE}/?s=canvas&post_type=product`, { waitUntil: 'load', timeout: 60000 });
-    const n = await page.locator('li.product, .product-card, .wd-product, .elementor-widget-wc-archive-products .product, article.product').count();
-    const hasMsg = await page.locator('text=/no products|nothing found|no results/i').count();
+    const n = await page.locator('.af-sr-sec li.product, li.product, .product-card, .wd-product, .elementor-widget-wc-archive-products .product, article.product').count();
+    const hasMsg = await page.locator('.af-sr-empty').count() + await page.getByText(/no products|nothing found|no results|nothing hanging/i).count();
     if (n > 0) F('PASS', 'Search', `"canvas" returns ${n} products`);
     else if (hasMsg) F('FAIL', 'Search', '"canvas" finds nothing on a canvas shop');
     else F('WARN', 'Search', 'results page shows no product cards and no "nothing found" message');
     await page.goto(`${SITE}/?s=zzqxv-not-a-product`, { waitUntil: 'load', timeout: 60000 });
     const txt = await page.evaluate(() => document.body.innerText);
-    if (!/no products|nothing found|no results|not found|sorry/i.test(txt)) F('WARN', 'Search', 'no "nothing found" message for a nonsense term');
+    if (!/no products|nothing found|no results|not found|sorry|nothing hanging|nothing further/i.test(txt)) F('WARN', 'Search', 'no "nothing found" message for a nonsense term');
     else F('PASS', 'Search', 'nonsense term gets a "nothing found" message');
   });
 
@@ -202,7 +216,7 @@ async function flows() {
     await mp.waitForTimeout(1500);
     // Dismiss a popup if one covers the header.
     for (const sel of ['.pum-close', '.elementor-popup-modal .dialog-close-button', 'button[aria-label="Close"]', '.af-offer-close']) { const c = mp.locator(sel).first(); if (await c.count() && await c.isVisible().catch(() => false)) { await c.click({ timeout: 2000 }).catch(() => {}); break; } }
-    const toggle = mp.locator('button[aria-label*="menu" i], .menu-toggle, .hamburger, [class*="menu-toggle"], [class*="mobile-menu"] button, .elementor-menu-toggle, a[href="#"]:has-text("Menu"), button:has-text("Menu")').first();
+    const toggle = mp.locator('button[aria-label*="menu" i], [aria-label*="menu" i][role="button"], .hfe-nav-menu__toggle, [class*="nav-menu__toggle"], .menu-mobile-nav-button, .postero-mobile-nav, .menu-toggle, .hamburger, [class*="menu-toggle"], [class*="mobile-menu"] button, .elementor-menu-toggle, a[href="#"]:has-text("Menu"), button:has-text("Menu")').filter({ visible: true }).first();
     if (!await toggle.count()) { F('FAIL', 'Mobile menu', 'no menu button found on the phone homepage'); await mctx.close(); return; }
     const box = await toggle.boundingBox();
     if (box && (box.width < 40 || box.height < 40)) F('WARN', 'Mobile menu', `menu button is ${Math.round(box.width)}×${Math.round(box.height)}px — under 44px finger size`);
@@ -328,5 +342,6 @@ for (const g of grouped.values()) {
   console.log(`  ${g.sev.padEnd(4)} ${g.area.padEnd(16)} ${where}${g.detail ? '\n        ' + g.detail : ''}`);
 }
 const counts = findings.reduce((a, f) => (a[f.sev] = (a[f.sev] || 0) + 1, a), {});
+if (blockedPages) console.log(`\nNOTE: ${blockedPages} page(s) were refused to this test by the host's bot protection and are not counted as failures.`);
 console.log(`\n--- SUMMARY ---  FAIL ${counts.FAIL || 0}   WARN ${counts.WARN || 0}   INFO ${counts.INFO || 0}   PASS ${counts.PASS || 0}   pages loaded ${perPage.length}`);
 fs.writeFileSync(path.join(OUT, 'browser-findings.json'), JSON.stringify({ site: SITE, at: new Date().toISOString(), counts, findings, perPage }, null, 1));
