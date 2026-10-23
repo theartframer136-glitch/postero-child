@@ -267,3 +267,45 @@ add_filter('woocommerce_quantity_input_args', function ($args, $product = null) 
         return $args;
     }
 }, 10, 2);
+
+/**
+ * The box keeps what the shopper types inside the limits, as they type it.
+ *
+ * Full site test, 2026-10-23: on a product page the quantity box accepted
+ * -3, 0 and 99999 and showed them. Nothing wrong could reach the cart (the
+ * validation above refuses over-limit lines, WooCommerce refuses zero and
+ * negative ones), but the shopper only found out after pressing the button.
+ * min and max are already on the input; this applies them when the value
+ * changes, so -3 becomes 1 and 99999 becomes the limit, on the product page,
+ * in quick view and in the cart alike. Delegated from the document, so boxes
+ * drawn later by quick view or a cart refresh are covered too.
+ */
+add_action('wp_footer', function () {
+    if (is_admin()) return;
+    ?>
+<script id="af-qty-clamp">
+(function () {
+  function clamp(el) {
+    if (!el || !el.matches || !el.matches('input.qty, input[name="quantity"], input[name^="cart["][name$="[qty]"]')) return;
+    if (el.value === '') return;                       // let the shopper finish typing
+    var v = Math.floor(Number(el.value));
+    var min = el.min !== '' ? Number(el.min) : 1;
+    var max = el.max !== '' ? Number(el.max) : Infinity;
+    if (!isFinite(min) || min < 0) min = 0;
+    if (!isFinite(v)) v = Math.max(min, 1);
+    var fixed = Math.min(Math.max(v, min), max);
+    if (String(fixed) !== el.value) {
+      el.value = fixed;
+      el.dispatchEvent(new Event('change', { bubbles: true }));   // WooCommerce's own listeners update totals
+    }
+  }
+  document.addEventListener('change', function (e) { clamp(e.target); }, true);
+  document.addEventListener('blur', function (e) { clamp(e.target); }, true);
+  document.addEventListener('submit', function (e) {
+    var f = e.target; if (!f || !f.querySelectorAll) return;
+    f.querySelectorAll('input.qty, input[name="quantity"]').forEach(function (el) { if (el.value === '') el.value = el.min || 1; clamp(el); });
+  }, true);
+})();
+</script>
+    <?php
+}, 99);

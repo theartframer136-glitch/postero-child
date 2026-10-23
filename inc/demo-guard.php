@@ -82,12 +82,94 @@ function af_demo_rewrite($html, $home) {
     return $html;
 }
 
+/**
+ * A page path typed into a link field as if it were a whole address.
+ *
+ * Full site test, 2026-10-23: the header and footer templates carry a link to
+ * "http://shop/" on every page. Someone typed "shop/" into an Elementor link
+ * field and the editor helpfully prefixed http://, which makes "shop" the host
+ * name. A browser tries to resolve a machine called "shop", fails, and shows
+ * the visitor an error page.
+ *
+ * A host name with no dot in it is never a public site (localhost aside), so
+ * the rule is general rather than a list of the links found this time: any
+ * href whose host is a single word is read as the path it was meant to be.
+ * Only href attributes are touched; text and scripts are left alone.
+ */
+function af_bare_host_rewrite($html, $home) {
+    $home = rtrim((string) $home, '/');
+    return preg_replace_callback(
+        '~(\bhref\s*=\s*)(["\'])https?://([a-z0-9][a-z0-9-]*)(?=[/?#"\'])([^"\']*)\2~i',
+        function ($m) use ($home) {
+            if (strtolower($m[3]) === 'localhost') return $m[0];
+            return $m[1] . $m[2] . $home . '/' . $m[3] . $m[4] . $m[2];
+        },
+        $html
+    );
+}
+
+/** True if the markup has a link whose host is a single word. */
+function af_bare_host_present($html) {
+    return (bool) preg_match('~\bhref\s*=\s*["\']https?://(?!localhost\b)[a-z0-9][a-z0-9-]*(?=[/?#"\'])~i', $html);
+}
+
+/**
+ * The header's phone number and email address, server side.
+ *
+ * Both are stored in the Elementor header as href="#". functions.php (PHASE
+ * 19) corrects them in the browser after load, so a visitor with JavaScript
+ * gets working tap-to-call and mailto links. The full site test of
+ * 2026-10-23 found the raw "#" on every page of the server HTML, two per
+ * page, which is what search engines and visitors without JavaScript see.
+ * Same rule as the browser fix: an href="#" anchor whose text is the number
+ * or the address.
+ */
+function af_contact_link_rewrite($html) {
+    return preg_replace_callback(
+        '~<a\b([^>]*?)\bhref\s*=\s*(["\'])#\2([^>]*)>(.*?)</a>~is',
+        function ($m) {
+            $text = trim(preg_replace('~\s+~', ' ', af_link_text($m[4])));
+            if (preg_match('~470[\s\-]?7280~', $text)) $to = 'tel:+16104707280';
+            elseif (stripos($text, 'theartframer136@gmail.com') !== false) $to = 'mailto:theartframer136@gmail.com';
+            else return $m[0];
+            return '<a' . $m[1] . 'href=' . $m[2] . $to . $m[2] . $m[3] . '>' . $m[4] . '</a>';
+        },
+        $html
+    );
+}
+
+/** Tags out, entities decoded; enough to read an anchor's visible text. */
+function af_link_text($s) {
+    return html_entity_decode(strip_tags((string) $s), ENT_QUOTES, 'UTF-8');
+}
+
+/** True if a "#" anchor might hold the phone number or the address. */
+function af_contact_link_present($html) {
+    return (strpos($html, '7280') !== false || strpos($html, 'theartframer136@') !== false)
+        && (strpos($html, 'href="#"') !== false || strpos($html, "href='#'") !== false);
+}
+
 /** The buffer callback. Separate from the rewrite so it can be tested. */
 function af_demo_filter_page($html) {
     if (!is_string($html) || $html === '') return $html;
-    if (!af_demo_present($html)) return $html;   // the usual case, and the cheap one
-    return af_demo_rewrite($html, home_url());
+    if (af_demo_present($html))      $html = af_demo_rewrite($html, home_url());
+    if (af_bare_host_present($html)) $html = af_bare_host_rewrite($html, home_url());
+    if (af_contact_link_present($html)) $html = af_contact_link_rewrite($html);
+    return $html;
 }
+
+/**
+ * Why the buffer starts at -100 and not 1.
+ *
+ * Full site test, 2026-10-23: /blog/ and /frame-the-moment/ still sent the
+ * demo-store links in their HTML. Both pages are drawn by their own
+ * template_redirect handler (inc/blog-hub.php and PHASE 27 in functions.php),
+ * which renders the whole page and exits, at priority 1. Both are registered
+ * before this file is loaded, so at an equal priority they ran first and the
+ * page was finished before this buffer existed. Every page drawn that way is
+ * covered once the buffer opens ahead of all of them.
+ */
+if (!defined('AF_DEMO_GUARD_PRIORITY')) define('AF_DEMO_GUARD_PRIORITY', -100);
 
 /**
  * Front-end page views only. The admin, AJAX, the REST API and cron are left
@@ -102,7 +184,7 @@ add_action('template_redirect', function () {
     if (defined('WP_CLI')       && WP_CLI)              return;
     if (function_exists('wp_is_json_request') && wp_is_json_request()) return;
     ob_start('af_demo_filter_page');
-}, 1);
+}, AF_DEMO_GUARD_PRIORITY);
 
 /**
  * The net the output buffer cannot cast.
@@ -154,11 +236,17 @@ function af_demo_dom_net() {
     RE.push(new RegExp('(?:https?:)?//' + HOSTS[h].replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?=[/?#]|$)', 'i'));
   }
 
+  // A page path typed as an address ("http://shop/"): the host is one word,
+  // which no public site has. Same rule as af_bare_host_rewrite() in PHP.
+  var BARE = /^https?:\/\/([a-z0-9][a-z0-9-]*)([\/?#].*)?$/i;
+
   function fix(url) {
     if (!url) return url;
     for (var i = 0; i < RE.length; i++) {
       if (RE[i].test(url)) return url.replace(RE[i], HOME);
     }
+    var b = BARE.exec(url);
+    if (b && b[1].toLowerCase() !== 'localhost') return HOME + '/' + b[1] + (b[2] || '');
     return url;
   }
 

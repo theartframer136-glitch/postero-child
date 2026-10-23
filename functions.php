@@ -2202,10 +2202,21 @@ add_action('wp_footer', function() {
     // the class, precisely because the class rule is the thing being overruled.
     $thumb_fit = 'width:100%!important;height:100%!important;max-width:none!important;'
                . 'max-height:none!important;object-fit:cover!important;object-position:center!important;';
+    // Not every video has a maxresdefault still: YouTube answers 404 for the
+    // ones uploaded below 720p (wJGiXVAtndk, found by the 2026-10-23 full site
+    // test). The card's onerror then swapped in hqdefault, so the visitor saw
+    // a picture, but every page view paid a failed request first. Which video
+    // has one is checked once a week in the background (af_pim_check_maxres
+    // below) and remembered, so a known-missing still is never asked for.
+    $pim_max = get_option('af_pim_maxres');
+    if (!is_array($pim_max)) $pim_max = array();
+    $pim_stale = array();
     foreach ($ids as $vid) {
         $vid = esc_attr($vid);
         $thumb_hq  = "https://img.youtube.com/vi/{$vid}/hqdefault.jpg";
         $thumb_max = "https://img.youtube.com/vi/{$vid}/maxresdefault.jpg";
+        if (empty($pim_max[$vid]['t']) || $pim_max[$vid]['t'] < time() - WEEK_IN_SECONDS) $pim_stale[] = $vid;
+        if (isset($pim_max[$vid]['ok']) && $pim_max[$vid]['ok'] === false) $thumb_max = $thumb_hq;
         // Three sources, best first. The true reel (fetched or matched in the
         // Media Library) always wins. <id>.anim.mp4 is the site's OWN motion
         // clip, built by the fetch workflow from the reel's published frames
@@ -2233,6 +2244,10 @@ add_action('wp_footer', function() {
   <img class="af-pim-anim" style="' . $thumb_fit . '" src="' . esc_url($pim_anim[$vid]) . '" alt="" loading="lazy" decoding="async" onerror="this.remove()">' : '') . '
   <div class="af-pim-overlay"></div>
 </div>';
+    }
+    if ($pim_stale && !get_transient('af_pim_maxres_lock')) {
+        set_transient('af_pim_maxres_lock', 1, HOUR_IN_SECONDS);   // one check queued at a time
+        wp_schedule_single_event(time() + 30, 'af_pim_check_maxres', array(array_values(array_unique($pim_stale))));
     }
     // Seconds for one full pass. Tied to the number of cards so adding videos
     // makes the row longer, not faster — the apparent speed stays constant.
@@ -2604,7 +2619,7 @@ add_action('woocommerce_after_add_to_cart_button', function() {
     if (!$product) return;
     $url = add_query_arg('tow', $product->get_id(), home_url('/try-on-wall/'));
     ?>
-    <a href="<?php echo esc_url($url); ?>" class="af-arw-btn">
+    <a href="<?php echo esc_url($url); ?>" class="af-arw-btn" rel="nofollow">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:20px;height:20px;flex-shrink:0">
             <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>
         </svg>
@@ -3284,7 +3299,7 @@ add_action('woocommerce_after_shop_loop_item', function() {
     $product = af_wc_product();
     if (!$product) return;
     $url = add_query_arg('tow', $product->get_id(), home_url('/try-on-wall/'));
-    echo '<a class="af-card-ar" href="'.esc_url($url).'" aria-label="Try on your wall">'
+    echo '<a class="af-card-ar" href="'.esc_url($url).'" rel="nofollow" aria-label="Try on your wall">'
        . '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>'
        . '<span>Try on Wall</span></a>';
 }, 15);
@@ -9053,6 +9068,15 @@ function af_seo_robots_txt() {
         'Disallow: /*?*lang=',
         'Disallow: /*?*per_page=',
         'Disallow: /*?*layout=',
+        // Every product page and shop card links /try-on-wall/?tow=<id>. The
+        // 2026-10-23 full site test reached 453 of them, each the same page
+        // with one product preselected, each a 5-7 s uncached render, and
+        // they made up nearly all of the 461 pages slower than 3 s. The tool
+        // itself stays crawlable at /try-on-wall/.
+        'Disallow: /*?*tow=',
+        // The artist directory's letter filter: 56 copies of "All Artists"
+        // in the 2026-10-23 crawl, one per letter per directory page.
+        'Disallow: /*?*first_letter=',
         // Deep tag pagination was the largest remaining crawl cost after the
         // filter URLs: the 2026-08-04 profile is full of /product-tag/*/page/N/
         // hits (page/22, page/13, page/11 ...) at ~2.2-4.2s each. Tag archives
@@ -13225,7 +13249,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'deity-links', 'blog-shop-links', 'category-guides', 'post-faq-schema', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'product-pictures', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'meta-pixel', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings', 'retired-products', 'checkout-fixes', 'corporate-specs', 'category-display', 'turnstile', 'digital-masters', 'digital-account', 'security-hardening') as $af_mod) {
+foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'deity-links', 'blog-shop-links', 'category-guides', 'post-faq-schema', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'product-pictures', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'meta-pixel', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings', 'retired-products', 'checkout-fixes', 'corporate-specs', 'category-display', 'turnstile', 'digital-masters', 'digital-account', 'security-hardening', 'markup-fixes') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }
@@ -17707,3 +17731,20 @@ add_action('wp_print_footer_scripts', function () {
         // leave the page as it was rather than break the footer
     }
 }, 1);
+
+/**
+ * Background half of the video row's thumbnail choice (see $pim_max above):
+ * one HEAD request per video, at most once a week, never while a visitor waits.
+ */
+add_action('af_pim_check_maxres', function ($vids) {
+    $known = get_option('af_pim_maxres');
+    if (!is_array($known)) $known = array();
+    foreach (array_slice((array) $vids, 0, 30) as $vid) {
+        $vid = preg_replace('/[^A-Za-z0-9_-]/', '', (string) $vid);
+        if ($vid === '') continue;
+        $r = wp_remote_head("https://img.youtube.com/vi/{$vid}/maxresdefault.jpg", array('timeout' => 5, 'redirection' => 0));
+        if (is_wp_error($r)) continue;                       // unknown: ask again next time
+        $known[$vid] = array('ok' => (int) wp_remote_retrieve_response_code($r) === 200, 't' => time());
+    }
+    update_option('af_pim_maxres', $known, false);
+});

@@ -18,3 +18,12 @@ deploy.
 
 `assets/gold-foil/` is for real artwork that should be sold. This folder is for
 pictures that should only be looked at.
+
+## thumbs/
+
+720px-wide copies the home page tiles display (the lightbox opens the full
+picture). Make one for any picture added above, with the same file name:
+
+    convert "NAME.jpg" -resize 720x -quality 82 -interlace JPEG "thumbs/NAME.jpg"
+
+A picture without a thumb still shows, at full size.

@@ -90,10 +90,14 @@ function af_gfp_render() {
     foreach ($files as $f) {
         $url = af_gfp_uri() . '/' . rawurlencode($f);
         $cap = af_gfp_caption($f);
+        // The tile shows a 720px copy from thumbs/ when there is one; the
+        // lightbox still opens the full picture. The full files are 1200-1600px
+        // and were drawn into 314px tiles (full site test, 2026-10-23).
+        $img = is_file(af_gfp_dir() . '/thumbs/' . $f) ? af_gfp_uri() . '/thumbs/' . rawurlencode($f) : $url;
         $tiles .= '<div class="random-product-item"><div class="image-wrapper">'
                 . '<a href="' . esc_url($url) . '" data-fancybox="af-goldfoil"'
                 . ' aria-label="' . esc_attr($cap) . '">'
-                . '<img src="' . esc_url($url) . '" alt="' . esc_attr($cap) . '"'
+                . '<img src="' . esc_url($img) . '" alt="' . esc_attr($cap) . '"'
                 . ' loading="lazy" decoding="async">'
                 . '</a></div></div>';
     }

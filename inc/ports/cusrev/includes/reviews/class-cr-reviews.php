@@ -218,12 +218,18 @@ if ( ! class_exists( 'CR_Reviews' ) ) :
 					if( strlen( $output ) > 0 ) {
 						$output .= '<span class="ivole-review-country-space">&emsp;|&emsp;</span>';
 					}
-					$output .= '<img src="' . AF_CUSREV_URL . // port: was plugin_dir_url( dirname( dirname( __FILE__ ) ) ) .
-						'img/flags/' .
-						rawurlencode( strtolower( $country['code'] ) ) .
-						'.svg" class="ivole-review-country-icon" alt="' .
-						esc_attr( strtoupper( $country['code'] ) ) .
-						'">';
+					// port: some reviews carry an empty country code, which drew
+					// <img src=".../flags/.svg"> — a 404 under every such review
+					// (full site test, 2026-10-23). Only a two-letter code has a
+					// flag; the country name below is still printed either way.
+					if ( preg_match( '/^[a-z]{2}$/i', (string) $country['code'] ) ) {
+						$output .= '<img src="' . AF_CUSREV_URL . // port: was plugin_dir_url( dirname( dirname( __FILE__ ) ) ) .
+							'img/flags/' .
+							rawurlencode( strtolower( $country['code'] ) ) .
+							'.svg" class="ivole-review-country-icon" alt="' .
+							esc_attr( strtoupper( $country['code'] ) ) .
+							'">';
+					}
 					if ( isset( $country['desc'] ) ) {
 						$output .= '<span class="ivole-review-country-text">' . esc_html( $country['desc'] ) . '</span>';
 					}

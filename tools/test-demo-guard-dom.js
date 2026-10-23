@@ -132,6 +132,22 @@ const ok = (cond, msg, extra = '') => {
   ok(await href('#stage') === 'http://af.test/about/', 'the old staging hostname is mended');
   ok(await href('#bare')  === 'http://af.test',        'the bare host, with no path, is mended');
 
+  console.log('\n=== a page path typed as an address: http://shop/ (full site test, 2026-10-23) ===');
+  await load(`<a id="typed" href="http://shop/">Shop</a><a id="lh" href="http://localhost/x">dev</a>`);
+  ok(await href('#typed') === 'http://af.test/shop/', 'http://shop/ is mended to this site\'s shop',
+     'got ' + await href('#typed'));
+  ok(await href('#lh') === 'http://localhost/x', 'localhost is left alone');
+  await load(`<nav id="bar"></nav>`);
+  await page.evaluate(() => {
+    const a = document.createElement('a');
+    a.id = 'typed2'; a.href = 'http://shop/'; a.textContent = 'Shop';
+    document.getElementById('bar').appendChild(a);
+  });
+  await page.click('#typed2');
+  await page.waitForTimeout(250);
+  ok(wentTo.some(u => u.startsWith('http://af.test/shop')) && !wentTo.some(u => u.startsWith('http://shop')),
+     'a tap on one injected after load lands on the shop', 'navigated to: ' + JSON.stringify(wentTo));
+
   await browser.close();
   console.log(`\n${pass} passed, ${fail} failed`);
   process.exit(fail ? 1 : 0);

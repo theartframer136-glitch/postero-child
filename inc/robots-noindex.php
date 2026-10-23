@@ -41,7 +41,20 @@ if (!defined('ABSPATH')) {
 
 /** Page slugs that should not be in search results. */
 function af_noindex_slugs() {
-    $slugs = array('wishlist', 'login', 'sign-up', 'compare', 'dashboard');
+    $slugs = array('wishlist', 'login', 'sign-up', 'compare', 'dashboard',
+        // Full site test, 2026-10-23: the owner's tools were in the sitemap and
+        // answer 403 to everyone else, which Search Console reports as
+        // "Submitted URL blocked". cart-2 is a second, stray cart page that was
+        // already noindex and still submitted. icons is the parent theme's
+        // icon demo page.
+        'inventory-management', 'admin-console', 'activity-log', 'audit',
+        'cart-2', 'icons',
+        // The store directory's leftovers: a second copy of All Artists, the
+        // directory's own listing page, and a per-customer orders page. Thin
+        // or personal, all with no description or H1 (2026-10-23).
+        // all-artists itself is the same directory, now redirected to
+        // /artists/ while its plugin is absent (inc/markup-fixes.php).
+        'all-artists', 'all-artists-2', 'store-listing', 'my-orders');
     return (array) apply_filters('af_noindex_slugs', $slugs);
 }
 
@@ -146,12 +159,34 @@ add_filter('rank_math/sitemap/entry', function ($url, $type = '', $object = null
 }, 20, 3);
 
 /**
+ * Whole post types that are building blocks, not pages. Their sitemaps listed
+ * the header and footer templates (elementor-hf), the breadcrumb templates
+ * (postero-breadcrumb) and the floating-button template (e-floating-buttons):
+ * ten URLs that each redirect to the home page, submitted as if they were
+ * content. Nothing a visitor reads is of these types.
+ */
+function af_sitemap_excluded_post_types() {
+    return (array) apply_filters('af_sitemap_excluded_post_types',
+        array('elementor-hf', 'postero-breadcrumb', 'e-floating-buttons', 'elementor_library'));
+}
+
+add_filter('rank_math/sitemap/exclude_post_type', function ($exclude, $type = '') {
+    try {
+        if (in_array((string) $type, af_sitemap_excluded_post_types(), true)) {
+            return true;
+        }
+    } catch (\Throwable $e) {
+    }
+    return $exclude;
+}, 20, 2);
+
+/**
  * Rank Math caches the sitemap and rebuilds it only when content is saved.
  * A deploy saves nothing, so without this the old sitemap would keep listing
  * these pages. Cleared once per revision. Bump the number to clear it again.
  * The option records which method ran, or that none was available.
  */
-define('AF_NOINDEX_SITEMAP_REV', '1');
+define('AF_NOINDEX_SITEMAP_REV', '4');
 
 add_action('wp_loaded', function () {
     try {
