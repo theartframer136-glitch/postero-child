@@ -118,5 +118,54 @@ is_same('the relative Cart link is left exactly alone',
         strpos($page, 'href="/cart/"') !== false, true);
 is_same('all four links still present', substr_count($page, '<a href='), 4);
 
+echo "\n=== a page path typed as an address (full site test, 2026-10-23) ===\n";
+function bare($label, $in, $want) { is_same($label, af_bare_host_rewrite($in, HOME), $want); }
+bare('http://shop/ becomes the shop page',
+    '<a href="http://shop/">Shop</a>',
+    '<a href="https://theartframer.us/shop/">Shop</a>');
+bare('single quotes, https, a deeper path and a query',
+    "<a href='https://my-account/orders/?x=1'>Orders</a>",
+    "<a href='https://theartframer.us/my-account/orders/?x=1'>Orders</a>");
+bare('a real host with a dot is never touched',
+    '<a href="https://www.facebook.com/theartframer">FB</a>',
+    '<a href="https://www.facebook.com/theartframer">FB</a>');
+bare('our own links are never touched',
+    '<a href="https://theartframer.us/shop/">Shop</a>',
+    '<a href="https://theartframer.us/shop/">Shop</a>');
+bare('localhost is left for the dev-host check to report',
+    '<a href="http://localhost/shop/">x</a>',
+    '<a href="http://localhost/shop/">x</a>');
+bare('src attributes and text are left alone',
+    '<img src="http://shop/x.png"> see http://shop/',
+    '<img src="http://shop/x.png"> see http://shop/');
+is_same('detected when present', af_bare_host_present('<a href="http://shop/">'), true);
+is_same('not detected on a normal page',
+    af_bare_host_present('<a href="https://theartframer.us/">x</a><a href="tel:+1">t</a><a href="http://localhost/">l</a>'), false);
+is_same('the buffer applies it',
+    af_demo_filter_page('<a href="http://shop/">Shop</a>'), '<a href="https://theartframer.us/shop/">Shop</a>');
+is_same('the buffer applies both rewrites on one page',
+    af_demo_filter_page('<a href="http://shop/">S</a><a href="https://demo2wpopal.b-cdn.net/postero/wishlist">W</a>'),
+    '<a href="https://theartframer.us/shop/">S</a><a href="https://theartframer.us/wishlist">W</a>');
+
+echo "\n=== the header phone number and email, server side (full site test, 2026-10-23) ===\n";
+function contact($label, $in, $want) { is_same($label, af_contact_link_rewrite($in), $want); }
+contact('the phone number becomes tap-to-call',
+    '<a href="#" class="elementor-icon-list-item"><span>+1 (610) 470-7280</span></a>',
+    '<a href="tel:+16104707280" class="elementor-icon-list-item"><span>+1 (610) 470-7280</span></a>');
+contact('the email becomes mailto, attributes before href kept',
+    "<a class='x' href='#'>theartframer136@gmail.com</a>",
+    "<a class='x' href='mailto:theartframer136@gmail.com'>theartframer136@gmail.com</a>");
+contact('another "#" anchor is left alone',
+    '<a href="#">Menu</a><a href="#" class="close">close</a>',
+    '<a href="#">Menu</a><a href="#" class="close">close</a>');
+contact('a phone link that already works is left alone',
+    '<a href="tel:+16104707280">+1 (610) 470-7280</a>',
+    '<a href="tel:+16104707280">+1 (610) 470-7280</a>');
+contact('only the matching anchor of several changes',
+    '<a href="#">Search</a> <a href="#">+1 (610) 470-7280</a> <a href="#">close</a>',
+    '<a href="#">Search</a> <a href="tel:+16104707280">+1 (610) 470-7280</a> <a href="#">close</a>');
+is_same('present on a header with the number', af_contact_link_present('<a href="#">+1 (610) 470-7280</a>'), true);
+is_same('absent on a page without "#" links', af_contact_link_present('<a href="tel:+16104707280">x 7280</a>'), false);
+
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail ? 1 : 0);
