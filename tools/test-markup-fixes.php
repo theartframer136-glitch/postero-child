@@ -62,5 +62,12 @@ same('srcset entries are mended too', strpos($out, '-1-1024x572.webp 1024w') !==
 same('a file that exists is never touched', af_mf_mend_renamed_uploads('<img src="https://x.us/wp-content/uploads/2026/02/fine.jpg">', $ex), '<img src="https://x.us/wp-content/uploads/2026/02/fine.jpg">');
 same('a missing file with no -1 twin is left as it is', af_mf_mend_renamed_uploads('<img src="https://x.us/wp-content/uploads/2026/02/gone.jpg">', $ex), '<img src="https://x.us/wp-content/uploads/2026/02/gone.jpg">');
 
+echo "\n=== page numbers in titles ===\n";
+same('page 2 goes before the site name', af_mf_paged_title('Shop Hindu God Paintings | The Art Framer', 2), 'Shop Hindu God Paintings – Page 2 | The Art Framer');
+same('page 1 is unchanged', af_mf_paged_title('Shop | The Art Framer', 1), 'Shop | The Art Framer');
+same('a title that already says the page is unchanged', af_mf_paged_title('Shop Page 3 | X', 3), 'Shop Page 3 | X');
+same('a title with no separator gets it at the end', af_mf_paged_title('Wall Art', 4), 'Wall Art – Page 4');
+same('the last separator is used', af_mf_paged_title('Radha Krishna | Wall Decor | USA', 2), 'Radha Krishna | Wall Decor – Page 2 | USA');
+
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail ? 1 : 0);

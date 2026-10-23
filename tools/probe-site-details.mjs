@@ -47,7 +47,7 @@ async function go(url) {
 // query string, which the cache has never seen, so PHP renders it now.
 if (process.env.PROBE_ONLY === 'demo') {
   const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36 AF-SiteAudit';
-  for (const p of ['/product-category/landscapes/', '/product-tag/village-life/', '/try-on-wall/', '/blog/', '/product-category/wildlife/', '/shop/']) {
+  for (const p of ['/product-tag/living-room-canvas/', '/product-category/landscapes/', '/product-tag/village-life/', '/try-on-wall/', '/blog/', '/shop/']) {
     for (const bust of ['', `?afprobe=${Date.now()}`]) {
       const r = await fetch(SITE + p + bust, { headers: { 'User-Agent': UA, Accept: 'text/html' } }).catch(e => null);
       if (!r) { out(`  ${p}${bust}  fetch failed`); continue; }
