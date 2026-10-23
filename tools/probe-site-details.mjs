@@ -42,6 +42,26 @@ async function go(url) {
   return r ? r.status() : 0;
 }
 
+// ── only the demo-link leak, when asked: PROBE_ONLY=demo ────────────────────
+// Each page twice: as served (maybe from the page cache) and with a unique
+// query string, which the cache has never seen, so PHP renders it now.
+if (process.env.PROBE_ONLY === 'demo') {
+  const UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36 AF-SiteAudit';
+  for (const p of ['/product-category/landscapes/', '/product-tag/village-life/', '/try-on-wall/', '/blog/', '/product-category/wildlife/', '/shop/']) {
+    for (const bust of ['', `?afprobe=${Date.now()}`]) {
+      const r = await fetch(SITE + p + bust, { headers: { 'User-Agent': UA, Accept: 'text/html' } }).catch(e => null);
+      if (!r) { out(`  ${p}${bust}  fetch failed`); continue; }
+      const h = await r.text();
+      const i = h.indexOf('demo2wpopal.b-cdn.net/postero/shop');
+      const ctx = i >= 0 ? h.slice(Math.max(0, i - 120), i + 40).replace(/\s+/g, ' ') : '';
+      out(`  ${r.status} ${p}${bust ? ' (fresh render)' : ' (as served)'}  cache=${r.headers.get('x-litespeed-cache') || '-'} age=${r.headers.get('age') || '-'} guard-script=${h.includes('id="af-demo-guard"')} demo-link=${i >= 0}${ctx ? '\n        …' + ctx + '…' : ''}`);
+      await sleep(3000);
+    }
+  }
+  await browser.close();
+  process.exit(0);
+}
+
 // ── only the hook-name error, when asked: PROBE_ONLY=hooks ──────────────────
 if (process.env.PROBE_ONLY === 'hooks') {
   const hp = await ctx.newPage();
