@@ -15,6 +15,8 @@ name: Audit Site
 #                    checklist (tools/qa-veteran.mjs)
 #   browser — the browser half of "full" on its own, over the key pages,
 #           with no crawl in front of it to use up the host's patience
+#   probe — read-only detail on the open items of the last full test
+#           (tools/probe-site-details.mjs)
 #   links — the older, lighter crawl: dead links, redirect chains, menus
 #   perf  — load the key pages in a real Chrome and separate "the server is
 #           slow" from "the page is heavy", which need opposite fixes
@@ -29,7 +31,7 @@ on:
       pass:
         description: Which pass to run
         type: choice
-        options: [full, browser, both, links, perf]
+        options: [full, browser, probe, both, links, perf]
         default: full
       max_pages:
         description: How many pages at most (full defaults to 2500, links to 160)
@@ -155,3 +157,20 @@ jobs:
             audit-out
             veteran-final.png
           if-no-files-found: warn
+
+  probe:
+    if: ${{ inputs.pass == 'probe' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright Chromium
+        run: |
+          npm init -y >/dev/null
+          npm i playwright@1.56 >/dev/null
+          npx playwright install --with-deps chromium
+      - name: Probe
+        run: node tools/probe-site-details.mjs "${{ inputs.url || 'https://theartframer.us' }}" || true
