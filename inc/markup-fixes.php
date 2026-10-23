@@ -203,9 +203,15 @@ function af_mf_fallback_description() {
         if ($d !== '') return wp_trim_words($d, 26, '…');
         return $t->name . ': guides and ideas from the ' . $site . ' blog on Vastu placement, choosing and framing canvas wall art, and caring for it.';
     }
-    if (is_tax('product_tag')) {
+    if (is_tax()) {
+        // Product tags, product themes and any other product taxonomy (the
+        // 2026-10-23 recheck found /product-themes/kids/ and nine siblings
+        // with no description). Written term description first.
         $t = get_queried_object();
-        return $t ? 'Shop ' . $t->name . ' canvas wall art at ' . $site . ': premium prints, framed to order in our Delaware studio and delivered across the USA.' : '';
+        if (!$t || empty($t->name)) return '';
+        $d = trim(wp_strip_all_tags(term_description($t)));
+        if ($d !== '') return wp_trim_words($d, 26, '…');
+        return 'Shop ' . $t->name . ' canvas wall art at ' . $site . ': premium prints, framed to order in our Delaware studio and delivered across the USA.';
     }
     if (is_author()) {
         $u = get_queried_object();
@@ -363,3 +369,31 @@ add_action('template_redirect', function () {
     } catch (\Throwable $e) {
     }
 }, 0);
+
+/* ------------------------------------------- 8. page numbers in titles */
+
+/**
+ * Page 2 onward of a listing carries the same title as page 1: the recheck
+ * after the 2026-10-23 deploy counted the shop and every category that way
+ * (/shop/page/2/, /product-category/.../page/3/ ...). The page number goes in
+ * front of the site name, where a searcher sees it.
+ */
+function af_mf_paged_title($title, $n) {
+    $title = (string) $title; $n = (int) $n;
+    if ($n < 2 || $title === '' || preg_match('~\bPage\s+\d+\b~i', $title)) return $title;
+    $tag = ' – Page ' . $n;
+    foreach (array(' | ', ' - ', ' – ') as $sep) {
+        $i = strrpos($title, $sep);
+        if ($i !== false && $i > 0) return substr($title, 0, $i) . $tag . substr($title, $i);
+    }
+    return $title . $tag;
+}
+
+add_filter('rank_math/frontend/title', function ($title) {
+    try {
+        $n = max((int) get_query_var('paged'), (int) get_query_var('page'));
+        return (is_archive() || is_home() || is_search() || (function_exists('is_shop') && is_shop())) ? af_mf_paged_title($title, $n) : $title;
+    } catch (\Throwable $e) {
+        return $title;
+    }
+}, 30);
