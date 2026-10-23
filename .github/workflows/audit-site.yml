@@ -1,13 +1,25 @@
 name: Audit Site
 
-# Two read-only passes over the live shop:
-#   links — crawl it, report every dead link, redirect chain and dead href,
-#           and check the navigation menus by name
+# Read-only passes over the live shop.
+#
+#   full  — the whole site, end to end:
+#           crawl    every page in the sitemap and every page linked from them:
+#                    status, redirects, PHP notices, soft 404s, placeholder
+#                    text, product essentials, SEO head, every image, every
+#                    external link (tools/audit-full.mjs)
+#           browser  a real Chromium over a sample of every kind of page,
+#                    desktop and phone: JS errors, failed requests, broken
+#                    images, sideways scroll, then search, quick view, wishlist,
+#                    menu, product → cart → checkout, the forms and the 404 page
+#                    (tools/audit-browser.mjs), followed by the release
+#                    checklist (tools/qa-veteran.mjs)
+#   links — the older, lighter crawl: dead links, redirect chains, menus
 #   perf  — load the key pages in a real Chrome and separate "the server is
 #           slow" from "the page is heavy", which need opposite fixes
 #
-# Manual only. This host is CPU-bound; the crawl runs three at a time with a
-# pause between waves for that reason.
+# Manual only. This host is CPU-bound; the crawls run three at a time with a
+# pause between waves, and the browser job waits for the crawl to finish.
+# Nothing is ever submitted that would reach a person or a ledger.
 
 on:
   workflow_dispatch:
@@ -15,15 +27,24 @@ on:
       pass:
         description: Which pass to run
         type: choice
-        options: [both, links, perf]
-        default: both
+        options: [full, both, links, perf]
+        default: full
       max_pages:
-        description: Link crawl — how many pages at most
+        description: How many pages at most (full defaults to 2500, links to 160)
         type: string
-        default: '160'
+        default: ''
+      url:
+        description: Site to test (blank = the live shop)
+        type: string
+        default: ''
+
+concurrency:
+  group: qa-live
+  cancel-in-progress: false
 
 jobs:
   audit:
+    if: ${{ inputs.pass != 'full' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -31,11 +52,71 @@ jobs:
 
       - name: Links and navigation
         if: ${{ inputs.pass == 'both' || inputs.pass == 'links' }}
-        run: node tools/audit-links.mjs "https://theartframer.us" "${{ inputs.max_pages }}" || true
+        run: node tools/audit-links.mjs "${{ inputs.url || 'https://theartframer.us' }}" "${{ inputs.max_pages || '160' }}" || true
 
       - name: Performance
         if: ${{ inputs.pass == 'both' || inputs.pass == 'perf' }}
         run: |
           set -uo pipefail
           npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
-          NODE_PATH=/tmp/afhead/node_modules node tools/audit-perf.mjs "https://theartframer.us" || true
+          NODE_PATH=/tmp/afhead/node_modules node tools/audit-perf.mjs "${{ inputs.url || 'https://theartframer.us' }}" || true
+
+  crawl:
+    if: ${{ inputs.pass == 'full' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Crawl and check every page
+        run: |
+          set -o pipefail
+          mkdir -p audit-out
+          node tools/audit-full.mjs "${{ inputs.url || 'https://theartframer.us' }}" "${{ inputs.max_pages || '2500' }}" audit-out 2>&1 | tee audit-out/crawl.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: site-test-crawl
+          path: audit-out
+          if-no-files-found: warn
+
+  browser:
+    needs: crawl
+    if: ${{ inputs.pass == 'full' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright Chromium
+        run: |
+          npm init -y >/dev/null
+          npm i playwright@1.56 >/dev/null
+          npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-test-crawl
+          path: audit-out
+      - name: Browser pass over the sampled pages and the visitor flows
+        run: |
+          set -o pipefail
+          node tools/audit-browser.mjs "${{ inputs.url || 'https://theartframer.us' }}" audit-out/sample.json audit-out 2>&1 | tee audit-out/browser.log || true
+      - name: Release-checklist pass
+        run: |
+          set -o pipefail
+          node tools/qa-veteran.mjs "${{ inputs.url || 'https://theartframer.us' }}" 2>&1 | tee audit-out/veteran.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: site-test-browser
+          path: |
+            audit-out/browser.log
+            audit-out/veteran.log
+            audit-out/browser-findings.json
+            audit-out/shots
+            veteran-final.png
+          if-no-files-found: warn
