@@ -10,7 +10,8 @@
  *     php tools/test-demo-guard.php
  */
 define('ABSPATH', '/nowhere/');
-function add_action() {}
+$GLOBALS['af_actions'] = array();
+function add_action($hook, $cb = null, $prio = 10) { $GLOBALS['af_actions'][] = array($hook, $prio); }
 function add_filter() {}
 function apply_filters($tag, $value) { return $value; }
 function home_url() { return 'https://theartframer.us'; }
@@ -166,6 +167,11 @@ contact('only the matching anchor of several changes',
     '<a href="#">Search</a> <a href="tel:+16104707280">+1 (610) 470-7280</a> <a href="#">close</a>');
 is_same('present on a header with the number', af_contact_link_present('<a href="#">+1 (610) 470-7280</a>'), true);
 is_same('absent on a page without "#" links', af_contact_link_present('<a href="tel:+16104707280">x 7280</a>'), false);
+
+echo "\n=== the buffer opens before every page handler (full site test, 2026-10-23) ===\n";
+$tr = array_values(array_filter($GLOBALS['af_actions'], function ($a) { return $a[0] === 'template_redirect'; }));
+is_same('one template_redirect hook', count($tr), 1);
+is_same('it runs ahead of the blog hub and Frame The Moment (priority 1)', $tr[0][1] < 1, true);
 
 printf("\n%d passed, %d failed\n", $pass, $fail);
 exit($fail ? 1 : 0);

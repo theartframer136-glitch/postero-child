@@ -159,6 +159,19 @@ function af_demo_filter_page($html) {
 }
 
 /**
+ * Why the buffer starts at -100 and not 1.
+ *
+ * Full site test, 2026-10-23: /blog/ and /frame-the-moment/ still sent the
+ * demo-store links in their HTML. Both pages are drawn by their own
+ * template_redirect handler (inc/blog-hub.php and PHASE 27 in functions.php),
+ * which renders the whole page and exits, at priority 1. Both are registered
+ * before this file is loaded, so at an equal priority they ran first and the
+ * page was finished before this buffer existed. Every page drawn that way is
+ * covered once the buffer opens ahead of all of them.
+ */
+if (!defined('AF_DEMO_GUARD_PRIORITY')) define('AF_DEMO_GUARD_PRIORITY', -100);
+
+/**
  * Front-end page views only. The admin, AJAX, the REST API and cron are left
  * alone: none of them render the bottom bar, and buffering a REST response
  * would be a good way to break something that has nothing to do with this.
@@ -171,7 +184,7 @@ add_action('template_redirect', function () {
     if (defined('WP_CLI')       && WP_CLI)              return;
     if (function_exists('wp_is_json_request') && wp_is_json_request()) return;
     ob_start('af_demo_filter_page');
-}, 1);
+}, AF_DEMO_GUARD_PRIORITY);
 
 /**
  * The net the output buffer cannot cast.
