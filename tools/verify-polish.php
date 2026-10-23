@@ -138,6 +138,10 @@ af_pv('no free-shipping claim in the copy',
 af_pv('badge label ships to the page', strpos($hb, $ship['label']) !== false, $fail);
 af_pv('homepage makes no free-shipping promise',
       stripos($hb, 'Free Shipping across the USA') === false, $fail);
+// Owner, 2026-10-23: nothing on the site is free and the word is not to
+// appear anywhere a customer reads — not just in the shipping line.
+af_pv('homepage never shows the word "free"',
+      !preg_match('/\bfree\b/i', wp_strip_all_tags($hb)), $fail);
 // the bot must not contradict the page
 $sr = wp_remote_post(admin_url('admin-ajax.php'), array('timeout'=>45,'sslverify'=>false,
     'body'=>array('action'=>'af_bot_reply','nonce'=>wp_create_nonce('af_bot'),'msg'=>'how much is shipping?')));

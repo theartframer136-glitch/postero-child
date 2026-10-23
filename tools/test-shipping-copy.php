@@ -5,8 +5,10 @@
  *
  * This function exists because the site once promised "Free Shipping across
  * the USA" on one surface while another listed free delivery in four states
- * only. The test that matters, therefore, is not that the words are right: it
- * is that NOTHING can say "free" unless the policy actually is free.
+ * only. The owner's rule (2026-09-10, restated 2026-10-23) is that nothing on
+ * the site is free and the word is not to appear anywhere. The test that
+ * matters, therefore, is not that the words are right: it is that NOTHING
+ * the function returns can say "free", whatever the option holds.
  *
  * Runs the REAL function, lifted out of functions.php by name rather than
  * copied, so it cannot drift from what ships:
@@ -57,17 +59,23 @@ foreach (array('label', 'short', 'blurb') as $k) {
 has('default: says the cost is shown at checkout', $c['short'], 'shown at checkout');
 check('default: the feed omits the rate rather than claiming zero', $c['cost'], '');
 
-echo "\n=== free is still possible, but ONLY when asked for by name ===\n";
-foreach (array('free', 'Free', 'FREE', '0', '$0') as $v) {
-    check("af_shipping_cost = " . var_export($v, true) . " is free", copy_with($v)['free'], true);
+echo "\n=== there is no free branch: 'free', '0' and '$0' fall through to the default ===\n";
+// The function used to switch to "Free Shipping Across the USA" for these
+// values. The owner ruled that nothing is free, so a stray option value must
+// not be able to put the word back on the site.
+foreach (array('free', 'Free', 'FREE', '0', '$0', '  free  ') as $v) {
+    $c = copy_with($v);
+    check("af_shipping_cost = " . var_export($v, true) . ": free flag is false", $c['free'], false);
+    foreach (array('label', 'short', 'blurb') as $k) {
+        check("af_shipping_cost = " . var_export($v, true) . ": {$k} does not say 'free'", stripos($c[$k], 'free') !== false, false);
+    }
+    has("af_shipping_cost = " . var_export($v, true) . ": says the cost is shown at checkout", $c['short'], 'shown at checkout');
+    check("af_shipping_cost = " . var_export($v, true) . ": the feed omits the rate rather than claiming zero", $c['cost'], '');
 }
-$c = copy_with('free');
-has('when free: label says so', $c['label'], 'Free Shipping');
-check('when free: the feed states a real zero', $c['cost'], '0');
 
-echo "\n=== THE GUARANTEE: nothing claims free unless the policy is free ===\n";
-// Every surface reads label/short/blurb. If the policy is not free, none of
-// them may contain the word — that is the whole reason this function exists.
+echo "\n=== THE GUARANTEE: no state ever claims free ===\n";
+// Every surface reads label/short/blurb. None of them may contain the word —
+// that is the whole reason this function exists.
 foreach (array('$15', 'from $12', '12.50', 'Flat $9.95') as $v) {
     $c = copy_with($v);
     check("cost $v: free flag is false", $c['free'], false);
@@ -88,8 +96,8 @@ has('blank: says the cost is shown at checkout', $c['short'], 'shown at checkout
 check('blank: the feed omits the rate rather than guessing', $c['cost'], '');
 
 echo "\n=== whitespace around the option value is not a different policy ===\n";
-check('"  free  " is still free', copy_with('  free  ')['free'], true);
-check('"   " is blank, not free',  copy_with('   ')['free'], false);
+check('"   " is blank',  copy_with('   ')['short'], copy_with('')['short']);
+check('" $15 " is $15', copy_with(' $15 ')['cost'], '$15');
 
 echo "\n=== every state returns the full shape callers rely on ===\n";
 foreach (array(null, '', '$15', 'free') as $v) {

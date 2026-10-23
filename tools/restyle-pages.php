@@ -8,7 +8,7 @@
  */
 if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit(1); }
 
-$STYLE_VERSION = '16.0'; // 16.0: no free-shipping/free-delivery wording (owner: the shop does not ship free)
+$STYLE_VERSION = '17.0'; // 17.0: the word "free" appears nowhere (owner, 2026-10-23: nothing on the site is free); 16.0 removed the shipping/delivery claims
 $EMAIL = 'theartframer136@gmail.com';
 $PHONE = '+1 (610) 470-7280';
 $TEL   = 'tel:+16104707280';
@@ -292,7 +292,7 @@ $bodies['customize-your-picture'] = <<<HTML
 
   <div class="taf-cta">
     <h2>Start Your Custom Order</h2>
-    <p>Send us your photo today and we'll reply with a free mockup and quote — usually within 24 hours.</p>
+    <p>Send us your photo today and we'll reply with a mockup and quote — usually within 24 hours.</p>
     <a class="taf-btn" href="mailto:{$EMAIL}?subject=Custom%20Picture%20Order">Email Your Photo</a>
     <a class="taf-btn-alt" href="/contact/">Contact Form</a>
   </div>
@@ -517,7 +517,7 @@ $bodies['exhibitions-events'] = <<<HTML
       <figure><img src="https://theartframer.us/wp-content/uploads/2026/03/fabric-cloth-banners.webp" alt="Fabric cloth banner" loading="lazy"><figcaption>Fabric Banners</figcaption></figure>
       <figure><img src="https://theartframer.us/wp-content/uploads/2026/03/fence-banner.webp" alt="Fence banner for construction sites" loading="lazy"><figcaption>Fence Banners</figcaption></figure>
     </div>
-    <p class="taf-note">All formats available in custom sizes, with weatherproof inks for outdoor use and free design templates.</p>
+    <p class="taf-note">All formats available in custom sizes, with weatherproof inks for outdoor use and design templates on request.</p>
   </div>
 
   <div class="taf-cta">
@@ -803,7 +803,7 @@ $bodies['help-support'] = <<<HTML
     <h2 class="taf-h2">Common Topics</h2>
     <div class="taf-grid">
       <div class="taf-card"><span class="taf-ico">📦</span><h3>Track Your Order</h3><p>See where your canvas is right now.</p><p style="margin-top:12px;"><a class="taf-btn" href="/track-your-order/">Track Order</a></p></div>
-      <div class="taf-card"><span class="taf-ico">🚚</span><h3>Shipping &amp; Delivery</h3><p>Timelines, free-delivery areas, and packaging.</p><p style="margin-top:12px;"><a class="taf-btn" href="/shipping-delivery/">Read More</a></p></div>
+      <div class="taf-card"><span class="taf-ico">🚚</span><h3>Shipping &amp; Delivery</h3><p>Timelines, delivery areas, and packaging.</p><p style="margin-top:12px;"><a class="taf-btn" href="/shipping-delivery/">Read More</a></p></div>
       <div class="taf-card"><span class="taf-ico">🔄</span><h3>Returns &amp; Exchanges</h3><p>Something not right? Here's how we fix it.</p><p style="margin-top:12px;"><a class="taf-btn" href="/returns-exchanges/">Read More</a></p></div>
       <div class="taf-card"><span class="taf-ico">💳</span><h3>Refund Policy</h3><p>When and how refunds are processed.</p><p style="margin-top:12px;"><a class="taf-btn" href="/refund-policy/">Read More</a></p></div>
       <div class="taf-card"><span class="taf-ico">❓</span><h3>FAQs</h3><p>Quick answers to the questions we hear most.</p><p style="margin-top:12px;"><a class="taf-btn" href="/faqs/">Browse FAQs</a></p></div>
@@ -872,7 +872,7 @@ $bodies['faqs'] = <<<HTML
     <h2 class="taf-h2">Didn't Find Your Answer?</h2>
     <div class="taf-grid">
       <div class="taf-card"><span class="taf-ico">🆘</span><h3>Help &amp; Support</h3><p>Contact channels, common topics, and how support works.</p><p style="margin-top:12px;"><a class="taf-btn" href="/help-support/">Get Help</a></p></div>
-      <div class="taf-card"><span class="taf-ico">🚚</span><h3>Shipping &amp; Delivery</h3><p>Timelines, free-delivery areas, and packaging details.</p><p style="margin-top:12px;"><a class="taf-btn" href="/shipping-delivery/">Read More</a></p></div>
+      <div class="taf-card"><span class="taf-ico">🚚</span><h3>Shipping &amp; Delivery</h3><p>Timelines, delivery areas, and packaging details.</p><p style="margin-top:12px;"><a class="taf-btn" href="/shipping-delivery/">Read More</a></p></div>
       <div class="taf-card"><span class="taf-ico">🔄</span><h3>Returns &amp; Refunds</h3><p>Our return process and when refunds are issued.</p><p style="margin-top:12px;"><a class="taf-btn" href="/returns-exchanges/">Read More</a></p></div>
     </div>
   </div>
@@ -981,7 +981,7 @@ $bodies['shipping-delivery'] = <<<HTML
         <li>Corner protectors on every frame</li>
         <li>Moisture-resistant wrap around the canvas face</li>
         <li>Double-walled boxes sized to the artwork</li>
-        <li><b>No Broken Canvas guarantee</b> — damaged in transit? We reprint and reship free, no return needed</li>
+        <li><b>No Broken Canvas guarantee</b> — damaged in transit? We reprint and reship, no return needed</li>
       </ul>
     </div>
   </div>
@@ -1018,7 +1018,7 @@ $bodies['returns-exchanges'] = <<<HTML
     <ol class="taf-steps">
       <li><b>Email us within 7 days of delivery</b> — send your order number and clear photos of the issue to <a href="mailto:{$EMAIL}?subject=Return%20Request">{$EMAIL}</a>, or use the <a href="/contact/">contact form</a> (choose "Returns &amp; Refunds").</li>
       <li><b>We review the same day</b> — your photos are checked against production and packing records; no forms, no waiting on hold.</li>
-      <li><b>We make it right</b> — a free reprint, an exchange, or a refund per our <a href="/refund-policy/">Refund Policy</a>. Damaged items never need to be shipped back.</li>
+      <li><b>We make it right</b> — a reprint, an exchange, or a refund per our <a href="/refund-policy/">Refund Policy</a>. Damaged items never need to be shipped back.</li>
     </ol>
   </div>
 
@@ -1036,7 +1036,7 @@ $bodies['returns-exchanges'] = <<<HTML
     <div>
       <h2 class="taf-h2">Not Returnable</h2>
       <div class="taf-grid" style="grid-template-columns:1fr;">
-        <div class="taf-card"><span class="taf-ico">🖼️</span><h3>Personalised &amp; custom-sized art</h3><p>Made uniquely for you, so they can't be resold — unless they arrive damaged or defective, in which case we reprint free.</p></div>
+        <div class="taf-card"><span class="taf-ico">🖼️</span><h3>Personalised &amp; custom-sized art</h3><p>Made uniquely for you, so they can't be resold — unless they arrive damaged or defective, in which case we reprint it.</p></div>
         <div class="taf-card"><span class="taf-ico">💾</span><h3>Digital downloads</h3><p>Delivered instantly and can't be "returned" — but if a file has an issue, we'll fix or replace it right away.</p></div>
       </div>
     </div>
@@ -1049,7 +1049,7 @@ $bodies['returns-exchanges'] = <<<HTML
       <p>A damaged canvas is always on us — never on you.</p>
       <ul class="taf-check">
         <li>Send photos of the damage and packaging within 48 hours of delivery</li>
-        <li>We reprint and reship <b>completely free</b></li>
+        <li>We reprint and reship <b>your piece</b></li>
         <li><b>No return shipping</b> — keep or dispose of the damaged piece</li>
         <li>Priority production so the replacement ships fast</li>
       </ul>
@@ -1059,7 +1059,7 @@ $bodies['returns-exchanges'] = <<<HTML
   <div class="taf-section">
     <h2 class="taf-h2">Good to Know</h2>
     <div class="taf-grid">
-      <div class="taf-card"><span class="taf-ico">🔄</span><h3>Want a different size or frame?</h3><p>Contact us before your order enters production and we'll change it free. After delivery, exchanges are assessed case by case — just ask.</p></div>
+      <div class="taf-card"><span class="taf-ico">🔄</span><h3>Want a different size or frame?</h3><p>Contact us before your order enters production and we'll change it. After delivery, exchanges are assessed case by case — just ask.</p></div>
       <div class="taf-card"><span class="taf-ico">💳</span><h3>When is the refund paid?</h3><p>Approved refunds go back to your original payment method — see the <a href="/refund-policy/">Refund Policy</a> for timelines.</p></div>
       <div class="taf-card"><span class="taf-ico">📸</span><h3>Why photos?</h3><p>Clear photos of the item and packaging let us approve most claims the same day — and help us hold our carriers accountable.</p></div>
     </div>
@@ -1108,10 +1108,10 @@ $bodies['refund-policy'] = <<<HTML
     <table class="taf-table">
       <thead><tr><th>Situation</th><th>Replacement</th><th>Full Refund</th><th>What We Need</th></tr></thead>
       <tbody>
-        <tr><td>🔨 Arrived damaged</td><td><span class="taf-yes">✓ Free</span></td><td><span class="taf-yes">✓ Yes</span></td><td>Photos of item &amp; packaging within 48 hours — no return shipping</td></tr>
-        <tr><td>🖨️ Print or frame defect</td><td><span class="taf-yes">✓ Free</span></td><td><span class="taf-yes">✓ Yes</span></td><td>Photos of the defect within 7 days of delivery</td></tr>
-        <tr><td>📦 Wrong item delivered</td><td><span class="taf-yes">✓ Free</span></td><td><span class="taf-yes">✓ Yes</span></td><td>Order number and a photo of what arrived</td></tr>
-        <tr><td>💭 Changed my mind</td><td><span class="taf-no">✗ Custom items</span></td><td><span class="taf-no">✗ Custom items</span></td><td>Made-to-order pieces can't be restocked — contact us before production starts and we'll change or cancel free</td></tr>
+        <tr><td>🔨 Arrived damaged</td><td><span class="taf-yes">✓ Yes</span></td><td><span class="taf-yes">✓ Yes</span></td><td>Photos of item &amp; packaging within 48 hours — no return shipping</td></tr>
+        <tr><td>🖨️ Print or frame defect</td><td><span class="taf-yes">✓ Yes</span></td><td><span class="taf-yes">✓ Yes</span></td><td>Photos of the defect within 7 days of delivery</td></tr>
+        <tr><td>📦 Wrong item delivered</td><td><span class="taf-yes">✓ Yes</span></td><td><span class="taf-yes">✓ Yes</span></td><td>Order number and a photo of what arrived</td></tr>
+        <tr><td>💭 Changed my mind</td><td><span class="taf-no">✗ Custom items</span></td><td><span class="taf-no">✗ Custom items</span></td><td>Made-to-order pieces can't be restocked — contact us before production starts and we'll change or cancel it</td></tr>
         <tr><td>💾 Digital download issue</td><td><span class="taf-yes">✓ File replaced</span></td><td>Case by case</td><td>Tell us what's wrong — we fix or replace the file right away</td></tr>
       </tbody>
     </table>
@@ -1157,7 +1157,7 @@ $bodies['safe-easy-payments'] = <<<HTML
     <p class="taf-lead">Choose whichever suits you at checkout — every option is processed securely.</p>
     <div class="taf-grid">
       <div class="taf-card"><span class="taf-ico">💳</span><h3>Card Payments</h3><p>Credit and debit cards processed through our PCI-compliant secure checkout — your card number never touches our servers.</p></div>
-      <div class="taf-card"><span class="taf-ico">⚡</span><h3>Zelle</h3><p>Fast, fee-free bank transfer for US customers — ideal for custom and bulk orders. Payment details are shared at checkout.</p></div>
+      <div class="taf-card"><span class="taf-ico">⚡</span><h3>Zelle</h3><p>Fast bank transfer for US customers — ideal for custom and bulk orders. Payment details are shared at checkout.</p></div>
       <div class="taf-card"><span class="taf-ico">💵</span><h3>Cash on Delivery</h3><p>Available in select local delivery areas — pay when your artwork arrives at your door.</p></div>
       <div class="taf-card"><span class="taf-ico">🎁</span><h3>Gift Cards</h3><p>Redeem an Art Framer <a href="/gift-cards/">gift card</a> at checkout — combinable with sale prices, any remaining balance stays on the card.</p></div>
     </div>
@@ -1272,10 +1272,10 @@ $bodies['terms-conditions'] = <<<HTML
   <p>Prices are listed in USD, with CAD available via the currency selector; your order is charged in the currency you check out with. Prices are subject to change without notice, and we reserve the right to correct pricing errors — if an error affects an order you've already placed, we'll contact you before proceeding.</p>
 
   <h2>3. Orders &amp; Production</h2>
-  <p>Most items are printed, stretched, and framed to order. Orders can be modified or cancelled free of charge any time before production begins — after that, made-to-order items follow our <a href="/returns-exchanges/">Returns &amp; Exchanges</a> policy.</p>
+  <p>Most items are printed, stretched, and framed to order. Orders can be modified or cancelled any time before production begins — after that, made-to-order items follow our <a href="/returns-exchanges/">Returns &amp; Exchanges</a> policy.</p>
 
   <h2>4. Shipping &amp; Delivery</h2>
-  <p>Production and delivery timelines, free-delivery areas, and packaging standards are described in our <a href="/shipping-delivery/">Shipping &amp; Delivery</a> policy, which forms part of these terms.</p>
+  <p>Production and delivery timelines, delivery areas, and packaging standards are described in our <a href="/shipping-delivery/">Shipping &amp; Delivery</a> policy, which forms part of these terms.</p>
 
   <h2>5. Returns &amp; Refunds</h2>
   <p>Returns are governed by our <a href="/returns-exchanges/">Returns &amp; Exchanges</a> policy and refunds by our <a href="/refund-policy/">Refund Policy</a>. In short: damaged, defective, or incorrect items are replaced or refunded in full; personalised items are non-returnable unless damaged.</p>

@@ -3457,7 +3457,7 @@ add_action('woocommerce_after_add_to_cart_button', function() {
     <div class="af-pp-trust">
       <div class="af-ppt"><span>🔒</span><div><strong>Secure Payments</strong><small>Encrypted checkout</small></div></div>
       <div class="af-ppt"><span>↩️</span><div><strong>Easy Returns</strong><small>7-day policy</small></div></div>
-      <div class="af-ppt"><span>🚚</span><div><strong><?php echo esc_html($ship['free'] ? 'Free Shipping' : 'Fast Shipping'); ?></strong><small><?php echo esc_html($ship['free'] ? 'On all US orders' : $ship['short']); ?></small></div></div>
+      <div class="af-ppt"><span>🚚</span><div><strong>Fast Shipping</strong><small><?php echo esc_html($ship['short']); ?></small></div></div>
     </div>
     <?php
 }, 25);
@@ -4350,40 +4350,33 @@ add_action('woocommerce_before_checkout_form', function () {
  * out and the cost stated instead.
  *
  * THE SHOP DOES NOT SHIP FREE. Owner, 2026-09-10, correcting an earlier
- * instruction of the same day: "we do not ship free for any place". So the
- * default states no price at all — the cost is shown at checkout, which is
- * true whatever the rate turns out to be — and NOTHING anywhere may say
- * otherwise unless the policy genuinely changes.
+ * instruction of the same day: "we do not ship free for any place", and
+ * again on 2026-10-23: nothing on the site is free and the word "free" is
+ * not to appear anywhere. So the default states no price at all — the cost
+ * is shown at checkout, which is true whatever the rate turns out to be.
  *
- * Three states, all of them explicit:
+ * Two states, both explicit:
  *
  *   af_shipping_cost = ''       (the default)   "shown at checkout" — the safe
  *                                               wording, and the current policy
  *   af_shipping_cost = '$15'    or 'from $12'   that cost, stated everywhere
- *   af_shipping_cost = 'free'                   free — ONLY if that ever
- *                                               becomes true
  *
- * Blank does not mean free, and the free branch has to be asked for by name.
- * A false free-shipping claim is the exact failure this function was written
- * to prevent: it exists because the site once promised "Free Shipping across
- * the USA" while its own popup listed free delivery in four states only.
+ * There is deliberately no third state. The function used to grow a
+ * "Free Shipping Across the USA" branch when the option read 'free', '0' or
+ * '$0'; the owner's rule is that nothing is free, so those values now fall
+ * through to the default wording and the site cannot be made to say "free"
+ * by a stray option value. A false no-cost claim is the exact failure this
+ * function was written to prevent: it exists because the site once promised
+ * "Free Shipping across the USA" while its own popup listed four states only.
+ * The 'free' key stays in the shape for callers and is always false.
  * Filter af_shipping_copy to override any of it.
  */
 function af_shipping_copy() {
     $cost = trim((string) get_option('af_shipping_cost', ''));
-    $free = (strcasecmp($cost, 'free') === 0 || $cost === '0' || $cost === '$0');
+    // 'free', '0' and '$0' are not a policy the shop has: treat them as unset.
+    if (strcasecmp($cost, 'free') === 0 || $cost === '0' || $cost === '$0') $cost = '';
 
-    if ($free) {
-        $out = array(
-            'label' => 'Free Shipping Across the USA',
-            'short' => 'Free shipping on all orders across the USA',
-            'blurb' => 'Delivered anywhere in the USA, free on every order — no minimum, and nothing added at checkout.',
-            // '0' rather than '' so the Google feed states a rate of zero,
-            // which is now true, instead of omitting the rate entirely.
-            'cost'  => '0',
-            'free'  => true,
-        );
-    } elseif ($cost !== '') {
+    if ($cost !== '') {
         $out = array(
             'label' => 'Shipping Throughout the USA',
             'short' => 'Shipping ' . $cost . ' throughout the USA',
@@ -4783,7 +4776,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
       <div class="af-price-live">Your Price: <strong id="af-live-price"><?php echo wc_price($base); ?></strong>
         <s id="af-live-mrp" class="af-live-mrp"></s>
         <span id="af-live-disc" class="af-live-disc"></span></div>
-      <p class="af-price-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Free Secure Packaging</p>
+      <p class="af-price-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Secure packaging</p>
       <input type="hidden" name="af_size"  value="<?php echo esc_attr($def_size); ?>">
       <input type="hidden" name="af_frame" value="<?php echo esc_attr($def_frame); ?>">
       <input type="hidden" name="af_color" value="<?php echo esc_attr($colors[0]); ?>">
@@ -8819,25 +8812,14 @@ add_shortcode('af_delivery_checker', function() {
         late  = addBiz(addBiz(today, 5), 10);  // slowest: 5d production + 10d transit
     var arrival = 'Order today and your artwork should arrive between <b>' +
                   fmt(early) + '</b> and <b>' + fmt(late) + '</b>.';
-    // The policy, not a guess. This checker promised no-cost delivery only to
+    // The policy, not a guess. This checker once promised no-cost delivery to
     // ZIPs whose prefix it recognised and "calculated at checkout" to the rest
     // — the same split claim that made the trust badge and its own popup
-    // contradict each other before. Both branches now read AF_SHIP, so if
-    // shipping is free it is free for every US ZIP, recognised or not, and if
-    // it ever stops being free neither branch can go on saying otherwise.
+    // contradict each other before. Both branches read AF_SHIP, which never
+    // says the shop ships at no cost (owner: nothing on the site is free).
     if (st) {
       out.className = 'taf-shipcheck-result ok';
-      // No literal "free" in this file: the free branch takes its words from
-      // AF_SHIP too, so the page source never carries the claim while the
-      // policy says otherwise (the diag counts script text as well).
-      out.innerHTML = (AF_SHIP.free
-            ? '<b>🎁 ' + AF_SHIP.short + ' — delivering to ' + m[1] + ' (' + st + ').</b><br>'
-            : '<b>🚚 We deliver to ' + m[1] + ' (' + st + ').</b> ' + AF_SHIP.short + '<br>')
-        + arrival;
-    } else if (AF_SHIP.free) {
-      // A valid US ZIP whose prefix this table does not carry. Free is free.
-      out.className = 'taf-shipcheck-result ok';
-      out.innerHTML = '<b>🎁 ' + AF_SHIP.short + ' — delivering to ' + m[1] + '.</b><br>' + arrival;
+      out.innerHTML = '<b>🚚 We deliver to ' + m[1] + ' (' + st + ').</b> ' + AF_SHIP.short + '<br>' + arrival;
     } else {
       out.className = 'taf-shipcheck-result mid';
       out.innerHTML = '<b>🚚 We deliver to ' + m[1] + '.</b> Shipping is calculated at checkout based on artwork size.<br>' +
@@ -8911,7 +8893,7 @@ add_shortcode('af_dashboard', function() {
     <span class="afd-welcome-ico">🖼️</span>
     <span class="afd-eyebrow">Your Account</span>
     <h2>Welcome to Your Dashboard</h2>
-    <p>Sign in to see your orders, downloads, and saved details — or create a free account in under a minute.</p>
+    <p>Sign in to see your orders, downloads, and saved details — or create an account in under a minute.</p>
     <div class="afd-welcome-btns">
       <a class="afd-btn" href="<?php echo esc_url(home_url('/my-account/')); ?>">Sign In</a>
       <a class="afd-btn afd-btn-ghost" href="<?php echo esc_url(home_url('/sign-up/')); ?>">Create Account</a>
@@ -10745,7 +10727,7 @@ add_action('woocommerce_account_returns_endpoint', function() {
     echo '<label>Reason *<select name="af_rma_reason" required>';
     foreach (af_rma_reasons() as $k => $v) echo '<option value="' . esc_attr($k) . '">' . esc_html($v) . '</option>';
     echo '</select></label></div>';
-    echo '<label>Preferred resolution *<select name="af_rma_resolution" required><option value="replacement">Free replacement</option><option value="refund">Refund</option><option value="advice">Just need advice</option></select></label>';
+    echo '<label>Preferred resolution *<select name="af_rma_resolution" required><option value="replacement">Replacement</option><option value="refund">Refund</option><option value="advice">Just need advice</option></select></label>';
     echo '<label>Tell us what happened *<textarea name="af_rma_details" rows="4" required maxlength="2000" placeholder="Describe the issue. For damage, mention which part is affected — we may ask for photos by email."></textarea></label>';
     echo '<button type="submit" class="taf-form-submit" name="af_rma_submit" value="1">Submit Request</button>';
     echo '</form></div>';
@@ -11291,11 +11273,7 @@ function af_offer_shipping_details() {
     // The rate follows af_shipping_copy(): telling Google "0" while the site
     // charges for shipping is a false free-shipping claim in Merchant results,
     // which is a policy problem as well as a factual one. With no rate
-    // configured the amount is omitted rather than guessed at.
-    //
-    // Under the free policy the cost is the string "0", so Google is told a
-    // rate of zero — which is what the shop now actually does, and what makes
-    // the listings eligible for free-shipping treatment. The number still
+    // configured the amount is omitted rather than guessed at. The number
     // comes from the same one source as every visible badge, so the feed and
     // the page cannot say different things.
     $cost = function_exists('af_shipping_copy') ? af_shipping_copy()['cost'] : '';
@@ -12522,7 +12500,7 @@ add_action('template_redirect', function () {
               </div>
               <div class="af-ftm-panel af-ftm-flat">
                 <div class="af-ftm-price"><span>Your price</span><strong id="ftm-price">—</strong></div>
-                <p class="af-ftm-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Free secure packaging</p>
+                <p class="af-ftm-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Secure packaging</p>
                 <div class="af-ftm-actions">
                   <button type="button" id="ftm-save" class="af-ftm-btn ghost">⤓ Save Preview</button>
                   <a href="#" id="ftm-send" class="af-ftm-btn solid" target="_blank" rel="noopener">Confirm &amp; Send</a>
@@ -15873,11 +15851,11 @@ add_action('woocommerce_cart_totals_before_order_total', 'af_cart_breakdown_rows
  * It always said "Shipping cost shown at checkout", even when the delivery
  * row sat right above it and was already added into the total, and even
  * for a download-only cart that has nothing to deliver (checkout audit,
- * 30 Sep). A free-shipping setting keeps its own wording.
+ * 30 Sep).
  */
 function af_cart_delivery_note() {
-    $ship = function_exists('af_shipping_copy') ? af_shipping_copy() : array('short' => 'Shipping cost shown at checkout', 'free' => false);
-    if (!empty($ship['free']) || !function_exists('WC') || !WC()->cart) return $ship['short'];
+    $ship = function_exists('af_shipping_copy') ? af_shipping_copy() : array('short' => 'Shipping cost shown at checkout');
+    if (!function_exists('WC') || !WC()->cart) return $ship['short'];
     $cart = WC()->cart;
     if (!$cart->needs_shipping()) return 'Digital download: nothing to deliver, no delivery charge';
     if ($cart->show_shipping()) {
@@ -16847,7 +16825,7 @@ function af_ticker_items() {
         '🖼️ Gallery-wrapped and ready to hang',
         '💎 Fade-resistant archival inks on museum-quality canvas',
         '✓ Inclusive of all taxes',
-        '📦 Free secure packaging',
+        '📦 Secure packaging',
         '📐 Custom sizes available',
     )) ) );
 }
