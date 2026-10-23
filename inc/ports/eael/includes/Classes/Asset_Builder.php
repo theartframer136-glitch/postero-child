@@ -435,7 +435,7 @@ class Asset_Builder {
 				'eael' . $dynamic_asset_id,
 				$this->safe_url( EAEL_ASSET_URL . '/' . 'eael' . $dynamic_asset_id . '.css' ),
 				[ 'eael-general' ],
-				get_post_modified_time()
+				get_post_modified_time() . ( defined( 'AF_EAEL_ASSET_REV' ) ? '.' . AF_EAEL_ASSET_REV : '' )
 			);
 		}
 
@@ -450,7 +450,7 @@ class Asset_Builder {
 				'eael' . $dynamic_asset_id,
 				$this->safe_url( EAEL_ASSET_URL . '/' . 'eael' . $dynamic_asset_id . '.js' ),
 				[ 'eael-general' ],
-				get_post_modified_time(),
+				get_post_modified_time() . ( defined( 'AF_EAEL_ASSET_REV' ) ? '.' . AF_EAEL_ASSET_REV : '' ),
 				true
 			);
 		}
@@ -477,7 +477,16 @@ class Asset_Builder {
 	 * @return bool
 	 */
 	public function has_asset( $post_id, $file = 'css' ) {
-		if ( file_exists( $this->safe_path( EAEL_ASSET_PATH . '/' . 'eael' . ( $post_id ? '-' . $post_id : '' ) . '.' . $file ) ) ) {
+		$path = $this->safe_path( EAEL_ASSET_PATH . '/' . 'eael' . ( $post_id ? '-' . $post_id : '' ) . '.' . $file );
+		if ( file_exists( $path ) ) {
+			// port: a copy written before the current asset revision is stale.
+			// The copies are built once from the view files and were never
+			// rebuilt when a view file changed (2026-10-23: the login pages kept
+			// the old hook name after the deploy). Returning false rebuilds it.
+			$rev = function_exists( 'af_eael_asset_rev_time' ) ? af_eael_asset_rev_time() : 0;
+			if ( $rev && @filemtime( $path ) < $rev ) {
+				return false;
+			}
 			return true;
 		}
 

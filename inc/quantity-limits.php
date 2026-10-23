@@ -300,6 +300,9 @@ add_action('wp_footer', function () {
     }
   }
   document.addEventListener('change', function (e) { clamp(e.target); }, true);
+  // As the value is typed, too: the recheck read the box before it lost
+  // focus and still saw -3. A partial entry ("" or "-") is left alone.
+  document.addEventListener('input', function (e) { clamp(e.target); }, true);
   document.addEventListener('blur', function (e) { clamp(e.target); }, true);
   document.addEventListener('submit', function (e) {
     var f = e.target; if (!f || !f.querySelectorAll) return;

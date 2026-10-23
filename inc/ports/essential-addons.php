@@ -82,6 +82,25 @@ define('EAEL_PLUGIN_VERSION', '6.8.5');
 define('EAEL_ASSET_PATH', wp_upload_dir()['basedir'] . '/essential-addons-elementor');
 define('EAEL_ASSET_URL', wp_upload_dir()['baseurl'] . '/essential-addons-elementor');
 
+/*
+ * Asset revision. Bump it when a file under assets/ports/eael/.../view/
+ * changes: every per-page copy (uploads/essential-addons-elementor/eael-<id>.js|css)
+ * older than the moment the new revision was first seen is rebuilt on its
+ * next view, and its URL carries the revision so page and browser caches
+ * fetch the new file. Rev 2, 2026-10-23: the login form's hook name.
+ */
+define('AF_EAEL_ASSET_REV', '2');
+function af_eael_asset_rev_time() {
+    static $t = null;
+    if ($t !== null) return $t;
+    $o = get_option('af_eael_asset_rev');
+    if (!is_array($o) || !isset($o['rev'], $o['t']) || $o['rev'] !== AF_EAEL_ASSET_REV) {
+        $o = array('rev' => AF_EAEL_ASSET_REV, 't' => time());
+        update_option('af_eael_asset_rev', $o, true);
+    }
+    return $t = (int) $o['t'];
+}
+
 // autoload.php, pointed at inc/ports/eael/includes/.
 spl_autoload_register(function ($class) {
     $prefix = 'Essential_Addons_Elementor\\';
