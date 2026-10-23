@@ -133,7 +133,7 @@ unset($af_qligg_php, $af_qligg_fix_src, $af_qligg_snap, $af_qligg_c);
  * file and offers no size parameter, and the feed is drawn in the browser from
  * the plugin's REST response, so the only place to intervene is that response.
  * Every image URL in it is swapped for a copy this site resized to at most
- * 1080 px (JPEG, quality 80) and keeps under uploads/af-ig/. A copy is made
+ * 720 px (JPEG, quality 80; 1080 px before 23 Oct 2026) and keeps under uploads/af-ig/. A copy is made
  * the first time a URL is seen (at most four downloads per request, the rest
  * queued for a cron run a minute later), then served from disk. The key is
  * the CDN path without its signed query string, so a token refresh does not
@@ -155,9 +155,27 @@ function af_ig_small_image($url, $force = false) {
         $path = (string) parse_url($url, PHP_URL_PATH);
         if ($path === '' || !preg_match('/\.(jpe?g|png|webp|heic)$/i', $path)) return $url;
         list($dir, $base) = af_ig_cache_dir();
-        $key  = md5($path) . '.jpg';
+        // 720 px since 23 Oct 2026: the grid draws each picture about 330 px
+        // wide, and a 1080 px copy was 3.3x that (full site test). 720 is still
+        // sharp at twice the grid size and in the lightbox. The earlier 1080
+        // copy, where there is one, is the source of the new one, so the
+        // switch never sends anyone the multi-megabyte original meanwhile.
+        $old  = md5($path) . '.jpg';
+        $key  = md5($path) . '-720.jpg';
         $file = $dir . '/' . $key;
         if (is_file($file) && filesize($file) > 0) return $base . '/' . $key;
+        if (is_file($dir . '/' . $old) && filesize($dir . '/' . $old) > 0) {
+            if (!$force && $budget <= 0) return $base . '/' . $old;
+            if (!$force) $budget--;
+            $ed = wp_get_image_editor($dir . '/' . $old);
+            if (!is_wp_error($ed)) {
+                $ed->resize(720, 720, false);
+                $ed->set_quality(80);
+                $saved = $ed->save($file, 'image/jpeg');
+                if (!is_wp_error($saved) && !empty($saved['path']) && $saved['path'] !== $file) @rename($saved['path'], $file);
+            }
+            return (is_file($file) && filesize($file) > 0) ? $base . '/' . $key : $base . '/' . $old;
+        }
         if (!$force) {
             if ($budget <= 0) { af_ig_queue_warm($url); return $url; }
             $budget--;
@@ -170,7 +188,7 @@ function af_ig_small_image($url, $force = false) {
         $ok = false;
         $ed = wp_get_image_editor($tmp);
         if (!is_wp_error($ed)) {
-            $ed->resize(1080, 1080, false);
+            $ed->resize(720, 720, false);
             $ed->set_quality(80);
             $saved = $ed->save($file, 'image/jpeg');
             if (!is_wp_error($saved) && !empty($saved['path'])) {
