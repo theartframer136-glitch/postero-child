@@ -31,7 +31,7 @@ on:
       pass:
         description: Which pass to run
         type: choice
-        options: [full, browser, probe, both, links, perf]
+        options: [full, browser, probe, probe-hooks, both, links, perf]
         default: full
       max_pages:
         description: How many pages at most (full defaults to 2500, links to 160)
@@ -159,7 +159,7 @@ jobs:
           if-no-files-found: warn
 
   probe:
-    if: ${{ inputs.pass == 'probe' }}
+    if: ${{ inputs.pass == 'probe' || inputs.pass == 'probe-hooks' }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -173,4 +173,6 @@ jobs:
           npm i playwright@1.56 >/dev/null
           npx playwright install --with-deps chromium
       - name: Probe
+        env:
+          PROBE_ONLY: ${{ inputs.pass == 'probe-hooks' && 'hooks' || '' }}
         run: node tools/probe-site-details.mjs "${{ inputs.url || 'https://theartframer.us' }}" || true

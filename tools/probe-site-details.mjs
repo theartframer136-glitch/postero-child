@@ -42,6 +42,47 @@ async function go(url) {
   return r ? r.status() : 0;
 }
 
+// ── only the hook-name error, when asked: PROBE_ONLY=hooks ──────────────────
+if (process.env.PROBE_ONLY === 'hooks') {
+  const hp = await ctx.newPage();
+  // Record the stack of the call that prints the error, then read the bundled
+  // file around the frame that called into wp.hooks.
+  await hp.addInitScript(() => {
+    const orig = console.error;
+    window.__afHookStacks = [];
+    console.error = function (...a) {
+      try { if (String(a[0]).includes('hook name')) window.__afHookStacks.push(new Error().stack); } catch (e) {}
+      return orig.apply(this, a);
+    };
+  });
+  for (const p of ['/login/', '/sign-up/']) {
+    await hp.goto(SITE + p, { waitUntil: 'load', timeout: 60000 }).catch(() => {});
+    await hp.waitForTimeout(4000);
+    const stacks = await hp.evaluate(() => window.__afHookStacks || []);
+    out(`=== ${p}: ${stacks.length} hook-name error(s) ===`);
+    const seen = new Set();
+    for (const st of stacks.slice(0, 3)) {
+      out(st.split('\n').slice(0, 8).map(l => '   ' + l.trim()).join('\n'));
+      for (const m of st.matchAll(/(https?:\/\/[^\s)]+\.js[^\s):]*):(\d+):(\d+)/g)) {
+        const key = m[1] + ':' + m[2] + ':' + m[3];
+        if (seen.has(key) || seen.size >= 6) continue;
+        seen.add(key);
+        const src = await (await fetch(m[1])).text().catch(() => '');
+        const lines = src.split('\n');
+        const line = lines[+m[2] - 1] || '';
+        const col = +m[3];
+        out(`   --- ${m[1].replace(SITE, '')} line ${m[2]} col ${col} ---\n   …${line.slice(Math.max(0, col - 400), col + 200)}…`);
+      }
+    }
+    // Which source file each bundle was combined from, when LiteSpeed says.
+    const scripts = await hp.evaluate(() => [...document.scripts].map(s => s.src).filter(Boolean).filter(u => !u.includes('/litespeed/')).map(u => u.replace(location.origin, '')).slice(0, 60));
+    out('   uncombined scripts on the page: ' + scripts.join(' '));
+    await sleep(PAUSE);
+  }
+  await browser.close();
+  process.exit(0);
+}
+
 // ── home ──────────────────────────────────────────────────────────────────
 out(`=== HOME ${SITE}/  status ${await go(SITE + '/')} ===`);
 const home = await page.evaluate(() => {
