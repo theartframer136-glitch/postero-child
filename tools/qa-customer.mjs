@@ -375,7 +375,12 @@ async function customer(session) {
     await sleep(PAUSE);
     await go(page, rel(prod));
     const pname = (await page.locator('h1').first().innerText().catch(() => '')).trim();
-    const wl = page.locator('.woosw-btn, a[class*="wishlist"], button[class*="wishlist"], [data-id][class*="woosw"]').filter({ visible: true }).first();
+    // The piece's own heart: a woosw button carrying this product's id. The
+    // header's wishlist link also has "wishlist" in its class, so a loose
+    // class match clicked that link instead of adding anything.
+    const pid = await page.evaluate(() => { const m = document.body.className.match(/\bpostid-(\d+)/); return m ? m[1] : ''; });
+    const wl = page.locator(pid ? `.woosw-btn[data-id="${pid}"]` : '.summary .woosw-btn[data-id], .product .woosw-btn[data-id]')
+      .filter({ visible: true }).first();
     if (await wl.count()) {
       await wl.click({ timeout: 6000 }).catch(() => {});
       await page.waitForTimeout(3000);
@@ -386,7 +391,8 @@ async function customer(session) {
       await page.waitForTimeout(1500);
       const t = await text(page);
       const short = pname.split(/[–\-|]/)[0].trim().slice(0, 30);
-      if (short && t.includes(short)) PASS('the wishlist keeps the piece across a reload', short);
+      const listed = pid ? await page.locator(`.woosw-item-${pid}`).count() : 0;
+      if (listed || (short && t.includes(short))) PASS('the wishlist keeps the piece across a reload', short);
       else if (/empty|no products/i.test(t)) FAIL('a piece added to the wishlist is not on the wishlist page', short);
       else WARN('could not find the added piece on the wishlist page', short);
     } else WARN('no wishlist button on the product page');
