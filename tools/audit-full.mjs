@@ -218,6 +218,14 @@ function analyse(url, html) {
   for (const e of wcErr.slice(0, 2)) I('WARN', 'woo-notice', `error notice rendered: "${e.slice(0, 120)}"`);
   if (text.length < 120) I('WARN', 'empty', `almost no text on the page (${text.length} chars)`);
 
+  // The theme vendor's demo store, or the old staging host, anywhere in the
+  // markup the server sent. The browser-side guard rewrites these after load,
+  // so a crawl is the only place a leak in the server HTML shows up.
+  for (const host of ['demo2wpopal.b-cdn.net', 'hostingersite.com']) {
+    const i = html.indexOf(host);
+    if (i >= 0) I('WARN', 'demo-link', `${host} in the server HTML: …${html.slice(Math.max(0, i - 140), i + 60).replace(/\s+/g, ' ')}…`);
+  }
+
   // Links and assets
   const internalLinks = new Set(), externalLinks = new Set(), images = new Set();
   const badHref = [];   // {why,label,href}
@@ -242,12 +250,16 @@ function analyse(url, html) {
     .filter(m => m[1].toLowerCase() !== 'link' || /\brel\s*=\s*["'][^"']*(stylesheet|preload|icon|prefetch)/i.test(m[0]))
     .map(m => m[0].slice(0, 120));
   if (mixed.length) I('FAIL', 'mixed-content', `${mixed.length} http:// asset(s), e.g. ${mixed[0]}`);
-  for (const m of html.matchAll(/<img\b([^>]*)>/gi)) {
+  // Images come from the markup a browser renders, not from <script> and
+  // <template> blocks: a plugin's client-side template ({{{data.img}}}) is not
+  // an image and was reported as a 404 on every page in the first full run.
+  for (const m of noScript.matchAll(/<img\b([^>]*)>/gi)) {
     const a = m[1];
     for (const n of ['src', 'data-src', 'data-lazy-src']) { const v = attr(a, n); if (v && !/^data:/.test(v)) { const u = norm(v, url); if (u) images.add(u); } }
     for (const n of ['srcset', 'data-srcset']) { const v = attr(a, n); if (v) for (const c of v.split(',').slice(0, 2)) { const s = c.trim().split(/\s+/)[0]; if (s && !/^data:/.test(s)) { const u = norm(s, url); if (u) images.add(u); } } }
   }
-  for (const m of html.matchAll(/<(?:source|video)\b[^>]*\bposter\s*=\s*["']([^"']+)["']/gi)) { const u = norm(m[1], url); if (u) images.add(u); }
+  for (const m of noScript.matchAll(/<(?:source|video)\b[^>]*\bposter\s*=\s*["']([^"']+)["']/gi)) { const u = norm(m[1], url); if (u) images.add(u); }
+  for (const u of [...images]) if (/\{\{|%7B%7B|<%|\$\{/i.test(u)) images.delete(u);
   const imgTotal = (html.match(/<img\b/gi) || []).length;
   const imgNoAlt = (html.match(/<img\b(?![^>]*\balt\s*=)[^>]*>/gi) || []).length;
   if (imgTotal && imgNoAlt / imgTotal > 0.5 && imgNoAlt > 5) I('INFO', 'a11y', `${imgNoAlt} of ${imgTotal} images have no alt attribute`);
@@ -287,7 +299,12 @@ const noteLink = (map, u, from) => { if (!map.has(u)) map.set(u, new Set()); con
 async function crawlOne(u, fromSitemap) {
   let r = await fetchDoc(u);
   if (r.status === 200 && isChallenge(r.body)) { await sleep(2500); r = await fetchDoc(u); }
-  const rec = { url: u, fromSitemap, status: r.status, ms: r.ms, ttfb: r.ttfb, chain: r.chain, final: r.final, ctype: r.ctype || '', size: r.size || 0, err: r.err || '', challenge: false, issues: [], badHref: [] };
+  // One retry on a server error or a dropped connection, after a pause: this
+  // host answers 502 when it is briefly overloaded, and a report should say
+  // whether the page is broken or the server was busy.
+  let retried = '';
+  if (r.status >= 500 || r.status === -1) { const first = r.status; await sleep(5000); r = await fetchDoc(u); retried = `first try ${first === -1 ? 'ERR' : first}, retry ${r.status === -1 ? 'ERR' : r.status}`; }
+  const rec = { url: u, fromSitemap, status: r.status, ms: r.ms, ttfb: r.ttfb, chain: r.chain, final: r.final, ctype: r.ctype || '', size: r.size || 0, err: [r.err, retried].filter(Boolean).join('; '), challenge: false, issues: [], badHref: [] };
   if (r.status === 200 && isChallenge(r.body)) { rec.challenge = true; rec.issues.push({ sev: 'WARN', kind: 'challenge', detail: 'host answered with the "Checking your browser" page twice' }); }
   else if (r.status === 200 && /text\/html/.test(rec.ctype) && r.body) {
     const a = analyse(r.final || u, r.body);
@@ -413,6 +430,8 @@ async function crawlOne(u, fromSitemap) {
   sec(`BROKEN EXTERNAL LINKS (${extHard.length} dead, ${extSoft.length} refused the bot — verify by hand)`);
   list(extHard, ([u, r]) => `  ${String(r.status === -1 ? 'ERR' : r.status).padEnd(4)} ${u}${r.err ? '  (' + r.err + ')' : ''}\n        on: ${[...(allExternal.get(u) || [])].slice(0, 3).join(' | ')}`);
   if (extSoft.length) { console.log('  refused / blocked (403, 405, 429, 999 …):'); list(extSoft, ([u, r]) => `  ${String(r.status).padEnd(4)} ${u}\n        on: ${[...(allExternal.get(u) || [])].slice(0, 2).join(' | ')}`, 30); }
+  const demo = rows.filter(r => r.issues.some(i => i.kind === 'demo-link'));
+  sec(`DEMO-STORE / STAGING LINKS IN SERVER HTML (${demo.length} pages)`); list(demo, r => `  ${r.url}\n        ${r.issues.filter(i => i.kind === 'demo-link').map(i => i.detail).join('\n        ')}`, 10);
   sec(`PRODUCT PAGE PROBLEMS (${productIssues.length})`); list(productIssues, r => `  ${r.url}\n        ${r.issues.filter(i => i.kind === 'product' && i.sev !== 'INFO').map(i => i.detail).join('; ')}`, 60);
   sec(`EMPTY CATEGORIES (${catIssues.length})`); list(catIssues, r => `  ${r.url}`);
   sec(`PLACEHOLDER TEXT / BROKEN RENDERING (${placeholders.length})`); list(placeholders, r => `  ${r.url}\n        ${r.issues.filter(i => ['placeholder', 'shortcode', 'woo-notice', 'empty'].includes(i.kind)).map(i => i.detail).join('\n        ')}`, 60);
@@ -428,11 +447,19 @@ async function crawlOne(u, fromSitemap) {
   list(multiHop, r => `  ${r.url}\n        ${r.chain.map(h => `${h.status} → ${h.to}`).join('\n        ')}`, 25);
   list(redirSitemap, r => `  sitemap: ${r.url} → ${r.chain[r.chain.length - 1].to}`, 25);
   sec(`SEO / HEAD (${seoFail.length} missing title, ${noDesc.length} no description, ${noCanon.length} no canonical, ${noH1.length} no H1, ${multiH1.length} multiple H1, ${noindexSm.length} noindex-in-sitemap, ${noViewport.length} no viewport)`);
+  // Which kind of page each gap is on: a missing description on 400 product
+  // pages and one on 400 ?layout= variants are different problems.
+  const kindOf = r => { const u = new URL(r.url); if (u.search) return 'with query string'; if (r.isProduct) return 'product'; if (/^\/product-category\//.test(u.pathname)) return 'product category'; if (/^\/product-tag\//.test(u.pathname)) return 'product tag'; if (/^\/(category|tag|author)\//.test(u.pathname)) return 'blog archive'; if (/\/page\/\d+\/?$/.test(u.pathname)) return 'paginated'; return 'page / post'; };
+  const breakdown = arr => { const m = {}; for (const r of arr) { const k = kindOf(r); m[k] = (m[k] || 0) + 1; } return Object.entries(m).sort((a, b) => b[1] - a[1]).map(([k, n]) => `${k} ${n}`).join(', ') || '-'; };
+  console.log(`  by page kind — no description: ${breakdown(noDesc)}`);
+  console.log(`  by page kind — no canonical  : ${breakdown(noCanon)}`);
+  console.log(`  by page kind — no H1         : ${breakdown(noH1)}`);
   list(seoFail, r => `  no title: ${r.url}`, 20);
   list(noindexSm, r => `  noindex but in sitemap: ${r.url}`, 20);
-  list(noH1, r => `  no H1: ${r.url}`, 20);
-  list(noDesc, r => `  no description: ${r.url}`, 20);
-  list(noCanon, r => `  no canonical: ${r.url}`, 20);
+  const clean = a => [...a.filter(r => !new URL(r.url).search), ...a.filter(r => new URL(r.url).search)];
+  list(clean(noH1), r => `  no H1: ${r.url}`, 30);
+  list(clean(noDesc), r => `  no description: ${r.url}`, 30);
+  list(clean(noCanon), r => `  no canonical: ${r.url}`, 30);
   list(noViewport, r => `  no viewport: ${r.url}`, 20);
   sec(`DUPLICATE TITLES (${dupTitles.length})`); list(dupTitles, ([t, l]) => `  "${t.slice(0, 70)}"  ×${l.length}\n        ${l.slice(0, 4).join('\n        ')}`, 25);
   sec(`SLOW PAGES — time to first byte over 3 s (${over3s.length}); slowest 15`);
