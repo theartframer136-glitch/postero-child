@@ -36,3 +36,6 @@ debug.log
 
 # Working copies made by Claude Code agents (never part of the theme)
 .claude/
+
+# Output of tools/audit-full.mjs and tools/audit-browser.mjs
+audit-out/

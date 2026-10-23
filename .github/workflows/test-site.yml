@@ -1,0 +1,97 @@
+name: Test Site
+
+# The whole live shop, tested end to end and read-only.
+#
+#   crawl    every page in the sitemap and every page linked from them:
+#            status, redirects, PHP notices, soft 404s, placeholder text,
+#            product essentials, SEO head, every image, every external link
+#            (tools/audit-full.mjs)
+#   browser  a real Chromium over a sample of every kind of page, desktop and
+#            phone: JS errors, failed requests, broken images, sideways scroll,
+#            then search, quick view, wishlist, menu, product → cart → checkout,
+#            the forms and the 404 page (tools/audit-browser.mjs), followed by
+#            the release-checklist pass (tools/qa-veteran.mjs)
+#
+# Manual only: the host is CPU-bound, so the crawl runs three requests at a
+# time and the browser job waits for the crawl to finish. Nothing is ever
+# submitted that would reach a person or a ledger.
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: Site to test (blank = the live shop)
+        type: string
+        default: ''
+      max_pages:
+        description: Crawl — how many pages at most
+        type: string
+        default: '2500'
+      browser:
+        description: Run the browser pass after the crawl
+        type: boolean
+        default: true
+
+concurrency:
+  group: qa-live
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Crawl and check every page
+        run: |
+          set -o pipefail
+          mkdir -p audit-out
+          node tools/audit-full.mjs "${{ inputs.url || 'https://theartframer.us' }}" "${{ inputs.max_pages }}" audit-out 2>&1 | tee audit-out/crawl.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: site-test-crawl
+          path: audit-out
+          if-no-files-found: warn
+
+  browser:
+    needs: crawl
+    if: ${{ inputs.browser }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install Playwright Chromium
+        run: |
+          npm init -y >/dev/null
+          npm i playwright@1.56 >/dev/null
+          npx playwright install --with-deps chromium
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-test-crawl
+          path: audit-out
+      - name: Browser pass over the sampled pages and the visitor flows
+        run: |
+          set -o pipefail
+          node tools/audit-browser.mjs "${{ inputs.url || 'https://theartframer.us' }}" audit-out/sample.json audit-out 2>&1 | tee audit-out/browser.log || true
+      - name: Release-checklist pass
+        run: |
+          set -o pipefail
+          node tools/qa-veteran.mjs "${{ inputs.url || 'https://theartframer.us' }}" 2>&1 | tee audit-out/veteran.log || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: site-test-browser
+          path: |
+            audit-out/browser.log
+            audit-out/veteran.log
+            audit-out/browser-findings.json
+            audit-out/shots
+            veteran-final.png
+          if-no-files-found: warn
