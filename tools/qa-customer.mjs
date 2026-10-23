@@ -197,6 +197,23 @@ async function firstVisit(label, opts) {
   else PASS('price shown on the first screen', p.price.replace(/\s+/g, ' ').slice(0, 40));
   if (!p.atc) FAIL('no Add to cart button on the product page');
   else if (phone && !p.atcInView) WARN('on a phone the Add to cart button is more than a screen and a half down');
+  if (phone && p.atc) {
+    // The buy bar at the foot of a phone screen keeps price and Add to Cart in reach.
+    await page.waitForTimeout(1200);
+    const bb = await page.evaluate(() => {
+      const b = document.getElementById('af-buybar'); if (!b) return null;
+      const r = b.getBoundingClientRect(), live = document.getElementById('af-live-price');
+      const stack = document.elementsFromPoint(r.left + r.width - 40, r.top + r.height / 2);
+      return { on: b.classList.contains('af-on'), inView: r.top < innerHeight && r.bottom <= innerHeight + 1,
+        price: (b.querySelector('.af-bb-price') || {}).textContent || '', live: live ? live.textContent.trim() : '',
+        onTop: !!stack.length && b.contains(stack[0]) };
+    });
+    if (!bb) WARN('no buy bar on the phone product page');
+    else if (!bb.on || !bb.inView) WARN('the phone buy bar is not showing while Add to cart is out of sight', JSON.stringify(bb));
+    else if (!bb.onTop) WARN('something covers the phone buy bar', JSON.stringify(bb));
+    else if (bb.live && bb.price !== bb.live) FAIL('the buy bar price differs from the page price', `${bb.price} vs ${bb.live}`);
+    else PASS('a buy bar keeps price and Add to Cart in reach on a phone', bb.price);
+  }
   if (!p.img) FAIL('no product picture');
   if (!p.shipping) WARN('the product page says nothing about delivery');
   if (!p.returns) WARN('the product page says nothing about returns or refunds');
