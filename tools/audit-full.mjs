@@ -59,7 +59,7 @@ const internal = u => { try { return new URL(u).host === host; } catch { return 
 
 // Not pages, or they would act on the shop, or they are translated copies of
 // a page already in the crawl (Transposh ?lang= / /hi/).
-const SKIP = /\.(jpe?g|png|gif|webp|avif|svg|ico|css|js|mp4|webm|pdf|zip|woff2?|ttf|xml|txt|json)(\?|$)|\/wp-admin|\/wp-json|\/wp-login|\/xmlrpc|\/feed\/?$|\/embed\/?$|add-to-cart=|\?add_to_cart|add[-_]to[-_]wishlist=|remove_item|woosw|woosc|customer-logout|\?orderby=|\?filter_|\?paged=|\?s=|\?lang=|\?replytocom=|\?share=|\/page\/\d+\/?\?|^https?:\/\/[^/]+\/[a-z]{2}\/|\/wp-content\//i;
+const SKIP = /\.(jpe?g|png|gif|webp|avif|svg|ico|css|js|mp4|webm|pdf|zip|woff2?|ttf|xml|txt|json)(\?|$)|\/wp-admin|\/wp-json|\/wp-login|\/xmlrpc|\/feed\/?$|\/embed\/?$|add-to-cart=|\?add_to_cart|add[-_]to[-_]wishlist=|remove_item|woosw|woosc|customer-logout|\?orderby=|\?filter_|\?paged=|\?s=|\?lang=|\?replytocom=|[?&]tow=|[?&]first_letter=|\?share=|\/page\/\d+\/?\?|^https?:\/\/[^/]+\/[a-z]{2}\/|\/wp-content\//i;
 
 // ── fetch with a manual redirect walk ────────────────────────────────────────
 async function fetchDoc(url, { timeout = 30000 } = {}) {
