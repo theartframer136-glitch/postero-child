@@ -7359,7 +7359,7 @@ add_action('wp_footer', function() {
       <div class="af-dd-modal">
         <button class="af-dd-x" data-dd-close aria-label="Close">&times;</button>
         <div class="af-dd-flex">
-          <div class="af-dd-imgwrap"><img id="af-dd-img" alt="" draggable="false"><span class="af-dd-shield" aria-hidden="true"></span></div>
+          <div class="af-dd-imgwrap"><img id="af-dd-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="" draggable="false"><span class="af-dd-shield" aria-hidden="true"></span></div>
           <div class="af-dd-info">
             <span class="af-dd-tag">⬇ Instant Digital Download</span>
             <h3 id="af-dd-title">Digital Download</h3>

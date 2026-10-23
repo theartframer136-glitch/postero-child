@@ -395,8 +395,27 @@ document.addEventListener("DOMContentLoaded", function(){
     overlay.addEventListener("click", function(e){ if (e.target === overlay) closeOffer(); });
     document.addEventListener("keydown", function(e){ if (e.key === "Escape" && overlay.classList.contains("active")) closeOffer(); });
 
+    // 23 Oct: a first-time visitor met this full-screen offer and the cookie
+    // notice at the same moment, the notice covering 65% of a phone (the
+    // customer-journey test). The cookie choice comes first; the offer waits
+    // until it has been answered (inc/cookie-consent.php keeps the class
+    // af-ck-open on <html> while the notice is up), then its usual 8 seconds.
+    function consentOpen(){ return document.documentElement.classList.contains('af-ck-open'); }
+    function openLater(){ setTimeout(function(){ if (!consentOpen() && !recentlyClosed()) overlay.classList.add("active"); }, 8000); }
     if (!recentlyClosed()) {
-        setTimeout(function(){ overlay.classList.add("active"); }, 8000);
+        if (!consentOpen()) {
+            // The notice is drawn by a script that may run after this one: look
+            // again shortly before deciding there is nothing to wait for.
+            setTimeout(function(){ if (consentOpen()) waitForConsent(); else openLater(); }, 600);
+        } else {
+            waitForConsent();
+        }
+    }
+    function waitForConsent(){
+        var mo = new MutationObserver(function(){
+            if (!consentOpen()) { mo.disconnect(); openLater(); }
+        });
+        mo.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     }
 
 });

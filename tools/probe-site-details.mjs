@@ -42,6 +42,42 @@ async function go(url) {
   return r ? r.status() : 0;
 }
 
+// ── user-facing detail, when asked: PROBE_ONLY=ux ───────────────────────────
+// The two persona findings that need the element, not just the count: the
+// low-contrast email and phone number, and the broken pictures on the
+// digital downloads page.
+if (process.env.PROBE_ONLY === 'ux') {
+  const up = await ctx.newPage();
+  for (const vp of [{ width: 1366, height: 900 }, { width: 390, height: 844 }]) {
+    await up.setViewportSize(vp);
+    await up.goto(SITE + '/', { waitUntil: 'load', timeout: 60000 }).catch(() => {});
+    await up.waitForTimeout(3000);
+    const c = await up.evaluate(() => {
+      const bg = el => { for (let e = el; e; e = e.parentElement) { const b = getComputedStyle(e).backgroundColor; if (b && !/rgba\(0, 0, 0, 0\)|transparent/.test(b)) return b + ' on ' + e.tagName.toLowerCase() + (e.className && typeof e.className === 'string' ? '.' + e.className.trim().split(/\s+/).slice(0, 2).join('.') : ''); } return 'none (page)'; };
+      const out = [];
+      for (const el of document.querySelectorAll('a, span, p, li, div')) {
+        const own = [...el.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim();
+        if (!/theartframer136@gmail\.com|470-7280/.test(own)) continue;
+        const r = el.getBoundingClientRect(); const cs = getComputedStyle(el);
+        out.push({ text: own.slice(0, 40), tag: el.tagName.toLowerCase(), cls: (typeof el.className === 'string' ? el.className : '').slice(0, 60), color: cs.color, bg: bg(el), size: cs.fontSize, visible: r.width > 0 && r.height > 0 && cs.visibility !== 'hidden' && +cs.opacity > 0, top: Math.round(r.top), parent: el.parentElement ? (el.parentElement.className || '').toString().slice(0, 60) : '' });
+      }
+      return out;
+    });
+    out(`=== ${vp.width}px: elements holding the email / phone ===`);
+    for (const x of c) out(`  ${x.visible ? 'VISIBLE' : 'hidden '} top=${x.top} ${x.tag}.${x.cls} "${x.text}" color=${x.color} bg=${x.bg} size=${x.size}\n        parent .${x.parent}`);
+    await sleep(PAUSE);
+  }
+  await up.setViewportSize({ width: 1366, height: 900 });
+  await up.goto(SITE + '/product-category/digital-downloads-2/', { waitUntil: 'load', timeout: 60000 }).catch(() => {});
+  await up.evaluate(async () => { for (let y = 0; y < document.body.scrollHeight; y += 500) { window.scrollTo(0, y); await new Promise(r => setTimeout(r, 150)); } }).catch(() => {});
+  await up.waitForTimeout(2500);
+  const broken = await up.evaluate(() => [...document.images].filter(i => i.complete && i.naturalWidth === 0).map(i => ({ src: i.getAttribute('src'), cur: i.currentSrc, data: i.getAttribute('data-src') || i.getAttribute('data-lazy-src') || '', html: i.outerHTML.slice(0, 200), parent: (i.parentElement && i.parentElement.className || '').toString().slice(0, 60), vis: i.getBoundingClientRect().width > 0 })));
+  out(`\n=== digital downloads: ${broken.length} picture(s) that failed to load ===`);
+  for (const b of broken.slice(0, 10)) out(`  vis=${b.vis} src=${b.src} current=${b.cur} data=${b.data}\n        parent .${b.parent}\n        ${b.html}`);
+  await browser.close();
+  process.exit(0);
+}
+
 // ── only the demo-link leak, when asked: PROBE_ONLY=demo ────────────────────
 // Each page twice: as served (maybe from the page cache) and with a unique
 // query string, which the cache has never seen, so PHP renders it now.
