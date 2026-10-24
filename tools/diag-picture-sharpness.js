@@ -118,6 +118,7 @@ const phone = WIDTH < 768;
 
     console.log(`=== ${URL} at ${WIDTH}px, ${DPR}x density ===`);
     console.log('  ratio = picture pixels per screen pixel (1.00 or more is full sharpness)');
+    console.log('  (the first 60 pictures, then every one below 1.00)');
     const seen = new Set();
     let under = 0;
     r.rows.forEach((x) => {
@@ -125,7 +126,7 @@ const phone = WIDTH < 768;
       if (seen.has(key)) return;
       seen.add(key);
       if (x.ratio < 0.995) under++;
-      if (seen.size <= 60) {
+      if (seen.size <= 60 || x.ratio < 0.995) {
         console.log(`  ${x.ratio.toFixed(2).padStart(5)}  ${String(x.nat).padStart(5)}px file  drawn ${String(x.drawn).padStart(4)}px  ${String(x.kb).padStart(4)} KB  ${x.cls.padEnd(22)} ${x.file}`);
       }
     });

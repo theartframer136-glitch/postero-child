@@ -141,6 +141,9 @@ foreach ( $todo as $id ) {
 }
 
 $elapsed = time() - $started;
+// Pages cache the list of copies each card picture has (inc/markup-fixes.php);
+// forget it, so the copies just made are offered at once rather than tomorrow.
+if ( $ok ) delete_transient( 'af_mf_card_srcsets' );
 printf( "\nrebuilt %d  |  skipped %d  |  failed %d  |  %ds\n", $ok, $skipped, $failed, $elapsed );
 
 $left = 0;

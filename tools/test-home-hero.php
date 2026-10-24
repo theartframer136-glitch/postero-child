@@ -45,5 +45,10 @@ same('one per slideshow, the first slide, for the screens it shows on', af_hero_
 same('a slideshow with no picture is skipped', af_hero_first_slides(array($slides('w', array())), $r), array());
 same('a widget\'s own setting counts too', af_hero_first_slides(array(array('id' => 'w', 'widgetType' => 'slides', 'settings' => array('hide_mobile' => 'x', 'slides' => array(array('background_image' => array('url' => 'u')))))), $r), array(array('u', '(min-width: 768px)')));
 
+echo "\n=== picture priority ===\n";
+same('an <img> loses fetchpriority high', af_hero_drop_img_priority('<img fetchpriority="high" decoding="async" src="a.jpg">'), '<img decoding="async" src="a.jpg">');
+same('the banner preload <link> keeps it', af_hero_drop_img_priority('<link rel="preload" as="image" href="b.webp" fetchpriority="high">'), '<link rel="preload" as="image" href="b.webp" fetchpriority="high">');
+same('low priority is left alone', af_hero_drop_img_priority('<img fetchpriority="low" src="a.jpg">'), '<img fetchpriority="low" src="a.jpg">');
+
 echo "\n$pass passed, $fail failed\n";
 exit($fail ? 1 : 0);

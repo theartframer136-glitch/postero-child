@@ -1482,7 +1482,7 @@ jobs:
         timeout-minutes: 10
         env:
           AF_IMG_SECONDS: '240'
-          AF_IMG_MAX: '400'
+          AF_IMG_MAX: '1200'
         run: |
           set -uo pipefail
           USER="${{ secrets.HOSTINGER_USERNAME }}"

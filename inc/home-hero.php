@@ -140,9 +140,20 @@ add_action('wp_head', function () {
 }, 1);
 
 // With the banner announced, WordPress's own guess would only compete with it.
-add_filter('wp_get_attachment_image_attributes', function ($attr) {
-    if (isset($attr['fetchpriority']) && $attr['fetchpriority'] === 'high' && af_hero_is_home() && af_hero_preloads()) {
-        unset($attr['fetchpriority']);
-    }
-    return $attr;
-}, 99);
+// Taken out of the finished page rather than at the point WordPress adds it:
+// Elementor can serve a widget's HTML from its element cache, which no
+// WordPress image filter sees (measured 24 Oct 2026 — the attribute filter
+// alone left the "Try it on your wall" picture marked high).
+function af_hero_drop_img_priority($html) {
+    return preg_replace_callback('~<img\b[^>]*>~i', function ($m) {
+        return preg_replace('~\s+fetchpriority\s*=\s*(["\']?)high\1~i', '', $m[0]);
+    }, $html);
+}
+
+add_action('template_redirect', function () {
+    if (!af_hero_is_home() || is_feed() || (defined('REST_REQUEST') && REST_REQUEST)) return;
+    if (!af_hero_preloads()) return;
+    ob_start(function ($html) {
+        return is_string($html) && stripos($html, 'fetchpriority') !== false ? af_hero_drop_img_priority($html) : $html;
+    });
+}, -98);
