@@ -123,9 +123,11 @@ function af_mf_card_images($html, $exists) {
  * 24 Oct 2026: 276px wide on a phone, about 300px on a desktop). Each one gets
  * the srcset of the same picture at the same shape and a sizes that is never
  * smaller than the card, so the browser picks a file at least as wide as the
- * card times the screen's density: a plain screen takes a lighter file, a
- * sharp phone gets one sharp enough for it. $srcset maps a sized upload URL =>
- * srcset or ''.
+ * card times the screen's density. The list stops at the file the card uses
+ * today: a screen that needs less takes a lighter copy, and none is ever sent
+ * a bigger file than now (the aim is speed; and with nothing smaller than the
+ * space on offer the browser keeps today's file, so nothing gets blurrier).
+ * $resolve maps a list of sized upload URLs => srcset or ''.
  */
 function af_mf_card_srcset($html, $resolve) {
     $re = '~<img\b[^>]*\bclass\s*=\s*["\'][^"\']*\b(?:hover-img|main-img)\b[^>]*>~i';
@@ -142,8 +144,14 @@ function af_mf_card_srcset($html, $resolve) {
     return preg_replace_callback($re, function ($m) use ($src, $map, $sizes) {
         $tag = $m[0];
         $u = $src($tag);
-        if ($u === '' || empty($map[$u])) return $tag;
-        $add = ' srcset="' . esc_attr($map[$u]) . '"';
+        if ($u === '' || empty($map[$u]) || !preg_match('~-(\d{2,4})x\d{2,4}\.\w+$~', $u, $w)) return $tag;
+        $keep = array();
+        foreach (explode(',', $map[$u]) as $c) {
+            if (preg_match('~^\s*(\S+)\s+(\d+)w\s*$~', $c, $p) && (int) $p[2] <= (int) $w[1]) $keep[(int) $p[2]] = $p[1] . ' ' . $p[2] . 'w';
+        }
+        if (count($keep) < 2) return $tag;
+        ksort($keep);
+        $add = ' srcset="' . esc_attr(implode(', ', $keep)) . '"';
         if (!preg_match('~\bsizes\s*=~i', $tag)) $add .= ' sizes="' . esc_attr($sizes) . '"';
         return preg_replace('~^<img\b~i', '<img' . $add, $tag, 1);
     }, $html);
