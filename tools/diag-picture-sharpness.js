@@ -101,7 +101,7 @@ const phone = WIDTH < 768;
         const need = b.width * dpr;
         // A picture drawn "cover" is cropped, so its height can be the side that binds.
         const fit = st.objectFit === 'cover' && b.height
-          ? Math.max(fw / need, Math.min(fw / need, fh / (b.height * dpr)))
+          ? Math.max(fw / need, fh / (b.height * dpr))
           : fw / need;
         rows.push({
           file: im.currentSrc.split('/').pop().split('?')[0],
