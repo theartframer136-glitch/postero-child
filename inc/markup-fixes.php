@@ -127,13 +127,23 @@ function af_mf_card_images($html, $exists) {
  * today: a screen that needs less takes a lighter copy, and none is ever sent
  * a bigger file than now (the aim is speed; and with nothing smaller than the
  * space on offer the browser keeps today's file, so nothing gets blurrier).
+ *
+ * Only main pictures that are clearly tall (at least 1.3 times as tall as
+ * wide). The card's picture box is itself taller than wide (about 313x380 on
+ * a laptop) and pictures fill it cropped, so for anything less tall it is the
+ * box's HEIGHT that decides how many pixels are needed, which sizes cannot
+ * express. Measured 24 Oct 2026 after PR 430: the 4:3 hover scenes took the
+ * 400px copy on a 1x laptop and drew at 0.79 picture pixels per screen pixel
+ * instead of 1.52 — softer. Hover pictures, and main pictures that are square
+ * or wide, keep the one file they always had.
  * $resolve maps a list of sized upload URLs => srcset or ''.
  */
 function af_mf_card_srcset($html, $resolve) {
-    $re = '~<img\b[^>]*\bclass\s*=\s*["\'][^"\']*\b(?:hover-img|main-img)\b[^>]*>~i';
+    $re = '~<img\b[^>]*\bclass\s*=\s*["\'][^"\']*\bmain-img\b[^>]*>~i';
     $src = function ($tag) {
         if (preg_match('~\bsrcset\s*=~i', $tag)) return '';
-        return preg_match('~\bsrc\s*=\s*["\']([^"\']*/wp-content/uploads/[^"\']*?-\d{2,4}x\d{2,4}\.(?:jpe?g|png|webp))["\']~i', $tag, $s) ? $s[1] : '';
+        if (!preg_match('~\bsrc\s*=\s*["\']([^"\']*/wp-content/uploads/[^"\']*?-(\d{2,4})x(\d{2,4})\.(?:jpe?g|png|webp))["\']~i', $tag, $s)) return '';
+        return (int) $s[3] >= 1.3 * (int) $s[2] ? $s[1] : '';
     };
     if (!preg_match_all($re, $html, $all)) return $html;
     $urls = array();
