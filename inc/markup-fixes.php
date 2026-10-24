@@ -120,7 +120,7 @@ function af_mf_card_images($html, $exists) {
  * The home page's product rows come from a page-builder widget that prints a
  * bare <img class="main-img" src="...-512x1024.jpg"> with no srcset, so every
  * screen downloads that one file whatever the card's real size (measured
- * 24 Oct 2026: 276px wide on a phone, about 300px on a desktop). Each one gets
+ * 24 Oct 2026, tools/diag-picture-sharpness.js: 350px wide on a 390px phone). Each one gets
  * the srcset of the same picture at the same shape and a sizes that is never
  * smaller than the card, so the browser picks a file at least as wide as the
  * card times the screen's density. The list stops at the file the card uses
@@ -140,7 +140,7 @@ function af_mf_card_srcset($html, $resolve) {
     foreach ($all[0] as $tag) { $u = $src($tag); if ($u !== '') $urls[$u] = true; }
     if (!$urls) return $html;
     $map = (array) call_user_func($resolve, array_keys($urls));
-    $sizes = (string) apply_filters('af_home_card_sizes', '(max-width: 767px) 72vw, (max-width: 1199px) 40vw, 320px');
+    $sizes = (string) apply_filters('af_home_card_sizes', '(max-width: 767px) 92vw, (max-width: 1199px) 45vw, 360px');
     return preg_replace_callback($re, function ($m) use ($src, $map, $sizes) {
         $tag = $m[0];
         $u = $src($tag);

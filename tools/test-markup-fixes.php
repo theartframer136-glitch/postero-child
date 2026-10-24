@@ -51,7 +51,7 @@ $out = af_mf_card_srcset($main, $sets);
 same('a bare home card picture gets a srcset, smallest first', strpos($out, 'srcset="a-150x300.jpg 150w, a-400x800.jpg 400w, a-512x1024.jpg 512w"') !== false, true);
 same('never a file bigger than the one it uses today', strpos($out, '768w') === false && strpos($out, '800w') === false, true);
 same('nothing smaller on offer: unchanged', af_mf_card_srcset($main, function ($urls) { return array($urls[0] => 'a-512x1024.jpg 512w, a-768x1536.jpg 768w'); }), $main);
-same('and a sizes no smaller than the card', strpos($out, 'sizes="(max-width: 767px) 72vw, (max-width: 1199px) 40vw, 320px"') !== false, true);
+same('and a sizes no smaller than the card', strpos($out, 'sizes="(max-width: 767px) 92vw, (max-width: 1199px) 45vw, 360px"') !== false, true);
 same('its src stays as it was, for browsers without srcset', strpos($out, 'src="https://x.us/wp-content/uploads/2026/09/TP-050014-6030-512x1024.jpg"') !== false, true);
 same('no srcset known: unchanged', af_mf_card_srcset(str_replace('TP-050014', 'XX', $main), $sets), str_replace('TP-050014', 'XX', $main));
 same('a picture that has a srcset is left alone', af_mf_card_srcset('<img class="main-img" srcset="x 1x" src="https://x.us/wp-content/uploads/TP-050014-512x1024.jpg">', $sets), '<img class="main-img" srcset="x 1x" src="https://x.us/wp-content/uploads/TP-050014-512x1024.jpg">');

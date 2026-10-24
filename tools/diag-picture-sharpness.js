@@ -40,6 +40,8 @@ const phone = WIDTH < 768;
     await page.setViewport({ width: WIDTH, height: 900, isMobile: phone, hasTouch: phone, deviceScaleFactor: DPR });
     const sep = URL.includes('?') ? '&' : '?';
     await page.goto(URL + sep + 'afsharp=' + Date.now(), { waitUntil: 'networkidle2', timeout: 120000 }).catch(() => {});
+    // The site reloads itself once on a first visit; wait for that to be over.
+    await page.waitForNavigation({ waitUntil: 'networkidle2', timeout: 15000 }).catch(() => {});
     await sleep(4000);
 
     if (SHOT_DIR) {
@@ -72,7 +74,16 @@ const phone = WIDTH < 768;
       }
     }
 
-    const r = await page.evaluate((dpr) => {
+    const r = await page.evaluate(async (dpr) => {
+      // naturalWidth of a srcset picture is divided by the density the browser
+      // picked, so the file's real width is read from a plain copy of it.
+      const real = {};
+      const fileWidth = (src) => real[src] || (real[src] = new Promise((res) => {
+        const i = new Image();
+        i.onload = () => res([i.naturalWidth, i.naturalHeight]);
+        i.onerror = () => res([0, 0]);
+        i.src = src;
+      }));
       const bytes = {};
       performance.getEntriesByType('resource').forEach((e) => {
         if (e.initiatorType === 'img' || e.initiatorType === 'css' || /\.(jpe?g|png|webp|avif)(\?|$)/i.test(e.name)) {
@@ -80,23 +91,26 @@ const phone = WIDTH < 768;
         }
       });
       const rows = [];
-      document.querySelectorAll('img').forEach((im) => {
+      for (const im of document.querySelectorAll('img')) {
         const b = im.getBoundingClientRect();
-        if (b.width < 60 || !im.currentSrc || !im.naturalWidth) return;
+        if (b.width < 60 || !im.currentSrc || !im.naturalWidth) continue;
         const st = getComputedStyle(im);
-        if (st.visibility === 'hidden' || st.display === 'none') return;
+        if (st.visibility === 'hidden' || st.display === 'none') continue;
+        const [fw, fh] = await fileWidth(im.currentSrc);
+        if (!fw) continue;
         const need = b.width * dpr;
         // A picture drawn "cover" is cropped, so its height can be the side that binds.
-        const fit = st.objectFit === 'cover'
-          ? Math.min(im.naturalWidth / need, im.naturalHeight / (b.height * dpr))
-          : im.naturalWidth / need;
+        const fit = st.objectFit === 'cover' && b.height
+          ? Math.max(fw / need, Math.min(fw / need, fh / (b.height * dpr)))
+          : fw / need;
         rows.push({
           file: im.currentSrc.split('/').pop().split('?')[0],
-          cls: (im.className || '').toString().split(/\s+/).filter((c) => /main-img|hover|wp-post-image|attachment/.test(c)).slice(0, 1).join(''),
-          nat: im.naturalWidth, drawn: Math.round(b.width), ratio: fit,
+          cls: (im.className || '').toString().split(/\s+/).filter((c) => /main-img|hover|wp-post-image|attachment/.test(c)).slice(0, 1).join('')
+            + (im.getAttribute('srcset') ? ' +srcset' : ''),
+          nat: fw, drawn: Math.round(b.width), ratio: fit,
           kb: Math.round((bytes[im.currentSrc.split('?')[0]] || 0) / 1024),
         });
-      });
+      }
       const totalKb = Math.round(Object.values(bytes).reduce((a, b) => a + b, 0) / 1024);
       return { rows, totalKb, files: Object.keys(bytes).length };
     }, DPR);
@@ -111,7 +125,7 @@ const phone = WIDTH < 768;
       seen.add(key);
       if (x.ratio < 0.995) under++;
       if (seen.size <= 60) {
-        console.log(`  ${x.ratio.toFixed(2).padStart(5)}  ${String(x.nat).padStart(5)}px file  drawn ${String(x.drawn).padStart(4)}px  ${String(x.kb).padStart(4)} KB  ${x.cls.padEnd(14)} ${x.file}`);
+        console.log(`  ${x.ratio.toFixed(2).padStart(5)}  ${String(x.nat).padStart(5)}px file  drawn ${String(x.drawn).padStart(4)}px  ${String(x.kb).padStart(4)} KB  ${x.cls.padEnd(22)} ${x.file}`);
       }
     });
     console.log(`\n  pictures drawn: ${seen.size}   below full sharpness: ${under}`);
