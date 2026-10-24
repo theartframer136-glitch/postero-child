@@ -21,14 +21,35 @@
  */
 if (!defined('ABSPATH')) exit;
 
-function af_card_image_sizes_attr() {
+/**
+ * The card's picture box crops the picture to fill it, so the width a picture
+ * is drawn at is not the card's width when the picture is wider (relative to
+ * its height) than the box: it is scaled until it fills the box's HEIGHT and
+ * its sides are cut off. sizes speaks only of width, so for such a picture the
+ * width is scaled up by how much wider it is than the box. Measured 24 Oct 2026
+ * (tools/diag-picture-sharpness.js, category page): the box is about 172x259
+ * on a 390px phone (1.5 times as tall as wide) and about 309x300 on a laptop.
+ * Without this a 4:3 room scene drew at 0.58 picture pixels per screen pixel
+ * on a 2x phone once a 400px copy existed. $ratio is the picture's width over
+ * its height (0 when unknown, which assumes the widest case below).
+ */
+function af_card_image_sizes_attr($ratio = 0) {
+    $ratio = (float) $ratio > 0 ? (float) $ratio : 2.0;
+    $phone = max(1.0, 1.5 * $ratio);   // box 1.5x as tall as wide
+    $desk  = max(1.0, 1.0 * $ratio);   // box about square
+    $vw = function ($n, $f) { return (int) ceil($n * $f) . 'vw'; };
     // Cards are 2 per row up to tablet width, then 3-4, never wider than ~340px.
-    return (string) apply_filters('af_card_image_sizes', '(max-width: 767px) 48vw, (max-width: 1199px) 31vw, 340px');
+    $sizes = '(max-width: 767px) ' . $vw(48, $phone) . ', (max-width: 1199px) ' . $vw(31, $phone)
+        . ', ' . (int) ceil(340 * $desk) . 'px';
+    return (string) apply_filters('af_card_image_sizes', $sizes, $ratio);
 }
 
 add_filter('wp_get_attachment_image_attributes', function ($attr, $attachment, $size) {
     if (is_admin() || $size !== 'woocommerce_thumbnail' || empty($attr['srcset'])) return $attr;
-    $attr['sizes'] = af_card_image_sizes_attr();
+    $ratio = 0;
+    $meta = is_object($attachment) ? wp_get_attachment_metadata($attachment->ID) : false;
+    if (is_array($meta) && !empty($meta['width']) && !empty($meta['height'])) $ratio = $meta['width'] / $meta['height'];
+    $attr['sizes'] = af_card_image_sizes_attr($ratio);
     return $attr;
 }, 20, 3);
 
