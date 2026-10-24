@@ -787,6 +787,12 @@ jobs:
              wp eval-file wp-content/themes/postero-child/tools/remove-demo-posts.php --allow-root 2>&1" \
             || true
 
+          echo "Security cleanup: leftover docroot scripts, open registration, oversized debug.log..."
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
+            "cd ~/websites/OPu0sKi4J/public_html && \
+             wp eval-file wp-content/themes/postero-child/tools/security-cleanup.php --allow-root 2>&1" \
+            || true
+
           echo "Fixing missing product featured images..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ~/websites/OPu0sKi4J/public_html && \

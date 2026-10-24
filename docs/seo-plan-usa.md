@@ -343,3 +343,26 @@ branch (Shipping page source), a JavaScript comment that reaches the Cart
 page's inline script, and the home page's `_af_elementor_backup_col` row,
 which is a backup. PR 404 removes the two script places and stops the
 diagnostic counting backups. Expected after it deploys: 0.
+
+## 11. 16 Oct: audit fixes live
+
+Pull request 404 merged at 10:12 UTC and deployed by 10:27. Verified on the
+live site at 10:31:
+
+| Check | Result |
+|---|---|
+| "Free shipping" wording anywhere (content, designs, options, scripts, rendered pages) | 0 places |
+| 2023 demo posts | 0 published posts older than 2026 remain (12 trashed, restorable 30 days) |
+| USA-market articles | all 8 published with featured images |
+| Cart page HTML | 949 KB to 626 KB |
+| Wishlist / shop / home HTML | 935 to 602 KB / 846 to 616 KB / 1,034 to 785 KB |
+| Uncached response time | unchanged, about 1.3 s (Elementor rendering) |
+
+Also live: the Meta pixel module (prints once the ID is saved in Settings,
+General), the bot filter on the GA4 tag and the pixel, Instagram feed images
+served as 1080 px copies, the art-code map as a cached file, 27 static inline
+blocks as cached files, both WhatsApp buttons on the US number.
+
+Owner items left: create the Meta pixel and paste the ID; Request Indexing
+for lakshmi-ganesha, tirupati-balaji, lord-shiva, swaminarayan and /blog/;
+optionally switch on the Redis object cache in Hostinger's hPanel.
