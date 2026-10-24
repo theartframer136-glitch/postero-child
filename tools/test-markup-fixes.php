@@ -59,8 +59,17 @@ same('an original (no size in the name) is left alone', af_mf_card_srcset('<img 
 same('an existing sizes is kept', substr_count(af_mf_card_srcset(str_replace('<img ', '<img sizes="50vw" ', $main), $sets), 'sizes='), 1);
 same('other pictures are never touched', af_mf_card_srcset(str_replace('main-img', 'wp-post-image', $main), $sets), str_replace('main-img', 'wp-post-image', $main));
 $asked = array();
-af_mf_card_srcset($main . $main . str_replace('main-img', 'hover-img', $main), function ($u) use (&$asked) { $asked[] = $u; return array(); });
+af_mf_card_srcset($main . $main, function ($u) use (&$asked) { $asked[] = $u; return array(); });
 same('the lookup is asked once, for each picture once', count($asked) === 1 && count($asked[0]) === 1, true);
+$any = function ($urls) { $o = array(); foreach ($urls as $u) $o[$u] = 'a-150x300.jpg 150w, a-400x300.jpg 400w, a-768x576.jpg 768w, a-400x800.jpg 400w'; return $o; };
+$hover = '<img class="hover-img" src="https://x.us/wp-content/uploads/2026/09/scene1-149-768x576.jpg">';
+same('a hover picture keeps its one file (it is cropped to a taller box)', af_mf_card_srcset($hover, $any), $hover);
+$wide = '<img class="main-img" src="https://x.us/wp-content/uploads/2026/09/RK-010092-3050-800x548.jpg">';
+same('a wide main picture keeps its one file', af_mf_card_srcset($wide, $any), $wide);
+$square = '<img class="main-img" src="https://x.us/wp-content/uploads/2026/09/sq-768x768.jpg">';
+same('a square main picture keeps its one file', af_mf_card_srcset($square, $any), $square);
+same('a 4:5 main picture (not clearly tall) keeps its one file', af_mf_card_srcset(str_replace('sq-768x768', 'p-819x1024', $square), $any), str_replace('sq-768x768', 'p-819x1024', $square));
+same('a 3:4 main picture is tall enough', strpos(af_mf_card_srcset(str_replace('sq-768x768', 'p-768x1024', $square), $any), 'srcset=') !== false, true);
 
 echo "\n=== logo ===\n";
 $set = function ($u) { return strpos($u, 'Business-Cards') !== false ? 'a-300x100.png 300w, a-768x256.png 768w' : ''; };
