@@ -28,7 +28,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Look inside the element
-        if: ${{ !startsWith(inputs.selector, 'sharpness') }}
+        if: ${{ !startsWith(inputs.selector, 'sharpness') && !startsWith(inputs.selector, 'never-visible') }}
         run: |
           set -uo pipefail
           npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
@@ -60,3 +60,18 @@ jobs:
           else git checkout -q --orphan speed-shots && git rm -rq --cached . > /dev/null; fi
           rm -rf "$LABEL"; mkdir -p "$LABEL"; cp /tmp/shots/$LABEL/*.png "$LABEL"/ 2>/dev/null || true
           git add "$LABEL" && git commit -qm "screenshots: $LABEL" && git push -q origin speed-shots || echo "(screenshots not pushed)"
+
+      # selector "never-visible" (optionally "never-visible:<root selector>"):
+      # every Elementor widget under the root (default: the site header and
+      # footer) that is drawn at none of the six screen widths
+      # (tools/diag-never-visible.js).
+      - name: Widgets never shown at any width
+        if: ${{ startsWith(inputs.selector, 'never-visible') }}
+        env:
+          SEL: ${{ inputs.selector }}
+          PAGE: ${{ inputs.url }}
+        run: |
+          set -uo pipefail
+          ROOT="${SEL#never-visible}"; ROOT="${ROOT#:}"; ROOT="${ROOT:-#masthead, #colophon}"
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          NODE_PATH=/tmp/afhead/node_modules node tools/diag-never-visible.js "$PAGE" "$ROOT" || true
