@@ -116,6 +116,90 @@ function af_mf_card_images($html, $exists) {
     }, $html);
 }
 
+/**
+ * The home page's product rows come from a page-builder widget that prints a
+ * bare <img class="main-img" src="...-512x1024.jpg"> with no srcset, so every
+ * screen downloads that one file whatever the card's real size (measured
+ * 24 Oct 2026: 276px wide on a phone, about 300px on a desktop). Each one gets
+ * the srcset of the same picture at the same shape and a sizes that is never
+ * smaller than the card, so the browser picks a file at least as wide as the
+ * card times the screen's density: a plain screen takes a lighter file, a
+ * sharp phone gets one sharp enough for it. $srcset maps a sized upload URL =>
+ * srcset or ''.
+ */
+function af_mf_card_srcset($html, $resolve) {
+    $re = '~<img\b[^>]*\bclass\s*=\s*["\'][^"\']*\b(?:hover-img|main-img)\b[^>]*>~i';
+    $src = function ($tag) {
+        if (preg_match('~\bsrcset\s*=~i', $tag)) return '';
+        return preg_match('~\bsrc\s*=\s*["\']([^"\']*/wp-content/uploads/[^"\']*?-\d{2,4}x\d{2,4}\.(?:jpe?g|png|webp))["\']~i', $tag, $s) ? $s[1] : '';
+    };
+    if (!preg_match_all($re, $html, $all)) return $html;
+    $urls = array();
+    foreach ($all[0] as $tag) { $u = $src($tag); if ($u !== '') $urls[$u] = true; }
+    if (!$urls) return $html;
+    $map = (array) call_user_func($resolve, array_keys($urls));
+    $sizes = (string) apply_filters('af_home_card_sizes', '(max-width: 767px) 72vw, (max-width: 1199px) 40vw, 320px');
+    return preg_replace_callback($re, function ($m) use ($src, $map, $sizes) {
+        $tag = $m[0];
+        $u = $src($tag);
+        if ($u === '' || empty($map[$u])) return $tag;
+        $add = ' srcset="' . esc_attr($map[$u]) . '"';
+        if (!preg_match('~\bsizes\s*=~i', $tag)) $add .= ' sizes="' . esc_attr($sizes) . '"';
+        return preg_replace('~^<img\b~i', '<img' . $add, $tag, 1);
+    }, $html);
+}
+
+/**
+ * Sized upload URLs (name-WxH.ext) => srcset of the same picture in every copy
+ * of the same shape ('' when unknown or there is no other copy). The home page
+ * has close to 300 of these, so the attachments are found in one query and the
+ * answers kept together for a day, rather than a lookup and a stored row each.
+ */
+function af_mf_sized_upload_srcsets($urls) {
+    $key = 'af_mf_card_srcsets';
+    $cache = get_transient($key);
+    if (!is_array($cache)) $cache = array();
+    $out = array(); $todo = array();
+    foreach ($urls as $u) {
+        $h = md5($u);
+        if (isset($cache[$h])) $out[$u] = $cache[$h]; else $todo[$u] = true;
+    }
+    if (!$todo) return $out;
+
+    $up = wp_get_upload_dir();
+    $base = trailingslashit(set_url_scheme($up['baseurl'], 'https'));
+    $want = array(); // _wp_attached_file => list of sized URLs
+    foreach (array_keys($todo) as $u) {
+        $out[$u] = '';
+        if (!preg_match('~^(.*)-(\d{2,4})x(\d{2,4})\.(jpe?g|png|webp)$~i', set_url_scheme(strtok($u, '?'), 'https'), $m)) continue;
+        if (strpos($m[1], $base) !== 0) continue;
+        $rel = substr($m[1], strlen($base));
+        foreach (array("{$rel}.{$m[4]}", "{$rel}-scaled.{$m[4]}") as $f) $want[$f][] = array($u, (int) $m[2], (int) $m[3]);
+    }
+    if ($want) {
+        global $wpdb;
+        $in = implode(',', array_fill(0, count($want), '%s'));
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT post_id, meta_value FROM {$wpdb->postmeta} WHERE meta_key = '_wp_attached_file' AND meta_value IN ($in)",
+            array_keys($want)
+        ));
+        $ids = array();
+        foreach ((array) $rows as $r) $ids[(int) $r->post_id] = $r->meta_value;
+        if ($ids) update_meta_cache('post', array_keys($ids));
+        foreach ($ids as $id => $file) {
+            $meta = wp_get_attachment_metadata($id);
+            if (!is_array($meta)) continue;
+            foreach ($want[$file] as $w) {
+                $calc = wp_calculate_image_srcset(array($w[1], $w[2]), $w[0], $meta, $id);
+                if (is_string($calc) && $calc !== '') $out[$w[0]] = $calc;
+            }
+        }
+    }
+    foreach (array_keys($todo) as $u) $cache[md5($u)] = $out[$u];
+    set_transient($key, $cache, DAY_IN_SECONDS);
+    return $out;
+}
+
 /** The header logo, a full-size upload with no srcset, gets one. $srcset maps URL => srcset or ''. */
 function af_mf_logo_srcset($html, $srcset) {
     return preg_replace_callback('~<img\b[^>]*\bclass\s*=\s*["\'][^"\']*\b(?:hfe-site-logo-img|custom-logo)\b[^>]*>~i', function ($m) use ($srcset) {
@@ -156,6 +240,7 @@ function af_mf_filter_page($html) {
     try {
         if (stripos($html, 'hover-img') !== false || stripos($html, 'main-img') !== false) {
             $html = af_mf_card_images($html, 'af_mf_upload_exists');
+            $html = af_mf_card_srcset($html, 'af_mf_sized_upload_srcsets');
         }
         if (stripos($html, 'hfe-site-logo-img') !== false || stripos($html, 'custom-logo') !== false) {
             $html = af_mf_logo_srcset($html, 'af_mf_upload_srcset');

@@ -43,6 +43,23 @@ same('other pictures are never touched',
     af_mf_card_images('<img class="wp-post-image" src="/wp-content/uploads/a-1024x768.jpg">', function () { return true; }),
     '<img class="wp-post-image" src="/wp-content/uploads/a-1024x768.jpg">');
 
+echo "\n=== home card srcset ===\n";
+function apply_filters($h, $v) { return $v; }
+$sets = function ($urls) { $o = array(); foreach ($urls as $u) $o[$u] = strpos($u, 'TP-050014') !== false ? 'a-400x800.jpg 400w, a-512x1024.jpg 512w, a-768x1536.jpg 768w' : ''; return $o; };
+$main = '<img loading="lazy" decoding="async" class="main-img" src="https://x.us/wp-content/uploads/2026/09/TP-050014-6030-512x1024.jpg">';
+$out = af_mf_card_srcset($main, $sets);
+same('a bare home card picture gets a srcset', strpos($out, 'srcset="a-400x800.jpg 400w, a-512x1024.jpg 512w, a-768x1536.jpg 768w"') !== false, true);
+same('and a sizes no smaller than the card', strpos($out, 'sizes="(max-width: 767px) 72vw, (max-width: 1199px) 40vw, 320px"') !== false, true);
+same('its src stays as it was, for browsers without srcset', strpos($out, 'src="https://x.us/wp-content/uploads/2026/09/TP-050014-6030-512x1024.jpg"') !== false, true);
+same('no srcset known: unchanged', af_mf_card_srcset(str_replace('TP-050014', 'XX', $main), $sets), str_replace('TP-050014', 'XX', $main));
+same('a picture that has a srcset is left alone', af_mf_card_srcset('<img class="main-img" srcset="x 1x" src="https://x.us/wp-content/uploads/TP-050014-512x1024.jpg">', $sets), '<img class="main-img" srcset="x 1x" src="https://x.us/wp-content/uploads/TP-050014-512x1024.jpg">');
+same('an original (no size in the name) is left alone', af_mf_card_srcset('<img class="main-img" src="https://x.us/wp-content/uploads/TP-050014.jpg">', $sets), '<img class="main-img" src="https://x.us/wp-content/uploads/TP-050014.jpg">');
+same('an existing sizes is kept', substr_count(af_mf_card_srcset(str_replace('<img ', '<img sizes="50vw" ', $main), $sets), 'sizes='), 1);
+same('other pictures are never touched', af_mf_card_srcset(str_replace('main-img', 'wp-post-image', $main), $sets), str_replace('main-img', 'wp-post-image', $main));
+$asked = array();
+af_mf_card_srcset($main . $main . str_replace('main-img', 'hover-img', $main), function ($u) use (&$asked) { $asked[] = $u; return array(); });
+same('the lookup is asked once, for each picture once', count($asked) === 1 && count($asked[0]) === 1, true);
+
 echo "\n=== logo ===\n";
 $set = function ($u) { return strpos($u, 'Business-Cards') !== false ? 'a-300x100.png 300w, a-768x256.png 768w' : ''; };
 $logo = '<img class="hfe-site-logo-img elementor-animation-" src="https://x.us/wp-content/uploads/2026/02/Business-Cards.pdf-scaled.png" alt="">';

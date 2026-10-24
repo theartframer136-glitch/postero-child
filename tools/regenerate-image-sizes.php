@@ -45,7 +45,11 @@ if ( ! defined( 'ABSPATH' ) ) { fwrite( STDERR, "Run via wp eval-file\n" ); exit
 // because the product page's own image size went from 600 to 1200: the v1
 // pass raised only the catalogue thumbnail, so the picture a customer
 // actually leans in to look at was never rebuilt any larger.
-$VERSION = 'q100-card800-single1200-thumb200-v2';
+$VERSION = 'q100-card800-single1200-thumb200-card400-v3';
+// A picture already rebuilt at this version only lacks the copies added since
+// (the 400px card copy, inc/card-image-sizes.php), so it is given just those
+// instead of having every size re-encoded again.
+$ADD_ONLY_FROM = array( 'q100-card800-single1200-thumb200-v2' );
 $SECONDS = (int) ( getenv( 'AF_IMG_SECONDS' ) ?: 240 );
 $MAX     = (int) ( getenv( 'AF_IMG_MAX' )     ?: 400 );
 $FORCE   = (bool) getenv( 'AF_IMG_FORCE' );
@@ -119,12 +123,19 @@ foreach ( $todo as $id ) {
         continue;
     }
 
-    $meta = wp_generate_attachment_metadata( $id, $file );
+    if ( ! $FORCE && function_exists( 'wp_update_image_subsizes' )
+        && in_array( get_post_meta( $id, '_af_img_rebuilt', true ), $ADD_ONLY_FROM, true ) ) {
+        // Makes only the registered sizes this picture does not have yet and
+        // saves the metadata itself.
+        $meta = wp_update_image_subsizes( $id );
+    } else {
+        $meta = wp_generate_attachment_metadata( $id, $file );
+        if ( is_array( $meta ) ) wp_update_attachment_metadata( $id, $meta );
+    }
     if ( is_wp_error( $meta ) || ! is_array( $meta ) || empty( $meta['sizes'] ) ) {
         $failed++;
         continue;   // leave it unmarked so the next run tries again
     }
-    wp_update_attachment_metadata( $id, $meta );
     update_post_meta( $id, '_af_img_rebuilt', $VERSION );
     $ok++;
 }
