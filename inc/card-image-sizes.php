@@ -31,3 +31,24 @@ add_filter('wp_get_attachment_image_attributes', function ($attr, $attachment, $
     $attr['sizes'] = af_card_image_sizes_attr();
     return $attr;
 }, 20, 3);
+
+/*
+ * A 400px copy of the card picture, same shape as the card's 800px one.
+ *
+ * Between the 200-300px copies WordPress makes and the 577-800px ones there
+ * was nothing, so a card drawn 170-200px wide on a 2x phone, or 340px on a
+ * plain desktop, had to take the 577px+ file — about twice the pixels it can
+ * show. With a 400px copy in the srcset the browser takes that instead, and
+ * still never less than the card times the screen's density: the browser only
+ * picks a smaller file when it covers the space. Made by the deploy's
+ * "Rebuild product image sizes" step (tools/regenerate-image-sizes.php), which
+ * only adds the missing copy to pictures it has already rebuilt; new uploads
+ * get it on upload. Nothing is re-encoded from an existing copy — each is
+ * resized from the original at the theme's quality.
+ */
+add_action('init', function () {
+    $w = (int) apply_filters('af_card_small_width', 400);
+    $t = function_exists('wc_get_image_size') ? wc_get_image_size('woocommerce_thumbnail') : array();
+    $crop = !empty($t['crop']) && !empty($t['width']) && !empty($t['height']);
+    add_image_size('af_card_400', $w, $crop ? (int) round($t['height'] * $w / $t['width']) : 0, $crop);
+}, 20);

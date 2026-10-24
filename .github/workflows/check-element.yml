@@ -21,13 +21,42 @@ on:
 
 jobs:
   inspect:
+    permissions:
+      contents: write
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Look inside the element
+        if: ${{ !startsWith(inputs.selector, 'sharpness') }}
         run: |
           set -uo pipefail
           npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
           NODE_PATH=/tmp/afhead/node_modules node tools/diag-element.js \
             "${{ inputs.url }}" "${{ inputs.selector }}" "${{ inputs.width }}" || true
+
+      # selector "sharpness:<label>" — instead of one element, every picture on
+      # the page: is it sharp enough for the screen, and what did it weigh
+      # (tools/diag-picture-sharpness.js), at a phone and two desktops. The
+      # screenshots go to the speed-shots branch under <label>/, so a picture
+      # change can be compared before and after by eye as well as by number.
+      - name: Picture sharpness and screenshots
+        if: ${{ startsWith(inputs.selector, 'sharpness') }}
+        env:
+          SEL: ${{ inputs.selector }}
+          PAGE: ${{ inputs.url }}
+        run: |
+          set -uo pipefail
+          LABEL=$(printf '%s' "${SEL#sharpness}" | tr -cd 'a-z0-9-'); LABEL=${LABEL:-shot}
+          npm install --no-fund --no-audit --prefix /tmp/afhead puppeteer-core@22 > /dev/null 2>&1 || true
+          export SHOT_DIR=/tmp/shots/$LABEL
+          for combo in "390 3" "390 2" "1366 1" "1920 2"; do
+            set -- $combo
+            NODE_PATH=/tmp/afhead/node_modules node tools/diag-picture-sharpness.js "$PAGE" "$1" "$2" "$LABEL" || true
+            echo
+          done
+          git config user.name "speed-shots"; git config user.email "actions@users.noreply.github.com"
+          if git fetch -q origin speed-shots 2>/dev/null; then git checkout -q -f -B speed-shots FETCH_HEAD
+          else git checkout -q --orphan speed-shots && git rm -rq --cached . > /dev/null; fi
+          rm -rf "$LABEL"; mkdir -p "$LABEL"; cp /tmp/shots/$LABEL/*.png "$LABEL"/ 2>/dev/null || true
+          git add "$LABEL" && git commit -qm "screenshots: $LABEL" && git push -q origin speed-shots || echo "(screenshots not pushed)"
