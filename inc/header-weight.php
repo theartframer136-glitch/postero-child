@@ -12,10 +12,13 @@
  * second category menu (23 KB), a second search box with its category list
  * (22 KB), two logos, two contact lists and a social-icons block among them.
  *
- * Here a widget in the header, footer or before-footer template is not built
- * when its own switches together with those of the sections around it hide
- * it at every width Elementor has switched on — the same test the browser
- * check makes, done on the settings. Only plain display widgets are left out
+ * Here a widget in the header, footer or before-footer template is taken out
+ * of the finished page when its own switches together with those of the
+ * sections around it hide it at every width Elementor has switched on — the
+ * same test the browser check makes, done on the templates' saved settings.
+ * It works on the finished HTML because Elementor serves these templates
+ * from its element cache, where no per-widget render hook runs (found after
+ * the first version, which used those hooks, left the header unchanged). Only plain display widgets are left out
  * (menus, search boxes, logos, icon lists, headings, images, text): never a
  * shortcode, HTML or template widget, the side-menu button, the currency
  * switcher or the cart/account icon group, which carry or answer scripts.
@@ -41,16 +44,6 @@ function af_hw_hidden_everywhere(array $hidden, array $devices) {
     return true;
 }
 
-/** The devices hidden by an element's own switches, added to those inherited. */
-function af_hw_merge_hidden(array $inherited, $element, array $devices) {
-    foreach ($devices as $d) {
-        if (!empty($inherited[$d])) continue;
-        $v = is_object($element) && method_exists($element, 'get_settings') ? $element->get_settings('hide_' . $d) : '';
-        if (!empty($v)) $inherited[$d] = true;
-    }
-    return $inherited;
-}
-
 /** The header, footer and before-footer template ids. */
 function af_hw_template_ids() {
     static $ids = null;
@@ -62,48 +55,102 @@ function af_hw_template_ids() {
     return $ids;
 }
 
-function af_hw_active() {
-    if (is_admin() || !class_exists('\Elementor\Plugin') || !function_exists('af_home_elementor_devices')) return false;
-    $el = \Elementor\Plugin::$instance;
-    if ((isset($el->editor) && $el->editor->is_edit_mode()) || (isset($el->preview) && $el->preview->is_preview_mode())) return false;
-    $doc = isset($el->documents) ? $el->documents->get_current() : null;
-    return $doc && in_array((int) $doc->get_main_id(), af_hw_template_ids(), true);
+/**
+ * Ids of the widgets in an Elementor element tree that are hidden at every one
+ * of $devices, counting the switches of the sections around them, and whose
+ * type is in $safe.
+ */
+function af_hw_hidden_widget_ids(array $elements, array $devices, array $safe, array $inherited = array()) {
+    $out = array();
+    foreach ($elements as $el) {
+        if (!is_array($el)) continue;
+        $s = isset($el['settings']) && is_array($el['settings']) ? $el['settings'] : array();
+        $h = $inherited;
+        foreach ($devices as $d) if (!empty($s['hide_' . $d])) $h[$d] = true;
+        if (isset($el['elType']) && $el['elType'] === 'widget') {
+            $type = isset($el['widgetType']) ? (string) $el['widgetType'] : '';
+            if (isset($el['id']) && in_array($type, $safe, true) && af_hw_hidden_everywhere($h, $devices)) $out[] = (string) $el['id'];
+        }
+        if (!empty($el['elements']) && is_array($el['elements'])) {
+            $out = array_merge($out, af_hw_hidden_widget_ids($el['elements'], $devices, $safe, $h));
+        }
+    }
+    return $out;
 }
 
-/** What the sections being built around the current element hide, innermost last. */
-function af_hw_stack($op = null, $value = null) {
-    static $stack = array();
-    if ($op === 'push') $stack[] = $value;
-    elseif ($op === 'pop') array_pop($stack);
-    return $stack ? end($stack) : array();
-}
-
-/** Ids left out on this page, for the note at the end of it. */
-function af_hw_not_sent($id = null) {
-    static $ids = array();
-    if ($id !== null) $ids[] = (string) $id;
+/** Those ids for the header/footer templates, remembered until a template is saved again. */
+function af_hw_ids_to_remove() {
+    static $ids = null;
+    if ($ids !== null) return $ids;
+    $ids = array();
+    $tpl = af_hw_template_ids();
+    if (!$tpl || !function_exists('af_home_elementor_devices') || !class_exists('\Elementor\Plugin')) return $ids;
+    $devices = af_home_elementor_devices();
+    $sig = array();
+    foreach ($tpl as $t) $sig[] = $t . ':' . get_post_field('post_modified_gmt', $t);
+    $key = 'af_hw_ids_' . md5(implode('|', $sig) . '|' . implode(',', $devices) . '|' . implode(',', af_hw_safe_types()));
+    $hit = get_transient($key);
+    if (is_array($hit)) return $ids = $hit;
+    foreach ($tpl as $t) {
+        $raw = get_post_meta($t, '_elementor_data', true);
+        $data = is_string($raw) ? json_decode($raw, true) : $raw;
+        if (is_array($data)) $ids = array_merge($ids, af_hw_hidden_widget_ids($data, $devices, af_hw_safe_types()));
+    }
+    set_transient($key, $ids, WEEK_IN_SECONDS);
     return $ids;
 }
 
-add_action('elementor/frontend/before_render', function ($element) {
-    if (!af_hw_active()) return;
-    af_hw_stack('push', af_hw_merge_hidden(af_hw_stack(), $element, af_home_elementor_devices()));
-}, 1);
-add_action('elementor/frontend/after_render', function ($element) {
-    if (!af_hw_active()) return;
-    af_hw_stack('pop');
-}, 999);
+/**
+ * $html without the Elementor widget whose data-id is $id: from its opening
+ * <div> to the </div> that closes it, counting the <div>s in between. Left
+ * untouched when the widget holds a <script>, <style>, <template>,
+ * <textarea> or a comment (where a "<div" might not be a tag), or when the
+ * closing tag cannot be found.
+ */
+function af_hw_strip_widget($html, $id) {
+    if (!preg_match('~<div\b[^>]*\bdata-id="' . preg_quote($id, '~') . '"[^>]*\bdata-element_type="widget"[^>]*>~', $html, $m, PREG_OFFSET_CAPTURE)) return $html;
+    $start = $m[0][1];
+    $pos = $start + strlen($m[0][0]);
+    $depth = 1;
+    if (!preg_match_all('~<(/?)div\b[^>]*>~i', $html, $tags, PREG_OFFSET_CAPTURE | PREG_SET_ORDER, $pos)) return $html;
+    $end = -1;
+    foreach ($tags as $t) {
+        $depth += $t[1][0] === '/' ? -1 : 1;
+        if ($depth === 0) { $end = $t[0][1] + strlen($t[0][0]); break; }
+    }
+    if ($end < 0) return $html;
+    $block = substr($html, $start, $end - $start);
+    if (preg_match('~<(script|style|template|textarea)\b|<!--~i', $block)) return $html;
+    return substr($html, 0, $start) . substr($html, $end);
+}
 
-add_filter('elementor/frontend/widget/should_render', function ($should, $element) {
-    if (!$should || !af_hw_active() || !is_object($element) || !method_exists($element, 'get_name')) return $should;
-    if (!in_array((string) $element->get_name(), af_hw_safe_types(), true)) return $should;
-    $devices = af_home_elementor_devices();
-    if (!af_hw_hidden_everywhere(af_hw_merge_hidden(af_hw_stack(), $element, $devices), $devices)) return $should;
-    af_hw_not_sent($element->get_id());
-    return false;
-}, 20, 2);
+/** The page with those widgets taken out, inside the header and footer only. */
+function af_hw_filter_page($html, array $ids) {
+    if (!$ids || !is_string($html) || $html === '') return $html;
+    $done = array();
+    foreach (array('~<header id="masthead"[^>]*>.*?</header>~s', '~<footer\b[^>]*id="colophon"[^>]*>.*?</footer>~s') as $re) {
+        $html = preg_replace_callback($re, function ($m) use ($ids, &$done) {
+            $part = $m[0];
+            foreach ($ids as $id) {
+                $before = strlen($part);
+                $part = af_hw_strip_widget($part, $id);
+                if (strlen($part) < $before) $done[] = $id;
+            }
+            return $part;
+        }, $html);
+    }
+    if ($done) $html = str_replace('</body>', "<!-- af-header-weight: not sent, hidden at every width: " . implode(' ', $done) . " -->\n</body>", $html);
+    return $html;
+}
 
-add_action('wp_footer', function () {
-    $ids = af_hw_not_sent();
-    if ($ids) echo "\n<!-- af-header-weight: not sent, hidden at every width: " . esc_html(implode(' ', $ids)) . " -->\n";
-}, 99);
+add_action('template_redirect', function () {
+    if (is_admin() || is_feed() || (defined('REST_REQUEST') && REST_REQUEST) || (defined('DOING_AJAX') && DOING_AJAX)) return;
+    if (class_exists('\Elementor\Plugin')) {
+        $el = \Elementor\Plugin::$instance;
+        if ((isset($el->editor) && $el->editor->is_edit_mode()) || (isset($el->preview) && $el->preview->is_preview_mode())) return;
+    }
+    if (isset($_GET['elementor-preview'])) return; // phpcs:ignore WordPress.Security.NonceVerification
+    $ids = af_hw_ids_to_remove();
+    if (!$ids) return;
+    ob_start(function ($html) use ($ids) { return af_hw_filter_page($html, $ids); });
+}, -97);
