@@ -2,8 +2,10 @@
 /* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /**
  * §4 asks for Terms of Use and Terms of Service as separate pages.
- * Creates each once with distinct, purpose-correct content; never touches a
- * page that already exists, and leaves the old Terms & Conditions in place.
+ * Creates each once with distinct, purpose-correct content, and leaves the old
+ * Terms & Conditions in place. A page that already exists is left as it is,
+ * apart from the corrections listed in $corrections: sentences that were
+ * wrong when the page was created and must change on the live page too.
  * Run: wp eval-file tools/setup-terms-pages.php --allow-root
  */
 if (!defined('ABSPATH')) { fwrite(STDERR, "Run via wp eval-file\n"); exit(1); }
@@ -38,17 +40,36 @@ $pages = array(
 <h3>Delivery</h3>
 <p>Delivery estimates are shown at checkout. Oversized pieces may ship freight and cannot be delivered to PO boxes. International orders may attract customs duties payable by the recipient.</p>
 <h3>Returns and issues</h3>
-<p>Damaged or incorrect items are replaced or refunded — start a return from your order page within 14 days of delivery. Made-to-order pieces are otherwise returnable only as required by law. See the Return &amp; Refund Policy for the full process.</p>
+<p>Damaged or incorrect items are replaced or refunded — email us your order number and photos within 7 days of delivery. Made-to-order pieces are otherwise returnable only as required by law. See the Return &amp; Refund Policy for the full process.</p>
 <h3>Digital downloads</h3>
 <p>Download links are personal, limited in number and time, and covered by the Digital Download License. No refunds once a file has been downloaded, except where the file is faulty.</p>
 <h3>Contact</h3><p><a href=\"mailto:{$EMAIL}\">{$EMAIL}</a></p>",
     ),
 );
 
+// Terms of Service said 14 days to report a problem while the Returns and
+// Refund pages say 7 (26 Oct 2026). Google Merchant Center checks that the
+// return policy reads the same everywhere; 7 days is the shop's policy.
+$corrections = array(
+    'terms-of-service' => array(
+        'start a return from your order page within 14 days of delivery.' => 'email us your order number and photos within 7 days of delivery.',
+    ),
+);
+
 echo "=== TERMS PAGES ===\n";
 foreach ($pages as $slug => $def) {
     $existing = get_page_by_path($slug);
-    if ($existing) { echo "  {$slug}: already exists (#{$existing->ID}) — untouched\n"; continue; }
+    if ($existing) {
+        $content = $existing->post_content;
+        foreach (isset($corrections[$slug]) ? $corrections[$slug] : array() as $from => $to) $content = str_replace($from, $to, $content);
+        if ($content !== $existing->post_content) {
+            wp_update_post(wp_slash(array('ID' => $existing->ID, 'post_content' => $content)));
+            echo "  {$slug}: exists (#{$existing->ID}) — corrected\n";
+        } else {
+            echo "  {$slug}: already exists (#{$existing->ID}) — untouched\n";
+        }
+        continue;
+    }
     $id = wp_insert_post(array(
         'post_type'    => 'page',
         'post_status'  => 'publish',

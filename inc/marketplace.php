@@ -171,9 +171,36 @@ function af_mk_products($channel, $limit = -1) {
         $p = wc_get_product($id);
         if (!$p || !$p->is_purchasable()) continue;
         if ($p->get_catalog_visibility() === 'hidden') continue;
+        if ($channel === 'google' && af_mk_google_withheld($p) !== '') continue;
         $out[] = $p;
     }
     return $out;
+}
+
+/**
+ * Why Google Merchant Center should not be sent this product ('' = send it).
+ * Each is something Google disapproves on sight, and enough disapprovals
+ * suspend the whole account (checked 26 Oct 2026,
+ * tools/diag-merchant-readiness.php):
+ *   - a character someone else owns (Batman, Iron Man) without a licence;
+ *   - a gift card, which Shopping listings do not accept;
+ *   - a price the product page does not sell: the feed price must be one a
+ *     shopper can pick in the size selector (four products named a size the
+ *     selector does not offer, at a price it does not charge).
+ * The site keeps selling all of them; only the Google feed leaves them out.
+ */
+function af_mk_google_withheld($product) {
+    $name = $product->get_name();
+    $owned = (array) apply_filters('af_mk_google_withheld_names', array('batman', 'iron ?man'));
+    foreach ($owned as $w) if (preg_match('~\b' . $w . '\b~i', $name)) return 'licensed character';
+    if (preg_match('~\bgift\s*card~i', $name)) return 'gift card';
+    if (function_exists('af_pricing_applies') && function_exists('af_pricing_config') && function_exists('af_sizes_available') && af_pricing_applies($product)) {
+        $cfg = af_pricing_config($product->get_id());
+        $offer = array();
+        foreach (af_sizes_available() as $label) if (isset($cfg['sizes'][$label])) $offer[] = round((float) $cfg['sizes'][$label], 2);
+        if ($offer && !in_array(round((float) wc_get_price_to_display($product), 2), $offer, true)) return 'price not offered on the page';
+    }
+    return '';
 }
 
 /** Everything a feed row needs, resolved once. */
@@ -256,14 +283,26 @@ function af_mk_render_feed($channel) {
         echo '  <g:description>' . af_mk_xml_esc($r['description']) . "</g:description>\n";
         echo '  <g:link>' . esc_url($r['link']) . "</g:link>\n";
         echo '  <g:image_link>' . esc_url($r['images'][0]) . "</g:image_link>\n";
-        foreach (array_slice($r['images'], 1, 10) as $extra) {
+        // the gallery often repeats the main picture; Google counts that as a duplicate
+        foreach (array_slice(array_values(array_diff(array_unique($r['images']), array($r['images'][0]))), 0, 10) as $extra) {
             echo '  <g:additional_image_link>' . esc_url($extra) . "</g:additional_image_link>\n";
         }
         echo '  <g:availability>' . af_mk_xml_esc($avail) . "</g:availability>\n";
         echo '  <g:condition>new</g:condition>' . "\n";
-        echo '  <g:price>' . af_mk_xml_esc(number_format($r['regular'], 2, '.', '') . ' ' . $r['currency']) . "</g:price>\n";
-        if ($r['price'] < $r['regular']) {
-            echo '  <g:sale_price>' . af_mk_xml_esc(number_format($r['price'], 2, '.', '') . ' ' . $r['currency']) . "</g:sale_price>\n";
+        if ($channel === 'google') {
+            // Only the price the shopper pays. Google allows a crossed-out
+            // price only when the item really sold at it recently; the
+            // "regular" prices on this shop are not that, and a sale price
+            // Google judges false gets items pulled and can suspend the
+            // account. Made to order: 3-5 business days before dispatch.
+            echo '  <g:price>' . af_mk_xml_esc(number_format($r['price'], 2, '.', '') . ' ' . $r['currency']) . "</g:price>\n";
+            echo '  <g:min_handling_time>3</g:min_handling_time>' . "\n";
+            echo '  <g:max_handling_time>5</g:max_handling_time>' . "\n";
+        } else {
+            echo '  <g:price>' . af_mk_xml_esc(number_format($r['regular'], 2, '.', '') . ' ' . $r['currency']) . "</g:price>\n";
+            if ($r['price'] < $r['regular']) {
+                echo '  <g:sale_price>' . af_mk_xml_esc(number_format($r['price'], 2, '.', '') . ' ' . $r['currency']) . "</g:sale_price>\n";
+            }
         }
         echo '  <g:brand>' . af_mk_xml_esc($r['brand']) . "</g:brand>\n";
         if ($r['gtin']) {

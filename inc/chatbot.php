@@ -138,7 +138,7 @@ function af_bot_intents() {
         ),
         'returns' => array(
             'k' => array('return', 'refund', 'exchange', 'damaged', 'broken', 'cancel', 'wrong item', 'not happy', 'money back'),
-            'a' => "If a piece arrives damaged or isn't what you ordered, we replace or refund it — start the return from the order in your account within 14 days of delivery and we'll arrange collection.\n\nBecause every canvas is printed for your order, change-of-mind returns are limited, but tell us what happened — we'd rather fix it than lose you.",
+            'a' => "If a piece arrives damaged or isn't what you ordered, we replace or refund it — send us your order number and photos within 7 days of delivery, from the order in your account or by email. A damaged piece never has to be sent back.\n\nBecause every canvas is printed for your order, change-of-mind returns are limited, but tell us what happened — we'd rather fix it than lose you.",
             'c' => array('Start a return' => home_url('/my-account/orders/'), 'Return policy' => home_url('/refund-policy/')),
         ),
         'order' => array(
