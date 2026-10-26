@@ -31,12 +31,24 @@
  *                         abstract wall art" (17, 28.2), "abstract wall art"
  *                         (8, 57.1)... 50 products.
  *
+ * Added 26 Oct 2026 (Search Console, 27 Jul – 24 Oct):
+ *   seven-horses          121, 10.0, on the edge of page 1: "seven horses"
+ *                         (25, pos 9.6), "seven horses wall art" (4, 12.0),
+ *                         "7 horses wall art", "seven horses frame"... 16
+ *                         products, mostly 3×4 ft; not every one shows
+ *                         seven horses.
+ *   indian-culture        55, 9.2: "indian canvas" (11, pos 10.6), "canvas
+ *                         indian" (4, 12.2), "india canvas", "indian folk art
+ *                         canvas"... 16 products: classical dancers, Kerala
+ *                         mural, folk art, Ganga Aarti, portraits.
+ *
  * Per category: 'heading' replaces the H1 (af_archive_heading, see
  * inc/page-headings.php); 'title' replaces the Rank Math <title> (optional);
  * 'intro' are paragraphs; 'faq' are [question, answer]; 'related' are
  * category slug => label. In intro and answers, [[cat:slug|text]] becomes a
- * link to that category and [[contact|text]] a link to /contact/; a category
- * that does not exist leaves the plain text. Page 2 and later pages of a
+ * link to that category, [[post:slug|text]] to that published blog post and
+ * [[contact|text]] to /contact/; a category or post that does not exist
+ * leaves the plain text. Page 2 and later pages of a
  * category are left alone.
  *
  * The copy only states what the products and the shop already say. Nothing
@@ -174,6 +186,56 @@ function af_cat_guides() {
             'related' => array('living-room' => 'Living room', 'landscapes' => 'Landscapes', 'wildlife' => 'Wildlife',
                                'printable-art' => 'Printable art', 'extra-large-canvas-paintings' => 'Extra large canvas', 'diy-floating-frames' => 'Floating frames'),
         ),
+        // Placement follows the blog post /7-horses-painting-vastu-direction/,
+        // so the category and the article give the same advice.
+        'seven-horses' => array(
+            'heading' => 'Seven Horses Painting & 7 Horses Wall Art',
+            'title'   => 'Seven Horses Painting & 7 Horses Wall Art for Vastu | The Art Framer',
+            'intro'   => array(
+                'A <strong>seven horses painting</strong> is one of the best-loved Vastu artworks: seven horses galloping together stand for speed, strength and success that keeps moving. Our <strong>7 horses wall art</strong> comes in sunrise, ocean, golden and white-horse designs, mostly in a large 3×4 ft size, for the living room or home office. Choose how it arrives: rolled canvas, on stretcher bars ready to hang, or finished in a frame.',
+            ),
+            'faq_title' => 'Seven horses painting guide &amp; FAQ',
+            'faq' => array(
+                array('Where should I hang a seven horses painting as per Vastu?',
+                    'Vastu guidance favors the south wall, for success and recognition, in the living room or office, or the east wall, for growth, in a home office or study. Hang it so the horses run into the room, not towards the door, and keep it out of the bedroom and the pooja room. Read more in our [[post:7-horses-painting-vastu-direction|7 horses painting Vastu guide]].'),
+                array('Which size seven horses painting should I choose?',
+                    'A good rule is art about two-thirds the width of the furniture below it: a 3×4 ft canvas suits a standard sofa, and 3×5 ft (36×60 in) a sectional or a long office wall. Most designs here are 3×4 ft; open a design to see every size it comes in.'),
+                array('Do all the paintings show seven horses?',
+                    'Most do. The collection also has other running-horse designs, such as wild horses and single-horse paintings; the name of each design tells you which it is.'),
+                array('Does it come framed and ready to hang?',
+                    'You choose on each design: the painting only (rolled canvas in a tube), the painting on wooden stretcher bars with a DIY hanging kit, or stretched and finished in the frame you pick. Already have a canvas? See our [[cat:diy-floating-frames|floating frames for canvas]].'),
+                array('Is a seven horses painting a good gift?',
+                    'It is a popular housewarming (Griha Pravesh) and new-office gift, as a wish for success and progress. See our [[post:griha-pravesh-gift-ideas-indian-family-usa|Griha Pravesh gift ideas]] for more.'),
+                array('Do you deliver across the USA?',
+                    'Yes. Every canvas is made to order and delivered across the USA; the delivery cost for your size and address is shown before you pay.'),
+            ),
+            'related' => array('vaastu-art' => 'Vastu art', 'hindu-deities' => 'Hindu Gods', 'landscapes' => 'Landscapes',
+                               'wildlife' => 'Wildlife', 'living-room' => 'Living room', 'diy-floating-frames' => 'Floating frames'),
+        ),
+        'indian-culture' => array(
+            'heading' => 'Indian Canvas Art: Classical Dance & Heritage Wall Art',
+            'title'   => 'Indian Canvas Art & Indian Wall Art | Classical Dance & Heritage',
+            'intro'   => array(
+                'Bring India\'s heritage home with <strong>Indian canvas art</strong>: Bharatanatyam and classical dancers, Kerala mural and folk-art designs, Ganga Aarti, and portraits such as Bharat Mata and Sai Baba, for the living room, dining room or entrance. Choose how it arrives: rolled canvas, on stretcher bars ready to hang, or finished in a frame.',
+            ),
+            'faq_title' => 'Indian wall art guide &amp; FAQ',
+            'faq' => array(
+                array('What kind of Indian art is in this collection?',
+                    'Classical dance, such as Bharatanatyam dancers and dancing duets; folk and mural styles, such as Kerala mural and Krishna with a cow; devotional scenes such as the Ganga Aarti; and portraits including Bharat Mata and Sai Baba.'),
+                array('Are these paintings hand-painted?',
+                    'No. They are printed reproductions on canvas, made to order, which keeps the color and detail of each design at a price that suits a home.'),
+                array('Which room suits Indian wall art?',
+                    'Classical dancers and heritage scenes make a striking focal wall in the living room, dining room or entrance. Devotional designs such as the Ganga Aarti or Sai Baba also suit a prayer corner. See [[post:which-hindu-deity-painting-for-which-room|which painting belongs in which room]].'),
+                array('Which size should I choose?',
+                    'Most designs here are 3×4 ft, a statement size above a sofa or console; a few come as 3×2 ft or 36×60 in. Open a design to see every size it comes in, and see our [[post:canvas-size-guide-us-living-room-wall|canvas size guide]] for help.'),
+                array('Does it come framed and ready to hang?',
+                    'You choose on each design: the painting only (rolled canvas in a tube), the painting on wooden stretcher bars with a DIY hanging kit, or stretched and finished in the frame you pick. Already have a canvas? See our [[cat:diy-floating-frames|floating frames for canvas]].'),
+                array('Do you deliver across the USA?',
+                    'Yes. Every canvas is made to order and delivered across the USA; the delivery cost for your size and address is shown before you pay.'),
+            ),
+            'related' => array('hindu-deities' => 'Hindu Gods', 'radha-krishna' => 'Radha Krishna', 'pichwai-art' => 'Pichwai art',
+                               'seven-horses' => '7 Horses (Vastu)', 'lakshmi-ganesha' => 'Lakshmi Ganesh', 'diy-floating-frames' => 'Floating frames'),
+        ),
     );
 }
 
@@ -192,12 +254,19 @@ function af_cat_guide_term_url($slug) {
     return is_wp_error($u) ? '' : $u;
 }
 
-/** [[cat:slug|text]] and [[contact|text]] → links; $plain drops the markup instead. */
+/** A published blog post's address by its slug, or ''. */
+function af_cat_guide_post_url($slug) {
+    $p = get_page_by_path($slug, OBJECT, 'post');
+    return ($p && $p->post_status === 'publish') ? (string) get_permalink($p) : '';
+}
+
+/** [[cat:slug|text]], [[post:slug|text]] and [[contact|text]] → links; $plain drops the markup instead. */
 function af_cat_guide_text($s, $plain = false) {
-    $s = preg_replace_callback('/\[\[(cat:([a-z0-9-]+)|contact)\|([^\]]+)\]\]/', function ($m) use ($plain) {
-        if ($plain) return $m[3];
-        $u = $m[1] === 'contact' ? home_url('/contact/') : af_cat_guide_term_url($m[2]);
-        return $u === '' ? esc_html($m[3]) : '<a href="' . esc_url($u) . '">' . esc_html($m[3]) . '</a>';
+    $s = preg_replace_callback('/\[\[(cat:([a-z0-9-]+)|post:([a-z0-9-]+)|contact)\|([^\]]+)\]\]/', function ($m) use ($plain) {
+        $label = $m[4];
+        if ($plain) return $label;
+        $u = $m[1] === 'contact' ? home_url('/contact/') : ($m[2] !== '' ? af_cat_guide_term_url($m[2]) : af_cat_guide_post_url($m[3]));
+        return $u === '' ? esc_html($label) : '<a href="' . esc_url($u) . '">' . esc_html($label) . '</a>';
     }, $s);
     return $plain ? html_entity_decode(wp_strip_all_tags($s), ENT_QUOTES, 'UTF-8') : $s;
 }
