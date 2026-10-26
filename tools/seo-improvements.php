@@ -247,8 +247,8 @@ $cat_map = array(
     ),
     'indian-culture' => array(
         't' => 'Indian Culture Wall Art | Classical Dance & Heritage Canvas',
-        'd' => 'Indian culture on canvas: classical dancers, Tanjore and folk art for the living room and entrance. Rolled, stretched or framed, shipped across the USA.',
-        'i' => 'Indian heritage on canvas: Bharatanatyam and Kathak dancers, Tanjore-style art and folk motifs for the living room, dining room or entrance. Rolled, stretched or in a floating frame, shipped across the USA.',
+        'd' => 'Indian canvas art: classical dancers, Kerala mural and folk art, Ganga Aarti and heritage portraits. Rolled, stretched or framed, shipped across the USA.',
+        'i' => 'Indian heritage on canvas: Bharatanatyam and classical dancers, Kerala mural and folk motifs, Ganga Aarti and heritage portraits for the living room, dining room or entrance. Rolled, stretched or in a floating frame, shipped across the USA.',
     ),
     'christian-art' => array(
         't' => 'Christian Wall Art & Religious Canvas Paintings | USA',
@@ -320,6 +320,9 @@ $is_template = function ($cur, $term) {
 };
 // Earlier hand-written values of this script, superseded by the USA pass.
 $superseded = array(
+    // 26 Oct 2026: the shop has no Tanjore or Kathak pieces; the Indian Culture copy named both.
+    'Indian culture on canvas: classical dancers, Tanjore and folk art for the living room and entrance. Rolled, stretched or framed, shipped across the USA.',
+    'Indian heritage on canvas: Bharatanatyam and Kathak dancers, Tanjore-style art and folk motifs for the living room, dining room or entrance. Rolled, stretched or in a floating frame, shipped across the USA.',
     'Hindu God Paintings for Home & Pooja Room | Canvas Art',
     'Radha Krishna Painting for Home | Canvas Wall Art USA',
     'Lakshmi Ganesh Painting for Diwali | Canvas Wall Art',
