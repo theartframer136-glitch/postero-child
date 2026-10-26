@@ -4783,7 +4783,7 @@ add_action('woocommerce_before_add_to_cart_button', function() {
       <div class="af-price-live">Your Price: <strong id="af-live-price"><?php echo wc_price($base); ?></strong>
         <s id="af-live-mrp" class="af-live-mrp"></s>
         <span id="af-live-disc" class="af-live-disc"></span></div>
-      <p class="af-price-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Free Secure Packaging</p>
+      <p class="af-price-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Secure packaging included</p>
       <input type="hidden" name="af_size"  value="<?php echo esc_attr($def_size); ?>">
       <input type="hidden" name="af_frame" value="<?php echo esc_attr($def_frame); ?>">
       <input type="hidden" name="af_color" value="<?php echo esc_attr($colors[0]); ?>">
@@ -8911,7 +8911,7 @@ add_shortcode('af_dashboard', function() {
     <span class="afd-welcome-ico">🖼️</span>
     <span class="afd-eyebrow">Your Account</span>
     <h2>Welcome to Your Dashboard</h2>
-    <p>Sign in to see your orders, downloads, and saved details — or create a free account in under a minute.</p>
+    <p>Sign in to see your orders, downloads, and saved details — or create an account in under a minute.</p>
     <div class="afd-welcome-btns">
       <a class="afd-btn" href="<?php echo esc_url(home_url('/my-account/')); ?>">Sign In</a>
       <a class="afd-btn afd-btn-ghost" href="<?php echo esc_url(home_url('/sign-up/')); ?>">Create Account</a>
@@ -10745,7 +10745,7 @@ add_action('woocommerce_account_returns_endpoint', function() {
     echo '<label>Reason *<select name="af_rma_reason" required>';
     foreach (af_rma_reasons() as $k => $v) echo '<option value="' . esc_attr($k) . '">' . esc_html($v) . '</option>';
     echo '</select></label></div>';
-    echo '<label>Preferred resolution *<select name="af_rma_resolution" required><option value="replacement">Free replacement</option><option value="refund">Refund</option><option value="advice">Just need advice</option></select></label>';
+    echo '<label>Preferred resolution *<select name="af_rma_resolution" required><option value="replacement">Replacement at no cost</option><option value="refund">Refund</option><option value="advice">Just need advice</option></select></label>';
     echo '<label>Tell us what happened *<textarea name="af_rma_details" rows="4" required maxlength="2000" placeholder="Describe the issue. For damage, mention which part is affected — we may ask for photos by email."></textarea></label>';
     echo '<button type="submit" class="taf-form-submit" name="af_rma_submit" value="1">Submit Request</button>';
     echo '</form></div>';
@@ -12522,7 +12522,7 @@ add_action('template_redirect', function () {
               </div>
               <div class="af-ftm-panel af-ftm-flat">
                 <div class="af-ftm-price"><span>Your price</span><strong id="ftm-price">—</strong></div>
-                <p class="af-ftm-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Free secure packaging</p>
+                <p class="af-ftm-notes">✓ Inclusive of all taxes &nbsp;·&nbsp; 📦 Secure packaging included</p>
                 <div class="af-ftm-actions">
                   <button type="button" id="ftm-save" class="af-ftm-btn ghost">⤓ Save Preview</button>
                   <a href="#" id="ftm-send" class="af-ftm-btn solid" target="_blank" rel="noopener">Confirm &amp; Send</a>
@@ -16847,7 +16847,7 @@ function af_ticker_items() {
         '🖼️ Gallery-wrapped and ready to hang',
         '💎 Fade-resistant archival inks on museum-quality canvas',
         '✓ Inclusive of all taxes',
-        '📦 Free secure packaging',
+        '📦 Secure packaging included',
         '📐 Custom sizes available',
     )) ) );
 }
