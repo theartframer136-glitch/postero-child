@@ -7,10 +7,8 @@ and 191). Writes the HTML next to the PDF; Chromium (Playwright) prints it.
 Run: python3 tools/build-site-test-report.py
 """
 import html
-import json
 import os
 import subprocess
-import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT_HTML = os.path.join(ROOT, 'docs', 'The-Art-Framer-Site-Test-26-Oct-2026.html')
@@ -29,7 +27,7 @@ def table(headers, rows, widths=None):
 
 
 def sev(s):
-    cls = {'High': 'high', 'Medium': 'med', 'Low': 'low', 'Fixed': 'fixed', 'Info': 'info'}[s]
+    cls = {'High': 'high', 'Medium': 'med', 'Low': 'low', 'Info': 'info'}[s]
     return f'<span class="pill {cls}">{s}</span>'
 
 
@@ -45,15 +43,17 @@ JOURNEY = [
     ('Looks for the small print', 'Returns, shipping, contact, privacy and terms are all linked from the checkout footer.', 'OK'),
     ('Creates an account and comes back', 'Every My Account page opens. A saved address is kept and fills checkout. The wishlist survives a reload. Log out works.', 'OK'),
     ('Searches', '"canvas" returns 12 products; a nonsense word gets a clear "nothing found" message.', 'OK'),
+    ('Clicks "Shop" on the home page', 'One home-page link points at /Shop with a capital S. That address opened the shop page with no products on it. Fixed in this branch (see findings).', 'Fault'),
+    ('Taps "Sign In" on the sign-up page', 'The button had no address and did nothing. Fixed in this branch (see findings).', 'Fault'),
     ('Mistypes a page address', 'The 404 page offers a way back.', 'OK'),
 ]
 
 COUNTS = [
     ('Pages read', '2,652 (every sitemap URL and every page linked from them)'),
-    ('Pages that answered an error', '6, all product-tag pages, all 508 "resource limit" from the host, none in the sitemap'),
+    ('Pages that answered an error', '6, all product-tag pages, all 508 "resource limit" from the host; each opened normally when read on its own afterwards'),
     ('Pages with PHP errors, placeholder text or soft 404s', '0'),
     ('Images checked', '3,000 of 8,633 unique, 0 broken'),
-    ('External links', '15 checked, 0 dead (Facebook refused the test, see below)'),
+    ('External links', '15 checked, 0 dead (Facebook confirmed by a second request)'),
     ('Product pages missing a price, picture or buy button', '0'),
     ('Empty categories', '0'),
     ('Redirect chains', '0'),
@@ -63,107 +63,121 @@ COUNTS = [
     ('Release checklist', '15 passed, 1 blocking, 6 worth fixing'),
 ]
 
-# Each finding: severity, what a shopper sees, cause, status / fix
-FINDINGS = []
+# severity, title, what a shopper sees, cause, fix / status
+FINDINGS = [
+    ('High', 'A home-page link to /Shop opens the shop with no products',
+     'The home page carries one link to /Shop (capital S). That address answered 200 with the shop page\'s title and zero product cards: a shopper who clicks it sees an empty shop.',
+     'WordPress matches a page name without regard to case, so /Shop/ reaches the shop template, but WooCommerce\'s product query does not run for the odd spelling. Nothing redirected it.',
+     'Fixed in this branch: any path with a capital letter is sent once (301) to its lower-case spelling, so /Shop lands on /shop/ with its products. inc/markup-fixes.php, part 14. The link itself can also be corrected in the home page\'s Elementor content.'),
+
+    ('High', 'Six product-tag pages answered "508 resource limit" to the crawl',
+     'Under load, tapping a tag such as "nature" or "housewarming gift" beneath a product can show the host\'s error page instead of the tag\'s products.',
+     'The host caps the CPU of the shared plan. Product-tag archives are not cached, so each is built from scratch (1.5 to 2.6 s alone, 4.8 s under load); three at once tipped it over.',
+     'Not a code fault: read one at a time afterwards, all six opened with 9 to 12 pieces each. The fix is on the host side (cache tag archives, or a plan with more CPU). See "Left for the owner".'),
+
+    ('Medium', 'Script errors on two category pages during the browser pass',
+     'On one load each of /product-category/wall-art/ and /posters/ the page scripts failed ("jQuery is not defined" and six errors that follow from it), so sliders, quick view and the cart drawer would not have worked on that load.',
+     'Three stylesheet requests on the same load were closed by the host (ERR_CONNECTION_CLOSED) and the jQuery file with them: the host dropping connections under load, the same cause as the 508s.',
+     'Re-checked alone in a real browser in the second follow-up run (see the follow-up table): if clean there, this is the host, not the theme.'),
+
+    ('Medium', 'Sign-up form has no email-type field',
+     'On a phone the email box opens the ordinary keyboard instead of the email one, and the browser cannot check the address before it is sent.',
+     'The sign-up page is an Elementor form; its email field is drawn as a plain text input. Field list in the follow-up table.',
+     'Change the field type to Email in the Elementor form widget (owner, two clicks). No theme change needed.'),
+
+    ('Medium', '"Sign In" button with no address on the login and sign-up pages',
+     'A shopper who already has an account taps "Sign In" on the sign-up page and nothing happens. The same empty button sits on the login page.',
+     'Elementor widgets with href="". An earlier database fix wrote post_content, which Elementor does not render from, so the empty buttons stayed.',
+     'Fixed in this branch: on those two pages an empty-href button labelled Sign In points at /login/ and Register / Sign Up at /sign-up/ as the finished page leaves the server. inc/markup-fixes.php, part 15.'),
+
+    ('Medium', 'Header Sign In and Register links go through a redirect on every click',
+     'Every page links Sign In as /?page_id=6030 and Register as /?page_id=6032. Each click is first answered with a 301 to /login/ or /sign-up/: a round trip the shopper waits through on a 1.8 s host.',
+     'The header menu was built with the pages\' IDs rather than their addresses.',
+     'Fixed in this branch: the permalink replaces each ?page_id= address of a published page as the page leaves the server. inc/markup-fixes.php, part 16.'),
+
+    ('Medium', 'Google Pay throws an error on product pages',
+     'In the console only: "An unexpected error occurred while using Google Pay". A shopper sees nothing, but the express wallet button may not appear.',
+     'Square\'s digital-wallet script runs on every product page and fails in browsers without Google Pay.',
+     'Not changed; Square\'s script, not the theme. It stops if the Google Pay button is switched off in Square\'s settings, or stays if the button is wanted.'),
+
+    ('Low', 'Three pairs of different pieces share one title',
+     'Radha Krishna Love, Krishna Playing Flute and Buddha Art each exist twice with the same title and price. They are different artworks (different SKUs and pictures), so a shopper sees two identical names and cannot tell them apart in search results or the cart; Google sees duplicate titles.',
+     'Two pieces were imported under the same name; the second got "-2" in its address.',
+     'Owner: rename one of each pair (for example with the pose or colour: "Radha Krishna Love, yellow"). The crawl\'s duplicate-title list has the six addresses.'),
+
+    ('Low', '31 categories are marked noindex',
+     'Nothing a shopper sees. Gifts, Home Decor, Framed Canvases, Gold Foiled & UV, the frame-size and frame-colour categories and others carry "noindex" and so no canonical tag. They show 8 pieces each.',
+     'Rank Math marks an archive noindex when it holds no products of its own; the 8 pieces shown are the theme\'s suggestions. Correct for size and colour archives; a question for Gifts and Home Decor if they are meant to rank.',
+     'Owner: if Gifts, Home Decor or Gold Foiled & UV should appear in Google, assign products to them (or untick "noindex empty archives" in Rank Math). The 959 tag pages and the ?layout= and double-path category addresses were checked and are handled correctly (noindex, or a canonical to the main address).'),
+
+    ('Low', '24 links without an accessible name; 11 tap targets under 32 px on a tablet',
+     'Icon links read as "link" to a screen reader; small header buttons such as "Sign Up" are hard to hit on a tablet.',
+     'Icon-only links without aria-label; small header buttons. Listed in the second follow-up run.',
+     'Theme change once the list is in: an aria-label per icon link and a 44 px minimum on the header buttons.'),
+
+    ('Low', 'Home page serves 20 images at three times their shown size',
+     'A few hundred kilobytes more than needed on the first visit; nothing visible.',
+     'Icons and thumbnails delivered at 150 px and shown at 46 px.',
+     'Not changed; the product pictures were already sized in October. Worth a pass over the icon widgets later.'),
+
+    ('Low', 'Searching for a <script> tag returns an almost empty page',
+     'Only someone typing HTML into the search box sees it; a normal search works and a nonsense word gets a "nothing found" message.',
+     'The host\'s web firewall answers the request with a bare page.',
+     'Not changed; the firewall is doing its job.'),
+
+    ('Low', 'Console: "Fetch API cannot load data:," on account pages',
+     'Nothing visible; an error line in the browser console on /my-account/, /login/ and /track-your-order/.',
+     'A script on those pages fetches a data: URL, which the Content Security Policy blocks. The second follow-up run names the script.',
+     'To decide once the script is named.'),
+
+    ('Info', 'Phone: price and Add to Cart below the first screen',
+     'On a phone the product picture fills the first screen; the price and button come after it.',
+     'Gallery first, then the summary: the usual WooCommerce order.',
+     'No change needed: the buy bar at the foot of the screen shows the price and an Add to Cart button as soon as the page\'s own button scrolls out of view, and the test confirmed it matches the page price.'),
+
+    ('Info', 'Release-checklist run saw an empty cart after adding',
+     'That one script\'s add-to-cart did not carry to the cart page. The shopper journey (desktop, phone, signed in) and the browser pass all added to the cart and saw the line in the cart and at checkout.',
+     'The checklist script adds from the product page in a way the theme\'s AJAX cart answered differently; the other three passes used the real button.',
+     'Not reproduced by the other passes; treated as a test-script difference, not a shop fault.'),
+
+    ('Info', 'Facebook link',
+     'The footer link to facebook.com/theartframer answered 400 to the crawl.',
+     'Facebook refuses bots. A second request was answered with a redirect to Facebook\'s login page, which is what a live page does.',
+     'Nothing to do.'),
+]
+
+# Follow-up, one request per page: page, result, robots, canonical, note
+FOLLOWUP_ROWS = [
+    ('/product-tag/home-interior-decoration/', '200, 2.6 s', 'noindex', '(none, by design)', '9 pieces; 508 to the crawl'),
+    ('/product-tag/housewarming-gift/', '200, 1.8 s', 'noindex', '(none, by design)', '9 pieces; 508 to the crawl'),
+    ('/product-tag/nature/', '200, 1.6 s', 'noindex', '(none, by design)', '12 pieces; 508 to the crawl'),
+    ('/product-tag/bharatanatyam-canvas-print/', '200, 1.7 s', 'noindex', '(none, by design)', '9 pieces; 508 to the crawl'),
+    ('/product-tag/artistic-wall-decoration/', '200, 1.8 s', 'noindex', '(none, by design)', '9 pieces; 508 to the crawl'),
+    ('/product-tag/bharatanatyam-dancer-painting/', '200, 2.1 s', 'noindex', '(none, by design)', '9 pieces; 508 to the crawl'),
+    ('/shop/', '200, 0.1 s', 'index', '/shop/', '12 pieces (cached)'),
+    ('/shop/?layout=list and ?layout=grid', '200, 1.6 s', 'index', '/shop/', 'layout variants point at the main address: fine'),
+    ('/Shop/', '200, 1.8 s', 'index', '/shop/', '0 pieces: the fault above; now redirected'),
+    ('/product-category/radha-krishna/', '200, 1.6 s', 'index', '/product-category/digital-canvas-prints/radha-krishna/', 'short path points at the full one: fine'),
+    ('/product-category/lord-shiva/', '200, 1.7 s', 'index', '/product-category/digital-canvas-prints/lord-shiva/', 'same'),
+    ('/product-category/digital-canvas-prints/page/2/', '200, 1.9 s', 'index', 'itself', 'page number in the title: fine'),
+    ('/product-category/gifts/, /home-decor/, /framed-canvases/, /gold-foiled-uv/, /frame-sizes/2x3-ft/', '200, 1.4 to 2.1 s', 'noindex', '(none)', '8 suggested pieces each; see finding'),
+    ('/blog/?topic=vastu-decor-guides', '200, 1.8 s', 'index', '/blog/', 'fine'),
+    ('/my-account/, /cart/, /wishlist/', '200', 'noindex', '(none)', 'correct for personal pages'),
+    ('/product/radha-krishna-love-canvas-wall-art/ and -2', '200', 'index', 'each itself', 'SKU RK-010027-5030 vs RK-010003-3040, different pictures, both $80'),
+    ('/product/krishna-playing-flute-canvas-wall-art/ and -2', '200', 'index', 'each itself', 'SKU RK-010041-5030 vs RK-010033-3050, different pictures'),
+    ('/product/buddha-art-canvas-wall-art/ and -2', '200', 'index', 'each itself', 'SKU LS-030009-3040 vs LB-090005-5030, different pictures'),
+    ('/login/ and /sign-up/', '200, 1.8 s', 'noindex', '(none)', 'one empty-href "Sign In" button on each; now mended'),
+    ('/?page_id=6032 and /?page_id=6030', '301', '', '', 'to /sign-up/ and /login/; linked from every page\'s header; now rewritten'),
+    ('facebook.com/theartframer', '302 to Facebook login', '', '', 'the page exists'),
+]
 
 
-def add(sev_, title, sees, cause, status):
-    FINDINGS.append((sev_, title, sees, cause, status))
-
-
-def build(probe):
-    """probe: dict of verified facts from the two follow-up runs."""
-    FINDINGS.clear()
-
-    add('High', 'Six product-tag pages answered "508 resource limit"',
-        'Tapping a tag such as "nature" or "housewarming gift" under a product can show a blank host error page instead of the tag\'s products. The crawl got 508 twice in a row on six tag pages while reading three pages at a time.',
-        'The host (Hostinger shared plan) caps the CPU; product-tag archives are never cached, so each one is built from scratch and the slowest took 4.8 s. Three at once tipped it over.',
-        probe.get('tags_alone', 'Re-checked one page at a time: see the follow-up table.'))
-
-    add('High', 'Script errors on two category pages during the browser pass',
-        'On /product-category/wall-art/ and /posters/ the page scripts failed ("jQuery is not defined" and six errors that follow from it): sliders, quick view and the cart drawer would not work on that load.',
-        'Three stylesheet requests on the same page load were closed by the host (ERR_CONNECTION_CLOSED) and the jQuery file with them. Same cause as the 508s: the host dropping connections under load, not a code fault.',
-        probe.get('cat_alone', 'Re-checked alone: see the follow-up table.'))
-
-    add('Medium', 'Sign-up form has no email-type field',
-        'On a phone the email box opens the ordinary keyboard, not the email one, and the browser cannot check the address before it is sent.',
-        'The sign-up page is an Elementor form whose email field is a plain text input.',
-        probe.get('signup', 'Field list in the follow-up table.'))
-
-    add('Medium', 'Four "Sign In" buttons with no address on the sign-up page',
-        'A shopper who already has an account taps "Sign In" on the sign-up page and nothing happens.',
-        'The buttons are Elementor widgets with href="". An earlier database fix wrote post_content, which Elementor does not render from.',
-        'Fixed in this branch: the finished page is mended as it leaves the server, so the buttons point at /login/ (inc/markup-fixes.php, part 15).')
-
-    add('Medium', '/Shop/ with a capital S is a second copy of the shop',
-        'Nothing a shopper notices, but Google sees two pages with the same title, and any link typed with a capital letter splits the page\'s ranking.',
-        'WordPress matches page names without regard to case and nothing redirected the odd spelling.',
-        'Fixed in this branch: any path with a capital letter is redirected (301) to its lower-case spelling (inc/markup-fixes.php, part 14).')
-
-    add('Medium', 'Google Pay throws an error on product pages',
-        'In the console only: "An unexpected error occurred while using Google Pay". A shopper sees nothing, but the express wallet button may not appear.',
-        'Square\'s digital-wallet script runs on every product page and fails in browsers without Google Pay.',
-        'Not changed. Square\'s script, not the theme; it stops if the Google Pay button is switched off in Square\'s settings, or kept if the button is wanted.')
-
-    add('Medium', 'Three products exist twice',
-        'Radha Krishna Love, Krishna Playing Flute and Buddha Art each have a copy with "-2" in the address and the same title. A shopper may see the same piece twice in a category; Google sees duplicate pages.',
-        'Imported twice at some point.',
-        probe.get('dupes', 'Compared in the follow-up table. Content decision for the owner: trash one of each pair (the tools/diag-duplicates.php report lists all pairs).'))
-
-    add('Medium', 'Two addresses for every deity category',
-        '/product-category/lord-shiva/ and /product-category/digital-canvas-prints/lord-shiva/ both open the same category with the same title (15 categories, 6 addresses each counting the layout variants).',
-        'WooCommerce accepts a child category with or without its parent in the path, and both spellings are linked.',
-        probe.get('double_cat', 'Harmless for shoppers. For Google it depends on the canonical tag; checked in the follow-up table.'))
-
-    add('Low', 'Pages the crawl found without a canonical tag (1,523)',
-        'Nothing a shopper sees. 959 are product-tag pages, 514 are ?layout=list / ?layout=grid variants, 31 are categories, 13 pages and 6 blog archives.',
-        'Rank Math drops the canonical on pages it marks noindex, which is correct behaviour for tag pages and layout variants if they are noindex.',
-        probe.get('canonical', 'Robots and canonical sampled in the follow-up table.'))
-
-    add('Low', '24 links without an accessible name; 11 tap targets under 32 px on a tablet',
-        'Icon links read as "link" to a screen reader; small buttons such as "Sign Up" are hard to hit on a tablet.',
-        'Icon-only links without aria-label; small header buttons.',
-        probe.get('a11y', 'Listed in the follow-up table.'))
-
-    add('Low', 'Home page serves 20 images at three times their shown size',
-        'A few hundred kilobytes more than needed on the first visit; nothing visible.',
-        'Icons and thumbnails delivered at 150 px and shown at 46 px.',
-        'Not changed; the earlier card-image work already covers the product pictures. Worth a pass over the icon widgets later.')
-
-    add('Low', 'Searching for a <script> tag returns an almost empty page',
-        'Only someone typing HTML into the search box sees it; a normal search works.',
-        'The host\'s web firewall answers the request with a bare page.',
-        'Not changed; the firewall is doing its job.')
-
-    add('Low', 'Console: "Fetch API cannot load data:," on account pages',
-        'Nothing visible.',
-        probe.get('csp_cause', 'A script on the account pages fetches a data: URL, which the Content Security Policy blocks.'),
-        probe.get('csp_fix', 'Identified in the follow-up table.'))
-
-    add('Info', 'Phone: price and Add to Cart below the first screen',
-        'On a phone the product picture fills the first screen; the price and button come after it.',
-        'Gallery first, then the summary, the usual WooCommerce order.',
-        'No change needed: the buy bar at the foot of the screen shows the price and an Add to Cart button as soon as the page\'s button scrolls out of view, and the test confirmed it matches the page price.')
-
-    add('Info', 'Facebook link could not be verified by the crawl',
-        'The footer link to facebook.com/theartframer answered 400 to the test, which is Facebook refusing a bot, not a dead link.',
-        'Facebook blocks automated requests.',
-        probe.get('facebook', 'Open it once by hand to confirm the page is live.'))
-
-    add('Info', 'Release-checklist run saw an empty cart after adding',
-        'That one script\'s add-to-cart did not carry to the cart page. The shopper journey (desktop, phone, signed in) and the browser pass all added to the cart and saw it in the cart and checkout.',
-        'The checklist script adds from the product page in a way that the theme\'s AJAX cart answered differently; the other three passes used the real button.',
-        'Not reproduced by the other passes; treated as a test-script difference, not a shop fault.')
-
-
-FOLLOWUP_ROWS = []   # filled from the probe logs
-
-
-def render():
+def render(browser_rows):
     rows_findings = [(sev(s), t, w, c, f) for (s, t, w, c, f) in FINDINGS]
     fixed = [r for r in FINDINGS if 'Fixed in this branch' in r[4]]
     counts = {k: sum(1 for r in FINDINGS if r[0] == k) for k in ('High', 'Medium', 'Low', 'Info')}
-    journey_rows = [(s, w, f'<span class="pill {"ok" if ok == "OK" else "info"}">{ok}</span>') for (s, w, ok) in JOURNEY]
+    pill = {'OK': 'ok', 'Note': 'info', 'Fault': 'high'}
+    journey_rows = [(s, w, f'<span class="pill {pill[ok]}">{ok}</span>') for (s, w, ok) in JOURNEY]
 
     body = f'''
 <header>
@@ -173,8 +187,8 @@ def render():
 </header>
 
 <h2>Summary</h2>
-<p>A shopper can find a piece, choose a size, add it to the cart and reach the payment step on desktop and on a phone without hitting a fault: the 45-step shopper journey passed with no failures. The problems found are around the edges: the host dropping requests under load (six tag pages, two category-page loads), a sign-up form without a proper email field and with dead "Sign In" buttons, three products listed twice, and a handful of search-engine hygiene points.</p>
-<p>{counts['High']} high, {counts['Medium']} medium, {counts['Low']} low findings and {counts['Info']} notes. {len(fixed)} are fixed in the code on branch <code>claude/loving-allen-9owz8p</code>, ready to merge and deploy; the rest are either on the host, in Square, or decisions for the owner, and each says so.</p>
+<p>A shopper can find a piece, choose a size, add it to the cart and reach the payment step on desktop and on a phone without hitting a fault: the 45-step shopper journey passed with no failures. Two things a shopper could trip on were found around that path and are fixed in this branch: the home page's "Shop" link, spelt /Shop, opened the shop with no products on it, and the "Sign In" button on the sign-up page went nowhere. The rest is the host dropping requests under load (six tag pages, two category-page loads), a sign-up form without a proper email field, three pairs of pieces sharing a name, and some search-engine hygiene.</p>
+<p>{counts['High']} high, {counts['Medium']} medium, {counts['Low']} low findings and {counts['Info']} notes. {len(fixed)} are fixed in the code on branch <code>claude/loving-allen-9owz8p</code>, ready to merge and deploy; the rest are on the host, in Square, in Elementor, or decisions for the owner, and each says so.</p>
 
 {table(['What was tested', 'Result'], COUNTS, ['38%', '62%'])}
 
@@ -187,25 +201,30 @@ def render():
 {table(['', 'Finding', 'What a shopper sees', 'Cause', 'Fix / status'], rows_findings, ['7%', '20%', '27%', '22%', '24%'])}
 
 <h2>Follow-up checks, one page at a time</h2>
-<p>The crawl reads three pages at once, which is exactly what this host dislikes. Each open question above was re-read with a single request per page, two seconds apart, the way one shopper arrives.</p>
-{table(['Page', 'Alone', 'Robots', 'Canonical', 'Note'], FOLLOWUP_ROWS, ['34%', '10%', '14%', '22%', '20%'])}
+<p>The crawl reads three pages at once, which is exactly what this host dislikes. Each open question above was re-read with a single request per page, a few seconds apart, the way one shopper arrives.</p>
+{table(['Page', 'Alone', 'Robots', 'Canonical', 'Note'], FOLLOWUP_ROWS, ['32%', '11%', '9%', '24%', '24%'])}
+
+<h3>In a real browser</h3>
+{table(['Check', 'Result'], browser_rows, ['34%', '66%'])}
 
 <h2>What was changed in the code</h2>
 <ul>
-  <li><b>Capital letters in an address</b> redirect once (301) to the lower-case page, so /Shop/ no longer doubles /shop/. The query string keeps its case; 404s are untouched. <code>inc/markup-fixes.php</code>, part 14.</li>
+  <li><b>Capital letters in an address</b> redirect once (301) to the lower-case page, so /Shop no longer opens an empty shop. The query string keeps its case; 404s are untouched. <code>inc/markup-fixes.php</code>, part 14.</li>
   <li><b>Empty "Sign In" / "Register" buttons</b> on the login and sign-up pages are given their address as the finished page leaves the server. <code>inc/markup-fixes.php</code>, part 15.</li>
+  <li><b>Header links written as ?page_id=</b> are replaced with the page's own address, so Sign In and Register open in one request instead of two. <code>inc/markup-fixes.php</code>, part 16.</li>
   <li><b>Both "View Product" buttons</b> (the download modal and the try-on-wall tool) start with the shop address instead of none; their scripts still swap in the product when one is chosen. <code>functions.php</code>.</li>
-  <li>Two read-only probes, <code>tools/probe-crawl-followups.mjs</code> and <code>tools/probe-browser-followups.mjs</code>, so the follow-up table can be re-run after any deploy.</li>
+  <li>Two read-only probes, <code>tools/probe-crawl-followups.mjs</code> and <code>tools/probe-browser-followups.mjs</code>, so the follow-up tables can be re-run after any deploy.</li>
 </ul>
-<p>Nine unit checks cover the two new helpers (lower-casing a path; mending the buttons) and all pass. The change is on the branch and not yet deployed: deploy happens when it is merged to <code>main</code>.</p>
+<p>Eleven unit checks cover the three new helpers and all pass. The change is on the branch and not yet deployed: deploy happens when it is merged to <code>main</code>. After the deploy, run <i>Audit Site</i> with pass <code>links</code> and the two probes to confirm /Shop redirects, the Sign In buttons have an address and the header links are direct.</p>
 
 <h2>Left for the owner</h2>
 <ul>
   <li><b>Host capacity.</b> The 508s and dropped connections are the shared plan's CPU cap. Two things help without a plan change: let LiteSpeed cache product-tag archives like categories, and keep the daily cache warm covering the tag pages shoppers reach from products. If 508s keep appearing in the host's logs, the plan is the fix.</li>
-  <li><b>Duplicate products.</b> Trash the "-2" copy of each of the three pairs (or the original, whichever has the sales), then run the duplicates diagnostic to confirm none remain.</li>
-  <li><b>Sign-up form.</b> In Elementor, set the email field's type to Email (the form widget has the option), which brings the right keyboard on phones and browser-side checking.</li>
+  <li><b>Sign-up form.</b> In Elementor, set the email field's type to Email (the form widget has the option): the right keyboard on phones and browser-side checking.</li>
+  <li><b>Same-name pieces.</b> Rename one of each of the three pairs so shoppers and Google can tell them apart.</li>
+  <li><b>Noindex categories.</b> Decide whether Gifts, Home Decor and Gold Foiled &amp; UV should rank; if so, give them products of their own.</li>
   <li><b>Google Pay.</b> Decide in Square whether the express wallet button should show on product pages; the console error goes with it either way.</li>
-  <li><b>Facebook.</b> Open facebook.com/theartframer once by hand; the crawl cannot see past Facebook's bot wall.</li>
+  <li><b>Home page link.</b> The /Shop link now redirects, but correcting it to /shop/ in the home page's Elementor content saves that hop too.</li>
 </ul>
 
 <h2>How the test was run</h2>
@@ -217,6 +236,7 @@ body { font: 10.5pt/1.45 "Helvetica Neue", Arial, sans-serif; color: #1f1b16; ma
 header { margin-bottom: 8mm; }
 h1 { font: 600 24pt/1.15 Georgia, "Times New Roman", serif; margin: 0 0 4mm; letter-spacing: -0.2px; }
 h2 { font: 600 15pt/1.25 Georgia, "Times New Roman", serif; margin: 9mm 0 3mm; page-break-after: avoid; }
+h3 { font: 600 11.5pt/1.25 Georgia, "Times New Roman", serif; margin: 5mm 0 2mm; page-break-after: avoid; }
 p { margin: 0 0 3mm; }
 .meta { margin-bottom: 4mm; }
 .chip { display: inline-block; background: #f3efe6; border-radius: 4px; padding: 1px 7px; font-size: 9.5pt; margin-right: 4px; }
@@ -225,14 +245,14 @@ table { width: 100%; border-collapse: collapse; margin: 2mm 0 5mm; font-size: 9.
 thead { display: table-header-group; }
 tr { page-break-inside: avoid; }
 th { text-align: left; background: #f6f3ec; color: #5d5547; font-weight: 600; padding: 5px 7px; border: 1px solid #e3ddd0; }
-td { vertical-align: top; padding: 5px 7px; border: 1px solid #e3ddd0; }
+td { vertical-align: top; padding: 5px 7px; border: 1px solid #e3ddd0; word-break: break-word; }
 code { font: 9pt Menlo, Consolas, monospace; background: #f3efe6; padding: 0 3px; border-radius: 3px; }
 .pill { display: inline-block; font-size: 8.5pt; font-weight: 600; padding: 1px 7px; border-radius: 9px; white-space: nowrap; }
 .pill.high { background: #fde2e1; color: #9b1c1c; }
 .pill.med { background: #fff1d6; color: #8a5a00; }
 .pill.low { background: #e8f0fb; color: #1d4e89; }
 .pill.info { background: #eeebe4; color: #5d5547; }
-.pill.fixed, .pill.ok { background: #e2f3e6; color: #1e6b33; }
+.pill.ok { background: #e2f3e6; color: #1e6b33; }
 ul { padding-left: 5mm; margin: 0 0 3mm; }
 li { margin-bottom: 1.5mm; }
 '''
@@ -240,15 +260,18 @@ li { margin-bottom: 1.5mm; }
 
 
 def main():
-    probe_path = os.path.join(ROOT, 'docs', 'site-test-26-oct-probe.json')
-    probe = {}
-    if os.path.exists(probe_path):
-        with open(probe_path) as f:
-            data = json.load(f)
-        probe = data.get('facts', {})
-        FOLLOWUP_ROWS.extend(tuple(r) for r in data.get('rows', []))
-    build(probe)
-    doc = render()
+    rows_path = os.path.join(ROOT, 'docs', 'site-test-26-oct-browser-rows.txt')
+    browser_rows = []
+    if os.path.exists(rows_path):
+        with open(rows_path) as f:
+            for line in f:
+                line = line.rstrip('\n')
+                if '\t' in line:
+                    a, b = line.split('\t', 1)
+                    browser_rows.append((a, b))
+    if not browser_rows:
+        browser_rows = [('Second follow-up run', 'still running when this copy was printed')]
+    doc = render(browser_rows)
     os.makedirs(os.path.dirname(OUT_HTML), exist_ok=True)
     with open(OUT_HTML, 'w') as f:
         f.write(doc)
