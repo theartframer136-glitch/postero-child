@@ -267,6 +267,7 @@ function af_mf_filter_page($html) {
         if (is_page(array('login', 'sign-up'))) {
             $html = af_mf_mend_login_buttons($html);
         }
+        $html = af_mf_pretty_page_links($html);
     } catch (\Throwable $e) {
     }
     return $html;
@@ -829,5 +830,32 @@ function af_mf_mend_login_buttons($html) {
         $label = strtolower(trim(preg_replace('/\s+/', ' ', wp_strip_all_tags($m[4]))));
         if ($label === '' || empty($map[$label])) return $m[0];
         return '<a' . $m[1] . 'href="' . esc_url(home_url($map[$label])) . '"' . $m[3] . '>' . $m[4] . '</a>';
+    }, $html);
+}
+
+/* ------------------------------ 16. ?page_id= links in the header */
+
+/**
+ * Every page links Sign In and Register as /?page_id=6030 and /?page_id=6032
+ * (the header menu was built with the pages' IDs). Each click is answered
+ * with a 301 to /login/ or /sign-up/ first: a round trip a shopper waits
+ * through, and for Google two addresses for one page. The finished page
+ * gets the permalink in place of each ?page_id= address that belongs to a
+ * published page; anything else (a draft, an unknown ID) is left as it is.
+ */
+function af_mf_pretty_page_links($html) {
+    if (!is_string($html) || strpos($html, '?page_id=') === false) return $html;
+    $home = preg_quote(home_url('/'), '#');
+    return preg_replace_callback('#href=(["\'])' . $home . '\?page_id=(\d+)\1#', function ($m) {
+        static $seen = array();
+        $id = (int) $m[2];
+        if (!isset($seen[$id])) {
+            $seen[$id] = '';
+            if (get_post_status($id) === 'publish' && get_post_type($id) === 'page') {
+                $link = get_permalink($id);
+                if (is_string($link) && $link !== '' && strpos($link, '?page_id=') === false) $seen[$id] = $link;
+            }
+        }
+        return $seen[$id] === '' ? $m[0] : 'href=' . $m[1] . esc_url($seen[$id]) . $m[1];
     }, $html);
 }
