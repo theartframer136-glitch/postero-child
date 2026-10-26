@@ -5449,7 +5449,7 @@ add_action('template_redirect', function(){
             <div class="af-tow-price"><span>Your price</span><strong id="tow-price">—</strong></div>
             <div class="af-tow-actions">
               <button type="button" id="tow-save" class="af-tow-btn ghost">⤓ Save Preview</button>
-              <a href="#" id="tow-view" class="af-tow-btn solid">View Product</a>
+              <a href="<?php echo esc_url(function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/shop/')); ?>" id="tow-view" class="af-tow-btn solid">View Product</a>
             </div>
 
             <p class="af-sharelabel">Keep it &amp; share it</p>
@@ -7371,7 +7371,7 @@ add_action('wp_footer', function() {
             <div class="af-dd-price" id="af-dd-price"><?php echo $price_html; ?></div>
             <div class="af-dd-actions">
               <button id="af-dd-add" class="af-dd-btn solid">Add to Cart</button>
-              <a id="af-dd-view" class="af-dd-btn ghost">View Product</a>
+              <a id="af-dd-view" class="af-dd-btn ghost" href="<?php echo esc_url(function_exists('wc_get_page_permalink') ? wc_get_page_permalink('shop') : home_url('/shop/')); ?>">View Product</a>
             </div>
             <p class="af-dd-msg" id="af-dd-msg"></p>
           </div>

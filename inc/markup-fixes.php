@@ -264,6 +264,9 @@ function af_mf_filter_page($html) {
             $html = af_mf_logo_srcset($html, 'af_mf_upload_srcset');
         }
         $html = af_mf_hidden_h1($html, af_mf_page_title());
+        if (is_page(array('login', 'sign-up'))) {
+            $html = af_mf_mend_login_buttons($html);
+        }
     } catch (\Throwable $e) {
     }
     return $html;
@@ -760,3 +763,71 @@ add_action('wp_footer', function () {
 </script>
     <?php
 }, 60);
+
+/* ------------------------------ 14. capital letters in an address */
+
+/**
+ * /Shop/ answered 200 with the shop page's title in the full site test of
+ * 2026-10-26, next to /shop/: WordPress matches a page name without regard to
+ * case, so every spelling is a second copy of the same page with the same
+ * title. Slugs here are all lower case, so an address with a capital letter
+ * in its path is sent, once and for good, to the lower-case spelling. Only
+ * the path changes: the query string (order keys, currency, layout) keeps
+ * its case, and a path that is a 404 either way is left to the 404 page.
+ */
+function af_mf_lowercase_path($uri) {
+    $uri  = (string) $uri;
+    $path = (string) parse_url($uri, PHP_URL_PATH);
+    if ($path === '' || !preg_match('/[A-Z]/', $path)) return '';
+    $lower = strtolower($path);
+    if ($lower === $path) return '';
+    $q = (string) parse_url($uri, PHP_URL_QUERY);
+    return $lower . ($q !== '' ? '?' . $q : '');
+}
+
+add_action('template_redirect', function () {
+    try {
+        if (is_admin() || is_404() || is_preview() || is_customize_preview()) return;
+        if ((defined('DOING_AJAX') && DOING_AJAX) || (defined('REST_REQUEST') && REST_REQUEST)) return;
+        if (!empty($_POST)) return;
+        $to = af_mf_lowercase_path($_SERVER['REQUEST_URI'] ?? '');
+        if ($to === '') return;
+        wp_safe_redirect(home_url($to), 301, 'The Art Framer');
+        exit;
+    } catch (\Throwable $e) {
+    }
+}, 1);
+
+/* -------------------------- 15. buttons with nowhere to go on login pages */
+
+/**
+ * The Login and Sign-up pages are drawn by Elementor, and four of their
+ * buttons still carry href="" (full site test, 2026-10-26: "Sign In" on the
+ * sign-up page). The database fix of 2026-10 wrote post_content, which
+ * Elementor does not render from, so the empty buttons stayed. A button with
+ * no address does nothing when tapped. Here the finished page is mended as it
+ * leaves: an empty-href anchor labelled Sign In points at the login page,
+ * Register / Sign Up / Create Account at the sign-up page. Only those labels,
+ * only on those two pages, and only when the href is empty.
+ */
+function af_mf_login_button_targets() {
+    return array(
+        'sign in'        => '/login/',
+        'log in'         => '/login/',
+        'login'          => '/login/',
+        'register now'   => '/sign-up/',
+        'register'       => '/sign-up/',
+        'sign up'        => '/sign-up/',
+        'create account' => '/sign-up/',
+    );
+}
+
+function af_mf_mend_login_buttons($html) {
+    if (!is_string($html) || stripos($html, 'href=""') === false && stripos($html, "href=''") === false) return $html;
+    $map = af_mf_login_button_targets();
+    return preg_replace_callback('#<a\b([^>]*?)\bhref=(["\'])\2([^>]*)>([\s\S]{0,400}?)</a>#i', function ($m) use ($map) {
+        $label = strtolower(trim(preg_replace('/\s+/', ' ', wp_strip_all_tags($m[4]))));
+        if ($label === '' || empty($map[$label])) return $m[0];
+        return '<a' . $m[1] . 'href="' . esc_url(home_url($map[$label])) . '"' . $m[3] . '>' . $m[4] . '</a>';
+    }, $html);
+}
