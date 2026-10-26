@@ -44,6 +44,7 @@ JOURNEY = [
     ('Creates an account and comes back', 'Every My Account page opens. A saved address is kept and fills checkout. The wishlist survives a reload. Log out works.', 'OK'),
     ('Searches', '"canvas" returns 12 products; a nonsense word gets a clear "nothing found" message.', 'OK'),
     ('Clicks "Shop" on the home page', 'One home-page link points at /Shop with a capital S. That address opened the shop page with no products on it. Fixed in this branch (see findings).', 'Fault'),
+    ('Taps "Sign Up" in the header', 'The page that opens has a login form and no way to register. Fixed in this branch: it now sends a signed-out visitor to the My Account register form (see findings).', 'Fault'),
     ('Taps "Sign In" on the sign-up page', 'The button had no address and did nothing. Fixed in this branch (see findings).', 'Fault'),
     ('Mistypes a page address', 'The 404 page offers a way back.', 'OK'),
 ]
@@ -78,12 +79,12 @@ FINDINGS = [
     ('Medium', 'Script errors on two category pages during the browser pass',
      'On one load each of /product-category/wall-art/ and /posters/ the page scripts failed ("jQuery is not defined" and six errors that follow from it), so sliders, quick view and the cart drawer would not have worked on that load.',
      'Three stylesheet requests on the same load were closed by the host (ERR_CONNECTION_CLOSED) and the jQuery file with them: the host dropping connections under load, the same cause as the 508s.',
-     'Re-checked alone in a real browser in the second follow-up run (see the follow-up table): if clean there, this is the host, not the theme.'),
+     'Not a code fault: opened alone in a real browser afterwards (wall-art twice, posters once) both pages loaded with jQuery present, no script errors and no failed requests. Host side, with the 508s.'),
 
-    ('Medium', 'Sign-up form has no email-type field',
-     'On a phone the email box opens the ordinary keyboard instead of the email one, and the browser cannot check the address before it is sent.',
-     'The sign-up page is an Elementor form; its email field is drawn as a plain text input. Field list in the follow-up table.',
-     'Change the field type to Email in the Elementor form widget (owner, two clicks). No theme change needed.'),
+    ('High', 'The "Sign Up" page has no sign-up form',
+     'The header\'s "Sign Up" opens /sign-up/, which shows a login form (username or email, password) and a lost-password form, and nothing to register with: no email, name or new-password field. A shopper who wants an account before buying is stuck. Guest checkout still works, and the account form on /my-account/ still works.',
+     'The page is an Elementor login-register widget. Open registration was switched off in the 24 October security cleanup, and the widget then draws only its login half. WooCommerce\'s own registration on /my-account/ does not depend on that setting and is still on.',
+     'Fixed in this branch: while WordPress registration is off, a signed-out visitor who opens /sign-up/ is sent on (302) to /my-account/, where the register form is. inc/markup-fixes.php, part 17. Owner\'s alternative: point the header\'s Sign Up at /my-account/ directly, or switch the widget to its register form.'),
 
     ('Medium', '"Sign In" button with no address on the login and sign-up pages',
      'A shopper who already has an account taps "Sign In" on the sign-up page and nothing happens. The same empty button sits on the login page.',
@@ -110,10 +111,10 @@ FINDINGS = [
      'Rank Math marks an archive noindex when it holds no products of its own; the 8 pieces shown are the theme\'s suggestions. Correct for size and colour archives; a question for Gifts and Home Decor if they are meant to rank.',
      'Owner: if Gifts, Home Decor or Gold Foiled & UV should appear in Google, assign products to them (or untick "noindex empty archives" in Rank Math). The 959 tag pages and the ?layout= and double-path category addresses were checked and are handled correctly (noindex, or a canonical to the main address).'),
 
-    ('Low', '24 links without an accessible name; 11 tap targets under 32 px on a tablet',
-     'Icon links read as "link" to a screen reader; small header buttons such as "Sign Up" are hard to hit on a tablet.',
-     'Icon-only links without aria-label; small header buttons. Listed in the second follow-up run.',
-     'Theme change once the list is in: an aria-label per icon link and a 44 px minimum on the header buttons.'),
+    ('Low', 'Small tap targets on a tablet; two unnamed links',
+     'On a tablet the header\'s "Sign Up" and "Login" are 19 px tall, the footer bar\'s Shop, Account and Wishlist 15 px, the slide dots 6 px and the "Read More" links 19 px: hard to hit with a thumb. The two language-flag links (English, Hindi) have no text for a screen reader; the checklist\'s other "unnamed" links are menu entries whose text sits in a closed dropdown.',
+     'Header and footer links styled as small text; flag images without alt text.',
+     'Not changed in this pass (header and footer are Elementor templates). Owner or next pass: 32 px minimum height on those links, alt text "English" and "Hindi" on the flags.'),
 
     ('Low', 'Home page serves 20 images at three times their shown size',
      'A few hundred kilobytes more than needed on the first visit; nothing visible.',
@@ -125,10 +126,10 @@ FINDINGS = [
      'The host\'s web firewall answers the request with a bare page.',
      'Not changed; the firewall is doing its job.'),
 
-    ('Low', 'Console: "Fetch API cannot load data:," on account pages',
-     'Nothing visible; an error line in the browser console on /my-account/, /login/ and /track-your-order/.',
-     'A script on those pages fetches a data: URL, which the Content Security Policy blocks. The second follow-up run names the script.',
-     'To decide once the script is named.'),
+    ('Info', 'Console: "Fetch API cannot load data:," on the login and account pages',
+     'Nothing visible; error lines in the browser console.',
+     'Cloudflare Turnstile\'s own script probes a data: address and the page\'s Content Security Policy refuses it. Nothing in the theme sends it.',
+     'Nothing to do; Turnstile works regardless.'),
 
     ('Info', 'Phone: price and Add to Cart below the first screen',
      'On a phone the product picture fills the first screen; the price and button come after it.',
@@ -187,7 +188,7 @@ def render(browser_rows):
 </header>
 
 <h2>Summary</h2>
-<p>A shopper can find a piece, choose a size, add it to the cart and reach the payment step on desktop and on a phone without hitting a fault: the 45-step shopper journey passed with no failures. Two things a shopper could trip on were found around that path and are fixed in this branch: the home page's "Shop" link, spelt /Shop, opened the shop with no products on it, and the "Sign In" button on the sign-up page went nowhere. The rest is the host dropping requests under load (six tag pages, two category-page loads), a sign-up form without a proper email field, three pairs of pieces sharing a name, and some search-engine hygiene.</p>
+<p>A shopper can find a piece, choose a size, add it to the cart and reach the payment step on desktop and on a phone without hitting a fault: the 45-step shopper journey passed with no failures. Three things a shopper could trip on were found around that path and are fixed in this branch: the home page's "Shop" link, spelt /Shop, opened the shop with no products on it; the "Sign Up" page had no form to sign up with; and the "Sign In" button on that page went nowhere. The rest is the host dropping requests under load (six tag pages, two category-page loads), three pairs of pieces sharing a name, and some search-engine hygiene.</p>
 <p>{counts['High']} high, {counts['Medium']} medium, {counts['Low']} low findings and {counts['Info']} notes. {len(fixed)} are fixed in the code on branch <code>claude/loving-allen-9owz8p</code>, ready to merge and deploy; the rest are on the host, in Square, in Elementor, or decisions for the owner, and each says so.</p>
 
 {table(['What was tested', 'Result'], COUNTS, ['38%', '62%'])}
@@ -212,15 +213,16 @@ def render(browser_rows):
   <li><b>Capital letters in an address</b> redirect once (301) to the lower-case page, so /Shop no longer opens an empty shop. The query string keeps its case; 404s are untouched. <code>inc/markup-fixes.php</code>, part 14.</li>
   <li><b>Empty "Sign In" / "Register" buttons</b> on the login and sign-up pages are given their address as the finished page leaves the server. <code>inc/markup-fixes.php</code>, part 15.</li>
   <li><b>Header links written as ?page_id=</b> are replaced with the page's own address, so Sign In and Register open in one request instead of two. <code>inc/markup-fixes.php</code>, part 16.</li>
+  <li><b>The Sign Up page</b> sends a signed-out visitor on to the My Account register form while WordPress registration is off (a 302, so nothing to undo if it is switched back on). <code>inc/markup-fixes.php</code>, part 17.</li>
   <li><b>Both "View Product" buttons</b> (the download modal and the try-on-wall tool) start with the shop address instead of none; their scripts still swap in the product when one is chosen. <code>functions.php</code>.</li>
   <li>Two read-only probes, <code>tools/probe-crawl-followups.mjs</code> and <code>tools/probe-browser-followups.mjs</code>, so the follow-up tables can be re-run after any deploy.</li>
 </ul>
-<p>Eleven unit checks cover the three new helpers and all pass. The change is on the branch and not yet deployed: deploy happens when it is merged to <code>main</code>. After the deploy, run <i>Audit Site</i> with pass <code>links</code> and the two probes to confirm /Shop redirects, the Sign In buttons have an address and the header links are direct.</p>
+<p>Eleven unit checks cover the three new helpers and all pass; the two redirects are plain WordPress calls guarded by the page and the settings. The change is on the branch and not yet deployed: deploy happens when it is merged to <code>main</code>. After the deploy, run <i>Audit Site</i> with pass <code>links</code> and the two probes to confirm /Shop redirects, the Sign In buttons have an address and the header links are direct.</p>
 
 <h2>Left for the owner</h2>
 <ul>
   <li><b>Host capacity.</b> The 508s and dropped connections are the shared plan's CPU cap. Two things help without a plan change: let LiteSpeed cache product-tag archives like categories, and keep the daily cache warm covering the tag pages shoppers reach from products. If 508s keep appearing in the host's logs, the plan is the fix.</li>
-  <li><b>Sign-up form.</b> In Elementor, set the email field's type to Email (the form widget has the option): the right keyboard on phones and browser-side checking.</li>
+  <li><b>Sign Up.</b> Decide where "Sign Up" should lead for good: the My Account register form (then point the header link there and retire /sign-up/), or the Elementor widget's own register form, which needs WordPress registration switched back on.</li>
   <li><b>Same-name pieces.</b> Rename one of each of the three pairs so shoppers and Google can tell them apart.</li>
   <li><b>Noindex categories.</b> Decide whether Gifts, Home Decor and Gold Foiled &amp; UV should rank; if so, give them products of their own.</li>
   <li><b>Google Pay.</b> Decide in Square whether the express wallet button should show on product pages; the console error goes with it either way.</li>

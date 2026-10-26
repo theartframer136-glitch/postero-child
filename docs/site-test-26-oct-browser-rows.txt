@@ -1,0 +1,7 @@
+/product-category/wall-art/ opened alone, twice	200, jQuery present, 0 script errors, 0 failed requests: the sweep's errors were the host dropping connections under load
+/product-category/posters/ opened alone	200, jQuery present, 0 script errors, 0 failed requests
+/sign-up/ form fields	No registration form on the page: it carries a login form (username or email, password), a lost-password form and the header's search and chat boxes. There is no email, name or new-password field, so nobody can sign up there (see finding)
+Links with no accessible name	The release checklist's 24 are mostly menu entries whose text sits in a closed dropdown; the links with no text at all are the two language-flag links (English, Hindi) at the top of every page
+Tap targets under 32 px on a tablet	22 on the home page: header "Sign Up" and "Login" (19 px tall), the six slide dots (6 px), the reviewer names (22 px), three "Read More" links (19 px) and the footer bar's Shop, Account and Wishlist (15 px)
+"Fetch API cannot load data:," console error	Comes from Cloudflare Turnstile's own script on the login and account pages, which probes a data: address and is refused by the page's Content Security Policy. Harmless; nothing in the theme sends it
+/track-your-order/	0 console errors, 0 script errors when opened alone

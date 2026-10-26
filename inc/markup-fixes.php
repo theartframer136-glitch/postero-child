@@ -859,3 +859,32 @@ function af_mf_pretty_page_links($html) {
         return $seen[$id] === '' ? $m[0] : 'href=' . $m[1] . esc_url($seen[$id]) . $m[1];
     }, $html);
 }
+
+/* --------------------------- 17. the Sign Up page with no sign-up form */
+
+/**
+ * The header's "Sign Up" opens /sign-up/, an Elementor login-register
+ * widget. Since open registration was switched off in the 24 Oct security
+ * cleanup (users_can_register = 0) the widget draws only its login half:
+ * the browser pass of 2026-10-26 found no email, name or password field to
+ * register with, so a shopper who wants an account before buying gets a
+ * login form instead. WooCommerce's own registration on /my-account/ is
+ * still on (functions.php keeps woocommerce_enable_myaccount_registration
+ * at yes) and does not depend on users_can_register. So while WordPress
+ * registration is off, a signed-out visitor who lands on /sign-up/ is sent
+ * on to /my-account/, where the register form is. A temporary redirect
+ * (302): the moment registration is switched back on, the page is served
+ * again and nothing has to be undone.
+ */
+add_action('template_redirect', function () {
+    try {
+        if (!is_page('sign-up') || is_user_logged_in()) return;
+        if (get_option('users_can_register')) return;
+        if (!function_exists('wc_get_page_permalink') || get_option('woocommerce_enable_myaccount_registration') !== 'yes') return;
+        $to = wc_get_page_permalink('myaccount');
+        if (!is_string($to) || $to === '') return;
+        wp_safe_redirect($to, 302, 'The Art Framer');
+        exit;
+    } catch (\Throwable $e) {
+    }
+}, 2);
