@@ -203,7 +203,7 @@ def render(browser_rows):
 
 <h2>Follow-up checks, one page at a time</h2>
 <p>The crawl reads three pages at once, which is exactly what this host dislikes. Each open question above was re-read with a single request per page, a few seconds apart, the way one shopper arrives.</p>
-{table(['Page', 'Alone', 'Robots', 'Canonical', 'Note'], FOLLOWUP_ROWS, ['32%', '11%', '9%', '24%', '24%'])}
+{table(['Page', 'Alone', 'Robots', 'Canonical', 'Note'], FOLLOWUP_ROWS, ['30%', '11%', '12%', '24%', '23%'])}
 
 <h3>In a real browser</h3>
 {table(['Check', 'Result'], browser_rows, ['34%', '66%'])}
