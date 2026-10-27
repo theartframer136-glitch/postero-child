@@ -65,7 +65,4 @@ foreach (array_slice($t, 0, 15) as $x) echo sprintf("  %-46s %10s %12s rows\n", 
 echo "\n=== temporary backups on the server (/tmp)\n";
 foreach (glob('/tmp/af-backup-*') ?: array() as $p) { $row($p, $size($p)); $list($p); }
 if (!glob('/tmp/af-backup-*')) echo "  none\n";
-
-echo "\n=== disk (as PHP sees it)\n";
-$free = @disk_free_space($root); $all = @disk_total_space($root);
-echo '  free ' . ($free ? $gb($free) : '?') . ' of ' . ($all ? $gb($all) : '?') . " on the shared disk (the plan's own limit is in hPanel)\n";
+// Disk quota: not readable here (shell_exec and disk_free_space are disabled); hPanel shows it.
