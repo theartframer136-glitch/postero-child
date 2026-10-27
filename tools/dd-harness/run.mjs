@@ -32,8 +32,24 @@ if (!fs.existsSync(path.join(WWW, 'index.html'))) { console.log('run: php tools/
 // time, the way the server does while GD renders a big master — that wait is
 // the blank pane in the recording, and the page must say something during it.
 let previewCalls = 0;
+// WooCommerce's own add-to-cart endpoint. A refused add is HTTP 200 with
+// {error:true}, never a 4xx - so the modal has to read the body, not the
+// status. The test flips wcReply to see both answers.
+let atcCalls = 0, atcBodies = [], wcReply = 'ok';
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, ORIGIN);
+  if (url.pathname === '/' && url.searchParams.get('wc-ajax') === 'add_to_cart') {
+    let body = '';
+    req.on('data', (d) => { body += d; });
+    req.on('end', () => {
+      atcCalls++; atcBodies.push(body);
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(wcReply === 'ok'
+        ? JSON.stringify({ fragments: { 'span.af-fake-count': '<span class="af-fake-count">1</span>' }, cart_hash: 'h' })
+        : JSON.stringify({ error: true, product_url: '/product/divine-varanasi/' }));
+    });
+    return;
+  }
   if (url.pathname === '/admin-ajax.php') {
     previewCalls++;
     const slow = Number(process.env.DD_SLOW_MS || 1500);
@@ -104,10 +120,29 @@ P(!loaded.loading && loaded.imgSrc.indexOf('preview.png') > -1, 'the preview rep
 P(loaded.msg === '', 'and the waiting message is cleared');
 
 // 2. Add to Cart must NOT close it — the overlay carries data-dd-close and is
-//    an ancestor of every control in here
-await page.evaluate(() => document.getElementById('af-dd-add').click());
-await sleep(200);
+//    an ancestor of every control in here. And it must BUY: the handler used
+//    to be bound on the button, where the same trap that killed the × meant a
+//    real click sent no request at all. A real pointer click, as a shopper
+//    makes it, not an element.click() from inside the page.
+const msgOf = () => page.evaluate(() => document.getElementById('af-dd-msg').textContent);
+wcReply = 'ok';
+await page.click('#af-dd-add');
+await sleep(500);
 P((await st()).open, 'clicking Add to Cart does not close the modal');
+console.log('  add-to-cart requests: ' + atcCalls + ' ' + JSON.stringify(atcBodies));
+P(atcCalls === 1, 'a real click on Add to Cart sends exactly one add-to-cart request' + (mode === 'trap' ? ', with the click trap installed' : ''));
+P(/^product_id=8424&quantity=1&af_digital=1$/.test(atcBodies[0] || ''), 'for this product, quantity 1, as a digital download');
+P(/added to cart/i.test(await msgOf()), 'and says the download is in the cart');
+// WooCommerce refuses with HTTP 200 + {error:true}. That used to earn the
+// green tick as well.
+wcReply = 'error';
+await page.click('#af-dd-add');
+await sleep(500);
+console.log('  after a refused add: msg=' + JSON.stringify(await msgOf()));
+P(atcCalls === 2, 'a second click sends a second request (nothing is stuck disabled)');
+P(!/added to cart/i.test(await msgOf()) && /could not be added/i.test(await msgOf()), 'a refused add is reported as a failure, not as "added to cart"');
+P((await st()).open, 'and the modal stays open to say so');
+wcReply = 'ok';
 await page.evaluate(() => document.getElementById('af-dd-title').click());
 await sleep(200);
 P((await st()).open, 'clicking the title does not close it either');

@@ -32,6 +32,8 @@ event type) worked. Run with `notrap` to see the same page without it.
 | says it is working | `Preparing preview…` and a shimmer while the fetch is out, never a silent blank pane |
 | then shows the picture | the waiting state is replaced and the message cleared |
 | Add to Cart does **not** close it | the overlay carries `data-dd-close` and is an ancestor of every control, so a careless `closest()` would shut the modal on its own buy button |
+| Add to Cart **buys** | a real pointer click sends exactly one `wc-ajax=add_to_cart` request for the card's product with `af_digital=1` — **with the click trap installed**. The handler used to sit on the button, where the trap that killed the × left it just as dead |
+| a refused add is not a sale | WooCommerce refuses with HTTP 200 and `{error:true}`; the modal must report that, not print the green tick |
 | the title does not close it | same trap, different control |
 | × closes it | **with the click trap installed** |
 | the backdrop closes it | |

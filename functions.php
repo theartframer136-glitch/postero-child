@@ -7725,7 +7725,7 @@ add_action('wp_footer', function() {
         open();
       }, true);
 
-      addEl.addEventListener('click', function(){
+      function addToCart(){
         if(!curPid){ msgEl.textContent='Please open this from a product to add it.'; return; }
         addEl.disabled=true; addEl.textContent='Adding…';
         fetch('/?wc-ajax=add_to_cart', {
@@ -7734,13 +7734,40 @@ add_action('wp_footer', function() {
           body:'product_id='+encodeURIComponent(curPid)+'&quantity=1&af_digital=1'
         }).then(function(r){ return r.json(); }).then(function(res){
           addEl.disabled=false; addEl.textContent='Add to Cart';
+          // WooCommerce answers a refused add (not purchasable, out of stock,
+          // an unpublished product) with HTTP 200 and {error:true}, so a
+          // 2xx alone is not a sale. This used to print the green tick on
+          // that answer too, and the shopper went to a cart with nothing in
+          // it. A real add always carries the refreshed fragments.
+          if(!res || res.error || !res.fragments){
+            msgEl.style.color='#c0392b';
+            msgEl.textContent='This download could not be added to the cart. Please open the product page to buy it.';
+            return;
+          }
           msgEl.style.color='#2e7d32';
           msgEl.textContent='✓ Digital download added to cart.';
           // update mini-cart counters if present
           document.body.dispatchEvent(new Event('wc_fragment_refresh'));
-          if(res && res.fragments){ for(var k in res.fragments){ document.querySelectorAll(k).forEach(function(n){ n.outerHTML=res.fragments[k]; }); } }
+          for(var k in res.fragments){ document.querySelectorAll(k).forEach(function(n){ n.outerHTML=res.fragments[k]; }); }
         }).catch(function(){ addEl.disabled=false; addEl.textContent='Add to Cart'; msgEl.style.color='#c0392b'; msgEl.textContent='Could not add. Please try again.'; });
-      });
+      }
+      /* Add to Cart is heard from DOCUMENT CAPTURE, for the same reason the ×
+         is (see CLOSING IT above): the quick view's document-level capture
+         listener calls stopPropagation() on every click, so a listener bound
+         on the button itself never ran. The × was moved up here and started
+         working; Add to Cart was left on the button and stayed dead - the
+         offline harness showed a real pointer click sending no request at
+         all with the trap installed. One listener, here, and none on the
+         button: both bound would add the download twice wherever no trap is
+         in the way. A disabled button dispatches no click, so the in-flight
+         and "resolving" states still hold. */
+      document.addEventListener('click', function(e){
+        if(!addEl || addEl.disabled || !overlay.classList.contains('open')) return;
+        var t = e.target;
+        if(!t || (t !== addEl && !addEl.contains(t))) return;
+        e.preventDefault();
+        addToCart();
+      }, true);
     })();
     </script>
     <style>
