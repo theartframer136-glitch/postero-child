@@ -10,8 +10,6 @@
 if (!defined('ABSPATH')) exit;
 $gb = function ($b) { return $b >= 1073741824 ? round($b / 1073741824, 2) . ' GB' : round($b / 1048576, 1) . ' MB'; };
 $size = function ($dir) {
-    $out = @shell_exec('du -sb ' . escapeshellarg($dir) . ' 2>/dev/null; find ' . escapeshellarg($dir) . ' -xdev 2>/dev/null | wc -l');
-    if ($out && preg_match('~^(\d+)\s.*\n\s*(\d+)~s', $out, $m)) return array((int) $m[1], (int) $m[2]);
     $n = 0; $b = 0;
     if (!is_dir($dir)) return array(is_file($dir) ? filesize($dir) : 0, 1);
     try {
@@ -32,7 +30,6 @@ $list = function ($dir, $min = 1048576) use ($size, $row) {
 
 $root = rtrim(ABSPATH, '/');
 $home = getenv('HOME') ?: dirname(dirname(dirname($root)));
-echo "du available: " . (@shell_exec('echo ok') ? 'yes' : 'no (counted file by file)') . "\n";
 
 echo "\n=== the whole hosting account (home folder)\n";
 $row('TOTAL ' . $home, $size($home));
@@ -69,6 +66,6 @@ echo "\n=== temporary backups on the server (/tmp)\n";
 foreach (glob('/tmp/af-backup-*') ?: array() as $p) { $row($p, $size($p)); $list($p); }
 if (!glob('/tmp/af-backup-*')) echo "  none\n";
 
-echo "\n=== disk quota (if the host reports it)\n";
-echo '  ' . trim((string) @shell_exec('quota -s 2>/dev/null | tail -n +2')) . "\n";
-echo '  df: ' . trim((string) @shell_exec('df -h ' . escapeshellarg($root) . ' 2>/dev/null | tail -1')) . "\n";
+echo "\n=== disk (as PHP sees it)\n";
+$free = @disk_free_space($root); $all = @disk_total_space($root);
+echo '  free ' . ($free ? $gb($free) : '?') . ' of ' . ($all ? $gb($all) : '?') . " on the shared disk (the plan's own limit is in hPanel)\n";
