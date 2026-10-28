@@ -1,6 +1,6 @@
 <?php
 /**
- * SEO: the plugin "Rank Math SEO" (seo-by-rank-math) 1.0.279, moved into the
+ * SEO: the plugin "Rank Math SEO" (seo-by-rank-math) 1.0.280, moved into the
  * theme - everything it prints for visitors and search engines, and its
  * editing screens.
  *

@@ -47,8 +47,10 @@ defined('ABSPATH') || exit;
 // below, so the same guard holds if the plugin itself is switched back on.
 add_filter('rest_pre_dispatch', function ($result, $server, $request) {
     if ($result !== null || current_user_can('edit_posts')) return $result;
-    if (strpos($request->get_route(), '/sliderrevolution/sliders/stream/') !== 0) return $result;
-    if (!ctype_digit((string) $request->get_param('id'))) {
+    $prefix = '/sliderrevolution/sliders/stream/';
+    if (strpos($request->get_route(), $prefix) !== 0) return $result;
+    // The route is not matched yet at rest_pre_dispatch, so its id is read from the path.
+    if (!ctype_digit(substr($request->get_route(), strlen($prefix)))) {
         return new WP_Error('af_rs_stream', 'Not allowed.', array('status' => 403));
     }
     return $result;

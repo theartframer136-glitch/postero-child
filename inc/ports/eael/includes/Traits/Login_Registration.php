@@ -887,32 +887,14 @@ trait Login_Registration {
 			if ( ! empty( $settings['register_user_role'] ) ) {
 				$requested_role = sanitize_text_field( $settings['register_user_role'] );
 
-				// Verify the post was last saved by an administrator before trusting
-				$last_editor_id = (int) get_post_meta( $page_id, '_edit_last', true );
-				if ( ! $last_editor_id ) {
-					$last_editor_id = (int) get_post_field( 'post_author', $page_id );
-				}
-				$last_editor    = $last_editor_id ? get_userdata( $last_editor_id ) : false;
-				$saved_by_admin = $last_editor && in_array( 'administrator', (array) $last_editor->roles, true );
-
-				if ( $saved_by_admin ) {
-					// Reject any role that carries privileged capabilities,
-					$wp_role         = get_role( $requested_role );
-					$privileged_caps = [ 'manage_options', 'edit_users', 'delete_users', 'promote_users' ];
-					$is_safe_role    = ( $wp_role !== null );
-
-					if ( $is_safe_role ) {
-						foreach ( $privileged_caps as $cap ) {
-							if ( ! empty( $wp_role->capabilities[ $cap ] ) ) {
-								$is_safe_role = false;
-								break;
-							}
-						}
-					}
-
-					if ( $is_safe_role ) {
-						$user_data['role'] = $requested_role;
-					}
+				// port: the plugin trusted the widget's role when _edit_last named an
+				// administrator and the role lacked four capabilities. 6.8.6 fixed that
+				// as a privilege escalation (_edit_last is not updated by the REST or
+				// Elementor saves, and roles such as editor passed the list). A shop's
+				// self-registered account only ever needs to be a customer, so only the
+				// two shopper roles are honoured; anything else gets the site default.
+				if ( in_array( $requested_role, [ 'customer', 'subscriber' ], true ) && null !== get_role( $requested_role ) ) {
+					$user_data['role'] = $requested_role;
 				}
 			}
 

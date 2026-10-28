@@ -1,18 +1,13 @@
 (function ($) {
-	$(window).on('elementor/frontend/init', function () {
-
+	$(window).on("elementor/frontend/init", function () {
 		var premiumWrapperLinkHandler = function ($scope) {
+			if (!$scope.hasClass("premium-wrapper-link-yes")) return;
 
-			if (!$scope.hasClass('premium-wrapper-link-yes'))
-				return;
+			var settings = $scope.data("premium-element-link");
 
-			var settings = $scope.data('premium-element-link');
+			if (!settings) return;
 
-			if (!settings)
-				return;
-
-			if (!isURL(settings.href))
-				return;
+			if (!isURL(settings.href)) return;
 
 			function isURL(str) {
 				// Regular expression for URL validation, supporting Unicode characters
@@ -22,35 +17,28 @@
 				return urlPattern.test(str);
 			}
 
-			$scope.on('click.onWrapperLink', function () {
+			var isUrlType = settings.type === "url",
+				opensNewTab = isUrlType && settings.link.is_external,
+				hidesReferrer = isUrlType && settings.link.nofollow,
+				features = [];
 
-				var id = $scope.data('id'),
-					anchor = document.createElement('a'),
-					anchorReal,
-					timeout;
+			// Matches the noopener a target="_blank" link gets by default.
+			if (opensNewTab) features.push("noopener");
 
-				anchor.id = 'premium-wrapper-link-' + id;
-				anchor.href = settings.href;
-				anchor.target = settings.type === 'url' ? settings.link.is_external ? '_blank' : '_self' : '';
-				anchor.rel = settings.type === 'url' ? settings.link.nofollow ? 'nofollow noreferer' : '' : '';
-				anchor.style.display = 'none';
+			if (hidesReferrer) features.push("noreferrer");
 
-				document.body.appendChild(anchor);
-
-				anchorReal = document.getElementById(anchor.id);
-				anchorReal.click();
-
-				timeout = setTimeout(function () {
-					anchorReal.remove();
-					console.log(anchorReal);
-					clearTimeout(timeout);
-				});
+			$scope.on("click.onWrapperLink", function () {
+				window.open(
+					settings.href,
+					opensNewTab ? "_blank" : "_self",
+					features.join(","),
+				);
 			});
-
 		};
 
-		elementorFrontend.hooks.addAction("frontend/element_ready/global", premiumWrapperLinkHandler);
-
-
+		elementorFrontend.hooks.addAction(
+			"frontend/element_ready/global",
+			premiumWrapperLinkHandler,
+		);
 	});
 })(jQuery);

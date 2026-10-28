@@ -1,6 +1,6 @@
 <?php
 /**
- * Premium Addons for Elementor 4.11.110: the one part this site uses, moved
+ * Premium Addons for Elementor 4.11.110 (scripts from 4.11.117): the one part this site uses, moved
  * into the theme.
  *
  * Read from the live database (tools/diag-elementor-addons.php): no Premium
@@ -25,7 +25,7 @@ if (defined('PREMIUM_ADDONS_VERSION') || class_exists('PremiumAddons\Addons\Wrap
     return; // the plugin is active and does the work
 }
 
-define('AF_PA_PORT_VERSION', '4.11.110');
+define('AF_PA_PORT_VERSION', '4.11.117');
 define('AF_PA_PORT_URL', get_stylesheet_directory_uri() . '/assets/ports/pa/');
 
 require_once __DIR__ . '/pa/wrapper-link.php';
