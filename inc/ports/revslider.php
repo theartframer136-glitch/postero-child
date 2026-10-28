@@ -37,6 +37,29 @@
  */
 defined('ABSPATH') || exit;
 
+// Security (28 Oct audit): the public route /wp-json/sliderrevolution/sliders/
+// stream/<ids> reads a comma list as any post IDs (post_type "any", no
+// password check), so a visitor could read password-protected posts and pages
+// through it (CVE-2026-6728, fixed upstream in 6.7.55; this copy is 6.7.40 and
+// no update reaches it). A visitor may only ask for one slider by its number,
+// and the posts a slider shows a visitor are published and not password
+// protected. Editors keep the plugin's behaviour. Set before the early return
+// below, so the same guard holds if the plugin itself is switched back on.
+add_filter('rest_pre_dispatch', function ($result, $server, $request) {
+    if ($result !== null || current_user_can('edit_posts')) return $result;
+    if (strpos($request->get_route(), '/sliderrevolution/sliders/stream/') !== 0) return $result;
+    if (!ctype_digit((string) $request->get_param('id'))) {
+        return new WP_Error('af_rs_stream', 'Not allowed.', array('status' => 403));
+    }
+    return $result;
+}, 10, 3);
+add_filter('revslider_get_posts', function ($query) {
+    if (current_user_can('edit_posts')) return $query;
+    if (empty($query['post_status']) || $query['post_status'] !== 'inherit') $query['post_status'] = 'publish'; // 'inherit' is a gallery's attachments
+    $query['has_password'] = false;
+    return $query;
+}, 99);
+
 if (defined('RS_REVISION') || class_exists('RevSliderFront', false)) {
     return; // the plugin is active and does the work
 }
