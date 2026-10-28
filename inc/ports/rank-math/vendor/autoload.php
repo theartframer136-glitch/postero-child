@@ -1,13 +1,13 @@
 <?php
 /**
- * Rank Math SEO 1.0.279, theme copy (inc/ports/rank-math.php): this file takes
+ * Rank Math SEO 1.0.280, theme copy (inc/ports/rank-math.php): this file takes
  * the place of the plugin's Composer autoloader (its vendor/autoload.php and
  * vendor/composer/, not copied). rank-math.php includes it from here, as it
  * included Composer's.
  *
  * GENERATED from the plugin's vendor/composer/autoload_classmap.php and
  * autoload_files.php; do not edit by hand. It keeps every entry whose file was
- * copied: 417 of the 691 classes, and 4 of the 5 files Composer
+ * copied: 418 of the 692 classes, and 4 of the 5 files Composer
  * loads at once, in Composer's order and under Composer's own identifiers in
  * $GLOBALS['__composer_autoload_files'] (the check Composer makes, so a library
  * that another Composer build has already loaded is not loaded twice).
@@ -168,6 +168,7 @@ spl_autoload_register(static function ($class) {
         'RankMath\\BuddyPress\\Admin' => 'includes/modules/buddypress/class-admin.php',
         'RankMath\\BuddyPress\\BuddyPress' => 'includes/modules/buddypress/class-buddypress.php',
         'RankMath\\CLI\\Commands' => 'includes/cli/class-commands.php',
+        'RankMath\\CLI\\Sitemap_WPCLI' => 'includes/cli/class-sitemap-wpcli.php',
         'RankMath\\CMB2' => 'includes/class-cmb2.php',
         'RankMath\\Common' => 'includes/class-common.php',
         'RankMath\\Compatibility' => 'includes/class-compatibility.php',
