@@ -42,7 +42,7 @@ $pages = array(
 <h3>Returns and issues</h3>
 <p>Damaged or incorrect items are replaced or refunded — email us your order number and photos within 7 days of delivery. Made-to-order pieces are otherwise returnable only as required by law. See the Return &amp; Refund Policy for the full process.</p>
 <h3>Digital downloads</h3>
-<p>Download links are personal, limited in number and time, and covered by the Digital Download License. No refunds once a file has been downloaded, except where the file is faulty.</p>
+<p>Downloads are personal, kept in your account with no download limit and no expiry, and covered by the Digital Download License. No refunds once a file has been downloaded, except where the file is faulty.</p>
 <h3>Contact</h3><p><a href=\"mailto:{$EMAIL}\">{$EMAIL}</a></p>",
     ),
 );
@@ -53,6 +53,9 @@ $pages = array(
 $corrections = array(
     'terms-of-service' => array(
         'start a return from your order page within 14 days of delivery.' => 'email us your order number and photos within 7 days of delivery.',
+        // the License page and the account have said unlimited and never
+        // expiring since 10 Oct; the Terms still said the opposite (27 Oct)
+        'Download links are personal, limited in number and time, and covered by' => 'Downloads are personal, kept in your account with no download limit and no expiry, and covered by',
     ),
 );
 

@@ -35,7 +35,7 @@ let previewCalls = 0;
 // WooCommerce's own add-to-cart endpoint. A refused add is HTTP 200 with
 // {error:true}, never a 4xx - so the modal has to read the body, not the
 // status. The test flips wcReply to see both answers.
-let atcCalls = 0, atcBodies = [], wcReply = 'ok';
+let atcCalls = 0, atcBodies = [], wcReply = 'ok', previewBuyable = null;
 const server = http.createServer((req, res) => {
   const url = new URL(req.url, ORIGIN);
   if (url.pathname === '/' && url.searchParams.get('wc-ajax') === 'add_to_cart') {
@@ -56,7 +56,8 @@ const server = http.createServer((req, res) => {
     setTimeout(() => {
       res.writeHead(200, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ success: true, data: {
-        url: ORIGIN + '/preview.png', wm: 1, price_html: '<span class="price">$9.99</span>' } }));
+        url: ORIGIN + '/preview.png', wm: 1, price_html: '<span class="price">$9.99</span>',
+        ...(previewBuyable === null ? {} : { buyable: previewBuyable }) } }));
     }, previewCalls === 1 ? slow : 0);
     return;
   }
@@ -230,6 +231,34 @@ P((await st()).bodyOverflow === '(none)', 'and the page can scroll again');
   console.log('  eye click: ' + JSON.stringify(eye));
   P(!eye.ddOpen, 'the quick-view eye does not open the Digital Download modal');
   P(!eye.prevented, 'and the quick view it belongs to is left to handle its own click');
+}
+
+// 3e. A piece with no print master. The server says buyable: 0 and the cart
+// would refuse it, so the modal must not offer it: preview and View Product
+// stay, the price and Add to Cart go, and it says why. The next piece opened
+// must get both back.
+{
+  previewBuyable = 0;
+  await openIt(); await sleep(600);
+  const s = await page.evaluate(() => ({
+    add: getComputedStyle(document.getElementById('af-dd-add')).display,
+    price: getComputedStyle(document.getElementById('af-dd-price')).display,
+    view: getComputedStyle(document.getElementById('af-dd-view')).display,
+    msg: document.getElementById('af-dd-msg').textContent,
+    img: document.getElementById('af-dd-img').getAttribute('src') || '' }));
+  console.log('  no master: ' + JSON.stringify(s));
+  P(s.add === 'none' && s.price === 'none', 'a piece with no print file: no Add to Cart and no price');
+  P(/not available as a print-ready download/i.test(s.msg), 'and it says why');
+  P(s.view !== 'none' && s.img.indexOf('preview.png') > -1, 'the preview and View Product stay');
+  previewBuyable = 1;
+  await openIt(); await sleep(600);
+  const t = await page.evaluate(() => ({
+    add: getComputedStyle(document.getElementById('af-dd-add')).display,
+    price: getComputedStyle(document.getElementById('af-dd-price')).display,
+    msg: document.getElementById('af-dd-msg').textContent }));
+  P(t.add !== 'none' && t.price !== 'none' && t.msg === '', 'the next piece, with its file, gets Add to Cart and the price back');
+  previewBuyable = null;
+  await page.evaluate(() => document.getElementById('af-dd-overlay').classList.remove('open'));
 }
 
 // 4. the backdrop

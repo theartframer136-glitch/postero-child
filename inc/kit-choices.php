@@ -48,7 +48,7 @@ function af_kit_options() {
     return apply_filters('af_kit_options', array(
         'digital' => array(
             'label' => 'Digital download',
-            'desc'  => 'The high-resolution file, sent to you. Nothing is posted.',
+            'desc'  => 'The high-resolution print file, kept in My Account → Downloads. Nothing is posted.',
             'parts' => array(),
             'ships' => false,
         ),
@@ -209,6 +209,11 @@ function af_kit_options_for($pid) {
     $opts = af_kit_options();
     if (af_kit_is_corporate($pid) && isset($opts['painting'])) {
         return array('painting' => $opts['painting']);
+    }
+    // A download is offered only where there is a print file to deliver
+    // (inc/digital-sellable.php); the cart refuses it everywhere else.
+    if (isset($opts['digital']) && function_exists('af_digital_available') && !af_digital_available($pid)) {
+        unset($opts['digital']);
     }
     return $opts;
 }

@@ -3622,10 +3622,11 @@ af_section(function() {
         'category'=>af_digital_cat_slugs(),
         'exclude'=>array($product->get_id()),
     ));
+    if (function_exists('af_digital_available')) $ids = array_values(array_filter($ids, 'af_digital_available'));
     $ids = af_ids_with_image($ids, 4);
     if (count($ids) < 2) return;
     echo '<section class="af-pp-sec af-digital"><h2>Digital Downloads</h2>';
-    echo '<p class="af-pp-sub">Instant high-resolution files — delivered to your inbox, ready to print.</p>';
+    echo '<p class="af-pp-sub">High-resolution print files — kept in your account, ready to print.</p>';
     echo '<div class="af-pp-row">';
     foreach ($ids as $pid) { af_render_mini_card($pid); }
     echo '</div></section>';
@@ -7294,8 +7295,13 @@ function af_dd_preview_handler() {
     $thumb = get_post_thumbnail_id($pid);
     if (!$thumb) wp_send_json_error();
     $price = af_digital_price_html($pid);
+    // Whether the piece has a print file to deliver (inc/digital-sellable.php).
+    // Sent with every answer, so the modal never offers Add to Cart for a piece
+    // the cart would refuse. Absent on an older server: the modal reads that as
+    // buyable, which is what it always assumed.
+    $buy = function_exists('af_digital_available') ? (af_digital_available($pid) ? 1 : 0) : 1;
     $wm = function_exists('af_wm_preview_url') ? af_wm_preview_url($thumb) : false;
-    if ($wm && !empty($wm['url'])) wp_send_json_success(array('url' => $wm['url'], 'wm' => 1, 'price_html' => $price));
+    if ($wm && !empty($wm['url'])) wp_send_json_success(array('url' => $wm['url'], 'wm' => 1, 'price_html' => $price, 'buyable' => $buy));
     // Watermarking unavailable (GD can choke on the very large masters).
     // Fall back to a genuinely small size — and never the master: WordPress
     // returns the ORIGINAL file for any size an image never generated, which
@@ -7323,14 +7329,14 @@ function af_dd_preview_handler() {
         foreach (array_keys($cands) as $name) {
             $src = wp_get_attachment_image_src($thumb, $name);
             if ($src && !empty($src[0]) && $src[0] !== $master) {
-                wp_send_json_success(array('url' => $src[0], 'wm' => 0, 'price_html' => $price));
+                wp_send_json_success(array('url' => $src[0], 'wm' => 0, 'price_html' => $price, 'buyable' => $buy));
             }
         }
     }
     // Nothing beside the master. Rather than open blank, say so in the payload
     // and let the modal explain itself — the price is still worth sending, so
     // the visitor sees what the piece costs instead of a stale default.
-    wp_send_json_success(array('url' => '', 'wm' => 0, 'price_html' => $price, 'nopreview' => 1));
+    wp_send_json_success(array('url' => '', 'wm' => 0, 'price_html' => $price, 'nopreview' => 1, 'buyable' => $buy));
 }
 add_action('wp_ajax_af_dd_preview',        'af_dd_preview_handler');
 add_action('wp_ajax_nopriv_af_dd_preview', 'af_dd_preview_handler');
@@ -7364,8 +7370,8 @@ add_action('wp_footer', function() {
             <span class="af-dd-tag">⬇ Instant Digital Download</span>
             <h3 id="af-dd-title">Digital Download</h3>
             <ul class="af-dd-feat">
-              <li>High-resolution, print-ready file (JPG)</li>
-              <li>Delivered instantly by email after purchase</li>
+              <li>High-resolution, print-ready file</li>
+              <li>Kept in My Account → Downloads, ready as soon as payment is confirmed</li>
               <li>Print at home or any print shop — no frame needed</li>
             </ul>
             <div class="af-dd-price" id="af-dd-price"><?php echo $price_html; ?></div>
@@ -7509,6 +7515,7 @@ add_action('wp_footer', function() {
         // happening; the answer below replaces this line either way.
         msgEl.style.color = '';
         msgEl.textContent = 'Preparing preview…';
+        var pEl = document.getElementById('af-dd-price'); if(pEl) pEl.style.display = '';
         loading(true);
         fetch(AJAX + '?action=af_dd_preview&pid=' + encodeURIComponent(pid), {credentials:'same-origin'})
           .then(function(r){ return r.json(); })
@@ -7520,6 +7527,16 @@ add_action('wp_footer', function() {
             msgEl.textContent = '';
             var priceEl = document.getElementById('af-dd-price');
             if(priceEl && d && d.price_html) priceEl.innerHTML = d.price_html;
+            // No print file for this piece (buyable: 0). The cart would refuse
+            // it, so do not offer it: keep the preview and View Product, hide
+            // the price and Add to Cart, and say why.
+            if(d && d.buyable === 0){
+              if(addEl) addEl.style.display = 'none';
+              if(priceEl) priceEl.style.display = 'none';
+              msgEl.style.color = '';
+              msgEl.textContent = 'This piece is not available as a print-ready download yet. View the product to order it as a canvas.';
+              return;
+            }
             // An empty pane with a live Add to Cart is what the recording
             // caught. If the server could not produce a preview, say so rather
             // than leave the visitor looking at nothing and guessing.
@@ -13276,7 +13293,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'deity-links', 'blog-shop-links', 'category-guides', 'post-faq-schema', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'product-pictures', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'meta-pixel', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings', 'retired-products', 'checkout-fixes', 'corporate-specs', 'category-display', 'turnstile', 'digital-masters', 'digital-account', 'security-hardening', 'markup-fixes', 'card-image-sizes', 'instant-nav', 'home-hero', 'header-weight', 'revslider-trim') as $af_mod) {
+foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'deity-links', 'blog-shop-links', 'category-guides', 'post-faq-schema', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'product-pictures', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'meta-pixel', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings', 'retired-products', 'checkout-fixes', 'corporate-specs', 'category-display', 'turnstile', 'digital-masters', 'digital-account', 'digital-sellable', 'security-hardening', 'markup-fixes', 'card-image-sizes', 'instant-nav', 'home-hero', 'header-weight', 'revslider-trim') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }
