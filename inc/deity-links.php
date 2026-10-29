@@ -55,6 +55,40 @@ function af_deity_link_terms() {
     return (array) apply_filters('af_deity_link_terms', $terms);
 }
 
+/**
+ * A second row, "Shop Canvas & Frames": the canvas and frame categories,
+ * labelled with the words US shoppers search (Search Console, US, 14-27 Oct
+ * 2026: "floating frame" #51, "floating framed canvas" #48, "canvas frames"
+ * #50, "rolled canvas art" #43, "abstract canvas art" #54). Like the deity
+ * categories before 15 Oct, these were linked from almost nowhere but the
+ * menu: Google last visited Abstract Art and Rolled Canvas on 7-8 Oct, so it
+ * had not yet seen the 17 Oct Abstract Art guide at all.
+ *
+ * Rolled Canvas is left out: on 29 Oct it held four blank canvas rolls at
+ * $0, not the rolled art prints that search means. A category with no
+ * products (Framed Canvas Prints, Extra Large Canvas on 29 Oct) is skipped
+ * by af_term_has_products(), and shows up by itself once it has some.
+ */
+function af_canvas_link_terms() {
+    $terms = array(
+        'abstract-art'                 => 'Abstract Canvas Art',
+        'extra-large-canvas-paintings' => 'Extra Large Canvas',
+        'standard-framed-canvas'       => 'Framed Canvas Prints',
+        'diy-floating-frames'          => 'Floating Frames for Canvas',
+        'premium-aluminium-frames'     => 'Aluminium Canvas Frames',
+        'canvas-stretcher-bars'        => 'Canvas Stretcher Bars',
+    );
+    return (array) apply_filters('af_canvas_link_terms', $terms);
+}
+
+/** Whether a product category, or any category under it, has products to show. */
+function af_term_has_products($term) {
+    if (!$term || is_wp_error($term)) return false;
+    if ((int) $term->count > 0) return true;
+    $kids = get_terms(array('taxonomy' => 'product_cat', 'child_of' => (int) $term->term_id, 'hide_empty' => true, 'fields' => 'ids', 'number' => 1));
+    return !is_wp_error($kids) && !empty($kids);
+}
+
 /** Printed once per request, whichever hook reaches it first. */
 function af_deity_links_printed($set = false) {
     static $done = false;
@@ -79,16 +113,24 @@ function af_deity_links_css() {
 }
 
 /**
- * The row's HTML, or '' when fewer than two categories resolve.
+ * Both rows' HTML (deity & Vastu, then canvas & frames), or '' when neither
+ * has two categories that resolve.
  *
  * @param int $current_term_id  the category being viewed, marked not linked
  */
 function af_deity_links_html($current_term_id = 0) {
+    $rows = af_link_row_html(af_deity_link_terms(), $current_term_id, 'Shop by deity and Vastu', 'Shop by Deity &amp; Vastu')
+          . af_link_row_html(af_canvas_link_terms(), $current_term_id, 'Shop canvas and frames', 'Shop Canvas &amp; Frames');
+    return $rows === '' ? '' : af_deity_links_css() . $rows;
+}
+
+/** One row of category links, or '' when fewer than two categories resolve. */
+function af_link_row_html(array $terms, $current_term_id, $aria, $heading) {
     try {
         $items = array();
-        foreach (af_deity_link_terms() as $slug => $label) {
+        foreach ($terms as $slug => $label) {
             $term = get_term_by('slug', $slug, 'product_cat');
-            if (!$term || is_wp_error($term)) continue;
+            if (!$term || is_wp_error($term) || !af_term_has_products($term)) continue;
             $link = get_term_link($term, 'product_cat');
             if (is_wp_error($link)) continue;
             if ((int) $term->term_id === (int) $current_term_id) {
@@ -98,9 +140,8 @@ function af_deity_links_html($current_term_id = 0) {
             }
         }
         if (count($items) < 2) return '';
-        return af_deity_links_css()
-            . '<nav class="af-deity-nav" aria-label="Shop by deity and Vastu">'
-            . '<h2>Shop by Deity &amp; Vastu</h2><ul>' . implode('', $items) . '</ul></nav>';
+        return '<nav class="af-deity-nav" aria-label="' . esc_attr($aria) . '">'
+            . '<h2>' . $heading . '</h2><ul>' . implode('', $items) . '</ul></nav>';
     } catch (\Throwable $e) {
         return '';
     }

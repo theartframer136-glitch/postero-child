@@ -88,7 +88,7 @@ function af_cat_guides() {
                 array('Which frame color should I choose?',
                     'Black suits modern and colorful art, silver keeps light and minimal rooms clean, and gold or rose gold are favorites for devotional and traditional paintings such as Radha Krishna, Lakshmi Ganesh or Pichwai art.'),
                 array('How do I order a floating frame in my size?',
-                    'Open a frame below, choose your canvas size and color, and add it to your cart. Need a size that is not listed? [[contact|Contact us]] with your canvas width, height and depth. Prefer art that comes framed? Browse our [[cat:standard-framed-canvas|framed canvas prints]] and [[cat:extra-large-canvas-paintings|extra large canvas paintings]].'),
+                    'Open a frame below, choose your canvas size and color, and add it to your cart. Need a size that is not listed? [[contact|Contact us]] with your canvas width, height and depth. Prefer art that comes framed? Every design in our [[cat:all-art-prints|art prints]] can be ordered stretched and finished in a frame.'),
                 array('Is a DIY floating frame hard to assemble?',
                     'No. It is a do-it-yourself kit made for home assembly: put the frame together and fit your stretched canvas inside it. If anything is unclear, [[contact|contact us]] and we will help.'),
                 array('Do you deliver across the USA?',
@@ -250,6 +250,8 @@ function af_cat_guide_current() {
 function af_cat_guide_term_url($slug) {
     $t = get_term_by('slug', $slug, 'product_cat');
     if (!$t || is_wp_error($t)) return '';
+    // An empty category is no place to send a shopper (or Google): the text stays, the link goes.
+    if (function_exists('af_term_has_products') && !af_term_has_products($t)) return '';
     $u = get_term_link($t);
     return is_wp_error($u) ? '' : $u;
 }

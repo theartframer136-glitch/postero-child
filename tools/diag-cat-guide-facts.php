@@ -2,7 +2,7 @@
 /* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /** Read-only. What a category guide may say: the category's own text and its products (name, price, sizes in the name). */
 if (!defined('ABSPATH')) exit;
-foreach (array('seven-horses', 'indian-culture') as $slug) {
+foreach (array_filter(explode(',', (string) (getenv('AF_SLUGS') ?: 'rolled-canvas,canvas-stretcher-bars,standard-framed-canvas,extra-large-canvas-paintings'))) as $slug) {
     $t = get_term_by('slug', $slug, 'product_cat');
     if (!$t) { echo "$slug: missing\n"; continue; }
     $parent = $t->parent ? get_term($t->parent)->slug : '-';
