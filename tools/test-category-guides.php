@@ -37,18 +37,23 @@ same('plain mode (FAQ data) drops every link', af_cat_guide_text('A [[post:7-hor
 
 echo "\n=== the guides ===\n";
 $all = af_cat_guides();
-foreach (array('seven-horses', 'indian-culture') as $slug) {
+foreach (array('seven-horses', 'indian-culture', 'canvas-stretcher-bars', 'radha-krishna', 'diy-floating-frames') as $slug) {
     same("$slug has a guide", isset($all[$slug]), true);
     $g = $all[$slug];
-    $text = $g['heading'] . ' ' . $g['title'] . ' ' . implode(' ', $g['intro']);
+    $text = $g['heading'] . ' ' . ($g['title'] ?? '') . ' ' . implode(' ', $g['intro']);
     foreach ($g['faq'] as $f) $text .= ' ' . $f[0] . ' ' . $f[1];
     same("$slug never says the word free (owner's rule)", preg_match('~\bfree\b~i', $text), 0);
-    same("$slug title fits in Google's result (≤ 70 characters)", mb_strlen($g['title']) <= 70, true);
+    same("$slug title fits in Google's result (≤ 70 characters)", mb_strlen($g['title'] ?? '') <= 70, true);
     same("$slug has an FAQ", count($g['faq']) >= 4, true);
 }
 same('seven horses: the heading has the searched words', stripos($all['seven-horses']['heading'], 'Seven Horses Painting') !== false && stripos($all['seven-horses']['heading'], '7 Horses Wall Art') !== false, true);
 same('seven horses: links the Vastu article', strpos(json_encode($all['seven-horses']), 'post:7-horses-painting-vastu-direction') !== false, true);
 same('indian culture: the heading has "Indian Canvas Art"', stripos($all['indian-culture']['heading'], 'Indian Canvas Art') !== false, true);
+same('stretcher bars: the heading has the searched words', stripos($all['canvas-stretcher-bars']['heading'], 'Canvas Stretcher Bars') !== false && stripos($all['canvas-stretcher-bars']['heading'], 'Frame Kits') !== false, true);
+same('stretcher bars: no price is promised', preg_match('~\$\d~', json_encode($all['canvas-stretcher-bars'])), 0);
+same('radha krishna: the heading has "Wall Decor"', stripos($all['radha-krishna']['heading'], 'Wall Decor') !== false, true);
+same('radha krishna: links the bedroom article', strpos(json_encode($all['radha-krishna']), 'post:radha-krishna-painting-bedroom-meaning-placement') !== false, true);
+same('floating frames: the heading has "Frame Kits"', stripos($all['diy-floating-frames']['heading'], 'Frame Kits') !== false, true);
 same('indian culture: no Tanjore or Kathak (the shop has none)', preg_match('~tanjore|kathak~i', json_encode($all['indian-culture'])), 0);
 
 echo "\n$pass passed, $fail failed\n";

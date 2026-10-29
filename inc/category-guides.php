@@ -72,7 +72,7 @@ function af_cat_guides() {
 
     return array(
         'diy-floating-frames' => array(
-            'heading' => 'Floating Frames for Canvas',
+            'heading' => 'Floating Frames & Frame Kits for Canvas',
             'intro'   => array(
                 'A <strong>floating frame</strong> (or floater frame) holds a stretched canvas with a slim shadow gap around it, so the art seems to float inside the frame. Our DIY floating frame kits for canvas come in <strong>black, silver, gold and rose gold</strong>.',
                 'Priced by size' . ($fp !== '' ? ': <strong>' . esc_html($fp) . '</strong>' : '') . '. Pick a style below, choose your size and color, and add it to your cart.',
@@ -99,7 +99,7 @@ function af_cat_guides() {
                                'standard-framed-canvas' => 'Framed canvas prints'),
         ),
         'radha-krishna' => array(
-            'heading' => 'Radha Krishna Wall Art & Canvas Prints',
+            'heading' => 'Radha Krishna Wall Art, Canvas Prints & Wall Decor',
             'title'   => 'Radha Krishna Wall Art & Canvas Prints | Wall Decor USA',
             'intro'   => array(
                 'Bring the divine love of Radha and Krishna into your home with <strong>Radha Krishna wall art</strong> printed on canvas. Choose from moonlit, floral, mandala and modern line-art designs for the living room, bedroom or pooja room, and pick how it arrives: rolled canvas, on stretcher bars ready to hang, or finished in a frame.',
@@ -107,7 +107,7 @@ function af_cat_guides() {
             'faq_title' => 'Radha Krishna wall decor guide &amp; FAQ',
             'faq' => array(
                 array('Where should I hang a Radha Krishna painting?',
-                    'Most families choose the living room, where guests see it first, the bedroom, as a symbol of love between partners, or the pooja room. Hang it at eye level on a wall with space around it, away from direct sunlight.'),
+                    'Most families choose the living room, where guests see it first, the bedroom, as a symbol of love between partners, or the pooja room. Hang it at eye level on a wall with space around it, away from direct sunlight. For the bedroom, see our [[post:radha-krishna-painting-bedroom-meaning-placement|Radha Krishna bedroom placement guide]].'),
                 array('Which size Radha Krishna wall art should I choose?',
                     'Most designs here come in 3×2 ft and 3×4 ft. A 3×4 ft canvas makes a focal point above a sofa or bed; 3×2 ft suits a pooja room, hallway or smaller wall. Open a design to see every size it comes in.'),
                 array('Does it come framed and ready to hang?',
@@ -185,6 +185,34 @@ function af_cat_guides() {
             ),
             'related' => array('living-room' => 'Living room', 'landscapes' => 'Landscapes', 'wildlife' => 'Wildlife',
                                'printable-art' => 'Printable art', 'extra-large-canvas-paintings' => 'Extra large canvas', 'diy-floating-frames' => 'Floating frames'),
+        ),
+        // Never crawled before 29 Oct ("Discovered - currently not indexed"),
+        // while US searches for "floating frame kits" (11, pos 14.5), "canvas
+        // frame kit" (6, pos 30.5), "diy canvas frame kit" and "artist
+        // stretchers" reached the site every week. Three pine wood kits.
+        'canvas-stretcher-bars' => array(
+            'heading' => 'Canvas Stretcher Bars & DIY Canvas Frame Kits',
+            'title'   => 'Canvas Stretcher Bars & DIY Canvas Frame Kits | The Art Framer',
+            'intro'   => array(
+                '<strong>Canvas stretcher bars</strong> are the wooden frame a canvas is stretched over, so it hangs flat and taut. Our <strong>DIY canvas frame kits</strong> are heavy-duty pine wood: put the bars together, stretch your canvas painting or print over them, and hang it as it is or fit it in a floating frame.',
+            ),
+            'faq_title' => 'Stretcher bars &amp; frame kit guide &amp; FAQ',
+            'faq' => array(
+                array('What are canvas stretcher bars?',
+                    'Wooden bars that join at the corners to make the frame behind a stretched canvas. The canvas is wrapped around them and fixed at the back, which keeps it tight and flat on the wall.'),
+                array('What is a DIY canvas frame kit?',
+                    'A set of pine wood stretcher bars for one canvas, made for putting together at home. Open a kit below to see exactly what it includes and the sizes it comes in.'),
+                array('Which size do I need?',
+                    'Choose the size of the finished canvas you want on the wall, and keep enough extra canvas on every side to wrap around the bars and fix at the back.'),
+                array('Stretcher bars or a floating frame?',
+                    'Both, often. Stretcher bars sit behind the canvas and hold it taut; a floating frame goes around the stretched canvas for a finished, gallery look. See our [[cat:diy-floating-frames|floating frames for canvas]].'),
+                array('Can I buy art already on stretcher bars?',
+                    'Yes. Every design in our [[cat:all-art-prints|art prints]] can be ordered on wooden stretcher bars with a hanging kit, or finished in a frame.'),
+                array('Do you deliver across the USA?',
+                    'Yes. Kits are delivered across the USA; the delivery cost for your size and address is shown before you pay.'),
+            ),
+            'related' => array('diy-floating-frames' => 'Floating frames', 'premium-aluminium-frames' => 'Aluminium frames',
+                               'abstract-art' => 'Abstract art', 'hindu-deities' => 'Hindu Gods', 'all-art-prints' => 'All art prints'),
         ),
         // Placement follows the blog post /7-horses-painting-vastu-direction/,
         // so the category and the article give the same advice.
