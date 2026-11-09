@@ -197,6 +197,21 @@ async function findProduct(q) {
   const r = await req('/wp-json/wc/store/v1/products?' + q, { headers: { Accept: 'application/json', 'Sec-Fetch-Mode': 'cors' } });
   try { return JSON.parse(r.text)[0] || null; } catch (e) { return null; }
 }
+// An add-to-cart link opened directly adds nothing and goes to the product's page (9 Nov 2026).
+{
+  const p = await findProduct('per_page=1&type=simple');
+  if (!p) note('add-to-cart link: no simple product found');
+  else {
+    await emptyCart();
+    const r = await req(`/?add-to-cart=${p.id}`);
+    const { j } = await storeCart();
+    const n = (j && j.items && j.items.length) || 0;
+    check('an add-to-cart link opened directly adds nothing to the cart', n === 0, `${n} item(s), status ${r.status}`);
+    check('…and sends the visitor to the product page', r.status === 301 && /\/product\//.test(r.h.get('location') || ''), `${r.status} -> ${r.h.get('location') || '-'}`);
+    check('…marked noindex', /noindex/i.test(r.h.get('x-robots-tag') || ''), r.h.get('x-robots-tag') || 'no header');
+    await emptyCart();
+  }
+}
 for (const [label, q, extra] of [
   ['gift card', 'slug=the-art-framer-gift-card', '&af_gc_amount=200'],
   ['art accessory (stretcher bars / frames)', 'category=art-accessories&per_page=1', ''],
@@ -204,7 +219,9 @@ for (const [label, q, extra] of [
   const p = await findProduct(q);
   if (!p) { note(`Digital Download path on a ${label}: no such product found`); continue; }
   await emptyCart();
-  await req(`/?add-to-cart=${p.id}&af_digital=1${extra}`);
+  // Posted, as the product page's form does: a plain ?add-to-cart= link adds nothing (inc/add-to-cart-links.php).
+  await req('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Sec-Fetch-Site': 'same-origin' },
+    body: `add-to-cart=${p.id}&af_digital=1${extra}` });
   const { j } = await storeCart();
   const line = j && j.items && j.items[0];
   const digital = !!(line && (line.item_data || []).some(d => /digital/i.test(String(d.value || d.display || ''))));

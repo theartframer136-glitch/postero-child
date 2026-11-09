@@ -232,7 +232,8 @@ async function browserChecks() {
     });
     if (!id) check('browser: checkout login: a product to put in the basket', false);
     else {
-      await p.goto(S + '/?add-to-cart=' + id, { waitUntil: 'domcontentloaded', timeout: 90000 }).catch(() => null);
+      // Posted, as the product page's form does: a plain ?add-to-cart= link adds nothing (inc/add-to-cart-links.php).
+      await p.evaluate(async (pid) => { await fetch('/', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: 'add-to-cart=' + pid, credentials: 'same-origin' }).catch(() => null); }, id);
       await p.goto(S + '/checkout/?' + bust(), { waitUntil: 'networkidle2', timeout: 90000 }).catch(() => null);
       const before = cf;
       const has = await p.$('a.showlogin');
@@ -397,7 +398,7 @@ async function checkoutServerChecks() {
   const pr = await fetch(S + '/wp-json/wc/store/v1/products?per_page=20&type=simple', { headers: { 'User-Agent': UA, Accept: 'application/json' } }).then(x => x.json()).catch(() => []);
   const prod = (pr || []).find(x => x.is_purchasable && x.is_in_stock);
   if (!prod) { check('server: checkout: a product to put in the basket', false); return; }
-  await get('/?add-to-cart=' + prod.id);
+  await post('/', { 'add-to-cart': prod.id }, false);   // as the product page's form does; a ?add-to-cart= link adds nothing
   const co = await get('/checkout/?' + bust());
   const form = (co.html.match(/<form[^>]*class="[^"]*\bcheckout\b[\s\S]*?<\/form>/i) || [''])[0];
   // anywhere on the page: this theme runs the after-order-summary hook after the form closes, and the

@@ -48,8 +48,6 @@
     var pd        = card.querySelector('.af-pd');
     var mainLink  = card.querySelector('a.woocommerce-loop-product__link');
     if (!mainLink) return;
-    var themeCart = card.querySelector('a.add_to_cart_button,a.ajax_add_to_cart,a.button.product_type_simple');
-    var cartUrl   = (pd&&pd.dataset.cart)||(themeCart&&themeCart.href)||mainLink.href||'#';
     var productUrl= (pd&&pd.dataset.url)||mainLink.href||'#';
 
     // Collect wishlist link data for cloning (before hiding)
@@ -195,11 +193,14 @@
       }
       iconBtn(wlBtn);
 
-      // Add to Cart — primary gold pill button
+      // Choose Options — primary gold pill button. Opens the product page, where
+      // the shopper picks size, frame and colour and adds it to the cart; an
+      // ?add-to-cart= link added it with every option at its default, and is
+      // now turned away by the server (inc/add-to-cart-links.php).
       var atcBtn=document.createElement('a');
-      atcBtn.href=cartUrl;
+      atcBtn.href=productUrl;
       atcBtn.className='af-ov-atc';
-      atcBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span>Add to Cart</span>';
+      atcBtn.innerHTML='<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg><span>Choose Options</span>';
       sp(atcBtn,'display',        'inline-flex');
       sp(atcBtn,'align-items',    'center');
       sp(atcBtn,'gap',            '8px');
