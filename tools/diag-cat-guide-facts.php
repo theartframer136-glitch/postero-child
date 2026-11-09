@@ -2,7 +2,7 @@
 /* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /** Read-only. What a category guide may say: the category's own text and its products (name, price, sizes in the name). */
 if (!defined('ABSPATH')) exit;
-foreach (array_filter(explode(',', (string) (getenv('AF_SLUGS') ?: 'rolled-canvas,canvas-stretcher-bars,standard-framed-canvas,extra-large-canvas-paintings'))) as $slug) {
+foreach (array_filter(explode(',', (string) (getenv('AF_SLUGS') ?: 'lakshmi-ganesha,sikh-art,lord-shiva,hindu-deities,4x4-ft,still-life'))) as $slug) {
     $t = get_term_by('slug', $slug, 'product_cat');
     if (!$t) { echo "$slug: missing\n"; continue; }
     $parent = $t->parent ? get_term($t->parent)->slug : '-';
@@ -26,4 +26,4 @@ foreach (array_filter(explode(',', (string) (getenv('AF_SLUGS') ?: 'rolled-canva
 }
 // Does any blog post already cover these topics?
 global $wpdb;
-foreach ($wpdb->get_results("SELECT ID, post_title, post_name FROM {$wpdb->posts} WHERE post_type='post' AND post_status='publish' AND (post_title LIKE '%horse%' OR post_title LIKE '%India%' OR post_title LIKE '%Vastu%')") as $p) echo "  post #{$p->ID} /{$p->post_name}/ {$p->post_title}\n";
+foreach ($wpdb->get_results("SELECT ID, post_title, post_name FROM {$wpdb->posts} WHERE post_type='post' AND post_status='publish' AND (post_title LIKE '%Ganesh%' OR post_title LIKE '%Shiva%' OR post_title LIKE '%Sikh%' OR post_title LIKE '%Deity%' OR post_title LIKE '%size%' OR post_title LIKE '%still life%')") as $p) echo "  post #{$p->ID} /{$p->post_name}/ {$p->post_title}\n";
