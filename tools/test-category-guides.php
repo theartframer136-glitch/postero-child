@@ -37,10 +37,11 @@ same('plain mode (FAQ data) drops every link', af_cat_guide_text('A [[post:7-hor
 
 echo "\n=== the guides ===\n";
 $all = af_cat_guides();
-foreach (array('seven-horses', 'indian-culture', 'canvas-stretcher-bars', 'radha-krishna', 'diy-floating-frames') as $slug) {
+foreach (array('seven-horses', 'indian-culture', 'canvas-stretcher-bars', 'radha-krishna', 'diy-floating-frames',
+               'lakshmi-ganesha', 'sikh-art', 'lord-shiva', 'hindu-deities', 'still-life') as $slug) {
     same("$slug has a guide", isset($all[$slug]), true);
     $g = $all[$slug];
-    $text = $g['heading'] . ' ' . ($g['title'] ?? '') . ' ' . implode(' ', $g['intro']);
+    $text = $g['heading'] . ' ' . ($g['title'] ?? '') . ' ' . ($g['description'] ?? '') . ' ' . implode(' ', $g['intro']);
     foreach ($g['faq'] as $f) $text .= ' ' . $f[0] . ' ' . $f[1];
     same("$slug never says the word free (owner's rule)", preg_match('~\bfree\b~i', $text), 0);
     same("$slug title fits in Google's result (≤ 70 characters)", mb_strlen($g['title'] ?? '') <= 70, true);
@@ -54,6 +55,16 @@ same('stretcher bars: no price is promised', preg_match('~\$\d~', json_encode($a
 same('radha krishna: the heading has "Wall Decor"', stripos($all['radha-krishna']['heading'], 'Wall Decor') !== false, true);
 same('radha krishna: links the bedroom article', strpos(json_encode($all['radha-krishna']), 'post:radha-krishna-painting-bedroom-meaning-placement') !== false, true);
 same('floating frames: the heading has "Frame Kits"', stripos($all['diy-floating-frames']['heading'], 'Frame Kits') !== false, true);
+same('guide descriptions fit Google (≤ 160 characters)', max(array_map(function ($g) { return mb_strlen($g['description'] ?? ''); }, $all)) <= 160, true);
+same('sikh art: no Ik Onkar (the shop sells none)', preg_match('~onkar~i', json_encode($all['sikh-art'])), 0);
+same('sikh art: the heading has "Guru Nanak"', stripos($all['sikh-art']['heading'], 'Guru Nanak') !== false, true);
+same('lakshmi ganesh: the heading has "Lakshmi Ganesh Painting"', stripos($all['lakshmi-ganesha']['heading'], 'Lakshmi Ganesh Painting') !== false, true);
+same('lakshmi ganesh: the search text is not tied to Diwali any more', preg_match('~diwali~i', $all['lakshmi-ganesha']['title'] . $all['lakshmi-ganesha']['description']), 0);
+same('lord shiva: the heading has "Mahadev"', stripos($all['lord-shiva']['heading'], 'Mahadev') !== false, true);
+same('hindu deities: the heading has "Hindu Wall Art"', stripos($all['hindu-deities']['heading'], 'Hindu Wall Art') !== false, true);
+same('still life: the heading has "Still Life Wall Art"', stripos($all['still-life']['heading'], 'Still Life Wall Art') !== false, true);
+same('no guide promises a price', preg_match('~\\$\\d~', json_encode(array_intersect_key($all, array_flip(array('lakshmi-ganesha', 'sikh-art', 'lord-shiva', 'hindu-deities', 'still-life'))))), 0);
+same('no guide links the empty 4x4 ft category', strpos(json_encode($all), '4x4-ft'), false);
 same('indian culture: no Tanjore or Kathak (the shop has none)', preg_match('~tanjore|kathak~i', json_encode($all['indian-culture'])), 0);
 
 echo "\n$pass passed, $fail failed\n";

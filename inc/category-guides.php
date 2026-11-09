@@ -42,8 +42,18 @@
  *                         canvas"... 16 products: classical dancers, Kerala
  *                         mural, folk art, Ganga Aarti, portraits.
  *
+ * Added 9 Nov 2026 (Search Console, 10 Oct – 8 Nov), categories near page 1
+ * with no guide: lakshmi-ganesha (25, pos 7.7; 12 products), sikh-art (26,
+ * 8.7, 2 clicks; "guru nanak wall art" 8.5; 6 products), lord-shiva (26,
+ * 9.0; "mahadev painting on wall", "lord shiva canvas"; 19 products),
+ * hindu-deities (45, 9.8, 2 clicks; 114 products) and still-life (36, 22.3;
+ * "still life wall art" 21 impressions, pos 27; 21 products). The 4x4 ft
+ * frame size (73, 10.1) got no guide: it holds no products.
+ *
  * Per category: 'heading' replaces the H1 (af_archive_heading, see
  * inc/page-headings.php); 'title' replaces the Rank Math <title> (optional);
+ * 'description' replaces its search description (optional, where the stored
+ * one is wrong);
  * 'intro' are paragraphs; 'faq' are [question, answer]; 'related' are
  * category slug => label. In intro and answers, [[cat:slug|text]] becomes a
  * link to that category, [[post:slug|text]] to that published blog post and
@@ -264,6 +274,114 @@ function af_cat_guides() {
             'related' => array('hindu-deities' => 'Hindu Gods', 'radha-krishna' => 'Radha Krishna', 'pichwai-art' => 'Pichwai art',
                                'seven-horses' => '7 Horses (Vastu)', 'lakshmi-ganesha' => 'Lakshmi Ganesh', 'diy-floating-frames' => 'Floating frames'),
         ),
+        'lakshmi-ganesha' => array(
+            'heading' => 'Lakshmi Ganesh Paintings & Ganesha Canvas Wall Art',
+            'title'   => 'Lakshmi Ganesh Painting & Ganesha Canvas Wall Art | The Art Framer',
+            'description' => 'Lakshmi Ganesh and Ganesha canvas paintings for the pooja room, entrance or living room, in classic and modern designs. Shipped across the USA.',
+            'intro'   => array(
+                'A <strong>Lakshmi Ganesh painting</strong> asks for prosperity and a good beginning, which is why it is the classic choice for the pooja room, the entrance, Diwali and a Griha Pravesh. Choose from Lakshmi Ganesha on a throne or giving blessings, Goddess Lakshmi with elephants, Ganesha portraits and modern abstract Ganesha designs, mostly in a large 3×4 ft size.',
+            ),
+            'faq_title' => 'Lakshmi Ganesh painting guide &amp; FAQ',
+            'faq' => array(
+                array('Where should I hang a Lakshmi Ganesh painting?',
+                    'The pooja room or home mandir is the traditional place, and many families also hang Ganesha near the entrance to welcome guests and good fortune. Keep it at or above eye level and out of bathrooms and laundry areas. See our [[post:ganesha-painting-entrance-vastu-placement|Ganesha painting at the entrance guide]] for Vastu placement.'),
+                array('Is a Lakshmi Ganesh painting a good gift?',
+                    'Yes. It is one of the most popular gifts for Diwali, a Griha Pravesh (housewarming) or a new business. See our [[post:griha-pravesh-gift-ideas-indian-family-usa|Griha Pravesh gift ideas]] and [[post:diwali-gift-guide-deity-vastu-canvas-art|Diwali gift guide]].'),
+                array('Which size should I choose?',
+                    'Most designs here are 3×4 ft, a statement size for a living room or entrance wall; a few come as 48×48 in, 36×48 in or 60×36 in. Open a design to see every size it comes in.'),
+                array('Are these paintings hand-painted?', 'No. They are printed reproductions on canvas, made to order, which keeps the color and detail of each design at a price that suits a home.'),
+                array('Does it come framed and ready to hang?', 'You choose on each design: the painting only (rolled canvas in a tube), the painting on wooden stretcher bars with a DIY hanging kit, or stretched and finished in the frame you pick. Already have a canvas? See our [[cat:diy-floating-frames|floating frames for canvas]].'),
+                array('Do you deliver across the USA?', 'Yes. Every canvas is made to order and delivered across the USA; the delivery cost for your size and address is shown before you pay.'),
+            ),
+            'related' => array('hindu-deities' => 'Hindu Gods', 'tirupati-balaji' => 'Tirupati Balaji', 'radha-krishna' => 'Radha Krishna',
+                               'lord-shiva' => 'Lord Shiva', 'seven-horses' => '7 Horses (Vastu)', 'diy-floating-frames' => 'Floating frames'),
+        ),
+        'sikh-art' => array(
+            'heading' => 'Sikh Wall Art: Guru Nanak & Golden Temple Paintings',
+            'title'   => 'Sikh Wall Art & Guru Nanak Paintings | Golden Temple Canvas',
+            'description' => 'Sikh wall art on canvas: Guru Nanak Dev Ji portraits and the Golden Temple in Amritsar by day and at dusk. Rolled, stretched or framed, shipped across the USA.',
+            'intro'   => array(
+                'Bring the peace of the Darbar Sahib home with <strong>Sikh wall art</strong> on canvas: portraits of <strong>Guru Nanak Dev Ji</strong>, including a golden aura and a watercolor design, and the <strong>Golden Temple</strong> (Harmandir Sahib, Amritsar) in daylight and at dusk, for the living room or the room where you pray.',
+            ),
+            'faq_title' => 'Sikh wall art guide &amp; FAQ',
+            'faq' => array(
+                array('What is in this collection?',
+                    'Guru Nanak Dev Ji portraits, among them a golden aura design and a watercolor splash design, and paintings of the Golden Temple in Amritsar in daylight and at dusk.'),
+                array('Where should I hang Guru Nanak or Golden Temple wall art?',
+                    'Many families hang it in the living room or the room where they pray, at or above eye level, and keep it out of bathrooms and laundry areas as a mark of respect.'),
+                array('Which size should I choose?',
+                    'Most designs here are 3×4 ft, a statement size above a sofa or console; two come as 48×36 in. Open a design to see every size it comes in.'),
+                array('Are these paintings hand-painted?', 'No. They are printed reproductions on canvas, made to order, which keeps the color and detail of each design at a price that suits a home.'),
+                array('Does it come framed and ready to hang?', 'You choose on each design: the painting only (rolled canvas in a tube), the painting on wooden stretcher bars with a DIY hanging kit, or stretched and finished in the frame you pick. Already have a canvas? See our [[cat:diy-floating-frames|floating frames for canvas]].'),
+                array('Do you deliver across the USA?', 'Yes. Every canvas is made to order and delivered across the USA; the delivery cost for your size and address is shown before you pay.'),
+            ),
+            'related' => array('hindu-deities' => 'Hindu Gods', 'indian-culture' => 'Indian Culture', 'buddha' => 'Buddha',
+                               'landscapes' => 'Landscapes', 'living-room' => 'Living room', 'diy-floating-frames' => 'Floating frames'),
+        ),
+        'lord-shiva' => array(
+            'heading' => 'Lord Shiva Paintings & Mahadev Canvas Wall Art',
+            'title'   => 'Lord Shiva Painting & Mahadev Canvas Wall Art | The Art Framer',
+            'intro'   => array(
+                'From a calm, meditating Mahadev to the cosmic Tandav, our <strong>Lord Shiva paintings</strong> come in classic and modern styles: Shiva in meditation, Shiva with Nandi, Shiva Parvati on Kailash, the Shiva Parivar (Shiva family), and neon, watercolor and cubist designs. Most are a large 3×4 ft <strong>Mahadev canvas</strong> for the living room, meditation corner or pooja room.',
+            ),
+            'faq_title' => 'Lord Shiva painting guide &amp; FAQ',
+            'faq' => array(
+                array('Which Shiva painting suits my home?',
+                    'A meditating Shiva suits a pooja room, meditation corner or study; Shiva Parvati and Shiva Parivar paintings are often chosen for the living room or bedroom as a picture of family harmony; the Tandav and modern neon or cubist designs make a bold statement in a living room or office.'),
+                array('Where should I hang a Mahadev painting?',
+                    'The pooja room, a quiet meditation corner or the living room are the usual places. Hang it at or above eye level and keep it out of bathrooms and laundry areas. See [[post:which-hindu-deity-painting-for-which-room|which deity painting belongs in which room]].'),
+                array('Which size should I choose?',
+                    'Most designs here are 3×4 ft, a statement size above a sofa, bed or console; one comes as 36×48 in. Open a design to see every size it comes in.'),
+                array('Are these paintings hand-painted?', 'No. They are printed reproductions on canvas, made to order, which keeps the color and detail of each design at a price that suits a home.'),
+                array('Does it come framed and ready to hang?', 'You choose on each design: the painting only (rolled canvas in a tube), the painting on wooden stretcher bars with a DIY hanging kit, or stretched and finished in the frame you pick. Already have a canvas? See our [[cat:diy-floating-frames|floating frames for canvas]].'),
+                array('Do you deliver across the USA?', 'Yes. Every canvas is made to order and delivered across the USA; the delivery cost for your size and address is shown before you pay.'),
+            ),
+            'related' => array('hindu-deities' => 'Hindu Gods', 'lakshmi-ganesha' => 'Lakshmi Ganesh', 'buddha' => 'Buddha',
+                               'radha-krishna' => 'Radha Krishna', 'lord-rama' => 'Lord Ram', 'diy-floating-frames' => 'Floating frames'),
+        ),
+        'hindu-deities' => array(
+            'heading' => 'Hindu God Paintings & Hindu Wall Art on Canvas',
+            'title'   => 'Hindu God Paintings & Hindu Wall Art | Canvas for Home & Pooja Room',
+            'intro'   => array(
+                'Our largest collection of <strong>Hindu god paintings</strong>: Ganesha, Lakshmi, Shiva, Krishna, Ram and Sita, Hanuman, Vishnu, Murugan, Saraswati, Durga, Balaji and Jagannath, in devotional, Tanjore-style and modern designs. This <strong>Hindu wall art</strong> is made for the pooja room, the entrance and the living room, mostly in a large 3×4 ft size.',
+            ),
+            'faq_title' => 'Hindu god painting guide &amp; FAQ',
+            'faq' => array(
+                array('Which deity painting belongs in which room?',
+                    'Ganesha is the classic choice for the entrance, Lakshmi and Ganesha for the pooja room, Radha Krishna for the bedroom or living room, and a meditating Shiva or Buddha for a quiet corner. See [[post:which-hindu-deity-painting-for-which-room|which deity painting belongs in which room]].'),
+                array('How do I decorate a pooja room wall in an apartment?',
+                    'One large painting behind or above the mandir makes a calm focal point even in a small space. See our [[post:pooja-room-wall-ideas-american-apartment|pooja room wall ideas for an American apartment]].'),
+                array('Are these paintings hand-painted?',
+                    'No. They are printed reproductions on canvas, made to order, including the Tanjore-style designs, which keeps the color and detail of each design at a price that suits a home.'),
+                array('Which size should I choose?',
+                    'Most designs here are 3×4 ft, a statement size above a sofa or console; a few come as 60×36 in, 60×24 in, 48×48 in or 84×24 in. Open a design to see every size it comes in, and see our [[post:canvas-size-guide-us-living-room-wall|canvas size guide]].'),
+                array('Does it come framed and ready to hang?', 'You choose on each design: the painting only (rolled canvas in a tube), the painting on wooden stretcher bars with a DIY hanging kit, or stretched and finished in the frame you pick. Already have a canvas? See our [[cat:diy-floating-frames|floating frames for canvas]].'),
+                array('Do you deliver across the USA?', 'Yes. Every canvas is made to order and delivered across the USA; the delivery cost for your size and address is shown before you pay.'),
+            ),
+            'related' => array('radha-krishna' => 'Radha Krishna', 'lakshmi-ganesha' => 'Lakshmi Ganesh', 'lord-shiva' => 'Lord Shiva',
+                               'lord-rama' => 'Lord Ram', 'tirupati-balaji' => 'Tirupati Balaji', 'pichwai-art' => 'Pichwai art'),
+        ),
+        'still-life' => array(
+            'heading' => 'Still Life Wall Art: Floral & Vase Canvas Prints',
+            'title'   => 'Still Life Wall Art & Still Life Prints | Floral Vase Canvas',
+            'intro'   => array(
+                'Quiet, decorative <strong>still life wall art</strong>: vases with blossoms, calla lilies and poppies, dried stems in boho vases, an olive tree in a terracotta pot and glass bottles on a shelf, in soft minimal and rich colorful styles. These <strong>still life prints</strong> on canvas suit the dining room, kitchen, entry, bedroom and living room.',
+            ),
+            'faq_title' => 'Still life wall art guide &amp; FAQ',
+            'faq' => array(
+                array('What is still life art?',
+                    'Still life is art of objects arranged and painted from life: flowers, vases, fruit, bottles and other everyday things. Floral and vase still lifes are the most popular for the home because they bring color and calm to a room without a busy scene.'),
+                array('Which room suits still life wall art?',
+                    'Dining rooms and kitchens are the classic places, and a floral still life also softens an entry, a bedroom or a reading corner. Soft, minimal vase designs suit neutral and boho rooms; bright florals add color to a plain wall.'),
+                array('Which size should I choose?',
+                    'Most designs here are 3×4 ft; others come as 3×2 ft, 2.5×3 ft, 36×60 in or 5×3 ft. A good rule is art about two-thirds the width of the furniture below it. Open a design to see every size it comes in.'),
+                array('Can I get a framed still life print?', 'You choose on each design: the painting only (rolled canvas in a tube), the painting on wooden stretcher bars with a DIY hanging kit, or stretched and finished in the frame you pick. Already have a canvas? See our [[cat:diy-floating-frames|floating frames for canvas]].'),
+                array('Are these paintings hand-painted?', 'No. They are printed reproductions on canvas, made to order, which keeps the color and detail of each design at a price that suits a home.'),
+                array('Do you deliver across the USA?', 'Yes. Every canvas is made to order and delivered across the USA; the delivery cost for your size and address is shown before you pay.'),
+            ),
+            'related' => array('abstract-art' => 'Abstract art', 'landscapes' => 'Landscapes', 'living-room' => 'Living room',
+                               'printable-art' => 'Printable art', 'wildlife' => 'Wildlife', 'diy-floating-frames' => 'Floating frames'),
+        ),
     );
 }
 
@@ -305,6 +423,16 @@ add_filter('af_archive_heading', function ($name, $term) {
     $all = af_cat_guides();
     return ($term && isset($term->slug) && !empty($all[$term->slug]['heading'])) ? $all[$term->slug]['heading'] : $name;
 }, 10, 2);
+
+// A guide may also replace the category's search description when the stored one is wrong.
+add_filter('rank_math/frontend/description', function ($description) {
+    try {
+        $g = af_cat_guide_current();
+        return !empty($g['description']) ? $g['description'] : $description;
+    } catch (\Throwable $e) {
+        return $description;
+    }
+}, 20);
 
 add_filter('rank_math/frontend/title', function ($title) {
     try {
