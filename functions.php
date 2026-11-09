@@ -1173,12 +1173,11 @@ add_action('woocommerce_before_shop_loop_item_title', function() {
   if (!$product) return;
   $id       = $product->get_id();
   $url      = get_permalink($id);
-  $cart_url = esc_url(add_query_arg('add-to-cart', $id, $url));
   $regular  = (float) $product->get_regular_price();
   $sale     = (float) $product->get_sale_price();
   $pct      = ($regular > 0 && $sale > 0 && $sale < $regular)
               ? round(($regular - $sale) / $regular * 100) : 0;
-  echo '<span class="af-pd" data-id="' . $id . '" data-url="' . esc_url($url) . '" data-cart="' . $cart_url . '" data-pct="' . $pct . '" style="display:none"></span>';
+  echo '<span class="af-pd" data-id="' . $id . '" data-url="' . esc_url($url) . '" data-pct="' . $pct . '" style="display:none"></span>';
 }, 1);
 
 // ─────────────────────────────────────────────────────────────
@@ -13249,7 +13248,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'deity-links', 'blog-shop-links', 'category-guides', 'post-faq-schema', 'robots-noindex', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'product-pictures', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'meta-pixel', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings', 'retired-products', 'checkout-fixes', 'corporate-specs', 'category-display', 'turnstile', 'digital-masters', 'digital-account', 'security-hardening', 'markup-fixes', 'card-image-sizes', 'instant-nav', 'home-hero', 'header-weight', 'revslider-trim') as $af_mod) {
+foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'deity-links', 'blog-shop-links', 'category-guides', 'post-faq-schema', 'robots-noindex', 'add-to-cart-links', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'product-pictures', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'meta-pixel', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings', 'retired-products', 'checkout-fixes', 'corporate-specs', 'category-display', 'turnstile', 'digital-masters', 'digital-account', 'security-hardening', 'markup-fixes', 'card-image-sizes', 'instant-nav', 'home-hero', 'header-weight', 'revslider-trim') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }
