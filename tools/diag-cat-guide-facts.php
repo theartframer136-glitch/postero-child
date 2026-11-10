@@ -2,7 +2,7 @@
 /* AF-WEB-GUARD */ if (PHP_SAPI !== 'cli' && !(defined('WP_CLI') && WP_CLI)) { http_response_code(403); exit('Forbidden'); }
 /** Read-only. What a category guide may say: the category's own text and its products (name, price, sizes in the name). */
 if (!defined('ABSPATH')) exit;
-foreach (array_filter(explode(',', (string) (getenv('AF_SLUGS') ?: 'lakshmi-ganesha,sikh-art,lord-shiva,hindu-deities,4x4-ft,still-life'))) as $slug) {
+foreach (array_filter(explode(',', (string) (getenv('AF_SLUGS') ?: 'rolled-canvas'))) as $slug) {
     $t = get_term_by('slug', $slug, 'product_cat');
     if (!$t) { echo "$slug: missing\n"; continue; }
     $parent = $t->parent ? get_term($t->parent)->slug : '-';
@@ -19,7 +19,8 @@ foreach (array_filter(explode(',', (string) (getenv('AF_SLUGS') ?: 'lakshmi-gane
         if (!$p) continue;
         if (preg_match_all('~(\d+(?:\.\d+)?)\s*[x×]\s*(\d+(?:\.\d+)?)\s*(ft|feet|foot|in|inch|inches|")~iu', $p->get_name(), $m, PREG_SET_ORDER)) foreach ($m as $mm) { $k = $mm[1] . '×' . $mm[2] . ' ' . strtolower($mm[3]); $sizes[$k] = (isset($sizes[$k]) ? $sizes[$k] : 0) + 1; }
         $cats = wp_get_post_terms($id, 'product_cat', array('fields' => 'slugs'));
-        echo sprintf("  #%d $%s  %s  [%s]\n", $id, wc_get_price_to_display($p), mb_substr($p->get_name(), 0, 110), implode(',', array_slice($cats, 0, 6)));
+        echo sprintf("  #%d $%s  SKU %s  %s  %s  [%s]\n", $id, wc_get_price_to_display($p), $p->get_sku() ?: '-', $p->get_type(), mb_substr($p->get_name(), 0, 110), implode(',', array_slice($cats, 0, 6)));
+        echo '     regular ' . var_export($p->get_regular_price(), true) . ', sale ' . var_export($p->get_sale_price(), true) . ', status ' . $p->get_status() . ', stock ' . $p->get_stock_status() . ', edit /wp-admin/post.php?post=' . $id . "&action=edit\n";
     }
     arsort($sizes); echo '  sizes named in titles: ' . json_encode($sizes, JSON_UNESCAPED_UNICODE) . "\n";
     if (function_exists('af_sizes_available')) echo '  sizes the selector sells: ' . json_encode(af_sizes_available(), JSON_UNESCAPED_UNICODE) . "\n";
