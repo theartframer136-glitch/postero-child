@@ -91,6 +91,56 @@ if ( strpos( $af_qs, 'wc-ajax=get_refreshed_fragments' ) !== false ) {
     }
 }
 
+// 3c. BytePlus (ByteDance's cloud). On 2026-11-12 04:00-04:15 IST, 5,018 of
+//     5,981 requests came from these three ranges: about 400 a minute from
+//     972 addresses, walking product-tag pages through every filter
+//     combination and add-to-cart link. They sent full browser headers
+//     (Sec-Fetch included), so rule 4b never saw them. Nobody shops from a
+//     cloud data centre. IPv4 only; no-store for the same reason as rule 3.
+$af_ip = $_SERVER['REMOTE_ADDR'] ?? '';
+if ( $af_ip !== '' && strpos( $af_ip, ':' ) === false ) {
+    $af_n = ip2long( $af_ip );
+    if ( $af_n !== false ) {
+        foreach ( array( array( '150.5.128.0', 19 ), array( '101.47.0.0', 16 ), array( '163.7.0.0', 19 ) ) as $af_r ) {
+            $af_mask = -1 << ( 32 - $af_r[1] );
+            if ( ( $af_n & $af_mask ) === ( ip2long( $af_r[0] ) & $af_mask ) ) {
+                http_response_code( 403 );
+                header( 'Cache-Control: no-store, max-age=0' );
+                header( 'X-AF-Guard: cloud-403' );
+                exit( 'Forbidden' );
+            }
+        }
+    }
+}
+
+// 3d. Filter and add-to-cart URLs from a client with NO cookies at all.
+//     Every page this site renders sets the woocs_ currency cookies, so any
+//     browser that has loaded one page carries cookies from then on. Crawlers
+//     that rotate addresses (the 12 Nov 11:00 IST wave came from 3,094 home
+//     connections, a request or two each) arrive cookieless with full browser
+//     headers, which rule 4b lets through. Same answers as 4b/4c: the bare
+//     (cached) archive, or the cached homepage. The cost to a real person is
+//     small: a first-ever visit that lands straight on a filtered link sees
+//     the unfiltered category and can filter again (robots.txt keeps these
+//     URLs out of search results, so few arrive that way).
+if ( $af_qs !== '' && empty( $_COOKIE )
+    && strpos( $af_path, '/wp-admin' ) !== 0
+    && strpos( $af_path, '/wp-json' ) !== 0
+) {
+    if ( preg_match( '#(^|&)(filter_[a-z0-9_]+|orientation|min_price|max_price|orderby|query_type_[a-z0-9_]+|currency|lang|per_page|layout)=#i', $af_qs ) ) {
+        header( 'Cache-Control: no-store, max-age=0' );
+        header( 'X-AF-Guard: nocookie-filter-302' );
+        header( 'Location: ' . $af_path, true, 302 );
+        exit;
+    }
+    if ( preg_match( '#(^|&)add-to-cart=#i', $af_qs ) ) {
+        header( 'Cache-Control: no-store, max-age=0' );
+        header( 'X-AF-Guard: nocookie-addtocart-302' );
+        header( 'Location: /', true, 302 );
+        exit;
+    }
+}
+
 // BEGIN AF-SEARCH-GUARD (the installer removes this section if Sec-Fetch
 // headers are found not to survive the CDN, so customer search cannot break)
 // Rules 4/4b/4c share one signal: real browsers send Sec-Fetch-* headers;
