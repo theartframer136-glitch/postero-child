@@ -118,7 +118,7 @@ class User_Profile extends Base {
 	 *
 	 * @return bool True if authorized, false otherwise
 	 */
-	public function get_rest_permission( \WP_REST_Request $request = null ) {
+	public function get_rest_permission( ?\WP_REST_Request $request = null ) {
 		// Allow admin users with proper capabilities to access any connected account.
 		// Fall back to 'manage_options' in case 'qligg_manage_feeds' has not been
 		// assigned yet (add_capability runs on admin_init which doesn't fire on

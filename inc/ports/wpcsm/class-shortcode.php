@@ -324,19 +324,19 @@ if ( ! class_exists( 'Wpcsm_Shortcode' ) ) {
 								}
 
 								switch ( $attrs['name'] ) {
-									case 'billing_full_name';
+									case 'billing_full_name':
 										$name = $order->get_formatted_billing_full_name();
 										break;
-									case 'billing_last_name';
+									case 'billing_last_name':
 										$name = $order->get_billing_last_name();
 										break;
-									case 'shipping_full_name';
+									case 'shipping_full_name':
 										$name = $order->get_formatted_shipping_full_name();
 										break;
-									case 'shipping_first_name';
+									case 'shipping_first_name':
 										$name = $order->get_shipping_first_name();
 										break;
-									case 'shipping_last_name';
+									case 'shipping_last_name':
 										$name = $order->get_shipping_last_name();
 										break;
 								}

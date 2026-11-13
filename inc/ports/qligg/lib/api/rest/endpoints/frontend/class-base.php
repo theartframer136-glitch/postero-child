@@ -54,7 +54,7 @@ abstract class Base extends Endpoints {
 	 *
 	 * @return bool True if authorized, false otherwise
 	 */
-	public function get_rest_permission( \WP_REST_Request $request = null ) {
+	public function get_rest_permission( ?\WP_REST_Request $request = null ) {
 		$account_id = $request ? ( $request->get_param( 'account_id' ) ? intval( $request->get_param( 'account_id' ) ) : 0 ) : 0;
 
 		if ( ! $this->validate_account_in_feeds( $account_id ) ) {
