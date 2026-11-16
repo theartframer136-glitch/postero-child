@@ -91,6 +91,30 @@ if ( strpos( $af_qs, 'wc-ajax=get_refreshed_fragments' ) !== false ) {
     }
 }
 
+// 3b2. Filter and add-to-cart URLs must arrive through Cloudflare.
+//      Since 2026-11-16 theartframer.us is proxied by Cloudflare, which puts
+//      a browser check on these URLs (custom rule "browser check on filter
+//      and add-to-cart links"). The origin address became public during the
+//      switch, and bots that learned it can skip that check by connecting
+//      straight to the server. Every request that really came through
+//      Cloudflare carries a CF-Ray header (verified on this host 16 Nov:
+//      present via Cloudflare, absent when connecting directly), so these
+//      URLs without it are refused here, before WordPress loads. Real
+//      shoppers always arrive through Cloudflare and never see this. Only
+//      filter/add-to-cart URLs are affected: every other page still answers
+//      a direct request. no-store for the same reason as rule 3.
+if ( $af_qs !== ''
+    && empty( $_SERVER['HTTP_CF_RAY'] )
+    && strpos( $af_path, '/wp-admin' ) !== 0
+    && strpos( $af_path, '/wp-json' ) !== 0
+    && preg_match( '#(^|&)(filter_[a-z0-9_]+|orientation|min_price|max_price|query_type_[a-z0-9_]+|add-to-cart)=#i', $af_qs )
+) {
+    http_response_code( 403 );
+    header( 'Cache-Control: no-store, max-age=0' );
+    header( 'X-AF-Guard: direct-403' );
+    exit( 'Forbidden' );
+}
+
 // 3c. BytePlus (ByteDance's cloud). On 2026-11-12 04:00-04:15 IST, 5,018 of
 //     5,981 requests came from these three ranges: about 400 a minute from
 //     972 addresses, walking product-tag pages through every filter
