@@ -48,6 +48,14 @@ jobs:
           HIP=$(getent ahostsv4 "$H" | awk 'NR==1{print $1}'); [ -z "$HIP" ] && HIP="$H"
           [ "$HIP" = "$OLD" ] && echo "  deploy host IS the old server" || echo "  deploy host is NOT the old server"
           timeout 10 bash -c "</dev/tcp/$H/$P" && echo "  SSH port answers" || echo "  SSH port does not answer"
+      - name: Deploy key, public half only (safe to share)
+        env:
+          K: ${{ secrets.HOSTINGER_SSH_KEY }}
+        run: |
+          umask 077; printf '%s\n' "$K" > /tmp/k
+          echo "== add this public key on the new server (hPanel > SSH Access > SSH keys):"
+          ssh-keygen -y -f /tmp/k | awk '{print $1, $2, "github-deploy-theartframer"}'
+          rm -f /tmp/k
       - name: Fetch and list
         run: |
           set +e
