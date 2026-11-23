@@ -30,7 +30,7 @@ jobs:
           scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               tools/diag-product-export.php \
-              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-product-export.php" \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/diag-product-export.php" \
             || echo "  scp failed"
       - name: Export
         timeout-minutes: 12
@@ -39,7 +39,7 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
+            "cd ~/domains/theartframer.us/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-product-export.php --allow-root 2>&1" \
             | tee /tmp/product-export.txt || true
       - name: Rebuild the rows, and check them

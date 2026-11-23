@@ -58,10 +58,10 @@ jobs:
           set -uo pipefail
           for i in 1 2 3; do
             scp -P "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
-              tools/diag-picture-files.php "$H_USER@$H_HOST:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-picture-files.php" && break
+              tools/diag-picture-files.php "$H_USER@$H_HOST:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/diag-picture-files.php" && break
             sleep 15
           done
-          ~/ssh-site "cd ~/websites/OPu0sKi4J/public_html && AF_MASTERS='$MASTERS' timeout 900 wp eval-file wp-content/themes/postero-child/tools/diag-picture-files.php --allow-root 2>&1" \
+          ~/ssh-site "cd ~/domains/theartframer.us/public_html && AF_MASTERS='$MASTERS' timeout 900 wp eval-file wp-content/themes/postero-child/tools/diag-picture-files.php --allow-root 2>&1" \
             | grep -v '^Deprecated:' | tee /tmp/g.txt
           grep -q "=== END" /tmp/g.txt
       - name: Copy them here, then delete them on the server

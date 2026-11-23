@@ -62,7 +62,7 @@ jobs:
           set -uo pipefail
           SITE="https://theartframer.us"
           SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600 -i $HOME/.ssh/id_ed25519"
-          WEB="websites/OPu0sKi4J/public_html"
+          WEB="domains/theartframer.us/public_html"
           DEST="${WEB}/wp-content/uploads/pim"
 
           echo "=== 1. Which reels does the row still need? ==="

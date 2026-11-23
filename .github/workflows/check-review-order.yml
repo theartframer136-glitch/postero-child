@@ -27,7 +27,7 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" '
-            cd ~/websites/OPu0sKi4J/public_html/wp-content
+            cd ~/domains/theartframer.us/public_html/wp-content
             echo "=== review-order templates outside WooCommerce ==="
             find themes plugins -path "*woocommerce/checkout/review-order.php" -not -path "plugins/woocommerce/*" 2>/dev/null
             echo "=== parent theme woocommerce/checkout folder ==="

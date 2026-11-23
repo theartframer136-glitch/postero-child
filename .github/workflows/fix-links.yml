@@ -26,19 +26,19 @@ jobs:
           set -uo pipefail
           scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               tools/fix-localhost.php tools/fix-empty-hrefs.php \
-              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/"
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/"
       - name: Report only
         if: ${{ inputs.dry_run }}
         run: |
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/websites/OPu0sKi4J/public_html && DRY=1 wp eval-file wp-content/themes/postero-child/tools/fix-localhost.php --allow-root 2>&1 | grep -v _load_textdomain; echo; DRY=1 wp eval-file wp-content/themes/postero-child/tools/fix-empty-hrefs.php --allow-root 2>&1 | grep -v _load_textdomain" || true
+            "cd ~/domains/theartframer.us/public_html && DRY=1 wp eval-file wp-content/themes/postero-child/tools/fix-localhost.php --allow-root 2>&1 | grep -v _load_textdomain; echo; DRY=1 wp eval-file wp-content/themes/postero-child/tools/fix-empty-hrefs.php --allow-root 2>&1 | grep -v _load_textdomain" || true
       - name: Apply
         if: ${{ !inputs.dry_run }}
         run: |
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/websites/OPu0sKi4J/public_html && wp eval-file wp-content/themes/postero-child/tools/fix-localhost.php --allow-root 2>&1 | grep -v _load_textdomain; echo; wp eval-file wp-content/themes/postero-child/tools/fix-empty-hrefs.php --allow-root 2>&1 | grep -v _load_textdomain" || true
+            "cd ~/domains/theartframer.us/public_html && wp eval-file wp-content/themes/postero-child/tools/fix-localhost.php --allow-root 2>&1 | grep -v _load_textdomain; echo; wp eval-file wp-content/themes/postero-child/tools/fix-empty-hrefs.php --allow-root 2>&1 | grep -v _load_textdomain" || true
       - name: Verify from outside
         if: ${{ !inputs.dry_run }}
         run: |

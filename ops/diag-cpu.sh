@@ -4,7 +4,7 @@
 # high-CPU condition: what is running, what is hitting PHP, and what the
 # schedulers are doing. Writes NOTHING except /tmp scratch on the host.
 set -u
-cd ~/websites/OPu0sKi4J/public_html 2>/dev/null || { echo "AF-DIAG-FAIL: no docroot"; exit 1; }
+cd ~/domains/theartframer.us/public_html 2>/dev/null || { echo "AF-DIAG-FAIL: no docroot"; exit 1; }
 
 echo "=== HOST / LOAD ==="
 date -u

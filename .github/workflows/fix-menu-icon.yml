@@ -35,7 +35,7 @@ jobs:
           scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               tools/fix-menu-icon.php \
-              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/fix-menu-icon.php" \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/fix-menu-icon.php" \
             || echo "  scp failed"
 
       # Two steps with GitHub-side conditions, never a shell test inside the
@@ -49,7 +49,7 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
+            "cd ~/domains/theartframer.us/public_html && \
              DRY=1 ICON='${{ inputs.icon }}' wp eval-file wp-content/themes/postero-child/tools/fix-menu-icon.php --allow-root 2>&1" \
             || true
 
@@ -61,6 +61,6 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
+            "cd ~/domains/theartframer.us/public_html && \
              ICON='${{ inputs.icon }}' wp eval-file wp-content/themes/postero-child/tools/fix-menu-icon.php --allow-root 2>&1" \
             || true

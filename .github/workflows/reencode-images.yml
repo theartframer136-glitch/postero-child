@@ -36,7 +36,7 @@ jobs:
           scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               tools/reencode-images.php \
-              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/reencode-images.php" \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/reencode-images.php" \
             || echo "  scp failed"
       - name: Re-encode
         timeout-minutes: 25
@@ -45,7 +45,7 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
+            "cd ~/domains/theartframer.us/public_html && \
              DRY=${{ inputs.dry_run && '1' || '' }} \
              LIMIT='${{ inputs.limit }}' QUALITY='${{ inputs.quality }}' \
              wp eval-file wp-content/themes/postero-child/tools/reencode-images.php --allow-root 2>&1 | tail -80" \

@@ -19,7 +19,7 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" '
-            cd ~/websites/OPu0sKi4J/public_html
+            cd ~/domains/theartframer.us/public_html
             P=$(timeout 30 wp --allow-root db prefix 2>/dev/null | tail -1)
             q() { timeout 60 wp --allow-root db query "$1" --skip-column-names 2>/dev/null; }
             echo "total rows: $(q "SELECT COUNT(*) FROM ${P}af_zip_geo")"

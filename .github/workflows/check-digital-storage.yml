@@ -20,7 +20,7 @@ jobs:
           scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               tools/diag-digital-storage.php \
-              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-digital-storage.php" \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/diag-digital-storage.php" \
             || echo "  scp failed"
       - name: Locate
         timeout-minutes: 12
@@ -29,7 +29,7 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
+            "cd ~/domains/theartframer.us/public_html && \
              echo '=== DISK, FROM THE SHELL ==='; df -h . 2>/dev/null | tail -2; \
              echo; echo 'uploads by year:'; du -sh wp-content/uploads/* 2>/dev/null | sort -h | tail -12; \
              echo; du -sh wp-content/uploads 2>/dev/null; echo; \

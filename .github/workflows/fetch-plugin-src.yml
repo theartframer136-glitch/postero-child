@@ -52,7 +52,7 @@ jobs:
             ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
                 -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
                 "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-              "cd ~/websites/OPu0sKi4J/public_html/wp-content/plugins && tar czf - $EX $PLUGINS 2>/dev/null" > /tmp/plugins.tgz && break
+              "cd ~/domains/theartframer.us/public_html/wp-content/plugins && tar czf - $EX $PLUGINS 2>/dev/null" > /tmp/plugins.tgz && break
             echo "  attempt $i failed"; sleep 20
           done
           ls -la /tmp/plugins.tgz

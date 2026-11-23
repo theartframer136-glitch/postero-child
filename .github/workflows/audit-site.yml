@@ -188,7 +188,7 @@ jobs:
     timeout-minutes: 40
     env:
       SSHO: -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40
-      THEME: websites/OPu0sKi4J/public_html/wp-content/themes/postero-child
+      THEME: domains/theartframer.us/public_html/wp-content/themes/postero-child
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -211,7 +211,7 @@ jobs:
           scp -P "${{ secrets.HOSTINGER_PORT }}" $SSHO -i ~/.ssh/id_ed25519 tools/qa-customer-session.php \
             "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/$THEME/tools/qa-customer-session.php"
           OUT=$(ssh -p "${{ secrets.HOSTINGER_PORT }}" $SSHO -i ~/.ssh/id_ed25519 "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/websites/OPu0sKi4J/public_html && AF_QA_ACTION=create timeout 120 wp eval-file wp-content/themes/postero-child/tools/qa-customer-session.php --allow-root 2>&1")
+            "cd ~/domains/theartframer.us/public_html && AF_QA_ACTION=create timeout 120 wp eval-file wp-content/themes/postero-child/tools/qa-customer-session.php --allow-root 2>&1")
           JSON=$(printf '%s' "$OUT" | sed -n 's/.*@@SESSION@@\(.*\)@@END@@.*/\1/p' | head -1)
           printf '%s\n' "$OUT" | grep -v '@@SESSION@@' | grep -v 'Deprecated:' | grep -v '_load_textdomain' | tail -5
           if [ -n "$JSON" ]; then
@@ -231,7 +231,7 @@ jobs:
         run: |
           set +e
           ssh -p "${{ secrets.HOSTINGER_PORT }}" $SSHO -i ~/.ssh/id_ed25519 "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/websites/OPu0sKi4J/public_html && AF_QA_ACTION=delete timeout 120 wp eval-file wp-content/themes/postero-child/tools/qa-customer-session.php --allow-root 2>&1 | grep -v -E 'Deprecated:|_load_textdomain' | tail -5"
+            "cd ~/domains/theartframer.us/public_html && AF_QA_ACTION=delete timeout 120 wp eval-file wp-content/themes/postero-child/tools/qa-customer-session.php --allow-root 2>&1 | grep -v -E 'Deprecated:|_load_textdomain' | tail -5"
       - uses: actions/upload-artifact@v4
         if: always()
         with:

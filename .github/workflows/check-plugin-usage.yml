@@ -32,7 +32,7 @@ jobs:
             scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
                 -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
                 tools/diag-plugin-usage.php \
-                "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-plugin-usage.php" && break
+                "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/diag-plugin-usage.php" && break
             echo "  scp attempt $i failed"; sleep 15
           done
       - name: What each plugin is used for (read-only)
@@ -42,7 +42,7 @@ jobs:
             ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
                 -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
                 "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-              "cd ~/websites/OPu0sKi4J/public_html && timeout 600 wp eval-file wp-content/themes/postero-child/tools/diag-plugin-usage.php --allow-root 2>&1" && break
+              "cd ~/domains/theartframer.us/public_html && timeout 600 wp eval-file wp-content/themes/postero-child/tools/diag-plugin-usage.php --allow-root 2>&1" && break
             echo "  attempt $i failed"; sleep 20
           done
   source:
@@ -65,7 +65,7 @@ jobs:
             ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
                 -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
                 "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-              "cd ~/websites/OPu0sKi4J/public_html/wp-content/plugins && tar czf - --exclude='*.mo' --exclude='*.po' --exclude='*.pot' --exclude='*.l10n.php' --exclude='*.map' --exclude='node_modules' --exclude='*.zip' $P 2>/dev/null" > /tmp/plugins.tgz && break
+              "cd ~/domains/theartframer.us/public_html/wp-content/plugins && tar czf - --exclude='*.mo' --exclude='*.po' --exclude='*.pot' --exclude='*.l10n.php' --exclude='*.map' --exclude='node_modules' --exclude='*.zip' $P 2>/dev/null" > /tmp/plugins.tgz && break
             echo "  attempt $i failed"; sleep 20
           done
           ls -la /tmp/plugins.tgz

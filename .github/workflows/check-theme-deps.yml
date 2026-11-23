@@ -31,7 +31,7 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" "EXTRA='$EXTRA' bash -s" <<'EOS' && break
-          cd ~/websites/OPu0sKi4J/public_html/wp-content/themes || exit 1
+          cd ~/domains/theartframer.us/public_html/wp-content/themes || exit 1
           declare -A P
           P[contact-form-7]='wpcf7|WPCF7|contact-form-7'
           P[mailchimp-for-wp]='mc4wp|MC4WP'

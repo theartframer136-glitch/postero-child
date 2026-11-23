@@ -26,7 +26,7 @@ jobs:
           scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               tools/add-corporate-tab.php \
-              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/add-corporate-tab.php" \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/add-corporate-tab.php" \
             || echo "  scp failed"
       # Two steps, not one shell test. A guard written inside the quoted ssh
       # command expands on the REMOTE host, where the variable does not exist -
@@ -39,7 +39,7 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
+            "cd ~/domains/theartframer.us/public_html && \
              DRY=1 wp eval-file wp-content/themes/postero-child/tools/add-corporate-tab.php --allow-root 2>&1" \
             || true
       - name: Apply
@@ -50,6 +50,6 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
+            "cd ~/domains/theartframer.us/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/add-corporate-tab.php --allow-root 2>&1" \
             || true

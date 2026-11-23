@@ -39,7 +39,7 @@ jobs:
           PORT="${{ secrets.HOSTINGER_PORT }}"
           scp -P "${PORT}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
               -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 tools/search-probe.php \
-              "${USER}@${HOST}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/search-probe.php" \
+              "${USER}@${HOST}:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/search-probe.php" \
             || echo "  scp failed — falling back to whatever the last deploy left there"
 
       - name: Ask WordPress what the search finds
@@ -51,7 +51,7 @@ jobs:
           PORT="${{ secrets.HOSTINGER_PORT }}"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/websites/OPu0sKi4J/public_html && \
+            "cd ~/domains/theartframer.us/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/search-probe.php --allow-root 2>&1" \
             || true
 
@@ -83,7 +83,7 @@ jobs:
           PORT="${{ secrets.HOSTINGER_PORT }}"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            'cd ~/websites/OPu0sKi4J/public_html && \
+            'cd ~/domains/theartframer.us/public_html && \
              for u in "?s=rk0118&afsearchdebug=1" "?s=rk0118&afsearch=off" \
                       "?s=Krishna&afsearchdebug=1" "?s=Krishna&afsearch=off"; do \
                echo "--- ${u} ---"; \
