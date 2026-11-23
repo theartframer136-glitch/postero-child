@@ -21,6 +21,14 @@ jobs:
       URLS: ${{ github.event.inputs.urls }}
       PATTERN: ${{ github.event.inputs.pattern }}
     steps:
+      - name: Where the domain points (read-only)
+        run: |
+          set +e
+          for n in theartframer.us www.theartframer.us; do
+            echo "== $n"; for t in A AAAA CNAME NS; do printf '  %-5s ' $t; dig +short $t $n | tr '\n' ' '; echo; done
+          done
+          echo "== MX"; dig +short MX theartframer.us
+          echo "== response headers"; curl -sS -o /dev/null -D - -m 40 -A 'Mozilla/5.0 Chrome/124' "https://theartframer.us/?afhdr=$RANDOM" | grep -iE '^(HTTP|server|cf-|x-powered|x-litespeed|platform|x-hostinger|x-turbo|via|x-cache|panel)' 
       - name: Fetch and list
         run: |
           set +e
