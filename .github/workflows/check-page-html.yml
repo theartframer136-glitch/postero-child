@@ -28,7 +28,26 @@ jobs:
             echo "== $n"; for t in A AAAA CNAME NS; do printf '  %-5s ' $t; dig +short $t $n | tr '\n' ' '; echo; done
           done
           echo "== MX"; dig +short MX theartframer.us
-          echo "== response headers"; curl -sS -o /dev/null -D - -m 40 -A 'Mozilla/5.0 Chrome/124' "https://theartframer.us/?afhdr=$RANDOM" | grep -iE '^(HTTP|server|cf-|x-powered|x-litespeed|platform|x-hostinger|x-turbo|via|x-cache|panel)' 
+          echo "== response headers"; curl -sS -o /dev/null -D - -m 40 -A 'Mozilla/5.0 Chrome/124' "https://theartframer.us/?afhdr=$RANDOM" | grep -iE '^(HTTP|server|cf-|x-powered|x-litespeed|platform|x-hostinger|x-turbo|via|x-cache|panel)'
+      - name: Old server vs deploy settings (read-only, prints no secrets)
+        env:
+          H: ${{ secrets.HOSTINGER_HOST }}
+          P: ${{ secrets.HOSTINGER_PORT }}
+        run: |
+          set +e
+          OLD=72.61.66.116
+          echo "== the old Hostinger server ($OLD) asked for theartframer.us directly"
+          curl -sS -o /tmp/old.html -D - -m 40 -A 'Mozilla/5.0 Chrome/124' --resolve theartframer.us:443:$OLD "https://theartframer.us/?afold=$RANDOM" | grep -iE '^(HTTP|server|location|x-powered|platform|panel)'
+          grep -o '<title>[^<]*</title>' /tmp/old.html | head -1
+          grep -o 'custom.css?ver=[0-9]*' /tmp/old.html | head -1
+          echo "== the live site, same checks"
+          curl -sS -m 40 -A 'Mozilla/5.0 Chrome/124' "https://theartframer.us/?aflive=$RANDOM" -o /tmp/live.html
+          grep -o '<title>[^<]*</title>' /tmp/live.html | head -1
+          grep -o 'custom.css?ver=[0-9]*' /tmp/live.html | head -1
+          echo "== deploy settings"
+          HIP=$(getent ahostsv4 "$H" | awk 'NR==1{print $1}'); [ -z "$HIP" ] && HIP="$H"
+          [ "$HIP" = "$OLD" ] && echo "  deploy host IS the old server" || echo "  deploy host is NOT the old server"
+          timeout 10 bash -c "</dev/tcp/$H/$P" && echo "  SSH port answers" || echo "  SSH port does not answer"
       - name: Fetch and list
         run: |
           set +e
