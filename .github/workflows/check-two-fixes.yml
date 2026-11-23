@@ -18,10 +18,10 @@ jobs:
         run: |
           set +e
           scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
-              tools/diag-elementor-hrefs.php "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/"
+              tools/diag-elementor-hrefs.php "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/"
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/domains/theartframer.us/public_html && wp litespeed-purge all --allow-root 2>&1 | tail -1; echo; wp eval-file wp-content/themes/postero-child/tools/diag-elementor-hrefs.php --allow-root 2>&1 | grep -v _load_textdomain"
+            "cd ~/websites/OPu0sKi4J/public_html && wp litespeed-purge all --allow-root 2>&1 | tail -1; echo; wp eval-file wp-content/themes/postero-child/tools/diag-elementor-hrefs.php --allow-root 2>&1 | grep -v _load_textdomain"
       - name: Instagram feed, server-sent or injected?
         run: |
           set -uo pipefail

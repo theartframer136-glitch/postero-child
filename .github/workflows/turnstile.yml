@@ -61,7 +61,7 @@ jobs:
           #!/usr/bin/env bash
           # one command on the server, in the site's folder (stdin passed through)
           exec ssh -p "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
-            "$H_USER@$H_HOST" "cd ~/domains/theartframer.us/public_html && $1"
+            "$H_USER@$H_HOST" "cd ~/websites/OPu0sKi4J/public_html && $1"
           EOF
           chmod +x ~/ssh-site
 
@@ -104,7 +104,7 @@ jobs:
           set -uo pipefail
           for i in 1 2 3; do
             scp -P "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
-              tools/diag-turnstile.php "$H_USER@$H_HOST:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/diag-turnstile.php" && break
+              tools/diag-turnstile.php "$H_USER@$H_HOST:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/diag-turnstile.php" && break
             sleep 15
           done
           ~/ssh-site "timeout 300 wp eval-file wp-content/themes/postero-child/tools/diag-turnstile.php --allow-root 2>&1" | sed -n '/=== module/,/=== callbacks/p'

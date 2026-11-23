@@ -23,7 +23,7 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" '
-            cd ~/domains/theartframer.us/public_html
+            cd ~/websites/OPu0sKi4J/public_html
             W="timeout 60 wp --allow-root"
             U=3
             login=$($W user get $U --field=user_login 2>/dev/null | tail -1)

@@ -252,12 +252,12 @@ jobs:
           PORT="$H_PORT"
           THEME="postero-child"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
-          TARGET="domains/theartframer.us/public_html/wp-content/themes/${THEME}"
+          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
           echo "Deploying to: ${TARGET}"
 
           echo "EMERGENCY: clearing any stuck WordPress maintenance-mode flag..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html 2>/dev/null && rm -f .maintenance && (wp maintenance-mode deactivate --allow-root 2>&1 || true)" \
+            "cd ~/websites/OPu0sKi4J/public_html 2>/dev/null && rm -f .maintenance && (wp maintenance-mode deactivate --allow-root 2>&1 || true)" \
             || echo "  (early clear skipped — will retry via recover-maintenance.php after rsync)"
 
           # ControlMaster multiplexing (the -o Control* options on every SSH
@@ -454,7 +454,7 @@ jobs:
           PORT="${{ secrets.HOSTINGER_PORT }}"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              bash wp-content/themes/postero-child/tools/pim-fetch-on-server.sh 2>&1" \
             || true
 
@@ -472,7 +472,7 @@ jobs:
           PORT="${{ secrets.HOSTINGER_PORT }}"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/pim-anim-probe.php --allow-root 2>&1" \
             || true
 
@@ -485,7 +485,7 @@ jobs:
           HOST="${{ secrets.HOSTINGER_HOST }}"
           PORT="${{ secrets.HOSTINGER_PORT }}"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
-          WEB="~/domains/theartframer.us/public_html"
+          WEB="~/websites/OPu0sKi4J/public_html"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
             "cd ${WEB} && wp eval-file wp-content/themes/postero-child/tools/pim-local-video.php --allow-root 2>&1" \
             || true
@@ -510,7 +510,7 @@ jobs:
           if [ "$GF_SOURCE" = "auto" ]; then
             echo "Clearing af_goldfoil_source (back to finding artwork on its own)..."
             ${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
-              "cd ~/domains/theartframer.us/public_html && \
+              "cd ~/websites/OPu0sKi4J/public_html && \
                wp option delete af_goldfoil_source --allow-root 2>&1; \
                wp option get af_goldfoil_source --allow-root 2>&1 || echo '  (now unset)'" \
               || echo "  (could not clear it)"
@@ -534,7 +534,7 @@ jobs:
             GF_B64=$(printf '%s' "$GF_SOURCE" | base64 -w0)
             echo "Setting af_goldfoil_source to '${GF_SOURCE}'..."
             ${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
-              "cd ~/domains/theartframer.us/public_html && \
+              "cd ~/websites/OPu0sKi4J/public_html && \
                wp option update af_goldfoil_source \"\$(printf %s '${GF_B64}' | base64 -d)\" --allow-root 2>&1" \
               || echo "  (could not set it — the import below will use whatever is already stored)"
           fi
@@ -545,7 +545,7 @@ jobs:
             esac
             echo "Capping this run at ${GF_MAX} new product(s)..."
             ${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
-              "cd ~/domains/theartframer.us/public_html && \
+              "cd ~/websites/OPu0sKi4J/public_html && \
                wp option update af_goldfoil_max '${GF_MAX}' --allow-root 2>&1" \
               || echo "  (could not set the cap — the stored one still applies)"
           fi
@@ -566,7 +566,7 @@ jobs:
             W=$(printf '%s' "$GF_WATCH" | base64 -w0)
             echo "Watching: ${GF_WATCH}"
             ${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
-              "cd ~/domains/theartframer.us/public_html && \
+              "cd ~/websites/OPu0sKi4J/public_html && \
                wp option update af_goldfoil_watch_url \"\$(printf %s '${W}' | base64 -d)\" --allow-root 2>&1 && \
                wp option delete af_goldfoil_watch_hash --allow-root 2>&1 || true" \
               || echo "  (could not set the watch link)"
@@ -574,7 +574,7 @@ jobs:
           if [ "${GF_NOW}" = "true" ] || [ -n "${GF_WATCH}" ]; then
             echo "Fetching from the watched folder now..."
             ${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
-              "cd ~/domains/theartframer.us/public_html && \
+              "cd ~/websites/OPu0sKi4J/public_html && \
                wp eval 'echo af_goldfoil_sync_run(true) . \"\\n\";' --allow-root 2>&1" \
               || echo "  (sync failed — see the message above)"
           fi
@@ -590,7 +590,7 @@ jobs:
           SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Removing the copied pieces (artwork imported from real files is left alone)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/remove-goldfoil-copies.php --allow-root 2>&1" \
             || echo "  (removal step failed — nothing was changed)"
 
@@ -615,7 +615,7 @@ jobs:
           SSH="ssh -p ${H_PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Rewriting free-shipping claims held in post content and Elementor designs..."
           OUT=$(${SSH} -i ~/.ssh/id_ed25519 "${H_USER}@${H_HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/rewrite-free-shipping.php --allow-root 2>&1") || true
           echo "$OUT"
 
@@ -649,7 +649,7 @@ jobs:
           PORT="${{ secrets.HOSTINGER_PORT }}"
           THEME="postero-child"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
-          TARGET="domains/theartframer.us/public_html/wp-content/themes/${THEME}"
+          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           # Gold Foiled & UV runs FIRST: the importer creates this suite's only
           # brand-new products, and every pass below (template, filterable
@@ -659,7 +659,7 @@ jobs:
           # deploy for them.
           echo "Setting up the Gold Foiled & UV section..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/setup-gold-foil.php --allow-root 2>&1" \
             || true
 
@@ -669,295 +669,295 @@ jobs:
           # into Media -> Add New becomes products with no other step.
           echo "Importing Gold Foiled & UV artwork (skips anything already imported)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/import-gold-foil.php --allow-root 2>&1" \
             || true
 
           echo "Applying product template to ALL canvas products..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/apply-template.php --allow-root 2>&1" \
             || true
 
           echo "Assigning filterable size/color/frame attributes..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/assign-filter-attributes.php --allow-root 2>&1" \
             || true
 
           echo "Assigning product tags (for tag filter)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/assign-tags.php --allow-root 2>&1" \
             || true
 
           echo "Stripping in-content FAQ (now rendered via styled hook)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/dedup-faq.php --allow-root 2>&1" \
             || true
 
           echo "Switching storefront currencies to USD + CAD..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/switch-currency-cad.php --allow-root 2>&1" \
             || true
 
           echo "Creating missing legal/utility pages..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/create-pages.php --allow-root 2>&1" \
             || true
 
           echo "Ensuring the visitor activity-log table exists..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/create-activity-log-table.php --allow-root 2>&1" \
             || true
 
           echo "Fixing Elementor footer links..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/fix-footer-links.php --allow-root 2>&1" \
             || true
 
           echo "Setting up granular admin roles..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}"             "cd ~/domains/theartframer.us/public_html &&              wp eval-file wp-content/themes/postero-child/tools/setup-admin-roles.php --allow-root 2>&1"             || true
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}"             "cd ~/websites/OPu0sKi4J/public_html &&              wp eval-file wp-content/themes/postero-child/tools/setup-admin-roles.php --allow-root 2>&1"             || true
 
           echo "Gift card product + My Account endpoints..."
-          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}"             "cd ~/domains/theartframer.us/public_html &&              wp eval-file wp-content/themes/postero-child/tools/setup-giftcards-endpoints.php --allow-root 2>&1"             || true
+          ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}"             "cd ~/websites/OPu0sKi4J/public_html &&              wp eval-file wp-content/themes/postero-child/tools/setup-giftcards-endpoints.php --allow-root 2>&1"             || true
 
           echo "Applying styled content to spec pages..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/restyle-pages.php --allow-root 2>&1" \
             || true
 
           echo "Rewording 'free' in product descriptions (once)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/fix-free-wording.php --allow-root 2>&1" \
             || true
 
           echo "Repairing product SEO meta (titles, descriptions, focus keywords)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/fix-product-seo-meta.php --allow-root 2>&1" \
             || true
 
           echo "Optimizing assets via LiteSpeed (safe pass)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/optimize-assets.php --allow-root 2>&1" \
             || true
 
           echo "Applying business address / GSC token (no-op until supplied)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/set-business-address.php --allow-root 2>&1" \
             || true
 
           echo "Enabling product reviews store-wide..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/enable-reviews.php --allow-root 2>&1" \
             || true
 
           echo "Applying SEO improvements (meta, robots.txt, alt text)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/seo-improvements.php --allow-root 2>&1" \
             || true
 
           echo "Applying search titles for the top 10 pages (Oct 2026)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/apply-seo-titles-2026-10.php --allow-root 2>&1" \
             || true
 
           echo "Creating the USA-market blog articles as drafts (Oct 2026)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/create-seo-posts.php --allow-root 2>&1" \
             || true
 
           echo "Publishing the USA-market articles with featured images (owner, 16 Oct)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/publish-seo-posts.php --allow-root 2>&1" \
             || true
 
           echo "Cleaning article: FAQ heading, care questions 16-21, search title (Nov 2026)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/update-cleaning-post.php --allow-root 2>&1" \
             || true
 
           echo "Trashing the theme's 2023 demo blog posts..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/remove-demo-posts.php --allow-root 2>&1" \
             || true
 
           echo "Security cleanup: leftover docroot scripts, open registration, oversized debug.log..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/security-cleanup.php --allow-root 2>&1" \
             || true
 
           echo "Fixing missing product featured images..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/fix-featured-images.php --allow-root 2>&1" \
             || true
 
           echo "Correcting sideways/rotated product images (EXIF orientation)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/fix-image-orientation.php --allow-root 2>&1" \
             || true
 
           echo "Flipping RK 18 (Radha Krishna Mosaic Art) photo 180 deg (requested again)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/flip-rk18-image-180-again.php --allow-root 2>&1" \
             || true
 
           echo "Rotating Radha Krishna Jeweled Duet photo 90 deg anti-clockwise..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/rotate-radha-krishna-jeweled-duet-ccw90.php --allow-root 2>&1" \
             || true
 
           echo "Correcting Radha Krishna Jeweled Duet rotation target: revert featured image, rotate 2nd gallery photo instead..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/fix-radha-krishna-jeweled-duet-target.php --allow-root 2>&1" \
             || true
 
           echo "Rotating both Radha Krishna Graphite Duet photos 90 deg anti-clockwise..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/rotate-radha-krishna-graphite-duet-ccw90.php --allow-root 2>&1" \
             || true
 
           echo "Rotating 2nd gallery photo of Moonlit Lotus Radha (TA 04) 90 deg anti-clockwise..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/rotate-moonlit-lotus-radha-gallery2-ccw90.php --allow-root 2>&1" \
             || true
 
           echo "Rotating Colorful Horses (SH 06) photo 90 deg clockwise..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/rotate-colorful-horses-cw90.php --allow-root 2>&1" \
             || true
 
           echo "Rotating 2nd gallery photo of Ganesha Dawn Silhouette (LS 11) 90 deg anti-clockwise..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/rotate-ganesha-dawn-silhouette-gallery2-ccw90.php --allow-root 2>&1" \
             || true
 
           echo "Checking for gallery photos that belong to a different product (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-gallery-featured-mismatch.php --allow-root 2>&1" \
             || true
 
           echo "Checking for product images served below their originally uploaded quality (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-image-quality-scan.php --allow-root 2>&1" \
             || true
 
           echo "Checking inventory-tool allowlist resolves to real accounts (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-inventory-access.php --allow-root 2>&1" \
             || true
 
           echo "Art Code report: current codes vs image-filename codes, by category (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-artcode-report.php --allow-root 2>&1" \
             || true
 
           echo "Art Code thumbnails: base64 mini-JPEGs of each product image, to match against the brochure (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-artcode-thumbs.php --allow-root 2>&1" \
             || true
 
           echo "Applying brochure art codes to matched products (idempotent)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/apply-artcode-batch.php --allow-root 2>&1" \
             || true
 
           echo "Setting the struck-through reference price to selling price +40% (idempotent)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/apply-mrp-markup.php --allow-root 2>&1" \
             || true
 
           echo "Restoring the 4 images found downscaled below their original quality..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/restore-original-image-quality.php --allow-root 2>&1" \
             || true
 
           echo "Removing duplicate product categories..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/dedupe-categories.php --allow-root 2>&1" \
             || true
 
           echo "Drafting imageless products (removes blank cards)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/draft-imageless.php --allow-root 2>&1" \
             || true
 
           echo "Enabling digital downloads (payment-gated files)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/enable-digital-downloads.php --allow-root 2>&1" \
             || true
 
           echo "Restoring original theme About page (one-time)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/restore-about.php --allow-root 2>&1" \
             || true
 
           echo "Filling empty product galleries (fixes hover 'Gallery image not present')..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/fill-gallery-images.php --allow-root 2>&1" \
             || true
 
           echo "Applying real Art Framer content to theme About page..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/about-real-content.php --allow-root 2>&1" \
             || true
 
           echo "Stripping broken images from product descriptions..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/fix-broken-content.php --allow-root 2>&1" \
             || true
 
           echo "Filling missing subcategory thumbnails..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/fill-category-thumbs.php --allow-root 2>&1" \
             || true
 
           echo "Assigning products to deity subcategories..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/assign-deity-categories.php --allow-root 2>&1" \
             || true
 
@@ -972,11 +972,11 @@ jobs:
           PORT="${{ secrets.HOSTINGER_PORT }}"
           THEME="postero-child"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
-          TARGET="domains/theartframer.us/public_html/wp-content/themes/${THEME}"
+          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           echo "Disabling LiteSpeed image lazy-load + JS defer/combine (keep Instagram embed + products visible)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp litespeed-option set media-lazy false --allow-root 2>&1; \
              wp litespeed-option set media-iframe_lazy false --allow-root 2>&1; \
              wp litespeed-option set optm-js_defer 0 --allow-root 2>&1; \
@@ -990,7 +990,7 @@ jobs:
           # emptied the whole page cache on every run for no reason — and a cold
           # cache is exactly what makes CPU spike afterwards.
           QSOUT=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp option update litespeed.conf.cache-drop_qs --format=json '[\"fbclid\",\"gclid\",\"gbraid\",\"wbraid\",\"msclkid\",\"ttclid\",\"igshid\",\"mc_cid\",\"mc_eid\",\"utm_source\",\"utm_medium\",\"utm_campaign\",\"utm_term\",\"utm_content\",\"utm_id\"]' --allow-root 2>&1") \
             || true
           printf '%s\n' "$QSOUT"
@@ -999,18 +999,18 @@ jobs:
           else
             echo "  drop_qs changed — purging so the new cache key takes effect."
             ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-              "cd ~/domains/theartframer.us/public_html && wp litespeed-purge all --allow-root 2>/dev/null || true" || true
+              "cd ~/websites/OPu0sKi4J/public_html && wp litespeed-purge all --allow-root 2>/dev/null || true" || true
           fi
 
           echo "Recovery: clear maintenance flag + disable blanket auto-updates..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/recover-maintenance.php --allow-root 2>&1" \
             || true
 
           echo "Writing security headers into docroot .htaccess..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/set-security-headers.php --allow-root 2>&1" \
             || true
 
@@ -1024,7 +1024,7 @@ jobs:
           GUARD_OK=0
           for a in 1 2 3; do
             GUARD_OUT=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-              "cd ~/domains/theartframer.us/public_html && \
+              "cd ~/websites/OPu0sKi4J/public_html && \
                wp eval-file wp-content/themes/postero-child/ops/harden-crawl-budget.php --allow-root 2>&1") \
               || true
             printf '%s\n' "$GUARD_OUT"
@@ -1060,7 +1060,7 @@ jobs:
           if [ -n "$SGATE" ]; then
             echo "::warning::Guard fired on a browser-headed search (${SGATE}) — stripping the search rule..."
             ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-              "cd ~/domains/theartframer.us/public_html && \
+              "cd ~/websites/OPu0sKi4J/public_html && \
                wp eval-file wp-content/themes/postero-child/ops/harden-crawl-budget.php strip-search --allow-root 2>&1" \
               || true
             SGATE2=$(curl -s -D - -o /dev/null --max-time 45 \
@@ -1086,35 +1086,35 @@ jobs:
           PORT="${{ secrets.HOSTINGER_PORT }}"
           THEME="postero-child"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
-          TARGET="domains/theartframer.us/public_html/wp-content/themes/${THEME}"
+          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           echo "Warming Products In Motion YouTube feed cache..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/warm-yt-feed.php --allow-root 2>&1" \
             || true
 
           echo "Building blank-wall room mockups for Try-On-Wall..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/make-wall-mockup.php --allow-root 2>&1" \
             || true
 
           echo "Converting variable products to simple (fix Add-to-Cart / Buy Now)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/convert-variable-to-simple.php --allow-root 2>&1" \
             || true
 
           echo "Fixing copy typos (Products In Motation -> In Motion)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/fix-typos.php --allow-root 2>&1" \
             || true
 
           echo "Renaming 'Home Decor' category to 'Home Decors'..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/rename-home-decor-category.php --allow-root 2>&1" \
             || true
 
@@ -1122,25 +1122,25 @@ jobs:
 
           echo "Art Code import (applies uploads/taf-reports/artcode-import.csv when present)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/import-artcodes.php --allow-root 2>&1" \
             || true
 
           echo "Flushing rewrites (My Account endpoints: saved-previews, messages, returns)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp rewrite flush --hard --allow-root 2>&1" \
             || true
 
           echo "Enabling watermarked previews for digital-download products..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/enable-watermarks.php --allow-root 2>&1" \
             || true
 
           echo "Linking the artist banner to Direct from Artists..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/link-artist-banner.php --allow-root 2>&1" \
             || true
 
@@ -1155,11 +1155,11 @@ jobs:
           PORT="${{ secrets.HOSTINGER_PORT }}"
           THEME="postero-child"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
-          TARGET="domains/theartframer.us/public_html/wp-content/themes/${THEME}"
+          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           echo "Clearing caches after all updates..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp litespeed-purge all --allow-root 2>/dev/null || true; \
              wp cache flush --allow-root 2>/dev/null || true; \
              echo 'Cache cleared'" || echo "Cache clear skipped"
@@ -1174,47 +1174,47 @@ jobs:
           PORT="${{ secrets.HOSTINGER_PORT }}"
           THEME="postero-child"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
-          TARGET="domains/theartframer.us/public_html/wp-content/themes/${THEME}"
+          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           echo "Hardening digital downloads (limits + expiry)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/harden-downloads.php --allow-root 2>&1" \
             || true
 
           echo "Creating Terms of Use / Terms of Service pages (once)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/setup-terms-pages.php --allow-root 2>&1" \
             || true
 
           echo "Verifying polish items 13-20..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-polish.php --allow-root 2>&1" \
             || true
 
           echo "What the quick-view modal actually returns..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-quickview-body.php --allow-root 2>&1" \
             || true
 
           echo "Verifying the quick-view modal matches the product page..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-quickview-modal.php --allow-root 2>&1" \
             || true
 
           echo "Backfilling product orientation (portrait/landscape/square)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/backfill-orientation.php --allow-root 2>&1" \
             || true
 
           echo "Verifying orientation filter + blog hub..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-orientation-blog.php --allow-root 2>&1" \
             || true
 
@@ -1225,37 +1225,37 @@ jobs:
           # whatever the log does.
           echo "Verifying the seven-day product rotation..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-daily-shuffle.php --allow-root 2>&1" \
             2>&1 | tee /tmp/af-shuffle.txt || true
 
           echo "Verifying cookie consent + masonry layout..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-consent-masonry.php --allow-root 2>&1" \
             || true
 
           echo "Verifying reels commerce (post type, tagging, tracking, /reels/)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-reels.php --allow-root 2>&1" \
             || true
 
           echo "Verifying shipping, customs, partial shipments and RMA..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-shipping.php --allow-root 2>&1" \
             || true
 
           echo "Warming marketplace feed caches (avoids on-demand rebuild cost)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/warm-marketplace-feeds.php --allow-root 2>&1" \
             || true
 
           echo "Verifying marketplace feeds (Google, Meta, Pinterest, bulk exports)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-marketplace.php --allow-root 2>&1" \
             || true
 
@@ -1269,127 +1269,127 @@ jobs:
 
           echo "Reading stretcher bar and frame kit prices in full (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-stretcher-bars.php --allow-root 2>&1" \
             || true
 
           echo "Checking what DIY kit parts the store already has (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-diy-components.php --allow-root 2>&1" \
             || true
 
           echo "Loading the ZIP distance table (idempotent)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/setup-zip-distance.php --allow-root 2>&1" \
             || true
 
           echo "Registering distance-based delivery in the shipping zones..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/setup-distance-shipping.php --allow-root 2>&1" \
             || true
 
           echo "Verifying the sticky product gallery..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-sticky-gallery.php --allow-root 2>&1" \
             || true
 
           echo "Verifying the clearance page (40%+ off)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-deals-page.php --allow-root 2>&1" \
             || true
 
           echo "Verifying three cards per row on the archives..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-archive-columns.php --allow-root 2>&1" \
             || true
 
           echo "Verifying the live camera on Frame The Moment..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-ftm-camera.php --allow-root 2>&1" \
             || true
 
           echo "Verifying the five purchase options..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-kit-options.php --allow-root 2>&1" \
             || true
 
           echo "Verifying distance shipping end to end..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-distance-shipping.php --allow-root 2>&1" \
             || true
 
           echo "Verifying the tag filter (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-tag-filter.php --allow-root 2>&1" \
             || true
 
           echo "Verifying the cart related-products row..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-cart-related.php --allow-root 2>&1" \
             || true
 
           echo "Verifying the wishlist page..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-wishlist-page.php --allow-root 2>&1" \
             || true
 
           echo "Finding who handles .pf-value (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-pf-handler.php --allow-root 2>&1" \
             || true
 
           echo "Verifying the subcategory circles can filter the slider..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-subcat-filter.php --allow-root 2>&1" \
             || true
 
           echo "Diagnosing the subcategory circle click (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-subcat-click.php --allow-root 2>&1" \
             || true
 
           echo "Diagnosing the floating side panel (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-floating-panel.php --allow-root 2>&1" \
             || true
 
           echo "Diagnosing the review carousel arrows (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-review-slider.php --allow-root 2>&1" \
             || true
 
           echo "Repairing Elementor rendering (design data + regenerated css)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/fix-elementor-render.php --allow-root 2>&1" \
             || true
 
           echo "Auditing every free-shipping claim on the site (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-free-shipping.php --allow-root 2>&1" \
             || true
 
           echo "Filling the All Art Prints category with the real catalogue..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/populate-all-art-prints.php --allow-root 2>&1" \
             || true
 
@@ -1399,7 +1399,7 @@ jobs:
           # ordinary categories at two different prices.
           echo "Keeping Gold Foiled & UV in its own section..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/enforce-goldfoil-category.php --allow-root 2>&1" \
             || true
 
@@ -1412,7 +1412,7 @@ jobs:
           # it.
           echo "Grouping Gold Foiled & UV into sub-collections..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/goldfoil-subcategories.php --allow-root 2>&1" \
             || true
 
@@ -1425,25 +1425,25 @@ jobs:
 
           echo "Repricing catalogue listings from the rate card (idempotent)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/reprice-from-card.php --allow-root 2>&1" \
             || true
 
           echo "Verifying prices against the printed rate card..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-pricing.php --allow-root 2>&1" \
             || true
 
           echo "Verifying checkout operations (abandoned cart, address, fraud, invoices)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-checkout-ops.php --allow-root 2>&1" \
             || true
 
           echo "Verifying live-camera AR + wall layouts on the preview pages..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-ar-layouts.php --allow-root 2>&1" \
             || true
 
@@ -1476,7 +1476,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Keeping Gold Foiled & UV in its own section..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/enforce-goldfoil-category.php --allow-root 2>&1" \
             || true
 
@@ -1509,7 +1509,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Rebuilding product image sizes..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              AF_IMG_SECONDS=${AF_IMG_SECONDS} AF_IMG_MAX=${AF_IMG_MAX} \
              wp eval-file wp-content/themes/postero-child/tools/regenerate-image-sizes.php --allow-root 2>&1" \
             || true
@@ -1525,7 +1525,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Write the art codes that were checked against the book..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              AF_APPLY=1 \
              wp eval-file wp-content/themes/postero-child/tools/apply-artcode-corrections.php --allow-root 2>&1" \
             2>&1 | tee /tmp/af-apply.txt || true
@@ -1562,7 +1562,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Restating every art code in the numbering the book prints now..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              AF_APPLY=1 \
              wp eval-file wp-content/themes/postero-child/tools/renumber-artcodes.php --allow-root 2>&1" \
             2>&1 | tee /tmp/af-renumber.txt || true
@@ -1588,7 +1588,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Giving every uncoded product a temporary art code..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/assign-temp-artcodes.php --allow-root 2>&1" \
             2>&1 | tee /tmp/af-temp.txt || true
 
@@ -1606,7 +1606,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Setting product SKUs from their art codes..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              AF_SKU_SECONDS=${AF_SKU_SECONDS} AF_SKU_MAX=${AF_SKU_MAX} \
              wp eval-file wp-content/themes/postero-child/tools/sku-to-artcode.php --allow-root 2>&1" \
             2>&1 | tee /tmp/af-sku.txt || true
@@ -1626,7 +1626,7 @@ jobs:
           # 3x2 never collapse onto the same SKU.
           echo "Checking the SKU format against the rate card (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/test-sku-format.php --allow-root 2>&1" \
             2>&1 | tee /tmp/af-skucheck.txt || true
 
@@ -1639,7 +1639,7 @@ jobs:
           PORT="${{ secrets.HOSTINGER_PORT }}"
           THEME="postero-child"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
-          TARGET="domains/theartframer.us/public_html/wp-content/themes/${THEME}"
+          TARGET="websites/OPu0sKi4J/public_html/wp-content/themes/${THEME}"
 
           # What a real browser sends, and what every probe below must send.
           #
@@ -1674,13 +1674,13 @@ jobs:
 
           echo "The shop must not be hidden behind a placeholder..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/fix-coming-soon.php --allow-root 2>&1" \
             || true
 
           echo "Site visibility + product-page health..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-site-visibility.php --allow-root 2>&1" \
             || true
 
@@ -1688,21 +1688,21 @@ jobs:
           # output is buried under image-rotation logs and cannot be read back.
           echo "Last content restore:"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval 'echo get_option(\"af_restore_summary\", \"(never run)\");' --allow-root 2>/dev/null" \
             || true
           echo ""
 
           echo "Last elementor repair:"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval 'echo get_option(\"af_elementor_fix_summary\", \"(never run)\");' --allow-root 2>/dev/null" \
             || true
           echo ""
 
           echo "GATE: the theme must actually boot..."
           BOOT=$(${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && wp eval 'echo \"AF_BOOT_OK\";' --allow-root 2>&1")
+            "cd ~/websites/OPu0sKi4J/public_html && wp eval 'echo \"AF_BOOT_OK\";' --allow-root 2>&1")
           echo "$BOOT"
           if echo "$BOOT" | grep -qi "Fatal error\|critical error"; then
             echo "::error::The theme fatals on load — the site is down. See the error above."
@@ -1792,7 +1792,7 @@ jobs:
             echo "https://theartframer.us/try-on-wall/"
             echo "https://theartframer.us/frame-the-moment/"
             ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-              "cd ~/domains/theartframer.us/public_html && \
+              "cd ~/websites/OPu0sKi4J/public_html && \
                wp term list product_cat --field=url --hide_empty=1 --child-of=\$(wp term list product_cat --slug=digital-canvas-prints --field=term_id --allow-root 2>/dev/null | head -1) --allow-root 2>/dev/null; \
                wp term list product_cat --field=url --hide_empty=1 --number=${CATN} --orderby=count --order=DESC --allow-root 2>/dev/null; \
                if [ ${PRODN} -gt 0 ]; then wp post list --post_type=product --post_status=publish --field=url \
@@ -1863,7 +1863,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Thin-category cross-sell check (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-thin-categories.php --allow-root 2>&1" \
             || true
 
@@ -1881,7 +1881,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Frame + size filter out-of-stock check (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-filter-oos.php --allow-root 2>&1" \
             || true
 
@@ -1901,7 +1901,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Product image orientation scan (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-image-orientation.php --allow-root 2>&1" \
             || true
 
@@ -1919,7 +1919,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "What wording does each product carry (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-product-text-dump.php --allow-root 2>&1" \
             || true
 
@@ -1934,7 +1934,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Does artcode-audit.csv hold corrected codes (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-artcode-audit-file.php --allow-root 2>&1" \
             || true
 
@@ -1949,7 +1949,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Is the original art code list still on the server (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-artcode-hunt-source.php --allow-root 2>&1" \
             || true
 
@@ -1975,7 +1975,7 @@ jobs:
           # them. A filename is often exactly the tiebreak.
           echo "Can the art code be read off the image filenames (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-artcode-from-filenames.php --allow-root 2>&1" \
             2>&1 | tee /tmp/af-filenames.txt \
             || true
@@ -1995,7 +1995,7 @@ jobs:
           # named a code the product no longer had.
           echo "Which products share an art code (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-artcode-duplicates.php --allow-root 2>&1" \
             2>&1 | tee /tmp/af-codes.txt \
             || true
@@ -2032,7 +2032,7 @@ jobs:
             esac
             echo "Drawing product pictures: scope=${SCOPE} prefix=${PREFIX:-(none)}"
             ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-              "cd ~/domains/theartframer.us/public_html && \
+              "cd ~/websites/OPu0sKi4J/public_html && \
                AF_SHEET_SCOPE=${SCOPE} AF_SHEET_PREFIX='${PREFIX}' AF_SHEET_TAKE=0 \
                AF_SHEET_TILE=300 AF_SHEET_Q=60 \
                wp eval-file wp-content/themes/postero-child/tools/diag-product-contact-sheets.php --allow-root 2>&1" \
@@ -2177,7 +2177,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Product card structure (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-product-card.php --allow-root 2>&1" \
             || true
 
@@ -2191,7 +2191,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Where the Categories menu gets its icons (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-menu-icons.php --allow-root 2>&1" \
             || true
 
@@ -2209,7 +2209,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Gold Foiled & UV — price ratio, icon, sidebar (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/verify-gold-foil.php --allow-root 2>&1" \
             || true
 
@@ -2223,7 +2223,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Which widget builds the sidebar Categories list (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-sidebar-categories.php --allow-root 2>&1" \
             || true
 
@@ -2242,7 +2242,7 @@ jobs:
           # section's sub-collections, which are what the circle row shows.
           echo "Where the Shop by Collection tabs come from (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-topcat-strip.php --allow-root 2>&1" \
             || true
 
@@ -2256,7 +2256,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Hunting for artwork already on the server (read-only)..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-goldfoil-source.php --allow-root 2>&1" \
             || true
 
@@ -2274,7 +2274,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "What is already on the site that the section could be built from..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-goldfoil-populate.php --allow-root 2>&1" \
             || true
 
@@ -2288,7 +2288,7 @@ jobs:
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           echo "Asking the live pages whether the ticker is still on them..."
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-ticker-live.php --allow-root 2>&1" \
             || true
 
@@ -2306,7 +2306,7 @@ jobs:
           PORT="${{ secrets.HOSTINGER_PORT }}"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/pim-status.php --allow-root 2>&1" \
             || true
 
@@ -2319,7 +2319,7 @@ jobs:
           PORT="${{ secrets.HOSTINGER_PORT }}"
           SSH="ssh -p ${PORT} -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=600"
           ${SSH} -i ~/.ssh/id_ed25519 "${USER}@${HOST}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              wp eval-file wp-content/themes/postero-child/tools/diag-custom-creations.php --allow-root 2>&1" \
             || true
 

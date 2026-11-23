@@ -44,7 +44,7 @@ jobs:
         run: |
           set -uo pipefail
           SSH="ssh -p ${H_PORT} -i $HOME/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -o ControlMaster=auto -o ControlPath=/tmp/sshcm-%r-%p -o ControlPersist=1500"
-          DOCROOT="~/domains/theartframer.us/public_html"
+          DOCROOT="~/websites/OPu0sKi4J/public_html"
 
           OK=0
           for a in 1 2 3 4; do
@@ -81,7 +81,7 @@ jobs:
         run: |
           set -uo pipefail
           SSH="ssh -p ${H_PORT} -i $HOME/.ssh/id_ed25519 -o BatchMode=yes -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30"
-          DOCROOT="~/domains/theartframer.us/public_html"
+          DOCROOT="~/websites/OPu0sKi4J/public_html"
           for a in 1 2 3; do
             if ${SSH} "${H_USER}@${H_HOST}" "cd ${DOCROOT} && (wp plugin deactivate af-req-profiler --allow-root 2>&1 || true); rm -rf wp-content/plugins/af-req-profiler wp-content/uploads/af-req-log.txt /tmp/af-diag-agg.php; test ! -e wp-content/uploads/af-req-log.txt && test ! -e wp-content/plugins/af-req-profiler && echo 'profiler removed'" </dev/null; then exit 0; fi
             echo "cleanup attempt $a failed, retrying in 30s"; sleep 30

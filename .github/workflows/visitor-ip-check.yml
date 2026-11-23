@@ -30,7 +30,7 @@ jobs:
           cat > ~/ssh-site <<'EOF'
           #!/usr/bin/env bash
           exec ssh -p "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 \
-            "$H_USER@$H_HOST" "cd ~/domains/theartframer.us/public_html && $1"
+            "$H_USER@$H_HOST" "cd ~/websites/OPu0sKi4J/public_html && $1"
           EOF
           chmod +x ~/ssh-site
 

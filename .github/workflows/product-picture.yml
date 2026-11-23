@@ -59,11 +59,11 @@ jobs:
           set -uo pipefail
           O="-P $H_PORT -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i $HOME/.ssh/id_ed25519"
           for i in 1 2 3; do
-            scp $O tools/set-picture-from-master.php "$H_USER@$H_HOST:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/set-picture-from-master.php" && break
+            scp $O tools/set-picture-from-master.php "$H_USER@$H_HOST:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/set-picture-from-master.php" && break
             sleep 15
           done
           ssh -p "$H_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 "$H_USER@$H_HOST" \
-            "cd ~/domains/theartframer.us/public_html && AF_PID=$PRODUCT AF_MODE=$MODE timeout 600 wp eval-file wp-content/themes/postero-child/tools/set-picture-from-master.php --allow-root 2>&1" \
+            "cd ~/websites/OPu0sKi4J/public_html && AF_PID=$PRODUCT AF_MODE=$MODE timeout 600 wp eval-file wp-content/themes/postero-child/tools/set-picture-from-master.php --allow-root 2>&1" \
             | grep -v '^Deprecated:' | tee /tmp/out.txt
           rc=${PIPESTATUS[0]}
           grep -q "=== END" /tmp/out.txt || exit 1

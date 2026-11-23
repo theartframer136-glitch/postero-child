@@ -33,7 +33,7 @@ jobs:
           scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               tools/profile-plugins.php \
-              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/profile-plugins.php" \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/profile-plugins.php" \
             || echo "  scp failed"
       - name: Inventory (read-only)
         run: |
@@ -41,7 +41,7 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" '
-            cd ~/domains/theartframer.us/public_html
+            cd ~/websites/OPu0sKi4J/public_html
             echo "=== versions ==="; php -v | head -1; wp core version --allow-root; wp cli version --allow-root
             echo "=== plugins (wp plugin list) ==="
             wp plugin list --fields=name,status,version,update_version,auto_update --allow-root 2>/dev/null
@@ -71,7 +71,7 @@ jobs:
             ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
                 -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
                 "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-              "cd ~/domains/theartframer.us/public_html && timeout 170 php wp-content/themes/postero-child/tools/profile-plugins.php '$u' theartframer.us 2>&1 | head -400" \
+              "cd ~/websites/OPu0sKi4J/public_html && timeout 170 php wp-content/themes/postero-child/tools/profile-plugins.php '$u' theartframer.us 2>&1 | head -400" \
               || echo "  profile of $u failed"
           done
   browser:

@@ -53,7 +53,7 @@ jobs:
           #!/usr/bin/env bash
           # run one wp-cli command line on the host, retrying a dropped connection
           for i in 1 2 3; do
-            ssh -p "$SSH_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 "$SSH_DEST" "cd ~/domains/theartframer.us/public_html && $1" && exit 0
+            ssh -p "$SSH_PORT" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=40 -i ~/.ssh/id_ed25519 "$SSH_DEST" "cd ~/websites/OPu0sKi4J/public_html && $1" && exit 0
             echo "  (connection attempt $i failed)"; sleep 15
           done
           exit 1

@@ -36,7 +36,7 @@ jobs:
           scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               tools/protect-images.php \
-              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/protect-images.php" \
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/protect-images.php" \
             || echo "  scp failed — falling back to whatever the last deploy left there"
 
       - name: Apply
@@ -46,7 +46,7 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/domains/theartframer.us/public_html && \
+            "cd ~/websites/OPu0sKi4J/public_html && \
              DRY=${{ inputs.dry_run && '1' || '' }} \
              REVERT=${{ inputs.revert && '1' || '' }} \
              wp eval-file wp-content/themes/postero-child/tools/protect-images.php --allow-root 2>&1" \

@@ -25,7 +25,7 @@
 #     still there afterwards
 set -uo pipefail
 SITE=https://theartframer.us
-WP='~/domains/theartframer.us/public_html'
+WP='~/websites/OPu0sKi4J/public_html'
 F="$WP/wp-content/db.php"
 MARK=AF-PORT-PREVIEW-DROPIN
 TTL=${AF_PV_TTL:-2700}

@@ -30,7 +30,7 @@ jobs:
           scp -P "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               tools/rename-goldfoil.php \
-              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/domains/theartframer.us/public_html/wp-content/themes/postero-child/tools/rename-goldfoil.php"
+              "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}:~/websites/OPu0sKi4J/public_html/wp-content/themes/postero-child/tools/rename-goldfoil.php"
       - name: Report only
         if: ${{ inputs.dry_run }}
         run: |
@@ -38,7 +38,7 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/domains/theartframer.us/public_html && DRY=1 NEW_NAME='${{ inputs.new_name }}' \
+            "cd ~/websites/OPu0sKi4J/public_html && DRY=1 NEW_NAME='${{ inputs.new_name }}' \
              wp eval-file wp-content/themes/postero-child/tools/rename-goldfoil.php --allow-root 2>&1" || true
       - name: Apply
         if: ${{ !inputs.dry_run }}
@@ -47,5 +47,5 @@ jobs:
           ssh -p "${{ secrets.HOSTINGER_PORT }}" -o StrictHostKeyChecking=no \
               -o UserKnownHostsFile=/dev/null -o ConnectTimeout=30 -i ~/.ssh/id_ed25519 \
               "${{ secrets.HOSTINGER_USERNAME }}@${{ secrets.HOSTINGER_HOST }}" \
-            "cd ~/domains/theartframer.us/public_html && NEW_NAME='${{ inputs.new_name }}' \
+            "cd ~/websites/OPu0sKi4J/public_html && NEW_NAME='${{ inputs.new_name }}' \
              wp eval-file wp-content/themes/postero-child/tools/rename-goldfoil.php --allow-root 2>&1" || true

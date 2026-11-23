@@ -73,7 +73,7 @@ stage_of() {
     elif in_list "$1" "$ELE"; then echo elementor
     else echo plugins-low; fi
 }
-logs() { ls ~/domains/theartframer.us/public_html/wp-content/debug.log ~/websites/OPu0sKi4J/logs/error_log ~/logs/error_log 2>/dev/null; }
+logs() { ls ~/websites/OPu0sKi4J/public_html/wp-content/debug.log ~/websites/OPu0sKi4J/logs/error_log ~/logs/error_log 2>/dev/null; }
 LOGLEN=""
 for f in $(logs); do LOGLEN="$LOGLEN $f:$(wc -l < "$f")"; done
 
