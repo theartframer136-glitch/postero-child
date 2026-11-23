@@ -5,8 +5,6 @@ name: Cloudflare Check
 #     copied into Cloudflare exactly or email stops;
 #   - who answers the site: Hostinger's CDN, Cloudflare, or the server itself
 #     (Hostinger: only one CDN at a time, so its CDN goes off before Cloudflare);
-#   - whether the deploys' SSH login uses a name Cloudflare's proxy would break
-#     (yes/no only: the value is a secret and is never printed);
 #   - whether Cloudflare's published address ranges still match the list in
 #     functions.php that af_visitor_ip() trusts.
 # Nothing on the site, the server or in DNS is changed.
@@ -51,19 +49,6 @@ jobs:
           if printf '%s\n' "$H" | grep -qi '^cf-ray:'; then echo "VERDICT: behind Cloudflare"
           elif printf '%s\n' "$H" | grep -qiE '^(x-hcdn|server: hcdn)'; then echo "VERDICT: Hostinger CDN, not Cloudflare"
           else echo "VERDICT: straight from the server (no CDN in front)"; fi
-      - name: Deploy login (yes/no only; the SSH host is a secret)
-        env:
-          H: ${{ secrets.HOSTINGER_HOST }}
-        run: |
-          if [[ "$H" =~ ^[0-9.]+$ || "$H" == *:*:* ]]; then
-            echo "The deploys log in by IP address: moving the site to Cloudflare does not affect them."
-          else
-            echo "The deploys log in by a name, not an IP address."
-            case "$H" in
-              *theartframer.us) echo "That name is under theartframer.us: in Cloudflare its record must be 'DNS only' (grey cloud), or deploys break." ;;
-              *) echo "That name is not under theartframer.us: moving the site to Cloudflare does not affect it." ;;
-            esac
-          fi
       - name: Cloudflare's address ranges vs functions.php
         run: |
           node tools/print-cloudflare-ips.mjs > /tmp/cf.txt || true
