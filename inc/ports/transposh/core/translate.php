@@ -49,11 +49,11 @@ class transposh_translate
         $response = curl_exec($ch);
         if (curl_errno($ch)) {
             tp_logger('cURL error: ' . curl_error($ch), 1);
-            curl_close($ch);
+            /* curl_close() has done nothing since PHP 8.0 and is deprecated in 8.5. */
             return false;
         }
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        curl_close($ch);
+        /* curl_close() has done nothing since PHP 8.0 and is deprecated in 8.5. */
         if ($httpCode !== 200) {
             tp_logger("HTTP error: $httpCode for URL $url", 1);
             tp_logger("Response: $response", 1);

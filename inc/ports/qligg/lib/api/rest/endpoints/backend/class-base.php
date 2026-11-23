@@ -9,7 +9,7 @@ use QuadLayers\IGG\Api\Rest\Endpoints\Base as Endpoints;
  */
 abstract class Base extends Endpoints {
 
-	public function get_rest_permission( \WP_REST_Request $request = null ) {
+	public function get_rest_permission( ?\WP_REST_Request $request = null ) {
 		// Fall back to 'manage_options' in case 'qligg_manage_feeds' has not been
 		// assigned yet (add_capability runs on admin_init which doesn't fire on
 		// REST API requests if no admin page has been visited since activation).

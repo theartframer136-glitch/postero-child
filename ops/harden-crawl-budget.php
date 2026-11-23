@@ -190,13 +190,16 @@ function af_guard_probe( $path, $headers = array() ) {
         'headers'     => $headers,
     ) );
     if ( is_wp_error( $r ) ) {
-        return array( 'code' => null, 'err' => $r->get_error_message(), 'marker' => null, 'len' => 0, 'via_cdn' => false );
+        return array( 'code' => null, 'err' => $r->get_error_message(), 'marker' => null, 'cfmit' => '', 'len' => 0, 'via_cdn' => false );
     }
     $server = (string) wp_remote_retrieve_header( $r, 'server' );
     return array(
         'code'    => (int) wp_remote_retrieve_response_code( $r ),
         'err'     => null,
         'marker'  => (string) wp_remote_retrieve_header( $r, 'x-af-guard' ),
+        // Cloudflare's own answer when one of its rules challenged the
+        // request before it reached this server (since 16 Nov).
+        'cfmit'   => strtolower( (string) wp_remote_retrieve_header( $r, 'cf-mitigated' ) ),
         // Body size separates a cheap refusal from a full themed render: a
         // WordPress 404 template is tens of KB, a web-server or guard refusal
         // is a few hundred bytes.
@@ -436,8 +439,10 @@ if ( $search_active ) {
     // These three live inside the AF-SEARCH-GUARD block, so they exist only
     // while that block does — same condition, same probe gate.
     $checks[] = array( '/?s=af-guard-bot-' . uniqid(), 302, 'search-302', 'headerless search -> 302 home', false );
-    $checks[] = array( '/shop/?filter_colors=af-' . uniqid(), 302, 'filter-302', 'headerless filter URL -> 302 bare path', false );
-    $checks[] = array( '/shop/?add-to-cart=' . rand( 900000, 999999 ), 302, 'addtocart-302', 'headerless add-to-cart -> 302 home', false );
+    // Behind Cloudflare these two are challenged at the edge (custom rule,
+    // 16 Nov) and never reach the guard; the loop below accepts that.
+    $checks[] = array( '/shop/?filter_colors=af-' . uniqid(), 302, 'filter-302', 'headerless filter URL -> 302 bare path', 'cf' );
+    $checks[] = array( '/shop/?add-to-cart=' . rand( 900000, 999999 ), 302, 'addtocart-302', 'headerless add-to-cart -> 302 home', 'cf' );
 }
 foreach ( $checks as $c ) {
     list( $path, $want_code, $want_marker, $label, $cheap_ok ) = $c;
@@ -445,7 +450,11 @@ foreach ( $checks as $c ) {
     $got  = ( $p['code'] !== null ) ? (string) $p['code'] : 'ERR: ' . $p['err'];
     $pass = ( $p['code'] === $want_code && $p['marker'] === $want_marker );
     $note = '';
-    if ( ! $pass && $cheap_ok && $p['code'] === $want_code && $p['marker'] === '' && $p['len'] <= $CHEAP_MAX ) {
+    if ( ! $pass && $cheap_ok === 'cf' && isset( $p['cfmit'] ) && $p['cfmit'] === 'challenge' ) {
+        $pass = true;
+        $note = ' [challenged by Cloudflare before reaching the server — even cheaper]';
+    }
+    if ( ! $pass && $cheap_ok === true && $p['code'] === $want_code && $p['marker'] === '' && $p['len'] <= $CHEAP_MAX ) {
         $pass = true;
         $note = ' [answered by the web server before PHP — cheaper than the guard]';
     }
