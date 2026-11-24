@@ -1,13 +1,14 @@
 <?php
 /**
- * Corporate Printing: the custom quote, the catalogue, and the introductory offer.
+ * Corporate Printing: the custom quote and the catalogue.
  *
  * Owner, 24 Nov 2026, sending TheArtframer_Corporate_Printing_Brochure_1.pdf:
  *   "add this images and pricing in our art framer website, also give option
  *    to contact us for customized quote ... and share catalogue to all those
- *    enquiries. Lets also give 80% introduction offer for gold foil cards
- *    first 100 pcs and normal metallic cards ... one ad to push sales and
- *    generate enquiries and have relationships"
+ *    enquiries."
+ * The introductory offer and the ad in the same message are marketing, which
+ * the owner's co-developer handles (owner, same day), so nothing here prices,
+ * limits or advertises an offer.
  *
  * The products and prices themselves are data, written by the gateway script
  * artframer-ops/scripts/corporate-brochure-sync.php. This file is everything a
@@ -24,7 +25,7 @@
  *      the studio with Reply-To set to the customer, and answered AT ONCE with
  *      the catalogue by email — "share catalogue to all those enquiries". On
  *      success the browser reports a Meta pixel Lead and a GA4 generate_lead,
- *      so the ad can be measured on enquiries, not just clicks.
+ *      so any ad can be measured on enquiries, not just clicks.
  *
  *   3. THE CONTACT FORM'S SALES ENQUIRIES get the catalogue too, through the
  *      af_contact_message_saved action the contact handler now fires. Support
@@ -35,13 +36,8 @@
  *      Printing product (folded, product preselected), under the grid of the
  *      Corporate Printing category (with a strip at the top pointing to it and
  *      to the catalogue), under the text of /wholesale-corporate/, and on the
- *      landing page [af_corporate_offer_page] that the ad points at.
- *
- *   5. THE INTRODUCTORY OFFER, dormant until the option af_intro_offer names
- *      its products and is switched on (the owner confirms the terms first).
- *      Its products are sold one per customer: one in the basket, and refused
- *      at checkout to a billing email or account that already bought one.
- *      An optional cap stops it after N packs, an optional date ends it.
+ *      page /corporate-printing-quote/ ([af_corporate_quote_page]), a focused
+ *      place to send people from an ad or an email.
  *
  * WHY A FRESH TOKEN BEFORE EVERY SEND. Pages are cached for logged-out
  * visitors (LiteSpeed), and a nonce printed into a cached page goes stale
@@ -49,7 +45,7 @@
  * af_ajax in functions.php). For a form that paid ads send people to, a
  * stale page must not mean a lost enquiry, so the browser asks admin-ajax for
  * a token (a POST: never cached by LiteSpeed or Cloudflare) and sends the
- * form with it. Spam is held off the way the contact form does it — honeypot,
+ * form with it. (The same holds for anyone arriving from an ad.) Spam is held off the way the contact form does it — honeypot,
  * Cloudflare Turnstile when switched on, five sends an hour per address — plus
  * a fill-time check that drops anything submitted faster than a person can.
  */
@@ -106,7 +102,6 @@ function af_corp_send_catalogue($email, $name = '', $context = array()) {
     $pdf     = af_corp_catalogue_url();
     $shop    = get_term_link('corporate-printing', 'product_cat');
     $shop    = is_wp_error($shop) ? home_url('/') : $shop;
-    $offer   = (af_intro_offer_live() && !af_intro_sold_out()) ? af_intro_offer() : null;
 
     $p  = 'margin:0 0 14px;font:15px/1.6 Arial,sans-serif;color:#4a4334;';
     $html = '<div style="background:#f6f1e6;padding:28px 14px;">'
@@ -116,15 +111,8 @@ function af_corp_send_catalogue($email, $name = '', $context = array()) {
       . '<p style="' . $p . '">We have your enquiry' . ($about !== '' ? ' about <strong>' . esc_html($about) . '</strong>' : '')
       . ' and will come back to you with a quote within one working day — usually the same day. Here is our 2026 corporate catalogue with every product and price:</p>'
       . '<p style="margin:22px 0;text-align:center;"><a href="' . esc_url($pdf) . '" style="display:inline-block;background:#1a1a1a;color:#ffffff;text-decoration:none;font:700 15px Arial,sans-serif;padding:15px 28px;border-radius:10px;">Download the catalogue (PDF)</a></p>'
-      . '<p style="' . $p . '"><strong>Send us your logo — we will send back 2 designs.</strong> Just reply to this email with your logo or artwork and the item you have in mind. Artwork and two design variations are included free with every order.</p>';
-    if ($offer && $offer['headline'] !== '') {
-        $html .= '<div style="margin:0 0 16px;padding:14px 16px;border-radius:12px;background:#fbf3d9;border:1px solid #ecd9a0;">'
-          . '<p style="margin:0;font:700 15px/1.5 Arial,sans-serif;color:#3d2f06;">' . esc_html($offer['headline']) . '</p>'
-          . ($offer['sub'] !== '' ? '<p style="margin:4px 0 0;font:14px/1.5 Arial,sans-serif;color:#5a4a1a;">' . esc_html($offer['sub']) . '</p>' : '')
-          . '<p style="margin:8px 0 0;"><a href="' . esc_url(af_corp_offer_page_url()) . '" style="font:700 14px Arial,sans-serif;color:#8a5a00;">See the offer &rarr;</a></p>'
-          . '</div>';
-    }
-    $html .= '<ul style="margin:0 0 18px;padding:0 0 0 18px;font:14px/1.7 Arial,sans-serif;color:#4a4334;">'
+      . '<p style="' . $p . '"><strong>Send us your logo — we will send back 2 designs.</strong> Just reply to this email with your logo or artwork and the item you have in mind. Artwork and two design variations are included free with every order.</p>'
+      . '<ul style="margin:0 0 18px;padding:0 0 0 18px;font:14px/1.7 Arial,sans-serif;color:#4a4334;">'
       . '<li>Every catalogue price is already 40% off list</li>'
       . '<li>Free design proof — nothing prints until you approve it</li>'
       . '<li>Free local delivery in Delaware, Pennsylvania, Maryland and New Jersey</li>'
@@ -453,14 +441,12 @@ function af_corp_is_corporate_product($pid) {
 function af_corp_product_wants_quote() {
     global $product;
     if (!($product instanceof WC_Product) || !af_corp_is_corporate_product($product->get_id())) return 0;
-    if (af_intro_is_offer_product($product->get_id())) return 0;   // the trial pack is bought, not quoted
     return (int) $product->get_id();
 }
 add_action('woocommerce_single_product_summary', function () {
     $pid = af_corp_product_wants_quote();
     if (!$pid) return;
     echo '<div class="af-cq-product">'
-       . af_intro_offer_note_for($pid) // phpcs:ignore WordPress.Security.EscapeOutput
        . '<p class="af-cq-pointer"><span>Need another size, quantity or finish?</span> '
        . '<a href="#af-corp-quote">Get a custom quote</a></p>'
        . '<a class="af-cq-pdf" href="' . esc_url(af_corp_catalogue_url()) . '" target="_blank" rel="noopener">Download the 2026 corporate catalogue (PDF)</a>'
@@ -485,7 +471,6 @@ add_action('woocommerce_archive_description', function () {
        . '<p><strong>Corporate rate card 2026.</strong> Every price here is already 40% off list. Need another size, quantity or finish? We quote the same day.</p>'
        . '<p class="af-cq-strip-actions"><a class="af-cq-btn af-cq-btn--dark" href="#af-corp-quote">Get a custom quote</a>'
        . '<a class="af-cq-btn" href="' . esc_url(af_corp_catalogue_url()) . '" target="_blank" rel="noopener">Download the catalogue (PDF)</a></p>'
-       . af_intro_offer_banner_html()
        . '</div>';
 }, 12);
 add_action('woocommerce_after_shop_loop', function () {
@@ -522,176 +507,38 @@ add_action('wp_head', function () {
 .af-cq-strip .af-cq-strip-actions{display:flex;flex-wrap:wrap;gap:10px;margin:0}
 .af-cq-btn{box-sizing:border-box;max-width:100%;display:inline-flex;align-items:center;min-height:44px;padding:10px 18px;border:1px solid #1a1a1a;color:#1a1a1a!important;background:#fff;font-weight:700;font-size:14px;text-decoration:none!important}
 .af-cq-btn--dark{background:#1a1a1a;color:#fff!important}
-.af-cq-btn--gold{background:linear-gradient(135deg,#f7e7a8 0%,#d4af37 55%,#b8912a 100%);border-color:#b8912a;color:#1a1206!important}
 .af-cq-section{margin:34px 0 10px;padding:26px 0 0;border-top:1px solid #ece5d4;scroll-margin-top:110px}
 .af-cq-section h2{margin:0 0 6px}
 .af-cq-section>p{margin:0 0 16px;color:#5a5140}
-.af-io-banner{margin:14px 0 0;padding:14px 16px;background:linear-gradient(135deg,#fff8e1 0%,#f6e7b4 100%);border:1px solid #e3cd8a}
-.af-io-banner strong{display:block;font-size:16px;color:#3d2f06}
-.af-io-banner span{display:block;font-size:14px;color:#5a4a1a;margin:3px 0 10px}
-.af-io-banner .af-cq-btn{min-height:40px;padding:8px 14px;margin:0 8px 6px 0}
 @media(max-width:640px){.af-cq-strip{padding:14px}.af-cq-btn{width:100%;justify-content:center}}
 </style>
     <?php
 }, 20);
 
-/* ───────────────────────── the introductory offer ───────────────────────── */
+/* ─────────────────────── the quote & catalogue page ─────────────────────── */
 
 /**
- * The offer as the studio set it. Nothing happens until 'on' is 1 and
- * 'products' names the intro-pack products:
- *   wp option update af_intro_offer --format=json '{"on":1,"products":[123],
- *     "headline":"…","sub":"…","per_customer":1,"cap":0,"ends":"2027-01-31",
- *     "promote_on":[33440]}'
- */
-function af_intro_offer() {
-    $o = get_option('af_intro_offer', array());
-    if (!is_array($o)) $o = array();
-    $o = wp_parse_args($o, array(
-        'on' => 0, 'products' => array(), 'headline' => '', 'sub' => '',
-        'per_customer' => 1, 'cap' => 0, 'ends' => '', 'promote_on' => array(),
-    ));
-    $o['products']     = array_values(array_filter(array_map('absint', (array) $o['products'])));
-    $o['promote_on']   = array_values(array_filter(array_map('absint', (array) $o['promote_on'])));
-    $o['per_customer'] = max(1, (int) $o['per_customer']);
-    $o['cap']          = max(0, (int) $o['cap']);
-    $o['headline']     = (string) $o['headline'];
-    $o['sub']          = (string) $o['sub'];
-    $o['ends']         = preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) $o['ends']) ? (string) $o['ends'] : '';
-    return $o;
-}
-
-function af_intro_offer_live() {
-    $o = af_intro_offer();
-    if (empty($o['on']) || !$o['products']) return false;
-    if ($o['ends'] !== '' && current_time('Y-m-d') > $o['ends']) return false;
-    return true;
-}
-
-function af_intro_is_offer_product($pid) {
-    return in_array((int) $pid, af_intro_offer()['products'], true);
-}
-
-/** Packs sold so far (all offer products together). Cached for five minutes. */
-function af_intro_claimed() {
-    $n = get_transient('af_intro_claimed');
-    if ($n !== false) return (int) $n;
-    $n = 0;
-    foreach (af_intro_offer()['products'] as $pid) $n += (int) get_post_meta($pid, 'total_sales', true);
-    set_transient('af_intro_claimed', $n, 5 * MINUTE_IN_SECONDS);
-    return $n;
-}
-
-function af_intro_sold_out() {
-    $cap = af_intro_offer()['cap'];
-    return $cap > 0 && af_intro_claimed() >= $cap;
-}
-
-/** Has this email / account already bought an offer product? */
-function af_intro_already_claimed($email = '', $user_id = 0) {
-    $ids  = af_intro_offer()['products'];
-    if (!$ids || !function_exists('wc_get_orders')) return false;
-    $args = array('limit' => 50, 'status' => array('wc-processing', 'wc-completed', 'wc-on-hold'), 'return' => 'objects');
-    $sets = array();
-    if ($user_id) $sets[] = $args + array('customer_id' => (int) $user_id);
-    if ($email)   $sets[] = $args + array('billing_email' => sanitize_email($email));
-    foreach ($sets as $q) {
-        foreach (wc_get_orders($q) as $order) {
-            foreach ($order->get_items() as $item) {
-                if (in_array((int) $item->get_product_id(), $ids, true)) return true;
-            }
-        }
-    }
-    return false;
-}
-
-// One in the basket, never more.
-add_filter('woocommerce_is_sold_individually', function ($yes, $product) {
-    return ($product instanceof WC_Product && af_intro_is_offer_product($product->get_id())) ? true : $yes;
-}, 10, 2);
-
-// Not for sale while the offer is off, over, or fully claimed.
-add_filter('woocommerce_is_purchasable', function ($yes, $product) {
-    if (!($product instanceof WC_Product) || !af_intro_is_offer_product($product->get_id())) return $yes;
-    return $yes && af_intro_offer_live() && !af_intro_sold_out();
-}, 20, 2);
-
-add_filter('woocommerce_add_to_cart_validation', function ($ok, $pid) {
-    if (!$ok || !af_intro_is_offer_product($pid)) return $ok;
-    if (!af_intro_offer_live() || af_intro_sold_out()) {
-        wc_add_notice('Sorry — the introductory offer has ended.', 'error');
-        return false;
-    }
-    if (is_user_logged_in()) {
-        $u = wp_get_current_user();
-        if (af_intro_already_claimed($u->user_email, $u->ID)) {
-            wc_add_notice('The introductory offer is one per customer, and this account has already used it. Our regular packs are still 40% off list.', 'error');
-            return false;
-        }
-    }
-    return $ok;
-}, 20, 2);
-
-add_action('woocommerce_after_checkout_validation', function ($data, $errors) {
-    if (!function_exists('WC') || !WC()->cart) return;
-    $has = false;
-    foreach (WC()->cart->get_cart() as $line) if (af_intro_is_offer_product((int) $line['product_id'])) { $has = true; break; }
-    if (!$has) return;
-    $email = isset($data['billing_email']) ? (string) $data['billing_email'] : '';
-    if (af_intro_already_claimed($email, get_current_user_id())) {
-        $errors->add('af_intro', 'The introductory offer is one per customer, and it has already been used with this email address. Please remove it from your basket — our regular packs are still 40% off list.');
-    }
-}, 20, 2);
-
-add_action('woocommerce_order_status_changed', function () { delete_transient('af_intro_claimed'); }, 10, 0);
-
-/** The gold strip naming the offer, with a button per offer product. Empty when the offer is not live. */
-function af_intro_offer_banner_html() {
-    if (!af_intro_offer_live() || af_intro_sold_out()) return '';
-    $o = af_intro_offer();
-    if ($o['headline'] === '') return '';
-    $btns = '';
-    foreach ($o['products'] as $pid) {
-        if (get_post_status($pid) !== 'publish') continue;
-        $btns .= '<a class="af-cq-btn af-cq-btn--gold" href="' . esc_url(get_permalink($pid)) . '">' . esc_html(af_corp_short_name(get_the_title($pid))) . '</a>';
-    }
-    return '<div class="af-io-banner"><strong>' . esc_html($o['headline']) . '</strong>'
-         . ($o['sub'] !== '' ? '<span>' . esc_html($o['sub']) . '</span>' : '<span></span>')
-         . $btns . '</div>';
-}
-
-/** On a product the offer is promoted from (the regular Gold Foil pack, say): the same strip. */
-function af_intro_offer_note_for($pid) {
-    $o = af_intro_offer();
-    return in_array((int) $pid, $o['promote_on'], true) ? af_intro_offer_banner_html() : '';
-}
-
-/* ─────────────────────────── the ad's landing page ─────────────────────────── */
-
-function af_corp_offer_page_url() {
-    $p = get_page_by_path('corporate-printing-offer');
-    return $p ? get_permalink($p) : home_url('/product-category/corporate-printing/');
-}
-
-/**
+ * /corporate-printing-quote/: one page with the quote form and the catalogue,
+ * for anyone sent from an ad, an email or a QR code.
+ *
  * The page itself is made once, on the first request after this deploys (the
  * pattern inc/duplicate-listings.php uses): a page created before the theme
- * knew the shortcode would have shown "[af_corporate_offer_page]" as text.
+ * knew the shortcode would have shown "[af_corporate_quote_page]" as text.
  * A five-minute lock keeps two first visitors from making it twice. If the
  * studio deletes the page later it is not brought back (the option remembers).
  */
 add_action('wp_loaded', function () {
-    if (get_option('af_corp_offer_page_made')) return;
-    if (get_transient('af_corp_offer_page_lock')) return;
-    set_transient('af_corp_offer_page_lock', 1, 5 * MINUTE_IN_SECONDS);
+    if (get_option('af_corp_quote_page_made')) return;
+    if (get_transient('af_corp_quote_page_lock')) return;
+    set_transient('af_corp_quote_page_lock', 1, 5 * MINUTE_IN_SECONDS);
     try {
-        $page = get_page_by_path('corporate-printing-offer');
+        $page = get_page_by_path('corporate-printing-quote');
         $id   = $page ? (int) $page->ID : 0;
         if (!$id) {
             $id = wp_insert_post(array(
-                'post_type' => 'page', 'post_status' => 'publish', 'post_name' => 'corporate-printing-offer',
+                'post_type' => 'page', 'post_status' => 'publish', 'post_name' => 'corporate-printing-quote',
                 'post_title' => 'Corporate Printing — Free Quote & 2026 Catalogue',
-                'post_content' => '[af_corporate_offer_page]',
+                'post_content' => '[af_corporate_quote_page]',
                 // An excerpt of its own, so nothing renders the shortcode to describe the page in <head>.
                 'post_excerpt' => 'Business cards, banners, standees, stickers and more — 40% off list, design included, free local delivery in DE, PA, MD and NJ. Get a free quote and our 2026 catalogue.',
                 'comment_status' => 'closed', 'ping_status' => 'closed',
@@ -700,32 +547,24 @@ add_action('wp_loaded', function () {
             update_post_meta($id, 'rank_math_title', 'Corporate Printing — Free Quote & 2026 Catalogue | The Art Framer');
             update_post_meta($id, 'rank_math_description', 'Business cards, banners, standees, stickers and more, printed and delivered from Delaware. 40% off list, design included. Get a free quote and the 2026 catalogue.');
         }
-        update_option('af_corp_offer_page_made', (int) $id, false);
+        update_option('af_corp_quote_page_made', (int) $id, false);
     } catch (\Throwable $e) {
         // A missing landing page is recoverable; an error on every request is not.
     }
 }, 30);
 
-add_shortcode('af_corporate_offer_page', function () {
+add_shortcode('af_corporate_quote_page', function () {
     $pdf  = af_corp_catalogue_url();
     $cat  = get_term_link('corporate-printing', 'product_cat');
     $cat  = is_wp_error($cat) ? home_url('/shop/') : $cat;
-    $live = af_intro_offer_live() && !af_intro_sold_out();
-    $o    = af_intro_offer();
     $c    = af_corp_contact();
     ob_start(); ?>
 <div class="af-lp">
   <section class="af-lp-hero">
-    <p class="af-lp-kicker"><?php echo $live ? 'Introductory offer' : '40% off list price'; ?></p>
-    <h1><?php echo esc_html($live && $o['headline'] !== '' ? $o['headline'] : 'Your brand, printed big.'); ?></h1>
-    <p class="af-lp-lead"><?php echo esc_html($live && $o['sub'] !== '' ? $o['sub'] : 'Business cards, banners, standees, stickers, table cloths, certificates, tote bags, fliers and brochures — printed, framed and delivered from Delaware.'); ?></p>
+    <p class="af-lp-kicker">40% off list price</p>
+    <h1>Your brand, printed big.</h1>
+    <p class="af-lp-lead">Business cards, banners, standees, stickers, table cloths, certificates, tote bags, fliers and brochures — printed, framed and delivered from Delaware.</p>
     <p class="af-lp-cta">
-      <?php if ($live) {
-          foreach ($o['products'] as $pid) {
-              if (get_post_status($pid) !== 'publish') continue;
-              echo '<a class="af-cq-btn af-cq-btn--gold" href="' . esc_url(get_permalink($pid)) . '">' . esc_html('Claim: ' . af_corp_short_name(get_the_title($pid))) . '</a>';
-          }
-      } ?>
       <a class="af-cq-btn af-cq-btn--dark" href="#af-corp-quote">Get a free quote</a>
       <a class="af-cq-btn" href="<?php echo esc_url($pdf); ?>" target="_blank" rel="noopener">Download the catalogue (PDF)</a>
     </p>
@@ -736,16 +575,6 @@ add_shortcode('af_corporate_offer_page', function () {
     <div><h3>Design included</h3><p>Send us your logo and we send back 2 designs. Artwork and two variations are free.</p></div>
     <div><h3>Free local delivery</h3><p>Delaware, Pennsylvania, Maryland and New Jersey. Free design proof, support 24/7.</p></div>
   </section>
-
-  <?php if ($live) {
-      $ids = array_filter($o['products'], function ($id) { return get_post_status($id) === 'publish'; });
-      if ($ids) {
-          echo '<section class="af-lp-block"><h2>The introductory offer</h2>';
-          echo '<p class="af-lp-note">One per customer' . ($o['ends'] !== '' ? ', until ' . esc_html(date_i18n('j F Y', strtotime($o['ends']))) : '') . '. After that, our regular packs are still 40% off list.</p>';
-          echo do_shortcode('[products ids="' . esc_attr(implode(',', array_map('intval', $ids))) . '" columns="' . (count($ids) > 3 ? 4 : count($ids)) . '"]');
-          echo '</section>';
-      }
-  } ?>
 
   <section class="af-lp-block af-cq-section" id="af-corp-quote">
     <h2>Get a free quote</h2>
@@ -767,7 +596,7 @@ add_shortcode('af_corporate_offer_page', function () {
 .af-lp-kicker{display:inline-block;margin:0 0 14px;padding:6px 12px;background:#c9a84c;color:#1a1206;font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
 .af-lp-lead{max-width:640px;font-size:16.5px;line-height:1.6;color:#e9e4d8;margin:0 0 20px}
 .af-lp-cta{display:flex;flex-wrap:wrap;gap:10px;margin:0}
-.af-lp-hero .af-cq-btn:not(.af-cq-btn--gold):not(.af-cq-btn--dark){background:transparent;color:#fff!important;border-color:#fff}
+.af-lp-hero .af-cq-btn:not(.af-cq-btn--dark){background:transparent;color:#fff!important;border-color:#fff}
 .af-lp-hero .af-cq-btn--dark{background:#fff;color:#1a1a1a!important;border-color:#fff}
 .af-lp-points{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:0 0 26px}
 .af-lp-points>div{background:#f6f1e6;border:1px solid #e9dfc8;padding:18px}
