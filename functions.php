@@ -8665,6 +8665,8 @@ function af_contact_submit_handler() {
     if (!$ok) {
         wp_send_json_error(array('message' => 'Could not save your message — please email us directly at theartframer136@gmail.com.'));
     }
+    // Read now: set_transient() below can write an option row and move insert_id.
+    $af_ct_id = (int) $wpdb->insert_id;
     set_transient($rl_key, $count + 1, HOUR_IN_SECONDS);
 
     wp_mail(
@@ -8675,7 +8677,10 @@ function af_contact_submit_handler() {
         // address or a second header to it.
         array('Reply-To: ' . (trim(preg_replace('/[^\p{L}\p{N} .\'-]+/u', '', $name)) ?: 'Website visitor') . ' <' . $email . '>')
     );
-    wp_send_json_success(array('message' => 'Thank you! Your message has been sent — we usually reply within 24 hours.'));
+    // inc/corporate-quote.php: sales enquiries are answered with the catalogue.
+    do_action('af_contact_message_saved', $af_ct_id, array('name' => $name, 'email' => $email, 'phone' => $phone, 'subject' => $subject, 'message' => $message));
+    wp_send_json_success(array('message' => apply_filters('af_contact_success_message',
+        'Thank you! Your message has been sent — we usually reply within 24 hours.', $subject)));
 }
 add_action('wp_ajax_af_contact_submit',        'af_contact_submit_handler');
 add_action('wp_ajax_nopriv_af_contact_submit', 'af_contact_submit_handler');
@@ -13248,7 +13253,7 @@ add_action('template_redirect', function () {
  * invoice / packing-slip generation. Kept in inc/ so this file does
  * not grow another few thousand lines.
  * ================================================================ */
-foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'deity-links', 'blog-shop-links', 'category-guides', 'post-faq-schema', 'robots-noindex', 'add-to-cart-links', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'product-pictures', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'meta-pixel', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings', 'retired-products', 'checkout-fixes', 'corporate-specs', 'category-display', 'turnstile', 'digital-masters', 'digital-account', 'security-hardening', 'markup-fixes', 'card-image-sizes', 'instant-nav', 'home-hero', 'header-weight', 'revslider-trim') as $af_mod) {
+foreach (array('artcode-book', 'abandoned-cart', 'address-validation', 'fraud-detection', 'documents', 'marketplace', 'shipping', 'shipping-distance', 'quantity-limits', 'csp', 'schema-product', 'page-headings', 'deity-links', 'blog-shop-links', 'category-guides', 'post-faq-schema', 'robots-noindex', 'add-to-cart-links', 'debug-flag', 'jquery-migrate', 'price-filter', 'price-sort', 'placeholder-products', 'product-pictures', 'kit-choices', 'deals-page', 'deals-live', 'gold-foil', 'goldfoil-collection', 'goldfoil-autosync', 'reels', 'cookie-consent', 'masonry', 'card-actions', 'orientation-filter', 'blog-hub', 'analytics', 'meta-pixel', 'chatbot', 'sales-count', 'review-enhancements', 'artist-profiles', 'banner-links', 'about-page', 'image-guard', 'fatal-recorder', 'sku', 'goldfoil-promo', 'promo-hide', 'new-arrivals-rule', 'motion-glide', 'carousel-off', 'daily-shuffle', 'search-all', 'demo-guard', 'cache-warm', 'taf-tables', 'audit-fixes', 'corporate-collection', 'home-weight', 'wishlist-guest', 'stretcher-bar-pricing', 'aluminium-frame-pricing', 'duplicate-listings', 'retired-products', 'checkout-fixes', 'corporate-specs', 'corporate-quote', 'category-display', 'turnstile', 'digital-masters', 'digital-account', 'security-hardening', 'markup-fixes', 'card-image-sizes', 'instant-nav', 'home-hero', 'header-weight', 'revslider-trim') as $af_mod) {
     $af_path = get_stylesheet_directory() . '/inc/' . $af_mod . '.php';
     if (file_exists($af_path)) require_once $af_path;
 }
