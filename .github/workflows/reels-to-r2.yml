@@ -1,0 +1,118 @@
+name: Reels to R2
+
+# Products In Motion: the real reel videos for the home page row.
+#
+# Replaces Fetch Reels (removed 23 Nov 2026 with the old server). Nothing can
+# copy files onto the shared Cloud server from outside, so this job puts each
+# reel in our Cloudflare R2 bucket as pim/<video id>.mp4, and the theme
+# (inc/pim-r2-pull.php) pulls it onto the site within the hour. The card then
+# plays the real reel instead of its still-frame clip (<id>.anim.mp4).
+#
+# YouTube refuses downloads from data-centre addresses ("Sign in to confirm
+# you're not a bot"); every run of Fetch Reels since September was refused,
+# and it never had the one thing that gets past that wall: a signed-in
+# cookie. Put a cookies.txt export from the channel's YouTube account in the
+# repo secret YT_COOKIES (docs/server-access.md says how). Without it this job
+# says so and stops; nothing on the site changes.
+#
+# Only reads the public site and writes to R2 under pim/. No server login.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '41 2 * * *'   # daily, off-peak
+
+concurrency:
+  group: reels-to-r2
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SITE: https://theartframer.us
+      YT_COOKIES: ${{ secrets.YT_COOKIES }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+    steps:
+      - name: Which reels does the row still need?
+        id: ids
+        run: |
+          set -uo pipefail
+          RAW="$(curl -fsS --max-time 60 "${SITE}/?af_pim_ids=missing&afr=$RANDOM" || true)"
+          # The sentinel tells "answered, nothing missing" apart from a cached
+          # page or a challenge answering instead.
+          if ! printf '%s\n' "$RAW" | head -1 | grep -q '^#af-pim-ids'; then
+            echo "The site's reel list did not answer. First bytes:"; printf '%s\n' "$RAW" | head -3 | cut -c1-120
+            echo "SUMMARY: SITE-UNREACHABLE"; exit 1
+          fi
+          IDS="$(printf '%s\n' "$RAW" | tr -d '\r' | grep -E '^[A-Za-z0-9_-]{11}$' | tr '\n' ' ' || true)"
+          echo "missing on the site: ${IDS:-none}"
+          echo "ids=${IDS}" >> "$GITHUB_OUTPUT"
+
+      - name: Download and store in R2
+        if: steps.ids.outputs.ids != ''
+        env:
+          IDS: ${{ steps.ids.outputs.ids }}
+        run: |
+          set -uo pipefail
+          if [ -z "${YT_COOKIES:-}" ]; then
+            echo "::warning::YT_COOKIES secret is empty. YouTube refuses downloads without a signed-in cookie, so nothing was fetched. See docs/server-access.md."
+            echo "SUMMARY: NEEDS-COOKIES"; exit 0
+          fi
+          for v in R2_ACCOUNT_ID R2_BUCKET AWS_ACCESS_KEY_ID AWS_SECRET_ACCESS_KEY; do
+            [ -n "${!v:-}" ] || { echo "SUMMARY: R2-NOT-SET ($v missing)"; exit 1; }
+          done
+          EP="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          command -v aws >/dev/null || { curl -fsSL -o /tmp/awscli.zip https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip && unzip -q /tmp/awscli.zip -d /tmp && sudo /tmp/aws/install >/dev/null; }
+          aws --version
+
+          # Already waiting in R2 (the site pulls hourly): don't fetch again.
+          INR2="$(aws s3 ls "s3://${R2_BUCKET}/pim/" --endpoint-url "$EP" 2>/dev/null | awk '{print $4}')"
+
+          curl -fsSL --retry 3 -o /usr/local/bin/yt-dlp https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_linux
+          chmod +x /usr/local/bin/yt-dlp; yt-dlp --version
+          command -v ffmpeg >/dev/null || { sudo apt-get update -qq >/dev/null; sudo apt-get install -y -qq ffmpeg >/dev/null; }
+
+          umask 077; printf '%s\n' "$YT_COOKIES" > /tmp/yt-cookies.txt
+          mkdir -p /tmp/reels
+          FMT='bv*[ext=mp4][height<=720]+ba[ext=m4a]/b[ext=mp4][height<=720]/b[height<=720]/b'
+          GOT=0; REFUSED=0; SKIP=0
+          for id in $IDS; do
+            if printf '%s\n' "$INR2" | grep -qx "${id}.mp4"; then echo "  wait ${id} already in R2"; SKIP=$((SKIP+1)); continue; fi
+            OK=""
+            for c in default web_embedded tv mweb; do
+              EXTRA=""; [ "$c" != "default" ] && EXTRA="--extractor-args youtube:player_client=$c"
+              if yt-dlp --no-warnings --no-playlist --cookies /tmp/yt-cookies.txt $EXTRA \
+                   -f "$FMT" --merge-output-format mp4 --max-filesize 60M \
+                   --socket-timeout 30 --retries 2 --sleep-requests 1 \
+                   -o "/tmp/reels/${id}.mp4" "https://www.youtube.com/watch?v=${id}" >/tmp/reels/last.log 2>&1 \
+                 && [ -s "/tmp/reels/${id}.mp4" ] && head -c 64 "/tmp/reels/${id}.mp4" | grep -q ftyp; then
+                OK="$c"; break
+              fi
+              rm -f /tmp/reels/${id}.mp4*
+            done
+            if [ -z "$OK" ]; then
+              REFUSED=$((REFUSED+1)); echo "  no   ${id}:"; tail -1 /tmp/reels/last.log | cut -c1-200 | sed 's/^/       /'
+              continue
+            fi
+            if aws s3 cp "/tmp/reels/${id}.mp4" "s3://${R2_BUCKET}/pim/${id}.mp4" --endpoint-url "$EP" \
+                 --content-type video/mp4 --only-show-errors; then
+              GOT=$((GOT+1)); echo "  ok   ${id}.mp4 ($(du -h /tmp/reels/${id}.mp4 | cut -f1), client ${OK}) -> R2"
+            else
+              REFUSED=$((REFUSED+1)); echo "  no   ${id}: R2 upload failed"
+            fi
+            rm -f "/tmp/reels/${id}.mp4"; sleep 2
+          done
+          rm -f /tmp/yt-cookies.txt
+          if grep -qi 'sign in to confirm\|cookies are no longer valid' /tmp/reels/last.log 2>/dev/null && [ "$GOT" = 0 ]; then
+            echo "::warning::YouTube refused the cookie. Export a fresh cookies.txt into YT_COOKIES."
+          fi
+          echo "SUMMARY: STORED ${GOT} reel(s) in R2; ${SKIP} already waiting; ${REFUSED} refused. The site pulls them within the hour."
