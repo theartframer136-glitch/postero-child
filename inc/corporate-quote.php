@@ -673,6 +673,39 @@ function af_corp_offer_page_url() {
     return $p ? get_permalink($p) : home_url('/product-category/corporate-printing/');
 }
 
+/**
+ * The page itself is made once, on the first request after this deploys (the
+ * pattern inc/duplicate-listings.php uses): a page created before the theme
+ * knew the shortcode would have shown "[af_corporate_offer_page]" as text.
+ * A five-minute lock keeps two first visitors from making it twice. If the
+ * studio deletes the page later it is not brought back (the option remembers).
+ */
+add_action('wp_loaded', function () {
+    if (get_option('af_corp_offer_page_made')) return;
+    if (get_transient('af_corp_offer_page_lock')) return;
+    set_transient('af_corp_offer_page_lock', 1, 5 * MINUTE_IN_SECONDS);
+    try {
+        $page = get_page_by_path('corporate-printing-offer');
+        $id   = $page ? (int) $page->ID : 0;
+        if (!$id) {
+            $id = wp_insert_post(array(
+                'post_type' => 'page', 'post_status' => 'publish', 'post_name' => 'corporate-printing-offer',
+                'post_title' => 'Corporate Printing — Free Quote & 2026 Catalogue',
+                'post_content' => '[af_corporate_offer_page]',
+                // An excerpt of its own, so nothing renders the shortcode to describe the page in <head>.
+                'post_excerpt' => 'Business cards, banners, standees, stickers and more — 40% off list, design included, free local delivery in DE, PA, MD and NJ. Get a free quote and our 2026 catalogue.',
+                'comment_status' => 'closed', 'ping_status' => 'closed',
+            ), true);
+            if (is_wp_error($id) || !$id) return;
+            update_post_meta($id, 'rank_math_title', 'Corporate Printing — Free Quote & 2026 Catalogue | The Art Framer');
+            update_post_meta($id, 'rank_math_description', 'Business cards, banners, standees, stickers and more, printed and delivered from Delaware. 40% off list, design included. Get a free quote and the 2026 catalogue.');
+        }
+        update_option('af_corp_offer_page_made', (int) $id, false);
+    } catch (\Throwable $e) {
+        // A missing landing page is recoverable; an error on every request is not.
+    }
+}, 30);
+
 add_shortcode('af_corporate_offer_page', function () {
     $pdf  = af_corp_catalogue_url();
     $cat  = get_term_link('corporate-printing', 'product_cat');
